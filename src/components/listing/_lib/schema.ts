@@ -9,7 +9,7 @@ import type { TFunction } from 'i18next';
  * min 5 (web min 1'den farkli, mobil davranisi korunur).
  *
  * Schema-DISI kalan (useState): sale/discount alanlari (salePrice/saleStartDate/
- * saleEndDate), imageKeys/imageUris, customAttributes, reservedQty, reactivate
+ * saleEndDate), images, customAttributes, reservedQty, reactivate
  * alanlari, productLoading. Bunlar server/UI state.
  *
  * `t` argüman olarak alınıyor (i18n): zod mesajları şema KURULURKEN çözülüyor,

@@ -515,7 +515,19 @@
     "images": "Images",
     "basicInfo": "Basic Information",
     "imageUpload": {
-      "removeImage": "Remove image {index}"
+      "removeImage": "Remove image {index}",
+      "cover": "Cover",
+      "imageAlt": "Image {index}",
+      "makeCoverImage": "Make image {index} the cover",
+      "reorderImage": "Reorder image {index}",
+      "rotate": "Rotate 90°",
+      "rotateImage": "Rotate image {index} by 90°",
+      "rotateFailed": "The image could not be rotated",
+      "blockerPending": "Images are still uploading, please wait until they finish.",
+      "makeCover": "Make cover",
+      "moveLeft": "Move left",
+      "moveRight": "Move right",
+      "orderHintTouch": "The first image is the cover — press and hold to drag, or tap an image to reorder."
     },
     "views": "views",
     "likes": "likes",

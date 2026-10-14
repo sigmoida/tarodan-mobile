@@ -66,6 +66,8 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
       {...tabScroll}
       {...page.scrollProps}
       scrollEventThrottle={16}
+      // Görsel sürüklenirken form kaymaz (sürükleme ile kaydırma çatışmasın).
+      scrollEnabled={!f.imageDragActive}
       contentContainerStyle={page.contentStyle([styles.scrollContent, tabPad])}
       keyboardShouldPersistTaps="handled"
     >

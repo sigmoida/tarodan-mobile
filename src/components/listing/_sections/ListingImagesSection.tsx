@@ -1,94 +1,95 @@
-import React, { memo } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import {
+  ActionSheet,
   Alert,
-  IconButton,
-  Pill,
   SectionCard,
   Spinner,
   Text,
   androidRipple,
-  iconButtonBoxSize,
   rippleClip,
   showPressedStyle,
   theme,
+  type ActionSheetAction,
 } from '@/ui';
 import { useStableCallback } from '@/hooks/useStableCallback';
 
 import type { ListingFormController } from '../_hooks/useListingForm';
+import { ListingImageGrid } from '../_components/ListingImageGrid';
 
-const { colors, spacing, radiusRole, typography } = theme;
+const { colors, spacing, radiusRole } = theme;
 
 type SectionProps = { f: ListingFormController };
 
-/** Küçük resim kenarı (pt) — yatay şeritte 88pt kare. */
-const THUMB_SIZE = 88;
-/** ✕ düğmesi (IconButton xs) küçük resim köşesinden bu kadar içeride. */
-const REMOVE_INSET = spacing[1];
-const REMOVE_BOX = iconButtonBoxSize('xs');
 /**
- * ✕ dokunma alanı 44×44: üst/sağda yalnız köşe boşluğu kadar (dokunma alanı ebeveyn
- * sınırını aşmasın — Android'de ebeveyn dışına taşan hitSlop dokunuş almaz), kalan
- * alt/solda.
- */
-const REMOVE_SLOP = {
-  top: REMOVE_INSET,
-  right: REMOVE_INSET,
-  bottom: theme.minTouchTarget - REMOVE_BOX - REMOVE_INSET,
-  left: theme.minTouchTarget - REMOVE_BOX - REMOVE_INSET,
-};
-
-interface ThumbProps {
-  uri: string;
-  index: number;
-  isCover: boolean;
-  coverLabel: string;
-  removeLabel: string;
-  onRemove: (index: number) => void;
-}
-
-const ImageThumb = memo(function ImageThumb({ uri, index, isCover, coverLabel, removeLabel, onRemove }: ThumbProps) {
-  return (
-    <View style={styles.thumb}>
-      {/* Yerel (file://) ve uzak görsel karışık: `AppImage` cihaz URI'sini kabul etmediği için RN Image. */}
-      <Image source={{ uri }} style={styles.thumbImage} />
-      {isCover ? (
-        <Pill
-          size="sm"
-          background={colors.primary[600]}
-          color={colors.text.inverted}
-          weight={typography.fontWeight.bold}
-          style={styles.coverBadge}
-        >
-          {coverLabel}
-        </Pill>
-      ) : null}
-      <IconButton
-        icon="x-mark"
-        size="xs"
-        variant="solid"
-        color={colors.text.inverted}
-        accessibilityLabel={removeLabel}
-        hitSlop={REMOVE_SLOP}
-        onPress={() => onRemove(index)}
-        style={styles.removeButton}
-        testID={`listing-image-remove-${index}`}
-      />
-    </View>
-  );
-});
-
-/**
- * Fotoğraflar: ekleme kutusu (kontenjan doluysa bilgi kutusu) + yatay küçük resim şeridi.
- * İlk görsel kapak ("Kapak" rozeti); ✕ görseli kaldırır.
+ * Fotoğraflar: ekleme kutusu (kontenjan doluysa bilgi kutusu) + web gibi ızgara (kapak 2×2).
+ * İlk görsel kapak; karoda ✕ kaldır, ↻ 90° çevir, ☆ kapak yap. Basılı tut + sürükle sıralar;
+ * karoya dokunmak aynı eylemleri menüde (ActionSheet) açar — ekran okuyucu ve küçük ekran yolu.
  */
 export function ListingImagesSection({ f }: SectionProps) {
   const { t } = useTranslation();
   const maxImages = f.limits?.maxImagesPerListing || 5;
-  const onRemove = useStableCallback(f.removeImage);
   const onPick = useStableCallback(f.pickImages);
-  const coverLabel = t('listing.coverBadge');
+  const onRemove = useStableCallback(f.removeImage);
+  const onRotate = useStableCallback((id: string) => void f.rotateImage(id));
+  const onMakeCover = useStableCallback(f.makeCoverImage);
+  const onMove = useStableCallback(f.moveImage);
+  const onDragActiveChange = useStableCallback(f.setImageDragActive);
+  // Menü kimliği kapanışta KORUNUR: kapanış animasyonu sürerken satırlar boşalmasın.
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const openMenu = useStableCallback((id: string) => {
+    setMenuId(id);
+    setMenuOpen(true);
+  });
+
+  const menuIndex = menuId ? f.images.findIndex((img) => img.id === menuId) : -1;
+  const menuImage = menuIndex >= 0 ? f.images[menuIndex] : undefined;
+  const actions = useMemo<ActionSheetAction[]>(() => {
+    if (!menuImage) return [];
+    const last = f.images.length - 1;
+    const busy = menuImage.status !== 'ready';
+    const list: ActionSheetAction[] = [];
+    if (menuIndex > 0) {
+      list.push({
+        key: 'cover',
+        label: t('product.imageUpload.makeCover'),
+        disabled: busy,
+        onPress: () => onMakeCover(menuIndex),
+        testID: 'listing-image-menu-cover',
+      });
+      list.push({
+        key: 'left',
+        label: t('product.imageUpload.moveLeft'),
+        onPress: () => onMove(menuIndex, menuIndex - 1),
+        testID: 'listing-image-menu-left',
+      });
+    }
+    if (menuIndex < last) {
+      list.push({
+        key: 'right',
+        label: t('product.imageUpload.moveRight'),
+        onPress: () => onMove(menuIndex, menuIndex + 1),
+        testID: 'listing-image-menu-right',
+      });
+    }
+    list.push({
+      key: 'rotate',
+      label: t('product.imageUpload.rotate'),
+      disabled: busy,
+      onPress: () => onRotate(menuImage.id),
+      testID: 'listing-image-menu-rotate',
+    });
+    list.push({
+      key: 'remove',
+      label: t('common.remove'),
+      destructive: true,
+      onPress: () => onRemove(menuImage.id),
+      testID: 'listing-image-menu-remove',
+    });
+    return list;
+  }, [menuImage, menuIndex, f.images.length, t, onMakeCover, onMove, onRotate, onRemove]);
 
   return (
     <SectionCard title={t('product.images')}>
@@ -117,26 +118,32 @@ export function ListingImagesSection({ f }: SectionProps) {
         <Alert variant="success">{t('product.maxImagesReached')}</Alert>
       )}
 
-      {f.imageUris.length > 0 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.strip}
-          contentContainerStyle={styles.stripContent}
-        >
-          {f.imageUris.map((uri, index) => (
-            <ImageThumb
-              key={`img-${index}`}
-              uri={uri}
-              index={index}
-              isCover={index === 0}
-              coverLabel={coverLabel}
-              removeLabel={t('product.imageUpload.removeImage', { index: index + 1 })}
-              onRemove={onRemove}
-            />
-          ))}
-        </ScrollView>
+      {f.images.length > 0 ? (
+        <>
+          {f.images.length > 1 ? (
+            <Text variant="caption" tone="subtle" style={styles.hint}>
+              {t('product.imageUpload.orderHintTouch')}
+            </Text>
+          ) : null}
+          <ListingImageGrid
+            images={f.images}
+            onOpenMenu={openMenu}
+            onRemove={onRemove}
+            onRotate={onRotate}
+            onMakeCover={onMakeCover}
+            onMove={onMove}
+            onDragActiveChange={onDragActiveChange}
+          />
+        </>
       ) : null}
+
+      <ActionSheet
+        isOpen={menuOpen && !!menuImage}
+        onClose={() => setMenuOpen(false)}
+        title={menuIndex >= 0 ? t('product.imageUpload.imageAlt', { index: menuIndex + 1 }) : undefined}
+        actions={actions}
+        testID="listing-image-menu"
+      />
     </SectionCard>
   );
 }
@@ -156,35 +163,7 @@ const styles = StyleSheet.create({
   addBoxPressed: {
     borderColor: colors.primary[500],
   },
-  strip: {
+  hint: {
     marginTop: spacing[3],
-  },
-  stripContent: {
-    gap: spacing[2.5],
-  },
-  thumb: {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    borderRadius: radiusRole.card,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    overflow: 'hidden',
-  },
-  thumbImage: {
-    width: '100%',
-    height: '100%',
-  },
-  // Konum yalnız burada; boyut/renk/yazı `Pill` tabanından.
-  coverBadge: {
-    position: 'absolute',
-    bottom: spacing[1],
-    left: spacing[1],
-  },
-  removeButton: {
-    position: 'absolute',
-    top: REMOVE_INSET,
-    right: REMOVE_INSET,
-    backgroundColor: colors.danger[600],
-    borderRadius: theme.radius.full,
   },
 });
