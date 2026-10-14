@@ -31,14 +31,15 @@ export const styles = StyleSheet.create({
   itemHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing[1] },
   itemTitle: { flex: 1, minWidth: 0 },
   // Sol altta adet, sağ altta fiyat.
+  // Adet seçici ile fiyat aynı satırda, dikeyde ortalı (eski fiyat fiyatın solunda).
   itemBottom: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing[2],
     marginTop: 'auto',
   },
-  itemPrice: { flexShrink: 1, minWidth: 0, alignItems: 'flex-end' },
+  itemPrice: { flexShrink: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'flex-end', gap: spacing[1] },
   itemPriceText: { color: theme.priceColor.card, textAlign: 'right' },
   itemOldPrice: { textDecorationLine: 'line-through', textAlign: 'right' },
   textEnd: { textAlign: 'right' },

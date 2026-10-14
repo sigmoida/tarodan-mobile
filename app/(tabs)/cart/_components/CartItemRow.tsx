@@ -102,12 +102,6 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
                 >
                   {formatServerPrice(f.unitPriceFor(item.productId))}
                 </Text>
-                {item.quantity > 1 && lineSubtotal != null ? (
-                  <Text variant="caption" tone="muted" numberOfLines={1} style={styles.textEnd}>
-                    {t('cart.lineTotal')}:{' '}
-                    <Text variant="caption" weight="semibold">{formatServerPrice(lineSubtotal)}</Text>
-                  </Text>
-                ) : null}
               </>
             ) : (
               <Text variant="caption" weight="medium" tone="muted" style={styles.textEnd} testID="cart-item-excluded">
@@ -116,6 +110,12 @@ export function CartItemRow({ item, f }: { item: any; f: CartController }) {
             )}
           </View>
         </View>
+        {selected && item.quantity > 1 && lineSubtotal != null ? (
+          <Text variant="caption" tone="muted" numberOfLines={1} style={styles.textEnd}>
+            {t('cart.lineTotal')}:{' '}
+            <Text variant="caption" weight="semibold">{formatServerPrice(lineSubtotal)}</Text>
+          </Text>
+        ) : null}
       </View>
     </SectionCard>
   );
