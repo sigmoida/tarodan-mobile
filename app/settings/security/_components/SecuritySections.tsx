@@ -5,13 +5,14 @@ import { Badge } from '@/ui';
 import type { SecurityHub } from '../_hooks/useSecurityHub';
 import { SettingsActionCard } from './SettingsActionCard';
 
-/** Şifre / 2FA / telefon doğrulama / oturumlar — hepsi aynı kart kalıbı (`SettingsActionCard`). */
+/** Şifre / 2FA / telefon doğrulama / oturumlar / hesabı sil — hepsi aynı kart kalıbı (`SettingsActionCard`). */
 export function SecuritySections({ f }: { f: SecurityHub }) {
   const { t } = useTranslation();
   return (
     <>
       <SettingsActionCard
         title={t('mobile.password')}
+        description={t('profile.security.passwordDesc')}
         action={{
           label: t('profile.change'),
           onPress: f.openPassword,
@@ -63,6 +64,19 @@ export function SecuritySections({ f }: { f: SecurityHub }) {
           disabled: f.logoutAllPending,
           isLoading: f.logoutAllPending,
           testID: 'security-logout-all',
+        }}
+      />
+
+      {/* Hesabı sil — profil sekmesinden buraya taşındı (web `DangerZoneSection` eşi): yazarak onaylanan
+          ayrı ekrana (`settings/delete-account`) gider; silme burada çağrılmaz. */}
+      <SettingsActionCard
+        title={t('settings.dangerZone')}
+        description={t('settings.deleteAccountDetails')}
+        action={{
+          label: t('settings.deleteAccount'),
+          onPress: f.openDeleteAccount,
+          destructive: true,
+          testID: 'security-delete-account',
         }}
       />
     </>

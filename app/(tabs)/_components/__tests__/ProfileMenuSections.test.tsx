@@ -8,10 +8,10 @@ import React from 'react';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import i18n from '@/i18n/config';
-import { avatarPlaceholderColors } from '@/ui';
+import { avatarPlaceholderColors, theme } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
 import { router } from 'expo-router';
-import { ProfileCard, ProfileDeleteAccount, ProfileMenuSections } from '../ProfileSections';
+import { ProfileCard, ProfileMenuSections } from '../ProfileSections';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
@@ -21,7 +21,6 @@ const f: any = {
   tierLabel: 'Free',
   effectiveTier: 'free',
   handleLogout: jest.fn(),
-  handleDeleteAccount: jest.fn(),
 };
 
 it('bireysel hesapta "Kurumsal Başvuru" öğesini göstermez', () => {
@@ -69,17 +68,13 @@ it('çıkış satırı kalır', () => {
   expect(screen.getByTestId('profile-logout-button')).toBeTruthy();
 });
 
-it('çıkış ve hesap silme satırlarında chevron yok; hesap silme basınca eylemi çağırır', () => {
-  renderWithProviders(
-    <>
-      <ProfileMenuSections f={f} />
-      <ProfileDeleteAccount f={f} />
-    </>,
-  );
-  expect(screen.queryByTestId('profile-logout-button-chevron')).toBeNull();
-  expect(screen.queryByTestId('profile-delete-account-button-chevron')).toBeNull();
-  fireEvent.press(screen.getByTestId('profile-delete-account-button'));
-  expect(f.handleDeleteAccount).toHaveBeenCalled();
+it('çıkış diğer satırlarla aynı satır (ikon + chevron), yalnız metin ve ikon danger; hesabı sil profilde yok', () => {
+  renderWithProviders(<ProfileMenuSections f={f} />);
+  expect(screen.getByTestId('profile-logout-button-chevron')).toBeTruthy();
+  const label = screen.getByText(i18n.t('common.logout'));
+  expect(StyleSheet.flatten(label.props.style).color).toBe(theme.colors.danger[700]);
+  expect(screen.queryByTestId('profile-delete-account-button')).toBeNull();
+  expect(screen.queryByText(i18n.t('settings.deleteAccount'))).toBeNull();
   fireEvent.press(screen.getByTestId('profile-logout-button'));
   expect(f.handleLogout).toHaveBeenCalled();
 });
@@ -92,10 +87,10 @@ it('her menü satırında sağ chevron var ve satır rotaya gider', () => {
   expect(router.push).toHaveBeenCalledWith('/settings/language');
 });
 
-it('ücretli üyede üyelik/abonelik satırları ve katman rozeti görünür', () => {
+it('ücretli üyede tek üyelik satırı (plan + abonelik birleşik) ve katman rozeti görünür', () => {
   renderWithProviders(<ProfileMenuSections f={{ ...f, isPaidTier: true, tierLabel: 'Premium' }} />);
   expect(screen.getByTestId('profile-membership-link')).toBeTruthy();
-  expect(screen.getByTestId('profile-subscription-link')).toBeTruthy();
+  expect(screen.queryByTestId('profile-subscription-link')).toBeNull();
   expect(screen.getByText('Premium')).toBeTruthy();
 });
 

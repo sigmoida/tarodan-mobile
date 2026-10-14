@@ -32,7 +32,6 @@ const member = {
   refreshing: false,
   onRefresh: jest.fn(),
   handleLogout: jest.fn(),
-  handleDeleteAccount: jest.fn(),
 };
 
 describe('profil sekmesi · düzenle kalemi', () => {

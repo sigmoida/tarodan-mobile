@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Badge, Chip, Divider, IconButton, Text, theme } from '@/ui';
+import { Badge, Chip, IconButton, Text, theme } from '@/ui';
 
 import { buildAvatarUrl } from '@/lib/api';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
@@ -97,9 +97,8 @@ export function ProfileMenuSections({
     () =>
       selectProfileSections(buildProfileMenuGroups(t, {
         isBusiness: !!isBusiness,
-        // iOS'ta abonelik satılmıyor (Apple 2.1(b)): ücretsiz kullanıcı "Üyelik Planı" ve
-        // "Aboneliğim" girişlerini görmez. Ücretli üye görür — iOS'ta aboneliğini iptal
-        // edebileceği tek yer.
+        // iOS'ta abonelik satılmıyor (Apple 2.1(b)): ücretsiz kullanıcı "Üyelik Planı"
+        // girişini görmez. Ücretli üye planını ve abonelik durumunu (salt görüntüleme) görür.
         showMembership: CAN_BUY_DIGITAL || f.isPaidTier,
         isPaidTier: f.isPaidTier,
         tierLabel: f.tierLabel,
@@ -126,36 +125,20 @@ export function ProfileMenuSections({
         </View>
       ))}
 
-      <Divider style={styles.divider} />
+      {/* Çıkış diğer satırlarla aynı satır (yükseklik, ikon, chevron); yalnız metin + ikon danger. */}
       <ProfileRow
         testID="profile-logout-button"
         role="button"
+        tone="danger"
         icon="arrow-left-on-rectangle"
         label={t('common.logout')}
-        chevron={false}
         onPress={f.handleLogout}
       />
     </>
   );
 }
 
-/** Hesabı sil — listenin en altında, danger metin satırı (ikon/chevron yok). */
-export function ProfileDeleteAccount({ f }: SectionProps) {
-  const { t } = useTranslation();
-  return (
-    <ProfileRow
-      testID="profile-delete-account-button"
-      role="button"
-      tone="danger"
-      label={t('settings.deleteAccount')}
-      chevron={false}
-      onPress={f.handleDeleteAccount}
-    />
-  );
-}
-
 const styles = StyleSheet.create({
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing[2] },
   group: { paddingTop: spacing[2], paddingBottom: spacing[1] },
-  divider: { marginVertical: spacing[1] },
 });
