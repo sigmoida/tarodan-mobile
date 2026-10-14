@@ -31,7 +31,8 @@ const TO_BADGE: Record<ProductBadgeVariant, { variant: BadgeVariant; appearance:
 
 /**
  * Ürün kartı vitrin rozeti (indirim / yeni / takas / nadir / ön sipariş / sınırlı / sponsorlu).
- * Web gibi genel `Badge`'in ince sarmalayıcısı: SOLID görünüm (görsel üstünde okunur), `sm`,
+ * Web gibi genel `Badge`'in ince sarmalayıcısı: SOLID görünüm (görsel üstünde okunur), `xs` (12pt; fotoğraf
+ * üstünde büyümez),
  * `rounded-md` (4) ve kalın yazı.
  */
 export const ProductBadge: React.FC<ProductBadgeProps> = ({
@@ -45,7 +46,7 @@ export const ProductBadge: React.FC<ProductBadgeProps> = ({
     <Badge
       variant={mapped.variant}
       appearance={mapped.appearance}
-      size="sm"
+      size="xs"
       style={[styles.base, style]}
       textStyle={[styles.text, textStyle]}
       {...rest}

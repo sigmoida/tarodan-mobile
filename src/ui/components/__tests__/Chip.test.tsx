@@ -10,11 +10,11 @@ const boxStyle = () => {
 };
 
 describe('Chip (web @tarodan/ui)', () => {
-  it('seçili: primary tonu çerçeve + metin; rounded-full, asgari h24', () => {
+  it('seçili: primary tonu çerçeve + metin; rounded-full, asgari h28', () => {
     render(<Chip testID="chip" label="Tümü" selected onPress={jest.fn()} />);
     expect(boxStyle()).toMatchObject({
       // Sabit yükseklik yerine asgari (büyük yazı ölçeğinde etiket kırpılmaz).
-      minHeight: 24,
+      minHeight: 28,
       borderRadius: theme.radius.full,
       borderColor: colors.primary[200],
       backgroundColor: colors.primary[50],
@@ -40,7 +40,7 @@ describe('Chip (web @tarodan/ui)', () => {
     // stretch edilen bir satırda bile çip tavanı aşmaz; tavan asgari boydan küçük olamaz.
     expect(box.maxHeight).toBeGreaterThanOrEqual(box.minHeight as number);
     // Tavan sınırlı: büyük yazıda en fazla control tavanı (1.2x) + küçük pay.
-    expect(box.maxHeight).toBeLessThanOrEqual(Math.ceil(24 * 1.2) + theme.spacing[1]);
+    expect(box.maxHeight).toBeLessThanOrEqual(Math.ceil(28 * 1.2) + theme.spacing[1]);
     // Ebeveynin alignItems (center / flex-start) hizasını bozmamak için alignSelf verilmez.
     expect(box.alignSelf).toBeUndefined();
   });
