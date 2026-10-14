@@ -83,4 +83,12 @@ describe('CityDistrictSelector (SelectSheet)', () => {
     setup({ hideDistrict: true });
     expect(screen.queryByTestId('district-select-trigger')).toBeNull();
   });
+
+  it('etiket kutunun üstünde (zorunlu yıldızlı); kutuda yalnız değer/placeholder', () => {
+    setup();
+    expect(screen.getByText(/^İl(?!çe)/)).toBeTruthy();
+    expect(screen.getByText(/^İlçe/)).toBeTruthy();
+    expect(screen.getByText('Önce il seçin')).toBeTruthy();
+    expect(screen.getByTestId('district-select-trigger').props.accessibilityState).toMatchObject({ disabled: true });
+  });
 });

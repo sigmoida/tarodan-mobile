@@ -160,6 +160,15 @@ export {
 	type ToastOptions,
 } from './components/Toast';
 export { Input, type InputProps } from './components/Input';
+export { FieldTrigger, type FieldTriggerProps } from './components/FieldTrigger';
+export {
+	fieldBoxStyle,
+	fieldSizeStyle,
+	fieldBorderColor,
+	fieldBackgroundColor,
+	type FieldSize,
+	type FieldBoxOptions,
+} from './lib/fieldSurface';
 export {
 	Label,
 	FieldMessage,

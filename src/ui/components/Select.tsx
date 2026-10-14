@@ -1,13 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { theme } from '../lib/theme';
-import { RawText } from './Text';
-import { FieldMessage, Label } from './Label';
-import { fieldBorderColor, inputSizeStyle } from './Input';
+import { FieldTrigger } from './FieldTrigger';
+import type { FieldSize } from '../lib/fieldSurface';
 import { SelectSheet } from './SelectSheet';
 
-import { Icon } from '../icons';
 export interface SelectOption {
   value: string;
   label: string;
@@ -23,7 +19,7 @@ export interface SelectProps {
   error?: string;
   helperText?: string;
   disabled?: boolean;
-  selectSize?: 'sm' | 'md' | 'lg';
+  selectSize?: FieldSize;
   /** Etiketin sonuna kırmızı `*`. */
   required?: boolean;
   /** Seçenek sheet'inde arama kutusu (uzun listeler). */
@@ -31,8 +27,6 @@ export interface SelectProps {
   /** Tetikleyiciye; sheet `${testID}-sheet`. */
   testID?: string;
 }
-
-const { colors, radius, spacing, iconSize } = theme;
 
 /**
  * Web Select tetikleyicisi = Input ile aynı ölçü/çerçeve (`selectTriggerClasses`). Seçenekler
@@ -60,40 +54,23 @@ export const Select: React.FC<SelectProps> = ({
   const close = useCallback(() => setOpen(false), []);
   const selected = options.find((o) => o.value === value);
   const resolvedPlaceholder = placeholder ?? t('common.selectPlaceholder');
-  const ss = inputSizeStyle[selectSize];
 
   return (
-    <View style={styles.container}>
-      {label ? <Label required={required}>{label}</Label> : null}
-      <Pressable
-        disabled={disabled}
+    <>
+      <FieldTrigger
+        label={label}
+        required={required}
+        value={selected?.label}
+        placeholder={resolvedPlaceholder}
         onPress={() => setOpen(true)}
-        style={[
-          styles.field,
-          {
-            height: ss.height,
-            paddingHorizontal: ss.px,
-            borderColor: fieldBorderColor(error, open),
-            backgroundColor: disabled ? colors.surface.DEFAULT : colors.surface.elevated,
-            opacity: disabled ? 0.5 : 1,
-          },
-        ]}
+        disabled={disabled}
+        error={error}
+        helperText={helperText}
+        open={open}
+        size={selectSize}
         accessibilityRole="combobox"
-        accessibilityState={{ expanded: open, disabled: !!disabled }}
         testID={testID}
-      >
-        <RawText
-          numberOfLines={1}
-          style={[
-            styles.value,
-            { fontSize: ss.font, color: selected ? colors.text.body : colors.text.subtle },
-          ]}
-        >
-          {selected ? selected.label : resolvedPlaceholder}
-        </RawText>
-        <Icon name="chevron-down" size={iconSize.sm} color={colors.text.subtle} />
-      </Pressable>
-      <FieldMessage error={error} helperText={helperText} />
+      />
 
       <SelectSheet
         isOpen={open}
@@ -105,19 +82,6 @@ export const Select: React.FC<SelectProps> = ({
         searchable={searchable}
         testID={testID ? `${testID}-sheet` : 'select-sheet'}
       />
-    </View>
+    </>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { width: '100%', marginBottom: spacing[2] },
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing[2],
-    borderWidth: 1,
-    borderRadius: radius.lg,
-  },
-  value: { flex: 1 },
-});

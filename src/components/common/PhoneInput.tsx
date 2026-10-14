@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
-import { Input, Text, theme } from '@/ui';
+import { Input, Label, RawText, fieldBoxStyle, fieldSizeStyle, theme } from '@/ui';
 import {
   DEFAULT_COUNTRY_CODE,
   formatPhoneNumber,
@@ -9,7 +9,7 @@ import {
   isValidPhoneInput,
 } from '@/utils/phone';
 
-const { spacing, typography, colors } = theme;
+const { spacing, colors, typography } = theme;
 
 export interface PhoneInputProps {
   /**
@@ -25,6 +25,8 @@ export interface PhoneInputProps {
   phone: string;
   onPhoneChange: (phone: string) => void;
   label?: string;
+  /** Etiketin sonuna kırmızı `*` (Input ile aynı `Label`). */
+  required?: boolean;
   error?: string;
   containerStyle?: ViewStyle;
   /**
@@ -66,6 +68,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   phone,
   onPhoneChange,
   label,
+  required,
   error,
   containerStyle,
   validateOnBlur = false,
@@ -88,11 +91,16 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
 
   return (
     <View style={containerStyle}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label ? <Label required={required}>{label}</Label> : null}
       <View style={styles.row}>
         {/* Seçilemez önek — gösterilir, seçilmez (web paritesi). */}
-        <View style={styles.codePrefix}>
-          <Text style={styles.codePrefixText}>{code}</Text>
+        <View style={[fieldBoxStyle({ error: shownError }), styles.codePrefix]}>
+          <RawText
+            maxFontSizeMultiplier={typography.maxFontScale.control}
+            style={styles.codePrefixText}
+          >
+            {code}
+          </RawText>
         </View>
         <Input
           testID={testID}
@@ -111,31 +119,19 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
 };
 
 const styles = StyleSheet.create({
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    color: colors.text.heading,
-    marginBottom: spacing[1.5],
-  },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing[2],
   },
+  // Zemin/çerçeve/yükseklik/dolgu `fieldBoxStyle`'dan (numara alanıyla aynı); burada yalnız içerik hizası.
   codePrefix: {
-    height: 44,
-    minWidth: 64,
-    paddingHorizontal: spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    borderRadius: theme.radius.DEFAULT,
-    backgroundColor: colors.surface.alt,
-    alignItems: 'center',
+    minWidth: spacing[16],
     justifyContent: 'center',
   },
   codePrefixText: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.muted,
+    fontSize: fieldSizeStyle.md.font,
+    color: colors.text.body,
   },
   phoneInput: {
     flex: 1,
