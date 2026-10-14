@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { manufacturersApi } from '@/lib/api';
 import { qk } from '@/lib/query';
+import { selectWithListings } from '@/utils/catalogListings';
 
 export interface Manufacturer {
   id: string;
@@ -12,7 +13,10 @@ export interface Manufacturer {
   _count?: { products: number };
 }
 
-/** Üreticiler listesi + arama (web `ManufacturersProvider`'ın arama süzgeci). */
+/**
+ * Üreticiler listesi + arama (web `ManufacturersProvider`'ın arama süzgeci). İlanı olmayan
+ * üretici listede yok (`hasListings`, anasayfa şeridiyle aynı kural).
+ */
 export function useManufacturers() {
   const [search, setSearch] = useState('');
 
@@ -23,6 +27,7 @@ export function useManufacturers() {
       const payload = response.data?.data ?? response.data ?? [];
       return Array.isArray(payload) ? payload : [];
     },
+    select: selectWithListings,
   });
 
   const items = useMemo(() => {

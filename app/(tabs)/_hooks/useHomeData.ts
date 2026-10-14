@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { manufacturersApi, productsApi, userApi } from '@/lib/api';
 import { qk } from '@/lib/query';
+import { selectWithListings } from '@/utils/catalogListings';
 import {
   getProductEffectivePrice,
   getProductOriginalPriceForDisplay,
@@ -67,10 +68,14 @@ export function useHomeData() {
     queryFn: () => safeList(() => productsApi.getPopular({ limit: 20, page: 1 })),
   });
 
-  /** Marka şeridi — web gibi `/manufacturers` (logolu). Üreticiler ekranıyla aynı sorgu. */
+  /**
+   * Marka şeridi — web gibi `/manufacturers` (logolu). Üreticiler ekranıyla aynı sorgu.
+   * İlanı olmayan üretici şeritte yok (`select`; önbellekteki ham liste değişmez).
+   */
   const manufacturers = useQuery({
     queryKey: qk.catalog.manufacturers,
     queryFn: () => safeList(() => manufacturersApi.findAll()),
+    select: selectWithListings,
   });
 
   const topCollections = useQuery({
