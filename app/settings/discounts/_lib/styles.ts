@@ -41,11 +41,6 @@ export const styles = StyleSheet.create({
   iconActions: {
     flexDirection: 'row',
   },
-  fab: {
-    position: 'absolute',
-    right: spacing[4],
-    bottom: spacing[4],
-  },
   input: {
     marginBottom: spacing[3],
   },
