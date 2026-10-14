@@ -20,7 +20,20 @@
   },
   "staging_play_app_signing": {
     "package": "com.tarodan.app.staging",
-    "sha256": "",
-    "source": "Play Console (Tarodan Staging) → Test and release → App integrity → App signing key certificate → SHA-256. İlk staging AAB yüklenip Play App Signing açıldıktan sonra görünür."
+    "sha256": "4C:BB:3F:B6:3F:41:DE:13:6C:CB:CC:EF:1D:46:B5:52:6F:42:E1:67:1E:EE:0D:96:06:DA:6E:98:37:36:F6:15",
+    "source": "Play Console (Tarodan Staging) → Google Play ile korunanlar → Uygulama imzalama (keymanagement) → 'Copy all certificate fingerprints' (SHA-256).",
+    "note": "2026-10-14: Play bu uygulama için 3 uygulama imzalama sertifikası listeliyor (klasik + 'Kuantum uyumlu (Beta)' anahtar satırları). Play'den kurulan sürüm bunlardan biriyle imzalandığı için üçü de assetlinks'e girer (fazla parmak izi zararsız, eksik olan doğrulamayı düşürür)."
+  },
+  "staging_play_app_signing_2": {
+    "package": "com.tarodan.app.staging",
+    "sha256": "3F:83:D3:41:E3:74:78:E9:EA:19:36:ED:CC:60:03:56:55:78:64:66:A6:FC:E5:58:D9:3C:87:7B:FC:FD:BE:6F",
+    "source": "Play Console (Tarodan Staging) → Google Play ile korunanlar → Uygulama imzalama (keymanagement) → 'Copy all certificate fingerprints' (SHA-256).",
+    "note": "Uygulama imzalama sertifikası 2/3 (bkz. staging_play_app_signing.note)."
+  },
+  "staging_play_app_signing_3": {
+    "package": "com.tarodan.app.staging",
+    "sha256": "BD:8A:F0:61:26:3E:64:16:72:9F:E3:91:43:A5:3C:1F:F3:FA:F5:DC:96:AB:77:34:21:42:8A:69:37:7D:0C:BC",
+    "source": "Play Console (Tarodan Staging) → Google Play ile korunanlar → Uygulama imzalama (keymanagement) → 'Copy all certificate fingerprints' (SHA-256).",
+    "note": "Uygulama imzalama sertifikası 3/3 (bkz. staging_play_app_signing.note)."
   }
 }
