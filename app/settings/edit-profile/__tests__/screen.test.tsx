@@ -81,7 +81,7 @@ beforeEach(() => {
 });
 
 describe('Profili düzenle · düzen', () => {
-  it('üyelik rozet kartı yok; Hesap satırları + Kişisel Bilgiler + Kaydet', () => {
+  it('üyelik rozet kartı yok; Hesap satırları + Kişisel Bilgiler; temizken Kaydet yok', () => {
     renderScreen();
     expect(screen.queryByText('Ücretsiz Üye')).toBeNull();
     expect(screen.getByTestId('edit-profile-account-section')).toBeTruthy();
@@ -90,7 +90,7 @@ describe('Profili düzenle · düzen', () => {
     expect(screen.getByText('t@b.com')).toBeTruthy();
     expect(screen.getByText('Doğrulandı')).toBeTruthy();
     expect(screen.getByText('Kişisel Bilgiler')).toBeTruthy();
-    expect(screen.getByText('Değişiklikleri Kaydet')).toBeTruthy();
+    expect(screen.queryByText('Değişiklikleri Kaydet')).toBeNull();
     // Satır içi formlar bu ekranda yok (kendi ekranlarında).
     expect(screen.queryByTestId('email-change-input')).toBeNull();
     expect(screen.queryByTestId('username-input')).toBeNull();
@@ -121,9 +121,9 @@ describe('Profili düzenle · düzen', () => {
 describe('Profili düzenle · kaydet + çıkış koruması', () => {
   const nameInput = () => screen.getByDisplayValue('Test Kullanıcı');
 
-  it('form temizken Kaydet pasif, çıkış korumasız', () => {
+  it('form temizken Kaydet gizli, çıkış korumasız', () => {
     renderScreen();
-    expect(isDisabled('edit-profile-save')).toBe(true);
+    expect(screen.queryByTestId('edit-profile-save')).toBeNull();
     expect(emitBeforeRemove().prevented).toBe(false);
     expect(appAlert).not.toHaveBeenCalled();
   });
@@ -137,7 +137,7 @@ describe('Profili düzenle · kaydet + çıkış koruması', () => {
     expect((appAlert as jest.Mock).mock.calls[0]![0]).toBe('Kaydedilmemiş değişiklikler');
   });
 
-  it('kayıt yalnız profil alanlarını gönderir; başarıdan sonra form temiz (Kaydet pasif, çıkış serbest)', async () => {
+  it('kayıt yalnız profil alanlarını gönderir; başarıdan sonra form temiz (Kaydet gizli, çıkış serbest)', async () => {
     renderScreen();
     fireEvent.changeText(nameInput(), 'Yeni Ad');
     await waitFor(() => expect(isDisabled('edit-profile-save')).toBe(false));
@@ -148,7 +148,7 @@ describe('Profili düzenle · kaydet + çıkış koruması', () => {
     expect(payload.displayName).toBe('Yeni Ad');
     expect(payload).not.toHaveProperty('avatarUrl');
     expect(await screen.findByText('Profil güncellendi!')).toBeTruthy();
-    await waitFor(() => expect(isDisabled('edit-profile-save')).toBe(true));
+    await waitFor(() => expect(screen.queryByTestId('edit-profile-save')).toBeNull());
     expect(emitBeforeRemove().prevented).toBe(false);
   });
 });
@@ -170,8 +170,8 @@ describe('Profili düzenle · fotoğraf anında yüklenir', () => {
     await waitFor(() => expect(updateProfile).toHaveBeenCalledWith({ avatarUrl: 'avatars/u1/yeni.jpg' }));
     await waitFor(() => expect(mockRefreshUserData).toHaveBeenCalled());
     expect(await screen.findByText('Profil fotoğrafı güncellendi')).toBeTruthy();
-    // Profil formu kirlenmedi: Kaydet hâlâ pasif.
-    expect(isDisabled('edit-profile-save')).toBe(true);
+    // Profil formu kirlenmedi: Kaydet hâlâ gizli.
+    expect(screen.queryByTestId('edit-profile-save')).toBeNull();
   });
 
   it('yükleme düşerse hata toast + önizleme geri alınır', async () => {

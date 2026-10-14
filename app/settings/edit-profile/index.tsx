@@ -43,16 +43,19 @@ export default function EditProfileScreen() {
     <PageShell
       title={t("mobile.settingsEditProfile")}
       footer={
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          title={t("product.saveChanges")}
-          onPress={f.handleSubmit(f.onSubmit)}
-          isLoading={f.updateMutation.isPending}
-          disabled={!f.isDirty || f.updateMutation.isPending}
-          testID="edit-profile-save"
-        />
+        // Yalnız kaydedilecek değişiklik varken (veya kayıt sürerken) görünür.
+        f.isDirty || f.updateMutation.isPending ? (
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            title={t("product.saveChanges")}
+            onPress={f.handleSubmit(f.onSubmit)}
+            isLoading={f.updateMutation.isPending}
+            disabled={f.updateMutation.isPending}
+            testID="edit-profile-save"
+          />
+        ) : undefined
       }
     >
       <AvatarSection avatar={avatar} />

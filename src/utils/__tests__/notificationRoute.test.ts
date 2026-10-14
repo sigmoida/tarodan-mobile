@@ -5,6 +5,14 @@
 import { notificationRoute, toMobileRoute } from '../notificationRoute';
 
 describe('toMobileRoute — derin bağlantı yolları', () => {
+  it('web ilan listesi filtre/sıralama sorgusuyla mobil ilan listesine gider', () => {
+    expect(toMobileRoute('/listings')).toBe('/listings');
+    expect(toMobileRoute('/tr/listings?discountOnly=true&sortBy=price_asc')).toBe(
+      '/listings?discountOnly=true&sortBy=price_asc',
+    );
+    expect(toMobileRoute('/listings/42')).toBe('/product/42');
+  });
+
   it('e-posta doğrulama token\'ını korur', () => {
     expect(toMobileRoute('/verify-email?token=abc123')).toBe('/verify-email?token=abc123');
   });

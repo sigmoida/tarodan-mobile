@@ -53,8 +53,9 @@ export function toMobileRoute(link: string): string | null {
   switch (head) {
     case 'listings': {
       // web: ürün detayı /listings/:id → mobil /product/:id; /listings/:id/edit →
-      // mobil ilan düzenleme; liste → arama
-      if (!id) return '/search';
+      // mobil ilan düzenleme; liste → mobil ilan listesi (filtre/sıralama sorgusu korunur:
+      // /listings?discountOnly=true, ?sortBy=…)
+      if (!id) return withQuery('/listings');
       return seg[2] === 'edit' ? `/listing/${id}/edit` : `/product/${id}`;
     }
     case 'trades':

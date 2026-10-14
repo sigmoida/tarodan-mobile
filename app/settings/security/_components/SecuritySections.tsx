@@ -12,7 +12,6 @@ export function SecuritySections({ f }: { f: SecurityHub }) {
     <>
       <SettingsActionCard
         title={t('mobile.password')}
-        description={t('security.lastChangeUnknown')}
         action={{
           label: t('profile.change'),
           onPress: f.openPassword,

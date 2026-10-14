@@ -7,8 +7,8 @@ interface SettingsActionCardProps {
   title: string;
   /** Başlığın yanında durum rozeti (Aktif / Doğrulandı). */
   badge?: React.ReactNode;
-  /** Başlığın altında tek satırlık açıklama / durum. */
-  description: string;
+  /** Başlığın altında tek satırlık açıklama / durum (yoksa yalnız başlık + eylem). */
+  description?: string;
   /** Sağdaki eylem; verilmezse (ör. telefon zaten doğrulanmış) yalnız durum gösterilir. */
   action?: {
     label: string;
@@ -30,9 +30,14 @@ export function SettingsActionCard({ title, badge, description, action, testID }
   return (
     <SectionCard title={title} badge={badge} testID={testID}>
       <View style={styles.settingRow}>
-        <Text variant="bodySm" tone="muted" style={styles.settingText}>
-          {description}
-        </Text>
+        {/* Açıklama yokken de boş esnek alan kalır → düğme hep sağda hizalı. */}
+        <View style={styles.settingText}>
+          {description ? (
+            <Text variant="bodySm" tone="muted">
+              {description}
+            </Text>
+          ) : null}
+        </View>
         {action ? (
           <Button
             variant={action.destructive ? 'danger' : 'outline'}
