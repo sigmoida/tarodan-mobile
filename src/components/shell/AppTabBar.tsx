@@ -22,7 +22,13 @@ import {
   TAB_SELL_SIZE,
   tabPillBottomOffset,
 } from "./tabBarLayout";
-import { pillContentOpacity, pillHideStyle } from "./tabBarScroll";
+import {
+  collapsedTabStartX,
+  collapsedTabStyle,
+  pillContentOpacity,
+  sellButtonStyle,
+  pillHideStyle,
+} from "./tabBarScroll";
 import { useTabHighlight } from "./useTabHighlight";
 
 const { colors, spacing, iconSize, radius } = theme;
@@ -32,6 +38,8 @@ export { TAB_BAR_ANIM_MS };
 /** Gizlenirken hapın aşağı kayma payı ve küçülme oranı. */
 const PILL_HIDE_TRANSLATE_Y = spacing[4];
 const PILL_HIDE_SCALE = 0.9;
+/** Hapın iç yatay dolgusu (daralmış sekme dairesinin başlangıç konumu da buna göre hesaplanır). */
+const PILL_PADDING_X = spacing[1];
 
 // Hap içindeki sekmeler (sırasıyla): Ana Sayfa, Mesajlar, Bildirimler, Profil. href:null olan (create)
 // kasıtlı olarak dışarıda; Favoriler artık yığın rotası (/favorites, yan menü). Rozet sayaçları
@@ -43,14 +51,19 @@ const TABS = [
   { name: "profile", testID: "tab-profile", labelKey: "nav.profile", icon: "user" as IconName, badge: null },
 ] as const;
 const SELL_ROUTE = "sell";
+const HOME_ROUTE = "index";
+type TabDef = (typeof TABS)[number];
 
 /**
  * Özel yüzen alt menü (düz RN View'lar): solda 4 sekmeli hap [Ana Sayfa][Mesajlar][Bildirimler][Profil], sağında
  * AYRI yuvarlak "+" (İlan Ver) düğmesi; ikisi aynı alt hizada/yükseklikte. Yüzeyler `GlassSurface`:
  * iOS 26'da gerçek Liquid Glass (arkadaki içerik görünür; "+" primary tint), iOS < 26 / Android'de
  * opak beyaz hap (ince border + gölge) ve düz turuncu daire. İçerik aşağı kaydırılınca
- * (bkz. `useTabBarScrollHandler`) hap gizlenir, "+" sağdan sola (alt sol köşe) kayar; yukarı
- * kaydırınca geri gelir. Hap fallback'te opacity + translateY + scale ile; CAMDA opacity ile DEĞİL
+ * (bkz. `useTabBarScrollHandler`) hap daralır; geride TEK öğe kalır, sekmeye göre:
+ * - Ana Sayfa (ve hap dışı rotalar): "+" sağdan sola (alt sol köşe) kayar.
+ * - Mesajlar / Bildirimler / Profil: "+" gizlenir; o sekmenin seçili ikonu (rozetiyle) tek daire
+ *   olarak hap içindeki yerinden sol alt köşeye kayar. Daireye dokununca hap yeniden açılır.
+ * Yukarı kaydırınca hap geri gelir. Hap fallback'te opacity + translateY + scale ile; CAMDA opacity ile DEĞİL
  * (native cam ata opacity < 1 iken efektini kaybeder) aşağı kayıp ekran dışına çıkarak, içeriği
  * yüzeyin içinde soluklaşarak gizlenir. Animasyon UI thread'inde (tek `progress` türetilmiş değeri);
  * "reduce motion" açıkken anında geçer. Ekranların üstüne biner (`position:absolute`); içerik alt
@@ -94,12 +107,28 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
   // Yalnız camda: içerik (ikon + etiket) cam yüzeyin İÇİNDE soluklaşır.
   const pillContentStyle = useAnimatedStyle(() => ({ opacity: pillContentOpacity(glass, progress.value) }));
   const highlight = useTabHighlight(TABS.some((tb) => tb.name === activeName) ? activeName : undefined);
-  const sellPress = usePressScale();
-  const sellStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: -progress.value * sellTravel }],
-  }));
 
-  // Toast yüzen hapın üstünde dursun (kök toast katmanına engel olarak bildirilir). Klavye açıkken
+  // Daralınca kalan öğe: Ana Sayfa'da (ve hap dışı rotalarda) "+", diğer sekmelerde o sekmenin dairesi.
+  const collapsedTab = TABS.find((tb) => tb.name === activeName && tb.name !== HOME_ROUTE);
+  const keepSell = !collapsedTab;
+  const collapsedStartX = collapsedTabStartX(
+    collapsedTab ? highlight.layouts[collapsedTab.name] : undefined,
+    PILL_PADDING_X,
+    TAB_SELL_SIZE,
+  );
+  const collapsedTabAnimStyle = useAnimatedStyle(() =>
+    collapsedTabStyle(glass, progress.value, collapsedStartX, PILL_HIDE_TRANSLATE_Y, glassHideY, PILL_HIDE_SCALE),
+  );
+  // "+" gizliyken (sekme dairesi modunda daralmış) dokunma + ekran okuyucu dışı.
+  const sellHidden = pillHidden && !keepSell;
+
+  const sellPress = usePressScale();
+  const sellStyle = useAnimatedStyle(() =>
+    sellButtonStyle(keepSell, glass, progress.value, sellTravel, PILL_HIDE_TRANSLATE_Y, glassHideY, PILL_HIDE_SCALE),
+  );
+
+  // Toast yüzen hapın üstünde dursun (kök toast katmanına engel olarak bildirilir). Daralmış öğe ("+" ya
+  // da sekme dairesi) hapla aynı yükseklikte ve alt hizada: inset daralınca da aynı. Klavye açıkken
   // hap gizli: toast klavyenin üstüne iner.
   useToastBottomInset(keyboardHeight > 0 ? null : TAB_PILL_HEIGHT + tabPillBottomOffset(insets.bottom));
 
@@ -175,7 +204,34 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
         </GlassSurface>
       </Animated.View>
 
-      <Animated.View style={[styles.sellWrap, sellStyle]}>
+      {collapsedTab ? (
+        <Animated.View
+          style={[styles.collapsedWrap, collapsedTabAnimStyle]}
+          pointerEvents={pillHidden ? "auto" : "none"}
+          accessibilityElementsHidden={!pillHidden}
+          importantForAccessibility={pillHidden ? "auto" : "no-hide-descendants"}
+          testID="tab-collapsed-wrap"
+        >
+          <CollapsedTabButton
+            tab={collapsedTab}
+            label={t(collapsedTab.labelKey)}
+            hint={t("mobile.tabBarExpandHint")}
+            count={collapsedTab.badge ? counts[collapsedTab.badge] : 0}
+            glass={glass}
+            onPress={() => {
+              collapsed.value = false;
+            }}
+          />
+        </Animated.View>
+      ) : null}
+
+      <Animated.View
+        style={[styles.sellWrap, sellStyle]}
+        pointerEvents={sellHidden ? "none" : "auto"}
+        accessibilityElementsHidden={sellHidden}
+        importantForAccessibility={sellHidden ? "no-hide-descendants" : "auto"}
+        testID="tab-sell-wrap"
+      >
         <Pressable
           testID="tab-sell"
           style={styles.sellButton}
@@ -203,6 +259,62 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
         </Pressable>
       </Animated.View>
     </View>
+  );
+}
+
+interface CollapsedTabButtonProps {
+  tab: TabDef;
+  label: string;
+  hint: string;
+  count: number;
+  glass: boolean;
+  onPress: () => void;
+}
+
+/**
+ * Daralmış hapın yerine kalan TEK sekme dairesi (Mesajlar / Bildirimler / Profil): "+" ile aynı boyut
+ * ve cam yüzey (fallback'te opak beyaz + kenarlık + gölge / Android elevation); içinde hap vurgusuyla
+ * aynı primary-50 iç daire + seçili (solid, primary-600) ikon + varsa rozet. Dokununca hap açılır.
+ */
+function CollapsedTabButton({ tab, label, hint, count, glass, onPress }: CollapsedTabButtonProps) {
+  const press = usePressScale();
+  return (
+    <Pressable
+      testID="tab-collapsed"
+      style={styles.sellButton}
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      accessibilityState={{ selected: true }}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      onPress={onPress}
+    >
+      <Animated.View style={press.style}>
+        {/* Camda interaktif cam ("+" ile aynı); pointerEvents none yalnız fallback'te. */}
+        <GlassSurface
+          shape="circle"
+          size={TAB_SELL_SIZE}
+          opaque
+          interactive
+          pointerEvents={glass ? undefined : "none"}
+        >
+          <View style={styles.collapsedInner}>
+            <View>
+              <Icon name={tab.icon} variant="solid" size={iconSize.lg} color={colors.primary[600]!} />
+              {tab.badge ? (
+                <CountBadge
+                  count={count}
+                  ringColor={colors.primary[50]}
+                  style={styles.badge}
+                  testID="tab-collapsed-badge"
+                />
+              ) : null}
+            </View>
+          </View>
+        </GlassSurface>
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -251,7 +363,7 @@ const styles = StyleSheet.create({
   // Yüzey (cam / opak beyaz + kenarlık + gölge) `GlassSurface`'ten; burada yalnız yerleşim.
   pill: {
     alignSelf: "stretch",
-    paddingHorizontal: spacing[1],
+    paddingHorizontal: PILL_PADDING_X,
   },
   pillContent: {
     flex: 1,
@@ -283,6 +395,21 @@ const styles = StyleSheet.create({
   },
   sellWrap: {
     marginLeft: TAB_SELL_GAP,
+  },
+  // Daralmış sekme dairesi: satırın sol alt köşesi ("+"nın daraldığı yer); x kayması animasyonlu stilden.
+  collapsedWrap: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+  },
+  // Hap vurgusuyla aynı iç daire (primary-50): seçili sekme görünümü daralınca da korunur.
+  collapsedInner: {
+    width: TAB_PILL_HEIGHT - 2 * spacing[2],
+    height: TAB_PILL_HEIGHT - 2 * spacing[2],
+    borderRadius: radius.full,
+    backgroundColor: colors.primary[50],
+    alignItems: "center",
+    justifyContent: "center",
   },
   // Turuncu "+" (cam üstünde primary tint, fallback düz primary): yüzeyi GlassSurface çizer.
   sellButton: {

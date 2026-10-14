@@ -7,6 +7,10 @@ import {
   pillHideStyle,
   pillContentOpacity,
   shouldExpandOnMeasure,
+  sellButtonStyle,
+  collapsedTabStyle,
+  collapsedTabStartX,
+  rebaseOnExternalChange,
   type TabBarScrollState,
 } from '../tabBarScroll';
 
@@ -135,5 +139,84 @@ describe('pillHideStyle — hap gizlenme stili', () => {
     expect(pillContentOpacity(true, 0.25)).toBe(0.75);
     expect(pillContentOpacity(true, 1)).toBe(0);
     expect(pillContentOpacity(false, 1)).toBe(1);
+  });
+});
+
+describe('rebaseOnExternalChange — menü dışarıdan açılınca seri yeniden başlar', () => {
+  it('daralmış menü dokunmayla açılınca küçük aşağı hareket yeniden DARALTMAZ; eşik kadar aşağı daraltır', () => {
+    // Aşağı kaydırıp daralt.
+    let s: TabBarScrollState = TAB_BAR_INITIAL_STATE;
+    for (const y of [20, 60, 200]) s = reduceTabBarScroll(s, y, MAX);
+    expect(s.collapsed).toBe(true);
+    let seen = s.collapsed;
+    // Dışarıdan açıldı (daralmış daireye dokunma / sekme değişimi).
+    s = { ...s, collapsed: false };
+    s = reduceTabBarScroll(rebaseOnExternalChange(s, seen), 202, MAX);
+    seen = s.collapsed;
+    expect(s.collapsed).toBe(false);
+    s = reduceTabBarScroll(rebaseOnExternalChange(s, seen), 200 + TAB_BAR_SCROLL_THRESHOLD, MAX);
+    expect(s.collapsed).toBe(true);
+  });
+
+  it('rebase olmadan eski anchor açılan menüyü ilk harekette daraltırdı (regresyon kilidi)', () => {
+    let s: TabBarScrollState = TAB_BAR_INITIAL_STATE;
+    for (const y of [20, 60, 200]) s = reduceTabBarScroll(s, y, MAX);
+    expect(reduceTabBarScroll({ ...s, collapsed: false }, 202, MAX).collapsed).toBe(true);
+  });
+
+  it('durum değişmediyse dokunmaz', () => {
+    const s = { collapsed: true, anchor: 10, lastY: 300 };
+    expect(rebaseOnExternalChange(s, true)).toBe(s);
+  });
+});
+
+describe('sellButtonStyle — "+" daralmada', () => {
+  it('Ana Sayfa (keepSell): sola kayar, görünür kalır', () => {
+    expect(sellButtonStyle(true, false, 1, 280, 16, 120, 0.9)).toEqual({
+      opacity: 1,
+      transform: [{ translateX: -280 }, { translateY: 0 }, { scale: 1 }],
+    });
+  });
+
+  it('diğer sekmeler: yerinde gizlenir (fallback opacity 0); camda opacity 1 kalır, ekran dışına kayar', () => {
+    const fb = sellButtonStyle(false, false, 1, 280, 16, 120, 0.9);
+    expect(fb.opacity).toBe(0);
+    expect(fb.transform[0]).toEqual({ translateX: 0 });
+    const glass = sellButtonStyle(false, true, 1, 280, 16, 120, 0.9);
+    expect(glass.opacity).toBe(1);
+    expect(glass.transform[1]).toEqual({ translateY: 120 });
+    // Anahtar kümesi iki modda aynı (mod değişince eski anahtar native görünümde asılı kalmaz).
+    expect(Object.keys(fb)).toEqual(Object.keys(sellButtonStyle(true, false, 1, 280, 16, 120, 0.9)));
+    expect(sellButtonStyle(false, false, 0, 280, 16, 120, 0.9).opacity).toBe(1);
+  });
+});
+
+describe('collapsedTabStyle / collapsedTabStartX — daralmış sekme dairesi', () => {
+  it('açıkken gizli ve hap içindeki sekme konumunda; daralınca sol kenarda tam görünür', () => {
+    const open = collapsedTabStyle(false, 0, 70, 16, 120, 0.9) as unknown as {
+      opacity: number;
+      transform: Array<Record<string, number>>;
+    };
+    expect(open.opacity).toBe(0);
+    expect(open.transform[0]).toEqual({ translateX: 70 });
+    const shut = collapsedTabStyle(false, 1, 70, 16, 120, 0.9) as unknown as {
+      opacity: number;
+      transform: Array<Record<string, number>>;
+    };
+    expect(shut.opacity).toBe(1);
+    expect(shut.transform).toEqual([{ translateX: 0 }, { translateY: 0 }, { scale: 1 }]);
+  });
+
+  it('cam: opacity anahtarı yok; açıkken alttan ekran dışında', () => {
+    const open = collapsedTabStyle(true, 0, 70, 16, 120, 0.9);
+    expect(open).not.toHaveProperty('opacity');
+    expect(open.transform[1]).toEqual({ translateY: 120 });
+    expect(collapsedTabStyle(true, 1, 70, 16, 120, 0.9).transform[1]).toEqual({ translateY: 0 });
+  });
+
+  it('başlangıç x: sekmenin merkezine ortalı daire; ölçüm yoksa 0, negatif değil', () => {
+    expect(collapsedTabStartX({ x: 66, width: 66 }, 4, 64)).toBe(4 + 66 + 33 - 32);
+    expect(collapsedTabStartX(undefined, 4, 64)).toBe(0);
+    expect(collapsedTabStartX({ x: 0, width: 20 }, 4, 64)).toBe(0);
   });
 });

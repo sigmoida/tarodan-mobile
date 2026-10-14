@@ -124,6 +124,93 @@ describe('AppTabBar — yüzen hap', () => {
     expect(pill().props.accessibilityElementsHidden).toBe(false);
   });
 
+  it('Ana Sayfa ve "+" sayfasında daralınca yalnız "+" kalır: sekme dairesi YOK', async () => {
+    for (const index of [0, 1]) {
+      const view = render(tree(index, jest.fn()));
+      act(() => {
+        collapsedRef!.value = true;
+        jest.advanceTimersByTime(300);
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId('app-tab-pill', { includeHiddenElements: true }).props.pointerEvents).toBe('none'),
+      );
+      expect(screen.queryByTestId('tab-collapsed', { includeHiddenElements: true })).toBeNull();
+      expect(screen.getByTestId('tab-sell-wrap').props.pointerEvents).toBe('auto');
+      expect(screen.getByTestId('tab-sell')).toBeTruthy();
+      view.unmount();
+    }
+  });
+
+  describe('Mesajlar / Bildirimler / Profil — daralınca o sekmenin dairesi kalır', () => {
+    const collapse = async () => {
+      act(() => {
+        collapsedRef!.value = true;
+        jest.advanceTimersByTime(300);
+      });
+      await waitFor(() => expect(screen.getByTestId('tab-collapsed-wrap').props.pointerEvents).toBe('auto'));
+    };
+
+    it.each([
+      [2, 'Mesajlar', '3'],
+      [3, 'Bildirimler', '5'],
+      [4, 'Profil', null],
+    ])('sekme %i: daire etiketi "%s", rozet korunur, "+" gizli + ekran okuyucu dışı', async (index, label, badge) => {
+      setup(index);
+      // Açıkken daire dokunma + ekran okuyucu dışı.
+      const wrap = () => screen.getByTestId('tab-collapsed-wrap', { includeHiddenElements: true });
+      expect(wrap().props.pointerEvents).toBe('none');
+      expect(wrap().props.accessibilityElementsHidden).toBe(true);
+      expect(wrap().props.importantForAccessibility).toBe('no-hide-descendants');
+      expect(screen.getByTestId('tab-sell')).toBeTruthy();
+
+      await collapse();
+      const btn = screen.getByTestId('tab-collapsed');
+      expect(btn.props.accessibilityLabel).toBe(label);
+      expect(btn.props.accessibilityRole).toBe('tab');
+      expect(btn.props.accessibilityState).toEqual({ selected: true });
+      expect(wrap().props.accessibilityElementsHidden).toBe(false);
+      if (badge) expect(within(btn).getByText(badge)).toBeTruthy();
+      else expect(within(btn).queryByText(/\d/)).toBeNull();
+      // "+" o sırada gizli: dokunma + ekran okuyucu dışı.
+      const sellWrap = screen.getByTestId('tab-sell-wrap', { includeHiddenElements: true });
+      expect(sellWrap.props.pointerEvents).toBe('none');
+      expect(sellWrap.props.accessibilityElementsHidden).toBe(true);
+      expect(sellWrap.props.importantForAccessibility).toBe('no-hide-descendants');
+      expect(screen.queryByTestId('tab-sell')).toBeNull();
+    });
+
+    it('daireye dokununca hap yeniden açılır (gezinme yok), "+" geri gelir', async () => {
+      const navigate = setup(2);
+      await collapse();
+      fireEvent.press(screen.getByTestId('tab-collapsed'));
+      expect(collapsedRef!.value).toBe(false);
+      expect(navigate).not.toHaveBeenCalled();
+      await waitFor(() =>
+        expect(screen.getByTestId('app-tab-pill', { includeHiddenElements: true }).props.pointerEvents).toBe('auto'),
+      );
+      expect(screen.getByTestId('tab-sell-wrap').props.pointerEvents).toBe('auto');
+      expect(screen.getByTestId('tab-collapsed-wrap', { includeHiddenElements: true }).props.pointerEvents).toBe('none');
+    });
+
+    it('Mesajlar\'da daralıp Ana Sayfa\'ya geçince: menü açık, daire kalkar, "+" erişilebilir', async () => {
+      const navigate = jest.fn();
+      const view = render(tree(2, navigate));
+      await collapse();
+      view.rerender(tree(0, navigate));
+      expect(collapsedRef!.value).toBe(false);
+      expect(screen.queryByTestId('tab-collapsed', { includeHiddenElements: true })).toBeNull();
+      await waitFor(() => expect(screen.getByTestId('tab-sell-wrap').props.pointerEvents).toBe('auto'));
+      expect(screen.getByTestId('tab-sell')).toBeTruthy();
+    });
+
+    it('Mesajlar\'dan Profil\'e geçince daire Profil sekmesini gösterir', () => {
+      const navigate = jest.fn();
+      const view = render(tree(2, navigate));
+      view.rerender(tree(4, navigate));
+      expect(screen.getByTestId('tab-collapsed', { includeHiddenElements: true }).props.accessibilityLabel).toBe('Profil');
+    });
+  });
+
   it('sekme değişince menü açık hale döner', () => {
     const navigate = jest.fn();
     const { rerender } = render(tree(0, navigate));
