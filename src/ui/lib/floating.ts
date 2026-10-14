@@ -23,8 +23,25 @@ export function useFloatingBottomOffset(): number {
   return floatingBottomOffset(useSafeAreaInsets().bottom);
 }
 
-/** FAB (md, 56) olan bir ekranın kaydırma içeriğine eklenecek alt boşluk: son öğe FAB'ın altında kalmasın. */
-export const FAB_SIZE_MD = 56;
-export function useFabContentInset(fabSize: number = FAB_SIZE_MD): number {
+/**
+ * Sağ altta yüzen yuvarlak eylem düğmesinin ölçüleri — TEK kaynak. Alt menünün "+" (İlan Ver) düğmesi
+ * (`AppTabBar`) ve yığın ekranlarındaki FAB (`placement="bottomRight"`) aynı çapta, sağ kenardan aynı
+ * uzaklıkta (`FLOATING_SIDE_GAP`) ve alttan aynı formülle (`floatingBottomOffset`) durur: sekme kökü <->
+ * yığın ekranı geçişinde düğme yerinde kalır.
+ */
+export const FLOATING_ACTION_SIZE = 64;
+/** Yüzen düğmenin ikon boyutu (alt menünün "+" ikonuyla aynı). */
+export const FLOATING_ACTION_ICON_SIZE = theme.iconSize.lg + spacing[1];
+/** Yüzen öğelerin (alt menü hapı, "+", FAB) ekranın yan kenarlarından uzaklığı. */
+export const FLOATING_SIDE_GAP = spacing[4];
+
+/** Sağ alttaki FAB'ın çapı (= `FLOATING_ACTION_SIZE`; geriye uyumlu ad). */
+export const FAB_SIZE_MD = FLOATING_ACTION_SIZE;
+
+/** İkincil (küçük, `size="sm"`) sağ alt FAB'ın çapı — ör. arama ekranındaki "yukarı çık". */
+export const FAB_SIZE_SM = 40;
+
+/** Sağ altta FAB olan bir ekranın kaydırma içeriğine eklenecek alt boşluk: son öğe FAB'ın altında kalmasın. */
+export function useFabContentInset(fabSize: number = FLOATING_ACTION_SIZE): number {
   return useFloatingBottomOffset() + fabSize + spacing[2];
 }

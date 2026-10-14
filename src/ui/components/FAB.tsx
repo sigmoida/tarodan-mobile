@@ -1,7 +1,13 @@
 import React from 'react';
 import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
-import { useFloatingBottomOffset } from '../lib/floating';
+import {
+  FAB_SIZE_SM,
+  FLOATING_ACTION_ICON_SIZE,
+  FLOATING_ACTION_SIZE,
+  FLOATING_SIDE_GAP,
+  useFloatingBottomOffset,
+} from '../lib/floating';
 import { RawText } from './Text';
 import { RefIcon, type IconRef, type IconVariant } from '../icons';
 
@@ -17,9 +23,11 @@ export interface FABProps extends Omit<PressableProps, 'style'> {
   style?: ViewStyle;
   accessibilityLabel: string;
   /**
-   * `bottomRight`: ekranın sağ altında yüzer — alt menü hapıyla aynı taban (`floatingBottomOffset`:
-   * iOS/hareket gezinmesinde tutamaç şeridine biner, Android 3 düğmeli çubuğun üstünde). Ekranın
-   * kaydırma içeriği `useFabContentInset()` kadar alt boşluk bırakır.
+   * `bottomRight`: ekranın sağ altında yüzer — alt menünün "+" düğmesiyle AYNI çap, sağ kenar ve alt
+   * uzaklık (`FLOATING_ACTION_SIZE` / `FLOATING_SIDE_GAP` / `floatingBottomOffset`: iOS/hareket
+   * gezinmesinde tutamaç şeridine biner, Android 3 düğmeli çubuğun üstünde). `size` verilmezse
+   * çap da "+" ile aynıdır (birincil "oluştur" FAB'ı); ikincil yardımcı FAB (ör. yukarı çık) `size`
+   * vererek küçük kalır, konumu yine aynıdır. Ekranın kaydırma içeriği `useFabContentInset()` kadar alt boşluk bırakır.
    */
   placement?: 'bottomRight';
 }
@@ -27,10 +35,13 @@ export interface FABProps extends Omit<PressableProps, 'style'> {
 const { colors, radius, spacing } = theme;
 
 const sizeMap: Record<FABSize, { box: number; icon: number }> = {
-  sm: { box: 40, icon: 18 },
+  sm: { box: FAB_SIZE_SM, icon: 18 },
   md: { box: 56, icon: 24 },
   lg: { box: 64, icon: 28 },
 };
+
+/** Sağ alt yerleşimin ölçüsü: alt menünün "+" düğmesiyle aynı (tek kaynak `lib/floating`). */
+const FLOATING_SIZE = { box: FLOATING_ACTION_SIZE, icon: FLOATING_ACTION_ICON_SIZE };
 
 const variantStyle: Record<FABVariant, { bg: string; fg: string }> = {
   primary: { bg: colors.primary[600]!, fg: colors.white },
@@ -42,7 +53,7 @@ export const FAB: React.FC<FABProps> = ({
   iconVariant,
   label,
   variant = 'primary',
-  size = 'md',
+  size,
   disabled,
   style,
   accessibilityLabel,
@@ -50,7 +61,9 @@ export const FAB: React.FC<FABProps> = ({
   ...rest
 }) => {
   const floatingBottom = useFloatingBottomOffset();
-  const ss = sizeMap[size];
+  const floating = placement === 'bottomRight';
+  // Sağ altta boyut verilmezse "+" ile aynı çap; verilirse (ikincil FAB) o boyut.
+  const ss = size ? sizeMap[size] : floating ? FLOATING_SIZE : sizeMap.md;
   const vs = variantStyle[variant];
   const extended = !!label;
   return (
@@ -58,9 +71,9 @@ export const FAB: React.FC<FABProps> = ({
       disabled={disabled}
       style={({ pressed }) => [
         styles.base,
-        placement === 'bottomRight' && {
+        floating && {
           position: 'absolute',
-          right: spacing[4],
+          right: FLOATING_SIDE_GAP,
           bottom: floatingBottom,
         },
         {

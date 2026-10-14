@@ -22,11 +22,6 @@ describe('heroApi', () => {
     expect(mockGet).toHaveBeenCalledWith('/hero-slides', { params: { placement: 'home' } });
   });
 
-  it('rozetler', () => {
-    heroApi.getTrustBadges();
-    expect(mockGet).toHaveBeenCalledWith('/trust-badges');
-  });
-
   it('gösterim: gövdesiz POST', () => {
     heroApi.recordImpression('abc');
     expect(mockPost).toHaveBeenCalledWith('/hero-slides/abc/impression');

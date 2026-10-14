@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react-native';
-import { GLASS_ICON_BUTTON_SIZE, SEARCH_FIELD_BORDER_COLOR, ScreenHeader, theme, usePageScrollValue } from '@/ui';
+import { GLASS_ICON_BUTTON_SIZE, ScreenHeader, theme, usePageScrollValue } from '@/ui';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 import { AppShell, APP_SHELL_BAR_HEIGHT } from '../AppShell';
 import { SideMenuProvider, useSideMenu } from '../SideMenuContext';
@@ -127,14 +127,13 @@ describe('AppShell — tek satır beyaz bar', () => {
     expect(screen.queryByTestId('status-bar')).toBeNull();
   });
 
-  it('arama alanı arama ekranının kutusuyla aynı görünüm: beyaz zemin, 1px primary-500 çerçeve, input radius', () => {
+  it('Ana Sayfa arama alanı eski görünümünde: çerçevesiz gri (gray-100) tam yuvarlak hap', () => {
     render(<AppShell />);
     const field = StyleSheet.flatten(screen.getByTestId('home-search-input').props.style);
-    expect(field.backgroundColor).toBe(theme.colors.surface.elevated);
-    expect(field.borderWidth).toBe(1);
-    expect(field.borderColor).toBe(SEARCH_FIELD_BORDER_COLOR);
-    expect(SEARCH_FIELD_BORDER_COLOR).toBe(theme.colors.primary[500]);
-    expect(field.borderRadius).toBe(theme.radiusRole.input);
+    expect(field.backgroundColor).toBe(theme.colors.gray[100]);
+    expect(field.borderWidth).toBeUndefined();
+    expect(field.borderColor).toBeUndefined();
+    expect(field.borderRadius).toBe(theme.radius.full);
   });
 
   it('arama alanı asgari yüksekliği = cam düğme çapı; sarmalayıcı aynı yükseklikte', () => {

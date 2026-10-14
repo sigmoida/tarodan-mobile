@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { floatingBottomOffset, theme } from '@/ui';
+import { FLOATING_ACTION_SIZE, FLOATING_SIDE_GAP, floatingBottomOffset, theme } from '@/ui';
 
 const { spacing, headerHeight } = theme;
 
@@ -12,14 +12,17 @@ const { spacing, headerHeight } = theme;
 export const APP_SHELL_BAR_HEIGHT = headerHeight;
 
 
-/** Yüzen alt menü (hap) yüksekliği. */
-export const TAB_PILL_HEIGHT = 64;
-/** Ayrı yuvarlak "+" (İlan Ver) düğmesi: hapla aynı yükseklikte (daire). */
-export const TAB_SELL_SIZE = TAB_PILL_HEIGHT;
+/**
+ * Ayrı yuvarlak "+" (İlan Ver) düğmesi: yığın ekranlarındaki sağ alt FAB ile aynı çap (tek kaynak
+ * `FLOATING_ACTION_SIZE`, @/ui).
+ */
+export const TAB_SELL_SIZE = FLOATING_ACTION_SIZE;
+/** Yüzen alt menü (hap) yüksekliği: "+" ile aynı (yan yana, alt hizalı). */
+export const TAB_PILL_HEIGHT = TAB_SELL_SIZE;
 /** Hap ile "+" düğmesi arasındaki boşluk. */
 export const TAB_SELL_GAP = spacing[3];
-/** Hap ile ekranın yan kenarları arasındaki boşluk. */
-export const TAB_PILL_SIDE_GAP = spacing[4];
+/** Hap ile ekranın yan kenarları arasındaki boşluk: sağ alt FAB'ın sağ kenar boşluğuyla aynı (@/ui). */
+export const TAB_PILL_SIDE_GAP = FLOATING_SIDE_GAP;
 /** İçeriğin hapın üstünde bırakacağı nefes payı. */
 const CONTENT_GAP = spacing[4];
 

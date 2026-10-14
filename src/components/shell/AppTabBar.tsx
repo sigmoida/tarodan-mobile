@@ -5,7 +5,18 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTranslation } from "react-i18next";
-import { theme, Text, CountBadge, Icon, GlassSurface, getGlassView, usePressScale, useToastBottomInset, type IconName } from "@/ui";
+import {
+  theme,
+  Text,
+  CountBadge,
+  Icon,
+  GlassSurface,
+  getGlassView,
+  usePressScale,
+  useToastBottomInset,
+  FLOATING_ACTION_ICON_SIZE,
+  type IconName,
+} from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
 import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { useShellCounts } from "./useShellCounts";
@@ -276,7 +287,7 @@ export function TabBarView({ activeName, onNavigate }: TabBarViewProps) {
               interactive
               pointerEvents={glass ? undefined : "none"}
             >
-              <Icon name="plus" size={iconSize.lg + 4} color={colors.text.inverted} />
+              <Icon name="plus" size={FLOATING_ACTION_ICON_SIZE} color={colors.text.inverted} />
             </GlassSurface>
           </Animated.View>
         </Pressable>

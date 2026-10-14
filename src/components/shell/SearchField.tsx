@@ -1,9 +1,9 @@
 import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Text, theme, Icon, GLASS_ICON_BUTTON_SIZE, searchFieldBoxStyle } from '@/ui';
+import { Text, theme, Icon, GLASS_ICON_BUTTON_SIZE } from '@/ui';
 
-const { colors, spacing, iconSize } = theme;
+const { colors, spacing, iconSize, radius } = theme;
 
 export interface SearchFieldProps {
   onPress: () => void;
@@ -14,9 +14,9 @@ export interface SearchFieldProps {
 
 /**
  * Üst bardaki arama alanı — dokununca arama ekranını açan SAHTE alan (düzenlenemez). Arama,
- * öneri ve son aramalar tek yerde (arama ekranı) yaşar; tab kökleri yalnız oraya götürür. Görünüm
- * arama ekranının kutusuyla AYNI kaynaktan (`searchFieldBoxStyle`: beyaz zemin, 1px primary-500
- * çerçeve, `radiusRole.input`).
+ * öneri ve son aramalar tek yerde (arama ekranı) yaşar; tab kökleri yalnız oraya götürür. Görünüm:
+ * çerçevesiz gri (gray-100) tam yuvarlak hap — arama ekranının vurgulu (primary çerçeveli) kutusundan
+ * bilinçli olarak farklı; üst barda sakin durur.
  */
 export const SearchField: React.FC<SearchFieldProps> = ({ onPress, placeholder, testID }) => {
   const { t } = useTranslation();
@@ -45,13 +45,17 @@ export const SearchField: React.FC<SearchFieldProps> = ({ onPress, placeholder, 
 
 const styles = StyleSheet.create({
   field: {
-    // Zemin/çerçeve/radius arama ekranıyla tek kaynaktan; yükseklik = cam ikon düğmesi çapı (satırda
-    // düğmelerle aynı boy). `flex: 1` YOK: sarmalayıcı yüksekliği içerikten gelir, satır dikey ortalar.
-    ...searchFieldBoxStyle(),
+    // Yükseklik = cam ikon düğmesi çapı (tek sabit; satırda düğmelerle aynı boy); tam yuvarlak hap.
+    // `flex: 1` YOK: sarmalayıcı yüksekliği içerikten gelir, satır dikey ortalar.
     alignSelf: 'stretch',
     minWidth: 0,
     minHeight: GLASS_ICON_BUTTON_SIZE,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderRadius: radius.full,
+    backgroundColor: colors.gray[100],
   },
   placeholder: {
     flex: 1,
