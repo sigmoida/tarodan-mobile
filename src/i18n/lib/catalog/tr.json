@@ -2819,7 +2819,7 @@
     "showEmail": "E-postayı Göster",
     "showPhone": "Telefonu Göster",
     "deleteAccount": "Hesabı Sil",
-    "deleteAccountWarning": "Tüm verileriniz, ilanlarınız ve sipariş geçmişiniz kalıcı olarak silinecektir.",
+    "deleteAccountWarning": "Hesabınız kapatılır, kişisel bilgileriniz anonimleştirilir ve ilanlarınız yayından kaldırılır. Sipariş ve fatura kayıtları yasal yükümlülükler gereği saklanır; kimlik bilgileriniz bu amaçla 10 yıl boyunca ayrı bir arşivde tutulur. Bu işlem geri alınamaz.",
     "deleteAccountKeyword": "SİL",
     "deleteAccountTypePrompt": "Onaylamak için {keyword} yazın:",
     "deleteAccountConfirm": "Hesabınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",

@@ -77,7 +77,7 @@ describe('yazarak onay', () => {
   it('uyarı ve web metni gösterilir; "SİL" yazılmadan düğme kapalı', () => {
     renderScreen();
     expect(
-      screen.getByText('Tüm verileriniz, ilanlarınız ve sipariş geçmişiniz kalıcı olarak silinecektir.'),
+      screen.getByText(/kişisel bilgileriniz anonimleştirilir/),
     ).toBeTruthy();
     expect(screen.getByText('Onaylamak için SİL yazın:')).toBeTruthy();
     expect(isDisabled()).toBe(true);
