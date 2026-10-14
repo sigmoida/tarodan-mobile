@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Pressable, Linking, StyleSheet } from 'react-native';
 import { SectionCard, Text, Button, StatusBadge, theme } from '@/ui';
 import type { Shipment } from '@/lib/api';
+import { CopyButton } from '@/components/common/CopyButton';
 import { formatPrice } from '../_lib/format';
 import { formatPolicyDate } from '@/lib/shared/timingPolicy';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
@@ -162,7 +163,12 @@ export function OrderTrackingCard({
       {s.cargoCode ? (
         <View style={styles.stack}>
           <Text variant="bodySm" tone="muted">{t('order.trackingNumber')}</Text>
-          <Text variant="body" weight="medium" testID="order-tracking-number">{s.cargoCode}</Text>
+          <View style={styles.copyRow}>
+            <Text variant="body" weight="medium" testID="order-tracking-number" selectable style={styles.copyValue}>
+              {s.cargoCode}
+            </Text>
+            <CopyButton testID="order-tracking-copy" value={s.cargoCode} successMessage={t('trade.trackingCopied')} />
+          </View>
           {s.trackingUrl ? (
             <Pressable onPress={() => Linking.openURL(s.trackingUrl!)} accessibilityRole="link" hitSlop={8}>
               <Text variant="bodySm" tone="primary">{t('order.trackShipment')}</Text>
@@ -173,7 +179,14 @@ export function OrderTrackingCard({
         // SATICI: şubede vereceği referans + kodun ne zaman geleceği.
         <View style={styles.stack}>
           <Text variant="bodySm" tone="muted">{t('order.cargoReference')}</Text>
-          <Text variant="body" weight="medium" testID="order-cargo-reference">{s.reference}</Text>
+          <View style={styles.copyRow}>
+            <Text variant="body" weight="medium" testID="order-cargo-reference" selectable style={styles.copyValue}>
+              {s.reference}
+            </Text>
+            {s.reference ? (
+              <CopyButton testID="order-cargo-reference-copy" value={s.reference} successMessage={t('order.cargoCodeCopied')} />
+            ) : null}
+          </View>
           <Text variant="bodySm" tone="muted">{t('order.cargoRefInstructions')}</Text>
           <Text variant="bodySm" tone="muted">{t('order.trackingAppearsAfterDropoff')}</Text>
         </View>
@@ -188,4 +201,6 @@ export function OrderTrackingCard({
 
 const styles = StyleSheet.create({
   stack: { gap: spacing[2] },
+  copyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
+  copyValue: { flexShrink: 1 },
 });

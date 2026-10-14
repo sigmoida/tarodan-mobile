@@ -153,3 +153,62 @@ describe('J62 · Siparişlerim listesi', () => {
     expect(pushMock).toHaveBeenCalledWith('/orders/order-1');
   });
 });
+
+/**
+ * "İptal edilenler" sekmesi (web profile/orders `cancelled` sekmesi). Sunucu
+ * `/orders/groups` için varsayılan `tab=active`'te iptalleri DIŞLAR → iptaller
+ * eskiden hiçbir sekmede görünmüyordu.
+ */
+describe('Siparişlerim · İptal edilenler sekmesi', () => {
+  beforeEach(() => {
+    getGroupsMock.mockReset();
+    mockAuth = { isAuthenticated: true };
+  });
+
+  it('"Tümü" gruplu listeyi açıkça tab=active ile ister', async () => {
+    getGroupsMock.mockResolvedValue({ data: { data: [] } });
+    renderWithProviders(<OrdersScreen />);
+    await waitFor(() => expect(getGroupsMock).toHaveBeenCalled());
+    expect(getGroupsMock).toHaveBeenCalledWith(expect.objectContaining({ role: 'buyer', tab: 'active' }));
+  });
+
+  it('sekme Tamamlandı ile İadeler arasında, iptalleri tab=cancelled ile gruplu çeker', async () => {
+    getGroupsMock.mockImplementation((params: { tab?: string }) =>
+      Promise.resolve({
+        data: {
+          data:
+            params.tab === 'cancelled'
+              ? [orderGroupFixture({ id: 'order-c', orderNumber: 'ORD-CANCEL0001', status: 'cancelled', cancellationType: 'iptal' })]
+              : [],
+        },
+      }),
+    );
+    renderWithProviders(<OrdersScreen />);
+    await waitFor(() => expect(screen.getByText('Henüz siparişiniz yok')).toBeOnTheScreen());
+
+    const labels = screen
+      .getByTestId('orders-filters')
+      .findAll((n: { props: { children?: unknown } }) => typeof n.props.children === 'string')
+      .map((n: { props: { children?: unknown } }) => n.props.children as string);
+    const order = ['Tamamlandı', 'İptal edilenler', 'İadeler'].map((l) => labels.indexOf(l));
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+
+    fireEvent.press(screen.getByText('İptal edilenler'));
+    await waitFor(() =>
+      expect(screen.getByText('Sipariş #ORD-CANCEL0001')).toBeOnTheScreen(),
+    );
+    expect(getGroupsMock).toHaveBeenCalledWith(expect.objectContaining({ role: 'buyer', tab: 'cancelled' }));
+    expect(ordersApi.getAll).not.toHaveBeenCalled();
+  });
+
+  it('iptal sekmesi boşsa web metni: "İptal edilmiş siparişiniz yok."', async () => {
+    getGroupsMock.mockResolvedValue({ data: { data: [] } });
+    renderWithProviders(<OrdersScreen />);
+    await waitFor(() => expect(screen.getByText('Henüz siparişiniz yok')).toBeOnTheScreen());
+    fireEvent.press(screen.getByText('İptal edilenler'));
+    await waitFor(() =>
+      expect(screen.getByText('İptal edilmiş siparişiniz yok.')).toBeOnTheScreen(),
+    );
+  });
+});

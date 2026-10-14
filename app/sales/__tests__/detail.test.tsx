@@ -5,9 +5,10 @@
  * Backend durum geçişi (iptal/iade aktarımı, escrow) backend-only.
  */
 import React from 'react';
-import { Linking } from 'react-native';
+import { Clipboard, Linking } from 'react-native';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
+import { toast } from '@/ui';
 
 jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
 
@@ -140,6 +141,26 @@ describe('J63 · Satıcı kargo numarası ayrımı', () => {
     // Sürat bu numarayı tanımaz → takip linki verilmez.
     expect(screen.queryByTestId('sales-track-link')).toBeNull();
     expect(screen.queryByTestId('sales-tracking-number')).toBeNull();
+  });
+
+  it('kopyala: şube referansı ve Sürat kodu panoya yazılır, toast "Kargo numarası kopyalandı"', async () => {
+    const setString = jest.spyOn(Clipboard, 'setString').mockImplementation(() => undefined);
+    const success = jest.spyOn(toast, 'success').mockImplementation(() => 1);
+
+    withShipment({ provider: 'surat', trackingNumber: 'PKG-CMRGW9D6ZH', cargoCode: null, status: 'label_created' });
+    const first = renderWithProviders(<SaleDetailScreen />);
+    fireEvent.press(await screen.findByTestId('sales-cargo-reference-copy'));
+    expect(setString).toHaveBeenLastCalledWith('PKG-CMRGW9D6ZH');
+    expect(success).toHaveBeenLastCalledWith('Kargo numarası kopyalandı');
+    first.unmount();
+
+    withShipment({ provider: 'surat', trackingNumber: 'PKG-CMRGW9D6ZH', cargoCode: '79174212154116', status: 'picked_up' });
+    renderWithProviders(<SaleDetailScreen />);
+    fireEvent.press(await screen.findByTestId('sales-tracking-number-copy'));
+    expect(setString).toHaveBeenLastCalledWith('79174212154116');
+
+    setString.mockRestore();
+    success.mockRestore();
   });
 
   it('J63.9 takip linki iç referanstan DEĞİL Sürat kodundan kurulur', async () => {

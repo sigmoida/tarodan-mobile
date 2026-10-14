@@ -18,3 +18,4 @@ export { default as CityDistrictSelector } from './CityDistrictSelector';
 export { default as PhoneInput } from './PhoneInput';
 export { TradeAddressPicker } from './TradeAddressPicker';
 export { ThemedRefreshControl } from './ThemedRefreshControl';
+export { CopyButton, COPY_CONFIRM_MS, type CopyButtonProps } from './CopyButton';

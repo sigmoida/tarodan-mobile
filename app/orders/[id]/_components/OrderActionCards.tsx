@@ -4,6 +4,7 @@ import { View, Linking, StyleSheet } from 'react-native';
 import { SectionCard, Text, Button, StatusBadge, theme } from '@/ui';
 import { router } from 'expo-router';
 import { buildTrackingUrl } from '@/lib/shipping/tracking';
+import { CopyButton } from '@/components/common/CopyButton';
 import { useRefundStatusConfig } from '../_lib/status';
 import { formatDate } from '../_lib/format';
 import type { OrderDetail } from '../_lib/types';
@@ -104,7 +105,16 @@ export function OrderRefundBanner({
           <Text variant="bodySm" tone="muted">
             {t('refund.dropOffAtSurat')}
           </Text>
-          <Text variant="body" weight="bold" tone="heading">{rr.returnTrackingNumber}</Text>
+          <View style={styles.copyRow}>
+            <Text variant="body" weight="bold" tone="heading" selectable style={styles.copyValue}>
+              {rr.returnTrackingNumber}
+            </Text>
+            <CopyButton
+              testID="refund-return-tracking-copy"
+              value={rr.returnTrackingNumber}
+              successMessage={t('order.cargoCodeCopied')}
+            />
+          </View>
           {/* Link ELLE BİRLEŞTİRİLMEZ — tek kaynak `buildTrackingUrl`. */}
           {returnTrackingUrl ? (
             <Button
@@ -189,4 +199,6 @@ export function OrderHelpCard() {
 const styles = StyleSheet.create({
   stack: { gap: spacing[2] },
   trackingBox: { backgroundColor: colors.surface.alt, padding: spacing[3], borderRadius: radius.lg, gap: spacing[1] },
+  copyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
+  copyValue: { flexShrink: 1 },
 });
