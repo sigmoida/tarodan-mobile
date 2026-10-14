@@ -23,7 +23,6 @@ jest.mock('@/lib/purchases', () => ({ CAN_BUY_DIGITAL: true }));
 
 const f: any = {
   isPaidTier: false,
-  tierLabel: 'Free',
   effectiveTier: 'free',
   handleLogout: jest.fn(),
 };

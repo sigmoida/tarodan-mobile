@@ -206,6 +206,8 @@ export const qk = {
     /** Kendi özet istatistikleri — GET /users/me/stats. */
     summaryStats: ["user-stats", "me", "summary"] as const,
     trust: ["me-trust"] as const,
+    /** Sahibin kendi /users/me yanıtı — güven skoru + `showTrustScore` görünürlüğü. */
+    meTrust: (userId?: string) => ["me-trust", userId] as const,
     bankAccount: ["bank-account"] as const,
     addresses: ["addresses"] as const,
     notificationSettings: ["notification-settings"] as const,

@@ -47,8 +47,6 @@ export interface ProfileMenuContext {
    * ya da ücretli üye. iOS'ta ücretsiz kullanıcı görmez (Apple 2.1(b)). Mobilde salt görüntüleme.
    */
   showMembership: boolean;
-  isPaidTier: boolean;
-  tierLabel: string;
   /** Efektif üyelik `business` mı (işletme paneli satırı). */
   isBusinessTier: boolean;
 }
@@ -57,8 +55,6 @@ export interface ProfileMenuContext {
 export const DEFAULT_MENU_CONTEXT: ProfileMenuContext = {
   isBusiness: false,
   showMembership: false,
-  isPaidTier: false,
-  tierLabel: '',
   isBusinessTier: false,
 };
 
@@ -226,7 +222,6 @@ export function buildProfileMenuGroups(
                 label: t('mobile.settingsMembershipPlan'),
                 to: '/membership',
                 testID: 'profile-membership-link',
-                rightBadge: ctx.isPaidTier ? ctx.tierLabel : undefined,
               },
             ]
           : []),

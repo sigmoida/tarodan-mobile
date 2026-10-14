@@ -28,8 +28,13 @@ jest.mock('@/stores/authStore', () => ({
   },
 }));
 
+let mockMe: any = { isPremium: false, trustScore: null };
 jest.mock('@/lib/api', () => ({
-  userApi: { updateProfile: jest.fn(() => Promise.resolve({ data: {} })), claimUsername: jest.fn() },
+  userApi: {
+    updateProfile: jest.fn(() => Promise.resolve({ data: {} })),
+    claimUsername: jest.fn(),
+    getProfile: jest.fn(() => Promise.resolve({ data: mockMe })),
+  },
   mediaApi: { uploadAvatar: jest.fn(() => Promise.resolve({ data: { key: 'avatars/u1/yeni.jpg' } })) },
   authApi: {
     checkUsernameAvailability: jest.fn(),
@@ -78,6 +83,34 @@ beforeEach(() => {
   jest.clearAllMocks();
   resetRouterMocks();
   mockUser = { ...baseUser };
+  mockMe = { isPremium: false, trustScore: null };
+});
+
+describe('Profili düzenle · güven skoru görünürlüğü (profil başlığındaki çipin yerine)', () => {
+  it('premium olmayan profilde bölüm çizilmez', async () => {
+    renderScreen();
+    await waitFor(() => expect(userApi.getProfile).toHaveBeenCalled());
+    expect(screen.queryByTestId('edit-profile-trust-section')).toBeNull();
+  });
+
+  it('premium profilde Switch satırı: skor görünür, kapatınca showTrustScore=false gönderilir', async () => {
+    mockMe = { isPremium: true, trustScore: 10, trustLevel: 'Gelişmekte', showTrustScore: true };
+    renderScreen();
+    const sw = await screen.findByTestId('edit-profile-trust-visibility');
+    expect(screen.getByText('Güven skorumu herkese göster')).toBeTruthy();
+    expect(screen.getByTestId('edit-profile-trust-score').props.children).toBe(
+      'Güven Skoru 10/100 · Gelişmekte',
+    );
+    expect(sw.props.accessibilityState).toMatchObject({ checked: true });
+    mockMe = { ...mockMe, showTrustScore: false }; // sunucu yeni değeri döndürür (refetch)
+    fireEvent.press(sw);
+    await waitFor(() => expect(updateProfile).toHaveBeenCalledWith({ showTrustScore: false }));
+    await waitFor(() =>
+      expect(screen.getByTestId('edit-profile-trust-visibility').props.accessibilityState).toMatchObject({
+        checked: false,
+      }),
+    );
+  });
 });
 
 describe('Profili düzenle · düzen', () => {

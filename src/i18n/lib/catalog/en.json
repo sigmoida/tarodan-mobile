@@ -2026,7 +2026,10 @@
     "badgeVerified": "Verified",
     "badgePremiumVerified": "Premium Verified",
     "paymentOverdue": "Payment Overdue",
-    "renewalDateLabel": "Renewal Date:"
+    "renewalDateLabel": "Renewal Date:",
+    "explorePlansTitle": "Explore Plans",
+    "explorePlansDesc": "See all plans and the features they include.",
+    "plansInAppNote": "Plan changes can't be made in the app at the moment. We know this isn't ideal."
   },
   "collection": {
     "share": "Share",
@@ -4188,7 +4191,10 @@
     "maintenanceDescription": "We are currently performing maintenance. We will be back shortly.",
     "pagePlatformFee": "Platform Service Fee",
     "splashTagline": "The safe address for secondhand",
-    "menuInfoLegal": "Info & Legal"
+    "menuInfoLegal": "Info & Legal",
+    "trustScoreVisibilityTitle": "Trust Score",
+    "trustScoreVisibilityLabel": "Show my trust score publicly",
+    "trustScoreVisibilityHint": "When off, your score isn't shown to others on your profile."
   },
   "refund": {
     "cancel": {

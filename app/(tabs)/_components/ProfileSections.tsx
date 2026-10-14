@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Badge, Chip, IconButton, Text, theme } from '@/ui';
+import { IconButton, Text, theme } from '@/ui';
 
 import { buildAvatarUrl } from '@/lib/api';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
@@ -16,51 +16,19 @@ const { spacing } = theme;
 type SectionProps = { f: ProfileController };
 
 // ---------------------------------------------------------------------------
-// Kimlik başlığı (yatay kompakt): solda avatar, sağında ad + e-posta; altında tek satırda
-// üyelik rozeti + güven skoru + görünürlük çipi (dar ekranda alt satıra sarar). Üçü de aynı rozet
-// köşesinde (`radiusRole.badge`): görünürlük çipi bir kontrol olsa da rozet satırında durduğu için
-// `shape="badge"`. "Profili
+// Kimlik başlığı (yatay kompakt): solda avatar, sağında ad + e-posta. Rozet YOK (üyelik / güven
+// skoru / görünürlük çipi kaldırıldı; güven skoru görünürlüğü Profili Düzenle'de). "Profili
 // düzenle" girişi kimlik satırının sağındaki kalem (üst barın sağı sekme köklerinde sabit:
 // Mesajlar + Bildirimler).
 // ---------------------------------------------------------------------------
 export function ProfileCard({ f }: SectionProps) {
   const { t } = useTranslation();
   const { user } = f;
-  const showTrust = f.isPremiumProfile && f.trustScore != null;
-  const badges =
-    f.isPaidTier || showTrust ? (
-      <View style={styles.badgeRow} testID="profile-badges">
-        {f.isPaidTier ? (
-          <Badge variant="default" size="sm">
-            {t('profile.tierMemberBadge', { tier: f.tierLabel })}
-          </Badge>
-        ) : null}
-        {showTrust ? (
-          <>
-            <Badge variant="warning" size="sm">
-              {t('seller.trustScoreLabel', { score: f.trustScore })}
-              {f.trustLevel ? t('seller.trustScoreLevelSuffix', { level: f.trustLevel }) : ''}
-            </Badge>
-            <Chip
-              testID="profile-trust-visibility"
-              size="sm"
-              shape="badge"
-              selected={f.showTrustScore}
-              label={f.showTrustScore ? t('mobile.profileTrustPublic') : t('mobile.profileTrustHidden')}
-              onPress={() => f.trustVisibilityMutation.mutate(!f.showTrustScore)}
-              disabled={f.trustVisibilityMutation.isPending}
-            />
-          </>
-        ) : null}
-      </View>
-    ) : null;
-
   return (
     <ProfileHeader
       layout="row"
       name={user?.displayName || 'U'}
       source={user?.avatar && user?.id ? buildAvatarUrl(String(user.id), user.avatar) : undefined}
-      footer={badges}
       trailing={
         // Maestro akışları `profile-edit-button`'a bağlı (giriş yapılmış mı testi) — misafirde YOK.
         <IconButton
@@ -103,11 +71,9 @@ export function ProfileMenuSections({
         // iOS'ta abonelik satılmıyor (Apple 2.1(b)): ücretsiz kullanıcı "Üyelik Planı"
         // girişini görmez. Ücretli üye planını ve abonelik durumunu (salt görüntüleme) görür.
         showMembership: CAN_BUY_DIGITAL || f.isPaidTier,
-        isPaidTier: f.isPaidTier,
-        tierLabel: f.tierLabel,
         isBusinessTier: f.effectiveTier.toLowerCase() === 'business',
       })),
-    [t, isBusiness, f.isPaidTier, f.tierLabel, f.effectiveTier],
+    [t, isBusiness, f.isPaidTier, f.effectiveTier],
   );
   return (
     <>
@@ -121,7 +87,6 @@ export function ProfileMenuSections({
               icon={item.icon}
               label={item.label}
               tone={item.tone}
-              rightBadge={item.rightBadge}
               onPress={() => router.push(item.to as never)}
             />
           ))}
@@ -142,6 +107,5 @@ export function ProfileMenuSections({
 }
 
 const styles = StyleSheet.create({
-  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing[2] },
   group: { paddingTop: spacing[2], paddingBottom: spacing[1] },
 });

@@ -18,7 +18,6 @@ jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 const f: any = {
   user: { id: 'u1', displayName: 'Ayşe Yılmaz', email: 'ayse@example.com' },
   isPaidTier: false,
-  tierLabel: 'Free',
   effectiveTier: 'free',
   handleLogout: jest.fn(),
 };
@@ -87,11 +86,11 @@ it('her menü satırında sağ chevron var ve satır rotaya gider', () => {
   expect(router.push).toHaveBeenCalledWith('/settings/language');
 });
 
-it('ücretli üyede tek üyelik satırı (plan + abonelik birleşik) ve katman rozeti görünür', () => {
-  renderWithProviders(<ProfileMenuSections f={{ ...f, isPaidTier: true, tierLabel: 'Premium' }} />);
+it('ücretli üyede tek üyelik satırı (plan + abonelik birleşik); satırda katman rozeti yok', () => {
+  renderWithProviders(<ProfileMenuSections f={{ ...f, isPaidTier: true }} />);
   expect(screen.getByTestId('profile-membership-link')).toBeTruthy();
   expect(screen.queryByTestId('profile-subscription-link')).toBeNull();
-  expect(screen.getByText('Premium')).toBeTruthy();
+  expect(screen.queryByText('Premium')).toBeNull();
 });
 
 it('işletme paneli yalnız business katmanında görünür', () => {
@@ -99,20 +98,14 @@ it('işletme paneli yalnız business katmanında görünür', () => {
   expect(screen.queryByText(i18n.t('mobile.settingsBusinessPanel'))).toBeNull();
   screen.unmount();
   renderWithProviders(
-    <ProfileMenuSections f={{ ...f, isPaidTier: true, tierLabel: 'Business', effectiveTier: 'business' }} />,
+    <ProfileMenuSections f={{ ...f, isPaidTier: true, effectiveTier: 'business' }} />,
   );
   expect(screen.getByText(i18n.t('mobile.settingsBusinessPanel'))).toBeTruthy();
 });
 
 describe('ProfileCard — yatay kompakt kimlik başlığı', () => {
-  const trustF = {
-    ...f,
-    isPremiumProfile: true,
-    trustScore: 87,
-    trustLevel: null,
-    showTrustScore: true,
-    trustVisibilityMutation: { mutate: jest.fn(), isPending: false },
-  };
+  // Eski alanlar verilse bile başlık rozet çizmez (ücretli + premium profil + skor).
+  const trustF = { ...f, isPaidTier: true, isPremiumProfile: true, trustScore: 87, showTrustScore: true };
 
   it('ad ve e-posta tek satır; "Profili düzenle" kimlik satırının sağında kalem (metin düğme yok)', () => {
     renderWithProviders(<ProfileCard f={f} />);
@@ -140,33 +133,12 @@ describe('ProfileCard — yatay kompakt kimlik başlığı', () => {
     expect(StyleSheet.flatten(screen.getByText('AY').props.style).color).toBe(avatarPlaceholderColors.foreground);
   });
 
-  it('rozet yoksa (ücretsiz, güven skoru yok) rozet satırı çizilmez', () => {
-    renderWithProviders(<ProfileCard f={f} />);
+  it('rozet satırı yok: üyelik rozeti, güven skoru ve görünürlük çipi hiçbir durumda çizilmez', () => {
+    renderWithProviders(<ProfileCard f={trustF} />);
     expect(screen.queryByTestId('profile-badges')).toBeNull();
-  });
-
-  it('ücretli üyede katman rozeti rozet satırında görünür', () => {
-    renderWithProviders(<ProfileCard f={{ ...f, isPaidTier: true, tierLabel: 'Premium' }} />);
-    expect(screen.getByTestId('profile-badges')).toBeTruthy();
-    expect(screen.getByText(i18n.t('profile.tierMemberBadge', { tier: 'Premium' }))).toBeTruthy();
-  });
-
-  it('güven skoru + "Herkese açık" çipi aynı satırda; dokununca görünürlük değişir', () => {
-    renderWithProviders(<ProfileCard f={{ ...trustF, isPaidTier: true, tierLabel: 'Premium' }} />);
-    expect(screen.getByText(i18n.t('seller.trustScoreLabel', { score: 87 }))).toBeTruthy();
-    const chip = screen.getByTestId('profile-trust-visibility');
-    expect(screen.getByText(i18n.t('mobile.profileTrustPublic'))).toBeTruthy();
-    expect(chip.props.accessibilityState).toMatchObject({ selected: true });
-    fireEvent.press(chip);
-    expect(trustF.trustVisibilityMutation.mutate).toHaveBeenCalledWith(false);
-  });
-
-  it('gizliyken "Gizli" yazar; premium olmayan profilde güven skoru ve çip yok', () => {
-    renderWithProviders(<ProfileCard f={{ ...trustF, showTrustScore: false }} />);
-    expect(screen.getByText(i18n.t('mobile.profileTrustHidden'))).toBeTruthy();
-    screen.unmount();
-    renderWithProviders(<ProfileCard f={{ ...trustF, isPremiumProfile: false }} />);
     expect(screen.queryByTestId('profile-trust-visibility')).toBeNull();
+    expect(screen.queryByText(i18n.t('profile.tierMemberBadge', { tier: 'Premium' }))).toBeNull();
     expect(screen.queryByText(i18n.t('seller.trustScoreLabel', { score: 87 }))).toBeNull();
+    expect(screen.queryByText(i18n.t('mobile.profileTrustPublic'))).toBeNull();
   });
 });
