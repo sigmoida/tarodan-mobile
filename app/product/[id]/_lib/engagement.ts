@@ -7,6 +7,11 @@ export interface OfferTradeAvailability {
   offer: boolean;
   /** "Takas Teklifi" / "Takas Açık": yukarıdakine ek olarak ilan takasa açık ve giriş platformda açık. */
   trade: boolean;
+  /**
+   * Galeri "Takas Açık" rozeti: ilan takasa açık, satılabilir ve takas girişi platformda açık.
+   * Sahip de görür (kendi ilanının durumu); satılmış/rezerve/stoksuz ilanda yok.
+   */
+  tradeBadge: boolean;
 }
 
 /** İlan satılabilir mi: aktif statü + stok var (null = sınırsız) + dışarıdan "stokta yok" değil. */
@@ -24,6 +29,7 @@ export function getOfferTradeAvailability(
   product: Product,
   { isOwner, isOutOfStock, showTradeEntry }: { isOwner: boolean; isOutOfStock: boolean; showTradeEntry: boolean },
 ): OfferTradeAvailability {
-  const open = !isOwner && isPurchasable(product, isOutOfStock);
-  return { offer: open, trade: open && showTradeEntry && isProductTradeOpen(product) };
+  const purchasable = isPurchasable(product, isOutOfStock);
+  const tradeBadge = purchasable && showTradeEntry && isProductTradeOpen(product);
+  return { offer: purchasable && !isOwner, trade: tradeBadge && !isOwner, tradeBadge };
 }

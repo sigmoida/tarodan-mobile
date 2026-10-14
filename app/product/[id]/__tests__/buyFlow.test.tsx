@@ -113,6 +113,16 @@ describe('Hemen Al', () => {
     expect(router.push).toHaveBeenCalledWith('/checkout?buyNow=1');
   });
 
+  it('ürün sepette 3 adetse ödenen adet sepet satırınınki (seçicideki 1 değil) — fazlası kaybolmaz', () => {
+    const { result } = setup();
+    act(() => result.current.setQuantity(3));
+    act(() => result.current.handleAddToCart());
+    act(() => result.current.setQuantity(1));
+    act(() => result.current.handleBuyNow());
+    expect(useCartStore.getState().items[0].quantity).toBe(3);
+    expect(useCartStore.getState().buyNowItem?.quantity).toBe(3);
+  });
+
   it('seçili adet taşınır (stok tavanında)', () => {
     const { result } = setup();
     act(() => result.current.setQuantity(2));

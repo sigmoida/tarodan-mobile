@@ -157,28 +157,35 @@ describe('teklif/takas görünürlüğü (tek kaynak)', () => {
     });
 
   it('aktif ilan: teklif açık; takas yalnız takasa açıksa', () => {
-    expect(avail()).toEqual({ offer: true, trade: false });
-    expect(avail({ tradeAvailable: true })).toEqual({ offer: true, trade: true });
+    expect(avail()).toEqual({ offer: true, trade: false, tradeBadge: false });
+    expect(avail({ tradeAvailable: true })).toEqual({ offer: true, trade: true, tradeBadge: true });
   });
 
-  it('sahipte ikisi de kapalı', () => {
-    expect(avail({ tradeAvailable: true }, { isOwner: true })).toEqual({ offer: false, trade: false });
+  it('sahipte teklif/takas kapalı; galeri rozeti sahibe de görünür', () => {
+    expect(avail({ tradeAvailable: true }, { isOwner: true })).toEqual({ offer: false, trade: false, tradeBadge: true });
   });
 
   it('satıldı / rezerve / stok bitti: ikisi de kapalı (web: aktif değilse teklif/takas yok)', () => {
-    expect(avail({ status: 'sold', tradeAvailable: true })).toEqual({ offer: false, trade: false });
-    expect(avail({ status: 'reserved' })).toEqual({ offer: false, trade: false });
-    expect(avail({ availableQuantity: 0 }, { isOutOfStock: true })).toEqual({ offer: false, trade: false });
+    expect(avail({ status: 'sold', tradeAvailable: true })).toEqual({ offer: false, trade: false, tradeBadge: false });
+    expect(avail({ status: 'reserved' })).toEqual({ offer: false, trade: false, tradeBadge: false });
+    expect(avail({ availableQuantity: 0 }, { isOutOfStock: true })).toEqual({ offer: false, trade: false, tradeBadge: false });
   });
 
   it('platformda takas girişi kapalıysa (iOS yetki) takas yok, teklif var', () => {
-    expect(avail({ tradeAvailable: true }, { showTradeEntry: false })).toEqual({ offer: true, trade: false });
+    expect(avail({ tradeAvailable: true }, { showTradeEntry: false })).toEqual({ offer: true, trade: false, tradeBadge: false });
   });
 });
 
 describe('alt bardaki teklif/takas satırı', () => {
   const row = (availability: { offer: boolean; trade: boolean }, props: Record<string, unknown> = {}) =>
-    render(<ProductOfferTradeRow availability={availability} onTrade={noop} onMakeOffer={noop} {...props} />);
+    render(
+      <ProductOfferTradeRow
+        availability={{ ...availability, tradeBadge: availability.trade }}
+        onTrade={noop}
+        onMakeOffer={noop}
+        {...props}
+      />,
+    );
   const flat = (id: string) => Object.assign({}, ...[screen.getByTestId(id).props.style].flat());
 
   it('ikisi de geçerliyse eşit genişlikte yan yana: Takas Teklifi · Teklif Ver', () => {
@@ -218,6 +225,7 @@ describe('içerik eylem satırı', () => {
       <ProductSecondaryActions
         product={{ ...base, ...over } as any}
         isOwner={false}
+        inCart={false}
         quantity={1}
         onQuantity={noop}
         onAddToCollection={noop}
@@ -232,6 +240,11 @@ describe('içerik eylem satırı', () => {
     expect(screen.queryByText('Takas Teklifi')).toBeNull();
     unmount();
     secondary({ availableQuantity: 1 });
+    expect(screen.queryByLabelText('Adedi arttır')).toBeNull();
+  });
+
+  it('ürün sepetteyse adet seçici gizli (bar "Sepete Git"; Hemen Al sepet adedini öder)', () => {
+    secondary({}, { inCart: true });
     expect(screen.queryByLabelText('Adedi arttır')).toBeNull();
   });
 

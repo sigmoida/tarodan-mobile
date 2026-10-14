@@ -28,7 +28,6 @@ import { ProductDescription } from './_components/ProductDescription';
 import { ProductBuyBar, ProductOfferTradeRow, ProductSecondaryActions } from './_components/ProductActions';
 import { getOfferTradeAvailability } from './_lib/engagement';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
-import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { SellerCard } from './_components/SellerCard';
 import { ProductSpecs } from './_components/ProductSpecs';
 import { ProductReviewsPreview } from './_components/ProductReviewsPreview';
@@ -103,7 +102,7 @@ export default function ProductDetailScreen() {
   const { showTradeEntry } = useFeatureAccess();
   const availability = product
     ? getOfferTradeAvailability(product, { isOwner, isOutOfStock, showTradeEntry })
-    : { offer: false, trade: false };
+    : { offer: false, trade: false, tradeBadge: false };
   const price = product ? getProductPriceInfo(product) : null;
   const openReviews = () => router.push(`/product/${productId}/reviews`);
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
@@ -210,7 +209,7 @@ export default function ProductDetailScreen() {
             currentImage={currentImage}
             onPageChange={setCurrentImage}
             onOpenViewer={(index) => setViewer({ open: true, index })}
-            tradeOpen={showTradeEntry && isProductTradeOpen(product)}
+            tradeOpen={availability.tradeBadge}
           />
 
           <View style={styles.body}>
@@ -226,6 +225,7 @@ export default function ProductDetailScreen() {
             <ProductSecondaryActions
               product={product}
               isOwner={isOwner}
+              inCart={actions.inCart}
               quantity={actions.quantity}
               onQuantity={actions.setQuantity}
               onAddToCollection={actions.handleAddToCollection}

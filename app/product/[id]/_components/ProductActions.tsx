@@ -173,19 +173,22 @@ export function ProductOfferTradeRow({
 }
 
 /**
- * İçerikteki eylem satırı (satıcı kartının hemen üstü): adet seçici (stok>1; alt bardaki "Sepete
- * Ekle" / "Hemen Al" bu adedi taşır). Sahipte "Koleksiyona Ekle" (izin varsa) — "Düzenle" alt barda.
+ * İçerikteki eylem satırı (satıcı kartının hemen üstü): adet seçici (stok>1 ve ürün sepette
+ * değilken; alt bardaki "Sepete Ekle" / "Hemen Al" bu adedi taşır). Sahipte "Koleksiyona Ekle" (izin varsa) — "Düzenle" alt barda.
  * Teklif/takas burada YOK: alt bardaki satır tek giriş.
  */
 export function ProductSecondaryActions({
   product,
   isOwner,
+  inCart,
   quantity,
   onQuantity,
   onAddToCollection,
 }: {
   product: Product;
   isOwner: boolean;
+  /** Ürün sepetteyse seçici gizli: bar "Sepete Git" gösterir, "Hemen Al" sepet satırının adedini öder. */
+  inCart: boolean;
   quantity: number;
   onQuantity: (n: number) => void;
   onAddToCollection: () => void;
@@ -206,7 +209,7 @@ export function ProductSecondaryActions({
   }
 
   const max = quantityLimit(product, isOwner);
-  if (max == null) return null;
+  if (max == null || inCart) return null;
   return (
     <QuantityStepper
       value={quantity}

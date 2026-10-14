@@ -96,14 +96,18 @@ export function useProductActions({
    * "Hemen Al" (web `handleBuyNow`): ürün sepette değilse önce sepete eklenir (vazgeçilirse
    * kaybolmasın), sonra ödeme YALNIZ bu ürünle açılır (`?buyNow=1`); sepetin kalanı ödemeye girmez.
    * Misafir de gelir — checkout'un misafir + e-posta doğrulama akışı aynen geçerli.
+   *
+   * Ödenen adet SEPET SATIRININ adedidir (web gibi): ödeme sonrası satır (yerelde ve sunucuda
+   * `productId` ile) bütünüyle düşüyor; seçicideki adet ödenseydi sepetteki fazlası sessizce
+   * kaybolurdu. Ürün sepetteyken adet seçici zaten gizli (bar "Sepete Git" gösterir).
    */
   const handleBuyNow = () => {
     if (!product) return;
     if (isOutOfStock) return toast.error(t('cart.outOfStock'));
     const item = buildCartItem(product, images) as any;
-    const qty = clampCartQuantity(quantity, product, isOwnerProduct);
-    if (!isInCart(productId)) cart.add(item, qty);
-    setBuyNow(item, qty);
+    if (!isInCart(productId)) cart.add(item, clampCartQuantity(quantity, product, isOwnerProduct));
+    const line = useCartStore.getState().items.find((i) => i.productId === productId);
+    setBuyNow(item, line?.quantity ?? clampCartQuantity(quantity, product, isOwnerProduct));
     router.push('/checkout?buyNow=1' as any);
   };
 

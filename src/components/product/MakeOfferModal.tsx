@@ -2,7 +2,20 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
-import { theme, Text, Alert, Button, Chip, Modal, Input, Textarea, useModalMessage, ModalMessage, ButtonRow } from '@/ui';
+import {
+  theme,
+  Text,
+  Alert,
+  Button,
+  Chip,
+  Modal,
+  Input,
+  Textarea,
+  useModalMessage,
+  ModalMessage,
+  ButtonRow,
+  toast,
+} from '@/ui';
 import { offersApi } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { IS_MAESTRO } from '@/config/maestro';
@@ -18,13 +31,16 @@ interface MakeOfferModalProps {
   productTitle: string;
   /** Liste fiyatı (satıcının istediği fiyat) — kullanıcının altında teklif vermesi beklenir. */
   listPrice: number;
-  /** Başarılı gönderim sonrası callback (örn. snackbar). */
+  /** Başarılı gönderim sonrası callback (örn. toast) — modal o anda zaten kapalı. */
   onSuccess?: () => void;
 }
 
 /**
  * Ürün detayında "Teklif Ver" butonuna tıklayınca açılan modal.
  * Web `apps/web/src/app/listings/[id]/page.tsx:424` ile aynı `offersApi.create({ productId, amount, message })`.
+ *
+ * §14 "Modals never wait for a mutation": doğrulama hataları modal içinde (ModalMessage) gösterilir;
+ * geçerli teklifte modal ÖNCE kapanır, mutation sonra çalışır, sonuç toast'a düşer (iOS donma kuralı).
  */
 export default function MakeOfferModal({
   visible,
@@ -40,23 +56,20 @@ export default function MakeOfferModal({
   const msg = useModalMessage();
 
   const createOfferMutation = useMutation({
-    mutationFn: () =>
-      offersApi.create({
-        productId,
-        amount: parseFloat(amount),
-        message: message.trim() || undefined,
-      }),
+    // Değerler çağrı anında geçirilir: modal kapanınca form state'i sıfırlanıyor.
+    mutationFn: (vars: { amount: number; message?: string }) => offersApi.create({ productId, ...vars }),
+    onSuccess: () => onSuccess?.(),
+    onError: (e) => toast.error(apiErrorMessage(e, t('product.offerFailed'))),
   });
 
   const handleClose = () => {
     msg.clear();
     setAmount('');
     setMessage('');
-    createOfferMutation.reset();
     onDismiss();
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     msg.clear();
     const numeric = parseFloat(amount);
     if (!numeric || numeric <= 0) {
@@ -73,13 +86,9 @@ export default function MakeOfferModal({
       msg.error(t('offer.aboveListPriceError'));
       return;
     }
-    try {
-      await createOfferMutation.mutateAsync();
-      onSuccess?.();
-      handleClose();
-    } catch (e: any) {
-      msg.error(apiErrorMessage(e, t('product.offerFailed')));
-    }
+    const vars = { amount: numeric, message: message.trim() || undefined };
+    handleClose();
+    createOfferMutation.mutate(vars);
   };
 
   const numeric = parseFloat(amount) || 0;
@@ -156,14 +165,12 @@ export default function MakeOfferModal({
           variant="ghost"
           title={t('listing.dismiss')}
           onPress={handleClose}
-          disabled={createOfferMutation.isPending}
         />
         <Button
           testID="offer-submit-button"
           variant="primary"
           title={t('offer.sendOffer')}
           onPress={handleSubmit}
-          isLoading={createOfferMutation.isPending}
           disabled={!numeric || createOfferMutation.isPending}
         />
       </ButtonRow>

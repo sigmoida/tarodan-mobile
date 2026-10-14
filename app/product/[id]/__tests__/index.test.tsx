@@ -143,6 +143,18 @@ describe('Ürün detay ekranı', () => {
     expect(screen.queryByTestId('product-gallery-trade-badge')).toBeNull();
   });
 
+  it('satılmış takas ilanında galeri rozeti, çipler ve teklif/takas satırı yok', async () => {
+    getOneMock.mockResolvedValue({
+      data: { data: productFixture({ tradeAvailable: true, status: 'sold', availableQuantity: 0 }) },
+    });
+    renderWithProviders(<ProductDetailScreen />);
+
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    expect(screen.queryByTestId('product-gallery-trade-badge')).toBeNull();
+    expect(screen.queryByTestId('product-trade-chip')).toBeNull();
+    expect(screen.queryByTestId('product-offer-trade-row')).toBeNull();
+  });
+
   it('misafir teklif çipine dokununca giriş istenir (modal açılmaz)', async () => {
     jest.useFakeTimers();
     try {
