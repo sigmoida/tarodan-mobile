@@ -1,8 +1,11 @@
 import {
   hasPendingImages,
   imagesFromMapped,
+  makeCoverById,
   makeCoverImage,
   moveImage,
+  moveImageById,
+  shiftImageById,
   patchImage,
   removeImageById,
   rotatedPreviewUri,
@@ -34,6 +37,17 @@ describe('ilan görsel modeli', () => {
   it('makeCoverImage = başa al (web makeCover)', () => {
     expect(ids(makeCoverImage(list, 2))).toEqual(['c', 'a', 'b', 'd']);
     expect(makeCoverImage(list, 0)).toBe(list);
+  });
+
+  it('kimlikle taşıma: konum işlem anında çözülür; olmayan kimlik / sınır dışı güvenli', () => {
+    expect(ids(moveImageById(list, 'c', 0))).toEqual(['c', 'a', 'b', 'd']);
+    expect(ids(moveImageById(list, 'a', 99))).toEqual(['b', 'c', 'd', 'a']);
+    expect(moveImageById(list, 'x', 0)).toBe(list);
+    expect(ids(makeCoverById(list, 'd'))).toEqual(['d', 'a', 'b', 'c']);
+    expect(ids(shiftImageById(list, 'b', -1))).toEqual(['b', 'a', 'c', 'd']);
+    expect(ids(shiftImageById(list, 'b', 1))).toEqual(['a', 'c', 'b', 'd']);
+    expect(shiftImageById(list, 'a', -1)).toBe(list);
+    expect(shiftImageById(list, 'd', 1)).toBe(list);
   });
 
   it('removeImageById kimlikten siler; patchImage yalnız eşleşeni günceller', () => {

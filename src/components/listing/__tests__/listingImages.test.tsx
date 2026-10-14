@@ -182,9 +182,14 @@ describe('ilan görselleri · kapak / sıralama / çevirme', () => {
 
   it('kapak yap + taşı + kaldır → payload sırası ekrandaki sıra (ilk = kapak)', async () => {
     const { result } = await renderFilledForm();
-    act(() => result.current.makeCoverImage(2));
+    const [a, b, c] = result.current.images.map((i) => i.id) as [string, string, string];
+    act(() => result.current.makeCoverImage(c));
     expect(cardKeys(result.current)).toEqual(['card-3', 'card-1', 'card-2']);
-    act(() => result.current.moveImage(1, 2));
+    act(() => result.current.moveImage(a, 2));
+    expect(cardKeys(result.current)).toEqual(['card-3', 'card-2', 'card-1']);
+    act(() => result.current.shiftImage(b, -1));
+    expect(cardKeys(result.current)).toEqual(['card-2', 'card-3', 'card-1']);
+    act(() => result.current.shiftImage(b, 1));
     expect(cardKeys(result.current)).toEqual(['card-3', 'card-2', 'card-1']);
 
     // 4. görsel eklenip kaldırılır — kimlikten silme, diğerlerinin sırası korunur.
@@ -244,6 +249,16 @@ describe('ilan görselleri · kapak / sıralama / çevirme', () => {
       { cardKey: 'card-2r', detailKey: 'detail-2r' },
       { cardKey: 'card-3', detailKey: 'detail-3' },
     ]);
+  });
+
+  it('görsel sayısı 2\'nin altına inince sürükleme kilidi kalkar (bitiş bildirimi gelmese de)', async () => {
+    const { result } = await renderFilledForm();
+    act(() => result.current.setImageDragActive(true));
+    expect(result.current.imageDragActive).toBe(true);
+    act(() => result.current.removeImage(result.current.images[0]!.id));
+    expect(result.current.imageDragActive).toBe(true);
+    act(() => result.current.removeImage(result.current.images[0]!.id));
+    await waitFor(() => expect(result.current.imageDragActive).toBe(false));
   });
 
   it('çevirme hatası: kalem aynen kalır, hata toast\'ı (web rotateFailed)', async () => {

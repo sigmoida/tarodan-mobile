@@ -35,6 +35,7 @@ export function ListingImagesSection({ f }: SectionProps) {
   const onRotate = useStableCallback((id: string) => void f.rotateImage(id));
   const onMakeCover = useStableCallback(f.makeCoverImage);
   const onMove = useStableCallback(f.moveImage);
+  const onShift = useStableCallback(f.shiftImage);
   const onDragActiveChange = useStableCallback(f.setImageDragActive);
   // Menü kimliği kapanışta KORUNUR: kapanış animasyonu sürerken satırlar boşalmasın.
   const [menuId, setMenuId] = useState<string | null>(null);
@@ -56,13 +57,13 @@ export function ListingImagesSection({ f }: SectionProps) {
         key: 'cover',
         label: t('product.imageUpload.makeCover'),
         disabled: busy,
-        onPress: () => onMakeCover(menuIndex),
+        onPress: () => onMakeCover(menuImage.id),
         testID: 'listing-image-menu-cover',
       });
       list.push({
         key: 'left',
         label: t('product.imageUpload.moveLeft'),
-        onPress: () => onMove(menuIndex, menuIndex - 1),
+        onPress: () => onShift(menuImage.id, -1),
         testID: 'listing-image-menu-left',
       });
     }
@@ -70,7 +71,7 @@ export function ListingImagesSection({ f }: SectionProps) {
       list.push({
         key: 'right',
         label: t('product.imageUpload.moveRight'),
-        onPress: () => onMove(menuIndex, menuIndex + 1),
+        onPress: () => onShift(menuImage.id, 1),
         testID: 'listing-image-menu-right',
       });
     }
@@ -89,7 +90,7 @@ export function ListingImagesSection({ f }: SectionProps) {
       testID: 'listing-image-menu-remove',
     });
     return list;
-  }, [menuImage, menuIndex, f.images.length, t, onMakeCover, onMove, onRotate, onRemove]);
+  }, [menuImage, menuIndex, f.images.length, t, onMakeCover, onShift, onRotate, onRemove]);
 
   return (
     <SectionCard title={t('product.images')}>

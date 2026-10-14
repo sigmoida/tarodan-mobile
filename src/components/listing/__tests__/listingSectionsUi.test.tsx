@@ -48,6 +48,7 @@ function imagesF(over: Record<string, unknown> = {}) {
     rotateImage: jest.fn(),
     makeCoverImage: jest.fn(),
     moveImage: jest.fn(),
+    shiftImage: jest.fn(),
     setImageDragActive: jest.fn(),
     ...over,
   });
@@ -58,6 +59,21 @@ function layoutGrid(width = 300) {
   fireEvent(screen.getByTestId('listing-image-grid'), 'layout', {
     nativeEvent: { layout: { x: 0, y: 0, width, height: 0 } },
   });
+}
+
+/**
+ * Sürüklemeyi bitirmeden yarıda bırakmak için Pan geri çağrıları doğrudan: `fireGestureHandler`
+ * eksik END/FINALIZE durumlarını kendisi tamamlıyor.
+ */
+type PanEvent = { translationX: number; translationY: number };
+function panHandlers(testId: string) {
+  return (getByGestureTestId(testId) as unknown as {
+    handlers: {
+      onStart: (e: PanEvent) => void;
+      onUpdate: (e: PanEvent) => void;
+      onFinalize: (e: PanEvent, success: boolean) => void;
+    };
+  }).handlers;
 }
 
 const flatStyle = (id: string) => StyleSheet.flatten(screen.getByTestId(id).props.style) as Record<string, number>;
@@ -107,7 +123,7 @@ describe('Fotoğraflar bölümü', () => {
     render(<ListingImagesSection f={f} />);
     layoutGrid();
     fireEvent.press(screen.getByTestId('listing-image-cover-2'));
-    expect(f.makeCoverImage as jest.Mock).toHaveBeenCalledWith(2);
+    expect(f.makeCoverImage as jest.Mock).toHaveBeenCalledWith('c');
     expect(screen.getByTestId('listing-image-rotate-2').props.accessibilityLabel).toBe('3. görseli 90° çevir');
     fireEvent.press(screen.getByTestId('listing-image-rotate-2'));
     expect(f.rotateImage as jest.Mock).toHaveBeenCalledWith('c');
@@ -122,7 +138,7 @@ describe('Fotoğraflar bölümü', () => {
     expect(screen.getByTestId('listing-image-rotate-0')).toBeTruthy();
   });
 
-  it('karoya dokunma eylem menüsünü açar: Sağa taşı → moveImage(1, 2)', async () => {
+  it('karoya dokunma eylem menüsünü açar: Sağa taşı → shiftImage(id, +1), Kapak yap → kimlikle', async () => {
     const f = imagesF();
     render(<ListingImagesSection f={f} />);
     layoutGrid();
@@ -133,7 +149,7 @@ describe('Fotoğraflar bölümü', () => {
     expect(screen.getByText('90° çevir')).toBeTruthy();
     expect(screen.getByText('Kaldır')).toBeTruthy();
     fireEvent.press(screen.getByTestId('listing-image-menu-right'));
-    await waitFor(() => expect(f.moveImage as jest.Mock).toHaveBeenCalledWith(1, 2));
+    await waitFor(() => expect(f.shiftImage as jest.Mock).toHaveBeenCalledWith('b', 1));
   });
 
   it('menü: kapakta "Kapak yap" ve "Sola taşı" yok, sondaki görselde "Sağa taşı" yok', async () => {
@@ -147,7 +163,7 @@ describe('Fotoğraflar bölümü', () => {
     expect(screen.getByText('90° çevir')).toBeTruthy();
   });
 
-  it('basılı tut + sürükle: 3. görsel kapak alanına bırakılınca moveImage(2, 0); form kaydırması kilitlenip açılır', async () => {
+  it('basılı tut + sürükle: 3. görsel kapak alanına bırakılınca moveImage(c, 0); form kaydırması kilitlenip açılır', async () => {
     const f = imagesF();
     render(<ListingImagesSection f={f} />);
     layoutGrid(300);
@@ -163,7 +179,7 @@ describe('Fotoğraflar bölümü', () => {
     await act(() => Promise.resolve());
     expect(f.setImageDragActive as jest.Mock).toHaveBeenNthCalledWith(1, true);
     expect(f.setImageDragActive as jest.Mock).toHaveBeenLastCalledWith(false);
-    expect(f.moveImage as jest.Mock).toHaveBeenCalledWith(2, 0);
+    expect(f.moveImage as jest.Mock).toHaveBeenCalledWith('c', 0);
   });
 
   it('yerinde bırakılan sürükleme sırayı değiştirmez', async () => {
@@ -177,6 +193,63 @@ describe('Fotoğraflar bölümü', () => {
     ]);
     await act(() => Promise.resolve());
     expect(f.moveImage as jest.Mock).not.toHaveBeenCalled();
+    expect(f.setImageDragActive as jest.Mock).toHaveBeenLastCalledWith(false);
+  });
+
+  it('sürüklenen karo bitiş bildirimi gelmeden sökülürse kilit kalkar, sonraki sürükleme çalışır', async () => {
+    const f = imagesF();
+    const view = render(<ListingImagesSection f={f} />);
+    layoutGrid(300);
+    // END/FINALIZE gönderilmez: karo sürükleme ortasında.
+    const pan = panHandlers('listing-image-drag-2');
+    pan.onStart({ translationX: 0, translationY: 0 });
+    pan.onUpdate({ translationX: -40, translationY: 0 });
+    await act(() => Promise.resolve());
+    expect(f.setImageDragActive as jest.Mock).toHaveBeenLastCalledWith(true);
+
+    // İkinci parmakla ✕: üst liste 'c'yi çıkarır, karo söküldü.
+    const next = imagesF({ images: [img('a'), img('b')], setImageDragActive: f.setImageDragActive, moveImage: f.moveImage });
+    view.rerender(<ListingImagesSection f={next} />);
+    await act(() => Promise.resolve());
+    expect(f.setImageDragActive as jest.Mock).toHaveBeenLastCalledWith(false);
+
+    // Sürükleme durumu sıfırlandı: yeni sürükleme başlar ve bırakılır.
+    fireGestureHandler(getByGestureTestId('listing-image-drag-1'), [
+      { state: State.BEGAN, translationX: 0, translationY: 0 },
+      { state: State.ACTIVE, translationX: 0, translationY: 0 },
+      { state: State.ACTIVE, translationX: -150, translationY: 0 },
+      { state: State.END, translationX: -150, translationY: 0 },
+    ]);
+    await act(() => Promise.resolve());
+    expect(f.moveImage as jest.Mock).toHaveBeenCalledWith('b', 0);
+  });
+
+  it('ızgara sürükleme ortasında sökülürse form kaydırma kilidi kalkar', async () => {
+    const f = imagesF();
+    const view = render(<ListingImagesSection f={f} />);
+    layoutGrid(300);
+    const pan = panHandlers('listing-image-drag-1');
+    pan.onStart({ translationX: 0, translationY: 0 });
+    pan.onUpdate({ translationX: -40, translationY: 0 });
+    await act(() => Promise.resolve());
+    view.unmount();
+    expect(f.setImageDragActive as jest.Mock).toHaveBeenLastCalledWith(false);
+  });
+
+  it('sürükleme sırasında liste değişirse (yeni görsel) bırakış kimlikle bildirilir', async () => {
+    const f = imagesF();
+    const view = render(<ListingImagesSection f={f} />);
+    layoutGrid(300);
+    const pan = panHandlers('listing-image-drag-2');
+    pan.onStart({ translationX: 0, translationY: 0 });
+    pan.onUpdate({ translationX: -180, translationY: -80 });
+    // Arada yükleme biter: sona 'd' eklenir — sürüklenen karonun yuvası korunur.
+    view.rerender(<ListingImagesSection f={{ ...f, images: [img('a'), img('b'), img('c'), img('d')] } as typeof f} />);
+    const after = panHandlers('listing-image-drag-2');
+    after.onUpdate({ translationX: -180, translationY: -80 });
+    after.onFinalize({ translationX: -180, translationY: -80 }, true);
+    await act(() => Promise.resolve());
+    expect(f.moveImage as jest.Mock).toHaveBeenCalledWith('c', 0);
     expect(f.setImageDragActive as jest.Mock).toHaveBeenLastCalledWith(false);
   });
 

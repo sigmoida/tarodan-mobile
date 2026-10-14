@@ -20,11 +20,12 @@ import {
   hasPendingImages,
   imageFromKeys,
   imagesFromMapped,
-  makeCoverImage as makeCoverOf,
-  moveImage as moveImageOf,
+  makeCoverById,
+  moveImageById,
   patchImage,
   removeImageById,
   rotatedPreviewUri,
+  shiftImageById,
   toImageKeys,
   type ListingImage,
 } from '../_lib/images';
@@ -208,6 +209,11 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const [uploadingImages, setUploadingImages] = useState(false);
   /** Görsel sürükleniyor: form ScrollView'ı kaydırmayı bırakır (iki hareket çatışmasın). */
   const [imageDragActive, setImageDragActive] = useState(false);
+  // Sürüklenecek ikinci görsel kalmadıysa kilit kalkar — sürükleme yarıda kesilip bitiş
+  // bildirimi gelmezse form kaydırması kalıcı kilitli kalmasın.
+  useEffect(() => {
+    if (images.length < 2) setImageDragActive(false);
+  }, [images.length]);
 
   // Data from API
   const [categories, setCategories] = useState<Category[]>([]);
@@ -663,14 +669,22 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     setImages((prev) => removeImageById(prev, id));
   };
 
-  /** Sürükle-bırak / "Sola-Sağa taşı": `from` → `to`. */
-  const moveImage = (from: number, to: number) => {
-    setImages((prev) => moveImageOf(prev, from, to));
+  /**
+   * Sıralama KİMLİKLE: konum işlem anındaki listeden çözülür (sürükleme/menü açıkken liste
+   * değişmiş olabilir). Sürükle-bırak: `to` = bırakılan yuva.
+   */
+  const moveImage = (id: string, to: number) => {
+    setImages((prev) => moveImageById(prev, id, to));
+  };
+
+  /** Menü "Sola/Sağa taşı": `delta` = -1 / +1. */
+  const shiftImage = (id: string, delta: number) => {
+    setImages((prev) => shiftImageById(prev, id, delta));
   };
 
   /** Kapak = ilk kalem (web `makeCover`). */
-  const makeCoverImage = (index: number) => {
-    setImages((prev) => makeCoverOf(prev, index));
+  const makeCoverImage = (id: string) => {
+    setImages((prev) => makeCoverById(prev, id));
   };
 
   /**
@@ -1141,6 +1155,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     pickImages,
     removeImage,
     moveImage,
+    shiftImage,
     makeCoverImage,
     rotateImage,
     imageDragActive,

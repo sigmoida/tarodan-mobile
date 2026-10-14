@@ -63,6 +63,29 @@ export function makeCoverImage<T>(items: T[], index: number): T[] {
   return moveImage(items, index, 0);
 }
 
+/**
+ * Kalemi KİMLİĞİNDEN `to` konumuna taşı. Konum işlem anında güncel listeden çözülür: sürükleme ya
+ * da menü açıkken liste değişmiş olabilir (yükleme bitti, görsel kaldırıldı) — yakalanmış bir indeks
+ * yanlış kalemi taşırdı. Kalem yoksa liste AYNEN döner.
+ */
+export function moveImageById(items: ListingImage[], id: string, to: number): ListingImage[] {
+  const from = items.findIndex((item) => item.id === id);
+  if (from < 0) return items;
+  return moveImage(items, from, Math.max(0, Math.min(items.length - 1, to)));
+}
+
+/** Kalemi kimliğinden `delta` kadar kaydır (menü "Sola/Sağa taşı"). */
+export function shiftImageById(items: ListingImage[], id: string, delta: number): ListingImage[] {
+  const from = items.findIndex((item) => item.id === id);
+  if (from < 0) return items;
+  return moveImageById(items, id, from + delta);
+}
+
+/** Kalemi kimliğinden kapak yap (başa al). */
+export function makeCoverById(items: ListingImage[], id: string): ListingImage[] {
+  return moveImageById(items, id, 0);
+}
+
 /** Kalemi kimliğinden güncelle. */
 export function patchImage(items: ListingImage[], id: string, patch: Partial<ListingImage>): ListingImage[] {
   return items.map((item) => (item.id === id ? { ...item, ...patch } : item));

@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useTranslation } from 'react-i18next';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import {
   Icon,
   IconButton,
@@ -52,8 +53,9 @@ export interface ListingImageGridProps {
   onOpenMenu: (id: string) => void;
   onRemove: (id: string) => void;
   onRotate: (id: string) => void;
-  onMakeCover: (index: number) => void;
-  onMove: (from: number, to: number) => void;
+  onMakeCover: (id: string) => void;
+  /** Sürükle-bırak: kalem KİMLİĞİ + bırakılan yuva; kaynak konumu üst güncel listeden çözer. */
+  onMove: (id: string, to: number) => void;
   /** Sürükleme başladı/bitti — form ScrollView'ı bu sürede kaymaz. */
   onDragActiveChange: (active: boolean) => void;
 }
@@ -119,13 +121,17 @@ export function ListingImageGrid({
 
   // Sıra props'tan gelir (tek kaynak `useListingForm.images`); bırakınca üst state güncellenir
   // ve harita aynı sıraya yeniden kurulur (sıçrama yok).
+  // Sürükleme SÜRERKEN harita yeniden kurulmaz (sürüklenen karonun yuvası sıfırlanırdı); yalnız
+  // sayı güncellenir. Bırakışta sıra değişirse bu effect yeniden koşar, değişmezse `handleDragEnd`
+  // haritayı güncel listeden kurar — ekran sırası her zaman payload sırasına eşit.
   const order = images.map((img) => img.id).join('|');
+  const imagesRef = useLatestRef(images);
   useEffect(() => {
-    slots.value = slotMap(images);
     count.value = images.length;
+    if (draggingId.value === null) slots.value = slotMap(images);
     // `order` sıra değişimini temsil eder; `images` referansı her çevirmede değişir.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order, slots, count]);
+  }, [order, slots, count, draggingId]);
 
   const onLayout = useCallback(
     (e: LayoutChangeEvent) => {
@@ -143,12 +149,35 @@ export function ListingImageGrid({
     onDragActiveChange(true);
   }, [onDragActiveChange]);
   const handleDragEnd = useCallback(
-    (from: number, to: number) => {
+    (id: string, to: number) => {
       draggedAtRef.current = Date.now();
       onDragActiveChange(false);
-      if (from !== to) onMove(from, to);
+      const list = imagesRef.current;
+      const from = list.findIndex((img) => img.id === id);
+      if (from >= 0 && from !== to && to < list.length) onMove(id, to);
+      else slots.value = slotMap(list);
     },
-    [onDragActiveChange, onMove],
+    [onDragActiveChange, onMove, imagesRef, slots],
+  );
+  /**
+   * Sürüklenen karo bitiş bildirimi gelmeden söküldü (ikinci parmakla ✕, bölüm söküldü):
+   * `onFinalize` gelmeyebilir — kilit ve sürükleme durumu burada bırakılır.
+   */
+  const handleDragAbort = useCallback(() => {
+    draggedAtRef.current = Date.now();
+    onDragActiveChange(false);
+  }, [onDragActiveChange]);
+
+  // Izgara sökülürken sürükleme yarıda kaldıysa form kaydırması kilitli kalmasın.
+  const dragActiveChangeRef = useLatestRef(onDragActiveChange);
+  useEffect(
+    () => () => {
+      if (draggingId.value !== null) {
+        draggingId.value = null;
+        dragActiveChangeRef.current(false);
+      }
+    },
+    [draggingId, dragActiveChangeRef],
   );
   const handleOpenMenu = useCallback(
     (id: string) => {
@@ -178,6 +207,7 @@ export function ListingImageGrid({
               onMakeCover={onMakeCover}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
+              onDragAbort={handleDragAbort}
             />
           ))
         : null}
@@ -194,9 +224,10 @@ interface TileProps {
   onOpenMenu: (id: string) => void;
   onRemove: (id: string) => void;
   onRotate: (id: string) => void;
-  onMakeCover: (index: number) => void;
+  onMakeCover: (id: string) => void;
   onDragStart: () => void;
-  onDragEnd: (from: number, to: number) => void;
+  onDragEnd: (id: string, to: number) => void;
+  onDragAbort: () => void;
 }
 
 const ImageTile = memo(function ImageTile({
@@ -211,6 +242,7 @@ const ImageTile = memo(function ImageTile({
   onMakeCover,
   onDragStart,
   onDragEnd,
+  onDragAbort,
 }: TileProps) {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
@@ -226,6 +258,18 @@ const ImageTile = memo(function ImageTile({
     });
     return () => cancelAnimationFrame(frame);
   }, [mounted]);
+
+  // Bu karo sürüklenirken söküldüyse durum burada sıfırlanır (bkz. `handleDragAbort`).
+  const dragAbortRef = useLatestRef(onDragAbort);
+  useEffect(
+    () => () => {
+      if (drag.draggingId.value === id) {
+        drag.draggingId.value = null;
+        dragAbortRef.current();
+      }
+    },
+    [drag.draggingId, id, dragAbortRef],
+  );
 
   const animMs = reduceMotion ? 0 : duration.normal;
   const { slots, width: widthSV, count, draggingId, dragX, dragY, startSlot, originX, originY, startSize } = drag;
@@ -265,7 +309,7 @@ const ImageTile = memo(function ImageTile({
           'worklet';
           if (draggingId.value !== id) return;
           draggingId.value = null;
-          scheduleOnRN(onDragEnd, startSlot.value, slots.value[id] ?? startSlot.value);
+          scheduleOnRN(onDragEnd, id, slots.value[id] ?? startSlot.value);
         }),
     [
       index, sortable, busy, id, slots, widthSV, count, draggingId, dragX, dragY,
@@ -385,7 +429,7 @@ const ImageTile = memo(function ImageTile({
             color={colors.text.muted}
             accessibilityLabel={t('product.imageUpload.makeCoverImage', label)}
             hitSlop={SLOP.bottomRight}
-            onPress={() => onMakeCover(index)}
+            onPress={() => onMakeCover(id)}
             style={{ ...styles.corner, ...styles.bottomRight }}
             testID={`listing-image-cover-${index}`}
           />
