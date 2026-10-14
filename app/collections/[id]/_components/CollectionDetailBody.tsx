@@ -155,7 +155,7 @@ export function CollectionDetailBody({ f, onReport }: { f: CollectionDetailContr
           bütünüyle iOS'ta kapanır (Guideline 3.1.1/3.1.3). */}
       {!f.isPremiumMember && !f.isOwner && (
         <UpgradeCta>
-          <Alert variant="default" title={t('collection.guestNoticeTitle')}>
+          <Alert variant="info" title={t('collection.guestNoticeTitle')}>
             {t('collection.guestNoticeText')}
           </Alert>
           <Button

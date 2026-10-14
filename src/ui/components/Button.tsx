@@ -226,8 +226,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     flexShrink: 1,
   },
-  // Web: bg-primary-500 text-2xs font-bold rounded-sm (Pill count tabanı).
-  count: { marginLeft: spacing[2], borderRadius: theme.radius.sm },
+  // Web: bg-primary-500 text-2xs font-bold (Pill count tabanı); köşe tek rozet köşesi (radiusRole.badge).
+  count: { marginLeft: spacing[2], borderRadius: theme.radiusRole.badge },
   iconLeft: { marginRight: spacing[2] },
   iconRight: { marginLeft: spacing[2] },
 });

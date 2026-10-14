@@ -24,7 +24,8 @@ export const BADGE_ANCHOR_OFFSET = -spacing[0.5];
 
 /**
  * Sayaç rozeti — web `CountBadge`: danger-500, h18 min-w18, `text-2xs` 600, 99+ sınırı.
- * Sepet, mesaj ve bildirim ikonlarının üstünde; 0 ve altında çizilmez.
+ * Sepet, mesaj ve bildirim ikonlarının üstünde; 0 ve altında çizilmez. Rozet köşesi kuralının
+ * tek istisnası: sayaç bir DAİREDİR (`radiusRole.counter`), etiket rozeti değil.
  */
 export const CountBadge: React.FC<CountBadgeProps> = ({ count, inline, style, ringColor, testID }) => {
   if (!count || count <= 0) return null;
@@ -37,6 +38,7 @@ export const CountBadge: React.FC<CountBadgeProps> = ({ count, inline, style, ri
       background={counterBadgeColor}
       color={colors.text.inverted}
       style={[
+        styles.counter,
         inline ? null : styles.anchored,
         ringColor ? { borderWidth: 2, borderColor: ringColor } : null,
         style,
@@ -48,6 +50,7 @@ export const CountBadge: React.FC<CountBadgeProps> = ({ count, inline, style, ri
 };
 
 const styles = StyleSheet.create({
+  counter: { borderRadius: theme.radiusRole.counter },
   anchored: {
     position: 'absolute',
     top: BADGE_ANCHOR_OFFSET,

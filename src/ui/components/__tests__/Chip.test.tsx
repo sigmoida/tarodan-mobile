@@ -29,9 +29,25 @@ describe('Chip (web @tarodan/ui)', () => {
     expect(StyleSheet.flatten(screen.getByText('Yeni').props.style).color).toBe(colors.text.muted);
   });
 
-  it('etiket modu (seçim yok) varyant tonunu korur', () => {
+  it('etiket modu (seçim yok) varyant tonunu korur; köşe rozet köşesi', () => {
     render(<Chip testID="chip" label="Ödendi" variant="success" />);
     expect(boxStyle().backgroundColor).toBe(colors.success[50]);
+    expect(boxStyle().borderRadius).toBe(theme.radiusRole.badge);
+  });
+
+  it('shape="badge": seçilebilir çip rozet satırında rozet köşesini alır', () => {
+    render(<Chip testID="chip" label="Herkese açık" shape="badge" selected onPress={jest.fn()} />);
+    expect(boxStyle().borderRadius).toBe(theme.radiusRole.badge);
+    expect(screen.getByRole('button')).toBeSelected();
+  });
+
+  it('count: etiketin yanında küçük sayaç rozeti; a11y etiketi "Etiket (n)"', () => {
+    render(<Chip testID="chip" label="İlanlar" count={20} selected onPress={jest.fn()} />);
+    expect(screen.getByText('İlanlar')).toBeTruthy();
+    const badge = StyleSheet.flatten(screen.getByTestId('chip-count').props.style);
+    expect(badge).toMatchObject({ borderRadius: theme.radiusRole.badge, backgroundColor: colors.primary[600] });
+    expect(screen.getByText('20')).toBeTruthy();
+    expect(screen.getByLabelText('İlanlar (20)')).toBeTruthy();
   });
 
   it('dikeyde gerilmez: boy tavanlı (maxHeight) ve ebeveyn hizası (alignSelf) ezilmez', () => {

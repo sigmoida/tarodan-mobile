@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
+  Alert,
   appAlert,
   Badge,
   Button,
   Card,
   Chip,
+  ChipTabs,
   EmptyState,
   IconButton,
   Input,
@@ -34,6 +36,7 @@ const BUTTON_SIZES = ['sm', 'md', 'lg', 'xl'] as const;
 const ICON_VARIANTS = ['primary', 'secondary', 'outline', 'ghost', 'danger', 'success'] as const;
 const BADGE_VARIANTS = ['default', 'success', 'warning', 'danger', 'outline', 'info', 'secondary'] as const;
 const PRODUCT_BADGES = ['sale', 'new', 'trade', 'rare', 'preorder', 'limited', 'sponsored', 'default'] as const;
+const ALERT_VARIANTS = ['info', 'success', 'warning', 'danger'] as const;
 
 /**
  * Tasarım vitrini — `@/ui` primitive'lerinin tüm varyantları tek sayfada (staging/dev).
@@ -41,6 +44,8 @@ const PRODUCT_BADGES = ['sale', 'new', 'trade', 'rare', 'preorder', 'limited', '
  */
 export function Showcase() {
   const [chip, setChip] = useState('a');
+  const [tab, setTab] = useState('listings');
+  const [visible, setVisible] = useState(true);
   const [qty, setQty] = useState(1);
   const [step, setStep] = useState(1);
   const [select, setSelect] = useState('');
@@ -87,6 +92,39 @@ export function Showcase() {
             </ProductBadge>
           ))}
         </View>
+        {/* Rozet satırındaki açma/kapama: rozetlerle aynı köşe (radiusRole.badge). */}
+        <View style={styles.wrap}>
+          <Badge size="sm">Premium Üye</Badge>
+          <Badge variant="warning" size="sm">Güven Skoru 92</Badge>
+          <Chip
+            size="sm"
+            shape="badge"
+            selected={visible}
+            label={visible ? 'Herkese açık' : 'Gizli'}
+            onPress={() => setVisible((v) => !v)}
+          />
+        </View>
+      </SectionCard>
+
+      <SectionCard title="Alert">
+        {ALERT_VARIANTS.map((v) => (
+          <Alert key={v} variant={v} title={`Alert ${v}`}>
+            Aynı yapı: ikon + başlık + metin; renk yalnız temel paletten.
+          </Alert>
+        ))}
+      </SectionCard>
+
+      <SectionCard title="ChipTabs">
+        <ChipTabs
+          bleed={false}
+          value={tab}
+          onChange={setTab}
+          items={[
+            { key: 'listings', label: 'İlanlar', count: 20 },
+            { key: 'reviews', label: 'Değerlendirmeler', count: 4 },
+            { key: 'collections', label: 'Koleksiyonlar', count: 0 },
+          ]}
+        />
       </SectionCard>
 
       <SectionCard title="Chip / Stepper">

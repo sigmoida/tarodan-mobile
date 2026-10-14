@@ -7,7 +7,7 @@ import { SheetShowcase } from '../_components/SheetShowcase';
 describe('Showcase', () => {
   it('bütün bölümler çizilir', () => {
     render(<Showcase />);
-    for (const title of ['Button', 'IconButton', 'Badge', 'Chip / Stepper', 'Form', 'Geri bildirim']) {
+    for (const title of ['Button', 'IconButton', 'Badge', 'Chip / Stepper', 'Alert', 'ChipTabs', 'Form', 'Geri bildirim']) {
       expect(screen.getByText(title)).toBeTruthy();
     }
   });

@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors, spacing, radiusRole } = theme;
+const { spacing } = theme;
 
 // Route-local stylesheet (§12) — kartlar web Card.
 export const styles = StyleSheet.create({
@@ -21,10 +21,5 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[2],
-  },
-  failureBox: {
-    backgroundColor: colors.danger[50]!,
-    padding: spacing[2],
-    borderRadius: radiusRole.card,
   },
 });

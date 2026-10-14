@@ -10,7 +10,7 @@ const items = [
 ];
 
 describe('ChipTabs', () => {
-  it('"Etiket (n)" biçimi: count verilmeyen sekmede sayı yok, 0 da gösterilir', () => {
+  it('sayaç ayrı küçük rozet (etiket kısaltılmaz); a11y "Etiket (n)"; count yoksa sayı yok, 0 da gösterilir', () => {
     render(
       <ChipTabs
         testID="tabs"
@@ -19,9 +19,12 @@ describe('ChipTabs', () => {
         items={[...items, { key: 'x', label: 'Sayaçsız' }]}
       />,
     );
-    expect(screen.getByText('Tümü (5)')).toBeOnTheScreen();
-    expect(screen.getByText('İptal (0)')).toBeOnTheScreen();
+    expect(screen.getByText('Tümü')).toBeOnTheScreen();
+    expect(screen.getByTestId('tabs-all-count')).toHaveTextContent('5');
+    expect(screen.getByLabelText('Tümü (5)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('İptal (0)')).toBeOnTheScreen();
     expect(screen.getByText('Sayaçsız')).toBeOnTheScreen();
+    expect(screen.queryByTestId('tabs-x-count')).toBeNull();
   });
 
   it('seçimi bildirir; a11y rolü tab + selected', () => {

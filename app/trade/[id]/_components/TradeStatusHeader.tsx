@@ -67,7 +67,7 @@ export function TradeStatusHeader({
       {/* Status description — özel kartı olan statülerde tekrar olmasın diye gizlenir. */}
       {statusDescription &&
         !['completed', 'at_warehouse', 'admin_reviewing', 'returning'].includes(trade.status) && (
-          <Alert variant="default">
+          <Alert variant="info">
             <Text variant="bodySm" tone="body">{statusDescription}</Text>
             {trade.cancelReason && (trade.status === 'cancelled' || trade.status === 'rejected') ? (
               <Text variant="caption" tone="muted">

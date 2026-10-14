@@ -17,7 +17,9 @@ type SectionProps = { f: ProfileController };
 
 // ---------------------------------------------------------------------------
 // Kimlik başlığı (yatay kompakt): solda avatar, sağında ad + e-posta; altında tek satırda
-// üyelik rozeti + güven skoru + görünürlük çipi (dar ekranda alt satıra sarar). "Profili
+// üyelik rozeti + güven skoru + görünürlük çipi (dar ekranda alt satıra sarar). Üçü de aynı rozet
+// köşesinde (`radiusRole.badge`): görünürlük çipi bir kontrol olsa da rozet satırında durduğu için
+// `shape="badge"`. "Profili
 // düzenle" girişi kimlik satırının sağındaki kalem (üst barın sağı sekme köklerinde sabit:
 // Mesajlar + Bildirimler).
 // ---------------------------------------------------------------------------
@@ -42,6 +44,7 @@ export function ProfileCard({ f }: SectionProps) {
             <Chip
               testID="profile-trust-visibility"
               size="sm"
+              shape="badge"
               selected={f.showTrustScore}
               label={f.showTrustScore ? t('mobile.profileTrustPublic') : t('mobile.profileTrustHidden')}
               onPress={() => f.trustVisibilityMutation.mutate(!f.showTrustScore)}

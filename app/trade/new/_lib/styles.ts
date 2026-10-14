@@ -185,21 +185,6 @@ export const styles = StyleSheet.create({
   },
   protectionCard: {
     marginBottom: theme.spacing[4],
-    backgroundColor: colors.success[50]!,
-    borderWidth: 1,
-    borderColor: colors.success[200]!,
-  },
-  protectionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  protectionText: {
-    flex: 1,
-    marginLeft: theme.spacing[3],
-  },
-  protectionDesc: {
-    color: colors.text.muted,
-    marginTop: theme.spacing[1],
   },
   premiumRequired: {
     flex: 1,

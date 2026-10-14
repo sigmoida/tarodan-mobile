@@ -9,10 +9,14 @@ import { RawText } from './Text';
  * elle `View + Text` ile hap çizilmez (bkz. CLAUDE.md §14).
  */
 export type PillSize = 'count' | 'sm' | 'body' | 'md' | 'lg';
-/** `badge` = web `rounded-lg`/rozet köşesi (radiusRole.badge), `full` = tam yuvarlak (çip, sayaç). */
+/**
+ * `badge` = rozet köşesi (`radiusRole.badge`, web `rounded-lg`) — her rozet/etiket bunu kullanır.
+ * `full` = tam yuvarlak; YALNIZ seçim kontrolü çipleri (`radiusRole.chip`) ve ikon sayacı
+ * (`radiusRole.counter`) için. Kural: `src/theme/roles.ts` → `radiusRole`.
+ */
 export type PillShape = 'badge' | 'full';
 
-const { radius, radiusRole, spacing, typography, colors } = theme;
+const { radiusRole, spacing, typography, colors } = theme;
 
 /**
  * Web: sm px-2 py-0.5 text-xs · md px-2.5 py-1 text-sm · lg px-3 py-2 text-sm.
@@ -30,7 +34,7 @@ export const pillMetrics = {
 
 export const pillRadius: Record<PillShape, number> = {
   badge: radiusRole.badge,
-  full: radius.full,
+  full: radiusRole.chip,
 };
 
 /** Hap kutusu stili (renkler çağıranda). */

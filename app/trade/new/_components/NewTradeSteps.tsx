@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, Chip, EmptyState, Divider, Spinner, Text, Input, Textarea, theme, Icon, ButtonRow, RadioIndicator } from '@/ui';
+import { Alert, Button, Card, Chip, EmptyState, Divider, Spinner, Text, Input, Textarea, theme, Icon, ButtonRow, RadioIndicator } from '@/ui';
 
 import { TradeAddressPicker } from '@/components/common';
 import { ProductCard } from '@/components/product';
@@ -277,17 +277,9 @@ export function Step3Review({ f }: StepProps) {
       </View>
 
       {/* Trade Protection Info */}
-      <Card style={styles.protectionCard}>
-        <View style={styles.protectionContent}>
-          <Icon name="shield-check" variant="solid" size={24} color={colors.success[600]!} />
-          <View style={styles.protectionText}>
-            <Text variant="label">{t('trade.safeTradeTitle')}</Text>
-            <Text variant="caption" style={styles.protectionDesc}>
-              {t('trade.safeTradeDesc')}
-            </Text>
-          </View>
-        </View>
-      </Card>
+      <Alert variant="success" icon="shield-check" title={t('trade.safeTradeTitle')} style={styles.protectionCard}>
+        {t('trade.safeTradeDesc')}
+      </Alert>
 
       <View style={styles.stepActions}>
         <Button variant="outline" title={t('common.back')} onPress={() => f.setStep(2)} />

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Avatar, EmptyState, SectionCard, SegmentedButtons, Text, theme, Icon } from '@/ui';
+import { Avatar, ChipTabs, EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
 
 import { ProductCard } from '@/components/product';
 import { CollectionCard } from '@/components/collection/CollectionCard';
@@ -19,15 +19,14 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
   const { activeTab, products, reviews, collections } = f;
   return (
     <>
-      <SegmentedButtons<Tab>
-        density="small"
-        style={styles.tabs}
+      <ChipTabs<Tab>
+        testID="seller-tabs"
         value={activeTab}
-        onValueChange={f.setActiveTab}
-        options={[
-          { value: 'listings', label: t('seller.listingsCount', { count: products.length }) },
-          { value: 'reviews', label: t('seller.reviewsCount', { count: reviews.length }) },
-          { value: 'collections', label: t('seller.collectionsCount', { count: collections.length }) },
+        onChange={f.setActiveTab}
+        items={[
+          { key: 'listings', label: t('profile.listings'), count: products.length },
+          { key: 'reviews', label: t('profile.reviews'), count: reviews.length },
+          { key: 'collections', label: t('nav.collections'), count: collections.length },
         ]}
       />
 

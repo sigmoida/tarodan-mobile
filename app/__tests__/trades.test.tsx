@@ -54,18 +54,18 @@ describe('Takaslarım', () => {
 
   it('tüm filtre sekmeleri sayaç taşır (İptal / Reddedilen dahil — tutarlı tek kural)', async () => {
     renderWithProviders(<TradesScreen />);
-    expect(await screen.findByText('Tümü (5)')).toBeOnTheScreen();
-    expect(screen.getByText('Bekleyen (2)')).toBeOnTheScreen();
-    expect(screen.getByText('Kargoda (1)')).toBeOnTheScreen();
-    expect(screen.getByText('Tamamlanan (2)')).toBeOnTheScreen();
-    expect(screen.getByText('İptal (3)')).toBeOnTheScreen();
-    expect(screen.getByText('Reddedilen (1)')).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Tümü (5)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Bekleyen (2)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Kargoda (1)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Tamamlanan (2)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('İptal (3)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Reddedilen (1)')).toBeOnTheScreen();
   });
 
   it('boş listede boş durum çıkar ve filtre chip\'leri görünür kalır', async () => {
     renderWithProviders(<TradesScreen />);
     await waitFor(() => expect(tradesApi.getAll).toHaveBeenCalled());
-    expect(await screen.findByText('Tümü (5)')).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Tümü (5)')).toBeOnTheScreen();
     expect(await screen.findByText('Henüz takas teklifiniz yok')).toBeOnTheScreen();
   });
 });

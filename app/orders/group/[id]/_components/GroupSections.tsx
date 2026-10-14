@@ -35,7 +35,7 @@ export function GroupHeader({ group }: { group: GroupDetail }) {
       </SectionCard>
 
       {group.orders.length > 1 && (
-        <Alert variant="default">{t('order.groupItemActionsNote')}</Alert>
+        <Alert variant="info">{t('order.groupItemActionsNote')}</Alert>
       )}
     </>
   );

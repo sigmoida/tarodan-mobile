@@ -156,7 +156,7 @@ describe("C2 inceleme · 1 seçim kutusu ⋮ menüsünü örtmez", () => {
   it("kutu sol üstte (sağ kenara bağlı değil); kutu da ⋮ menüsü de çalışır", async () => {
     serve([expired()]);
     renderWithProviders(<MyListingsScreen />);
-    fireEvent.press(await screen.findByText("profile.expiredListings.tab (1)"));
+    fireEvent.press(await screen.findByLabelText("profile.expiredListings.tab (1)"));
     await screen.findByTestId("select-E1");
 
     const wrap = StyleSheet.flatten(screen.getByTestId("select-wrap-E1").props.style);
@@ -285,7 +285,7 @@ describe("C2 inceleme · 5 süresi dolan sayacı meta.total'dan", () => {
   it("100'den fazla süresi dolan ilan: chip/banner gerçek toplamı gösterir, liste çekilmez (limit=1)", async () => {
     serve(Array.from({ length: 150 }, (_, i) => expired({ id: `E${i}`, title: `Dolan ${i}` })));
     renderWithProviders(<MyListingsScreen />);
-    expect(await screen.findByText("profile.expiredListings.tab (150)")).toBeOnTheScreen();
+    expect(await screen.findByLabelText("profile.expiredListings.tab (150)")).toBeOnTheScreen();
     expect(screen.getByText("profile.expiredListings.bannerTitle")).toBeOnTheScreen();
 
     // "Tümü" sekmesindeyken süresi dolanlar için YALNIZ limit=1 sayaç isteği atılır.
@@ -301,7 +301,7 @@ describe("C2 inceleme · 5 süresi dolan sayacı meta.total'dan", () => {
       data: { data: params.inactiveReason === "expired" ? [expired(), expired({ id: "E2" })] : [] },
     }));
     renderWithProviders(<MyListingsScreen />);
-    expect(await screen.findByText("profile.expiredListings.tab (2)")).toBeOnTheScreen();
+    expect(await screen.findByLabelText("profile.expiredListings.tab (2)")).toBeOnTheScreen();
   });
 });
 
@@ -314,7 +314,7 @@ describe("C2 inceleme · 6 odaklanma/yenileme aynı anahtarı iki kez çekmez", 
   it("ilk açılış: liste ve sayaç sorgusu birer kez gider (odaklanma uçuştakini iptal etmez)", async () => {
     serve([expired()]);
     renderWithProviders(<MyListingsScreen />);
-    await screen.findByText("profile.expiredListings.tab (1)");
+    await screen.findByLabelText("profile.expiredListings.tab (1)");
     await screen.findByText("Süresi Dolan");
     expect(listCalls()).toHaveLength(1);
     expect(mockGetMyListings.mock.calls.filter(([p]) => p?.limit === 1)).toHaveLength(1);
@@ -323,7 +323,7 @@ describe("C2 inceleme · 6 odaklanma/yenileme aynı anahtarı iki kez çekmez", 
   it("'Süresi dolan' sekmesinde çek-yenile: liste tek, sayaç tek istek", async () => {
     serve([expired()]);
     renderWithProviders(<MyListingsScreen />);
-    fireEvent.press(await screen.findByText("profile.expiredListings.tab (1)"));
+    fireEvent.press(await screen.findByLabelText("profile.expiredListings.tab (1)"));
     await screen.findByText("profile.expiredListings.selectAll");
     await waitFor(() => expect(listCalls("expired")).toHaveLength(1));
     mockGetMyListings.mockClear();
@@ -349,7 +349,7 @@ describe("C2 inceleme · 8 tanınmayan toplu yenileme yanıtı hata sayılır", 
     api().renewMany.mockResolvedValue({ data: body });
     const { queryClient } = renderWithProviders(<MyListingsScreen />);
     const spy = jest.spyOn(queryClient, "invalidateQueries");
-    fireEvent.press(await screen.findByText("profile.expiredListings.tab (1)"));
+    fireEvent.press(await screen.findByLabelText("profile.expiredListings.tab (1)"));
     fireEvent.press(await screen.findByText("profile.expiredListings.selectAll"));
     fireEvent.press(await screen.findByText("profile.expiredListings.renewSelected"));
 
@@ -388,7 +388,7 @@ describe("C2 inceleme · 10 gereksiz render ve ölü prop", () => {
     serve([listing({ id: "A1", status: "active" }), expired()]);
     renderWithProviders(<MyListingsScreen />);
     await screen.findByText("Hot Wheels Camaro");
-    fireEvent.press(screen.getByText("listing.filterActive (1)"));
+    fireEvent.press(screen.getByLabelText("listing.filterActive (1)"));
     await waitFor(() => expect(mockSelectionArgs.length).toBeGreaterThan(3));
     expect(mockSelectionArgs.every((a) => a.length === 0)).toBe(true);
     expect(new Set(mockSelectionArgs).size).toBe(1);

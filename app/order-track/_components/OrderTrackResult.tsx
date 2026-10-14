@@ -92,7 +92,7 @@ export function OrderTrackResult({ order }: { order: OrderStatus }) {
       <SectionCard title={t('order.orderStatusSectionTitle')}>
         {closedInfo ? (
           <Alert
-            variant={order.status === 'cancelled' ? 'danger' : order.status === 'refund_requested' ? 'warning' : 'default'}
+            variant={order.status === 'cancelled' ? 'danger' : order.status === 'refund_requested' ? 'warning' : 'info'}
             title={closedInfo.label}
           >
             {CLOSED_TRACK_HINT_KEYS[order.status] ? t(CLOSED_TRACK_HINT_KEYS[order.status]!) : ''}

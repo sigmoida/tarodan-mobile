@@ -16,7 +16,7 @@ describe('Badge (web @tarodan/ui)', () => {
     ['danger', colors.danger[100], colors.danger[800]],
   ] as const)('%s soft = X-100 / X-800', (variant, bg, fg) => {
     render(<Badge testID="b" variant={variant}>Etiket</Badge>);
-    expect(boxOf()).toMatchObject({ backgroundColor: bg, borderRadius: theme.radius.lg });
+    expect(boxOf()).toMatchObject({ backgroundColor: bg, borderRadius: theme.radiusRole.badge });
     expect(textOf('Etiket').color).toBe(fg);
   });
 
@@ -54,9 +54,9 @@ describe('Badge (web @tarodan/ui)', () => {
 });
 
 describe('ProductBadge', () => {
-  it('sale = danger solid, sm, kalın', () => {
+  it('sale = danger solid, sm, kalın; köşe tüm rozetlerle aynı (radiusRole.badge)', () => {
     render(<ProductBadge testID="b" variant="sale">%20</ProductBadge>);
-    expect(boxOf()).toMatchObject({ backgroundColor: colors.danger[600], borderRadius: theme.radius.md });
+    expect(boxOf()).toMatchObject({ backgroundColor: colors.danger[600], borderRadius: theme.radiusRole.badge });
     expect(textOf('%20').fontWeight).toBe('700');
   });
 });
@@ -89,5 +89,13 @@ describe('bilinmeyen durum → nötr outline', () => {
     );
     expect(boxOfText('Ödendi').backgroundColor).toBe(colors.success[100]);
     expect(boxOfText('mystery')).toMatchObject({ backgroundColor: 'transparent', borderWidth: 1 });
+  });
+});
+
+describe('tek rozet köşesi (radiusRole.badge)', () => {
+  it('web Badge rounded-lg = 6; sayaç dairesi ve seçim çipi ayrı rol', () => {
+    expect(theme.radiusRole.badge).toBe(theme.radius.lg);
+    expect(theme.radiusRole.counter).toBe(theme.radius.full);
+    expect(theme.radiusRole.chip).toBe(theme.radius.full);
   });
 });

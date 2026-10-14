@@ -13,7 +13,6 @@ export const styles = StyleSheet.create({
   flex: { flex: 1 },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[3] },
   metric: { width: '47%', flexGrow: 1, gap: spacing[0.5] },
-  tabs: { marginBottom: spacing[1] },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing[3] },
   cell: { width: '48%' },
   review: { gap: spacing[1], paddingVertical: spacing[3] },
