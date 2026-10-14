@@ -1,13 +1,10 @@
 import { StyleSheet } from 'react-native';
+import { INBOX_LEADING_SIZE } from '@/components/common/InboxRow';
 import { theme } from '@/ui';
 
 const { colors, spacing, radius, radiusRole } = theme;
 
-/** Satır solundaki tip ikonu / ürün görseli kutusu ve okunmamış noktası (pt). */
-const LEADING = 40;
-const DOT = 8;
-
-// Route-local stylesheet (§12) — satırlar web Card (bordered, rounded-lg), token'lı.
+// Route-local stylesheet (§12) — satır iskeleti ortak `InboxRow`'da; burada yalnız sol kutu içerikleri.
 export const styles = StyleSheet.create({
   footerSpinner: { paddingVertical: spacing[4] },
   headerRight: {
@@ -15,41 +12,20 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[2],
   },
-  separator: { height: spacing[2] },
-  titleSpacing: { marginBottom: spacing[1] },
-  messageSpacing: { marginBottom: spacing[1.5] },
-  emptyList: {
+  listContent: {
     flexGrow: 1,
   },
-  item: { alignItems: 'flex-start' },
-  itemUnread: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[200],
-  },
   iconContainer: {
-    width: LEADING,
-    height: LEADING,
+    width: INBOX_LEADING_SIZE,
+    height: INBOX_LEADING_SIZE,
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing[3],
   },
   thumb: {
-    width: LEADING,
-    height: LEADING,
+    width: INBOX_LEADING_SIZE,
+    height: INBOX_LEADING_SIZE,
     borderRadius: radiusRole.productCard,
-    marginRight: spacing[3],
     backgroundColor: colors.surface.alt,
-  },
-  content: {
-    flex: 1,
-  },
-  dot: {
-    width: DOT,
-    height: DOT,
-    borderRadius: radius.full,
-    backgroundColor: colors.primary[500],
-    marginLeft: spacing[2],
-    marginTop: spacing[1.5],
   },
 });

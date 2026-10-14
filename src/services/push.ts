@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { theme } from '@/ui';
 import { api } from '@/lib/api';
+import { queryClient, qk } from '@/lib/query';
 import i18n from '@/i18n/config';
 import { notificationRoute } from '../utils/notificationRoute';
 import { withTimeout } from '@/utils/withTimeout';
@@ -256,6 +257,10 @@ export function setupPushNotificationRouting(): () => void {
   //    "auto-open" flag (data.autoOpen === true). Otherwise let the user tap.
   const receivedSub = Notifications.addNotificationReceivedListener(
     (notification: any) => {
+      // Yeni bildirim geldi: liste + rozet sayacı bayat. Bildirimler sekmesi staleTime'lı olduğu
+      // için tazelemeyi burası tetikler (açıksa arka planda, değilse bir sonraki açılışta).
+      queryClient.invalidateQueries({ queryKey: qk.notifications.list });
+      queryClient.invalidateQueries({ queryKey: qk.notifications.unread });
       const data = notification?.request?.content?.data;
       if (data?.autoOpen === true || data?.auto_open === true) {
         routeFromNotification(data);

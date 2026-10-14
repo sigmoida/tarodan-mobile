@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@/lib/api';
@@ -6,6 +6,12 @@ import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import type { Notification } from '../_lib/types';
 import { routeForNotification } from '../_lib/route';
+
+/**
+ * Liste bu süreden taze sayılır: sekmeye dönüşte sessiz tazeleme yalnız bayatsa çalışır.
+ * (Yeni push gelince `setupPushNotificationRouting` listeyi zaten geçersiz kılar.)
+ */
+const LIST_STALE_MS = 30_000;
 
 type NotificationsPayload = { list: Notification[]; unreadCount: number; hasMore: boolean };
 /** `useInfiniteQuery` önbelleğinin şekli — iyimser güncellemeler bunu düzenler. */
@@ -71,8 +77,10 @@ export function useNotifications() {
     initialPageParam: 1,
     getNextPageParam: (last, all) => (last.hasMore ? all.length + 1 : undefined),
     enabled: isAuthenticated,
+    staleTime: LIST_STALE_MS,
   });
 
+  const { refetch } = query;
   const pages = query.data?.pages ?? [];
   const data = {
     list: pages.flatMap((p) => p.list),
@@ -134,11 +142,28 @@ export function useNotifications() {
     },
   });
 
+  // Sekmeye dönüşte yalnız BAYATSA ve arka planda tazele (`stale: true`): taze veride istek yok,
+  // ilk odaklanmada devam eden yükleme ikilenmez. Çekip-yenile göstergesi buna bağlı DEĞİL.
   useFocusEffect(
     useCallback(() => {
-      if (isAuthenticated) queryClient.invalidateQueries({ queryKey: qk.notifications.list });
+      if (isAuthenticated) {
+        queryClient.refetchQueries({ queryKey: qk.notifications.list, stale: true, type: 'active' });
+      }
     }, [isAuthenticated, queryClient]),
   );
+
+  // Gösterge yalnız KULLANICI çekip-yenilediğinde (Mesajlar ile aynı). `query.isRefetching`
+  // arka plan tazelemelerinde (sekme odağı, okundu işaretleme, push) de true olur ve her
+  // girişte spinner'ı görünür kılardı.
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
 
   const handlePress = useCallback(
     (notification: Notification) => {
@@ -157,9 +182,9 @@ export function useNotifications() {
     isAuthenticated,
     notifications: data.list,
     loading: query.isLoading,
-    refreshing: query.isRefetching,
+    refreshing,
     unreadCount: data.unreadCount,
-    handleRefresh: () => query.refetch(),
+    handleRefresh,
     handlePress,
     handleMarkAllAsRead: () => markAllAsRead.mutate(),
     /** Listenin sonuna gelindiğinde bir sonraki sayfayı ister. */

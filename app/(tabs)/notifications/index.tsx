@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Badge, EmptyState, Spinner, TopBarAction, pageListContentStyle, usePageScrollValue } from '@/ui';
+import { Badge, EmptyState, Spinner, TopBarAction, usePageScrollValue } from '@/ui';
 import { tabDiag } from '@/components/_tabDiag';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { AppShell } from '@/components/shell/AppShell';
@@ -83,7 +83,7 @@ function NotificationsTabScreen() {
           maxToRenderPerBatch={10}
           removeClippedSubviews
           contentContainerStyle={page.contentStyle([
-            f.notifications.length === 0 ? styles.emptyList : pageListContentStyle,
+            styles.listContent,
             { paddingBottom: tabInset },
           ])}
           progressViewOffset={page.topInset}
@@ -96,7 +96,6 @@ function NotificationsTabScreen() {
               subtitle={t('notification.emptyListDesc')}
             />
           }
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
           onEndReached={f.loadMore}
           onEndReachedThreshold={0.4}
           ListFooterComponent={f.loadingMore ? <Spinner style={styles.footerSpinner} /> : null}

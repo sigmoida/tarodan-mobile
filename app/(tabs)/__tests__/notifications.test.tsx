@@ -8,15 +8,18 @@
  * backend-only.
  */
 import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { resetRouterMocks, pushMock, routerMock } from '@/test-utils/router-mock';
 
 // useFocusEffect mount'ta callback'i bir kez çalıştırsın (gerçek davranış).
+// Testler odak dönüşünü taklit edebilsin diye son callback saklanır.
+let mockFocusCb: (() => void) | null = null;
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
   useFocusEffect: (cb: () => void) => {
     const React = require('react');
+    mockFocusCb = cb;
     React.useEffect(cb, []);
   },
 }));
@@ -283,5 +286,64 @@ describe('P2 #17 · bildirim sayfalaması', () => {
     fireEvent.press(screen.getByText('Mesaj b1'));
 
     await waitFor(() => expect(markAsRead).toHaveBeenCalledWith('b1'));
+  });
+});
+
+/**
+ * Sekmeye her girişte görünür otomatik yenileme olmasın: odak dönüşü ve arka plan
+ * tazelemeleri sessiz; gösterge yalnız kullanıcı çekip-yenilediğinde.
+ */
+describe('Bildirimler · sessiz tazeleme (spinner yalnız elle çekince)', () => {
+  const ok = { data: { notifications: sample, pagination: { page: 1, pages: 1 } } };
+
+  it('taze veride odak dönüşü yeni istek atmaz', async () => {
+    getAll.mockResolvedValue(ok);
+    renderWithProviders(<NotificationsScreen />);
+    await screen.findByText('Yeni Sipariş');
+    const before = getAll.mock.calls.length;
+
+    await act(async () => {
+      mockFocusCb?.();
+    });
+
+    expect(getAll.mock.calls.length).toBe(before);
+  });
+
+  it('arka plan tazelemesi (geçersiz kılma) sırasında refreshing false kalır', async () => {
+    getAll.mockResolvedValueOnce(ok);
+    const { queryClient } = renderWithProviders(<NotificationsScreen />);
+    await screen.findByText('Yeni Sipariş');
+
+    let release!: (v: unknown) => void;
+    getAll.mockReturnValueOnce(new Promise((r) => (release = r)));
+    act(() => {
+      void queryClient.invalidateQueries({ queryKey: ['notifications', 'list'] });
+    });
+    await waitFor(() => expect(getAll).toHaveBeenCalledTimes(2));
+
+    expect(screen.getByTestId('notifications-list').props.refreshing).toBe(false);
+    await act(async () => release(ok));
+    expect(screen.getByTestId('notifications-list').props.refreshing).toBe(false);
+  });
+
+  it('elle çekip-yenileme göstergeyi açar ve işlem bitince kapatır', async () => {
+    getAll.mockResolvedValueOnce(ok);
+    renderWithProviders(<NotificationsScreen />);
+    await screen.findByText('Yeni Sipariş');
+
+    let release!: (v: unknown) => void;
+    getAll.mockReturnValueOnce(new Promise((r) => (release = r)));
+    const list = screen.getByTestId('notifications-list');
+    act(() => {
+      list.props.onRefresh();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('notifications-list').props.refreshing).toBe(true),
+    );
+
+    await act(async () => release(ok));
+    await waitFor(() =>
+      expect(screen.getByTestId('notifications-list').props.refreshing).toBe(false),
+    );
   });
 });

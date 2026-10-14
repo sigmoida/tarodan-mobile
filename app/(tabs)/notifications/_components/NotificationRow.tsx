@@ -1,14 +1,18 @@
 import React from 'react';
 import { View } from 'react-native';
 import { AppImage } from '@/components/AppImage';
-import { Icon, Text, ListRowCard } from '@/ui';
+import { InboxRow } from '@/components/common/InboxRow';
+import { Icon } from '@/ui';
 import { useTranslation } from 'react-i18next';
 import { formatRelativeDate } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import { getIconForType } from '../_lib/icons';
 import { STOCKOUT_TYPES, type Notification } from '../_lib/types';
 
-/** Tek bildirim satırı — stok bildiriminde ürün foto, aksi halde tip ikonu. */
+/**
+ * Tek bildirim satırı — Mesajlar ile aynı `InboxRow` iskeleti. Sol kutuda stok bildiriminde
+ * ürün foto, aksi halde tip ikonu; okunmamış vurgusu Mesajlar'daki gibi zemin tonu + yarı kalın metin.
+ */
 function NotificationRowBase({
   item,
   onPress,
@@ -21,32 +25,23 @@ function NotificationRowBase({
   const { icon, color, bg } = getIconForType(item.type);
 
   return (
-    <ListRowCard gap={0} style={[styles.item, isUnread && styles.itemUnread]} onPress={() => onPress(item)}>
-      {STOCKOUT_TYPES.has(item.type) && item.data?.productImage ? (
-        <AppImage source={item.data.productImage} recyclingKey={String(item.id)} style={styles.thumb} />
-      ) : (
-        <View style={[styles.iconContainer, { backgroundColor: bg }]}>
-          <Icon name={icon} variant="solid" size={20} color={color} />
-        </View>
-      )}
-      <View style={styles.content}>
-        <Text
-          variant="bodySm"
-          weight={isUnread ? 'bold' : 'semibold'}
-          numberOfLines={1}
-          style={styles.titleSpacing}
-        >
-          {item.title}
-        </Text>
-        <Text variant="bodySm" tone="muted" numberOfLines={2} style={styles.messageSpacing}>
-          {item.message}
-        </Text>
-        <Text variant="caption" tone="subtle">
-          {formatRelativeDate(item.createdAt, t)}
-        </Text>
-      </View>
-      {isUnread ? <View style={styles.dot} /> : null}
-    </ListRowCard>
+    <InboxRow
+      leading={
+        STOCKOUT_TYPES.has(item.type) && item.data?.productImage ? (
+          <AppImage source={item.data.productImage} recyclingKey={String(item.id)} style={styles.thumb} />
+        ) : (
+          <View style={[styles.iconContainer, { backgroundColor: bg }]}>
+            <Icon name={icon} variant="solid" size={20} color={color} />
+          </View>
+        )
+      }
+      title={item.title}
+      time={formatRelativeDate(item.createdAt, t)}
+      preview={item.message}
+      previewLines={2}
+      unread={isUnread}
+      onPress={() => onPress(item)}
+    />
   );
 }
 
