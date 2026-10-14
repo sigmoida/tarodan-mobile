@@ -452,7 +452,12 @@
     "kepAddress": "Registered Email Address",
     "kepAddressPlaceholder": "company@registered-mail.example",
     "companyPhone": "Phone Number",
-    "submitCorporateApplication": "Submit Corporate Application"
+    "submitCorporateApplication": "Submit Corporate Application",
+    "fullName": "Full Name",
+    "pwHintMinLength": "Use at least {min} characters",
+    "pwHintUppercase": "Add at least 1 uppercase letter",
+    "pwHintLowercase": "Add at least 1 lowercase letter",
+    "pwHintNumber": "Add at least 1 number"
   },
   "brands": {
     "title": "Brands",
@@ -2673,7 +2678,9 @@
       "detail_too_long": "The explanation can be at most {max} characters"
     },
     "currentPasswordRequired": "Enter your current password",
-    "repeatNewPassword": "Repeat the new password"
+    "repeatNewPassword": "Repeat the new password",
+    "selectCity": "Select a city",
+    "selectDistrict": "Select a district"
   },
   "time": {
     "justNow": "Just now",
@@ -2768,7 +2775,8 @@
     "addressMinLength": "The address must be at least 10 characters",
     "authGateSubtitle": "Sign in to view your addresses",
     "emptySubtitle": "Add your delivery address",
-    "addressTitleLabel": "Address Title"
+    "addressTitleLabel": "Address Title",
+    "checkFields": "Please check these fields: {fields}"
   },
   "contact": {
     "title": "Contact Us",
@@ -7934,7 +7942,6 @@
     }
   },
   "security": {
-    "passwordRules": "The password must be at least 8 characters and contain an uppercase letter, a lowercase letter, a digit and a special character (@$!%*?&)",
     "passwordChangeFailed": "The password could not be changed",
     "twoFactorQrAlt": "Two-factor authentication QR code",
     "twoFactorEnabled": "Two-factor authentication is enabled",

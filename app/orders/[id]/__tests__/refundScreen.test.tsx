@@ -15,6 +15,7 @@ import {
   backMock,
   canGoBackMock,
   emitBeforeRemove,
+  mockRealisticExit,
   navigationDispatchMock,
   resetRouterMocks,
 } from '@/test-utils/router-mock';
@@ -334,11 +335,14 @@ describe('kaydedilmemiş içerik koruması', () => {
     await waitFor(() => expect(navigationDispatchMock).toHaveBeenCalledWith(action));
   });
 
-  it('başarılı gönderimden sonra çıkış onaysız (kirli form olsa da)', async () => {
+  it('başarılı gönderimden sonra çıkış onaysız (kirli form olsa da; GO_BACK ertelenmiş)', async () => {
+    const exits = mockRealisticExit();
     await renderScreen();
     fireEvent.changeText(screen.getByTestId('refund-description-input'), 'not');
     await submit();
     await waitFor(() => expect(backMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(exits).toHaveLength(1));
+    expect(exits[0]).toEqual(expect.objectContaining({ prevented: false }));
     expect(alertMock).not.toHaveBeenCalled();
   });
 });

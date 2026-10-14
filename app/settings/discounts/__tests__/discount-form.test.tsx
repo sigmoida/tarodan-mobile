@@ -16,6 +16,7 @@ import {
   backMock,
   canGoBackMock,
   emitBeforeRemove,
+  mockRealisticExit,
   pushMock,
   resetRouterMocks,
 } from '@/test-utils/router-mock';
@@ -98,15 +99,12 @@ const nameInput = () => screen.UNSAFE_getAllByType(TextInput)[0]!;
 
 let success: jest.SpyInstance;
 let errorToast: jest.SpyInstance;
-/** Geri dönüş ANINDA koruma durumu. */
-let exitAtBack: { prevented: boolean } | null;
+/** Her çıkış denemesinin koruma sonucu (gerçekçi: `router.back()` GO_BACK'i erteler). */
+let exits: ReturnType<typeof mockRealisticExit>;
 beforeEach(() => {
   resetRouterMocks();
   canGoBackMock.mockReturnValue(true);
-  exitAtBack = null;
-  backMock.mockImplementation(() => {
-    exitAtBack = emitBeforeRemove();
-  });
+  exits = mockRealisticExit();
   mockParams = {};
   mockAuthState = { isAuthenticated: true, user: { id: 'u1', isSeller: true } };
   (discountsApi.getAll as jest.Mock).mockResolvedValue({ data: { items: [discountFixture()] } });
@@ -175,8 +173,10 @@ describe('J114 · yeni indirim ekranı — validasyon', () => {
     );
     await waitFor(() => expect(backMock).toHaveBeenCalledTimes(1));
     expect(success).toHaveBeenCalledWith('İndirim oluşturuldu');
-    // Kayıttan sonra çıkış onay istemez: geri dönüş anında koruma kalkmıştı.
-    expect(exitAtBack).toEqual(expect.objectContaining({ prevented: false }));
+    // Kayıttan sonra çıkış onay istemez: ertelenmiş GO_BACK geldiğinde koruma hâlâ kapalı.
+    await waitFor(() => expect(exits).toHaveLength(1));
+    expect(exits[0]).toEqual(expect.objectContaining({ prevented: false }));
+    expect(appAlert).not.toHaveBeenCalled();
   });
 
   it('J114.10 bulk_quantity: en az adet 2den küçükse reddedilir', async () => {

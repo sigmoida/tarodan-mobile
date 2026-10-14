@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Text, Button, Alert, ScreenLoader, theme } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
 import { toHandle } from '@/utils/validation';
+import { passwordHint } from '@/utils/passwordPolicy';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { useCorporateInvite } from './_hooks/useCorporateInvite';
 
@@ -16,6 +17,7 @@ export default function CorporateInviteScreen() {
   const { t } = useTranslation();
   const f = useCorporateInvite();
   const toLogin = () => router.replace('/(auth)/login' as never);
+  const password = f.form.watch('password');
 
   // Yüklenirken de standart kabuk: üst bar + geri oku görünür, kullanıcı sıkışmaz.
   if (f.isLoading) {
@@ -78,7 +80,8 @@ export default function CorporateInviteScreen() {
             name="password"
             label={t('auth.password')}
             secureTextEntry
-            helperText={t('auth.corporatePasswordHelp')}
+            // Boşken kuralın tamamı; yazarken yalnız eksik kurallar (tek kaynak `passwordHint`).
+            helperText={password ? passwordHint(password, t) : t('auth.corporatePasswordHelp')}
           />
           <FormInput
             testID="invite-password-confirm"

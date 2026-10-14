@@ -4,7 +4,7 @@ import { Button, SectionCard } from '@/ui';
 import { Form, FormInput, useZodForm } from '@/ui/form';
 import { PageShell } from '@/components/common/PageShell';
 import { goBackOrHome } from '@/components/common/goBackOrHome';
-import { PasswordChecklist } from '@/components/auth/PasswordChecklist';
+import { passwordHint } from '@/utils/passwordPolicy';
 
 import { useSecurityAuthGate } from './_hooks/useSecurityAuthGate';
 import { useDoChangePassword } from './_hooks/useDoChangePassword';
@@ -14,8 +14,8 @@ import { styles } from './_lib/styles';
 const EMPTY: ChangePasswordValues = { currentPassword: '', newPassword: '', confirmPassword: '' };
 
 /**
- * Şifre değiştir (web profil SecuritySection formu): mevcut / yeni (+ canlı gereksinim paneli) /
- * tekrar. Alan hataları satır içi (zod), işlem hatası toast; başarı: geri + toast.
+ * Şifre değiştir (web profil SecuritySection formu): mevcut / yeni (altında yazarken eksik
+ * kurallar) / tekrar. Alan hataları satır içi (zod), işlem hatası toast; başarı: geri + toast.
  */
 export default function ChangePasswordScreen() {
   const { t } = useTranslation();
@@ -65,9 +65,9 @@ export default function ChangePasswordScreen() {
             autoCapitalize="none"
             autoComplete="new-password"
             textContentType="newPassword"
+            helperText={passwordHint(newPassword, t)}
             testID="new-password-input"
           />
-          <PasswordChecklist password={newPassword} />
           <FormInput
             name="confirmPassword"
             label={t('profile.security.newPasswordRepeat')}

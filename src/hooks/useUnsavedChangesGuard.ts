@@ -19,12 +19,15 @@ import { confirm } from '@/ui';
  * (`preventNativeDismiss`) engelliyor. Ham dinleyicide native ekran önce çıkar,
  * sonra JS pop'u engellenir → JS/native yığın ayrışır (boş/takılı ekran).
  *
- * Çıkış izni (kayıt başarılı / "Değişiklikleri Sil"): `leave(go)` korumayı TEK
- * render için kapatır, `go()` (router.back / bekleyen eylem) koruma kalktıktan
- * SONRA çalışır, ardından koruma yeniden kurulur — ekran bir nedenle kalırsa
- * sonraki düzenlemeler korumasız kalmaz. Ekran o sırada artık açık değilse
- * (istek sürerken kullanıcı vazgeçip çıktı) `leave` hiçbir şey yapmaz: geç gelen
- * başarı bir önceki ekranı da kapatmaz.
+ * Çıkış izni (kayıt başarılı / "Değişiklikleri Sil"): `leave(go)` korumayı kapatır,
+ * `go()` (router.back / bekleyen eylem) koruma kalktıktan SONRA çalışır. Koruma,
+ * ekran kapanana ya da `dirty` yeniden DEĞİŞENE (ör. form sıfırlanıp tekrar
+ * kirlenene) kadar KAPALI kalır. Tek render'lık açma yetmez: expo-router 6
+ * `router.back()` GO_BACK'i kuyruğa alıp SONRAKİ render'da gönderir — o ana dek
+ * koruma yeniden kurulmuş olur ve başarılı kayıttan sonra "Kaydedilmemiş
+ * değişiklikler" diyaloğu çıkar. Ekran o sırada artık açık değilse (istek
+ * sürerken kullanıcı vazgeçip çıktı) `leave` hiçbir şey yapmaz: geç gelen başarı
+ * bir önceki ekranı da kapatmaz.
  *
  * Çok adımlı gönderim (ör. iade: kanıt yükle → talep gönder): ara adımdan sonra
  * `await canProceed()` — "vazgeç?" onayı açıksa kararı bekler; "Değişiklikleri Sil"
@@ -45,6 +48,8 @@ export function useUnsavedChangesGuard(dirty: boolean, copy?: LeaveGuardCopy) {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null);
+  // `leave` sonrası koruma kapalı; yalnız `dirty` değişince yeniden kurulur.
+  const [released, setReleased] = useState(false);
   // Açık onay diyaloğunun kararı (true = vazgeç) ve "ekrandan çıkılıyor" bayrağı.
   const decision = useRef<Promise<boolean> | null>(null);
   const leaving = useRef(false);
@@ -55,17 +60,28 @@ export function useUnsavedChangesGuard(dirty: boolean, copy?: LeaveGuardCopy) {
     };
   }, []);
 
-  const leave = useCallback((go: () => void) => setPendingLeave(() => go), []);
+  const leave = useCallback((go: () => void) => {
+    setReleased(true);
+    setPendingLeave(() => go);
+  }, []);
 
   // Koruma kalktığı render'dan sonra: kancanın kaydı (insertion effect) ve
-  // dinleyicisi güncellenmiş olur; çıkış engellenmeden geçer, sonra koruma geri gelir.
+  // dinleyicisi güncellenmiş olur; çıkış (ertelenmiş GO_BACK dahil) engellenmeden geçer.
   useEffect(() => {
     if (!pendingLeave) return;
-    pendingLeave();
     setPendingLeave(null);
+    pendingLeave();
   }, [pendingLeave]);
 
-  usePreventRemove(dirty && !pendingLeave, ({ data }) => {
+  // Form yeniden kirlenir/temizlenirse (ekran bir nedenle kaldıysa) koruma yeniden devrede.
+  const lastDirty = useRef(dirty);
+  useEffect(() => {
+    if (lastDirty.current === dirty) return;
+    lastDirty.current = dirty;
+    setReleased(false);
+  }, [dirty]);
+
+  usePreventRemove(dirty && !released, ({ data }) => {
     // `confirm()` kapanış SONRASI çözülür (AlertDialog sözleşmesi) → dispatch iOS-güvenli.
     const pending = confirm(
       copy ?? {

@@ -126,3 +126,17 @@ it('geçersiz kullanıcı adını göndermez', async () => {
   await waitFor(() => expect(screen.getByText(/küçük harf/i)).toBeTruthy());
   expect(authApi.activateCorporateInvitation).not.toHaveBeenCalled();
 });
+
+it('şifre: boşken kuralın tamamı; yazarken yalnız eksik kural (tek kaynak)', async () => {
+  (authApi.getCorporateInvitation as jest.Mock).mockResolvedValue({
+    data: { companyTitle: 'X', companyEmail: 'k@firma.com', expiresAt: '2026-08-10' },
+  });
+  renderWithProviders(<CorporateInviteScreen />);
+  await waitFor(() => expect(screen.getByTestId('invite-password')).toBeTruthy());
+  expect(
+    screen.getByText('En az 8 karakter; bir küçük harf, bir büyük harf ve bir rakam.'),
+  ).toBeTruthy();
+  fireEvent.changeText(screen.getByTestId('invite-password'), 'Securepass');
+  expect(screen.getByText('En az 1 rakam ekleyin')).toBeTruthy();
+  expect(screen.queryByText('En az 1 büyük harf ekleyin')).toBeNull();
+});

@@ -1,11 +1,13 @@
 /**
  * Adres formu EKRANLARI (settings/addresses/new + [id]/edit) — eski
  * AddressFormModal'ın davranış sözleşmeleri ekrana taşındı:
- * - J32 / J388: zorunlu alan / adres < 10 / telefon doğrulaması istemcide;
- *   geçmeden API çağrılmaz. Her hatalı alan satır içi hata alır, düzeltince kalkar.
- * - Özet satırı (eski modal içi mesaj) alt çubukta `FormError` — appAlert YOK.
- * - Başarı: `router.back()` + `toast.success`; sunucu hatası `toast.error`, ekran kalır.
- * - Taslak koruması: kirli formdan çıkış (geri oku / Android geri) onay ister.
+ * - J32 / J388: zorunlu alan / API DTO sınırları (ad soyad 2–100, başlık ≤ 50, adres 10–500,
+ *   posta kodu ≤ 10) / telefon doğrulaması istemcide; geçmeden API çağrılmaz. Her hatalı alan
+ *   satır içi hata alır (il/ilçe dahil), düzeltince kalkar.
+ * - Özet satırı alt çubukta `FormError`: hatalı alanların ADLARI — appAlert YOK.
+ * - Başarı: `router.back()` + `toast.success`; sunucu hatası `toast.error` + formda kalıcı, ekran kalır.
+ * - Taslak koruması: kirli formdan çıkış (geri oku / Android geri) onay ister. `router.back()`
+ *   GERÇEKÇİ (ertelenmiş GO_BACK, `mockRealisticExit`): başarılı kayıttan sonra diyalog ÇIKMAZ.
  */
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
@@ -15,6 +17,7 @@ import {
   backMock,
   canGoBackMock,
   emitBeforeRemove,
+  mockRealisticExit,
   navigationDispatchMock,
   resetRouterMocks,
 } from '@/test-utils/router-mock';
@@ -26,7 +29,10 @@ jest.mock('expo-router', () => ({
 }));
 
 jest.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string) => k }),
+  // Özet satırı alan adlarını `{fields}` ile taşır: testte görünür olsun.
+  useTranslation: () => ({
+    t: (k: string, o?: { fields?: string }) => (o?.fields !== undefined ? `${k}: ${o.fields}` : k),
+  }),
 }));
 
 jest.mock('@/stores/authStore', () => ({
@@ -67,6 +73,9 @@ const post = api.post as jest.Mock;
 const patch = api.patch as jest.Mock;
 const get = api.get as jest.Mock;
 
+const ALL_REQUIRED_SUMMARY =
+  'address.checkFields: address.addressTitleLabel, address.fullName, address.phone, address.address, address.city, address.district';
+
 const fillValid = () => {
   fireEvent.changeText(screen.getByTestId('address-title-input'), 'Ev');
   fireEvent.changeText(screen.getByTestId('address-fullname-input'), 'Ayşe Yılmaz');
@@ -79,18 +88,12 @@ const save = () => fireEvent.press(screen.getByTestId('address-save-button'));
 
 let success: jest.SpyInstance;
 let errorToast: jest.SpyInstance;
-/** Geri dönüş ANINDA koruma durumu (koruma çıkıştan önce kalkmış olmalı). */
-let exitAtBack: { prevented: boolean } | null;
+/** Her çıkış denemesinin (ertelenmiş GO_BACK / dispatch) koruma sonucu. */
+let exits: ReturnType<typeof mockRealisticExit>;
 beforeEach(() => {
   resetRouterMocks();
   canGoBackMock.mockReturnValue(true);
-  exitAtBack = null;
-  backMock.mockImplementation(() => {
-    exitAtBack = emitBeforeRemove();
-  });
-  navigationDispatchMock.mockImplementation(() => {
-    exitAtBack = emitBeforeRemove();
-  });
+  exits = mockRealisticExit();
   mockParams = {};
   post.mockReset();
   patch.mockReset();
@@ -108,10 +111,10 @@ afterEach(() => {
 });
 
 describe('J32 · yeni adres ekranı — form validasyonu', () => {
-  it('J32.1 zorunlu alanlar boşken kaydet → alt çubukta özet, appAlert yok, API çağrılmaz', async () => {
+  it('J32.1 zorunlu alanlar boşken kaydet → alt çubukta EKSİK ALAN ADLARI, appAlert yok, API çağrılmaz', async () => {
     renderWithProviders(<NewAddressScreen />);
     save();
-    expect(await screen.findByText('address.fillRequiredFields')).toBeTruthy();
+    expect(await screen.findByText(ALL_REQUIRED_SUMMARY)).toBeTruthy();
     expect(appAlert).not.toHaveBeenCalled();
     expect(post).not.toHaveBeenCalled();
   });
@@ -126,7 +129,7 @@ describe('J32 · yeni adres ekranı — form validasyonu', () => {
   it('J32.3 boş submit → alanların altında inline "Zorunlu alan" hatası görünür', async () => {
     renderWithProviders(<NewAddressScreen />);
     save();
-    // title + fullName + phone + address Input'ları mesajı basar (il/ilçe kırmızı çerçeve alır).
+    // title + fullName + phone + address Input'ları mesajı basar (il/ilçe mesajı: CityDistrictSelector testi).
     const errs = await screen.findAllByText('validation.required');
     expect(errs.length).toBeGreaterThanOrEqual(4);
   });
@@ -141,14 +144,39 @@ describe('J32 · yeni adres ekranı — form validasyonu', () => {
     });
   });
 
-  it('J32.5 adres 10 karakterden kısa → alan hatası + "adres kısa" özeti, API çağrılmaz', async () => {
+  it('J32.5 adres 10 karakterden kısa → alan hatası + özet yalnız "Adres", API çağrılmaz', async () => {
     renderWithProviders(<NewAddressScreen />);
     fillValid();
     fireEvent.changeText(screen.getByTestId('address-address-input'), 'Kısa');
     save();
-    expect(await screen.findByText('address.addressMinLength')).toBeTruthy();
+    expect(await screen.findByText('address.checkFields: address.address')).toBeTruthy();
     expect(screen.getByText('validation.minLength')).toBeTruthy();
     expect(post).not.toHaveBeenCalled();
+  });
+
+  it('J32.6 API DTO sınırları: ad soyad < 2, başlık > 50, posta kodu > 10 → alan hataları, API çağrılmaz', async () => {
+    renderWithProviders(<NewAddressScreen />);
+    fillValid();
+    fireEvent.changeText(screen.getByTestId('address-fullname-input'), 'A');
+    fireEvent.changeText(screen.getByTestId('address-title-input'), 'x'.repeat(51));
+    fireEvent.changeText(screen.getByTestId('address-zip-input'), '12345678901');
+    save();
+    expect(
+      await screen.findByText(
+        'address.checkFields: address.addressTitleLabel, address.fullName, address.zipCode',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText('validation.minLength')).toBeTruthy();
+    expect(screen.getAllByText('validation.maxLength')).toHaveLength(2);
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('J32.7 alanlar API sınırlarını aşan girişi kabul etmez (maxLength)', () => {
+    renderWithProviders(<NewAddressScreen />);
+    expect(screen.getByTestId('address-title-input').props.maxLength).toBe(50);
+    expect(screen.getByTestId('address-fullname-input').props.maxLength).toBe(100);
+    expect(screen.getByTestId('address-address-input').props.maxLength).toBe(500);
+    expect(screen.getByTestId('address-zip-input').props.maxLength).toBe(10);
   });
 });
 
@@ -172,19 +200,25 @@ describe('Yeni adres — kayıt sonucu', () => {
     expect(post.mock.calls[0]![1]).not.toHaveProperty('phoneCountryCode');
     await waitFor(() => expect(backMock).toHaveBeenCalledTimes(1));
     expect(success).toHaveBeenCalledWith('address.added');
+    // Kayıttan sonra çıkış onay İSTEMEZ (form hâlâ "kirli" olsa da). GO_BACK ertelenmiş
+    // (expo-router 6 kuyruğu) gönderilir; o ana dek koruma YENİDEN KURULMAMIŞ olmalı.
+    await waitFor(() => expect(exits).toHaveLength(1));
+    expect(exits[0]).toEqual(expect.objectContaining({ prevented: false }));
     expect(appAlert).not.toHaveBeenCalled();
-    // Kayıttan sonra çıkış onay İSTEMEZ (form hâlâ "kirli" olsa da): geri dönüş anında
-    // koruma kalkmıştı. Koruma TEK seferlik — ekran kalırsa yeniden devrede.
-    expect(exitAtBack).toEqual(expect.objectContaining({ prevented: false }));
-    await waitFor(() => expect(emitBeforeRemove().prevented).toBe(true));
+    // Ekran kapanana dek koruma kapalı kalır (geç gelen ikinci çıkış da serbest).
+    expect(emitBeforeRemove().prevented).toBe(false);
+    expect(appAlert).not.toHaveBeenCalled();
   });
 
-  it('sunucu hatası → toast.error (sunucu mesajı), ekran açık kalır', async () => {
-    post.mockRejectedValue({ response: { status: 400, data: { message: ['Adres geçersiz'] } } });
+  it('sunucu hatası → toast.error + formda KALICI (tüm satırlar), ekran açık kalır', async () => {
+    post.mockRejectedValue({
+      response: { status: 400, data: { message: ['Adres geçersiz', 'İlçe geçersiz'] } },
+    });
     renderWithProviders(<NewAddressScreen />);
     fillValid();
     save();
     await waitFor(() => expect(errorToast).toHaveBeenCalledWith('Adres geçersiz'));
+    expect(await screen.findByText('Adres geçersiz\nİlçe geçersiz')).toBeTruthy();
     expect(backMock).not.toHaveBeenCalled();
     expect(screen.getByTestId('address-save-button')).toBeTruthy();
     expect(appAlert).not.toHaveBeenCalled();
@@ -216,7 +250,7 @@ describe('Taslak koruması (geri oku / Android geri tuşu)', () => {
     await waitFor(() => expect(navigationDispatchMock).toHaveBeenCalledWith(action));
     // Bekleyen eylem koruma kalktıktan SONRA yeniden gönderilir → bu kez engellenmez
     // (aksi halde onay döngüsü / iOS'ta yığın ayrışması).
-    expect(exitAtBack).toEqual(expect.objectContaining({ prevented: false }));
+    expect(exits).toEqual([expect.objectContaining({ prevented: false })]);
     expect(appAlert).toHaveBeenCalledTimes(1);
   });
 
