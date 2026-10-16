@@ -58,6 +58,13 @@ describe('fetchProductDetail', () => {
     getOne.mockRejectedValue(httpError(404));
     getMyById.mockResolvedValueOnce({ data: { data: { id: 'p1', title: 'Benim', status: 'pending' } } });
     await expect(fetchProductDetail('p1', true)).resolves.toMatchObject({ title: 'Benim' });
+    // Sahibe-özel uçtan geldiği işaretlenir (görüntülenme sayılmasın).
+    getMyById.mockResolvedValueOnce({ data: { data: { id: 'p1', title: 'Benim', status: 'pending' } } });
+    await expect(fetchProductDetail('p1', true)).resolves.toHaveProperty('__viaOwnerFallback', true);
+    // Public uçtan gelen işaret taşımaz.
+    getOne.mockResolvedValueOnce({ data: { data: { id: 'p1', title: 'A' } } });
+    await expect(fetchProductDetail('p1', true)).resolves.not.toHaveProperty('__viaOwnerFallback');
+    getOne.mockRejectedValue(httpError(404));
 
     getMyById.mockRejectedValueOnce(httpError(403));
     await expect(fetchProductDetail('p1', true)).resolves.toBeNull();
