@@ -33,6 +33,6 @@ export function getOfferTradeAvailability(
   { isOwner, isOutOfStock }: { isOwner: boolean; isOutOfStock: boolean },
 ): OfferTradeAvailability {
   const purchasable = isPurchasable(product, isOutOfStock);
-  const tradeBadge = purchasable && isProductTradeBadgeVisible(product as never);
+  const tradeBadge = purchasable && isProductTradeBadgeVisible(product);
   return { offer: purchasable && !isOwner, trade: tradeBadge && !isOwner, tradeBadge };
 }

@@ -27,6 +27,8 @@ export interface ProductCardBadgeSource extends ProductPriceFields {
   /** Takas rozeti satın alınabilirliğe bağlı: active dışı statü / müsait adet <= 0 → rozet yok. */
   status?: string | null;
   availableQuantity?: number | null;
+  /** `availableQuantity` yoksa stok bu alandan okunur (web ile aynı). */
+  quantity?: number | null;
 }
 
 /**
@@ -54,8 +56,13 @@ export function getProductSalePercent(p: ProductCardBadgeSource): number {
  * "Takas" rozeti kuralı — kart yığını, liste takas ikonu ve ürün detayı TEK kaynak: takasa açık
  * (`isProductTradeOpen`) VE ilan satın alınabilir (aktif; sold/reserved/inactive değil, stok > 0).
  */
-export function isProductTradeBadgeVisible(p: ProductCardBadgeSource): boolean {
-  return isProductTradeOpen(p) && !isProductOutOfStock(p);
+export function isProductTradeBadgeVisible(
+  p: Pick<ProductCardBadgeSource, 'status' | 'availableQuantity' | 'quantity'>,
+): boolean {
+  return (
+    isProductTradeOpen(p) &&
+    !isProductOutOfStock({ status: p.status, availableQuantity: p.availableQuantity ?? p.quantity })
+  );
 }
 
 export function selectProductCardBadges(p: ProductCardBadgeSource, max: number = MAX_CARD_BADGES): ProductCardBadge[] {

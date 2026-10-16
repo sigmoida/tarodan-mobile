@@ -43,6 +43,13 @@ describe('selectProductCardBadges', () => {
     expect(isProductTradeBadgeVisible({ ...base, tradeAvailable: true, status: 'sold' } as never)).toBe(false);
   });
 
+  it('takas rozeti: availableQuantity yoksa quantity okunur (web ile aynı)', () => {
+    const trade = { ...base, tradeAvailable: true, status: 'active' } as never as ProductCardBadgeSource;
+    expect(isProductTradeBadgeVisible({ ...trade, quantity: 0 })).toBe(false);
+    expect(isProductTradeBadgeVisible({ ...trade, quantity: 2 })).toBe(true);
+    expect(isProductTradeBadgeVisible({ ...trade, availableQuantity: 1, quantity: 0 })).toBe(true);
+  });
+
   it('yüzde < 1 ise indirim rozeti hiç çıkmaz (asla "%0")', () => {
     expect(selectProductCardBadges({ ...base, price: 99.9, oldPrice: 100 })).toEqual([]);
     expect(getProductSalePercent({ ...base, price: 99.9, oldPrice: 100 })).toBe(0);
