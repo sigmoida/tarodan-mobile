@@ -49,6 +49,7 @@ jest.mock('@/hooks/useFavorites', () => ({
     addToFavorites: jest.fn(),
     removeFromFavorites: jest.fn(),
     isInFavorites: () => false,
+    isFavoritesLoaded: () => true,
     fetchFavorites: jest.fn(() => Promise.resolve()),
   }),
 }));
