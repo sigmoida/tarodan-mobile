@@ -53,6 +53,23 @@ describe('useHomeHero', () => {
     expect(result.current.slides).toBe(first);
   });
 
+  it("platform: 'web' slayt elenir (sunucu süzmese bile)", async () => {
+    mockGetSlides.mockResolvedValue({
+      data: [slide('a', { platform: 'app' }), slide('b', { platform: 'web' }), slide('c', { platform: 'all' }), slide('d')],
+    });
+    const { result } = run();
+    await waitFor(() => expect(result.current.loadingSlides).toBe(false));
+    expect(result.current.slides.map((s) => s.id)).toEqual(['a', 'c', 'd']);
+    expect(mockGetSlides).toHaveBeenCalledWith('home');
+  });
+
+  it('admin uygulama için hero kapattı ([]) → boş liste, yükleme biter', async () => {
+    mockGetSlides.mockResolvedValue({ data: [] });
+    const { result } = run();
+    await waitFor(() => expect(result.current.loadingSlides).toBe(false));
+    expect(result.current.slides).toEqual([]);
+  });
+
   it('uç hatası → [] (güven rozeti isteği yok)', async () => {
     mockGetSlides.mockRejectedValue(new Error('x'));
     const { result } = run();

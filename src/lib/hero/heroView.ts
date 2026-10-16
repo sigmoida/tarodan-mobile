@@ -51,6 +51,8 @@ export function resolveHeroCta(
  * - Satın almaya (üyelik/boost) giden CTA'sı olan slayt: buton gizlemek yetmez,
  *   slaytın kendisi satış çağrısı (Apple 3.1.1/3.1.3, Play ödeme politikası).
  * - Görseli ya da başlığı olmayan (çizilemeyen) slayt.
+ * - `platform: 'web'` slayt: sunucu `platform=app` ile zaten süzer; eski/yanlış
+ *   yanıta karşı ek güvenlik. Alan yoksa (eski sunucu) slayt gösterilir.
  */
 export function visibleSlides(slides: readonly HeroSlide[] | null | undefined, locale: string): HeroSlide[] {
   if (!Array.isArray(slides)) return [];
@@ -58,6 +60,7 @@ export function visibleSlides(slides: readonly HeroSlide[] | null | undefined, l
     (s) =>
       !!s &&
       !s.hideOnIos &&
+      s.platform !== 'web' &&
       !!heroImageUrl(s) &&
       !!pickLocalized(s.title, locale) &&
       !isPurchaseLink(s.cta1?.href) &&

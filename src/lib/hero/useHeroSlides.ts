@@ -20,8 +20,11 @@ const NONE: HeroSlide[] = [];
  * göre başlık) `select`'te yapılır: önbellekte ham liste kalır, dönen dizi
  * veri/dil değişmedikçe AYNI referanstır.
  *
+ * İstek `platform=app` ile gider (`heroApi.getSlides`): admin uygulama için hero'yu
+ * kapattıysa ya da canlı slayt yoksa `[]` döner → ana sayfa hiçbir şey çizmez.
+ *
  * İkincil içerik: uç hata verirse ya da gövde liste değilse `[]` — hata
- * gösterilmez; çağıran statik yedeğe düşer / hiçbir şey çizmez.
+ * gösterilmez; çağıran hiçbir şey çizmez.
  */
 export function useHeroSlides(placement: HeroPlacement) {
   const { i18n } = useTranslation();

@@ -17,10 +17,13 @@ beforeEach(() => {
 });
 
 describe('heroApi', () => {
-  it('slaytlar: placement query parametresiyle', () => {
-    heroApi.getSlides('home');
-    expect(mockGet).toHaveBeenCalledWith('/hero-slides', { params: { placement: 'home' } });
-  });
+  it.each(['home', 'auth_default', 'auth_register'] as const)(
+    'slaytlar: placement=%s ile platform=app query parametresi',
+    (placement) => {
+      heroApi.getSlides(placement);
+      expect(mockGet).toHaveBeenCalledWith('/hero-slides', { params: { placement, platform: 'app' } });
+    },
+  );
 
   it('gösterim: gövdesiz POST', () => {
     heroApi.recordImpression('abc');

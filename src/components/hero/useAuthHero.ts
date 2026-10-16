@@ -33,9 +33,9 @@ export function authHeroFrom(slides: readonly HeroSlide[], locale: string): Auth
 
 /**
  * Giriş/kayıt ekranı görseli (admin'den yönetilir, web `AuthHeroFrame` ile aynı).
- * Sorgu ana sayfayla ORTAK (`useHeroSlides`). Ikincil içerik: uç hata verirse,
+ * Sorgu ana sayfayla ORTAK (`useHeroSlides`, `platform=app`). Ikincil içerik: uç hata verirse,
  * liste boşsa ya da slayt bu istemcide gizliyse (`hideOnIos`, satın alma
- * hedefli CTA) `null` döner — ekran görselsiz çizilir, hata/yükleme göstergesi yok.
+ * hedefli CTA, `platform: 'web'`) `null` döner — ekran görselsiz çizilir, hata/yükleme göstergesi yok.
  */
 export function useAuthHero(placement: AuthHeroPlacement): AuthHero | null {
   const { slides, locale } = useHeroSlides(placement);

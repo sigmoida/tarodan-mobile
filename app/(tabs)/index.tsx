@@ -40,6 +40,7 @@ export default function HomeScreen() {
   const data = useHomeData();
   const hero = useHomeHero();
   const heroView = useHeroVisibility();
+  const showHero = !hero.loadingSlides && hero.slides.length > 0;
   // Tab bar daralma sinyali + hero görünürlüğü (ofset UI thread'inden seyrek köprülenir).
   const tabScroll = useTabBarScrollHandler(heroView.onScrollOffset);
   const { onLayout: onTabScrollLayout } = tabScroll;
@@ -102,14 +103,13 @@ export default function HomeScreen() {
       >
         <AdBanner position="topbar" session={adSession} />
         <AdBanner position="header" session={adSession} />
-        <View onLayout={heroView.onHeroLayout}>
-          <HeroSection
-            slides={hero.slides}
-            locale={hero.locale}
-            isLoading={hero.loadingSlides}
-            visible={heroView.visible}
-          />
-        </View>
+        {/* Hero yokken (yükleniyor / boş liste) sarmalayıcı da yok: ilk bölüm üstteki
+            reklam/üst barın altından tek `HOME_SECTION_GAP` ile (sections dolgusu) başlar. */}
+        {showHero ? (
+          <View onLayout={heroView.onHeroLayout} testID="home-hero">
+            <HeroSection slides={hero.slides} locale={hero.locale} visible={heroView.visible} />
+          </View>
+        ) : null}
 
         <View style={styles.sections}>
           <BrandsStrip items={data.manufacturers} />

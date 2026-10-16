@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, ScrollView, useWindowDimensions, type LayoutChangeEvent, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native';
+import { View, ScrollView, type LayoutChangeEvent, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native';
 import { Image } from 'expo-image';
 import { Button, Text } from '@/ui';
 import { heroApi, type HeroSlide } from '@/lib/api';
@@ -7,9 +7,7 @@ import { openAdLink } from '@/lib/ads/openAdLink';
 import { useAdImpression } from '@/lib/ads/useAdImpression';
 import { useScreenActive } from '@/lib/ads/useScreenActive';
 import { heroImageUrl, pickLocalized, resolveHeroCta } from '@/lib/hero/heroView';
-import { heroReservedHeight } from '../_lib/heroLayout';
 import { heroStyles as s } from '../_lib/heroStyles';
-import { HeroBanner } from './HeroBanner';
 
 const AUTOPLAY_MS = 10_000;
 
@@ -177,7 +175,7 @@ export function HeroSlider({
             />
           ))}
       </ScrollView>
-      {/* Şerit tek slaytta da yer tutar: rezerve alanla gerçek yükseklik aynı kalsın. */}
+      {/* Şerit tek slaytta da yer tutar: yükseklik slayt sayısından bağımsız kalsın. */}
       <View style={s.dots}>
         {count > 1 &&
           slides.map((slide, i) => <View key={slide.id} style={[s.dot, i === index && s.dotActive]} />)}
@@ -186,15 +184,12 @@ export function HeroSlider({
   );
 }
 
-/** Yüklenirken slider'ın kaplayacağı yüksekliği ekran genişliğinden ayırır. */
-function HeroReserved() {
-  const { width } = useWindowDimensions();
-  return <View style={[s.reserved, { height: heroReservedHeight(width) }]} testID="hero-reserved" />;
-}
-
 /**
- * Ana sayfa hero'su: yüklenirken rezerve alan, API'den görünür slayt yoksa
- * (boş liste, hata, hepsi `hideOnIos`/satın alma hedefli) statik yedek hero.
+ * Ana sayfa hero'su. Yalnız API'den görünür slayt varsa çizilir; yüklenirken, boş
+ * listede (admin uygulama için hero'yu kapattı / canlı slayt yok / uç hatası /
+ * hepsi `hideOnIos`, `platform: 'web'` ya da satın alma hedefli) `null` — yer
+ * ayrılmaz, statik yedek yok. Önbellekte veri varsa `isLoading` false olur ve
+ * doğrudan gösterilir.
  */
 export function HeroSection({
   slides,
@@ -207,7 +202,6 @@ export function HeroSection({
   isLoading?: boolean;
   visible?: boolean;
 }) {
-  if (isLoading) return <HeroReserved />;
-  if (slides.length === 0) return <HeroBanner />;
+  if (isLoading || slides.length === 0) return null;
   return <HeroSlider slides={slides} locale={locale} visible={visible} />;
 }

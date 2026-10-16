@@ -10,12 +10,6 @@ const { colors, spacing, radius } = theme;
 
 
 export const heroStyles = StyleSheet.create({
-  reserved: {
-    ...heroOuter,
-    // Yükseklik genişlikten hesaplanır (`heroReservedHeight`) — HeroSection satır içi verir.
-    borderRadius: radius.xl,
-    backgroundColor: colors.surface.alt,
-  },
   shell: {
     ...heroOuter,
     borderRadius: radius.xl,

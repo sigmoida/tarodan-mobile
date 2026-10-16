@@ -35,8 +35,10 @@ export function useHeroVisibility() {
   );
   const onHeroLayout = useCallback(
     (e: LayoutChangeEvent) => {
-      metrics.current.top = e.nativeEvent.layout.y;
-      metrics.current.height = e.nativeEvent.layout.height;
+      // 0/geçersiz yükseklik = hero yok ya da henüz ölçülmedi → "görünür" (isHeroInView).
+      const { y, height } = e.nativeEvent.layout;
+      metrics.current.top = Number.isFinite(y) ? y : 0;
+      metrics.current.height = Number.isFinite(height) && height > 0 ? height : 0;
       update();
     },
     [update],
