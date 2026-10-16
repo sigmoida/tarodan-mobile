@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
-import { copyToClipboard } from '@/lib/clipboard';
+import { copySensitiveToClipboard, SENSITIVE_CLIPBOARD_TTL_MS } from '@/lib/clipboard';
 import { useZodForm } from '@/ui/form';
 import { goBackOrHome } from '@/components/common/goBackOrHome';
 import { apiErrorMessage } from '@/lib/api/errorText';
@@ -90,9 +90,12 @@ export function useTwoFactorFlow() {
     else startSetup();
   }, [statusFailed, refetchStatus, startSetup]);
 
+  // Gizli anahtar / yedek kodlar panoda kısa süre kalır; kullanıcı süreyi bilsin.
   const copy = (text: string) => {
-    if (!copyToClipboard(text)) return;
-    toast.success(t('common.copiedShort'));
+    if (!copySensitiveToClipboard(text)) return;
+    toast.success(
+      t('profile.twoFactor.copiedClipboardClears', { seconds: SENSITIVE_CLIPBOARD_TTL_MS / 1000 }),
+    );
   };
 
   return {

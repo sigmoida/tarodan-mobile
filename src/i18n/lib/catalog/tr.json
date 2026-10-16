@@ -2455,6 +2455,7 @@
       "saveCodesHint": "Aşağıdaki yedek kodları güvenli bir yere kaydedin.",
       "oneTimeWarning": "Bu kodlar sadece bir kez gösterilecek. Telefonunuza erişiminizi kaybederseniz hesabınıza giriş yapmak için bu kodlara ihtiyacınız olacak.",
       "copyAllCodes": "Tüm Kodları Kopyala",
+      "copiedClipboardClears": "Kopyalandı. Güvenliğiniz için pano {seconds} saniye sonra temizlenecek.",
       "setupFailed": "2FA kurulumu başlatılamadı",
       "verifyFailed": "Doğrulama başarısız",
       "disableFailed": "2FA devre dışı bırakılamadı",
