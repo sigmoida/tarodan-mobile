@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 // Tam ekran görsel görüntüleyici (web ProductLightbox): `@/ui` Modal bir diyalog kartıdır; burada çerçevesiz,
 // tam ekran native Modal gerekir (jest + zoom jesti için GestureHandlerRootView modalın İÇİNDE).
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
-import { FlatList, Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +24,9 @@ const imageUri = (img: any): string => (typeof img === 'string' ? img : img.url)
  * Tam ekran görsel görüntüleyici: beyaz zemin, büyük fotoğraf (yatay sayfalı, pinch + çift dokunma
  * zoom), altta küçük resim şeridi. Büyük fotoğraf kaydırılınca seçili küçük resim senkron döner ve
  * görünür alana kayar; küçük resme dokununca o fotoğrafa geçilir. Galeriden dokunulan indeksle açılır.
- * Gövde yalnız görünürken bağlanır → her açılışta indeks/zoom sıfırdan başlar.
+ * Gövde yalnız görünürken bağlanır → her açılışta indeks/zoom sıfırdan başlar. Büyük fotoğraf sayfaları
+ * sanal (FlatList, `windowSize` 3): yalnız görünen ve komşu ZoomableImage bağlanır — onlarca fotoğraflı
+ * ilanda hepsi (her biri jest + tam boy bitmap) birden açılmaz.
  */
 export function ImageViewerModal({
   visible,
@@ -75,7 +77,7 @@ function ViewerBody({
   const [pageHeight, setPageHeight] = useState<number | undefined>(undefined);
   // Küçük resimle sayfa değişince eski sayfanın zoom'u sıfırlansın (zoomed bayrağı takılı kalmasın).
   const [resetKey, setResetKey] = useState(0);
-  const pagerRef = useRef<ScrollView>(null);
+  const pagerRef = useRef<FlatList>(null);
   const stripRef = useRef<FlatList>(null);
 
   // Seçili küçük resmi şeridin ortasına kaydır (kaydırmayla ya da dokunmayla değişse de).
@@ -96,8 +98,19 @@ function ViewerBody({
     setZoomed(false);
     setResetKey((k) => k + 1);
     setIndex(i);
-    pagerRef.current?.scrollTo({ x: i * width, y: 0, animated: true });
+    pagerRef.current?.scrollToOffset({ offset: i * width, animated: true });
   };
+
+  const renderPage = useCallback(
+    ({ item }: ListRenderItemInfo<unknown>) => (
+      <ZoomableImage uri={imageUri(item)} zoomed={zoomed} onZoomChange={setZoomed} areaHeight={pageHeight} />
+    ),
+    [zoomed, pageHeight],
+  );
+  const pageLayout = useCallback(
+    (_: unknown, i: number) => ({ length: width, offset: width * i, index: i }),
+    [width],
+  );
 
   return (
     <>
@@ -119,29 +132,29 @@ function ViewerBody({
         </Pressable>
       </View>
 
-      <ScrollView
+      <FlatList
         ref={pagerRef}
         testID="image-viewer-pager"
         style={styles.pager}
+        data={images}
         horizontal
         pagingEnabled
         scrollEnabled={!zoomed}
         showsHorizontalScrollIndicator={false}
-        contentOffset={{ x: startIndex * width, y: 0 }}
+        // Küçük resimle geçişte anahtar değişir → sayfalar yeniden bağlanır, eski zoom sıfırlanır.
+        keyExtractor={(_, i) => `${i}-${resetKey}`}
+        renderItem={renderPage}
+        // zoom bayrağı / sayfa yüksekliği değişince bağlı sayfalar yeniden çizilsin.
+        extraData={renderPage}
+        getItemLayout={pageLayout}
+        initialScrollIndex={startIndex}
+        initialNumToRender={1}
+        maxToRenderPerBatch={1}
+        windowSize={3}
         scrollEventThrottle={16}
         onScroll={onPagerScroll}
         onLayout={(e) => setPageHeight(e.nativeEvent.layout.height)}
-      >
-        {images.map((img: any, i: number) => (
-          <ZoomableImage
-            key={`${i}-${resetKey}`}
-            uri={imageUri(img)}
-            zoomed={zoomed}
-            onZoomChange={setZoomed}
-            areaHeight={pageHeight}
-          />
-        ))}
-      </ScrollView>
+      />
 
       {total > 1 ? (
         <View style={[styles.stripWrap, { paddingBottom: bottomInset + spacing[3] }]}>

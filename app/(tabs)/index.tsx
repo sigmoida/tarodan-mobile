@@ -1,10 +1,8 @@
-import { logger, safeError } from '@/services/logger';
 import { View, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useState, useCallback, useEffect } from 'react';
 import { theme, usePageScrollValue } from '@/ui';
 import { router } from 'expo-router';
-import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useGuestStore } from '@/stores/guestStore';
 import { SignupPrompt } from '@/components/SignupPrompt';
@@ -15,6 +13,7 @@ import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { homeStyles as styles } from './_lib/homeStyles';
 import { useHomeData } from './_hooks/useHomeData';
 import { useHomeGuestPrompt } from './_hooks/useHomeGuestPrompt';
+import { useAfterFirstFrame } from './_hooks/useAfterFirstFrame';
 import { BrandsStrip } from './_components/HomeBrands';
 import { FeaturedRail, OnSaleRail, TradeRail, PopularRail } from './_components/HomeRails';
 import { TopCollections } from './_components/HomeCollections';
@@ -33,6 +32,8 @@ const { colors } = theme;
  * Ana sayfa — web ana sayfasının bölüm kümesi ve sırası (hero, markalar, Öne Çıkan, İndirimdekiler,
  * Takas Vitrini, Popüler, En İyi Koleksiyonlar, Haftanın Koleksiyoneri/Şirketi). Güven rozeti ızgarası yok.
  * AppShell (marka barı: arama alanı + bildirim + sepet) içinde; her bölüm SectionCard + "Tümünü gör ›". Veri `useHomeData`.
+ * Algılanan hız: ilk kare yalnız üst bölümleri (hero, markalar, Öne Çıkan, İndirimdekiler) çizer; alt
+ * bölümler (Takas, Popüler, Koleksiyonlar, Haftanın…) ilk kareden sonra bağlanır, o ana dek iskelet.
  */
 export default function HomeScreen() {
   const { isAuthenticated } = useAuthStore();
@@ -60,19 +61,8 @@ export default function HomeScreen() {
   const tabInset = useTabBarInset();
   // Üst bar içeriğin üstünde yüzer: liste bar yüksekliği kadar boşlukla başlar (iOS contentInset / Android padding).
   const barInset = useFloatingBarInset();
-
-
-  // API bağlantı kontrolü (yalnız log — davranış korunur).
-  useEffect(() => {
-    api
-      .get('/health')
-      .then(() => {
-        logger.debug('API bağlantısı başarılı');
-      })
-      .catch((err) => {
-        logger.debug('API bağlantısı yok, mock data kullanılacak', { err: safeError(err) });
-      });
-  }, []);
+  // Alt bölümler ilk kareden sonra (ilk açılışta onlarca kart birden çizilmesin; sorgular zaten yolda).
+  const lowerReady = useAfterFirstFrame();
 
   const { refetchAll } = data;
   const { refetch: refetchHero } = hero;
@@ -124,13 +114,17 @@ export default function HomeScreen() {
         ) : null}
 
         <View style={styles.sections}>
-          <BrandsStrip items={data.manufacturers} />
+          <BrandsStrip items={data.manufacturers} isLoading={data.loadingManufacturers} />
           <FeaturedRail items={data.featured} isLoading={data.loadingFeatured} onProductPress={handleProductPress} />
           <OnSaleRail items={data.onSale} isLoading={data.loadingOnSale} onProductPress={handleProductPress} />
-          <TradeRail items={data.trade} isLoading={data.loadingTrade} onProductPress={handleProductPress} />
-          <PopularRail items={data.popular} isLoading={data.loadingPopular} onProductPress={handleProductPress} />
-          <TopCollections items={data.topCollections} isLoading={data.loadingTopCollections} />
-          <Spotlights collector={data.featuredCollector} business={data.featuredBusiness} />
+          <TradeRail items={data.trade} isLoading={!lowerReady || data.loadingTrade} onProductPress={handleProductPress} />
+          <PopularRail items={data.popular} isLoading={!lowerReady || data.loadingPopular} onProductPress={handleProductPress} />
+          <TopCollections items={data.topCollections} isLoading={!lowerReady || data.loadingTopCollections} />
+          <Spotlights
+            collector={data.featuredCollector}
+            business={data.featuredBusiness}
+            isLoading={!lowerReady || data.loadingSpotlights}
+          />
         </View>
 
         <AdBanner position="footer" session={adSession} style={styles.adFooter} />

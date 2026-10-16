@@ -53,7 +53,13 @@ function ProductRail({
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.railScroll} contentContainerStyle={styles.rail}>
           {items.slice(0, RAIL_LIMIT).map((item) => (
             <View key={item.id} style={styles.railCell}>
-              <ProductCard product={item} showMeta={false} onPress={() => onProductPress(item.id)} {...favoriteProps(item)} />
+              <ProductCard
+                product={item}
+                showMeta={false}
+                onPress={() => onProductPress(item.id)}
+                prefetchDetail
+                {...favoriteProps(item)}
+              />
             </View>
           ))}
         </ScrollView>

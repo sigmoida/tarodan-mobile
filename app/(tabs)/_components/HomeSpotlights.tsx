@@ -1,13 +1,14 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, SectionCard, Text, theme, Icon } from '@/ui';
+import { Avatar, Button, SectionCard, Skeleton, Text, theme, Icon } from '@/ui';
 import { formatCount } from '@/utils/format';
 import { homeStyles as styles } from '../_lib/homeStyles';
+import { HOME_SECTION_GAP } from '../_lib/homeLayout';
 
-const { colors, iconSize } = theme;
+const { colors, iconSize, spacing, radiusRole } = theme;
 
 const displayName = (u: any, fallback: string): string => u?.publicName || u?.displayName || fallback;
 
@@ -135,8 +136,27 @@ function BusinessSpotlight({ business }: { business: any }) {
   );
 }
 
-/** Haftanın Koleksiyoneri + Haftanın Şirketi; ikisi de yoksa hiçbir şey çizilmez. */
-export function Spotlights({ collector, business }: { collector: any | null; business: any | null }) {
+/**
+ * Haftanın Koleksiyoneri + Haftanın Şirketi; ikisi de yoksa hiçbir şey çizilmez. Yüklenirken iki kart
+ * boyunda iskelet (veri gelince sayfa sonu zıplamasın).
+ */
+export function Spotlights({
+  collector,
+  business,
+  isLoading = false,
+}: {
+  collector: any | null;
+  business: any | null;
+  isLoading?: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <View testID="home-spotlights-skeleton" style={local.skeletons}>
+        <Skeleton style={local.skeleton} />
+        <Skeleton style={local.skeleton} />
+      </View>
+    );
+  }
   if (!collector && !business) return null;
   return (
     <>
@@ -145,3 +165,9 @@ export function Spotlights({ collector, business }: { collector: any | null; bus
     </>
   );
 }
+
+const local = StyleSheet.create({
+  skeletons: { gap: HOME_SECTION_GAP },
+  // Haftanın Koleksiyoneri / Şirketi kartı boyu (avatar + sayaçlar + görseller + düğme ≈ 336pt).
+  skeleton: { height: spacing[24] * 3 + spacing[12], borderRadius: radiusRole.card },
+});

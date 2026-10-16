@@ -1,10 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Skeleton, SkeletonText, theme, toast } from '@/ui';
+import { theme, toast } from '@/ui';
 import { useLocalSearchParams, router } from 'expo-router';
 import { PageShell } from '@/components/common/PageShell';
 import { useRefresh } from '@/hooks/useRefresh';
+import { useTransitionReady } from '@/hooks/useTransitionReady';
 import { useAuthStore } from '@/stores/authStore';
 import { isOwnProduct } from '@/hooks/useFavoriteToggle';
 import { SignupPrompt } from '@/components/SignupPrompt';
@@ -32,24 +33,11 @@ import { usePriceLimits } from '@/hooks/usePriceLimits';
 import { SellerCard } from './_components/SellerCard';
 import { ProductSpecs } from './_components/ProductSpecs';
 import { ProductReviewsPreview } from './_components/ProductReviewsPreview';
+import { ProductSectionsSkeleton, ProductSkeleton } from './_components/ProductSkeletons';
 import { ImageViewerModal } from './_modals/ImageViewerModal';
 import { useUserActionsSheet } from '@/components/UserActionsSheet';
 
 const { spacing } = theme;
-
-/** Web ürün detayının yüklenirken iskeleti: kare görsel + başlık/fiyat/açıklama satırları. */
-function ProductSkeleton() {
-  return (
-    <View testID="product-skeleton">
-      <Skeleton width="100%" style={styles.square} borderRadius={0} />
-      <View style={styles.body}>
-        <Skeleton height={spacing[8]} width="75%" />
-        <Skeleton height={spacing[6]} width="50%" />
-        <SkeletonText lines={4} />
-      </View>
-    </View>
-  );
-}
 
 /**
  * Ürün detayı — web `ListingDetailClient` blokları ve sırası: galeri, başlık, fiyat bloğu, rozet satırı
@@ -57,6 +45,10 @@ function ProductSkeleton() {
  * Sabit alt bar (platform kalıbı): üstte ince "Takas Teklifi" · "Teklif Ver" satırı (tek giriş), altında fiyat · "Hemen Al" · "Sepete Ekle" (misafir de ekler;
  * sahipte fiyat · "Düzenle").
  * Mantık `_hooks/`'ta; hook'lar PageShell'in yükleniyor/boş dallarından ÖNCE koşulsuz çağrılır.
+ * Algılanan hız: listeden gelince ilk kare önbellekteki karttan (galeri + başlık + fiyat; tam veri
+ * isteyen bölümler iskelet, alt bar / aksiyonlar tam veriyle); özellikler, değerlendirmeler ve benzer
+ * ürünler (sorgularıyla) itiş animasyonu bitince bağlanır (`useTransitionReady`). Ağ/5xx hatası
+ * "bulunamadı" değil, hata + Tekrar Dene.
  */
 export default function ProductDetailScreen() {
   const { t } = useTranslation();
@@ -64,9 +56,14 @@ export default function ProductDetailScreen() {
   const productId = String(id);
   const { isAuthenticated, user } = useAuthStore();
 
-  const { data: product, isLoading, refetch: refetchProduct } = useProduct(productId, isAuthenticated);
-  const { data: reviews, refetch: refetchReviews } = useProductReviews(productId, !!id);
-  const { data: similar } = useSimilarProducts(productId, !!product);
+  const productQuery = useProduct(productId, isAuthenticated);
+  const { data: product, isLoading, isError, refetch: refetchProduct } = productQuery;
+  // Liste önbelleğinden gelen yer tutucu: yalnız kart alanları (başlık / fiyat / galeri / satıcı özeti).
+  const full = !!product && !productQuery.isPlaceholderData;
+  const fullProduct = full ? product : null;
+  const sectionsReady = useTransitionReady();
+  const { data: reviews, refetch: refetchReviews } = useProductReviews(productId, !!id && sectionsReady);
+  const { data: similar } = useSimilarProducts(productId, full && sectionsReady);
   const { refreshing, onRefresh } = useRefresh(refetchProduct, refetchReviews);
   const guest = useGuestPrompt(productId, isAuthenticated);
   const scroll = useProductScroll();
@@ -78,11 +75,11 @@ export default function ProductDetailScreen() {
   const isOutOfStock = product ? isProductOutOfStock(product) : false;
 
   const { minPrice } = usePriceLimits();
-  const actions = useProductActions({ product, productId, images, isOutOfStock, isAuthenticated, user });
+  const actions = useProductActions({ product: fullProduct, productId, images, isOutOfStock, isAuthenticated, user });
   const favorite = useProductFavorite({ product, productId, isAuthenticated });
 
   // Apple App Review 1.2: ilan detayından ilanı şikayet + satıcıyı engelle.
-  const sellerId = product?.seller?.id ? String(product.seller.id) : '';
+  const sellerId = fullProduct?.seller?.id ? String(fullProduct.seller.id) : '';
   const sellerName = product?.seller?.displayName || product?.seller?.companyName || t('product.seller');
   const sellerActions = useUserActionsSheet({
     userId: sellerId,
@@ -105,15 +102,22 @@ export default function ProductDetailScreen() {
   const openReviews = () => router.push(`/product/${productId}/reviews`);
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
-  const ready = !!product && !!price;
+  // `visible`: galeri + başlık + fiyat çizilebilir (yer tutucu da yeter); `ready`: tam veri — alt bar,
+  // üst aksiyonlar, modaller ve tam veri isteyen bölümler.
+  const visible = !!product && !!price;
+  const ready = visible && full;
+  // Hata sonrası "Tekrar Dene" sürerken iskelet (hata kartı basılı kalmasın).
+  const retrying = !product && isError && productQuery.isFetching;
   return (
     <PageShell
       header={false}
       mode="list"
       padding={false}
-      loading={isLoading}
+      loading={isLoading || retrying}
       loadingFallback={<ProductSkeleton />}
-      empty={!isLoading && !product}
+      error={!product && isError && !retrying ? productQuery.error : undefined}
+      onRetry={refetchProduct}
+      empty={!isLoading && !isError && !product}
       emptyState={{
         icon: 'cube',
         title: t('product.productNotFoundTitle'),
@@ -201,7 +205,7 @@ export default function ProductDetailScreen() {
         </>
       }
     >
-      {ready ? (
+      {visible ? (
         <ProductScrollView onScroll={scroll.onScroll} refreshing={refreshing} onRefresh={onRefresh}>
           <ProductGallery
             images={images}
@@ -217,24 +221,36 @@ export default function ProductDetailScreen() {
               favoriteCount={favorite.favoriteCount}
               tradeBadge={availability.tradeBadge}
             />
-            <ProductDescription product={product} />
-            <ProductSecondaryActions
-              product={product}
-              isOwner={isOwner}
-              inCart={actions.inCart}
-              quantity={actions.quantity}
-              onQuantity={actions.setQuantity}
-              onAddToCollection={actions.handleAddToCollection}
-            />
-            <SellerCard
-              seller={product.seller}
-              isOwner={isOwner}
-              onPressSeller={() => router.push(`/seller/${product.seller?.id}`)}
-              onMessage={actions.handleMessage}
-            />
-            <ProductSpecs product={product} />
-            <ProductReviewsPreview reviews={reviews} onSeeAll={openReviews} />
-            <SimilarProductsCard title={t('product.similarProducts')} items={similar} />
+            {ready ? (
+              <>
+                <ProductDescription product={product} />
+                <ProductSecondaryActions
+                  product={product}
+                  isOwner={isOwner}
+                  inCart={actions.inCart}
+                  quantity={actions.quantity}
+                  onQuantity={actions.setQuantity}
+                  onAddToCollection={actions.handleAddToCollection}
+                />
+                <SellerCard
+                  seller={product.seller}
+                  isOwner={isOwner}
+                  onPressSeller={() => router.push(`/seller/${product.seller?.id}`)}
+                  onMessage={actions.handleMessage}
+                />
+              </>
+            ) : (
+              <ProductSectionsSkeleton testID="product-sections-skeleton" />
+            )}
+            {ready && sectionsReady ? (
+              <>
+                <ProductSpecs product={product} />
+                <ProductReviewsPreview reviews={reviews} onSeeAll={openReviews} />
+                <SimilarProductsCard title={t('product.similarProducts')} items={similar} />
+              </>
+            ) : ready ? (
+              <ProductSectionsSkeleton count={1} testID="product-deferred-skeleton" />
+            ) : null}
           </View>
         </ProductScrollView>
       ) : null}
@@ -244,5 +260,4 @@ export default function ProductDetailScreen() {
 
 const styles = StyleSheet.create({
   body: { padding: spacing[4], gap: spacing[4] },
-  square: { aspectRatio: 1, height: undefined },
 });

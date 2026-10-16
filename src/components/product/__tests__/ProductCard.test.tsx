@@ -7,10 +7,14 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { ProductCard } from '../ProductCard';
 import { Text } from '@/ui';
 import { productsApi } from '@/lib/api';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { prefetchProductDetail } from '@/lib/product/detailQuery';
 
 jest.mock('@/lib/api', () => ({
   productsApi: { recordClick: jest.fn(() => Promise.resolve({ data: {} })) },
 }));
+
+jest.mock('@/lib/product/detailQuery', () => ({ prefetchProductDetail: jest.fn() }));
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
@@ -303,6 +307,43 @@ describe('ProductCard — tıklama', () => {
     (productsApi.recordClick as jest.Mock).mockRejectedValueOnce(new Error('ağ'));
     render(<ProductCard product={base} />);
     fireEvent.press(screen.getByText('Hot Wheels Supra'));
+    expect(mockPush).toHaveBeenCalledWith('/product/p1');
+  });
+});
+
+describe('ProductCard — detay prefetch (dokunuş başında)', () => {
+  beforeEach(() => jest.clearAllMocks());
+  const qc = new QueryClient();
+  const withClient = (ui: React.ReactElement) => render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
+  const prefetch = prefetchProductDetail as jest.Mock;
+
+  it('kart ürünü kendisi açıyorsa pressIn detayı önceden çeker (aynı istemci + id)', () => {
+    withClient(<ProductCard product={base} />);
+    fireEvent(screen.getByText('Hot Wheels Supra'), 'pressIn');
+    expect(prefetch).toHaveBeenCalledWith(qc, 'p1');
+  });
+
+  it('liste görünümünde de pressIn prefetch yapar', () => {
+    withClient(<ProductCard product={base} layout="list" />);
+    fireEvent(screen.getByText('Hot Wheels Supra'), 'pressIn');
+    expect(prefetch).toHaveBeenCalledWith(qc, 'p1');
+  });
+
+  it('onPress veren (seçim listesi) çağıranda prefetch yok; `prefetchDetail` ile açılır', () => {
+    const { unmount } = withClient(<ProductCard product={base} onPress={jest.fn()} />);
+    fireEvent(screen.getByText('Hot Wheels Supra'), 'pressIn');
+    expect(prefetch).not.toHaveBeenCalled();
+    unmount();
+    withClient(<ProductCard product={base} onPress={jest.fn()} prefetchDetail />);
+    fireEvent(screen.getByText('Hot Wheels Supra'), 'pressIn');
+    expect(prefetch).toHaveBeenCalledWith(qc, 'p1');
+  });
+
+  it('QueryClient sağlayıcısı yoksa prefetch atlanır, kart çalışır', () => {
+    render(<ProductCard product={base} />);
+    fireEvent(screen.getByText('Hot Wheels Supra'), 'pressIn');
+    fireEvent.press(screen.getByText('Hot Wheels Supra'));
+    expect(prefetch).not.toHaveBeenCalled();
     expect(mockPush).toHaveBeenCalledWith('/product/p1');
   });
 });

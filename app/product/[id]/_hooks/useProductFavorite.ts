@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFavoriteToggle } from '@/hooks/useFavoriteToggle';
-import { invalidateProductLists } from '../_lib/invalidate';
+import { patchCachedListProduct } from '@/lib/product/listCache';
 import type { Product } from '../_lib/types';
 
 /**
@@ -11,7 +11,8 @@ import type { Product } from '../_lib/types';
  * (ve tersi). Beğeni sayısı detay cache'indeki `likeCount` (toggle onu ±1 günceller; refetch yok,
  * görüntülenme yeniden sayılmaz). Açılışta ayrıca favori refetch'i YOK: staleTime yeterli ve
  * uçuştaki bir kart toggle'ının iyimser durumunu ezerdi.
- * Detaya özel: başarılı toggle'da liste ekranları tazelenir (beğeni sayısı listelerde de görünür).
+ * Detaya özel: başarılı toggle'da listelerdeki kartların beğeni sayısı da YERİNDE ±1 yamanır
+ * (listeler invalidate edilmez — bağlı raylar / arama yeniden çekilmesin).
  */
 export function useProductFavorite({
   product,
@@ -30,7 +31,12 @@ export function useProductFavorite({
     setFavoriteLoading(true);
     try {
       const result = await toggleFavorite(productId);
-      if (result === 'added' || result === 'removed') invalidateProductLists(queryClient);
+      if (result === 'added' || result === 'removed') {
+        const delta = result === 'added' ? 1 : -1;
+        patchCachedListProduct(queryClient, productId, (p) =>
+          typeof p.likeCount === 'number' ? { ...p, likeCount: Math.max(0, p.likeCount + delta) } : p,
+        );
+      }
     } finally {
       setFavoriteLoading(false);
     }

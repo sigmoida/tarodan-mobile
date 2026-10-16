@@ -1,11 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View, type LayoutChangeEvent, type LayoutRectangle, type ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
+import { QueryClientContext } from '@tanstack/react-query';
 import { AppImage } from '@/components/AppImage';
 import { GLASS_ICON_BUTTON_SIZE_SM, GlassIconButton, ProductBadge, Text, theme, Icon } from '@/ui';
 import { productsApi } from '@/lib/api';
+import { prefetchProductDetail } from '@/lib/product/detailQuery';
 import {
   ProductPriceFields,
   getProductEffectivePrice,
@@ -61,6 +63,12 @@ export interface ProductCardProps {
   onPress?: () => void;
   /** Sıralama sinyali (tıklama kaydı). Ürün açmayan kullanımlarda (seçim listesi) `false`. */
   trackClick?: boolean;
+  /**
+   * Dokunuş başlar başlamaz (`onPressIn`) ürün detayını önceden çek — ekran açılırken istek yolda
+   * olur. Varsayılan: kart ürünü kendisi açıyorsa (`onPress` yok) açık; `onPress` ile ürünü açan
+   * çağıran (anasayfa rayı) `true` verir. Görüntülenme sayılmaz (`prefetchProductDetail`).
+   */
+  prefetchDetail?: boolean;
   /** Seçili durum (web seçim kartı: 2px primary çerçeve + primary-50 zemin). */
   selected?: boolean;
   /** Görselin sağ üstünde (rozet/kaldır düğmesi). */
@@ -207,6 +215,7 @@ function ProductCardBase({
   showMeta = true,
   onPress,
   trackClick = true,
+  prefetchDetail,
   selected = false,
   overlay,
   overlayStart,
@@ -251,6 +260,11 @@ function ProductCardBase({
         : badges;
   const cardLabel = [product.title, ...visibleBadges.map((b) => badgeA11yText(b, t))].join(', ');
 
+  // Sağlayıcı yoksa (izole bileşen testleri) prefetch atlanır — `useQueryClient` gibi fırlatmaz.
+  const queryClient = useContext(QueryClientContext);
+  const shouldPrefetch = prefetchDetail ?? !onPress;
+  const handlePressIn = shouldPrefetch && queryClient ? () => prefetchProductDetail(queryClient, product.id) : undefined;
+
   const handlePress = () => {
     // Sıralama sinyali: hata gezinmeyi engellemez (web `click` ping'i).
     if (trackClick) void productsApi.recordClick(product.id).catch(() => {});
@@ -266,6 +280,7 @@ function ProductCardBase({
       <View style={style}>
         <Pressable
           onPress={handlePress}
+          onPressIn={handlePressIn}
           testID={testID}
           accessibilityRole="button"
           accessibilityLabel={cardLabel}
@@ -326,6 +341,7 @@ function ProductCardBase({
     <View style={[styles.gridWrap, style]}>
       <Pressable
         onPress={handlePress}
+        onPressIn={handlePressIn}
         testID={testID}
         accessibilityRole="button"
         accessibilityLabel={cardLabel}
