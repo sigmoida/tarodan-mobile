@@ -131,14 +131,6 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'order.invoiceNo',
     // "Plan:" iki dilde de aynı sözcük.
     'membership.planLabel',
-    // Ölçek etiketleri ve iletişim değerleri — çevrilecek bir sözcük yok.
-    'information.sizeGuide.scale18',
-    'information.sizeGuide.scale24',
-    'information.sizeGuide.scale43',
-    'information.sizeGuide.scale64',
-    'information.sizeGuide.note64',
-    'information.contactInfo.emailValue',
-    'information.contactInfo.phoneValue',
     // Yalnız ayraç + sürüm numarası (" · v3"); çevrilecek sözcük yok.
     'sellerDocument.versionSuffix',
     // Yalnız ayraç + interpolasyon (" · {level}"); çevrilecek sözcük yok.
@@ -167,51 +159,11 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
    * `admin.*` ve saf-interpolasyonlu `server.notification.*` mesajları toplu
    * muaf: birincisi mobil arayüzde hiç render edilmiyor (katalog ana repoyla
    * paylaşıldığı için burada duruyor), ikincisi yalnız `{argüman}` taşıyor.
-   *
-   * `legal.{privacy,terms,distanceSales}.*`: hukuki belgelerin BAĞLAYICI metni
-   * Türkçedir; web kataloğu bu anahtarların İngilizcesinde de aynı Türkçe
-   * metni taşıyor (web EN dilinde de Türkçe gösteriyor). Mobil web metnini
-   * birebir taşır (B3); belgeyi çevirmek hukuki bir karardır, burada yapılmaz.
-   *
-   * Çerez politikası (B4 inceleme tur 2 · 8): YALNIZ belge gövdesi muaf —
-   * paragraflar (`s<N>p<N>`, `s<N>Intro`), sağlayıcı amaçları ve tablo
-   * içerikleri (`scope*`, `retention*`). Başlıklar (`s<N>Title`), notlar
-   * (`s5Note`, `s6Warning`), sütun/iletişim etiketleri (`col*`, `contact*Label`)
-   * ve tarih (`lastUpdatedValue`) arayüz metnidir, dile göre çevrilir.
+   * (Yasal belge metinleri artık katalogda değil: ekranlar web'in uygulama
+   * modu sayfasını WebView'de gösteriyor — `@/lib/legal/webDocs`.)
    */
-  const LEGAL_DOCUMENT_TEXT = /^legal\.(privacy|terms|distanceSales)\./;
-  const COOKIES_DOCUMENT_BODY =
-    /^legal\.cookies\.page\.(s\dp\d|s\dIntro|thirdParty\w+Purpose|scope\w+|retention\w+)$/;
   const isBulkExempt = (key: string) =>
-    key.startsWith('admin.') ||
-    /^server\.notification\..*\.message$/.test(key) ||
-    LEGAL_DOCUMENT_TEXT.test(key) ||
-    COOKIES_DOCUMENT_BODY.test(key);
-
-  it('çerez politikası: başlık, not ve etiket anahtarları muafiyet DIŞINDA', () => {
-    for (const key of [
-      'legal.cookies.page.s1Title',
-      'legal.cookies.page.s7Title',
-      'legal.cookies.page.s5Note',
-      'legal.cookies.page.s6Warning',
-      'legal.cookies.page.colStoredData',
-      'legal.cookies.page.contactEmailLabel',
-      'legal.cookies.page.contactPhoneLabel',
-      'legal.cookies.page.lastUpdatedValue',
-    ]) {
-      expect(`${key}:${isBulkExempt(key)}`).toBe(`${key}:false`);
-    }
-    // Gövde muaf (bağlayıcı metin Türkçe kalır, web gibi).
-    for (const key of [
-      'legal.cookies.page.s1p1',
-      'legal.cookies.page.s3Intro',
-      'legal.cookies.page.thirdPartyPaytrPurpose',
-      'legal.cookies.page.scopeKvkkIndividual',
-      'legal.cookies.page.retentionTrafficPeriod',
-    ]) {
-      expect(`${key}:${isBulkExempt(key)}`).toBe(`${key}:true`);
-    }
-  });
+    key.startsWith('admin.') || /^server\.notification\..*\.message$/.test(key);
 
   it('çevrilmemiş kalan anahtar yok', () => {
     const pick = (catalog: any, key: string) =>
