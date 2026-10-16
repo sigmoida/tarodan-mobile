@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import { deepLinkConfig, productionHosts } from "@/lib/deeplinks";
+import { logger } from "@/services/logger";
 
 /**
  * API base URL çözümleme — TEK kaynak. `client.ts` (axios instance'ları) ve
@@ -57,10 +58,10 @@ export function resolveApiBaseUrlFrom(inputs: ApiUrlInputs): string {
   if (isReleaseEnvironment(inputs.environment, inputs.isDev)) {
     if (HTTPS_URL.test(envUrl)) return envUrl;
     const fallback = releaseFallbackApiUrl(inputs.environment);
-    console.error(
-      `[api] EXPO_PUBLIC_API_URL release build'inde https olmalı ('${envUrl || "(boş)"}'); ` +
-        `düz HTTP'ye düşülmez — ${fallback} kullanılıyor.`,
-    );
+    logger.error("EXPO_PUBLIC_API_URL release build'inde https olmalı; düz HTTP'ye düşülmez", {
+      configured: envUrl || "(boş)",
+      fallback,
+    });
     return fallback;
   }
 

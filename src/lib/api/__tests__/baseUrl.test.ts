@@ -1,13 +1,13 @@
 /**
  * API base URL: release build'i ASLA düz HTTP'ye / LAN adresine düşmez.
  */
+jest.mock('@/services/logger', () => ({ logger: { error: jest.fn() } }));
+
+import { logger } from '@/services/logger';
 import { isReleaseEnvironment, releaseFallbackApiUrl, resolveApiBaseUrlFrom } from '../baseUrl';
 
-let errSpy: jest.SpyInstance;
-beforeEach(() => {
-  errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-});
-afterEach(() => errSpy.mockRestore());
+const errSpy = logger.error as jest.Mock;
+beforeEach(() => errSpy.mockClear());
 
 describe('isReleaseEnvironment', () => {
   it.each([
