@@ -71,10 +71,12 @@ describe('useEntityProducts · sayfalama', () => {
 
     act(() => result.current.loadMore());
     await waitFor(() => expect(getAll).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(result.current.loadingMore).toBe(false));
+    // Hata durumunu doğrudan bekle: `loadingMore=false` istek "yükleniyor"a geçmeden önceki
+    // render'da da sağlanır (yarış) — o anda hata henüz yoktu.
+    await waitFor(() => expect(result.current.loadMoreFailed).toBe(true));
+    expect(result.current.loadingMore).toBe(false);
     expect(result.current.products).toHaveLength(2);
     expect(result.current.error).toBeNull();
-    expect(result.current.loadMoreFailed).toBe(true);
 
     // Sayfa hatasında kaydırma otomatik yeniden denemez (liste altında "Tekrar dene" satırı var).
     act(() => result.current.loadMore());

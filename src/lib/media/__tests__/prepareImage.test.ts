@@ -1,6 +1,10 @@
 import { requireOptionalNativeModule } from 'expo';
 
-jest.mock('expo', () => ({ requireOptionalNativeModule: jest.fn() }));
+jest.mock('expo', () => ({
+  requireOptionalNativeModule: jest.fn(),
+  // `@/ui` zinciri (Avatar → expo-image) modül yüklenirken requireNativeModule çağırır.
+  requireNativeModule: jest.fn(() => ({})),
+}));
 const mockDelete = jest.fn(async (_uri: string, _opts?: unknown) => undefined);
 jest.mock('expo-file-system/legacy', () => ({
   cacheDirectory: 'file:///cache/',
