@@ -3,9 +3,9 @@ import { router } from 'expo-router';
 import i18n from '@/i18n/config';
 import { ProfileMenuSections } from '../_components/ProfileSections';
 import { DrawerMenu } from '../_components/DrawerMenu';
-import { buildInfoPages, buildAccountPages } from '../_lib/infoPages';
+import { buildAccountPages } from '../_lib/accountPages';
+import { LEGAL_WEB_DOCS } from '@/lib/legal/webDocs';
 
-const INFO_PAGES = buildInfoPages(i18n.t);
 const ACCOUNT_PAGES = buildAccountPages(i18n.t);
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
@@ -56,25 +56,19 @@ describe('menü — daha önce erişilemeyen ekranlar', () => {
     expect(router.push).toHaveBeenCalledWith(route);
   });
 
-  it.each([...INFO_PAGES, ...ACCOUNT_PAGES].map((p) => [p.route] as [string]))(
-    'menüsüz kalan /%s ekranına gidilebiliyor',
+  it.each(ACCOUNT_PAGES.map((p) => [p.route] as [string]))(
+    'hesap sayfası /%s ekranına gidilebiliyor',
     (route) => {
-      const prefix = INFO_PAGES.some((p) => p.route === route) ? 'info' : 'account';
-      const inDrawer = prefix === 'info' || DRAWER_ACCOUNT_ROUTES.includes(route);
+      const inDrawer = DRAWER_ACCOUNT_ROUTES.includes(route);
       const { getByTestId } = render(inDrawer ? <DrawerMenu /> : <ProfileMenuSections f={f} />);
-      fireEvent.press(getByTestId(`profile-${prefix}-${route}-link`));
+      fireEvent.press(getByTestId(`profile-account-${route}-link`));
       expect(router.push).toHaveBeenCalledWith(`/${route}`);
     },
   );
 
-  // CMS sayfaları (`/pages/*`) production'da yayınlanmamış (2026-09-29: 404),
-  // menü "Sayfa bulunamadı" gösteriyordu. Hukuki metinlerin uygulamada statik
-  // ekranı var — giriş/kayıt ekranındaki linkler de onları açıyor.
-  it.each([
-    ['privacy', '/privacy'],
-    ['terms', '/terms'],
-    ['cookie-policy', '/cookies'],
-  ])('hukuki sayfa %s statik ekrana (%s) gider', (slug, route) => {
+  // Yasal belgeler aynı adlı native rotaya gider (ekran web'in uygulama modu
+  // sayfasını WebView'de açar) — giriş/kayıt/onay ekranlarındaki linkler de.
+  it.each(LEGAL_WEB_DOCS.map((doc) => [doc, `/${doc}`]))('yasal belge %s kendi ekranına (%s) gider', (slug, route) => {
     const { getByTestId } = render(<DrawerMenu />);
     fireEvent.press(getByTestId(`profile-legal-${slug}-link`));
     expect(router.push).toHaveBeenCalledWith(route);

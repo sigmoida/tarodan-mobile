@@ -4,11 +4,13 @@ import { pathFromUrl, stripLocalePrefix } from '@/lib/deeplinks';
 import { toMobileRoute } from '@/utils/notificationRoute';
 import { navigateTo } from '@/lib/navigation/goTo';
 import { ownWebPageUrl } from '@/lib/web';
+import { LEGAL_WEB_DOCS } from '@/lib/legal/webDocs';
+import { IN_APP_WEB_ROUTE, inAppWebHref, resolveRemovedPage } from '@/lib/navigation/removedPages';
 import { isPurchasePath } from './purchasePath';
 import { safeAdHref } from './safeAdHref';
 
 /** Uygulama içi web ekranı (`app/in-app-web.tsx`) — mobil karşılığı olmayan site yolları için. */
-export const IN_APP_WEB_ROUTE = '/in-app-web';
+export { IN_APP_WEB_ROUTE };
 
 function hostOf(url: string | undefined): string | null {
   const m = url?.match(/^https?:\/\/([^/?#]+)/i);
@@ -55,10 +57,6 @@ function renamedRoute(seg: string[]): string | null {
       return id ? `/seller/${id}` : null;
     case 'wishlist':
       return '/favorites';
-    case 'secure-swap':
-      return '/guvenli-takas';
-    case 'platform-service-fee':
-      return '/platform-hizmet-bedeli';
     case 'sell':
       return '/(tabs)/sell';
     default:
@@ -66,29 +64,17 @@ function renamedRoute(seg: string[]): string | null {
   }
 }
 
-/** Web ile mobilde AYNI adı taşıyan, tek segmentli sayfalar. */
-const SAME_NAME_PAGES = new Set([
+/**
+ * Web ile mobilde AYNI adı taşıyan, tek segmentli sayfalar. Yasal belgeler
+ * native rotadır (web'in uygulama modu sayfasını gösterir — `@/lib/legal/webDocs`).
+ * Mobilden kaldırılan sayfalar `resolveRemovedPage`'den geçer.
+ */
+export const SAME_NAME_PAGES = new Set<string>([
   'cart',
   'support',
-  'faq',
-  'guides',
-  'size-guide',
-  'collectors-guide',
-  'payment-options',
-  'shipping-delivery',
-  'authenticity',
-  'buyer-protection',
-  'security-features',
-  'about',
   'contact',
   'newsletter',
-  'cookies',
-  'distance-sales',
-  'intellectual-property',
-  'privacy',
-  'refund-policy',
-  'seller-agreement',
-  'terms',
+  ...LEGAL_WEB_DOCS,
 ]);
 
 /**
@@ -99,9 +85,7 @@ const SAME_NAME_PAGES = new Set([
 export const NATIVE_SAME_PATH_HEADS = new Set([
   'brands',
   'category',
-  'sayfa',
   'models',
-  'returns-exchanges',
   'following',
 ]);
 
@@ -132,6 +116,10 @@ export function resolveAdLink(linkUrl: string | null | undefined): AdLinkTarget 
   const barePath = stripLocalePrefix(rawPath!.replace(/\/+$/, '') || '/');
 
   if (isPurchasePath(barePath)) return { kind: 'blocked', reason: 'purchase' };
+
+  // Mobilden kaldırılan sayfalar (SSS → Yardım; bilgi/CMS → web görünümü) — tek kaynak.
+  const removed = resolveRemovedPage(path);
+  if (removed) return removed.kind === 'route' ? { kind: 'route', route: removed.route } : removed;
 
   // İlan listesi eşleyiciye VERİLMEZ: `toMobileRoute` `/listings`'i sorgusuz
   // arama sekmesine çeviriyor, reklamın filtresi (`?manufacturer=…`) düşerdi.
@@ -181,7 +169,7 @@ export function openAdLink(linkUrl: string | null | undefined): boolean {
       Linking.openURL(target.url).catch(() => {});
       return true;
     case 'web':
-      router.push(`${IN_APP_WEB_ROUTE}?url=${encodeURIComponent(target.url)}` as any);
+      router.push(inAppWebHref(target.url) as any);
       return true;
     default:
       return false;

@@ -1,4 +1,5 @@
 import { deepLinkConfig, stripLocalePrefix } from '@/lib/deeplinks';
+import { inAppWebHref, resolveRemovedPage } from '@/lib/navigation/removedPages';
 
 /**
  * Backend `link` alanları WEB rotaları için interpole ediliyor (ör.
@@ -13,6 +14,10 @@ import { deepLinkConfig, stripLocalePrefix } from '@/lib/deeplinks';
  */
 export function toMobileRoute(link: string): string | null {
   if (!link || link.includes('{{')) return null; // interpole edilmemiş şablon
+  // Mobilden kaldırılan sayfalar (SSS → Yardım; bilgi/CMS sayfaları → uygulama
+  // içi web ekranı). Karar tek yerde: `@/lib/navigation/removedPages`.
+  const removed = resolveRemovedPage(link);
+  if (removed) return removed.kind === 'route' ? removed.route : inAppWebHref(removed.url);
   const [rawPath, rawQuery] = link.split('?');
   const rawPathNoSlash = rawPath.replace(/\/+$/, '');
   // Web [locale] segmenti: /en/listings/123 → /listings/123. Soyma kurali tek

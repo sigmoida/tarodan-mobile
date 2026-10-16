@@ -1,9 +1,9 @@
 import { deepLinkConfig } from '@/lib/deeplinks';
 
 /**
- * Kendi web sitemizin adresi — TEK kaynak (CLAUDE.md §5). Eskiden reklam
- * linkleri (`openAdLink`), paylaşım linkleri (`utils/share`) ve CMS sayfası
- * gezinmesi (`app/sayfa/_lib/navigation`) aynı türetimi ayrı ayrı yapıyordu.
+ * Kendi web sitemizin adresi — TEK kaynak (CLAUDE.md §5): reklam linkleri
+ * (`openAdLink`), paylaşım linkleri (`utils/share`) ve yasal belge ekranları
+ * (`@/lib/legal/webDocs`) aynı türetimi kullanır.
  */
 
 /** Prod web adresi: derin bağlantı yapılandırmasındaki birincil alan adı (`paths.json#hosts[0]`). */

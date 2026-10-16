@@ -39,7 +39,7 @@ const baseAd = {
   id: 'a1',
   title: 'Reklam',
   imageUrl: null,
-  linkUrl: '/secure-swap',
+  linkUrl: '/manufacturers',
   content: null,
   altText: null,
   width: null,
@@ -91,7 +91,7 @@ describe('AdBanner — konum yuvaları', () => {
     expect(getByText(/sponsor/i)).toBeTruthy();
     fireEvent.press(getByTestId('ad-banner-a1'));
     expect(mockRecordClick).toHaveBeenCalledWith('a1');
-    expect(mockPush).toHaveBeenCalledWith('/guvenli-takas');
+    expect(mockPush).toHaveBeenCalledWith('/ureticiler');
   });
 
   it('topbar: görselli reklamda hotspot çizilir (satın alma hedefli olan çizilmez)', () => {

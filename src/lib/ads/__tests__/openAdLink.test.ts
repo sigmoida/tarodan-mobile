@@ -21,19 +21,19 @@ describe('resolveAdLink — mobil karşılığı olan web yolları', () => {
   it.each([
     ['/manufacturers/hot-wheels', '/ureticiler/hot-wheels'],
     ['/manufacturers', '/ureticiler'],
-    ['/secure-swap', '/guvenli-takas'],
-    ['/platform-service-fee', '/platform-hizmet-bedeli'],
     ['/u/42', '/seller/42'],
     ['/wishlist', '/favorites'],
     ['/cart', '/cart'],
-    ['/faq', '/faq'],
+    ['/faq', '/help'],
+    ['/terms', '/terms'],
+    ['/en/refund-policy', '/refund-policy'],
     ['/sell', '/(tabs)/sell'],
   ])('%s → %s', (input, expected) => {
     expect(resolveAdLink(input)).toEqual(route(expected));
   });
 
   it('kendi sitemizin mutlak adresini ve locale önekini de çözer', () => {
-    expect(resolveAdLink('https://tarodan.com.tr/en/secure-swap')).toEqual(route('/guvenli-takas'));
+    expect(resolveAdLink('https://tarodan.com.tr/en/seller-agreement')).toEqual(route('/seller-agreement'));
     expect(resolveAdLink('https://staging.tarodan.com.tr/u/7')).toEqual(route('/seller/7'));
   });
 
@@ -127,6 +127,22 @@ describe('resolveAdLink — dijital satışa götüren hedefler engellenir', () 
     expect(isPurchaseLink(null)).toBe(false);
   });
 
+  it.each([
+    '/about',
+    '/secure-swap',
+    '/platform-service-fee',
+    '/buyer-protection',
+    '/returns-exchanges',
+    '/guides',
+    '/size-guide',
+    '/sayfa/hakkimizda',
+    '/en/shipping-delivery',
+  ])('mobilden kaldırılan bilgi sayfası %s web görünümüne düşer', (input) => {
+    const t = resolveAdLink(input);
+    expect(t.kind).toBe('web');
+    expect((t as { url: string }).url).toMatch(/^https:\/\//);
+  });
+
   it('benzer adlı alakasız yollar engellenmez', () => {
     expect(resolveAdLink('/membership-guide-not-a-thing').kind).not.toBe('blocked');
     expect(resolveAdLink('/profile/orders/12')).toEqual(route('/orders/12'));
@@ -142,8 +158,8 @@ describe('openAdLink', () => {
   afterEach(() => openURL.mockRestore());
 
   it('rota: router.push; dış: Linking; web: uygulama içi ekran; engelli: hiçbiri', () => {
-    expect(openAdLink('/secure-swap')).toBe(true);
-    expect(mockPush).toHaveBeenLastCalledWith('/guvenli-takas');
+    expect(openAdLink('/privacy')).toBe(true);
+    expect(mockPush).toHaveBeenLastCalledWith('/privacy');
 
     expect(openAdLink('https://example.org/x')).toBe(true);
     expect(openURL).toHaveBeenCalledWith('https://example.org/x');

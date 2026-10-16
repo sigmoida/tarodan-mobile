@@ -88,7 +88,7 @@ const popupAd = {
   id: 'p1',
   title: 'Popup',
   imageUrl: null as string | null,
-  linkUrl: '/secure-swap' as string | null,
+  linkUrl: '/manufacturers' as string | null,
   content: 'Metin' as string | null,
   altText: null,
   width: null as number | null,
@@ -472,7 +472,7 @@ describe('PopupAd — tıklama', () => {
     expect(mockPush).not.toHaveBeenCalled(); // ama gezinme henüz yok
 
     await flush(NAVIGATE_AFTER_CLOSE_MS + 10);
-    expect(mockPush).toHaveBeenCalledWith('/guvenli-takas');
+    expect(mockPush).toHaveBeenCalledWith('/ureticiler');
   });
 
   it('satın alma hedefli popup tıklanamaz (kapı)', async () => {
@@ -485,7 +485,7 @@ describe('PopupAd — tıklama', () => {
   });
 
   it('tek bölge: TÜM görsel tıklanır → recordClick(id, bölge) + önce kapat, sonra aç', async () => {
-    setAds([{ ...imageAd, hotspots: [hotspot('h1', '/secure-swap')] }]);
+    setAds([{ ...imageAd, hotspots: [hotspot('h1', '/manufacturers')] }]);
     const { getByTestId, queryByTestId } = render(<PopupAd />);
     await flush(POPUP_AD_DELAY_MS + 100);
     expect(queryByTestId('ad-hotspot-h1')).toBeNull(); // küçük bölge çizilmez
@@ -497,7 +497,7 @@ describe('PopupAd — tıklama', () => {
     expect(queryByTestId('popup-ad')).toBeNull();
     expect(mockPush).not.toHaveBeenCalled();
     await flush(NAVIGATE_AFTER_CLOSE_MS + 10);
-    expect(mockPush).toHaveBeenCalledWith('/guvenli-takas');
+    expect(mockPush).toHaveBeenCalledWith('/ureticiler');
   });
 
   it('tek bölge satın almaya gidiyorsa görsel tıklanamaz', async () => {
@@ -514,7 +514,7 @@ describe('PopupAd — tıklama', () => {
   });
 
   it('birden çok bölge: bölgeler aynen çizilir, görselin tamamı tıklanmaz', async () => {
-    setAds([{ ...imageAd, hotspots: [hotspot('h1', '/secure-swap'), hotspot('h2', '/cart', 0.5)] }]);
+    setAds([{ ...imageAd, hotspots: [hotspot('h1', '/manufacturers'), hotspot('h2', '/cart', 0.5)] }]);
     const { getByTestId } = render(<PopupAd />);
     await flush(POPUP_AD_DELAY_MS + 100);
     expect(getByTestId('ad-hotspot-h1')).toBeTruthy();

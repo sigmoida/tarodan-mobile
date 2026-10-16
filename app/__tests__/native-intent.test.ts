@@ -69,8 +69,8 @@ describe('redirectSystemPath — dokunulmayanlar', () => {
     // çıkarımı sessizce eziyor. Girdiyi döndürmek "kanca yokmuş gibi davran"
     // demek; expo-router kendi ağacında arar ve `tarodan://cart` yine çalışır.
     expect(call('tarodan://cart')).toBe('tarodan://cart');
-    expect(call('https://tarodan.com.tr/sayfa/hakkimizda')).toBe(
-      'https://tarodan.com.tr/sayfa/hakkimizda',
+    expect(call('https://tarodan.com.tr/kampanya/yaz')).toBe(
+      'https://tarodan.com.tr/kampanya/yaz',
     );
   });
 

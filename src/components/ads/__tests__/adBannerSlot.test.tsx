@@ -132,11 +132,11 @@ describe('AdBanner — metin (görselsiz) reklam', () => {
   });
 
   it('linkUrl varsa tüm reklam tıklanır ve tıklama sayılır; satın alma linkinde tıklanmaz', () => {
-    setAds({ imageUrl: null, linkUrl: '/secure-swap' });
+    setAds({ imageUrl: null, linkUrl: '/manufacturers' });
     const first = render(<AdBanner />);
     fireEvent.press(first.getByTestId('ad-banner-ad-1'));
     expect(mockRecordClick).toHaveBeenCalledWith('ad-1');
-    expect(mockPush).toHaveBeenCalledWith('/guvenli-takas');
+    expect(mockPush).toHaveBeenCalledWith('/ureticiler');
     first.unmount();
 
     mockPush.mockClear();
@@ -198,7 +198,7 @@ describe('AdBanner — iki API şekli', () => {
   });
 
   it('development şekli: görselli reklam linkUrl:null + hotspots[] → yalnız bölgeler tıklanır', () => {
-    setAds({ linkUrl: null, hotspots: [hotspot({ x: 0.5, width: 0.5, linkUrl: '/secure-swap' })] });
+    setAds({ linkUrl: null, hotspots: [hotspot({ x: 0.5, width: 0.5, linkUrl: '/manufacturers' })] });
     const { getByTestId } = render(<AdBanner />);
 
     fireEvent.press(getByTestId('ad-banner-ad-1'));
@@ -206,7 +206,7 @@ describe('AdBanner — iki API şekli', () => {
 
     fireEvent.press(getByTestId('ad-hotspot-h-1'));
     expect(mockRecordClick).toHaveBeenCalledWith('ad-1', 'h-1');
-    expect(mockPush).toHaveBeenCalledWith('/guvenli-takas');
+    expect(mockPush).toHaveBeenCalledWith('/ureticiler');
   });
 
   it('development şekli: boş hotspots[] + linkUrl:null → hiçbir şey tıklanmaz, çökmez', () => {

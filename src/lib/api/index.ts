@@ -15,7 +15,7 @@ import {
   carModelsApi,
   searchApi,
 } from "./products";
-import { pagesApi, supportApi } from "./catalog";
+import { supportApi } from "./catalog";
 import { mediaApi, uploadApi } from "./media";
 
 export * from "./client";
@@ -77,7 +77,6 @@ export const endpoints = {
   // Yeni modüller
   brands: brandsApi,
   manufacturers: manufacturersApi,
-  pages: pagesApi,
   support: supportApi,
   discounts: discountsApi,
   media: mediaApi,

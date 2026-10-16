@@ -1,6 +1,6 @@
 /**
  * A-3 inceleme #7 · Yardım Merkezi SSS'i iade süresini politika değerinden
- * alır (SSS ekranı `app/faq.tsx` ile aynı kaynak) — sabit 14 gün değil.
+ * alır — sabit 14 gün değil.
  */
 import React from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';

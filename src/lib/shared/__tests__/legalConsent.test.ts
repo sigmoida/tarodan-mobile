@@ -51,13 +51,21 @@ describe('legalConsent', () => {
   it('web yolu → uygulama içi rota; bilinmeyen yol bağlantısız', () => {
     expect(legalRouteFor('/terms')).toBe('/terms');
     expect(legalRouteFor('/privacy')).toBe('/privacy');
+    expect(legalRouteFor('/seller-agreement')).toBe('/seller-agreement');
     expect(legalRouteFor('/kvkk')).toBeNull();
+    expect(legalRouteFor('/about')).toBeNull();
     expect(legalRouteFor(null)).toBeNull();
   });
 
   it('yasal metin sayfaları kapıdan muaf', () => {
     expect(isLegalTextPath('/terms')).toBe(true);
     expect(isLegalTextPath('/privacy')).toBe(true);
+    // Altı yasal belgenin hepsi (WebView yalnız `/app/*`'da kalır, kaçış yolu yok).
+    expect(isLegalTextPath('/distance-sales')).toBe(true);
+    expect(isLegalTextPath('/cookies')).toBe(true);
+    expect(isLegalTextPath('/seller-agreement')).toBe(true);
+    expect(isLegalTextPath('/refund-policy')).toBe(true);
+    expect(isLegalTextPath('/in-app-web')).toBe(false);
     expect(isLegalTextPath('/')).toBe(false);
     expect(isLegalTextPath('/terms-of-sale')).toBe(false);
     expect(isLegalTextPath(null)).toBe(false);

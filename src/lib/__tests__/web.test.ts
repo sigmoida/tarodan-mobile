@@ -1,12 +1,12 @@
 /**
  * B4 inceleme 8 · Web taban adresi TEK yerde (`@/lib/web`): reklam linkleri,
- * paylaşım linkleri ve CMS sayfası gezinmesi aynı türetimi ve aynı yedeği
- * kullanır.
+ * paylaşım linkleri ve yasal belge ekranları (web uygulama modu) aynı
+ * türetimi ve aynı yedeği kullanır.
  */
 import { DEFAULT_WEB_BASE, ownWebPageUrl, webBaseUrl } from '@/lib/web';
 import { collectionShareUrl, productShareUrl } from '@/utils/share';
 import { resolveAdLink } from '@/lib/ads/openAdLink';
-import { decideCmsNavigation } from '../../../app/sayfa/_lib/navigation';
+import { legalEmbedUrl } from '@/lib/legal/webDocs';
 
 const ORIGINAL = process.env.EXPO_PUBLIC_WEB_URL;
 afterEach(() => {
@@ -28,7 +28,7 @@ describe('@/lib/web', () => {
     expect(ownWebPageUrl('/about')).toBe('https://staging.tarodan.com.tr/about');
   });
 
-  it('üç tüketici aynı tabanı kullanır (paylaşım, reklam, CMS)', () => {
+  it('üç tüketici aynı tabanı kullanır (paylaşım, reklam, yasal belgeler)', () => {
     process.env.EXPO_PUBLIC_WEB_URL = 'https://staging.tarodan.com.tr';
     expect(productShareUrl('p1')).toBe('https://staging.tarodan.com.tr/listings/p1');
     expect(collectionShareUrl('c1')).toBe('https://staging.tarodan.com.tr/collections/c1');
@@ -36,9 +36,7 @@ describe('@/lib/web', () => {
       kind: 'web',
       url: 'https://staging.tarodan.com.tr/bilinmeyen-yol-xyz',
     });
-    expect(decideCmsNavigation('/bilinmeyen-yol-xyz')).toEqual({
-      action: 'external',
-      url: 'https://staging.tarodan.com.tr/bilinmeyen-yol-xyz',
-    });
+    expect(legalEmbedUrl('terms', 'tr')).toBe('https://staging.tarodan.com.tr/app/terms');
+    expect(legalEmbedUrl('terms', 'en')).toBe('https://staging.tarodan.com.tr/en/app/terms');
   });
 });
