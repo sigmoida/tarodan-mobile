@@ -1,15 +1,15 @@
 import { StyleSheet } from 'react-native';
-import { SEARCH_FIELD_BORDER_COLOR, theme } from '@/ui';
+import { GLASS_ICON_BUTTON_SIZE, theme } from '@/ui';
 
-const { colors, spacing, typography, radiusRole } = theme;
+const { colors, spacing, typography } = theme;
 
 // Arama ekranının route-local stylesheet'i. Kart ve sıralama paneli artık ortak
-// (`@/components/product`); burada yalnız arama kutusu, öneri paneli ve liste düzeni kalır.
+// (`@/components/product`); burada yalnız üst bardaki arama alanı, öneri paneli ve liste düzeni kalır.
 export const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface.DEFAULT },
   // Sonuç alanı: absolute üst çubukları barındırır; yukarı kayan çubukları kırpar.
   resultsArea: { flex: 1, position: 'relative', overflow: 'hidden' },
-  // Üst çubuklar (arama + filtre + çipler + sayım) — absolute katman, liste üstünde durur.
+  // Üst çubuklar (filtre/sıralama + çipler + sayım) — absolute katman, liste üstünde durur.
   collapsibleBars: {
     position: 'absolute',
     top: 0,
@@ -20,7 +20,7 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border.subtle,
   },
-  // Ortak araç çubuğu kabuğu (arama + denetimler + sayım + çipler); öneri paneli üstte kalsın.
+  // Ortak araç çubuğu kabuğu (denetimler + sayım + çipler).
   toolbar: {
     paddingHorizontal: spacing[4],
     paddingTop: spacing[3],
@@ -29,51 +29,40 @@ export const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 10,
   },
-  searchAnchor: {
-    position: 'relative',
-    zIndex: 20,
+  // Üst bardaki arama alanı: cam hap satırın kalan genişliğine yayılır; içindeki Input çerçevesiz,
+  // zeminsiz (yüzeyi cam çizer), yüksekliği cam düğme çapı.
+  headerField: {
+    alignSelf: 'stretch',
+    alignItems: 'stretch',
   },
-  searchInputContainer: {
+  headerInputContainer: {
     marginBottom: spacing[0],
   },
-  // Vurgu çerçevesi tek kaynaktan (Ana Sayfa arama alanı da aynı rengi kullanır).
-  searchInputField: {
-    borderColor: SEARCH_FIELD_BORDER_COLOR,
+  headerInputField: {
+    minHeight: GLASS_ICON_BUTTON_SIZE,
+    borderWidth: 0,
+    backgroundColor: colors.transparent,
   },
-  searchInputFieldOpen: {
-    borderBottomLeftRadius: theme.radius.none,
-    borderBottomRightRadius: theme.radius.none,
+  // Öneri / son aramalar SAYFASI: üst barın altındaki tüm alanı kaplar (çubuklar + sonuçlar üstünde).
+  suggestionsPage: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 40,
+    backgroundColor: colors.surface.DEFAULT,
   },
-  recentSearchesDropdown: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    marginTop: -1,
-    backgroundColor: colors.surface.elevated,
-    borderBottomLeftRadius: radiusRole.input,
-    borderBottomRightRadius: radiusRole.input,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: SEARCH_FIELD_BORDER_COLOR,
-    ...theme.shadow.medium,
-    zIndex: 100,
-  },
+  suggestionsScroll: { flex: 1 },
   acSection: {
     paddingTop: spacing[2],
     paddingBottom: spacing[1],
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border.subtle,
   },
+  // Bölüm başlığı (Öneriler, Ürünler, …): normal yazım, gövde metin rengi, kalın.
   acSectionTitle: {
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[1.5],
-    fontSize: typography.fontSize.xs,
+    fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.bold,
-    color: colors.text.subtle,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    color: colors.text.body,
   },
   acItem: {
     flexDirection: 'row',
@@ -94,10 +83,11 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border.DEFAULT,
   },
+  // "Son aramalar" başlığı öneri bölüm başlıklarıyla aynı: gövde rengi, kalın.
   recentSearchesTitle: {
     fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.heading,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.body,
   },
   clearRecentText: {
     fontSize: typography.fontSize.sm,
