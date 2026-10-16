@@ -9,11 +9,6 @@ const { spacing, radiusRole } = theme;
  * Plan kartları web'in telefon düzeni gibi dikey, tam genişlik, `gap-4`.
  */
 export const styles = StyleSheet.create({
-  // Hata bandı
-  errorBody: {
-    gap: spacing[1],
-    alignItems: 'flex-start',
-  },
   // Bekleyen ödeme bandı (tek dokunuşla checkout'a gider) — Alert köşesiyle aynı yarıçap.
   pendingPressable: {
     borderRadius: radiusRole.card,

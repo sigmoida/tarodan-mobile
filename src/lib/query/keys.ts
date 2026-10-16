@@ -177,6 +177,8 @@ export const qk = {
     /** Üyelik katmanları + fiyatları (checkout ekranı). */
     tiers: ["membership-tiers"] as const,
     me: ["membership-me"] as const,
+    /** GET /membership/me tam gövdesi (üyelik + Abonelik Yönetimi ekranları). `all` önekinin altında. */
+    details: ["membership", "me"] as const,
     discounts: ["my-discounts"] as const,
     discountProducts: ["my-products-for-discount"] as const,
     eligibleForFeatured: ["eligible-for-featured"] as const,

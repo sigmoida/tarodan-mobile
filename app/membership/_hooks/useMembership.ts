@@ -1,75 +1,42 @@
-import { logger, safeError } from '@/services/logger';
-import React, { useMemo, useState, useEffect } from "react";
-import { router, useFocusEffect } from "expo-router";
+import { useMemo, useState, useEffect } from "react";
+import { router } from "expo-router";
 import { appAlert } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
-import { membershipApi } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import {
   TIER_ORDER,
   buildTierFeatures,
-  mapTiersToSettings,
   getDefaultMonthly,
   type TierType,
-  type MembershipDetails,
   type PlatformSettings,
 } from "../_lib/membershipTiers";
+import { useMembershipData } from "./useMembershipData";
 
 /**
- * Membership screen controller — owns the membership + tiers fetch (verbatim
- * useState/useEffect/useFocusEffect flow, RQ migration deferred), billing-period
- * state, tier visibility/guard derivation, and price/limit/feature getters.
+ * Membership screen controller — the membership + tiers data comes from
+ * `useMembershipData` (React Query: skeleton only on first load, stale-only
+ * refresh on return, ErrorState when nothing loaded); this hook owns the
+ * billing-period state, tier visibility/guard derivation, and price/limit/
+ * feature getters.
  */
 export function useMembership() {
   const { t } = useTranslation();
   const tierFeatures = useMemo(() => buildTierFeatures(t), [t]);
   const { isAuthenticated, user, logout } = useAuthStore();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [membership, setMembership] = useState<MembershipDetails | null>(null);
-  const [settings, setSettings] = useState<PlatformSettings>({});
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
     "monthly",
   );
+  const data = useMembershipData(isAuthenticated);
+  const { membership, settings } = data;
+  // Girişsiz ziyaretçi giriş ekranına yönlendirilirken içerik çizilmez (eski davranış).
+  const loading = !isAuthenticated || data.isLoading;
+  const error = data.loadFailed ? t("membership.loadError") : null;
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.replace("/(auth)/login");
     }
   }, [isAuthenticated]);
-
-  // Ekrana her dönüşte güncel kademeyi çek (üyelik yükseltme sonrası "mevcut
-  // plan" anında güncellensin; mount'ta da çalışır).
-  useFocusEffect(
-    React.useCallback(() => {
-      if (isAuthenticated) fetchData();
-    }, [isAuthenticated]),
-  );
-
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    // allSettled: biri başarısız olsa diğeri (fiyatlar/üyelik) yine yüklensin.
-    // Fiyat/limit TEK KAYNAĞI: DB MembershipTier (GET /membership/tiers) — backend
-    // tahsilatı + web ile birebir aynı. Eskiden /admin/settings/public okunuyordu;
-    // o anahtarlar seed'de yazılmadığı için fallback ₺499 (DB ₺249.99) gösteriyordu.
-    const [membershipRes, tiersRes] = await Promise.allSettled([
-      membershipApi.getCurrentMembership(),
-      membershipApi.getTiers(),
-    ]);
-    if (membershipRes.status === "fulfilled") {
-      setMembership(membershipRes.value.data);
-    }
-    if (tiersRes.status === "fulfilled") {
-      const list = tiersRes.value.data?.data ?? tiersRes.value.data ?? [];
-      setSettings(mapTiersToSettings(list));
-    }
-    if (membershipRes.status === "rejected" && tiersRes.status === "rejected") {
-      logger.error("Failed to load membership data", { err: safeError(membershipRes.reason) });
-      setError(t("membership.loadError"));
-    }
-    setLoading(false);
-  };
 
   const currentTier: TierType = (membership?.tier?.type as TierType) || "free";
 
@@ -194,7 +161,8 @@ export function useMembership() {
     settings,
     billingPeriod,
     setBillingPeriod,
-    fetchData,
+    /** Yeniden dene (ErrorState) — iki sorguyu da yeniden çeker. */
+    fetchData: data.retry,
     currentTier,
     visibleTiers,
     guardLocked,
