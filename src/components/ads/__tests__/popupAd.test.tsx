@@ -41,6 +41,10 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   default: {
     getItem: (k: string) => Promise.resolve(mockStore.get(k) ?? null),
     setItem: (k: string, v: string) => mockSetItem(k, v),
+    removeItem: (k: string) => {
+      mockStore.delete(k);
+      return Promise.resolve();
+    },
   },
 }));
 
@@ -75,7 +79,9 @@ jest.mock('expo-router', () => {
 });
 
 import { PopupAd } from '../PopupAd';
-import { POPUP_AD_DELAY_MS } from '@/lib/ads/usePopupAd';
+import { POPUP_AD_DELAY_MS, POPUP_LINK_RETURN_WINDOW_MS } from '@/lib/ads/usePopupAd';
+import { POPUP_AD_STORAGE_KEY, resetPopupFrequencyMemoryForTests } from '@/lib/ads/popupFrequency';
+import { SideMenuProvider, useSideMenu, type SideMenuApi } from '@/components/shell/SideMenuContext';
 import { NAVIGATE_AFTER_CLOSE_MS } from '../AdCreative';
 
 const popupAd = {
@@ -89,7 +95,11 @@ const popupAd = {
   height: null as number | null,
   position: 'popup',
   deviceType: 'all',
+  popupFrequency: 'until_dismissed' as 'until_dismissed' | 'every_visit',
+  popupVersion: 1,
 };
+/** Eski API yanıtı: sıklık/sürüm alanları yok. */
+const { popupFrequency: _f, popupVersion: _v, ...legacyAd } = popupAd;
 const imageAd = { ...popupAd, imageUrl: 'https://example.com/a.png', content: null, linkUrl: null, width: 800, height: 400 };
 const hotspot = (id: string, linkUrl: string, x = 0) => ({
   id,
@@ -128,6 +138,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   mockUseAds.mockReset();
   mockStore.clear();
+  resetPopupFrequencyMemoryForTests();
   mockSetItem.mockClear();
   mockPush.mockClear();
   mockRecordClick.mockClear();
@@ -228,7 +239,7 @@ describe('PopupAd — açılış', () => {
 });
 
 describe('PopupAd — sıklık (reklam başına)', () => {
-  it('until_dismissed (alan yok = varsayılan): X ile kapanınca anahtar yazılır, sonraki ziyarette çıkmaz', async () => {
+  it('until_dismissed: X ile kapanınca anahtar yazılır, sonraki ziyarette çıkmaz', async () => {
     setAds([popupAd]);
     const { queryByTestId, getByTestId } = render(<PopupAd />);
     await flush(POPUP_AD_DELAY_MS + 100);
@@ -312,6 +323,141 @@ describe('PopupAd — sıklık (reklam başına)', () => {
     fireEvent.press(getByTestId('ad-banner-p1'));
     await flush(NAVIGATE_AFTER_CLOSE_MS + 10);
     expect(dismissedKeys()).toEqual(['tarodan.popupAd.dismissed.p1:1']);
+  });
+});
+
+describe('PopupAd — popup bağlantısından dönüş', () => {
+  const everyVisit = { ...popupAd, popupFrequency: 'every_visit' as const };
+
+  it('every_visit: popup\'ın açtığı bağlantıdan geri dönüş yeni ziyaret sayılmaz; sonraki gerçek dönüş sayılır', async () => {
+    setAds([everyVisit]);
+    const { queryByTestId, getByTestId } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS + 100);
+    fireEvent.press(getByTestId('ad-banner-p1'));
+    await flush(NAVIGATE_AFTER_CLOSE_MS + 10);
+    expect(mockPush).toHaveBeenCalled();
+    // Bağlantı hedefi açıldı (ana sekme odağı kaybetti) → geri gelindi.
+    blurScreen();
+    focusScreen();
+    await flush(POPUP_AD_DELAY_MS * 2);
+    expect(queryByTestId('popup-ad')).toBeNull();
+
+    // Kullanıcı başka bir ekrana gidip döner: yeni ziyaret.
+    blurScreen();
+    focusScreen();
+    await flush(POPUP_AD_DELAY_MS + 100);
+    expect(queryByTestId('popup-ad')).toBeTruthy();
+  });
+
+  it('bağlantı odak kaybettirmediyse (hedef ana sekme) bayrak süre dolunca düşer, sonraki ziyareti yutmaz', async () => {
+    setAds([everyVisit]);
+    const { queryByTestId, getByTestId } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS + 100);
+    fireEvent.press(getByTestId('ad-banner-p1'));
+    await flush(POPUP_LINK_RETURN_WINDOW_MS + 100);
+    blurScreen();
+    focusScreen();
+    await flush(POPUP_AD_DELAY_MS + 100);
+    expect(queryByTestId('popup-ad')).toBeTruthy();
+  });
+});
+
+describe('PopupAd — açıkken engel (iOS: iki sunum aynı anda yok)', () => {
+  it('açıkken blocked olursa aynı render\'da gizlenir, "kapatıldı" yazılmaz, bu ziyarette yeniden açılmaz', async () => {
+    setAds([popupAd]);
+    const { queryByTestId, rerender } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS + 100);
+    expect(queryByTestId('popup-ad')).toBeTruthy();
+    rerender(<PopupAd blocked />);
+    expect(queryByTestId('popup-ad')).toBeNull();
+    await flush(10);
+    rerender(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS * 2);
+    expect(queryByTestId('popup-ad')).toBeNull();
+    expect(dismissedKeys()).toEqual([]);
+  });
+
+  describe('yan menü', () => {
+    let menu: SideMenuApi;
+    function Probe() {
+      menu = useSideMenu();
+      return null;
+    }
+    const renderWithMenu = () =>
+      render(
+        <SideMenuProvider>
+          <Probe />
+          <PopupAd />
+        </SideMenuProvider>,
+      );
+
+    it('yan menü açıkken popup açılmaz; kapanınca sayaç yeniden başlar', async () => {
+      setAds([popupAd]);
+      const { queryByTestId } = renderWithMenu();
+      act(() => menu.open());
+      await flush(POPUP_AD_DELAY_MS * 2);
+      expect(queryByTestId('popup-ad')).toBeNull();
+      act(() => menu.close());
+      await flush(POPUP_AD_DELAY_MS + 100);
+      expect(queryByTestId('popup-ad')).toBeTruthy();
+    });
+
+    it('popup açıkken yan menü açılırsa popup kapanır ("kapatıldı" yazılmaz)', async () => {
+      setAds([popupAd]);
+      const { queryByTestId } = renderWithMenu();
+      await flush(POPUP_AD_DELAY_MS + 100);
+      expect(queryByTestId('popup-ad')).toBeTruthy();
+      act(() => menu.open());
+      expect(queryByTestId('popup-ad')).toBeNull();
+      await flush(10);
+      expect(dismissedKeys()).toEqual([]);
+    });
+  });
+});
+
+describe('PopupAd — eski API (sıklık/sürüm alanı yok): global 24 saat', () => {
+  it('gösterimde eski damga yazılır, reklam anahtarı yazılmaz; damga varken sonraki ziyarette çıkmaz', async () => {
+    setAds([legacyAd]);
+    const { queryByTestId, getByTestId } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS + 100);
+    expect(queryByTestId('popup-ad')).toBeTruthy();
+    expect(mockStore.has(POPUP_AD_STORAGE_KEY)).toBe(true);
+    fireEvent.press(getByTestId('modal-close'));
+    await flush(0);
+    expect(dismissedKeys()).toEqual([]);
+
+    blurScreen();
+    focusScreen();
+    await flush(POPUP_AD_DELAY_MS * 2);
+    expect(queryByTestId('popup-ad')).toBeNull();
+  });
+
+  it('24 saat dolmadıysa hiç açılmaz', async () => {
+    mockStore.set(POPUP_AD_STORAGE_KEY, String(Date.now()));
+    setAds([legacyAd]);
+    const { queryByTestId } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS + 500);
+    expect(queryByTestId('popup-ad')).toBeNull();
+  });
+
+  it('açıkken üye reklamsız çıkarsa damga geri alınır', async () => {
+    setAds([legacyAd]);
+    const { rerender } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS + 100);
+    expect(mockStore.has(POPUP_AD_STORAGE_KEY)).toBe(true);
+    setAds([legacyAd], true);
+    rerender(<PopupAd />);
+    await flush(10);
+    expect(mockStore.has(POPUP_AD_STORAGE_KEY)).toBe(false);
+  });
+
+  it('yeni alanlar gelince eski damga bir kez silinir ve yeni mantık uygulanır', async () => {
+    mockStore.set(POPUP_AD_STORAGE_KEY, String(Date.now()));
+    setAds([popupAd]);
+    const { queryByTestId } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS + 100);
+    expect(queryByTestId('popup-ad')).toBeTruthy();
+    expect(mockStore.has(POPUP_AD_STORAGE_KEY)).toBe(false);
   });
 });
 
@@ -442,6 +588,54 @@ describe('PopupAd — yüzey', () => {
     const box = StyleSheet.flatten(getByTestId('ad-image-box-p1').props.style);
     expect(box.width).toBe(358);
     expect(box.height).toBe(179);
+    act(() => setWindow(750, 1334));
+  });
+
+  it('modalın erişilebilir adı reklam başlığı; media\'da X içerikten önce (ekran okuyucu sırası)', async () => {
+    setAds([imageAd]);
+    const { getByTestId, getAllByLabelText } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS + 100);
+    // Kart (sheet) reklam başlığıyla adlandırılır ve modal kapsamıdır.
+    const sheet = getAllByLabelText('Popup', { exact: true }).find((n) => n.props.accessibilityViewIsModal);
+    expect(sheet).toBeTruthy();
+    // Belge sırası: X'in sarmalayıcısı, reklam gövdesinden önce gelen kardeş.
+    const order: string[] = [];
+    type TreeNode = { props?: { testID?: string }; children?: unknown[] };
+    const walk = (n: TreeNode) => {
+      if (n.props?.testID === 'modal-close') order.push('close');
+      if (n.props?.testID === 'popup-ad') order.push('content');
+      (n.children ?? []).forEach((c) => {
+        if (typeof c === 'object' && c !== null) walk(c as TreeNode);
+      });
+    };
+    walk(sheet as unknown as TreeNode);
+    // (Bileşen + host düğümü aynı testID'yi taşır: ardışık tekrarlar tek sayılır.)
+    expect(order.filter((x, i) => x !== order[i - 1])).toEqual(['close', 'content']);
+    expect(getByTestId('modal-close')).toBeTruthy();
+  });
+
+  it('geniş reklam: genişlik kartın tamamına (390-32=358) sığar, oran korunur', async () => {
+    setWindow(390, 844);
+    setAds([imageAd]);
+    const { getByTestId } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS + 100);
+    const box = StyleSheet.flatten(getByTestId('ad-image-box-p1').props.style);
+    expect(box.width).toBe(358);
+    expect(box.height).toBe(179);
+    act(() => setWindow(750, 1334));
+  });
+
+  it('metin reklam: kart tam genişlik kalır (içeriğe oturmaz)', async () => {
+    setWindow(390, 844);
+    setAds([popupAd]);
+    const { getByTestId } = render(<PopupAd />);
+    await flush(POPUP_AD_DELAY_MS + 100);
+    let sheet: Record<string, unknown> | undefined;
+    for (let n = getByTestId('popup-ad').parent; n && !sheet; n = n.parent) {
+      const st = StyleSheet.flatten(n.props.style) as Record<string, unknown> | undefined;
+      if (st?.maxWidth === 512) sheet = st;
+    }
+    expect(sheet?.width).toBe('100%');
     act(() => setWindow(750, 1334));
   });
 

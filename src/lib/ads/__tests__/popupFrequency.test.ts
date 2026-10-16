@@ -4,15 +4,28 @@ const mockSet = jest.fn((k: string, v: string) => {
   mockStore.set(k, v);
   return Promise.resolve();
 });
+const mockRemove = jest.fn((k: string) => {
+  mockStore.delete(k);
+  return Promise.resolve();
+});
 jest.mock('@react-native-async-storage/async-storage', () => ({
   __esModule: true,
   default: {
     getItem: (k: string) => mockGet(k),
     setItem: (k: string, v: string) => mockSet(k, v),
+    removeItem: (k: string) => mockRemove(k),
   },
 }));
 
 import {
+  canShowPopupAd,
+  clearLegacyPopupStampOnce,
+  clearPopupAdShown,
+  isLegacyPopupResponse,
+  markPopupAdShown,
+  POPUP_AD_INTERVAL_MS,
+  POPUP_AD_STORAGE_KEY,
+  resetPopupFrequencyMemoryForTests,
   filterDismissedPopupAds,
   markPopupAdDismissed,
   popupDismissKey,
@@ -28,6 +41,46 @@ beforeEach(() => {
   mockStore.clear();
   mockGet.mockClear();
   mockSet.mockClear();
+  mockRemove.mockClear();
+  resetPopupFrequencyMemoryForTests();
+});
+
+describe('isLegacyPopupResponse', () => {
+  it('hiçbir reklamda sıklık/sürüm alanı yoksa eski API', () => {
+    expect(isLegacyPopupResponse([{}, {}])).toBe(true);
+    expect(isLegacyPopupResponse([])).toBe(true);
+    expect(isLegacyPopupResponse([{}, { popupFrequency: 'every_visit' }])).toBe(false);
+    expect(isLegacyPopupResponse([{ popupVersion: 2 }])).toBe(false);
+  });
+});
+
+describe('eski yol: global 24 saat damgası', () => {
+  it('damga yoksa gösterir; gösterimde yazılır; 24 saat dolmadan göstermez, dolunca gösterir', async () => {
+    await expect(canShowPopupAd(NOW)).resolves.toBe(true);
+    await markPopupAdShown(NOW);
+    expect(mockSet).toHaveBeenCalledWith(POPUP_AD_STORAGE_KEY, String(NOW));
+    await expect(canShowPopupAd(NOW + POPUP_AD_INTERVAL_MS - 1000)).resolves.toBe(false);
+    await expect(canShowPopupAd(NOW + POPUP_AD_INTERVAL_MS)).resolves.toBe(true);
+  });
+
+  it('bozuk / gelecekteki damga ve okuma hatası kilitlemez; clear damgayı siler', async () => {
+    mockStore.set(POPUP_AD_STORAGE_KEY, 'abc');
+    await expect(canShowPopupAd(NOW)).resolves.toBe(true);
+    mockStore.set(POPUP_AD_STORAGE_KEY, String(NOW + 60_000));
+    await expect(canShowPopupAd(NOW)).resolves.toBe(true);
+    mockGet.mockImplementationOnce(() => Promise.reject(new Error('x')));
+    await expect(canShowPopupAd(NOW)).resolves.toBe(true);
+    await clearPopupAdShown();
+    expect(mockStore.has(POPUP_AD_STORAGE_KEY)).toBe(false);
+  });
+
+  it('yeni yola geçişte eski damga süreç başına bir kez silinir', async () => {
+    mockStore.set(POPUP_AD_STORAGE_KEY, String(NOW));
+    await clearLegacyPopupStampOnce();
+    await clearLegacyPopupStampOnce();
+    expect(mockRemove).toHaveBeenCalledTimes(1);
+    expect(mockStore.has(POPUP_AD_STORAGE_KEY)).toBe(false);
+  });
 });
 
 describe('varsayılanlar (eski API: alanlar yok)', () => {
@@ -90,6 +143,14 @@ describe('filterDismissedPopupAds', () => {
     await markPopupAdDismissed(legacy, NOW);
     expect(mockSet).toHaveBeenCalledWith('tarodan.popupAd.dismissed.old:1', String(NOW));
     await expect(filterDismissedPopupAds([legacy])).resolves.toEqual([]);
+  });
+
+  it('oturum belleği: depo yazımı başarısız olsa da aynı süreçte kapatılan reklam elenir', async () => {
+    mockSet.mockImplementationOnce(() => Promise.reject(new Error('quota')));
+    const ad: Ad = { id: 'a', popupVersion: 1 };
+    await markPopupAdDismissed(ad, NOW);
+    expect(mockStore.size).toBe(0);
+    await expect(filterDismissedPopupAds([ad])).resolves.toEqual([]);
   });
 
   it('depolama okunamazsa elemez (hata "gösterme" demek değil)', async () => {

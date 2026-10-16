@@ -13,10 +13,8 @@ const BACKDROP_PADDING = theme.spacing[4];
 export interface PopupMediaLimits {
   /** Görsel kutusunun en büyük genişliği (pt). */
   width: number;
-  /** Görsel kutusunun en büyük yüksekliği (pt). */
+  /** Görsel kutusunun (= kartın) en büyük yüksekliği (pt). */
   height: number;
-  /** Kartın en büyük yüksekliği (pt) — media varyantında görsel kutusuyla aynı. */
-  cardMaxHeight: number;
 }
 
 /**
@@ -29,14 +27,10 @@ export function popupMediaLimits(
   window: { width: number; height: number },
   insets: { top: number; bottom: number },
 ): PopupMediaLimits {
-  const cardMaxHeight = Math.min(
+  const height = Math.min(
     window.height * POPUP_MAX_HEIGHT_RATIO,
     window.height - insets.top - insets.bottom - 2 * BACKDROP_PADDING,
   );
-  const cardWidth = Math.min(MODAL_MAX_WIDTH[POPUP_MODAL_SIZE], window.width - 2 * BACKDROP_PADDING);
-  return {
-    width: Math.max(0, cardWidth),
-    height: Math.max(0, cardMaxHeight),
-    cardMaxHeight,
-  };
+  const width = Math.min(MODAL_MAX_WIDTH[POPUP_MODAL_SIZE], window.width - 2 * BACKDROP_PADDING);
+  return { width: Math.max(0, width), height: Math.max(0, height) };
 }

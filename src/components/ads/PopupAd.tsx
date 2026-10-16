@@ -6,6 +6,7 @@ import { Modal } from '@/ui';
 import { usePopupAd } from '@/lib/ads/usePopupAd';
 import { POPUP_MODAL_SIZE, popupMediaLimits } from '@/lib/ads/popupLayout';
 import { hasAdImage } from '@/lib/ads/creative';
+import { useSideMenu } from '@/components/shell/SideMenuContext';
 import { AdCreative } from './AdCreative';
 
 /**
@@ -18,17 +19,20 @@ import { AdCreative } from './AdCreative';
  *
  * Metin (görselsiz) reklam mevcut yüzeyde kalır: başlık satırında X, iç boşluksuz gövde.
  * Kapatma: X, arka plan, geri tuşu (Android), reklama dokunma. Açılış/sıklık kuralları
- * (reklam başına kapatma anahtarı, ziyaret, gecikme, engeller) `usePopupAd`'de.
+ * (reklam başına kapatma anahtarı / eski API'de 24 saat, ziyaret, gecikme, engeller) `usePopupAd`'de.
+ * Reklama dokunulunca `closeForLink`: bağlantıdan ana sekmeye dönüş yeni ziyaret sayılmaz.
  *
  * iOS ModalFreeze: reklam bağlantısına dokunulunca modal ÖNCE kapanır, bağlantı
  * kısa bir gecikmeyle sonra açılır (`AdCreative.onNavigate`). Modal açıkken
  * gezinme/uyarı ekranı dondurabilir.
  *
- * `blocked`: başka bir Modal/istem açıkken popup çıkmaz.
+ * `blocked`: başka bir Modal/istem açıkken popup çıkmaz; açıkken engel gelirse kapanır. Yan menü
+ * açıkken de aynı kural (iki sunum üst üste binmez).
  */
 export function PopupAd({ blocked = false }: { blocked?: boolean }) {
   const { t } = useTranslation();
-  const { ad, close } = usePopupAd(blocked);
+  const sideMenu = useSideMenu();
+  const { ad, close, closeForLink } = usePopupAd(blocked || sideMenu.isOpen);
   const window = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const limits = popupMediaLimits(window, insets);
@@ -44,10 +48,11 @@ export function PopupAd({ blocked = false }: { blocked?: boolean }) {
       closeLabel={t('common.close')}
       flushBody
       fitContent={isMedia}
+      accessibilityLabel={ad?.title}
     >
       {ad ? (
         <View testID="popup-ad" style={isMedia ? { maxHeight: limits.height, overflow: 'hidden' } : undefined}>
-          <AdCreative ad={ad} position="popup" onNavigate={close} maxSize={limits} singleHotspotFillsImage />
+          <AdCreative ad={ad} position="popup" onNavigate={closeForLink} maxSize={limits} singleHotspotFillsImage />
         </View>
       ) : null}
     </Modal>

@@ -72,6 +72,8 @@ export interface ModalProps {
    * taşıyan gövdeler `false` verir (çift kaydırma olmasın) — gövde yine de kalan alana küçülür.
    */
   scrollable?: boolean;
+  /** Kartın erişilebilir adı (ör. popup reklamın başlığı); ekran okuyucu modal kapsamında okur. */
+  accessibilityLabel?: string;
 }
 
 const { colors, radius, spacing } = theme;
@@ -96,6 +98,7 @@ export const Modal: React.FC<ModalProps> = ({
   fitContent = false,
   footer,
   scrollable = !fitContent,
+  accessibilityLabel,
 }) => {
   const media = variant === 'media';
   const hasHeader = !media && (!!title || showCloseButton);
@@ -145,6 +148,9 @@ export const Modal: React.FC<ModalProps> = ({
           >
             <Pressable
               accessibilityViewIsModal
+              accessibilityLabel={accessibilityLabel}
+              // media: kart tek bir öğe olarak gruplanmasın — X ve içerik ayrı ayrı erişilebilir kalır.
+              accessible={media ? false : undefined}
               style={[
                 styles.sheet,
                 { maxWidth: MODAL_MAX_WIDTH[size] },
@@ -152,7 +158,19 @@ export const Modal: React.FC<ModalProps> = ({
                 flush && styles.sheetFlush,
               ]}
             >
-              {media ? null : title ? (
+              {media ? (
+                // Ekran okuyucu sırası için içerikten ÖNCE; mutlak konum + zIndex ile görselin
+                // üstüne biner. Cam daire koyu/açık görselde de seçilir.
+                <View style={styles.mediaClose}>
+                  <GlassIconButton
+                    icon="x-mark"
+                    size="sm"
+                    accessibilityLabel={closeLabel ?? 'Close'}
+                    onPress={onClose}
+                    testID="modal-close"
+                  />
+                </View>
+              ) : title ? (
                 <SheetHeader
                   title={title}
                   paddingX={6}
@@ -185,18 +203,6 @@ export const Modal: React.FC<ModalProps> = ({
                 <View style={styles.bodyShrink}>{body}</View>
               )}
               {footer ? <View style={styles.footer}>{footer}</View> : null}
-              {media ? (
-                // İçeriğin (görselin) üstüne biner; cam daire koyu/açık görselde de seçilir.
-                <View style={styles.mediaClose}>
-                  <GlassIconButton
-                    icon="x-mark"
-                    size="sm"
-                    accessibilityLabel={closeLabel ?? 'Close'}
-                    onPress={onClose}
-                    testID="modal-close"
-                  />
-                </View>
-              ) : null}
             </Pressable>
           </Pressable>
         </KeyboardAvoidingView>
@@ -273,5 +279,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing[2],
     right: spacing[2],
+    zIndex: 1,
   },
 });
