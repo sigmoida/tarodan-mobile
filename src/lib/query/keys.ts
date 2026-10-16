@@ -58,6 +58,8 @@ export const qk = {
     composeSummary: (id: string) => ["product", id, "compose"] as const,
     /** Filtre seçenekleri (`/products/filters`, opsiyonel üretici slug'ı). */
     filterOptions: (manufacturerSlug: string) => ["product-filters", manufacturerSlug] as const,
+    /** Tüm filtre seçenekleri önbellekleri (kalıcı önbellek izin listesi). */
+    filterOptionsAll: ["product-filters"] as const,
     /** Arama önerileri (ürün/kategori/marka) ve satıcı önerileri + engelleme için kökleri. */
     autocomplete: (q: string) => ["autocomplete-rich", q] as const,
     autocompleteAll: ["autocomplete-rich"] as const,
@@ -382,6 +384,8 @@ export const qk = {
      * Platform anahtarda: parametresiz eski istek önbelleği yenisiyle karışmasın.
      */
     slides: (placement: string, platform: string) => ["hero", "slides", placement, platform] as const,
+    /** Tüm slayt önbellekleri (kalıcı önbellek izin listesi). */
+    slidesAll: ["hero", "slides"] as const,
   },
 
   membershipLimits: {

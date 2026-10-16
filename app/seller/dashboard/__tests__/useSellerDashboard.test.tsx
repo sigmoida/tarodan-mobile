@@ -9,7 +9,11 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { makeTestQueryClient } from '@/test-utils';
 
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: () => ({ user: { membershipTier: 'basic' }, isAuthenticated: true }),
+  // Selector'lı çağrıları da karşılar (authStoreMockShape kuralı).
+  useAuthStore: (sel?: (s: unknown) => unknown) => {
+    const state = { user: { membershipTier: 'basic' }, isAuthenticated: true };
+    return sel ? sel(state) : state;
+  },
 }));
 jest.mock('@/lib/api', () => ({
   userApi: { getAnalytics: jest.fn(), getStats: jest.fn() },

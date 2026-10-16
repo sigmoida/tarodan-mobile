@@ -1,6 +1,6 @@
 /**
- * B2 inceleme 8 · Ön plana dönüşte yalnız verilen sorgu yenilenir; global
- * focusManager AppState'e bağlanmaz. iOS'un kısa `inactive` sıçramaları
+ * B2 inceleme 8 · Ön plana dönüşte verilen sorgu staleTime'a bakmadan yenilenir
+ * (global focusManager köprüsü ayrı: `focusManager.test.ts`). iOS'un kısa `inactive` sıçramaları
  * (Face ID, giriş penceresi, "Parolayı kaydet") yenileme sayılmaz.
  */
 import React from 'react';

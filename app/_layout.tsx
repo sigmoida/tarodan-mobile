@@ -5,7 +5,7 @@ import { logger, safeError } from "@/services/logger";
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import * as SplashScreen from "expo-splash-screen";
 import Constants from "expo-constants";
 import { useFonts } from "expo-font";
@@ -23,6 +23,7 @@ import { useMembershipLimits } from '@/hooks/useMembershipLimits';
 import { useMessagingSocket } from "@/hooks/messaging";
 // Paylaşılan QueryClient — logout'ta resetUserStores aynı örneği temizler.
 import { queryClient } from "@/lib/queryClient";
+import { queryPersistOptions } from "@/lib/query/persist";
 import {
   registerForPushNotifications,
   setupPushNotificationRouting,
@@ -88,7 +89,8 @@ function CartMergeBridge() {
 }
 
 export default function RootLayout() {
-  const { loadToken, isAuthenticated } = useAuthStore();
+  const loadToken = useAuthStore((s) => s.loadToken);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   // appReady: hazırlık bitti. splashDone: animasyonlu splash çıkışını tamamladı.
   // Native splash'i AnimatedSplash kapatır (onLayout) → beyaz parlama olmaz.
   const [appReady, setAppReady] = useState(false);
@@ -116,19 +118,12 @@ export default function RootLayout() {
   }, [fontError]);
 
   useEffect(() => {
+    // Açılış ağı BEKLEMEZ: `loadToken` yalnız SecureStore'u okur (token + saklı kullanıcı
+    // görüntüsü), oturumu hemen açar; profil doğrulaması arka planda sürer. Yalnız görüntüsü
+    // olmayan eski kurulumun İLK açılışı profili bekler (bkz. authStore.loadToken).
     async function prepare() {
       try {
         await loadToken();
-        // Only register for push notifications in development builds, not Expo Go
-        if (isAuthenticated && !isExpoGo) {
-          try {
-            await registerForPushNotifications();
-          } catch (e) {
-            logger.debug(
-              "Push notification registration skipped (normal in Expo Go)",
-            );
-          }
-        }
       } catch (e) {
         logger.warn('App bootstrap failed', { err: safeError(e) });
       } finally {
@@ -136,12 +131,12 @@ export default function RootLayout() {
       }
     }
     prepare();
-  }, []);
+    // `loadToken` store eylemi — referansı sabit, efekt yalnız mount'ta çalışır.
+  }, [loadToken]);
 
-  // Token kaydını isAuthenticated değişimine de bağla: kullanıcı uygulamayı
-  // çıkışlı açıp SONRA login olursa (isAuthenticated mount'tan sonra true olur),
-  // yukarıdaki []-bağımlı prepare() tekrar çalışmaz ve token hiç kaydolmazdı.
-  // registerToken upsert olduğu için açılışta + login'de çift çağrı zararsız.
+  // Push token kaydının TEK yeri: açılışta oturum açıksa da, çıkışlı açılıp sonra girişte de
+  // `isAuthenticated` true'ya döner. (Eski `prepare()` içindeki kayıt ölüydü: mount anındaki
+  // `isAuthenticated` kapanışı hep false'tu.) registerToken upsert — çift çağrı zararsız.
   useEffect(() => {
     if (isAuthenticated && !isExpoGo) {
       registerForPushNotifications().catch(() => {});
@@ -167,7 +162,9 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+      {/* Kalıcı önbellek: yalnız herkese açık katalog sorguları diske yazılır (izin listesi,
+          `@/lib/query/persist`); geri yükleme bitene kadar sorgular ağa çıkmaz. */}
+      <PersistQueryClientProvider client={queryClient} persistOptions={queryPersistOptions}>
         <LocaleProvider>
         <BrandFontProvider ready={brandFontEnabled}>
           {/* Yığın ekranları beyaz üst bar: koyu içerik. Turuncu marka barlı sekme kökleri (AppShell)
@@ -208,7 +205,7 @@ export default function RootLayout() {
           )}
         </BrandFontProvider>
         </LocaleProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </ErrorBoundary>
     </GestureHandlerRootView>
   );
