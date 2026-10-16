@@ -7,6 +7,7 @@
  * burada TUTULMAZ; kapıyı açan bilgi (hangi belge, hangi sürüm) her zaman
  * sunucudan gelir.
  */
+import { LEGAL_WEB_DOCS, type LegalWebDoc } from '@/lib/legal/webDocs';
 
 export const CONSENT_DOCUMENT_KEYS = [
   'terms',
@@ -51,19 +52,25 @@ export const CONSENT_DOCUMENT_I18N_KEYS = {
 
 /**
  * Metin yolu → uygulama içi rota. Web yolları mobil rotalarla aynı adı taşıyor
- * (`app/terms.tsx`, `app/privacy.tsx`, …); KVKK'nın ayrı sayfası yok, web gibi
+ * (`app/terms.tsx`, `app/privacy.tsx`, …; hepsi web'in uygulama modu sayfasını
+ * WebView'de açar — `@/lib/legal/webDocs`); KVKK'nın ayrı sayfası yok, web gibi
  * `/privacy`'ye gider (yol sunucudan gelir). Bilinmeyen bir yol null döner ve
  * belge adı bağlantısız çizilir.
  */
-const IN_APP_LEGAL_ROUTES = ['/terms', '/privacy', '/distance-sales', '/cookies'] as const;
-export type LegalRoute = (typeof IN_APP_LEGAL_ROUTES)[number];
+const IN_APP_LEGAL_ROUTES: readonly string[] = LEGAL_WEB_DOCS.map((doc) => `/${doc}`);
+export type LegalRoute = `/${LegalWebDoc}`;
 
 export function legalRouteFor(path: string | null | undefined): LegalRoute | null {
   if (!path) return null;
-  return (IN_APP_LEGAL_ROUTES as readonly string[]).includes(path) ? (path as LegalRoute) : null;
+  return IN_APP_LEGAL_ROUTES.includes(path) ? (path as LegalRoute) : null;
 }
 
-/** Zorunlu adım kapısının gösterilmediği yollar: onaylanacak metinlerin sayfaları. */
+/**
+ * Zorunlu adım kapısının (ve işletme yönlendirmesinin) gösterilmediği yollar:
+ * uygulamadaki yasal belge sayfalarının HEPSİ (onaylananlar + satıcı sözleşmesi,
+ * iade politikası). Muafiyet bir kaçış yolu açmaz: bu sayfaların WebView'i
+ * yalnız uygulama modu (`/app/*`) sayfalarında kalır, başka hiçbir yere gitmez.
+ */
 export function isLegalTextPath(pathname: string | null | undefined): boolean {
   if (!pathname) return false;
   return IN_APP_LEGAL_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));

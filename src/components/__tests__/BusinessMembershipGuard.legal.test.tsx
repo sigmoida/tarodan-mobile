@@ -45,7 +45,7 @@ describe('BusinessMembershipGuard · yasal metin muafiyeti', () => {
       mockUser = { ...business, businessStatus, membershipTier: 'free' };
     });
 
-    it.each(['/terms', '/privacy', '/distance-sales', '/cookies'])(
+    it.each(['/terms', '/privacy', '/distance-sales', '/cookies', '/seller-agreement', '/refund-policy'])(
       '%s açıkken yönlendirmez (onaylanacak metin okunabilir)',
       (path) => {
         mockPath = path;

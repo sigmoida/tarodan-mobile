@@ -4198,7 +4198,10 @@
     "menuInfoLegal": "Info & Legal",
     "trustScoreVisibilityTitle": "Trust Score",
     "trustScoreVisibilityLabel": "Show my trust score publicly",
-    "trustScoreVisibilityHint": "When off, your score isn't shown to others on your profile."
+    "trustScoreVisibilityHint": "When off, your score isn't shown to others on your profile.",
+    "webPageLoadFailedTitle": "Page could not be loaded",
+    "webPageLoadFailedDescription": "Check your internet connection and try again, or open the page in your browser.",
+    "openInBrowser": "Open in browser"
   },
   "refund": {
     "cancel": {

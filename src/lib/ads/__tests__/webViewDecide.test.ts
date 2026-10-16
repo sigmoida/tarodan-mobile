@@ -24,3 +24,33 @@ describe('decideWebRequest — iframe ve dış linkler', () => {
     expect(decideWebRequest('tel:+90555', true)).toBe('block');
   });
 });
+
+describe('decideWebRequest — embed kipi (yasal belgeler)', () => {
+  it('yalnız uygulama modu sayfaları (/app/*, /en/app/*) içeride kalır', () => {
+    expect(decideWebRequest('https://tarodan.com.tr/app/terms', true, 'embed')).toBe('allow');
+    expect(decideWebRequest('https://tarodan.com.tr/en/app/privacy#kvkk', true, 'embed')).toBe('allow');
+    expect(decideWebRequest('https://staging.tarodan.com.tr/app/cookies?x=1', true, 'embed')).toBe('allow');
+  });
+
+  it('kendi sitemizin diğer sayfaları ve dış linkler sistem tarayıcısında açılır', () => {
+    expect(decideWebRequest('https://tarodan.com.tr/contact', true, 'embed')).toBe('external');
+    expect(decideWebRequest('https://tarodan.com.tr/terms', true, 'embed')).toBe('external');
+    expect(decideWebRequest('https://tarodan.com.tr/application/x', true, 'embed')).toBe('external');
+    expect(decideWebRequest('https://example.org/x', true, 'embed')).toBe('external');
+    expect(decideWebRequest('mailto:destek@tarodan.com.tr', true, 'embed')).toBe('external');
+    expect(decideWebRequest('tel:+902324334142', true, 'embed')).toBe('external');
+  });
+
+  it('satın alma yolları ve güvensiz şemalar embed kipinde de engelli; iframe serbest', () => {
+    expect(decideWebRequest('https://tarodan.com.tr/membership', true, 'embed')).toBe('block');
+    expect(decideWebRequest('https://tarodan.com.tr/en/pricing', true, 'embed')).toBe('block');
+    expect(decideWebRequest('javascript:alert(1)', true, 'embed')).toBe('block');
+    expect(decideWebRequest('http://tarodan.com.tr/app/terms', true, 'embed')).toBe('block');
+    expect(decideWebRequest('https://www.youtube.com/embed/x', false, 'embed')).toBe('allow');
+  });
+
+  it('varsayılan (site) kipi değişmedi: kendi sitemizin her sayfası içeride', () => {
+    expect(decideWebRequest('https://tarodan.com.tr/contact', true)).toBe('allow');
+    expect(decideWebRequest('mailto:destek@tarodan.com.tr', true)).toBe('block');
+  });
+});

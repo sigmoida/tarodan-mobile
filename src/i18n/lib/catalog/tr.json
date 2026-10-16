@@ -4198,7 +4198,10 @@
     "menuInfoLegal": "Bilgi ve Yasal",
     "trustScoreVisibilityTitle": "Güven Skoru",
     "trustScoreVisibilityLabel": "Güven skorumu herkese göster",
-    "trustScoreVisibilityHint": "Kapalıyken skorunuz profilinizde başkalarına görünmez."
+    "trustScoreVisibilityHint": "Kapalıyken skorunuz profilinizde başkalarına görünmez.",
+    "webPageLoadFailedTitle": "Sayfa yüklenemedi",
+    "webPageLoadFailedDescription": "İnternet bağlantınızı kontrol edip tekrar deneyin ya da sayfayı tarayıcıda açın.",
+    "openInBrowser": "Tarayıcıda aç"
   },
   "refund": {
     "cancel": {
