@@ -1,8 +1,9 @@
+import { useEffect, useState } from 'react';
 import { useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import type { ListingFormController } from './useListingForm';
 import type { ListingFormKey } from '../_lib/memoSection';
-import { useCommissionPreview } from './useCommissionPreview';
+import { COMMISSION_DEBOUNCE_MS, useCommissionPreview, useCommissionQuery } from './useCommissionPreview';
 import { commissionPreviewAmount, saleStartsLater } from '../_lib/sale';
 import { priceFieldError, salePriceFieldError } from '../_lib/priceRules';
 
@@ -77,3 +78,54 @@ export function useListingPricing(f: ListingFormController) {
 }
 
 export type ListingPricing = ReturnType<typeof useListingPricing>;
+
+/** `useListingCommission`'ın okuduğu controller alanları (kargo bölümünün memo anahtarları). */
+export const LISTING_COMMISSION_KEYS: readonly ListingFormKey[] = [
+  'form',
+  'salePrice',
+  'saleStartDate',
+  'saleEndDate',
+  'categoryId',
+  'shippingPackageTier',
+];
+
+/**
+ * YALNIZ komisyon önizlemesi — kargo bölümü için dar hook. Fiyat `useWatch` ile DEĞİL, RHF
+ * aboneliğiyle (render etmeden) izlenir; tutar `COMMISSION_DEBOUNCE_MS` sessizlikten sonra
+ * state'e yazılır. Böylece fiyat yazmak / alanı terk etmek / gönderim denemesi kargo bölümünü
+ * yeniden çizmez; yalnız (gecikmeli) tutar değişince bir kez çizilir. Sorgu fiyat kartıyla
+ * AYNI anahtarda (`useCommissionQuery`) → tek istek.
+ */
+export function useListingCommission(f: ListingFormController) {
+  const { form, salePrice, saleStartDate, saleEndDate } = f;
+  const [amount, setAmount] = useState(() =>
+    commissionPreviewAmount({ price: form.getValues('price') ?? '', salePrice, saleStartDate, saleEndDate }),
+  );
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const update = () =>
+      setAmount(
+        commissionPreviewAmount({
+          price: form.getValues('price') ?? '',
+          salePrice,
+          saleStartDate,
+          saleEndDate,
+        }),
+      );
+    // İndirim alanları değişti (ya da ilk kurulum): hemen.
+    update();
+    const sub = form.watch((_values, { name }) => {
+      // `name` yok = reset (düzenleme ön dolumu) → o da tutarı değiştirir.
+      if (name && name !== 'price') return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(update, COMMISSION_DEBOUNCE_MS);
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      sub.unsubscribe();
+    };
+  }, [form, salePrice, saleStartDate, saleEndDate]);
+
+  return useCommissionQuery(amount, f.categoryId, f.shippingPackageTier);
+}

@@ -8,7 +8,7 @@ import { formatPrice } from '@/utils/format';
 
 import { getPackageTierLabel } from '../_lib/constants';
 import type { ListingFormController } from '../_hooks/useListingForm';
-import { LISTING_PRICING_KEYS, useListingPricing, type ListingPricing } from '../_hooks/useListingPricing';
+import { LISTING_COMMISSION_KEYS, useListingCommission, type ListingPricing } from '../_hooks/useListingPricing';
 import { memoSection, type ListingFormKey } from '../_lib/memoSection';
 import { fieldStyles } from './fields';
 
@@ -18,7 +18,7 @@ type SectionProps = { f: ListingFormController };
 
 /** Bu dosyadaki bölümün okuduğu controller alanları (memo karşılaştırması; bkz. `memoSection`). */
 const KEYS: readonly ListingFormKey[] = [
-  ...LISTING_PRICING_KEYS,
+  ...LISTING_COMMISSION_KEYS,
   'packageTiers',
   'packageTiersError',
   'packageTiersLoading',
@@ -168,8 +168,9 @@ const TierCard = memo(function TierCard({
  * ⚠️ BAĞLAYICI (doküman 14 §1): mobil arayüzde **desi hiç görünmez**.
  */
 export const ListingShippingSection = memoSection(function ListingShippingSection({ f }: SectionProps) {
-  // Paket ücreti komisyon önizlemesinden; fiyat kartıyla aynı sorgu (tek istek).
-  return <ListingShippingView f={f} d={useListingPricing(f)} />;
+  // Paket ücreti komisyon önizlemesinden (dar hook: fiyat yazmak bu bölümü çizmez); fiyat kartıyla
+  // aynı sorgu (tek istek).
+  return <ListingShippingView f={f} d={useListingCommission(f)} />;
 }, KEYS);
 
 /** Saf görünüm (testler komisyon değerlerini doğrudan verir). */

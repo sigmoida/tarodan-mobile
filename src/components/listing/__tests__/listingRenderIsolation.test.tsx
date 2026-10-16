@@ -80,6 +80,19 @@ jest.mock('@/components/UpgradeCta', () => ({
   },
 }));
 
+// Kargo bölümü (dar komisyon hook'u) her çizildiğinde sayılır.
+let mockShippingRenders = 0;
+jest.mock('../_hooks/useListingPricing', () => {
+  const actual = jest.requireActual('../_hooks/useListingPricing');
+  return {
+    ...actual,
+    useListingCommission: (...args: unknown[]) => {
+      mockShippingRenders += 1;
+      return actual.useListingCommission(...args);
+    },
+  };
+});
+
 import ListingForm from '../ListingForm';
 
 const TITLE = "Örn: Hot Wheels '69 Camaro Z28";
@@ -137,10 +150,13 @@ describe('ilan formu — yazarken render yalıtımı', () => {
 
     const runs = mockControllerRuns;
     const options = mockOptionsRenders;
+    const shipping = mockShippingRenders;
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '1');
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '15');
     expect(mockControllerRuns).toBe(runs);
     expect(mockOptionsRenders).toBe(options);
+    // Kargo bölümü fiyatı render etmeden izler (tutar gecikmeli): tuş vuruşunda çizilmez.
+    expect(mockShippingRenders).toBe(shipping);
     // Alan değeri yine güncellenir (yaprak izler).
     expect(screen.getByDisplayValue('15')).toBeOnTheScreen();
   });
