@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { SectionCard, Text } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
 import { PhoneInput } from '@/components/common';
+import { useSecondsUntil } from '@/hooks/useSecondsUntil';
 
 import { styles } from '../_lib/styles';
 import { boldSegments } from '../_lib/types';
@@ -42,7 +43,6 @@ export function PhoneEnterStep({ f }: { f: PhoneVerificationFlow }) {
 export function PhoneCodeStep({ f }: { f: PhoneVerificationFlow }) {
   const { t } = useTranslation();
   const hint = boldSegments(t('profile.security.phoneCodeSentTo', { phone: f.sentTo }));
-  const canResend = f.resendIn <= 0 && !f.isSending;
   return (
     <SectionCard bodyStyle={styles.stack}>
       <Text variant="bodySm" tone="muted" testID="phone-code-hint">
@@ -70,21 +70,37 @@ export function PhoneCodeStep({ f }: { f: PhoneVerificationFlow }) {
           testID="phone-code-input"
         />
       </Form>
-      <Pressable
-        onPress={f.resend}
-        disabled={!canResend}
-        hitSlop={8}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !canResend }}
-        style={styles.resend}
-        testID="phone-resend"
-      >
-        <Text variant="bodySm" tone={canResend ? 'primary' : 'muted'} align="center">
-          {f.resendIn > 0
-            ? t('security.resendIn', { seconds: f.resendIn })
-            : t('security.resendCode')}
-        </Text>
-      </Pressable>
+      <PhoneResendButton resendAt={f.resendAt} isSending={f.isSending} onPress={f.resend} />
     </SectionCard>
+  );
+}
+
+/** Yeniden gönder + saniyelik geri sayım — tik YALNIZ bu düğmeyi yeniden çizer. */
+function PhoneResendButton({
+  resendAt,
+  isSending,
+  onPress,
+}: {
+  resendAt: number;
+  isSending: boolean;
+  onPress: () => void;
+}) {
+  const { t } = useTranslation();
+  const resendIn = useSecondsUntil(resendAt);
+  const canResend = resendIn <= 0 && !isSending;
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={!canResend}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !canResend }}
+      style={styles.resend}
+      testID="phone-resend"
+    >
+      <Text variant="bodySm" tone={canResend ? 'primary' : 'muted'} align="center">
+        {resendIn > 0 ? t('security.resendIn', { seconds: resendIn }) : t('security.resendCode')}
+      </Text>
+    </Pressable>
   );
 }
