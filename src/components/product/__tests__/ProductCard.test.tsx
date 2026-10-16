@@ -5,6 +5,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { ProductCard } from '../ProductCard';
+import { Text } from '@/ui';
 import { productsApi } from '@/lib/api';
 
 jest.mock('@/lib/api', () => ({
@@ -74,6 +75,92 @@ describe('ProductCard — grid', () => {
     expect(screen.queryByText('Diğer')).toBeNull();
   });
 
+  /** Görünür rozet metinlerini ağaç sırasıyla (yukarıdan aşağı) verir. */
+  const badgeOrder = (labels: string[]) => {
+    const json = JSON.stringify(screen.toJSON());
+    // `%{discount}` iki çocuk (`"%","20"`) olarak üretilir.
+    const token = (l: string) => (l.startsWith('%') ? `"%","${l.slice(1)}"` : `"${l}"`);
+    return labels.filter((l) => json.includes(token(l))).sort((a, b) => json.indexOf(token(a)) - json.indexOf(token(b)));
+  };
+  const LABELS = ['%20', 'Sponsorlu', 'Takas', 'Kargo Bedava'];
+  const all = { ...base, price: 80, oldPrice: 100, isBoosted: true, tradeAvailable: true, feeCampaigns: ['Kargo Bedava'] };
+
+  it('rozetler: indirim + sponsorlu + takas + kampanya → ilk 2: %indirim, Sponsorlu (sol üst yığın, bu sırada)', () => {
+    render(<ProductCard product={all as never} />);
+    expect(badgeOrder(LABELS)).toEqual(['%20', 'Sponsorlu']);
+    expect(screen.queryByText('Takas')).toBeNull();
+    expect(screen.queryByText('Kargo Bedava')).toBeNull();
+  });
+
+  it('rozetler: indirim her zaman ilk; sponsorlu yoksa indirim + takas', () => {
+    render(<ProductCard product={{ ...all, isBoosted: false } as never} />);
+    expect(badgeOrder(LABELS)).toEqual(['%20', 'Takas']);
+  });
+
+  it('rozetler: indirim + kampanya (sponsorlu, takas yok) → %indirim, kampanya', () => {
+    render(<ProductCard product={{ ...all, isBoosted: false, tradeAvailable: false } as never} />);
+    expect(badgeOrder(LABELS)).toEqual(['%20', 'Kargo Bedava']);
+  });
+
+  it('rozetler: indirim yoksa sponsorlu, takas (kampanya 3. olduğu için kesilir)', () => {
+    render(<ProductCard product={{ ...all, oldPrice: undefined } as never} />);
+    expect(badgeOrder(LABELS)).toEqual(['Sponsorlu', 'Takas']);
+    expect(screen.queryByText('Kargo Bedava')).toBeNull();
+  });
+
+  it('indirim rozeti sol üst yığında (sağ üstte ayrı rozet yok): yığın kalbe yer bırakır', () => {
+    render(<ProductCard product={{ ...base, price: 80, oldPrice: 100 }} />);
+    let node = screen.getByText('%20').parent;
+    while (node && !String(JSON.stringify(node.props.style ?? null)).includes('"left"')) node = node.parent;
+    const style = JSON.stringify(node?.props.style);
+    expect(style).toContain('"top":6');
+    expect(style).toContain('"left":6');
+    // Web: left-1.5 + max-w calc(100% - 3.25rem) → sağdan 46pt (kalp inset 6 + kalp 32 + 8).
+    expect(style).toContain('"right":46');
+  });
+
+  it('sponsorlu yalnız isBoosted === true ile (boostedUntil tek başına rozet açmaz)', () => {
+    render(<ProductCard product={{ ...base, boostedUntil: '2099-01-01T00:00:00Z' } as never} />);
+    expect(screen.queryByText('Sponsorlu')).toBeNull();
+  });
+
+  it('indirim yüzdesi < 1 ise rozet çıkmaz (asla "%0")', () => {
+    render(<ProductCard product={{ ...base, price: 99.9, oldPrice: 100 }} />);
+    expect(screen.queryByText(/^%/)).toBeNull();
+  });
+
+  it('tradeAvailable=false eski alanları ezer: takas rozeti yok', () => {
+    render(<ProductCard product={{ ...base, tradeAvailable: false, isTradeEnabled: true } as never} />);
+    expect(screen.queryByText('Takas')).toBeNull();
+  });
+
+  it('erişilebilirlik: kart etiketi görünen rozetleri sırayla ekler (grid)', () => {
+    render(<ProductCard product={all as never} />);
+    expect(screen.getByLabelText('Hot Wheels Supra, %20 İndirim, Sponsorlu')).toBeTruthy();
+  });
+
+  it('erişilebilirlik: liste etiketi indirim + takas ikonunu içerir', () => {
+    render(<ProductCard layout="list" product={all as never} />);
+    expect(screen.getByLabelText('Hot Wheels Supra, %20 İndirim, Takas')).toBeTruthy();
+  });
+
+  it('erişilebilirlik: rozet yoksa etiket yalnız başlık', () => {
+    render(<ProductCard product={base} />);
+    expect(screen.getByLabelText('Hot Wheels Supra')).toBeTruthy();
+  });
+
+  it('overlayStart verilince sol üst rozet yığını çizilmez (çakışma yok)', () => {
+    render(
+      <ProductCard
+        product={all as never}
+        overlayStart={<Text>seçim</Text>}
+      />,
+    );
+    expect(screen.getByText('seçim')).toBeTruthy();
+    expect(screen.queryByText('%20')).toBeNull();
+    expect(screen.queryByText('Sponsorlu')).toBeNull();
+  });
+
   it('rozet etiketi tek satır: uzun kampanya metni ellipsis ile kırpılır', () => {
     render(<ProductCard product={{ ...base, feeCampaigns: ['Çok uzun bir kampanya adı burada yer alıyor'] } as never} />);
     expect(screen.getByText('Çok uzun bir kampanya adı burada yer alıyor').props.numberOfLines).toBe(1);
@@ -134,15 +221,40 @@ describe('ProductCard — favori kalbi', () => {
     expect(productsApi.recordClick).not.toHaveBeenCalled();
   });
 
-  it('liste: kalp ölçülen görselin sağ altına oturur', () => {
+  /** Kalbin kutusu: GlassIconButton'ın atası — konum stilini taşıyan ilk düğüm. */
+  const heartBoxStyle = (key: 'left' | 'right') => {
+    let node = screen.getByTestId('product-card-favorite-p1').parent;
+    while (node && !String(JSON.stringify(node.props.style ?? null)).includes(`"${key}"`)) node = node.parent;
+    return JSON.stringify(node?.props.style);
+  };
+
+  it('liste: kalp ölçülen görselin sağ üstüne oturur', () => {
     render(<ProductCard product={base} layout="list" onToggleFavorite={jest.fn()} />);
     layoutListImage();
-    // Kalbin kutusu: GlassIconButton'ın (Animated.View) atası.
-    let node = screen.getByTestId('product-card-favorite-p1').parent;
-    while (node && !String(JSON.stringify(node.props.style ?? null)).includes('"left"')) node = node.parent;
-    // 13 + 80 - 32 - 4 = 57; 20 + 80 - 32 - 4 = 64
-    expect(JSON.stringify(node?.props.style)).toContain('"left":57');
-    expect(JSON.stringify(node?.props.style)).toContain('"top":64');
+    // Web top-1.5 right-1.5: 13 + 80 - 32 - 6 = 55; 20 + 6 = 26
+    expect(heartBoxStyle('left')).toContain('"left":55');
+    expect(heartBoxStyle('left')).toContain('"top":26');
+  });
+
+  it('grid: kalp görselin sağ üst köşesinde (alt değil)', () => {
+    render(<ProductCard product={base} onToggleFavorite={jest.fn()} />);
+    const style = heartBoxStyle('right');
+    expect(style).toContain('"right":6');
+    expect(style).toContain('"top":6');
+    expect(style).not.toContain('"bottom"');
+  });
+
+  it('grid: overlay (görselin sağ üst yuvası) verilince kalp çizilmez, overlay kalır', () => {
+    render(<ProductCard product={base} onToggleFavorite={jest.fn()} overlay={<Text>kaldır</Text>} />);
+    expect(screen.queryByTestId('product-card-favorite-p1')).toBeNull();
+    expect(screen.getByText('kaldır')).toBeTruthy();
+  });
+
+  it('liste: overlay satırın sağ üstündedir (görselde değil) — kalbi gizlemez', () => {
+    render(<ProductCard product={base} layout="list" onToggleFavorite={jest.fn()} overlay={<Text>seç</Text>} />);
+    layoutListImage();
+    expect(screen.getByTestId('product-card-favorite-p1')).toBeTruthy();
+    expect(screen.getByText('seç')).toBeTruthy();
   });
 
   it('aktif: aynı etiket, durum seçili', () => {
@@ -211,6 +323,17 @@ describe('ProductCard — liste ve slotlar', () => {
     // Telefonda liste görünümünde takas rozeti yalnız ikon (web `hidden sm:inline` etiket).
     expect(screen.queryByText('Takas')).toBeNull();
     expect(screen.getByLabelText('Takas')).toBeTruthy();
+  });
+
+  it('liste: takas ikonu görselin SOL üstünde (sağ üst kalbe ayrılmış), indirim fiyatın yanında', () => {
+    render(<ProductCard layout="list" product={{ ...base, price: 80, oldPrice: 100, tradeAvailable: true } as never} />);
+    let node = screen.getByLabelText('Takas').parent;
+    while (node && !String(JSON.stringify(node.props.style ?? null)).includes('"position":"absolute"')) node = node.parent;
+    const style = JSON.stringify(node?.props.style);
+    expect(style).toContain('"left":4');
+    expect(style).not.toContain('"right"');
+    // Sponsorlu/kampanya listede yok.
+    expect(screen.queryByText('Sponsorlu')).toBeNull();
   });
 
   it('liste showMeta=false: açıklama ve meta yok', () => {

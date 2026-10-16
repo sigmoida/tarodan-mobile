@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Badge, EmptyState, SectionCard, SectionCardAction, SkeletonCard } from '@/ui';
+import { EmptyState, SectionCard, SectionCardAction, SkeletonCard } from '@/ui';
 import { ProductCard, type ProductCardProduct } from '@/components/product';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { homeStyles as styles } from '../_lib/homeStyles';
@@ -23,7 +23,6 @@ const RAIL_LIMIT = 12;
  */
 function ProductRail({
   title,
-  badge,
   onSeeAll,
   items,
   isLoading,
@@ -32,7 +31,6 @@ function ProductRail({
   testID,
 }: RailProps & {
   title: string;
-  badge?: React.ReactNode;
   onSeeAll: () => void;
   emptyState?: React.ReactNode;
   testID: string;
@@ -40,7 +38,7 @@ function ProductRail({
   const favoriteProps = useProductCardFavorites();
   if (!isLoading && items.length === 0 && !emptyState) return null;
   return (
-    <SectionCard title={title} badge={badge} action={<SectionCardAction onPress={onSeeAll} />} testID={testID}>
+    <SectionCard title={title} action={<SectionCardAction onPress={onSeeAll} />} testID={testID}>
       {isLoading ? (
         <ScrollView horizontal scrollEnabled={false} style={styles.railScroll} contentContainerStyle={styles.rail} testID={`${testID}-skeleton`}>
           {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
@@ -83,11 +81,6 @@ export function OnSaleRail(props: RailProps) {
       {...props}
       testID="home-on-sale"
       title={t('product.onSale')}
-      badge={
-        <Badge variant="danger" size="sm">
-          {t('home.deals')}
-        </Badge>
-      }
       onSeeAll={() => router.push('/listings?discountOnly=true')}
     />
   );
