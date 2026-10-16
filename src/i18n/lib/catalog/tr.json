@@ -2664,7 +2664,8 @@
     "serverError": "Sunucu Hatası",
     "serverErrorDesc": "Sunucuda bir sorun oluştu. Lütfen daha sonra tekrar deneyin.",
     "networkError": "Bağlantı Hatası",
-    "networkErrorDesc": "İnternet bağlantınızı kontrol edin."
+    "networkErrorDesc": "İnternet bağlantınızı kontrol edin.",
+    "offlineMessage": "Lütfen internet bağlantınızı kontrol ediniz."
   },
   "validation": {
     "required": "Bu alan zorunludur",

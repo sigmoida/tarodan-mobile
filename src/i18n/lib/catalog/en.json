@@ -2664,7 +2664,8 @@
     "serverError": "Server Error",
     "serverErrorDesc": "A server error occurred. Please try again later.",
     "networkError": "Connection Error",
-    "networkErrorDesc": "Please check your internet connection."
+    "networkErrorDesc": "Please check your internet connection.",
+    "offlineMessage": "Please check your internet connection."
   },
   "validation": {
     "required": "This field is required",

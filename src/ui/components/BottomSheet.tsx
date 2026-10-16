@@ -39,6 +39,7 @@ import { theme } from '../lib/theme';
 import { useHeaderTopInset } from '../lib/header';
 import { logger, safeError } from '@/services/logger';
 import { MODAL_CLOSE_DELAY_MS, MODAL_DISMISS_TIMEOUT_MS } from '../lib/modal-timing';
+import { useModalPresence } from '../lib/modalPresence';
 import {
   keyboardResizedWindow,
   progressAfterDrag,
@@ -165,6 +166,8 @@ export function BottomSheet(props: BottomSheetProps) {
   // Açık ya da kapanış animasyonu sürüyor: Modal görünür ve içerik bağlı.
   const [mounted, setMounted] = useState(isOpen);
   if (isOpen && !mounted) setMounted(true);
+  // Çevrimdışı diyaloğu gibi kendiliğinden açılan diyaloglar bu sırada ertelenir (iOS modal donması).
+  useModalPresence(mounted);
 
   const onClosedRef = useRef(onClosed);
   onClosedRef.current = onClosed;
