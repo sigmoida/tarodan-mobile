@@ -34,7 +34,7 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
   ];
 
   return (
-    <AppShell variant="title" title={t('profile.profile')} scroll={page}>
+    <AppShell variant="title" title={t('profile.profile')} scroll={page} leading="menu">
       <Animated.ScrollView
         {...tabScroll}
         {...page.scrollProps}

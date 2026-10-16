@@ -4,6 +4,8 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, categoriesApi } from '@/lib/api';
+import { unwrapList } from '@/lib/api/unwrap';
+import { qk } from '@/lib/query';
 
 export type FilterCategory = { id: string; name: string; slug: string };
 export type FilterBrand = { id: string; name: string; slug: string };
@@ -30,6 +32,10 @@ export type ProductFilterOptions = {
    */
   customAttributes: FilterCustomAttributeGroup[];
   isLoading: boolean;
+  /** `/products/filters` sorgusu hata verdi mi (ölçek/marka/üretici seçenekleri yok). */
+  isError?: boolean;
+  /** Filtre seçeneklerini yeniden yükler (ekranın "tekrar dene"si; tanımsız olabilir — mock'lar). */
+  refetch?: () => void;
 };
 
 export function useProductFilterOptions(manufacturerSlug?: string): ProductFilterOptions {
@@ -45,12 +51,11 @@ export function useProductFilterOptions(manufacturerSlug?: string): ProductFilte
   });
 
   const categoriesQuery = useQuery({
-    queryKey: ['filter-categories'],
+    // Kategori ağacının TEK anahtarı (Kategoriler ekranıyla paylaşılır: GET /categories bir kez çekilir).
+    queryKey: qk.catalog.categories,
     queryFn: async () => {
       const res = await categoriesApi.getAll();
-      const raw = res.data as any;
-      const list = Array.isArray(raw) ? raw : raw?.data ?? [];
-      return list as Array<{ id: string; name: string; slug: string }>;
+      return unwrapList<{ id: string; name: string; slug: string }>(res.data);
     },
     staleTime: 10 * 60 * 1000,
   });
@@ -83,5 +88,7 @@ export function useProductFilterOptions(manufacturerSlug?: string): ProductFilte
     materials: data?.materials ?? [],
     customAttributes: data?.customAttributes ?? [],
     isLoading: filtersQuery.isLoading,
+    isError: filtersQuery.isError,
+    refetch: filtersQuery.refetch,
   };
 }

@@ -48,16 +48,19 @@ const PAN_FAIL_OFFSET_Y = 16;
 const EDGE_WIDTH = sideMenuEdgeWidth(Platform.OS);
 
 /**
- * Kenardan açma yalnız TABAN sekme kökünde: kök yığın indeksi 0 ve o rota `(tabs)`
- * (`isBaseTabsFocused`). Yığın ekranlarında — ve üste itilmiş ikinci bir `(tabs)` kopyasında — sol
+ * Kenardan açma yalnız ☰'lı Profil sekme kökü ODAKTAyken (`useEdgeSwipeWhenFocused` bağlamdaki
+ * `edgeSwipeEnabled` bayrağını verir; diğer sekme köklerinde sol düğme kategorilerdir), kök yığın indeksi 0 ve
+ * o rota `(tabs)` (`isBaseTabsFocused`). Yığın ekranlarında — ve üste itilmiş ikinci bir `(tabs)` kopyasında — sol
  * kenar iOS'un "kaydırarak geri" jestine aittir. `useSegments` her gezinmede yeniden çizimi tetikler;
  * yığın derinliği kapsayıcı ref'inden okunur. `* as Router`: expo-router'ı kısmi mock'layan testlerde
  * kanca yoksa kapalı.
  */
 function useEdgeSwipeEnabled(): boolean {
-  const segments = (Router.useSegments?.() ?? []) as string[];
+  const { edgeSwipeEnabled } = useSideMenu();
+  // `useSegments`: her gezinmede yeniden çizim (yığın derinliği ref'ten okunur).
+  Router.useSegments?.();
   const navRef = Router.useNavigationContainerRef?.();
-  if (segments[0] !== '(tabs)') return false;
+  if (!edgeSwipeEnabled) return false;
   try {
     return isBaseTabsFocused(navRef?.getRootState?.() as NavStateLike | undefined);
   } catch {

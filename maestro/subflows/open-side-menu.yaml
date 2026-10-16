@@ -1,4 +1,6 @@
-# Ana Sayfa yan menüsünü (hamburger) aç: alt menüden Ana Sayfa -> üst bardaki hamburger.
+# Yan menüyü (hamburger) aç: alt menüden Profil -> üst bardaki hamburger. Hamburger YALNIZ Profil
+# sekme kökünde (`app-shell-menu`); Ana Sayfa / Favoriler / Sepet köklerindeki sol düğme kategorilerdir
+# (`home-categories-button` / `app-shell-categories` -> /categories).
 # Alışveriş / Finans / Koleksiyon / Analiz / Destek / Bilgi satırları ARTIK Profil ekranında değil,
 # yan menüde (satır testID'leri değişmedi: profile-orders-link, profile-trades-link, ...).
 # Kullanım: runFlow bu dosya -> tapOn id: "profile-orders-link" (alt satırlar için önce
@@ -6,14 +8,14 @@
 appId: ${APP_ID}
 ---
 - tapOn:
-    id: "tab-home"
+    id: "tab-profile"
     optional: true
 - extendedWaitUntil:
     visible:
-      id: "home-menu-button"
+      id: "app-shell-menu"
     timeout: 30000
 - tapOn:
-    id: "home-menu-button"
+    id: "app-shell-menu"
 - extendedWaitUntil:
     visible:
       id: "side-menu"
