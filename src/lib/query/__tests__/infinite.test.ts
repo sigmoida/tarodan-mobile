@@ -50,7 +50,7 @@ describe('trimInfiniteToFirstPage', () => {
       },
       getNextPageParam: (last) => (last.page < 9 ? last.page + 1 : undefined),
     });
-    const unsubscribe = observer.subscribe(() => {});
+    const unsubscribe = observer.subscribe(() => undefined);
     await observer.refetch();
     await observer.fetchNextPage();
     await observer.fetchNextPage(); // maxPages: 1. sayfa düştü → [2, 3]
