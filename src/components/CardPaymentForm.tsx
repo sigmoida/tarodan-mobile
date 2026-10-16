@@ -134,8 +134,9 @@ export default function CardPaymentForm({
 
   /** Sunucudaki ödeme durumu (misafir: yetki belirteciyle `status-guest`). */
   const readPaymentStatus = async (pid: string): Promise<unknown> => {
-    const res: any = isGuest ? await paymentsApi.getStatusLightGuest(pid) : await paymentsApi.getStatusLight(pid);
-    return (res?.data?.data ?? res?.data ?? {}).status;
+    const res = isGuest ? await paymentsApi.getStatusLightGuest(pid) : await paymentsApi.getStatusLight(pid);
+    const body = (res as { data?: { data?: { status?: unknown }; status?: unknown } } | undefined)?.data;
+    return (body?.data ?? body ?? {}).status;
   };
 
   // 3DS dönüş adresine varıldı: başarı YALNIZ sunucu "ödendi" derse gösterilir. Adres

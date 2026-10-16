@@ -121,7 +121,7 @@ describe('scrubEvent — oturum/ödeme belirteçleri, OTP, 2FA sırları', () =>
         card: { card_number: '4111111111111111', cvv: '123', cc_owner: 'AYSE' },
       },
     };
-    const cleaned = scrubEvent(event as any) as any;
+    const cleaned = scrubEvent(event);
     const text = JSON.stringify(cleaned);
     for (const secret of ['AT-1', 'RT-1', 'PUSH-1', 'PAT-1', 'CAP-1', 'AT-2', 'PT-1', 'MK-1', '3DS', '4111', '"123"', 'AYSE']) {
       expect(text).not.toContain(secret);
@@ -139,7 +139,7 @@ describe('scrubEvent — oturum/ödeme belirteçleri, OTP, 2FA sırları', () =>
         backupCodes: ['aaaa-bbbb', 'cccc-dddd'],
       },
     };
-    const text = JSON.stringify(scrubEvent(event as any));
+    const text = JSON.stringify(scrubEvent(event));
     for (const secret of ['482913', '111222', '333444', 'JBSWY3DPEHPK3PXP', 'JBSW', 'AAAA', 'aaaa-bbbb']) {
       expect(text).not.toContain(secret);
     }
@@ -151,7 +151,7 @@ describe('scrubEvent — oturum/ödeme belirteçleri, OTP, 2FA sırları', () =>
       exception: { values: [{ type: 'Error', value: `auth failed for a@b.com with Bearer abc.def and ${jwt}` }] },
       message: `token ${jwt}`,
     };
-    const text = JSON.stringify(scrubEvent(event as any));
+    const text = JSON.stringify(scrubEvent(event));
     expect(text).not.toContain('a@b.com');
     expect(text).not.toContain('abc.def');
     expect(text).not.toContain(jwt);
@@ -169,7 +169,7 @@ describe('scrubEvent — adres sorgusundaki sırlar (http / navigasyon breadcrum
         url: 'https://tarodan.com.tr/api/auth/verify-email?token=VERIFY-SECRET&lang=tr',
       },
     };
-    const cleaned = scrubBreadcrumb(crumb as any) as any;
+    const cleaned = scrubBreadcrumb(crumb);
     expect(cleaned.data.url).toBe('https://tarodan.com.tr/api/auth/verify-email?token=[scrubbed]&lang=tr');
     expect(cleaned.data.status_code).toBe(200);
     expect(cleaned.data.method).toBe('GET');
@@ -179,7 +179,7 @@ describe('scrubEvent — adres sorgusundaki sırlar (http / navigasyon breadcrum
     const url =
       'https://amzn-tarodan.s3.eu-west-1.amazonaws.com/documents/inv.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256' +
       '&X-Amz-Credential=AKIAEXAMPLE%2F20261017&X-Amz-Security-Token=SESSIONTOKEN&X-Amz-Signature=deadbeefcafe';
-    const cleaned = scrubBreadcrumb({ category: 'fetch', data: { url } } as any) as any;
+    const cleaned = scrubBreadcrumb({ category: 'fetch', data: { url } });
     const text = JSON.stringify(cleaned);
     for (const secret of ['AKIAEXAMPLE', 'SESSIONTOKEN', 'deadbeefcafe']) expect(text).not.toContain(secret);
     expect(cleaned.data.url).toContain('X-Amz-Algorithm=AWS4-HMAC-SHA256');
@@ -190,7 +190,7 @@ describe('scrubEvent — adres sorgusundaki sırlar (http / navigasyon breadcrum
       category: 'console',
       message: 'open https://x.example/cb?code=OAUTH-CODE',
       data: { arguments: [{ address: 'Moda Cd. 1' }], logger: 'console' },
-    } as any) as any;
+    });
     expect(cleaned.data).toBe('[scrubbed]');
     expect(cleaned.message).toBe('open https://x.example/cb?code=[scrubbed]');
   });
@@ -202,7 +202,7 @@ describe('scrubEvent — adres sorgusundaki sırlar (http / navigasyon breadcrum
         { category: 'console', data: { arguments: ['a@b.com'] } },
       ],
     };
-    const cleaned = scrubEvent(event as any) as any;
+    const cleaned = scrubEvent(event);
     expect(cleaned.breadcrumbs[0].data.url).toBe('/api/orders?page=2&token=[scrubbed]');
     expect(cleaned.breadcrumbs[1].data).toBe('[scrubbed]');
   });
@@ -217,7 +217,7 @@ describe('scrubEvent — adres sorgusundaki sırlar (http / navigasyon breadcrum
       },
       message: 'Navigated to /banned?reason=Kimli%C4%9Finizi%20do%C4%9Frulay%C4%B1n',
     };
-    const cleaned = scrubBreadcrumb(crumb as any) as any;
+    const cleaned = scrubBreadcrumb(crumb);
     const text = JSON.stringify(cleaned);
     expect(text).not.toContain('RESET-SECRET');
     expect(text).not.toContain('a%40b.com');
@@ -231,7 +231,7 @@ describe('scrubEvent — adres sorgusundaki sırlar (http / navigasyon breadcrum
     const cleaned = scrubBreadcrumb({
       category: 'http',
       data: { url: `https://x.example/p?ref=${'A'.repeat(40)}&id=${uuid}&page=2&keyword=hot` },
-    } as any) as any;
+    });
     expect(cleaned.data.url).toBe(`https://x.example/p?ref=[scrubbed]&id=${uuid}&page=2&keyword=hot`);
   });
 
@@ -240,7 +240,7 @@ describe('scrubEvent — adres sorgusundaki sırlar (http / navigasyon breadcrum
       type: 'transaction',
       spans: [{ op: 'http.client', description: 'GET https://tarodan.com.tr/api/x?otp=123456' }],
     };
-    expect(JSON.stringify(scrubEvent(tx as any))).not.toContain('123456');
+    expect(JSON.stringify(scrubEvent(tx))).not.toContain('123456');
   });
 });
 
@@ -248,13 +248,15 @@ describe('kullanıcı bağlamı: yalnız id', () => {
   it('olaydaki user e-posta / kullanıcı adı / IP taşımaz', () => {
     const cleaned = scrubEvent({
       user: { id: 'u-1', email: 'a@b.com', username: 'ayse', ip_address: '1.2.3.4' },
-    } as any) as any;
+    });
     expect(cleaned.user).toEqual({ id: 'u-1' });
   });
 
   it('sentryUser: id yoksa null, varsa yalnız id', () => {
-    expect(sentryUser({ id: 'u-1', email: 'a@b.com' } as any)).toEqual({ id: 'u-1' });
-    expect(sentryUser({ email: 'a@b.com' } as any)).toBeNull();
+    const withEmail: { id?: string; email?: string } = { id: 'u-1', email: 'a@b.com' };
+    const noId: { id?: string; email?: string } = { email: 'a@b.com' };
+    expect(sentryUser(withEmail)).toEqual({ id: 'u-1' });
+    expect(sentryUser(noId)).toBeNull();
     expect(sentryUser(null)).toBeNull();
   });
 });

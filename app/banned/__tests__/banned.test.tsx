@@ -8,6 +8,7 @@ import { renderWithProviders } from '@/test-utils/render';
 import { dismissToMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   ...require('@/test-utils/router-mock').routerMock,
   Stack: { Screen: () => null },
   // Saldırganın linki: tarodan://banned?reason=...
@@ -16,8 +17,8 @@ jest.mock('expo-router', () => ({
 
 let mockAuthenticated = true;
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: (sel?: (state: any) => unknown) => {
-    const state: any = { isAuthenticated: mockAuthenticated, logout: jest.fn() };
+  useAuthStore: (sel?: (state: { isAuthenticated: boolean; logout: () => void }) => unknown) => {
+    const state = { isAuthenticated: mockAuthenticated, logout: jest.fn() };
     return sel ? sel(state) : state;
   },
 }));
