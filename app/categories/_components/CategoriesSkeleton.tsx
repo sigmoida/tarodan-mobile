@@ -7,7 +7,7 @@ const { colors, spacing } = theme;
 const RAIL_ITEMS = [0, 1, 2, 3];
 const GRID_ROWS = [0, 1, 2, 3];
 
-/** Izgara iskeleti: 3 sütunlu kutu yer tutucuları (grup yüklenirken sağ alanda da kullanılır). */
+/** Izgara iskeleti: 2 sütunlu kutu yer tutucuları (grup yüklenirken sağ alanda da kullanılır). */
 export function GridSkeleton() {
   return (
     <View style={styles.rows} testID="categories-grid-skeleton">

@@ -43,7 +43,7 @@ interface CategoryGridProps {
 }
 
 /**
- * Sağ alan: seçili grubun (ya da inilen kategorinin) `PageHeader` başlığı + 3 sütunlu ızgara (+ altta
+ * Sağ alan: seçili grubun (ya da inilen kategorinin) `PageHeader` başlığı + 2 sütunlu ızgara (+ altta
  * `SectionCardAction` bağlantısı, ör. "Tüm Üreticiler"). Kaydırılabilir, çekip yenilenir; başlık
  * listenin başlığıdır (birlikte kayar).
  */

@@ -14,7 +14,7 @@ interface CategoryTileProps {
 }
 
 /**
- * Izgara kutusu (3 sütun hücresi). `logo`: görsel kutusu (logo, yoksa baş harf) + etiket (+ "N ürün");
+ * Izgara kutusu (2 sütun hücresi). `logo`: görsel kutusu (logo, yoksa baş harf) + etiket (+ "N ürün");
  * `plain`: yalnız etiketli çerçeveli kutu (Keşfet, Ölçek, alt düzeydeki "Tümü"). İkisi de ≥44pt
  * dokunma, Android ripple / iOS basılı opaklık (`@/ui` yardımcıları). `memo`: `tile` ve `onPress`
  * sabit kaldıkça ızgara yeniden çizilirken kutu yeniden çizilmez.

@@ -1,6 +1,6 @@
 /**
  * Kategoriler ekranı: sol ray (gruplar; boş grup gizli, ilk açılışta ilk dolu grup seçili) + sağ
- * 3 sütunlu ızgara; her grup doğru `/listings` parametreleriyle açar; alt kategori inişi (kırıntıyla
+ * 2 sütunlu ızgara; her grup doğru `/listings` parametreleriyle açar; alt kategori inişi (kırıntıyla
  * geri; katalog yenilenince yol sıfırlanır); iskelet / grup bazında hata + tekrar dene / çekip yenile.
  */
 import React from 'react';
@@ -74,7 +74,7 @@ describe('Kategoriler ekranı — düzen', () => {
     expect(tab('explore').props.accessibilityState).toEqual({ selected: true });
     expect(tab('scales').props.accessibilityState).toEqual({ selected: false });
     expect(headerText().getByText('Keşfet')).toBeTruthy();
-    expect(CATEGORY_GRID_COLUMNS).toBe(3);
+    expect(CATEGORY_GRID_COLUMNS).toBe(2);
   });
 
   it('verisi olmayan (hazır) grup rayda gizlenir', () => {
