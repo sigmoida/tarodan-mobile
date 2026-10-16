@@ -30,6 +30,8 @@ export type ProductFilterOptions = {
    */
   customAttributes: FilterCustomAttributeGroup[];
   isLoading: boolean;
+  /** Filtre seçeneklerini yeniden yükler (ekranın "tekrar dene"si; tanımsız olabilir — mock'lar). */
+  refetch?: () => void;
 };
 
 export function useProductFilterOptions(manufacturerSlug?: string): ProductFilterOptions {
@@ -83,5 +85,6 @@ export function useProductFilterOptions(manufacturerSlug?: string): ProductFilte
     materials: data?.materials ?? [],
     customAttributes: data?.customAttributes ?? [],
     isLoading: filtersQuery.isLoading,
+    refetch: () => void filtersQuery.refetch(),
   };
 }

@@ -35,6 +35,7 @@ export function useListings() {
     categoryId?: string;
     category?: string;
     manufacturer?: string;
+    manufacturerId?: string;
     search?: string;
     discountOnly?: string;
     tradeOnly?: string;
@@ -49,6 +50,8 @@ export function useListings() {
     categoryId: params.categoryId || '',
     category: params.category || '',
     manufacturer: params.manufacturer || '',
+    // Kategoriler ekranı: üretici adı + id birlikte (API süzgeci ad eşleşmesinden bağımsız; web navHref.manufacturer).
+    manufacturerId: params.manufacturerId || '',
     // Ana sayfa "Tümünü gör" bağlantıları (web: /listings?discountOnly=true, ?sortBy=view_count_desc).
     discountOnly: params.discountOnly === 'true',
     tradeOnly: params.tradeOnly === 'true',
