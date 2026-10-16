@@ -1,7 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { manufacturersApi, productsApi, userApi } from '@/lib/api';
+import { unwrapList } from '@/lib/api/unwrap';
 import { qk } from '@/lib/query';
-import { selectWithListings } from '@/utils/catalogListings';
+import { selectWithListings, type ListingCountCarrier } from '@/utils/catalogListings';
+
+interface HomeManufacturer extends ListingCountCarrier {
+  id: string;
+  name: string;
+  slug?: string;
+  logo?: string | null;
+}
 import {
   getProductEffectivePrice,
   getProductOriginalPriceForDisplay,
@@ -70,11 +78,13 @@ export function useHomeData() {
 
   /**
    * Marka şeridi — web gibi `/manufacturers` (logolu). Üreticiler ekranıyla aynı sorgu.
-   * İlanı olmayan üretici şeritte yok (`select`; önbellekteki ham liste değişmez).
+   * İlanı olmayan üretici şeritte yok (`select`; önbellekteki ham liste değişmez). Anahtar Üreticiler
+   * ve Kategoriler ekranlarıyla PAYLAŞILIR: hata `safeList` gibi `[]`'a çevrilip "başarılı" diye
+   * önbelleğe YAZILMAZ (diğer ekranlar hatayı görsün); sorgu hata verir, şerit `data` olmadan boş kalır.
    */
   const manufacturers = useQuery({
     queryKey: qk.catalog.manufacturers,
-    queryFn: () => safeList(() => manufacturersApi.findAll()),
+    queryFn: async () => unwrapList<HomeManufacturer>((await manufacturersApi.findAll()).data),
     select: selectWithListings,
   });
 

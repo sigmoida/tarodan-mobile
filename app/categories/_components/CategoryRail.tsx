@@ -1,12 +1,12 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Text, androidRipple, rippleClip, showPressedStyle, theme } from '@/ui';
+import { useTranslation } from 'react-i18next';
+import { Text, androidRipple, rippleClip, theme } from '@/ui';
+import { CATEGORY_RAIL_WIDTH } from '../_lib/layout';
 import type { CategoryGroup, CategoryGroupKey } from '../_lib/groups';
+import { pressedStyle } from '../_lib/press';
 
 const { colors, spacing } = theme;
-
-/** Sol rayın ekran genişliğine oranı (dar dikey grup listesi). */
-const RAIL_WIDTH = '30%';
 
 interface CategoryRailProps {
   groups: CategoryGroup[];
@@ -18,9 +18,11 @@ interface CategoryRailProps {
 
 /**
  * Sol dikey ray: grup listesi (Keşfet / Kategoriler / Üreticiler / Ölçek). Seçili grup yükseltilmiş
- * yüzey + sol vurgu çubuğu + kalın birincil renkli metinle öne çıkar; kaydırılabilir.
+ * yüzey + sol vurgu çubuğu + kalın birincil renkli metinle öne çıkar; kaydırılabilir. Kaynağı düşen
+ * grup rayda kalır ve altında "Yüklenemedi" der (sessizce kaybolmaz).
  */
 export function CategoryRail({ groups, selectedKey, onSelect, bottomInset }: CategoryRailProps) {
+  const { t } = useTranslation();
   return (
     <ScrollView
       style={styles.rail}
@@ -31,32 +33,39 @@ export function CategoryRail({ groups, selectedKey, onSelect, bottomInset }: Cat
     >
       {groups.map((group) => {
         const selected = group.key === selectedKey;
+        const failed = group.status === 'error';
         return (
           <Pressable
             key={group.key}
             testID={`categories-rail-${group.key}`}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
-            accessibilityLabel={group.title}
+            accessibilityLabel={failed ? `${group.title}, ${t('nav.categoriesLoadFailed')}` : group.title}
             onPress={() => onSelect(group.key)}
             android_ripple={androidRipple()}
             style={({ pressed }) => [
               styles.item,
               rippleClip(),
               selected && styles.itemSelected,
-              showPressedStyle(pressed) && !selected && styles.pressed,
+              !selected && pressedStyle(pressed),
             ]}
           >
             <View style={[styles.accent, selected && styles.accentSelected]} />
-            <Text
-              variant="label"
-              weight={selected ? 'bold' : 'medium'}
-              tone={selected ? 'primary' : 'body'}
-              numberOfLines={2}
-              style={styles.label}
-            >
-              {group.title}
-            </Text>
+            <View style={styles.labels}>
+              <Text
+                variant="label"
+                weight={selected ? 'bold' : 'medium'}
+                tone={selected ? 'primary' : 'body'}
+                numberOfLines={2}
+              >
+                {group.title}
+              </Text>
+              {failed ? (
+                <Text variant="caption" tone="danger" numberOfLines={1} testID={`categories-rail-${group.key}-failed`}>
+                  {t('nav.categoriesLoadFailed')}
+                </Text>
+              ) : null}
+            </View>
           </Pressable>
         );
       })}
@@ -66,7 +75,7 @@ export function CategoryRail({ groups, selectedKey, onSelect, bottomInset }: Cat
 
 const styles = StyleSheet.create({
   rail: {
-    width: RAIL_WIDTH,
+    width: CATEGORY_RAIL_WIDTH,
     flexGrow: 0,
     backgroundColor: colors.surface.alt,
     borderRightWidth: 1,
@@ -80,8 +89,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.transparent,
   },
   itemSelected: { backgroundColor: colors.surface.elevated },
-  pressed: { opacity: 0.85 },
   accent: { alignSelf: 'stretch', width: spacing[1], backgroundColor: colors.transparent },
   accentSelected: { backgroundColor: colors.primary[600] },
-  label: { flex: 1, paddingLeft: spacing[3], paddingVertical: spacing[3] },
+  labels: { flex: 1, paddingLeft: spacing[3], paddingVertical: spacing[3], gap: spacing[0.5] },
 });

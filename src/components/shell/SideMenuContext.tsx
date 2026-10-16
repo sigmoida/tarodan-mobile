@@ -63,11 +63,10 @@ export function useSideMenu(): SideMenuApi {
  */
 export function useEdgeSwipeWhenFocused(active: boolean): void {
   const { setEdgeSwipeEnabled } = useSideMenu();
-  Router.useFocusEffect?.(
-    useCallback(() => {
-      if (!active) return undefined;
-      setEdgeSwipeEnabled(true);
-      return () => setEdgeSwipeEnabled(false);
-    }, [active, setEdgeSwipeEnabled]),
-  );
+  const onFocus = useCallback(() => {
+    if (!active) return undefined;
+    setEdgeSwipeEnabled(true);
+    return () => setEdgeSwipeEnabled(false);
+  }, [active, setEdgeSwipeEnabled]);
+  Router.useFocusEffect?.(onFocus);
 }

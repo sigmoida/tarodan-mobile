@@ -1,13 +1,14 @@
-import React from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Icon, Text, androidRipple, rippleClip, showPressedStyle, theme } from '@/ui';
+import { ErrorState, PageHeader, SectionCardAction, theme } from '@/ui';
+import { CATEGORY_GRID_COLUMNS } from '../_lib/layout';
 import type { CategoryGroup, CategoryTileData } from '../_lib/groups';
+import { GridSkeleton } from './CategoriesSkeleton';
 import { CategoryTile } from './CategoryTile';
+import { ParentCrumb } from './ParentCrumb';
 
-const { colors, spacing, radiusRole } = theme;
-
-export const CATEGORY_GRID_COLUMNS = 3;
+const { colors, spacing } = theme;
 
 /** Son satırdaki boş hücreler (kutular satırı doldurmasın, hizalı kalsın). */
 type Cell = CategoryTileData | { id: string; spacer: true };
@@ -21,82 +22,110 @@ function withSpacers(tiles: CategoryTileData[]): Cell[] {
   ];
 }
 
+const keyExtractor = (cell: Cell) => cell.id;
+
 interface CategoryGridProps {
   title: string;
   tiles: CategoryTileData[];
+  /** Grubun veri durumu: `loading` iskelet, `error` "yüklenemedi" + tekrar dene (kutu yokken). */
+  status: CategoryGroup['status'];
+  onRetry: () => void;
   footer?: CategoryGroup['footer'];
-  /** Alt kategori düzeyindeyken başlığın solunda geri oku. */
+  /** Alt kategori düzeyindeyken başlığın üstünde "‹ Üst kategori" kırıntısı. */
   canGoBack: boolean;
+  parentTitle: string;
   onBack: () => void;
   onPressTile: (tile: CategoryTileData) => void;
   onPressFooter: (href: string) => void;
+  refreshing: boolean;
+  onRefresh: () => void;
   bottomInset: number;
 }
 
 /**
- * Sağ alan: seçili grubun (ya da inilen kategorinin) başlığı + 3 sütunlu ızgara (+ altta bağlantı,
- * ör. "Tüm üreticiler"). Kaydırılabilir; başlık listenin başlığıdır (birlikte kayar).
+ * Sağ alan: seçili grubun (ya da inilen kategorinin) `PageHeader` başlığı + 3 sütunlu ızgara (+ altta
+ * `SectionCardAction` bağlantısı, ör. "Tüm Üreticiler"). Kaydırılabilir, çekip yenilenir; başlık
+ * listenin başlığıdır (birlikte kayar).
  */
 export function CategoryGrid({
   title,
   tiles,
+  status,
+  onRetry,
   footer,
   canGoBack,
+  parentTitle,
   onBack,
   onPressTile,
   onPressFooter,
+  refreshing,
+  onRefresh,
   bottomInset,
 }: CategoryGridProps) {
   const { t } = useTranslation();
+  const data = useMemo(() => withSpacers(tiles), [tiles]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: Cell }) => (
+      <View style={styles.cell}>
+        {'spacer' in item ? null : <CategoryTile tile={item} onPress={onPressTile} />}
+      </View>
+    ),
+    [onPressTile],
+  );
+
+  const header = useMemo(
+    () => (
+      <PageHeader
+        testID="categories-header"
+        title={title}
+        breadcrumb={canGoBack ? <ParentCrumb parentTitle={parentTitle} onPress={onBack} /> : undefined}
+      />
+    ),
+    [title, canGoBack, parentTitle, onBack],
+  );
+
+  const empty =
+    status === 'loading' ? (
+      <GridSkeleton />
+    ) : status === 'error' ? (
+      <ErrorState
+        placement="inline"
+        title={t('nav.categoriesLoadFailed')}
+        onRetry={onRetry}
+        testID="categories-group-error"
+      />
+    ) : null;
+
+  const footerLink =
+    footer && tiles.length > 0 ? (
+      <View style={styles.footer}>
+        <SectionCardAction testID="categories-footer-link" label={footer.label} onPress={() => onPressFooter(footer.href)} />
+      </View>
+    ) : null;
+
   return (
     <FlatList
       style={styles.grid}
       testID="categories-grid"
-      data={withSpacers(tiles)}
+      data={data}
       numColumns={CATEGORY_GRID_COLUMNS}
-      keyExtractor={(cell) => cell.id}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
       columnWrapperStyle={styles.row}
       contentContainerStyle={[styles.content, { paddingBottom: spacing[4] + bottomInset }]}
       showsVerticalScrollIndicator={false}
-      renderItem={({ item }) =>
-        'spacer' in item ? <View style={styles.cell} /> : <View style={styles.cell}><CategoryTile tile={item} onPress={onPressTile} /></View>
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[colors.primary[600]!]}
+          tintColor={colors.primary[600]!}
+        />
       }
-      ListHeaderComponent={
-        <View style={styles.header}>
-          {canGoBack ? (
-            <Pressable
-              testID="categories-back"
-              accessibilityRole="button"
-              accessibilityLabel={t('common.back')}
-              onPress={onBack}
-              hitSlop={spacing[2]}
-              android_ripple={androidRipple({ borderless: true, radius: theme.minTouchTarget / 2 })}
-              style={({ pressed }) => [styles.back, showPressedStyle(pressed) && styles.pressed]}
-            >
-              <Icon name="chevron-left" size={theme.iconSize.md} color={colors.text.heading} />
-            </Pressable>
-          ) : null}
-          <Text variant="h3" weight="bold" numberOfLines={1} style={styles.title} accessibilityRole="header" testID="categories-title">
-            {title}
-          </Text>
-        </View>
-      }
-      ListFooterComponent={
-        footer ? (
-          <Pressable
-            testID="categories-footer-link"
-            accessibilityRole="link"
-            onPress={() => onPressFooter(footer.href)}
-            android_ripple={androidRipple()}
-            style={({ pressed }) => [styles.footer, rippleClip(), showPressedStyle(pressed) && styles.pressed]}
-          >
-            <Text variant="bodySm" weight="semibold" tone="primary">
-              {footer.label}
-            </Text>
-            <Icon name="chevron-right" size={theme.iconSize.sm} color={colors.primary[600]} />
-          </Pressable>
-        ) : null
-      }
+      ListHeaderComponent={header}
+      ListEmptyComponent={empty}
+      ListFooterComponent={footerLink}
     />
   );
 }
@@ -106,32 +135,5 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing[2], paddingTop: spacing[3] },
   row: { gap: spacing[1] },
   cell: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-    minHeight: theme.minTouchTarget,
-    paddingHorizontal: spacing[1],
-    paddingBottom: spacing[2],
-  },
-  back: {
-    width: theme.minTouchTarget,
-    height: theme.minTouchTarget,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: -spacing[2],
-  },
-  title: { flex: 1 },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing[1],
-    marginTop: spacing[3],
-    minHeight: theme.minTouchTarget,
-    borderRadius: radiusRole.button,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-  },
-  pressed: { opacity: 0.85 },
+  footer: { alignItems: 'center', marginTop: spacing[3] },
 });

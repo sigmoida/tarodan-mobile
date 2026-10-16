@@ -53,20 +53,16 @@ describe('Kategoriler grubu', () => {
     expect(catalogHref.category({ id: 'c1', name: 'Otomobil' })).toBe('/listings?categoryId=c1&category=Otomobil');
   });
 
-  it('alt kategorisi olan kutu alt düzeye iner (href yok, allHref üst kategorinin listesi); ilanı olmayan alt ağaç gizli', () => {
+  it('web gibi HEPSİ gösterilir (0 ilanlı kategori de); alt kategorili kutu alt düzeye iner (href yok, allHref üst kategorinin KENDİ categoryId listesi)', () => {
     const tiles = buildCategoryTiles(tree);
-    expect(tiles.map((x) => x.label)).toEqual(['Otomobil', 'Ticari']);
+    expect(tiles.map((x) => x.label)).toEqual(['Otomobil', 'Ticari', 'Boş & Kategori']);
     const ticari = tiles[1]!;
     expect(ticari.href).toBeUndefined();
     expect(ticari.allHref).toBe('/listings?categoryId=c2&category=Ticari');
     expect(ticari.children!.map((x) => [x.label, x.href])).toEqual([
       ['Kamyon', '/listings?categoryId=c2a&category=Kamyon'],
+      ['Otobüs', '/listings?categoryId=c2b&category=Otob%C3%BCs'],
     ]);
-  });
-
-  it('sayaç alanı hiç yoksa süzme yapılmaz (eski yanıt biçimi menüyü boşaltmaz)', () => {
-    const tiles = buildCategoryTiles([{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }]);
-    expect(tiles.map((x) => x.label)).toEqual(['A', 'B']);
   });
 });
 
@@ -114,9 +110,24 @@ describe('Ölçek grubu', () => {
 describe('buildGroups', () => {
   const empty = { categories: [], manufacturers: [], scales: [] };
 
-  it('verisi olmayan grup gizlenir; Keşfet (sabit) her zaman ilk', () => {
+  it('verisi olmayan HAZIR grup gizlenir; Keşfet (sabit) her zaman ilk', () => {
     const groups = buildGroups(t, empty);
     expect(groups.map((g) => g.key)).toEqual(['explore']);
+  });
+
+  it('yüklenen / hata veren grup veri yokken de rayda kalır (sessizce kaybolmaz); veri varsa durum hazır', () => {
+    const groups = buildGroups(t, {
+      categories: [{ id: 'c1', name: 'Otomobil' }],
+      manufacturers: [],
+      scales: [],
+      status: { categories: 'error', manufacturers: 'error', scales: 'loading' },
+    });
+    expect(groups.map((g) => [g.key, g.status])).toEqual([
+      ['explore', 'ready'],
+      ['categories', 'ready'],
+      ['manufacturers', 'error'],
+      ['scales', 'loading'],
+    ]);
   });
 
   it('tüm gruplar sırayla: Keşfet, Kategoriler, Üreticiler (altta "Tüm üreticiler" → /ureticiler), Ölçek', () => {

@@ -46,10 +46,14 @@ export interface CategoryTileData {
   allHref?: string;
 }
 
+/** Bir grubun veri kaynağı durumu: `loading` (ilk yükleme), `error` (veri yok + hata), `ready`. */
+export type GroupStatus = 'ready' | 'loading' | 'error';
+
 export interface CategoryGroup {
   key: CategoryGroupKey;
   title: string;
   tiles: CategoryTileData[];
+  status: GroupStatus;
   /** Izgaranın altındaki bağlantı (ör. "Tüm üreticiler"). */
   footer?: { label: string; href: string };
 }
@@ -89,36 +93,24 @@ export function buildExploreTiles(t: TFunction): CategoryTileData[] {
   ];
 }
 
-/** Bu düğüm ve altındaki tüm aktif ilanların toplamı (`productCount` doğrudan sayıdır). */
-function subtreeCount(node: CategoryNode): number {
-  return (
-    (node.productCount ?? 0) + (node.children ?? []).reduce((sum, child) => sum + subtreeCount(child), 0)
-  );
-}
-
 /**
- * Kategori ağacı → kutular. İlanı olmayan (kendisi ve altı) kategori gösterilmez — boş listeye
- * götüren kutu kullanıcıyı yanıltır (üretici/marka listeleriyle aynı karar). Sayaç alanı hiç
- * gelmemişse (eski yanıt biçimi) süzme yapılmaz. Alt kategorisi olan kutu alt düzeye iner.
+ * Kategori ağacı → kutular. Web menüsü gibi HEPSİ gösterilir (0 ilanlı kategori de; ilan sayısına
+ * göre gizleme yok). Alt kategorisi olan kutu alt düzeye iner; `allHref` üst kategorinin KENDİ
+ * `categoryId` listesidir (web `navHref` ile aynı kesin eşleşme).
  */
 export function buildCategoryTiles(nodes: CategoryNode[]): CategoryTileData[] {
-  const hasCounts = (list: CategoryNode[]): boolean =>
-    list.some((n) => n.productCount != null || hasCounts(n.children ?? []));
-  const filterEmpty = hasCounts(nodes);
   const build = (list: CategoryNode[]): CategoryTileData[] =>
-    list
-      .filter((n) => !filterEmpty || subtreeCount(n) > 0)
-      .map((n) => {
-        const children = build(n.children ?? []);
-        return {
-          id: `category:${n.id}`,
-          label: n.name,
-          visual: 'logo' as const,
-          ...(children.length > 0
-            ? { children, allHref: catalogHref.category(n) }
-            : { href: catalogHref.category(n) }),
-        };
-      });
+    list.map((n) => {
+      const children = build(n.children ?? []);
+      return {
+        id: `category:${n.id}`,
+        label: n.name,
+        visual: 'logo' as const,
+        ...(children.length > 0
+          ? { children, allHref: catalogHref.category(n) }
+          : { href: catalogHref.category(n) }),
+      };
+    });
   return build(nodes);
 }
 
@@ -157,22 +149,39 @@ export function buildScaleTiles(scales: string[]): CategoryTileData[] {
 }
 
 /**
- * Raydaki gruplar: Keşfet (sabit) → Kategoriler → Üreticiler → Ölçek. Verisi olmayan grup gizlenir.
+ * Raydaki gruplar: Keşfet (sabit) → Kategoriler → Üreticiler → Ölçek. Verisi olmayan VE hazır olan
+ * grup gizlenir; yüklenen / hata veren grup rayda kalır (sessizce kaybolmaz — sağ alan iskelet ya da
+ * "yüklenemedi" + tekrar dene gösterir).
  */
 export function buildGroups(
   t: TFunction,
-  data: { categories: CategoryNode[]; manufacturers: ManufacturerNode[]; scales: string[] },
+  data: {
+    categories: CategoryNode[];
+    manufacturers: ManufacturerNode[];
+    scales: string[];
+    status?: Partial<Record<CategoryGroupKey, GroupStatus>>;
+  },
 ): CategoryGroup[] {
+  const status = (key: CategoryGroupKey): GroupStatus => data.status?.[key] ?? 'ready';
   const groups: CategoryGroup[] = [
-    { key: 'explore', title: t('nav.explore'), tiles: buildExploreTiles(t) },
-    { key: 'categories', title: t('nav.categories'), tiles: buildCategoryTiles(data.categories) },
+    { key: 'explore', title: t('nav.explore'), tiles: buildExploreTiles(t), status: 'ready' },
+    {
+      key: 'categories',
+      title: t('nav.categories'),
+      tiles: buildCategoryTiles(data.categories),
+      status: status('categories'),
+    },
     {
       key: 'manufacturers',
       title: t('nav.manufacturers'),
       tiles: buildManufacturerTiles(data.manufacturers),
+      status: status('manufacturers'),
       footer: { label: t('nav.allManufacturers'), href: catalogHref.allManufacturers },
     },
-    { key: 'scales', title: t('nav.scale'), tiles: buildScaleTiles(data.scales) },
+    { key: 'scales', title: t('nav.scale'), tiles: buildScaleTiles(data.scales), status: status('scales') },
   ];
-  return groups.filter((g) => g.tiles.length > 0);
+  // Eldeki veri (önbellek) varsa durum ne olursa olsun hazır: arka plan hatası içeriği gizlemez.
+  return groups
+    .map((g): CategoryGroup => (g.tiles.length > 0 ? { ...g, status: 'ready' } : g))
+    .filter((g) => g.tiles.length > 0 || g.status !== 'ready');
 }

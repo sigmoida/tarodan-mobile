@@ -1,9 +1,10 @@
 import React from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { ListRowCard, Text, androidRipple, rippleClip, showPressedStyle, theme } from '@/ui';
+import { ListRowCard, Text, androidRipple, rippleClip, theme } from '@/ui';
 import { EntityLogo } from '@/components/catalog/EntityLogo';
 import type { CategoryTileData } from '../_lib/groups';
+import { pressedStyle } from '../_lib/press';
 
 const { spacing, radiusRole } = theme;
 
@@ -15,9 +16,10 @@ interface CategoryTileProps {
 /**
  * Izgara kutusu (3 sütun hücresi). `logo`: görsel kutusu (logo, yoksa baş harf) + etiket (+ "N ürün");
  * `plain`: yalnız etiketli çerçeveli kutu (Keşfet, Ölçek, alt düzeydeki "Tümü"). İkisi de ≥44pt
- * dokunma, Android ripple / iOS basılı opaklık (`@/ui` yardımcıları).
+ * dokunma, Android ripple / iOS basılı opaklık (`@/ui` yardımcıları). `memo`: `tile` ve `onPress`
+ * sabit kaldıkça ızgara yeniden çizilirken kutu yeniden çizilmez.
  */
-export function CategoryTile({ tile, onPress }: CategoryTileProps) {
+function CategoryTileBase({ tile, onPress }: CategoryTileProps) {
   const { t } = useTranslation();
   const testID = `categories-tile-${tile.id}`;
   const count = tile.count != null ? t('payment.itemsCount', { count: tile.count }) : undefined;
@@ -47,7 +49,7 @@ export function CategoryTile({ tile, onPress }: CategoryTileProps) {
       accessibilityLabel={accessibilityLabel}
       onPress={() => onPress(tile)}
       android_ripple={androidRipple()}
-      style={({ pressed }) => [styles.logo, rippleClip(), showPressedStyle(pressed) && styles.pressed]}
+      style={({ pressed }) => [styles.logo, rippleClip(), pressedStyle(pressed)]}
     >
       <EntityLogo logo={tile.logo} name={tile.label} />
       <Text variant="caption" weight="medium" align="center" numberOfLines={2}>
@@ -61,6 +63,8 @@ export function CategoryTile({ tile, onPress }: CategoryTileProps) {
     </Pressable>
   );
 }
+
+export const CategoryTile = React.memo(CategoryTileBase);
 
 const styles = StyleSheet.create({
   plain: {
@@ -77,5 +81,4 @@ const styles = StyleSheet.create({
     minHeight: theme.minTouchTarget,
     borderRadius: radiusRole.card,
   },
-  pressed: { opacity: 0.85 },
 });
