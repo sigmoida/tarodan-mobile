@@ -34,6 +34,8 @@ export interface IconButtonProps extends Omit<PressableProps, 'style'> {
   iconVariant?: IconVariant;
   variant?: IconButtonVariant;
   size?: IconButtonSize;
+  /** `square` (varsayılan: `radiusRole.button` köşe) ya da `round` (tam daire; ör. sohbet ekle/gönder). */
+  shape?: 'square' | 'round';
   /** Override icon color (otherwise derived from variant). */
   color?: string;
   isLoading?: boolean;
@@ -73,6 +75,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
   iconVariant,
   variant = 'ghost',
   size = 'md',
+  shape = 'square',
   color,
   isLoading,
   disabled,
@@ -106,6 +109,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
           backgroundColor: vs.bg,
           borderColor: vs.border ?? 'transparent',
           borderWidth: vs.border ? 1 : 0,
+          borderRadius: shape === 'round' ? ss.box / 2 : radiusRole.button,
           opacity: disabled || isLoading ? 0.5 : showPressedStyle(pressed) ? 0.7 : 1,
         },
         style,

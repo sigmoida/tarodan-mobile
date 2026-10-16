@@ -45,6 +45,8 @@ export interface GlassIconButtonProps {
   size?: GlassIconButtonSize;
   /** Aç/kapa düğmelerinde (favori) durum: etiket sabit kalır, ekran okuyucu "seçili" der. */
   selected?: boolean;
+  /** Açık tonlu cam (`GlassSurface light`, varsayılan açık); `false` = saf cam. */
+  light?: boolean;
 }
 
 /**
@@ -64,6 +66,7 @@ export function GlassIconButton({
   iconColor,
   size = 'md',
   selected,
+  light,
 }: GlassIconButtonProps) {
   // Native cam, ata opacity < 1 iken efektini kaybeder: camda soluklaştırma ve basılı geri bildirimi
   // (disabled opacity / pressed opacity) yüzeye değil içeriğe / ölçeğe uygulanır.
@@ -98,6 +101,7 @@ export function GlassIconButton({
         <GlassSurface
           shape="circle"
           size={box}
+          light={light}
           interactive={!disabled}
           pointerEvents={glass ? undefined : 'none'}
         >

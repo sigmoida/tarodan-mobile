@@ -62,14 +62,14 @@ describe('PageShell scroll modu — otomatik bağlama', () => {
     jest.restoreAllMocks();
   });
 
-  it('loading / error / empty: gövde bar kadar aşağıdan başlar ve kenar şeridi sabit', () => {
+  it('loading / error / empty: gövde bar kadar aşağıdan başlar ve kenar şeridi yok', () => {
     render(
       <PageShell title="X" loading>
         <RawText>içerik</RawText>
       </PageShell>,
     );
     expect(screen.queryByText('içerik')).toBeNull();
-    expect(flat('screen-header-edge').backgroundColor).toBe(theme.colors.overlay.white95);
+    expect(screen.queryByTestId('screen-header-edge')).toBeNull();
     const skeleton = screen.getByTestId('page-shell-skeleton', { includeHiddenElements: true });
     let node = skeleton.parent;
     while (node && StyleSheet.flatten(node.props.style)?.paddingTop !== BAR(47)) node = node.parent;
@@ -122,7 +122,7 @@ describe('PageShell — topInset değişince çocuklar yeniden mount OLMAZ (form
 });
 
 describe('PageShell list/static — ekranın kendi listesi', () => {
-  it('bağlanmamış: gövde bar altında başlar, şerit sabit hafif beyaz (hiçbir ekran okunamaz kalmaz)', () => {
+  it('bağlanmamış: gövde bar altında başlar, kenar şeridi yok (bar dinlenmede her ekranda aynı)', () => {
     render(
       <PageShell title="Favoriler" mode="list">
         <View testID="list-body" />
@@ -131,7 +131,7 @@ describe('PageShell list/static — ekranın kendi listesi', () => {
     let node = screen.getByTestId('list-body').parent;
     while (node && StyleSheet.flatten(node.props.style)?.paddingTop !== BAR(47)) node = node.parent;
     expect(node).toBeTruthy();
-    expect(flat('screen-header-edge').backgroundColor).toBe(theme.colors.overlay.white95);
+    expect(screen.queryByTestId('screen-header-edge')).toBeNull();
   });
 
   it('`scroll` (usePageScrollValue) verilince gövde tepeden başlar ve şerit kaydırmaya bağlanır', () => {
@@ -164,6 +164,6 @@ describe('PageShell list/static — ekranın kendi listesi', () => {
       );
     }
     render(<Screen />);
-    expect(flat('screen-header-edge').backgroundColor).toBe(theme.colors.overlay.white95);
+    expect(screen.queryByTestId('screen-header-edge')).toBeNull();
   });
 });

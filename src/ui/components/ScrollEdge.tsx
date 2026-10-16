@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../lib/theme';
@@ -14,8 +14,9 @@ export interface ScrollEdgeProps {
   /** Üst bar yüksekliği: güvenli alan üstü + `headerHeight` (durum çubuğu bölgesini de kapsar). */
   barHeight: number;
   /**
-   * Kaydırma sinyali (0 = içerik başı). Verilmezse efekt SABİT hafif beyaz şerit olur: kaydırma
-   * sinyali bağlanmamış ekranlarda bar her zaman okunur kalır.
+   * Kaydırma sinyali (0 = içerik başı). Verilmezse efekt ÇİZİLMEZ: sinyal bağlanmamış ekranda
+   * (ya da yükleniyor / boş / hata durumunda) gövde bar altından başlar, barın altına içerik girmez;
+   * bar her ekranda dinlenmede aynı görünür (zeminsiz).
    */
   scrollY?: SharedValue<number>;
   testID?: string;
@@ -28,15 +29,7 @@ export interface ScrollEdgeProps {
  * animasyonlu şeritte kullanılamaz. Dokunuşları geçirir (`pointerEvents="none"`).
  */
 export const ScrollEdge: React.FC<ScrollEdgeProps> = ({ barHeight, scrollY, testID = 'scroll-edge' }) =>
-  scrollY ? (
-    <AnimatedEdge barHeight={barHeight} scrollY={scrollY} testID={testID} />
-  ) : (
-    <View
-      pointerEvents="none"
-      testID={testID}
-      style={[styles.fill, { height: barHeight, backgroundColor: colors.overlay.white95 }]}
-    />
-  );
+  scrollY ? <AnimatedEdge barHeight={barHeight} scrollY={scrollY} testID={testID} /> : null;
 
 const AnimatedEdge: React.FC<Required<Pick<ScrollEdgeProps, 'scrollY'>> & Omit<ScrollEdgeProps, 'scrollY'>> = ({
   barHeight,

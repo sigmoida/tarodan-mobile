@@ -39,7 +39,7 @@ export type PageShellMode = 'scroll' | 'list' | 'static';
 export interface PageShellProps
   extends Pick<
       ScreenHeaderProps,
-      'subtitle' | 'onBack' | 'showBack' | 'right' | 'centerTitle' | 'leading' | 'titleSlot'
+      'subtitle' | 'onBack' | 'showBack' | 'right' | 'centerTitle' | 'leading' | 'titleSlot' | 'titleFill'
     > {
   /** Üst bar başlığı. `header` verilmezse beyaz üst bar bununla çizilir. */
   title?: string;
@@ -115,6 +115,7 @@ export const PageShell: React.FC<PageShellProps> = ({
   centerTitle,
   leading,
   titleSlot,
+  titleFill,
   header,
   mode = 'scroll',
   children,
@@ -167,6 +168,7 @@ export const PageShell: React.FC<PageShellProps> = ({
       centerTitle={centerTitle}
       leading={leading}
       titleSlot={titleSlot}
+      titleFill={titleFill}
       scrollY={underBar ? edgeY : undefined}
     />
   ) : null;

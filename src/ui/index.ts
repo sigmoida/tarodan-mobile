@@ -10,12 +10,14 @@ export {
 	useResetScrollOnBind,
 	ShellScrollProvider,
 	scrollEdgeOpacity,
+	pageScrollOffset,
 	SCROLL_EDGE_FULL_AT,
 	withTopInset,
 	type PageScroll,
 	type PageScrollValue,
 } from './lib/pageScroll';
 export { ScrollEdge, type ScrollEdgeProps } from './components/ScrollEdge';
+export { useScreenFocused } from './lib/screenFocus';
 
 export {
 	Button,

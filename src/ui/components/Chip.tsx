@@ -18,8 +18,9 @@ export type ChipSize = 'sm' | 'md';
 export interface ChipProps extends Omit<PressableProps, 'style'> {
   label: string;
   /**
-   * Etiketin yanında küçük sayaç rozeti (sekme çipi: "İlanlar [20]"). Rozet köşesi
-   * (`radiusRole.badge`); 0 da gösterilir. Erişilebilirlik etiketine `Etiket (n)` olarak girer.
+   * Etiketin yanında küçük sayaç rozeti (sekme çipi: "İlanlar [20]"). Köşesi çiple AYNI (tam
+   * yuvarlak, `radiusRole.chip`; tek hane daire); 0 da gösterilir. Erişilebilirlik etiketine
+   * `Etiket (n)` olarak girer.
    */
   count?: number;
   /** Etiketin sonunda işlev ikonu (ör. kaldırılabilir filtre çipi için `x-mark`). */
@@ -152,7 +153,7 @@ export const Chip: React.FC<ChipProps> = ({
       {count != null ? (
         <Pill
           size="count"
-          shape="badge"
+          shape="full"
           background={isOn ? colors.primary[600] : colors.gray[100]}
           color={isOn ? colors.text.inverted : colors.text.muted}
           testID={rest.testID ? `${rest.testID}-count` : undefined}

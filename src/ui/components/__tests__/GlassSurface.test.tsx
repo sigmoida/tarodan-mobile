@@ -45,6 +45,28 @@ describe('GlassSurface', () => {
     expect(flat(screen.getByTestId('glass-view'))).toMatchObject({ width: 44, height: 44, borderRadius: 10 });
   });
 
+  it('açık ton VARSAYILAN: camda yarı saydam beyaz tintColor + hafif beyaz dolgu (koyu görselde de okunur); light={false} saf cam; fallback değişmez', () => {
+    getGlassViewMock.mockReturnValue(Glass);
+    const first = render(<GlassSurface size={44} />);
+    const glass = screen.getByTestId('glass-view');
+    expect(glass.props.tintColor).toBe(theme.colors.overlay.white70);
+    expect(flat(glass.children[0] as any).backgroundColor).toBe(theme.colors.overlay.white50);
+    first.unmount();
+    const pure = render(<GlassSurface size={44} light={false} />);
+    expect(screen.getByTestId('glass-view').props.tintColor).toBeUndefined();
+    pure.unmount();
+    getGlassViewMock.mockReturnValue(null);
+    Platform.OS = 'ios';
+    render(<GlassSurface size={44} testID="s" />);
+    expect(flat(screen.getByTestId('s')).backgroundColor).toBe(theme.colors.overlay.white90);
+  });
+
+  it('GlassIconButton varsayılan olarak açık tonlu cam kullanır', () => {
+    getGlassViewMock.mockReturnValue(Glass);
+    render(<GlassIconButton icon="share" accessibilityLabel="Paylaş" onPress={() => undefined} />);
+    expect(screen.getByTestId('glass-view').props.tintColor).toBe(theme.colors.overlay.white70);
+  });
+
   it('tint: camda tintColor + yarı opak dolgu; fallback düz tint rengi', () => {
     getGlassViewMock.mockReturnValue(Glass);
     const { unmount } = render(<GlassSurface size={64} tint={theme.colors.primary[600]} />);
