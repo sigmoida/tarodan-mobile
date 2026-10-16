@@ -40,7 +40,7 @@ jest.mock('@/lib/api-client', () => {
 
 jest.mock('@/stores/authStore', () => {
   const { create } = require('zustand');
-  return { useAuthStore: create(() => ({ token: null, logout: jest.fn() })) };
+  return { useAuthStore: create(() => ({ isAuthenticated: true, token: null, logout: jest.fn() })) };
 });
 
 jest.mock('@/services/sentry', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn(), setUser: jest.fn() }));
@@ -89,8 +89,8 @@ describe('session epoch', () => {
     resolveRefresh({ data: { accessToken: 'a-refreshed', refreshToken: 'a-rotated' } });
     await pending;
 
-    expect(mockSetItem).not.toHaveBeenCalledWith('accessToken', 'a-refreshed');
-    expect(mockSetItem).not.toHaveBeenCalledWith('refreshToken', 'a-rotated');
+    expect(mockSetItem).not.toHaveBeenCalledWith('accessToken', 'a-refreshed', expect.anything());
+    expect(mockSetItem).not.toHaveBeenCalledWith('refreshToken', 'a-rotated', expect.anything());
     expect(useAuthStore.getState().token).toBe('b-token');
   });
 
@@ -101,8 +101,8 @@ describe('session epoch', () => {
 
     await onResponseError(error401());
 
-    expect(mockSetItem).toHaveBeenCalledWith('accessToken', 'fresh');
-    expect(mockSetItem).toHaveBeenCalledWith('refreshToken', 'rotated');
+    expect(mockSetItem).toHaveBeenCalledWith('accessToken', 'fresh', expect.anything());
+    expect(mockSetItem).toHaveBeenCalledWith('refreshToken', 'rotated', expect.anything());
     expect(useAuthStore.getState().token).toBe('fresh');
   });
 });

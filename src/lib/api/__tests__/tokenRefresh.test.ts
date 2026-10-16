@@ -50,7 +50,7 @@ jest.mock("@/lib/api-client", () => {
 jest.mock("@/stores/authStore", () => {
   const { create } = require("zustand");
   return {
-    useAuthStore: create(() => ({ token: null, logout: jest.fn() })),
+    useAuthStore: create(() => ({ isAuthenticated: true, token: null, logout: jest.fn() })),
   };
 });
 
@@ -89,9 +89,9 @@ describe("silent token refresh — zustand store senkronu (C1)", () => {
 
     await onResponseError(error401());
 
-    expect(mockSetItem).toHaveBeenCalledWith("accessToken", "fresh-1");
+    expect(mockSetItem).toHaveBeenCalledWith("accessToken", "fresh-1", expect.anything());
     // Rotated refresh token'ın kaydı korunuyor (asıl refresh bug'ının regresyonu).
-    expect(mockSetItem).toHaveBeenCalledWith("refreshToken", "rotated-1");
+    expect(mockSetItem).toHaveBeenCalledWith("refreshToken", "rotated-1", expect.anything());
     // ASIL DÜZELTME: store artık bayat token'ı taşımıyor.
     expect(useAuthStore.getState().token).toBe("fresh-1");
   });
@@ -101,7 +101,7 @@ describe("silent token refresh — zustand store senkronu (C1)", () => {
 
     await onResponseError(error401());
 
-    expect(mockSetItem).toHaveBeenCalledWith("accessToken", "fresh-2");
+    expect(mockSetItem).toHaveBeenCalledWith("accessToken", "fresh-2", expect.anything());
     expect(useAuthStore.getState().token).toBe("fresh-2");
   });
 
@@ -123,7 +123,7 @@ describe("silent token refresh — zustand store senkronu (C1)", () => {
 
     expect(useAuthStore.getState().token).toBeNull();
     // SecureStore yazımı (mevcut davranış) değişmedi.
-    expect(mockSetItem).toHaveBeenCalledWith("accessToken", "fresh-4");
+    expect(mockSetItem).toHaveBeenCalledWith("accessToken", "fresh-4", expect.anything());
   });
 
   it("refresh token yoksa store'a dokunulmaz; logout → login yönlendirmesi çalışır", async () => {

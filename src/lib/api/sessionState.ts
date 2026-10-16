@@ -49,8 +49,29 @@ export function isSessionDeferred(): boolean {
  */
 export const SESSION_PROBE = { _sessionProbe: true } as const;
 
+/**
+ * Banlı kullanıcı yönlendirmesi (`/banned`) bu oturumda yapıldı mı? Aynı anda dönen birden çok
+ * USER_BANNED 403'ü ekranı tekrar tekrar açmasın diye. Her giriş ve çıkışta sıfırlanır
+ * (`authStore`) — yoksa sonraki bir oturum (ban kalktıktan sonra ya da başka hesap) bir daha
+ * hiç yönlendirilmezdi.
+ */
+let bannedRedirectActive = false;
+
+/** Ban yönlendirmesini bu oturum için üstlenir: ilk çağrı `true`, sıfırlanana dek sonrakiler `false`. */
+export function claimBannedRedirect(): boolean {
+  if (bannedRedirectActive) return false;
+  bannedRedirectActive = true;
+  return true;
+}
+
+/** Giriş / çıkış (ve ban ekranından çıkış): sonraki oturum yeniden yönlendirilebilsin. */
+export function resetBannedRedirect(): void {
+  bannedRedirectActive = false;
+}
+
 /** YALNIZ TEST. */
 export function resetSessionStateForTests(): void {
   sessionEpoch = 0;
   sessionDeferred = false;
+  bannedRedirectActive = false;
 }
