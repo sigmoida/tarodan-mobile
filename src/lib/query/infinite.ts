@@ -6,13 +6,23 @@ import type { InfiniteData, QueryClient, QueryKey } from '@tanstack/react-query'
  * `refetch()` yüklü TÜM sayfaları sırayla yeniden çeker (5 sayfa yüklüyse 5 istek). Çekip-yenile
  * listenin en üstünde yapıldığından ilk sayfayı bırakıp yenilemek görsel kayıp yaratmaz ve tek
  * istek atar (TanStack v5 önerisi; arama ekranının `refreshFirstPage`'iyle aynı yöntem).
+ *
+ * `maxPages` baştaki sayfaları düşürmüşse `pages[0]` 1. sayfa DEĞİLDİR (örn. 2. sayfa): kırpma
+ * onu olduğu gibi tutarsa `refetch()` hep 2. sayfayı yenileyip listeyi baştan yüklemezdi. Bu
+ * yüzden kalan ilk sayfanın parametresi `initialPageParam`'a çekilir — `refetch()` ilk parametreyle
+ * başlayıp 1. sayfayı getirir; eski içerik yanıt gelene dek görünür kalır (boş ekran yanıp sönmez).
  */
-export function trimInfiniteToFirstPage(queryClient: QueryClient, queryKey: QueryKey): void {
-  queryClient.setQueryData<InfiniteData<unknown>>(queryKey, (old) =>
-    old && old.pages.length > 1
-      ? { pages: old.pages.slice(0, 1), pageParams: old.pageParams.slice(0, 1) }
-      : old,
-  );
+export function trimInfiniteToFirstPage(
+  queryClient: QueryClient,
+  queryKey: QueryKey,
+  initialPageParam: unknown = 1,
+): void {
+  queryClient.setQueryData<InfiniteData<unknown>>(queryKey, (old) => {
+    if (!old) return old;
+    const firstDropped = old.pageParams[0] !== initialPageParam;
+    if (old.pages.length <= 1 && !firstDropped) return old;
+    return { pages: old.pages.slice(0, 1), pageParams: [initialPageParam] };
+  });
 }
 
 /** Sayfalı yanıtın (`{ data, meta: { page, totalPages } }`) sayfa bilgisi. */

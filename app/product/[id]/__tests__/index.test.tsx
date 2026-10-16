@@ -408,6 +408,32 @@ describe('Ürün detay ekranı', () => {
     expect(incrementViewMock).toHaveBeenCalledTimes(1);
   });
 
+  it('sahibe-özel uçtan (onay bekleyen ilan) gelen veri görüntülenme saymaz', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'u9' } };
+    getOneMock.mockRejectedValue({ response: { status: 404 } });
+    (productsApi.getMyById as jest.Mock).mockResolvedValue({
+      data: { data: productFixture({ status: 'pending' }) },
+    });
+    renderWithProviders(<ProductDetailScreen />);
+
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    expect(productsApi.getMyById).toHaveBeenCalledTimes(1);
+    expect(incrementViewMock).not.toHaveBeenCalled();
+  });
+
+  it('sahibi kendi aktif ilanına bakarken de görüntülenme saymaz; başkası sayar', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 's1' } };
+    getOneMock.mockResolvedValue({ data: { data: productFixture() } });
+    const own = renderWithProviders(<ProductDetailScreen />);
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    expect(incrementViewMock).not.toHaveBeenCalled();
+    own.unmount();
+
+    mockAuth = { isAuthenticated: true, user: { id: 'baska' } };
+    renderWithProviders(<ProductDetailScreen />);
+    await waitFor(() => expect(incrementViewMock).toHaveBeenCalledTimes(1));
+  });
+
   it('liste önbelleğindeki kartla anında açılır: galeri + başlık + fiyat; tam veri isteyen bölümler iskelet, alt bar yok', async () => {
     const queryClient = persistentClient();
     queryClient.setQueryData(qk.products.homeFeatured, [

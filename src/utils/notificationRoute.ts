@@ -24,6 +24,41 @@ export function isSafeRouteId(value: unknown): value is string {
   return typeof value === 'string' && SAFE_ROUTE_ID_RE.test(value);
 }
 
+/** Yol segmenti üst sınırı (çözülmüş uzunluk): kimlik/slug için fazlasıyla yeterli. */
+const MAX_SEGMENT_LENGTH = 128;
+/** Slug karakterleri: Unicode harf/rakam + `._~:@-` (Türkçe slug, e-posta benzeri token, sürüm noktası). */
+const SAFE_SEGMENT_RE = /^[\p{L}\p{N}._~:@-]+$/u;
+// Yol ayracı ve kontrol karakterleri (izinli kümede zaten yok; açık yedek savunma).
+// eslint-disable-next-line no-control-regex
+const PATH_BREAK_RE = /[\\/\u0000-\u001f\u007f]/;
+
+/**
+ * Bir YOL SEGMENTİ rota parametresi olarak ekrana, oradan `apiPath` ile (segment başına
+ * kodlanarak) API yoluna gider; tehlikeli olan yalnız yol kaçışıdır. Bu yüzden kimlik biçimini
+ * (`isSafeRouteId`) dayatmak yerine yalnız şunları reddederiz: bozuk kodlama, boş / `.` / `..`,
+ * `/` `\` (kodlanmış `%2F` dahil) ve kontrol karakteri içeren, aşırı uzun ya da izinli küme
+ * dışı (boşluk, `?`, `#`, `%`…) segmentler. Kimlik biçimi yalnız kimlik bekleyen rotalarda ayrıca
+ * aranır (`isIdSegment`, bkz. `toMobileRoute`).
+ */
+export function isSafePathSegment(raw: string): boolean {
+  if (!raw) return false;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    return false;
+  }
+  if (!decoded || decoded === '.' || decoded === '..') return false;
+  if (decoded.length > MAX_SEGMENT_LENGTH) return false;
+  if (PATH_BREAK_RE.test(decoded)) return false;
+  return SAFE_SEGMENT_RE.test(decoded);
+}
+
+/** Kimlik bekleyen yol segmenti: çözülmüş hâli kimlik biçimine (`isSafeRouteId`) uymalı. */
+function isIdSegment(raw: string | undefined): boolean {
+  return decodeSafeRouteId(raw) !== null;
+}
+
 /** Yüzde kodlu sorgu değerini çözer; bozuk kodlama ya da biçim dışı kimlik → null. */
 function decodeSafeRouteId(raw: string | undefined): string | null {
   if (!raw) return null;
@@ -54,9 +89,11 @@ export function toMobileRoute(link: string): string | null {
     return thread ? `/messages/${thread}` : '/messages';
   }
 
-  // Yol segmentleri rota parametresi olarak ekrana, oradan API yoluna gider: kimlik
-  // biçimine uymayan (kodlanmış `/`, `..`, `?` …) bir segment varsa link eşlenmez.
-  if (!path.split('/').filter(Boolean).every(isSafeRouteId)) return null;
+  // Yol segmentleri rota parametresi olarak ekrana, oradan API yoluna gider: yol kaçışı
+  // içeren (kodlanmış `/`, `..`, `?`, kontrol karakteri …) bir segment varsa link eşlenmez.
+  // Slug'lar (Türkçe harf, `.`, `@`, `:`) geçer; kimlik biçimi yalnız kimlik bekleyen
+  // rotalarda aşağıda ayrıca aranır.
+  if (!path.split('/').filter(Boolean).every(isSafePathSegment)) return null;
   // /offers?tab=received → /offers
   if (path === '/offers') return '/offers';
 
@@ -89,27 +126,36 @@ export function toMobileRoute(link: string): string | null {
       // mobil ilan düzenleme; liste → mobil ilan listesi (filtre/sıralama sorgusu korunur:
       // /listings?discountOnly=true, ?sortBy=…)
       if (!id) return withQuery('/listings');
-      return seg[2] === 'edit' ? `/listing/${id}/edit` : `/product/${id}`;
+      // Düzenleme ekranı kimlikle çalışır; detay slug de olabilir.
+      if (seg[2] === 'edit') return isIdSegment(id) ? `/listing/${id}/edit` : null;
+      return `/product/${id}`;
     }
     case 'trades':
       // web çoğul → mobil tekil; liste → tab
-      return id ? `/trade/${id}` : '/trades';
+      if (!id) return '/trades';
+      return isIdSegment(id) ? `/trade/${id}` : null;
     case 'profile': {
       const [, section, sectionId] = seg;
       if (section === 'listings') return '/settings/my-listings';
       if (section === 'earnings') return '/settings/payments';
       // web /profile/<bölüm>/:id → mobil detay rotaları
-      if (section === 'orders' && sectionId) return `/orders/${sectionId}`;
-      if (section === 'trades' && sectionId) return `/trade/${sectionId}`;
-      if (section === 'refund-requests' && sectionId) return `/refund-requests/${sectionId}`;
+      if (sectionId && ['orders', 'trades', 'refund-requests'].includes(section ?? '')) {
+        if (!isIdSegment(sectionId)) return null;
+        if (section === 'orders') return `/orders/${sectionId}`;
+        if (section === 'trades') return `/trade/${sectionId}`;
+        return `/refund-requests/${sectionId}`;
+      }
       return '/(tabs)/profile';
     }
     case 'refund-requests':
       // web /refund-requests/:id → mobil iade detayı (alıcı+satıcı erişebilir);
       // liste → alıcının kendi iade talepleri
-      return id ? `/refund-requests/${id}` : '/refund-requests';
-    // Mobil rotalarla birebir uyumlu — olduğu gibi geçir
+      if (!id) return '/refund-requests';
+      return isIdSegment(id) ? `/refund-requests/${id}` : null;
+    // Sipariş: ödeme / iade / teslim uçlarına giden kimlik — kimlik biçimi şart.
     case 'orders':
+      return seg.slice(1).every(isIdSegment) ? path : null;
+    // Mobil rotalarla birebir uyumlu — olduğu gibi geçir (salt okunur; slug olabilir)
     case 'product':
     case 'products': // /products/unavailable/:id
     case 'collections':
@@ -119,7 +165,10 @@ export function toMobileRoute(link: string): string | null {
     // web satıcı sipariş yolu /seller/orders/:id → mobil satış detayı /sales/:id;
     // diğer /seller/:id yolları (satıcı profili) mobilde aynı ad.
     case 'seller':
-      if (id === 'orders') return seg[2] ? `/sales/${seg[2]}` : '/sales';
+      if (id === 'orders') {
+        if (!seg[2]) return '/sales';
+        return isIdSegment(seg[2]) ? `/sales/${seg[2]}` : null;
+      }
       return path;
     // Üyelik bildirimleri (süre doluyor / doldu / kart gerekli): web /membership →
     // mobil üyelik ekranı. Dijital satış kapalıyken ekran yalnız bilgi gösterir.

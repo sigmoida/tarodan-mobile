@@ -4,6 +4,7 @@ import { productsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { productDetailQuery } from '@/lib/product/detailQuery';
 import { findCachedListProduct } from '@/lib/product/listCache';
+import { isOwnProduct } from '@/hooks/useFavoriteToggle';
 import type { Product } from '../_lib/types';
 
 /**
@@ -11,10 +12,12 @@ import type { Product } from '../_lib/types';
  * 404 → `null`, ağ/5xx → hata). İlk kare: önbellekteki bir listede bu ürünün kartı varsa
  * `placeholderData` (başlık / fiyat / galeri) — `isPlaceholderData` iken tam veri isteyen bölümler
  * iskelet. Görüntülenme ürün başına 1 kez, gerçek veri gelince ARKA PLANDA sayılır (kritik yolda
- * değil; dönen sayı detay önbelleğine yazılır). Listeler görüntülenmede invalidate EDİLMEZ (her
+ * değil; dönen sayı detay önbelleğine yazılır). SAHİBİN kendi ilanı sayılmaz: veri sahibe-özel uçtan
+ * geldiyse (`__viaOwnerFallback`: onay bekleyen / pasif ilan) ya da oturum kullanıcısı satıcıysa.
+ * Listeler görüntülenmede invalidate EDİLMEZ (her
  * açılışta anasayfa rayları / arama yeniden çekiliyordu).
  */
-export function useProduct(productId: string, isAuthenticated: boolean) {
+export function useProduct(productId: string, isAuthenticated: boolean, userId?: string | null) {
   const queryClient = useQueryClient();
   // Yer tutucu bağlanırken bir kez aranır (her sonuç hesabında tüm liste önbelleği taranmasın).
   const placeholder = useMemo(
@@ -31,6 +34,8 @@ export function useProduct(productId: string, isAuthenticated: boolean) {
   const countedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!product || countedRef.current === productId) return;
+    // Sahip kendi ilanına bakıyor: sayaç şişmesin (kimlik sonradan gelirse bir sonraki çalışmada yakalanır).
+    if (product.__viaOwnerFallback || isOwnProduct(product, userId)) return;
     countedRef.current = productId;
     // `Promise.resolve().then`: uç taklit edilmemiş / senkron atan istemci de yutulsun.
     Promise.resolve()
@@ -46,7 +51,7 @@ export function useProduct(productId: string, isAuthenticated: boolean) {
       .catch(() => {
         // görüntülenme sayımı kritik değil — yoksay
       });
-  }, [product, productId, queryClient]);
+  }, [product, productId, userId, queryClient]);
 
   return query;
 }

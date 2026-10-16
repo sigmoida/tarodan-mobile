@@ -131,25 +131,31 @@ describe('parseMessageContent — [IMG:] şema beyaz listesi (I1)', () => {
 });
 
 /**
- * Token sızıntısı (HIGH) — mesaj eki `authenticated` render ediliyor; işaret
- * herhangi bir mutlak URL'i kabul edince karşı taraf `[IMG:https://saldirgan/…]`
- * ile alıcının cihazını yabancı hosta istek atmaya zorlayabiliyordu. Mutlak hedef
- * YALNIZ API origin'i + `/media/message-attachment/<id>` olabilir.
+ * Token sızıntısı (HIGH) — mesaj eki `authenticated` render ediliyor; bearer'ı
+ * YALNIZ `AppImage` + `isApiMessageAttachmentUrl` (sıkı origin+yol kontrolü) belirler.
+ * Ayrıştırıcı ise eski mesajlardaki S3/CDN https görsellerini göstermeye devam eder
+ * (bearer'sız yüklenir); userinfo / ters bölü / dizin çıkışı gibi numaralar atılır.
  */
-describe('parseMessageContent — mutlak hedef yalnız kendi mesaj eki ucu', () => {
+describe('parseMessageContent — mutlak http(s) hedefler', () => {
+  const accepted = [
+    ['eski mesajdaki S3/CDN https görseli', 'https://cdn.x.com/a.jpg'],
+    ['presigned S3 (sorgulu)', 'https://bucket.s3.eu-central-1.amazonaws.com/dev/messages/a.jpg?X-Amz-Signature=abc&X-Amz-Expires=60'],
+    ['yabancı host mesaj eki yolu (bearer yine gitmez)', 'https://evil.example/api/media/message-attachment/a1'],
+    ['dev: sunucunun döndürdüğü localhost', 'http://localhost:3000/api/media/message-attachment/a1'],
+    ['Türkçe karakterli yüzde kodlu yol', 'https://cdn.x.com/dev/%C3%A7ocuk%20resmi.jpg'],
+  ] as const;
+
+  it.each(accepted)('%s kabul edilir', (_label, target) => {
+    expect(parseMessageContent(`[IMG:${target}]`).images).toEqual([target]);
+  });
+
   const rejected = [
-    ['yabancı host', 'https://evil.example/api/media/message-attachment/a1'],
-    ['yabancı host, keyfi yol', 'https://cdn.x.com/a.jpg'],
     ['userinfo ile host kandırma', 'https://api.tarodan.com@evil.example/api/media/message-attachment/a1'],
-    ['alt alan adı', 'https://api.tarodan.com.evil.example/api/media/message-attachment/a1'],
-    ['farklı şema (http)', 'http://api.tarodan.com/api/media/message-attachment/a1'],
-    ['farklı port', 'https://api.tarodan.com:8443/api/media/message-attachment/a1'],
-    ['aynı origin, başka uç', 'https://api.tarodan.com/api/users/me'],
     ['dizin çıkışı', 'https://api.tarodan.com/api/media/message-attachment/../../users/me'],
     ['yüzde kodlu çıkış', 'https://api.tarodan.com/api/media/message-attachment/%2e%2e%2fx'],
-    ['ek segment', 'https://api.tarodan.com/api/media/message-attachment/a1/x'],
-    ['sorgu', 'https://api.tarodan.com/api/media/message-attachment/a1?x=1'],
     ['ters bölü', 'https://api.tarodan.com\\@evil.example/api/media/message-attachment/a1'],
+    ['bozuk yüzde kodlama', 'https://cdn.x.com/a%E0%A4%A.jpg'],
+    ['hostsuz', 'https:///a.jpg'],
   ] as const;
 
   it.each(rejected)('%s reddedilir', (_label, target) => {
@@ -161,9 +167,13 @@ describe('parseMessageContent — mutlak hedef yalnız kendi mesaj eki ucu', () 
     expect(parseMessageContent(`[IMG:${upper}]`).images).toEqual([upper]);
   });
 
+  it('eski https görseli önizlemede 📷 Fotoğraf basar', () => {
+    expect(formatMessagePreview('[IMG:https://cdn.x.com/a.jpg]')).toBe('📷 Fotoğraf');
+  });
+
   it('reddedilen işaret metinde görünmez ve önizlemede 📷 basmaz', () => {
-    expect(parseMessageContent('bak [IMG:https://evil.example/x.jpg]').text).toBe('bak');
-    expect(formatMessagePreview('[IMG:https://evil.example/x.jpg]')).toBe('');
+    expect(parseMessageContent('bak [IMG:https://x@evil.example/x.jpg]').text).toBe('bak');
+    expect(formatMessagePreview('[IMG:https://x@evil.example/x.jpg]')).toBe('');
   });
 
   it('formatMessagePreview reddedilen hedef için 📷 Fotoğraf BASMAZ', () => {
@@ -201,9 +211,18 @@ describe('embedImageInMessage — gönderim tarafı (regresyon)', () => {
     expect(embedImageInMessage('', 'dev/messages/x.jpg')).toBe('[IMG:dev/messages/x.jpg]');
   });
 
-  it('alıcının render etmeyeceği hedefle işaret KURMAZ (yabancı host, `]`, boşluk)', () => {
-    expect(() => embedImageInMessage('', 'https://evil.example/x.jpg')).toThrow();
+  it('sunucunun döndürdüğü URL istemci API tabanından farklı origin olsa da (dev localhost) fırlatmaz', () => {
+    expect(embedImageInMessage('', 'http://localhost:3000/api/media/message-attachment/x')).toBe(
+      '[IMG:http://localhost:3000/api/media/message-attachment/x]'
+    );
+    expect(embedImageInMessage('', 'https://cdn.x.com/a.jpg')).toBe('[IMG:https://cdn.x.com/a.jpg]');
+  });
+
+  it('geçersiz hedefle işaret KURMAZ (`]`, boşluk, yerel şema, userinfo, dizin çıkışı)', () => {
     expect(() => embedImageInMessage('', 'dev/x].jpg')).toThrow();
     expect(() => embedImageInMessage('', 'dev/x y.jpg')).toThrow();
+    expect(() => embedImageInMessage('', 'file:///etc/passwd')).toThrow();
+    expect(() => embedImageInMessage('', 'https://a@evil.example/x.jpg')).toThrow();
+    expect(() => embedImageInMessage('', 'https://cdn.x.com/../x.jpg')).toThrow();
   });
 });

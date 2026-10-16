@@ -11,7 +11,6 @@
  */
 import i18n from '@/i18n/config';
 import type { MessageKey } from '@/i18n/lib/generated/keys';
-import { isApiMessageAttachmentUrl } from '@/lib/api/messageAttachment';
 
 export type ContentViolationType =
   | 'phone'
@@ -147,10 +146,12 @@ const ANY_URI_SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
  * dönüşebilir.
  *
  * Kabul edilenler:
- *   - mutlak `http(s)://` YALNIZ kendi mesaj eki ucumuz: API origin'i +
- *     `/media/message-attachment/<id>` (`isApiMessageAttachmentUrl`). Yabancı host
- *     kabul edilmez: alıcının cihazı saldırganın sunucusuna istek atmasın (IP /
- *     okundu sızıntısı) ve kimlikli yükleme bir yabancı hedefe hiç ulaşmasın.
+ *   - mutlak `http(s)://` görsel URL'i (`isSafeAbsoluteUrl`): eski mesajlarda S3/CDN adresi
+ *     doğrudan gömülüydü, bunlar görünmeye devam eder. Bu URL'ler `AppImage`'da
+ *     `Authorization` OLMADAN yüklenir — bearer yalnız tam olarak kendi mesaj eki ucumuza
+ *     gider (`isApiMessageAttachmentUrl`, orada sıkı kontrol korunuyor), yani yabancı host
+ *     token görmez. Userinfo (`user@host`), ters bölü ve dizin çıkışı (`..`, `%2e%2e`)
+ *     içeren değerler atılır.
  *   - `/` ile başlayan web-public relatif yol
  *   - çıplak depolama key'i (şemasız) — `..` segmenti içermemek şartıyla
  * Diğer her şey atılır: işaret metinden yine silinir (ham `[IMG:…]` metni
@@ -159,24 +160,40 @@ const ANY_URI_SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
  * Not: meşru `file:` kullanımı olan yerel yükleme önizlemesi bu yoldan GEÇMEZ —
  * `MessageInputBar` `pendingImage.uri`'yi doğrudan RN `<Image>`'a veriyor.
  */
-function isAllowedImageTarget(raw: string): boolean {
-  const s = raw.trim();
-  if (!s) return false;
-  if (HTTP_URI_RE.test(s)) return isApiMessageAttachmentUrl(s);
-  if (ANY_URI_SCHEME_RE.test(s)) return false;
-  // Şemasız: çıplak key veya `/` relatif yol. Dizin çıkışı kabul edilmez —
-  // yüzde kodlanmış (`%2e%2e`) ve ters bölülü varyantlar dahil. Çözme
-  // başarısız olursa (bozuk kodlama) değeri kabul etmeyiz.
+// Şema + host(+port) [+ yol/sorgu/parça]; userinfo (`@`), ters bölü ve boşluk yok.
+const SAFE_ABSOLUTE_URL_RE = /^https?:\/\/[^/?#\\@\s]+(?:[/?#][^\\\s]*)?$/i;
+
+/**
+ * Yolda dizin çıkışı (`..`) var mı — yüzde kodlanmış (`%2e%2e`) ve ters bölülü varyantlar
+ * dahil. Çözme başarısız olursa (bozuk kodlama) değeri kabul etmeyiz.
+ */
+function hasTraversal(path: string): boolean {
   let decoded: string;
   try {
-    decoded = decodeURIComponent(s);
+    decoded = decodeURIComponent(path);
   } catch {
-    return false;
+    return true;
   }
-  return !decoded
+  return decoded
     .replace(/\\/g, '/')
     .split('/')
     .includes('..');
+}
+
+function isSafeAbsoluteUrl(s: string): boolean {
+  if (!SAFE_ABSOLUTE_URL_RE.test(s)) return false;
+  // Yol bölümü: şema+host'tan sonrası, sorgu/parçadan öncesi.
+  const path = s.replace(/^https?:\/\/[^/?#]+/i, '').split(/[?#]/, 1)[0] ?? '';
+  return !hasTraversal(path);
+}
+
+function isAllowedImageTarget(raw: string): boolean {
+  const s = raw.trim();
+  if (!s) return false;
+  if (HTTP_URI_RE.test(s)) return isSafeAbsoluteUrl(s);
+  if (ANY_URI_SCHEME_RE.test(s)) return false;
+  // Şemasız: çıplak key veya `/` relatif yol. Dizin çıkışı kabul edilmez.
+  return !hasTraversal(s);
 }
 
 export function parseMessageContent(content: string): ParsedMessage {
@@ -203,9 +220,12 @@ export function formatMessagePreview(content: string): string {
 
 /**
  * Gönderim tarafı: işareti yalnız alıcının da render edeceği bir hedefle kurar.
- * Sunucu beklenmedik bir URL döndürürse (yabancı host, `]`/boşluk içeren değer)
- * fotoğrafsız/görünmez bir mesaj göndermek yerine hata fırlatılır — çağıran
- * (`useMessageThread`) bunu "görsel gönderilemedi" toast'ına çevirir.
+ * Yükleme ucunun döndürdüğü URL'in origin'i istemcinin API tabanıyla eşleşmek ZORUNDA değil
+ * (dev'de sunucu `localhost` URL'i döner, cihaz LAN IP'siyle bağlanır): sunucunun verdiği
+ * değer olduğu gibi kabul edilir, işareti sunucu da doğrular. Yine de `]`/boşluk içeren, şema dışı
+ * (`file:`, `javascript:`…) veya dizin çıkışlı bir değerde fotoğrafsız/görünmez mesaj göndermek
+ * yerine hata fırlatılır — çağıran (`useMessageThread`) bunu "görsel gönderilemedi"
+ * toast'ına çevirir.
  */
 export function embedImageInMessage(existingText: string, imageUrl: string): string {
   if (/[\]\s]/.test(imageUrl) || !isAllowedImageTarget(imageUrl)) {

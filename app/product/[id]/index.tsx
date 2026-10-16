@@ -57,7 +57,7 @@ export default function ProductDetailScreen() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
 
-  const productQuery = useProduct(productId, isAuthenticated);
+  const productQuery = useProduct(productId, isAuthenticated, user?.id);
   const { data: product, isLoading, isError, refetch: refetchProduct } = productQuery;
   // Liste önbelleğinden gelen yer tutucu: yalnız kart alanları (başlık / fiyat / galeri / satıcı özeti).
   const full = !!product && !productQuery.isPlaceholderData;

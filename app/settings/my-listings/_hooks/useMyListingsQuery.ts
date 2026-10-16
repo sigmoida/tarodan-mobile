@@ -10,9 +10,8 @@ import {
 } from "@/lib/query/infinite";
 import { listingFilterParams, type FilterType, type Listing } from "../_lib/types";
 
-/** Sayfa boyutu ve bellekte tutulan en çok sayfa (≈ eski tek seferlik 100 kayıt tavanı). */
+/** Sayfa boyutu. */
 const PAGE_SIZE = 20;
-const MAX_PAGES = 5;
 
 type ListingsPage = PageInfo & { listings: Listing[] };
 
@@ -38,7 +37,8 @@ export function useMyListingsQuery(filter: FilterType) {
       };
     },
     getNextPageParam: nextPageFromInfo,
-    maxPages: MAX_PAGES,
+    // NOT: `maxPages` bilerek YOK (arama ekranıyla aynı gerekçe, `useSearch`): `getPreviousPageParam` olmadan
+    // ~100 satırdan sonra 1. sayfa düşer ve liste sıçrar; kart başına yük hafif, tüm sayfaları tutmak sorun değil.
     retry: 1,
   });
 

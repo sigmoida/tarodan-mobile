@@ -5,7 +5,12 @@ import { useAuthStore } from '@/stores/authStore';
 
 /** Ürün detayı yanıtı — backend şekli gevşek (dinamik alanlar); route DTO'su (`Product`, index signature `any`) bununla uyumlu. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- route `Product` DTO'su ile aynı gevşeklik (sıkılaştırma Faz 4)
-export type ProductDetailData = Record<string, any> & { id: string; title: string };
+export type ProductDetailData = Record<string, any> & {
+  id: string;
+  title: string;
+  /** Veri sahibe-özel uçtan (`getMyById`) geldi: ilan public'te yok (onay bekleyen / pasif) → görüntülenme sayılmaz. */
+  __viaOwnerFallback?: true;
+};
 
 const httpStatus = (error: unknown): number | undefined => {
   const status = (error as { response?: { status?: unknown } } | null)?.response?.status;
@@ -34,6 +39,7 @@ const unwrap = (response: { data: unknown }): ProductDetailData | null => {
  * "yok" yanıtı `null` olur (ekran: bulunamadı); ağ / 5xx hatası FIRLATILIR (ekran: hata + tekrar dene,
  * React Query de yeniden dener) — önceden her hata 5 dk'lık bir "bulunamadı" önbelleğine dönüşüyordu.
  * Görüntülenme sayımı burada YOK (bkz. `useProduct`): önbelleğe alma / prefetch görüntülenme saymaz.
+ * Sahibe-özel uçtan gelen veri `__viaOwnerFallback: true` taşır (sahibin kendi bekleyen ilanı sayılmasın).
  */
 export async function fetchProductDetail(productId: string, isAuthenticated: boolean): Promise<ProductDetailData | null> {
   try {
@@ -42,7 +48,8 @@ export async function fetchProductDetail(productId: string, isAuthenticated: boo
     if (!isProductNotFoundError(error)) throw error;
     if (!isAuthenticated) return null;
     try {
-      return unwrap(await productsApi.getMyById(productId));
+      const mine = unwrap(await productsApi.getMyById(productId));
+      return mine ? { ...mine, __viaOwnerFallback: true } : null;
     } catch (mineError) {
       // Sahibi değil (404/403) → gerçekten yok; sahibe-özel uç ağ / 5xx ile düştüyse hata kalır.
       const status = httpStatus(mineError);
