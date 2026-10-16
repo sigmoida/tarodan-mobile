@@ -28,7 +28,8 @@ beforeEach(() => {
 it('seçilen fotoğraf hazırlanır, hazırlanmış dosya yüklenir; URL döner', async () => {
   mockUploadMessageImage.mockResolvedValue({ data: { url: 'https://x/m.jpg' } });
   await expect(uploadMessageAttachment(picked)).resolves.toBe('https://x/m.jpg');
-  expect(mockWithPrepared).toHaveBeenCalledWith(picked, expect.any(Function), undefined);
+  // `strict`: hazırlanamayan görselin ham orijinali karşı tarafa yüklenmez (P3).
+  expect(mockWithPrepared).toHaveBeenCalledWith(picked, expect.any(Function), { strict: true });
   expect(mockUploadMessageImage).toHaveBeenCalledWith(
     expect.objectContaining({ uri: 'file:///cache/ImageManipulator/p.jpg', name: 'p.jpg', type: 'image/jpeg' }),
   );

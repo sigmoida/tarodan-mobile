@@ -6,6 +6,7 @@ export { abortError, isAbortError, untilAborted } from './abort';
 export { createSerialRunner } from './serialRunner';
 export {
   IMAGE_PROFILES,
+  ImagePrepareError,
   MAX_UPLOAD_EDGE,
   PREPARE_TIMEOUT_MS,
   SMALL_JPEG_BYTES,

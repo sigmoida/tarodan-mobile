@@ -183,6 +183,7 @@ describe('fromPickerAsset', () => {
       type: 'image/jpeg',
       width: 4000,
       height: 3000,
+      fromPicker: true,
     });
   });
 

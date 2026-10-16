@@ -199,11 +199,8 @@ export function useListingImageUpload({ maxImages: maxImagesParam, upload, prepa
     pickingRef.current = true;
     let assets: ImagePicker.ImagePickerAsset[];
     try {
-      const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permResult.granted) {
-        appAlert(t('order.permissionRequired'), t('order.galleryPermissionBody'));
-        return;
-      }
+      // İzin İSTENMEZ: iOS PHPicker / Android Photo Picker galeri izni gerektirmez. Eski istek
+      // reddedildiğinde seçici hiç açılmıyordu (gereksiz çıkmaz).
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,

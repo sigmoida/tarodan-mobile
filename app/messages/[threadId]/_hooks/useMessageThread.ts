@@ -115,13 +115,9 @@ export function useMessageThread() {
   const handleAttachImage = async () => {
     if (!threadId || uploadingImage || sending || !canSend) return;
 
-    // İzin iste
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      appAlert(t('order.permissionRequired'), t('order.galleryPermissionBody'));
-      return;
-    }
-
+    // İzin İSTENMEZ: iOS PHPicker ve Android Photo Picker galeriye erişim izni gerektirmez
+    // (avatar / koleksiyon kapağı seçicileri de istemiyor). Eski istek reddedilince seçici hiç
+    // açılmıyordu — gereksiz bir çıkmaz.
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: false,

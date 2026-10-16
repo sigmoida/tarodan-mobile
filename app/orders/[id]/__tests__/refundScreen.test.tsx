@@ -36,6 +36,12 @@ jest.mock('@/lib/api', () => ({
   timingRulesApi: { getPolicy: jest.fn(() => new Promise(() => {})) },
 }));
 jest.mock('@/services/sentry', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn(), setUser: jest.fn() }));
+// Test ortamında görüntü işleme native modülü yok; kanıt yüklemesi `strict` olduğundan gerçek
+// hazırlayıcı hata verirdi. Hazırlama bu ekranın sözleşmesi değil (evidencePrepare testi) — geçir.
+jest.mock('@/lib/media', () => ({
+  ...jest.requireActual('@/lib/media'),
+  withPreparedImage: (file: unknown, fn: (f: unknown) => Promise<unknown>) => fn(file),
+}));
 
 import * as ImagePicker from 'expo-image-picker';
 import { api, mediaApi, refundsApi } from '@/lib/api';
@@ -183,13 +189,13 @@ it('çok adetli siparişte adet seçilir ve kısmi iade adedi gönderilir', asyn
   );
 });
 
-it('galeri izni yoksa mesaj kanıt alanının altında (diyalog yok)', async () => {
-  permMock.mockResolvedValueOnce({ granted: false });
+it('galeri izni İSTENMEZ: seçici doğrudan açılır (PHPicker / Photo Picker izinsiz)', async () => {
   await renderScreen();
   await act(async () => {
     fireEvent.press(screen.getByLabelText('Fotoğraf ekle'));
   });
-  expect(screen.getByTestId('refund-evidence-hint')).toHaveTextContent(i18n.t('order.galleryPermissionBody'));
+  expect(permMock).not.toHaveBeenCalled();
+  expect(launchMock).toHaveBeenCalledTimes(1);
   expect(alertMock).not.toHaveBeenCalled();
 });
 

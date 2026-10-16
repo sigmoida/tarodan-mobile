@@ -19,7 +19,11 @@ export function useUploadRefundEvidence(orderId: string) {
     mutationFn: async (files: LocalImageFile[]): Promise<string[]> => {
       const results = await Promise.all(
         files.map((file) =>
-          withPreparedImage(file, (prepared) => mediaApi.uploadRefundEvidence(prepared)),
+          // `strict`: hazırlanamayan fotoğrafın HAM orijinali (EXIF/konum, "jpeg" etiketli HEIC)
+          // yüklenmez — mutasyon düşer, ekran mevcut "yüklenemedi" hatasını gösterir.
+          withPreparedImage(file, (prepared) => mediaApi.uploadRefundEvidence(prepared), {
+            strict: true,
+          }),
         ),
       );
       const urls = results.map((r) => r?.data?.url);

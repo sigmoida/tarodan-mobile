@@ -37,6 +37,12 @@ jest.mock('expo-image-picker', () => ({
 jest.mock('@/lib/api', () => ({
   mediaApi: { uploadMessageImage: jest.fn() },
 }));
+// Görüntü işleme native modülü testte yok; mesaj eki `strict` hazırlandığı için gerçek
+// hazırlayıcı hata verirdi. Hazırlama ayrı testlenir (uploadAttachment) — burada geçir.
+jest.mock('@/lib/media', () => ({
+  ...jest.requireActual('@/lib/media'),
+  withPreparedImage: (file: unknown, fn: (f: unknown) => Promise<unknown>) => fn(file),
+}));
 // API kökü sabit: `[IMG:]` mutlak hedefi + bearer yalnız bu origin'deki mesaj eki ucu.
 jest.mock('@/lib/api/baseUrl', () => ({ resolveApiBaseUrl: () => 'https://api.tarodan.com/api' }));
 

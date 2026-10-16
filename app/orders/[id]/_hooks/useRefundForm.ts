@@ -46,10 +46,6 @@ export function useRefundForm(orderId: string, orderQuantity: number) {
   const pickEvidence = async () => {
     const current = form.getValues('evidence');
     const picked = await pickEvidencePhotos(MAX_EVIDENCE_PHOTOS - current.length);
-    if (picked === 'denied') {
-      form.setError('evidence', { type: 'permission', message: t('order.galleryPermissionBody') });
-      return;
-    }
     if (picked.length > 0) setEvidence([...current, ...picked]);
   };
   const removeEvidence = (index: number) => setEvidence(form.getValues('evidence').filter((_, i) => i !== index));
