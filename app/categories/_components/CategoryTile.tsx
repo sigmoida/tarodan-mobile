@@ -31,11 +31,19 @@ function CategoryTileBase({ tile, onPress }: CategoryTileProps) {
         testID={testID}
         accessibilityLabel={accessibilityLabel}
         onPress={() => onPress(tile)}
-        padding={2}
+        padding={1}
         direction="column"
         style={styles.plain}
       >
-        <Text variant="bodySm" weight="semibold" align="center" numberOfLines={2}>
+        {/* Dar hücrede uzun tek kelime ("Koleksiyonlar") ortadan bölünmesin: sığmazsa küçülür. */}
+        <Text
+          variant="bodySm"
+          weight="semibold"
+          align="center"
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+        >
           {tile.label}
         </Text>
       </ListRowCard>

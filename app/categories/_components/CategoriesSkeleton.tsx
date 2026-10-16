@@ -52,6 +52,6 @@ const styles = StyleSheet.create({
   },
   grid: { flex: 1, padding: spacing[3], gap: spacing[4] },
   rows: { gap: spacing[4] },
-  row: { flexDirection: 'row', gap: spacing[1] },
+  row: { flexDirection: 'row', gap: spacing[2] },
   cell: { flex: 1, alignItems: 'center', gap: spacing[2] },
 });

@@ -133,7 +133,8 @@ export function CategoryGrid({
 const styles = StyleSheet.create({
   grid: { flex: 1 },
   content: { paddingHorizontal: spacing[2], paddingTop: spacing[3] },
-  row: { gap: spacing[1] },
+  // Satırlar arası dikey boşluk = sütunlar arası boşluk (kutular birbirine yapışmasın).
+  row: { gap: spacing[2], marginBottom: spacing[2] },
   cell: { flex: 1 },
   footer: { alignItems: 'center', marginTop: spacing[3] },
 });
