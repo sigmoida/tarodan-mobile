@@ -12,6 +12,30 @@ import { inAppWebHref, resolveRemovedPage } from '@/lib/navigation/removedPages'
  * aksi halde push ile gelen /messages?thread=<id> mobilde geçersiz rota olup
  * boş ekran açıyordu.
  */
+/**
+ * Uygulamanın kimlik/slug biçimi: UUID, sayı, `a-z0-9_-` slug. Bildirim/push linki
+ * sunucu verisi ama karşı tarafın girdisini taşıyabilir; çözülmüş değer expo-router
+ * parametresi olarak API yoluna girer (`x/../../offers/<id>/accept` gibi bir kimlik
+ * isteği başka uca yönlendirebiliyordu). Biçime uymayan değer rotaya hiç girmez.
+ */
+const SAFE_ROUTE_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
+
+export function isSafeRouteId(value: unknown): value is string {
+  return typeof value === 'string' && SAFE_ROUTE_ID_RE.test(value);
+}
+
+/** Yüzde kodlu sorgu değerini çözer; bozuk kodlama ya da biçim dışı kimlik → null. */
+function decodeSafeRouteId(raw: string | undefined): string | null {
+  if (!raw) return null;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+  return isSafeRouteId(decoded) ? decoded : null;
+}
+
 export function toMobileRoute(link: string): string | null {
   if (!link || link.includes('{{')) return null; // interpole edilmemiş şablon
   // Mobilden kaldırılan sayfalar (SSS → Yardım; bilgi/CMS sayfaları → uygulama
@@ -26,9 +50,13 @@ export function toMobileRoute(link: string): string | null {
 
   // /messages?thread=<id> → /messages/<id>  (RN'de URLSearchParams'a güvenmeden)
   if (path === '/messages') {
-    const thread = rawQuery?.match(/(?:^|&)thread=([^&]+)/)?.[1];
-    return thread ? `/messages/${decodeURIComponent(thread)}` : '/messages';
+    const thread = decodeSafeRouteId(rawQuery?.match(/(?:^|&)thread=([^&]+)/)?.[1]);
+    return thread ? `/messages/${thread}` : '/messages';
   }
+
+  // Yol segmentleri rota parametresi olarak ekrana, oradan API yoluna gider: kimlik
+  // biçimine uymayan (kodlanmış `/`, `..`, `?` …) bir segment varsa link eşlenmez.
+  if (!path.split('/').filter(Boolean).every(isSafeRouteId)) return null;
   // /offers?tab=received → /offers
   if (path === '/offers') return '/offers';
 
@@ -206,6 +234,12 @@ function isSellerAudience(n: NotificationLike | null | undefined): boolean {
   return isSellerOrderType(n?.type ?? d.type);
 }
 
+/** `data` kimliği: sayı metne çevrilir; biçim dışı değer (`isSafeRouteId`) yok sayılır. */
+function safeId(value: unknown): string | undefined {
+  const v = typeof value === 'number' && Number.isFinite(value) ? String(value) : value;
+  return isSafeRouteId(v) ? v : undefined;
+}
+
 export function notificationRoute(n: NotificationLike | null | undefined): string | null {
   const d = n?.data || {};
 
@@ -215,7 +249,7 @@ export function notificationRoute(n: NotificationLike | null | undefined): strin
   // Stok kalmayan ürün: `/product/:id` yerine "artık satışta değil" ekranı.
   // Kimlik aynı, hedefi ayıran tek sinyal tip — bu yüzden kimliklerden önce.
   if (n?.type && OUT_OF_STOCK_TYPES.has(n.type)) {
-    const pid = d.productId ?? d.product_id;
+    const pid = safeId(d.productId ?? d.product_id);
     if (pid) return `/products/unavailable/${pid}`;
   }
 
@@ -224,14 +258,14 @@ export function notificationRoute(n: NotificationLike | null | undefined): strin
   // link deseni, son çare tip adı (bkz. isSellerAudience).
   const isSeller = isSellerAudience(n);
 
-  const orderId = d.orderId ?? d.order_id;
-  const groupId = d.checkoutGroupId ?? d.checkout_group_id;
-  const tradeId = d.tradeId ?? d.trade_id;
-  const offerId = d.offerId ?? d.offer_id;
-  const threadId = d.threadId ?? d.thread_id;
-  const productId = d.productId ?? d.product_id;
-  const collectionId = d.collectionId ?? d.collection_id;
-  const userId = d.userId ?? d.user_id;
+  const orderId = safeId(d.orderId ?? d.order_id);
+  const groupId = safeId(d.checkoutGroupId ?? d.checkout_group_id);
+  const tradeId = safeId(d.tradeId ?? d.trade_id);
+  const offerId = safeId(d.offerId ?? d.offer_id);
+  const threadId = safeId(d.threadId ?? d.thread_id);
+  const productId = safeId(d.productId ?? d.product_id);
+  const collectionId = safeId(d.collectionId ?? d.collection_id);
+  const userId = safeId(d.userId ?? d.user_id);
 
   // Sipariş grubun ÖNÜNDE: sunucu tek siparişi bildiğinde `orderId`'yi de
   // spesifik link'i de veriyor, yalnız grubu bildiğinde link listeye düşüyor.
