@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Badge, SectionCard, Text } from '@/ui';
+import { formatLongDate } from '@/utils/format';
 import { maskIban } from '@/utils/iban';
 import { styles } from '../_lib/styles';
 
@@ -11,18 +12,6 @@ export interface BankAccountSummaryProps {
   updatedAt?: string | null;
 }
 
-/** "12 Ekim 2026"; geçersiz tarih → `null`, geçersiz yerel etiket → varsayılan yerel. */
-function formatUpdatedAt(value: string | null | undefined, locale: string): string | null {
-  const date = value ? new Date(value) : null;
-  if (!date || isNaN(date.getTime())) return null;
-  const options = { day: 'numeric', month: 'long', year: 'numeric' } as const;
-  try {
-    return date.toLocaleDateString(locale, options);
-  } catch {
-    return date.toLocaleDateString(undefined, options);
-  }
-}
-
 /**
  * Kayıtlı hesabın kalıcı özeti (kayıt anlaşılsın diye): "Kayıtlı" rozeti, maskeli IBAN,
  * hesap sahibi ve son güncelleme tarihi. IBAN yoksa `null` çizilir.
@@ -31,7 +20,7 @@ export function BankAccountSummary({ iban, accountHolder, updatedAt }: BankAccou
   const { t } = useTranslation();
   if (!iban) return null;
 
-  const lastUpdated = formatUpdatedAt(updatedAt, t('common.dateLocale'));
+  const lastUpdated = formatLongDate(updatedAt, t('common.dateLocale'));
 
   return (
     <SectionCard testID="bank-account-summary" style={styles.summary}>

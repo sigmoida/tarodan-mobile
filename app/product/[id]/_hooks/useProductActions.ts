@@ -9,6 +9,7 @@ import { toast } from '@/ui';
 import { useCartStore } from '@/stores/cartStore';
 import { useCartSync } from '@/hooks/useCartSync';
 import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
+import { isOwnProduct } from '@/hooks/useFavoriteToggle';
 import { asLabel, formatPrice } from '@/utils/format';
 import { buildShareContent, productShareUrl } from '@/utils/share';
 import { clampCartQuantity } from '../_lib/quantity';
@@ -62,7 +63,7 @@ export function useProductActions({
   // Adet seçici (web QuantityStepper): yalnız stoğu 1'den fazla ilanlarda gösterilir.
   const [quantity, setQuantity] = useState(1);
   // Ürün yenilenir ve stok/tavan düşerse seçili adet tavana iner.
-  const isOwnerProduct = !!product?.seller?.id && user?.id === product.seller.id;
+  const isOwnerProduct = !!product && isOwnProduct(product, user?.id);
   useEffect(() => {
     if (!product) return;
     setQuantity((q) => {

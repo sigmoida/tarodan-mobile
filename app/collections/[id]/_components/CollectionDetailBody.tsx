@@ -12,7 +12,11 @@ import type { CollectionDetailController } from '../_hooks/useCollectionDetail';
 
 const { colors, iconSize } = theme;
 
-/** Koleksiyon öğesi → ürün kartı alanları (API: productId/productTitle/productImage/productPrice/productStatus). */
+/**
+ * Koleksiyon öğesi → ürün kartı alanları (API: productId/productTitle/productImage/productPrice/productStatus).
+ * Satıcı alanı varsa (`sellerId` / `seller.id`) taşınır: kendi ilanında kart kalp çizmez
+ * (`useProductCardFavorites`). API şu an öğe başına satıcı döndürmüyor; döndüğü anda kendiliğinden çalışır.
+ */
 function toCardProduct(item: any, fallbackTitle: string) {
   return {
     id: String(item.productId ?? item.id),
@@ -20,6 +24,8 @@ function toCardProduct(item: any, fallbackTitle: string) {
     price: item.productPrice ?? item.price ?? 0,
     imageUrl: item.productImage ?? item.imageUrl ?? null,
     status: item.productStatus ?? null,
+    sellerId: item.sellerId ?? null,
+    seller: item.seller ?? null,
   };
 }
 

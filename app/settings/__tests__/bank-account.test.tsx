@@ -265,6 +265,15 @@ describe('B-1.8 · banka hesabı formu', () => {
       expect(screen.queryByTestId('bank-account-summary')).toBeNull();
     });
 
+    it('IBAN\'sız boş nesne gelirse hesap yok sayılır: özet, Güncelle ve Sil görünmez', async () => {
+      get.mockResolvedValue({ data: {} });
+      renderWithProviders(<BankAccountScreen />);
+      await screen.findByTestId('bank-account-holder-input');
+      expect(screen.queryByTestId('bank-account-summary')).toBeNull();
+      expect(screen.queryByTestId('bank-account-delete-button')).toBeNull();
+      expect(screen.getByTestId('bank-account-submit-button')).toBeTruthy();
+    });
+
     it('başarılı kayıtta klavye kapanır; Ayarlar\'dan gelindiyse ekranda kalınır', async () => {
       get.mockResolvedValue({ data: null });
       canGoBackMock.mockReturnValue(true);

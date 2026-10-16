@@ -132,7 +132,6 @@ export function useBankAccount() {
   return {
     isAuthenticated,
     form,
-    existing: !!accountQuery.data,
     account: accountQuery.data ?? null,
     /** Yalnız ilk yükleme: yenilemede (refetch) form sökülmez. */
     isLoading: accountQuery.isPending,
