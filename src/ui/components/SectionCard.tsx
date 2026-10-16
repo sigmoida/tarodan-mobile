@@ -15,6 +15,29 @@ import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFee
 import { Icon } from '../icons';
 const { colors, radius, radiusRole, spacing, typography, iconSize } = theme;
 
+/**
+ * Kart geometrisi — TEK kaynak: kartın kendisi ve `SkeletonSectionCard` (iskelet → içerik
+ * geçişinde çerçeve/başlık bandı zıplamasın diye) buradan okur.
+ */
+export const SECTION_CARD_METRICS = {
+  padding: spacing[3],
+  borderWidth: 1,
+  radius: radiusRole.section,
+  /** Başlık satırı ile gövde arası. */
+  headerGap: spacing[4],
+  /** Vurgu çubuğu ↔ başlık arası. */
+  titleGap: spacing[3],
+  accentWidth: spacing[1],
+  accentHeight: spacing[6],
+  accentRadius: radius.sm,
+  /** Başlık satır yüksekliği (lg × snug). */
+  titleLineHeight: typography.fontSize.lg * typography.lineHeight.snug,
+  /** "Tümünü gör" satır yüksekliği (text-sm) ve dış yüksekliği: py-1.5 × 2 + satır + 1pt çerçeve × 2. */
+  actionLineHeight: 20,
+  actionOuterHeight: spacing[1.5] * 2 + 20 + 2,
+} as const;
+const M = SECTION_CARD_METRICS;
+
 export interface SectionCardProps {
   /** Başlık. Verilmezse vurgu çubuğu da çizilmez. */
   title?: React.ReactNode;
@@ -84,7 +107,7 @@ export interface SectionCardActionProps {
 }
 
 /** py-1.5 (6) × 2 + text-sm satır yüksekliği (20). */
-const ACTION_LINE_HEIGHT = 20;
+const ACTION_LINE_HEIGHT = M.actionLineHeight;
 const ACTION_HEIGHT = spacing[1.5] * 2 + ACTION_LINE_HEIGHT;
 
 /**
@@ -120,10 +143,10 @@ export const SectionCardAction: React.FC<SectionCardActionProps> = ({ onPress, l
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface.elevated,
-    borderWidth: 1,
+    borderWidth: M.borderWidth,
     borderColor: colors.border.DEFAULT,
-    borderRadius: radiusRole.section,
-    padding: spacing[3],
+    borderRadius: M.radius,
+    padding: M.padding,
   },
   header: {
     flexDirection: 'row',
@@ -132,25 +155,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     columnGap: spacing[4],
     rowGap: spacing[2],
-    marginBottom: spacing[4],
+    marginBottom: M.headerGap,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[3],
+    gap: M.titleGap,
     flexShrink: 1,
     minWidth: 0,
   },
   accent: {
-    width: spacing[1],
-    height: spacing[6],
-    borderRadius: radius.sm,
+    width: M.accentWidth,
+    height: M.accentHeight,
+    borderRadius: M.accentRadius,
     backgroundColor: colors.primary[500],
   },
   title: {
     flexShrink: 1,
     fontSize: typography.fontSize.lg,
-    lineHeight: typography.fontSize.lg * typography.lineHeight.snug,
+    lineHeight: M.titleLineHeight,
     fontWeight: typography.fontWeight.bold,
     // web `tracking-tight` = -0.025em
     letterSpacing: typography.fontSize.lg * -0.025,

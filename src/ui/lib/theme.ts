@@ -7,6 +7,7 @@ import {
   headerHeight,
   iconSize,
   inactiveIconColor,
+  loading,
   minTouchTarget,
   nativeShadows,
   priceColor,
@@ -76,6 +77,8 @@ export const theme = {
   counterBadgeColor,
   inactiveIconColor,
   tabBarLabel,
+  /** Yükleme sistemi (gösterge, iskelet animasyonu, gecikme) — bkz. `src/ui/loading/`. */
+  loading,
 } as const;
 
 export type Theme = typeof theme;

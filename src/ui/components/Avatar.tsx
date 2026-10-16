@@ -31,7 +31,9 @@ export const avatarPlaceholderColors = {
   foreground: colors.primary[700] as string,
 } as const;
 
-const sizeMap = { sm: 28, md: 40, lg: 56, header: 64, xl: 80, '2xl': 120 } as const;
+/** Avatar çapları (pt) — `SkeletonAvatar` da buradan türer (iskelet → avatar geçişinde zıplama yok). */
+export const AVATAR_SIZES = { sm: 28, md: 40, lg: 56, header: 64, xl: 80, '2xl': 120 } as const;
+const sizeMap = AVATAR_SIZES;
 
 export const Avatar: React.FC<AvatarProps> = ({
   source,
