@@ -19,7 +19,7 @@ import { OutOfStockOverlay } from './OutOfStockOverlay';
 
 const { colors, spacing, typography, radiusRole, iconSize } = theme;
 
-/** Görsel sol üst köşesinde en çok bu kadar rozet (sponsorlu > takas > kampanya) — görseli örtmesin. */
+/** Grid görselinin sol üst köşesinde en çok bu kadar rozet (indirim > sponsorlu > takas > kampanya) — görseli örtmesin. */
 const MAX_START_BADGES = 2;
 
 /** Takas rozeti ikonu — sabit referans (kart yeniden render olunca yeni element üretilmez). */
@@ -73,7 +73,7 @@ export interface ProductCardProps {
   /** Kartın altında, kart dokunuşunun dışında (ör. sepete ekle düğmesi). */
   footer?: React.ReactNode;
   /**
-   * Görselin sağ altında cam favori kalbi; yalnız verilince çizilir. Çağıran liste başına
+   * Görselin sağ üstünde cam favori kalbi; yalnız verilince çizilir (`overlay` varsa çizilmez, aynı köşe). Çağıran liste başına
    * `useProductCardFavorites()` ile alır (`{...favoriteProps(product)}`) — kimliği sabit tutun.
    */
   onToggleFavorite?: (productId: string) => void;
@@ -83,24 +83,31 @@ export interface ProductCardProps {
   testID?: string;
 }
 
-/** Sol üst rozetler: öncelik sponsorlu > takas > kampanya, en çok `MAX_START_BADGES` tanesi. */
-function pickStartBadges(product: ProductCardProduct) {
+/**
+ * Grid sol üst rozetleri: öncelik %indirim > sponsorlu > takas > kampanya, uygun olanların ilk
+ * `MAX_START_BADGES` tanesi (indirim varsa her zaman ilk sıradadır).
+ */
+function pickStartBadges(product: ProductCardProduct, onSale: boolean) {
   const campaign = (product.feeCampaigns ?? [])[0] ?? null;
   const wanted = [
+    onSale,
     Boolean(product.isBoosted || product.boostedUntil),
     isProductTradeOpen(product),
     Boolean(campaign),
   ];
   let left = MAX_START_BADGES;
-  const [showSponsored, showTrade, showCampaign] = wanted.map((w) => (w && left > 0 ? (left--, true) : false));
-  return { showSponsored, showTrade, showCampaign, campaign };
+  const [showSale, showSponsored, showTrade, showCampaign] = wanted.map((w) => (w && left > 0 ? (left--, true) : false));
+  return { showSale, showSponsored, showTrade, showCampaign, campaign };
 }
 
 /** Kalbin görsel köşesine uzaklığı (rozetlerle aynı iç boşluk). */
 const FAVORITE_INSET = spacing[1.5];
 
+/** Grid rozet yığınının sağ boşluğu: sağ üstteki kalbe (32pt + iç boşluk) çarpmasın, taşan etiket ellipsis olsun. */
+const BADGES_END_INSET = FAVORITE_INSET + GLASS_ICON_BUTTON_SIZE_SM + spacing[1];
+
 /**
- * Görselin sağ altındaki cam favori kalbi (32pt, dokunma alanı 44pt). Kartın Pressable'ının KARDEŞİ
+ * Görselin sağ üstündeki cam favori kalbi (32pt, dokunma alanı 44pt). Kartın Pressable'ının KARDEŞİ
  * olarak çizilir: basmak kartı açmaz. Pasif: çizgi kalp; aktif: dolu `danger-500`.
  */
 function FavoriteHeart({
@@ -194,7 +201,7 @@ const MetaRow = React.memo(function MetaRow({ product, listOrder }: { product: P
  * alır; fiyat, indirim, stok ve görseli kendisi türetir — çağıran hiçbirini önceden hesaplamaz.
  * Başlık, fiyat ve görsel her zaman çizilir; `showMeta` ikincil bilgiyi açar/kapatır.
  *
- * Favori kalbi görselin sağ altında (web ile birlikte eklendi; `onToggleFavorite` verilince). Web'de
+ * Favori kalbi görselin sağ üstünde (web ile birlikte eklendi; `onToggleFavorite` verilince). Web'de
  * olmayan "Sepette" rozeti ve ön sipariş/sınırlı rozeti kartta yok (ürün detayında/filtrelerde).
  */
 function ProductCardBase({
@@ -219,22 +226,25 @@ function ProductCardBase({
   const onListImageLayout = onToggleFavorite
     ? (e: LayoutChangeEvent) => setListImageFrame(e.nativeEvent.layout)
     : undefined;
-  const heart = onToggleFavorite ? (
+  // Sağ üst köşe tek yuva: `overlay` (kaldır düğmesi, seçim işareti) verilmişse kalp çizilmez.
+  const heart = onToggleFavorite && !overlay ? (
     <FavoriteHeart productId={product.id} title={product.title} isFavorite={isFavorite} onToggle={onToggleFavorite} />
   ) : null;
 
-  const { effective, original, onSale, discount, outOfStock, isTrade, showSponsored, showTrade, showCampaign, campaign } = useMemo(
-    () => ({
-      effective: getProductEffectivePrice(product),
-      original: getProductOriginalPriceForDisplay(product),
-      onSale: isProductOnSaleDisplay(product) && getProductOriginalPriceForDisplay(product) > getProductEffectivePrice(product),
-      discount: product.discountPercent ?? getProductDiscountPercent(product),
-      outOfStock: isProductOutOfStock(product),
-      isTrade: isProductTradeOpen(product),
-      ...pickStartBadges(product),
-    }),
-    [product],
-  );
+  const { effective, original, onSale, discount, outOfStock, isTrade, showSale, showSponsored, showTrade, showCampaign, campaign } =
+    useMemo(() => {
+      const sale =
+        isProductOnSaleDisplay(product) && getProductOriginalPriceForDisplay(product) > getProductEffectivePrice(product);
+      return {
+        effective: getProductEffectivePrice(product),
+        original: getProductOriginalPriceForDisplay(product),
+        onSale: sale,
+        discount: product.discountPercent ?? getProductDiscountPercent(product),
+        outOfStock: isProductOutOfStock(product),
+        isTrade: isProductTradeOpen(product),
+        ...pickStartBadges(product, sale),
+      };
+    }, [product]);
 
   const handlePress = () => {
     // Sıralama sinyali: hata gezinmeyi engellemez (web `click` ping'i).
@@ -326,20 +336,19 @@ function ProductCardBase({
             resizeMode="cover"
           />
           {outOfStock ? <OutOfStockOverlay label={t('product.soldOut').toUpperCase()} /> : null}
-          <View style={styles.badgesStart} pointerEvents="none">
-            {showSponsored ? <ProductBadge variant="sponsored">{t('product.sponsored')}</ProductBadge> : null}
-            {showTrade ? (
-              <ProductBadge variant="trade" icon={tradeIcon}>
-                {t('product.tradeShort')}
-              </ProductBadge>
-            ) : null}
-            {showCampaign ? <ProductBadge variant="rare">{campaign}</ProductBadge> : null}
-          </View>
-          {onSale ? (
-            <View style={styles.badgeEnd} pointerEvents="none">
-              <ProductBadge variant="sale">%{discount}</ProductBadge>
+          {/* Sol üst yuva `overlayStart`'ındır: verilmişse rozet yığını çizilmez (çakışmasın). */}
+          {overlayStart ? null : (
+            <View style={styles.badgesStart} pointerEvents="none">
+              {showSale ? <ProductBadge variant="sale">%{discount}</ProductBadge> : null}
+              {showSponsored ? <ProductBadge variant="sponsored">{t('product.sponsored')}</ProductBadge> : null}
+              {showTrade ? (
+                <ProductBadge variant="trade" icon={tradeIcon}>
+                  {t('product.tradeShort')}
+                </ProductBadge>
+              ) : null}
+              {showCampaign ? <ProductBadge variant="rare">{campaign}</ProductBadge> : null}
             </View>
-          ) : null}
+          )}
         </View>
         <View style={styles.gridBody}>
           <Text variant="bodySm" weight="medium" numberOfLines={2} style={styles.gridTitle}>
@@ -371,7 +380,7 @@ function ProductCardBase({
       </Pressable>
       {footer ? <View style={styles.gridFooter}>{footer}</View> : null}
       {heart ? (
-        // Görselle aynı kare (kenarlık içinde): kalp sağ alt köşeye oturur, kare dokunuşu geçirir.
+        // Görselle aynı kare (kenarlık içinde): kalp sağ üst köşeye oturur, kare dokunuşu geçirir.
         <View style={styles.gridImageFrame} pointerEvents="box-none">
           <View style={[styles.favoriteBox, styles.favoriteGrid]}>{heart}</View>
         </View>
@@ -382,11 +391,11 @@ function ProductCardBase({
   );
 }
 
-/** Liste kalbinin konumu: ölçülen görsel çerçevesinin sağ altı. */
+/** Liste kalbinin konumu: ölçülen görsel çerçevesinin sağ üstü. */
 function listHeartPosition(frame: LayoutRectangle): ViewStyle {
   return {
     left: frame.x + frame.width - GLASS_ICON_BUTTON_SIZE_SM - spacing[1],
-    top: frame.y + frame.height - GLASS_ICON_BUTTON_SIZE_SM - spacing[1],
+    top: frame.y + spacing[1],
   };
 }
 
@@ -416,12 +425,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing[1.5],
     left: spacing[1.5],
+    // Taşan etiket ellipsis'e düşer; sağ üstteki kalbe çarpmaz.
+    right: BADGES_END_INSET,
     alignItems: 'flex-start',
     gap: spacing[1],
-    // Taşan etiket ellipsis'e düşer; sağ üstteki indirim rozetine çarpmaz.
-    maxWidth: '70%',
   },
-  badgeEnd: { position: 'absolute', top: spacing[1.5], right: spacing[1.5] },
   gridBody: { flex: 1, padding: spacing[2.5] },
   gridTitle: {
     marginBottom: spacing[1],
@@ -449,7 +457,7 @@ const styles = StyleSheet.create({
   // Grid görsel karesi: kart kenarlığının (1pt) içinde, kare.
   gridImageFrame: { position: 'absolute', top: 1, left: 1, right: 1, aspectRatio: 1, zIndex: 1 },
   favoriteBox: { position: 'absolute', zIndex: 1 },
-  favoriteGrid: { right: FAVORITE_INSET, bottom: FAVORITE_INSET },
+  favoriteGrid: { right: FAVORITE_INSET, top: FAVORITE_INSET },
 
   // ===== LİSTE (web: rounded-lg border p-3 gap-3, 80pt görsel, fiyat tam genişlikte sağa yaslı) =====
   listCard: {
@@ -470,7 +478,7 @@ const styles = StyleSheet.create({
     borderRadius: radiusRole.card,
     backgroundColor: colors.surface.alt,
   },
-  listTradeBadge: { position: 'absolute', top: spacing[1], right: spacing[1], padding: spacing[1], gap: 0 },
+  listTradeBadge: { position: 'absolute', top: spacing[1], left: spacing[1], padding: spacing[1], gap: 0 },
   listBody: { flex: 1, minWidth: 0 },
   listTitle: { lineHeight: typography.fontSize.base * typography.lineHeight.tight },
   listDescription: { marginTop: spacing[2] },

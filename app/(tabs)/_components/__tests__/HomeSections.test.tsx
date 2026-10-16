@@ -78,9 +78,10 @@ describe('ürün rayları', () => {
     expect(router.push).toHaveBeenCalledWith('/listings?tradeOnly=true');
   });
 
-  it('İndirimdekiler "Fırsat" rozeti taşır', () => {
+  it('İndirimdekiler başlığında sabit "Fırsat" etiketi yok', () => {
     render(<OnSaleRail items={items} isLoading={false} onProductPress={noop} />);
-    expect(screen.getByText('Fırsat')).toBeTruthy();
+    expect(screen.getByText('İndirimdekiler')).toBeTruthy();
+    expect(screen.queryByText('Fırsat')).toBeNull();
   });
 });
 
