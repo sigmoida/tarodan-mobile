@@ -9,6 +9,8 @@ import {
   type PageScrollValue,
 } from '@/ui';
 import { ShellHeaderActions, ShellLeadingButton } from './ShellHeaderActions';
+import { useEdgeSwipeWhenFocused } from './SideMenuContext';
+import { DEFAULT_SHELL_LEADING, type ShellLeading } from './shellLeading';
 
 const { colors } = theme;
 
@@ -23,6 +25,8 @@ export interface TitleShellProps {
    * Verilmezse gövde bar altında başlar ve kenar efekti SABİT şerittir.
    */
   scroll?: PageScrollValue;
+  /** Sol düğme: `categories` (varsayılan) ya da `menu` (☰, yalnız Profil kökleri). */
+  leading?: ShellLeading;
   children?: React.ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
   testID?: string;
@@ -34,7 +38,17 @@ export interface TitleShellProps {
  * düğme: Mesajlar + Bildirimler (`ShellHeaderActions`) — Ana Sayfa'nın yüzen barıyla aynı düzen.
  * Ekrana özel üst bar aksiyonu yok (sağ grup sabit). İçerik tam yükseklikte; bar üstünde yüzer.
  */
-export const TitleShell: React.FC<TitleShellProps> = ({ title, subtitle, scroll, children, contentStyle, testID }) => {
+export const TitleShell: React.FC<TitleShellProps> = ({
+  title,
+  subtitle,
+  scroll,
+  leading: leadingKind = DEFAULT_SHELL_LEADING,
+  children,
+  contentStyle,
+  testID,
+}) => {
+  // Yan menü soldan kaydırma yalnız ☰'lı (Profil) kabuk odaktayken etkin.
+  useEdgeSwipeWhenFocused(leadingKind === 'menu');
   const shell = useShellScrollState(scroll, false);
   useResetScrollOnBind(shell.page.scrollY, shell.bound);
   return (
@@ -50,7 +64,7 @@ export const TitleShell: React.FC<TitleShellProps> = ({ title, subtitle, scroll,
       <ScreenHeader
         title={title ?? ''}
         subtitle={subtitle}
-        leading={<ShellLeadingButton menuTestID="app-shell-menu" categoriesTestID="app-shell-categories" />}
+        leading={<ShellLeadingButton leading={leadingKind} categoriesTestID="app-shell-categories" />}
         right={<ShellHeaderActions />}
         testID="app-shell-bar"
         scrollY={shell.bound ? shell.page.scrollY : undefined}

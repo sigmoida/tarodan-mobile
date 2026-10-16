@@ -1,9 +1,8 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import * as Router from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { GlassIconButton, theme } from '@/ui';
-import { shellLeadingAction } from './shellLeading';
+import { DEFAULT_SHELL_LEADING, type ShellLeading } from './shellLeading';
 import { useSideMenu } from './SideMenuContext';
 import { useShellCounts } from './useShellCounts';
 import { useLockedPush } from './useLockedPush';
@@ -11,25 +10,25 @@ import { useLockedPush } from './useLockedPush';
 const { spacing } = theme;
 
 /**
- * Sekme köklerinin üst barındaki sol düğme — aktif sekmeye göre TEK bileşen karar verir
- * (`shellLeadingAction`): Profil kökünde ☰ (`bars-3`, yan menüyü açar), diğer sekme köklerinde
- * `squares-2x2` (`/categories` yığın rotasını açar; çift dokunuş tek açılış — `useLockedPush`).
- * Ana Sayfa'nın yüzen barı ve başlıklı sekme kökleri (`TitleShell`) aynı bileşeni kullanır; testID'ler
- * çağırandan (menü / kategoriler ayrı). `* as Router`: expo-router'ı kısmi mock'layan testlerde
- * `useSegments` yoksa kategoriler.
+ * Sekme köklerinin üst barındaki sol düğme. Türü kabuğun KENDİ prop'u belirler (`leading`, bkz.
+ * `shellLeading.ts`): `menu` → ☰ (`bars-3`, yan menüyü açar; yalnız Profil kökleri), `categories`
+ * (varsayılan) → `squares-2x2` (`/categories` yığın rotasını açar; çift dokunuş tek açılış —
+ * `useLockedPush`). Ana Sayfa'nın yüzen barı ve başlıklı sekme kökleri (`TitleShell`) aynı bileşeni
+ * kullanır; testID'ler çağırandan.
  */
 export function ShellLeadingButton({
-  menuTestID,
+  leading = DEFAULT_SHELL_LEADING,
+  menuTestID = 'app-shell-menu',
   categoriesTestID,
 }: {
-  menuTestID: string;
+  leading?: ShellLeading;
+  menuTestID?: string;
   categoriesTestID: string;
 }) {
   const { t } = useTranslation();
-  const segments = (Router.useSegments?.() ?? []) as string[];
   const { open } = useSideMenu();
   const openCategories = useLockedPush('/categories');
-  if (shellLeadingAction(segments) === 'menu') {
+  if (leading === 'menu') {
     return <GlassIconButton icon="bars-3" accessibilityLabel={t('nav.menu')} testID={menuTestID} onPress={open} />;
   }
   return (

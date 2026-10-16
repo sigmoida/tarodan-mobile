@@ -1,18 +1,14 @@
 /**
- * Sekme köklerinin üst barındaki SOL düğmenin kararı — saf, test edilebilir.
+ * Sekme köklerinin üst barındaki SOL düğmenin türü — kabuğun KENDİ prop'u (`AppShell`/`TitleShell`
+ * `leading`), global rotadan türetilmez (yığında altta kalan Profil barı, üstte başka ekran varken
+ * ikon değiştirmesin).
  *
- * Kural: ☰ (yan menü) YALNIZ Profil sekme kökünde; diğer tüm sekme köklerinde (Ana Sayfa, Favoriler,
- * Sepet, İlan Ver) aynı yerde `squares-2x2` ikonu ve `/categories` yığın rotası. Yan menünün sol
- * kenardan kaydırarak açılması (`SideMenuHost`) da aynı koşula bağlıdır — tek kaynak burası.
+ * - `categories` (varsayılan): `squares-2x2` → `/categories` yığın rotası (Ana Sayfa, Favoriler,
+ *   Sepet, İlan Ver).
+ * - `menu`: ☰ yan menüyü açar — YALNIZ Profil sekme kökleri (`profile.tsx`, `ProfileGuestView`);
+ *   yan menünün soldan kaydırarak açılması da yalnız bu kabuk odaktayken etkin
+ *   (`useEdgeSwipeWhenFocused`).
  */
-export type ShellLeadingAction = 'menu' | 'categories';
+export type ShellLeading = 'menu' | 'categories';
 
-/** Profil sekmesinin kök segmentleri: `(tabs)/profile` (`useSegments()` → `['(tabs)', 'profile']`). */
-export function isProfileTabRoot(segments: readonly string[] | undefined | null): boolean {
-  return !!segments && segments[0] === '(tabs)' && segments[1] === 'profile';
-}
-
-/** Sol düğme ne yapar: Profil kökünde yan menüyü açar, diğer sekme köklerinde kategorileri. */
-export function shellLeadingAction(segments: readonly string[] | undefined | null): ShellLeadingAction {
-  return isProfileTabRoot(segments) ? 'menu' : 'categories';
-}
+export const DEFAULT_SHELL_LEADING: ShellLeading = 'categories';

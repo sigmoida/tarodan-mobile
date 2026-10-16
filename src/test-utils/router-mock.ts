@@ -75,17 +75,7 @@ export function mockRealisticExit() {
   return exits;
 }
 
-/**
- * `useSegments()` eşi: varsayılan `[]` (sekme kökü dışı). Sekme köküne göre davranan kabuk
- * (☰ yalnız Profil) testleri `setMockSegments(['(tabs)', 'profile'])` ile ayarlar.
- */
-let mockSegments: string[] = [];
-export function setMockSegments(segments: string[]) {
-  mockSegments = segments;
-}
-
 export const routerMock = {
-  useSegments: () => mockSegments,
   router: {
     push: pushMock,
     replace: replaceMock,
@@ -105,7 +95,6 @@ export const routerMock = {
 };
 
 export function resetRouterMocks() {
-  mockSegments = [];
   pushMock.mockClear();
   replaceMock.mockClear();
   dismissToMock.mockClear();

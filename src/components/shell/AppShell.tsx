@@ -3,6 +3,7 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { theme, type PageScrollValue } from '@/ui';
 import { FloatingSearchBar } from './FloatingSearchBar';
 import { TitleShell } from './TitleShell';
+import type { ShellLeading } from "./shellLeading";
 import { APP_SHELL_BAR_HEIGHT } from './tabBarLayout';
 
 const { colors } = theme;
@@ -20,6 +21,8 @@ export interface AppShellProps {
   subtitle?: string;
   /** `variant="title"`: listenin kaydırma sinyali (bkz. `TitleShell`); verilmezse sabit şerit. */
   scroll?: PageScrollValue;
+  /** `variant="title"`: sol düğme — `categories` (varsayılan) ya da `menu` (☰ yan menü; yalnız Profil kökleri). */
+  leading?: ShellLeading;
   children?: React.ReactNode;
   /** İçerik kabına ek stil. */
   contentStyle?: StyleProp<ViewStyle>;
@@ -41,13 +44,14 @@ export const AppShell: React.FC<AppShellProps> = ({
   title,
   subtitle,
   scroll,
+  leading,
   children,
   contentStyle,
   testID,
 }) => {
   if (variant === 'title') {
     return (
-      <TitleShell title={title} subtitle={subtitle} scroll={scroll} contentStyle={contentStyle} testID={testID}>
+      <TitleShell title={title} subtitle={subtitle} scroll={scroll} leading={leading} contentStyle={contentStyle} testID={testID}>
         {children}
       </TitleShell>
     );

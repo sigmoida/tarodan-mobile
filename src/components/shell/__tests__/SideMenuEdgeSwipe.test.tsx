@@ -21,12 +21,13 @@ import {
 
 jest.mock('expo-status-bar', () => ({ StatusBar: () => null, setStatusBarStyle: jest.fn() }));
 
-let mockSegments: string[] = ['(tabs)', 'profile'];
+// Profil kökü açıkken `useEdgeSwipeWhenFocused` bağlama bildirir; testte aynı bildirimi `EdgeOptIn` yapar.
+let mockOptIn = true;
 const BASE_TABS = { index: 0, routes: [{ name: '(tabs)' }] };
 let mockRootState: unknown = { index: 0, routes: [{ name: '__root', state: BASE_TABS }] };
 jest.mock('expo-router', () => ({
   usePathname: () => '/',
-  useSegments: () => mockSegments,
+  useSegments: () => ['(tabs)'],
   useNavigationContainerRef: () => ({ getRootState: () => mockRootState }),
 }));
 
@@ -42,15 +43,32 @@ function Trigger() {
   );
 }
 
+/**
+ * Çocukları, bağlam bayrağı işlendikten SONRA bağlar: jest-utils kayıt defteri ilk kayıtlı
+ * kenar jestini döndürür, bu yüzden `SideMenuHost` bayrak yerleştikten sonra ilk kez çizilmeli.
+ */
+function EdgeOptIn({ children }: { children: React.ReactNode }) {
+  const { setEdgeSwipeEnabled } = useSideMenu();
+  const [ready, setReady] = React.useState(false);
+  React.useEffect(() => {
+    setEdgeSwipeEnabled(mockOptIn);
+    setReady(true);
+  }, [setEdgeSwipeEnabled]);
+  return ready ? <>{children}</> : null;
+}
+
 function setup() {
-  return render(
+  const view = render(
     <SideMenuProvider>
-      <Trigger />
-      <SideMenuHost menu={<Text testID="menu-content">içerik</Text>}>
-        <Text testID="app-content">uygulama</Text>
-      </SideMenuHost>
+      <EdgeOptIn>
+        <Trigger />
+        <SideMenuHost menu={<Text testID="menu-content">içerik</Text>}>
+          <Text testID="app-content">uygulama</Text>
+        </SideMenuHost>
+      </EdgeOptIn>
     </SideMenuProvider>,
   );
+  return view;
 }
 
 const flush = () =>
@@ -62,7 +80,7 @@ const edge = () => getByGestureTestId('side-menu-edge-pan');
 
 beforeEach(() => {
   jest.useFakeTimers();
-  mockSegments = ['(tabs)', 'profile'];
+  mockOptIn = true;
   mockRootState = { index: 0, routes: [{ name: '__root', state: BASE_TABS }] };
   jest.spyOn(BackHandler, 'addEventListener').mockImplementation(() => ({ remove: () => undefined }) as never);
 });
@@ -79,25 +97,22 @@ describe('Yan menü — kenardan açma', () => {
     expect(g.config.hitSlop).toEqual({ left: 0, width: SIDE_MENU_EDGE_WIDTH_IOS });
   });
 
-  it.each([
-    ['Ana Sayfa', ['(tabs)']],
-    ['Favoriler', ['(tabs)', 'favorites']],
-    ['Sepet', ['(tabs)', 'cart']],
-    ['İlan Ver', ['(tabs)', 'sell']],
-  ])('%s sekme kökünde kapalı (☰ yalnız Profil kökünde; sol düğme kategorilerdir)', (_name, segments) => {
-    mockSegments = segments as string[];
+  it('☰\'lı kabuk odakta değilken (Ana Sayfa / Favoriler / Sepet / İlan Ver köklerinde bildirim yok) kapalı', () => {
+    mockOptIn = false;
     setup();
     expect(edge().config.enabled).toBe(false);
   });
 
-  it('yığın ekranında (iOS kaydırarak geri) kapalı', () => {
-    mockSegments = ['product', '[id]'];
+  it('yığın ekranı üstteyken (iOS kaydırarak geri) bayrak bayat kalsa bile kapalı', () => {
+    mockRootState = {
+      index: 0,
+      routes: [{ name: '__root', state: { index: 1, routes: [{ name: '(tabs)' }, { name: 'product/[id]' }] } }],
+    };
     setup();
     expect(edge().config.enabled).toBe(false);
   });
 
   it('üste itilmiş ikinci (tabs) kopyasında kapalı (kök yığın indeksi > 0)', () => {
-    mockSegments = ['(tabs)', 'profile'];
     mockRootState = {
       index: 0,
       routes: [

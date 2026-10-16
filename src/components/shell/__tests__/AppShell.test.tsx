@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react-native';
 import { GLASS_ICON_BUTTON_SIZE, ScreenHeader, theme, usePageScrollValue } from '@/ui';
-import { pushMock, resetRouterMocks, setMockSegments } from '@/test-utils/router-mock';
+import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 import { AppShell, APP_SHELL_BAR_HEIGHT } from '../AppShell';
 import { SideMenuProvider, useSideMenu } from '../SideMenuContext';
 import { TabBarCollapseProvider, useTabBarCollapsed, useTabBarScrollHandler } from '../TabBarCollapse';
@@ -70,7 +70,6 @@ describe('AppShell — tek satır beyaz bar', () => {
       const { isOpen } = useSideMenu();
       return <Text testID="menu-state">{isOpen ? 'open' : 'closed'}</Text>;
     }
-    setMockSegments(['(tabs)']);
     render(
       <SideMenuProvider>
         <State />
@@ -216,7 +215,6 @@ describe('AppShell - yuzen bar: kaydirinca arama gizlenir, cam butonlar kalir', 
 
 describe('AppShell variant="title" — Ana Sayfa dışındaki sekme kökleri', () => {
   it('Favoriler/Sepet gibi kökler: solda kategoriler düğmesi (☰ yok), sağda TAM iki düğme (mesajlar + bildirimler); arama alanı, sepet ve geri oku yok', () => {
-    setMockSegments(['(tabs)', 'favorites']);
     render(
       <AppShell variant="title" title="Favoriler">
         <Text>içerik</Text>
@@ -241,11 +239,10 @@ describe('AppShell variant="title" — Ana Sayfa dışındaki sekme kökleri', (
       const { isOpen } = useSideMenu();
       return <Text testID="menu-state">{isOpen ? 'open' : 'closed'}</Text>;
     }
-    setMockSegments(['(tabs)', 'profile']);
     render(
       <SideMenuProvider>
         <State />
-        <AppShell variant="title" title="Profil" subtitle="alt satır" />
+        <AppShell variant="title" title="Profil" subtitle="alt satır" leading="menu" />
       </SideMenuProvider>,
     );
     expect(screen.getByText('alt satır')).toBeTruthy();
@@ -259,12 +256,36 @@ describe('AppShell variant="title" — Ana Sayfa dışındaki sekme kökleri', (
     expect(pushMock).toHaveBeenCalledWith('/messages');
   });
 
+  it('soldan kaydırarak açma yalnız ☰\'lı (leading="menu") kabuk odaktayken etkin; kategorili kabuk etkinleştirmez; sökülünce kapanır', () => {
+    function Edge() {
+      const { edgeSwipeEnabled } = useSideMenu();
+      return <Text testID="edge-state">{edgeSwipeEnabled ? 'on' : 'off'}</Text>;
+    }
+    const edge = () => screen.getByTestId('edge-state').children.join('');
+    const cart = render(
+      <SideMenuProvider>
+        <Edge />
+        <AppShell variant="title" title="Sepetim" />
+      </SideMenuProvider>,
+    );
+    expect(edge()).toBe('off');
+    cart.unmount();
+
+    const profile = render(
+      <SideMenuProvider>
+        <Edge />
+        <AppShell variant="title" title="Profil" leading="menu" />
+      </SideMenuProvider>,
+    );
+    expect(edge()).toBe('on');
+    profile.unmount();
+  });
+
   it('Sepet kökü: kategoriler düğmesi /categories açar (yan menü açılmaz)', () => {
     function State() {
       const { isOpen } = useSideMenu();
       return <Text testID="menu-state">{isOpen ? 'open' : 'closed'}</Text>;
     }
-    setMockSegments(['(tabs)', 'cart']);
     render(
       <SideMenuProvider>
         <State />

@@ -5,10 +5,22 @@ export interface SideMenuApi {
   isOpen: boolean;
   open: () => void;
   close: () => void;
+  /**
+   * Soldan kaydırarak açma şu an izinli mi? Yalnız ☰'lı (Profil) sekme kökü odaktayken `true`
+   * (`useEdgeSwipeWhenFocused`); `SideMenuHost` bunu okur.
+   */
+  edgeSwipeEnabled: boolean;
+  setEdgeSwipeEnabled: (enabled: boolean) => void;
 }
 
 const noop = (): void => undefined;
-const NOOP_API: SideMenuApi = { isOpen: false, open: noop, close: noop };
+const NOOP_API: SideMenuApi = {
+  isOpen: false,
+  open: noop,
+  close: noop,
+  edgeSwipeEnabled: false,
+  setEdgeSwipeEnabled: noop,
+};
 
 const SideMenuContext = createContext<SideMenuApi>(NOOP_API);
 
@@ -31,10 +43,31 @@ export function SideMenuProvider({ children }: { children: React.ReactNode }) {
     lastPath.current = pathname;
     setOpen(false);
   }, [pathname]);
-  const value = useMemo(() => ({ isOpen, open, close }), [isOpen, open, close]);
+  const [edgeSwipeEnabled, setEdgeSwipeEnabled] = useState(false);
+  const value = useMemo(
+    () => ({ isOpen, open, close, edgeSwipeEnabled, setEdgeSwipeEnabled }),
+    [isOpen, open, close, edgeSwipeEnabled],
+  );
   return <SideMenuContext.Provider value={value}>{children}</SideMenuContext.Provider>;
 }
 
 export function useSideMenu(): SideMenuApi {
   return useContext(SideMenuContext);
+}
+
+/**
+ * Çağıran ekran ODAKTAyken (ve `active` ise) soldan kaydırarak yan menü açmayı etkinleştirir; odak
+ * kaybında / sökümde kapatır. Yığında üstte başka ekran varken alttaki Profil odakta sayılmaz →
+ * sol kenar iOS'un "kaydırarak geri" jestine kalır. `* as Router`: `useFocusEffect`'i olmayan kısmi
+ * expo-router mock'larında no-op.
+ */
+export function useEdgeSwipeWhenFocused(active: boolean): void {
+  const { setEdgeSwipeEnabled } = useSideMenu();
+  Router.useFocusEffect?.(
+    useCallback(() => {
+      if (!active) return undefined;
+      setEdgeSwipeEnabled(true);
+      return () => setEdgeSwipeEnabled(false);
+    }, [active, setEdgeSwipeEnabled]),
+  );
 }

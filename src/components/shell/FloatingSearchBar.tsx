@@ -33,7 +33,7 @@ export const FloatingSearchBar: React.FC = () => {
     <View pointerEvents="box-none" style={[styles.bar, { paddingTop: topInset }]} testID="app-shell-bar">
       <Animated.View pointerEvents="none" style={[styles.background, bgStyle]} testID="app-shell-bar-bg" />
       <View pointerEvents="box-none" style={styles.row} testID="app-shell-bar-row">
-        <ShellLeadingButton menuTestID="home-menu-button" categoriesTestID="home-categories-button" />
+        <ShellLeadingButton categoriesTestID="home-categories-button" />
         <Animated.View
           style={[styles.search, searchStyle]}
           pointerEvents={hidden ? 'none' : 'auto'}
