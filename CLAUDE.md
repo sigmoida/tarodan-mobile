@@ -145,8 +145,28 @@ must **never fetch** — server data belongs in React Query. (Migrating
 
 ## 9. Folder shape per route (mirror web)
 
-`_`-prefixed folders are hidden from expo-router's route tree (same as
-`__tests__`), so colocate freely:
+**expo-router does NOT hide `_` folders by itself** — it treats every `.ts/.tsx`
+under `app/` as a route (only `+api`/`+html`/`+middleware` are skipped). This repo
+hides them with `patches/expo-router@6.0.24.patch` (pnpm `patchedDependencies`):
+any path segment starting with `_` (`_hooks/`, `_lib/`, `__tests__/`, `_foo.tsx`,
+and everything inside a `_` folder) is excluded from the route scan and typed
+routes; only files named `_layout` / `_sitemap` (+ optional `.ios/.android/.native/.web`)
+stay routes. `__tests__` is additionally kept out of the bundle by Metro's default
+`blockList`.
+
+- `expo-router` is pinned to the **exact** version in `package.json` (no `~`) — the
+  patch key is version-bound; a silent bump fails install (`ERR_PNPM_UNUSED_PATCH`).
+- `patches/**` is in `.fingerprintignore` (the patch is JS-only, so it must not
+  change `runtimeVersion` / break OTA). A patch that touches native code must
+  narrow that line.
+- Guarded by `__tests__/routerPrivateFolders.test.ts` (reads the regexes from
+  `node_modules`, so a lost patch fails it). **On any expo-router upgrade** re-create
+  the patch for the new version (`pnpm patch expo-router@<new>`) and run that test.
+
+Current Expo practice is to keep non-route code out of `app/`: for new features put
+shared / non-route code under `src/`; small route-specific helpers may stay in
+colocated `_` folders (thanks to the patch). Never name a route file
+`_something.tsx` — it would not be a route.
 
 ```
 app/<group>/<route>/

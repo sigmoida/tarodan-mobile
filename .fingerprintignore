@@ -1,0 +1,5 @@
+# @expo/fingerprint (runtimeVersion policy: fingerprint) kaynak hariç tutmaları.
+# patches/: yalnız JS yamaları (expo-router@6.0.24 route taraması). Native
+# kodu değiştirmez; yama değişikliği runtimeVersion'ı bozup OTA'yı kesmesin.
+# DİKKAT: native kodu değiştiren bir yama eklenirse bu satırı daralt.
+patches/**

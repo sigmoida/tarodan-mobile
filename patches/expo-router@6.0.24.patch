@@ -1,0 +1,119 @@
+NEDEN BU YAMA VAR (tarodan-mobile)
+=================================
+expo-router 6, app/ altındaki HER .ts/.tsx dosyasını route sayar (yalnız
++api/+html/+middleware hariç). `_` önekli klasörler (_hooks, _lib, _components,
+_modals, _sections …) ve __tests__ için özel bir işlem ya da public bir `ignore`
+ayarı yok. Yamasız: typed routes'ta ~760 sahte route
+(`/settings/_bank-account/_hooks/useBankAccount`, `/(auth)/__tests__/login.test`),
+`_` klasörlerindeki dosyalar çalışma zamanında route olur (deep link ile açılır).
+
+Yama: require.context regex'lerine (_ctx.js / .ios / .android / .web) ve
+_ctx-shared.js EXPO_ROUTER_CTX_IGNORE'a (typed routes) "herhangi bir yol parçası
+`_` ile başlıyorsa eşleşme" kuralını ekler. İstisnalar: dosya adı tam olarak
+`_layout` ya da `_sitemap` (expo-router'ın kullanıcı override'ı), isteğe bağlı
+.ios/.android/.native/.web platform uzantısıyla. `_` klasörünün İÇİNDEKİ
+_layout da dışlanır (klasör route değilse layout'u da anlamsız). typed-routes
+watch handler'ı dev oturumunda eklenen dosyalara aynı kuralı uygular.
++not-found, +native-intent, (group), [param] davranışı değişmez.
+
+expo-router package.json'da TAM sürüme sabit (6.0.24): sürüm değişirse
+patchedDependencies anahtarı tutmaz (ERR_PNPM_UNUSED_PATCH). GÜNCELLERKEN yamayı
+yeni sürüme taşı (pnpm patch expo-router@<yeni>) ve koruma testini çalıştır:
+__tests__/routerPrivateFolders.test.ts (regex'leri node_modules'ten okur; yama
+uygulanmazsa kırılır). patches/ .fingerprintignore'da (yalnız JS; runtimeVersion
+değişmesin) — native kodu değiştiren bir yama eklenirse bunu daralt.
+
+diff --git a/_ctx-shared.js b/_ctx-shared.js
+index d8e437411b621465f574cab08c7fac25d6dcad00..243c08f41cdf884348ed26711b29c4971bd6a66d 100644
+--- a/_ctx-shared.js
++++ b/_ctx-shared.js
+@@ -1,5 +1,9 @@
+ // Ignore root `./+html.js` and API route files `./generate+api.tsx`.
++// TARODAN PATCH (patches/expo-router@6.0.24.patch): `_` ile başlayan yol
++// parçaları (`_hooks/`, `_lib/`, `__tests__/`, `_foo.tsx` …) da route değil
++// (typed routes); yalnız `_layout` ve `_sitemap` kalır. Yükseltmede yeniden doğrula:
++// __tests__/routerPrivateFolders.test.ts.
+ module.exports = {
+   EXPO_ROUTER_CTX_IGNORE:
+-    /^(?:\.\/)(?!(?:(?:(?:.*\+api)|(?:\+(html|native-intent))))\.[tj]sx?$).*\.[tj]sx?$/,
++    /^(?:\.\/)(?!(?:[^/]*\/)*_(?!(?:layout|sitemap)(?:\.(?:ios|android|native|web))?\.[tj]sx?$))(?!(?:(?:(?:.*\+api)|(?:\+(html|native-intent))))\.[tj]sx?$).*\.[tj]sx?$/,
+ };
+diff --git a/_ctx.android.js b/_ctx.android.js
+index 1afb1f817e82fe371866ea51872006b5dc0da4a5..07228a3bf923e129c6211db98e0e771832fb8cc9 100644
+--- a/_ctx.android.js
++++ b/_ctx.android.js
+@@ -1,6 +1,10 @@
++// TARODAN PATCH (patches/expo-router@6.0.24.patch): `_` ile başlayan yol
++// parçaları (`_hooks/`, `_lib/`, `__tests__/`, `_foo.tsx` …) route DEĞİLDİR;
++// yalnız `_layout` ve `_sitemap` (expo-router override) kalır. expo-router bunu kendisi yapmaz. expo-router
++// yükseltmesinde yeniden doğrula: __tests__/routerPrivateFolders.test.ts.
+ export const ctx = require.context(
+   process.env.EXPO_ROUTER_APP_ROOT,
+   true,
+-  /^(?:\.\/)(?!(?:(?:(?:.*\+api)|(?:\+html)|(?:\+middleware)))\.[tj]sx?$).*(?:\.ios|\.web)?\.[tj]sx?$/,
++  /^(?:\.\/)(?!(?:[^/]*\/)*_(?!(?:layout|sitemap)(?:\.(?:ios|android|native|web))?\.[tj]sx?$))(?!(?:(?:(?:.*\+api)|(?:\+html)|(?:\+middleware)))\.[tj]sx?$).*(?:\.ios|\.web)?\.[tj]sx?$/,
+   process.env.EXPO_ROUTER_IMPORT_MODE
+ );
+diff --git a/_ctx.ios.js b/_ctx.ios.js
+index b30ee6c249cd8bb22ec7644c89202881004f2d83..9507fed4a57ba419a22b95649d10c9f710384d53 100644
+--- a/_ctx.ios.js
++++ b/_ctx.ios.js
+@@ -1,6 +1,10 @@
++// TARODAN PATCH (patches/expo-router@6.0.24.patch): `_` ile başlayan yol
++// parçaları (`_hooks/`, `_lib/`, `__tests__/`, `_foo.tsx` …) route DEĞİLDİR;
++// yalnız `_layout` ve `_sitemap` (expo-router override) kalır. expo-router bunu kendisi yapmaz. expo-router
++// yükseltmesinde yeniden doğrula: __tests__/routerPrivateFolders.test.ts.
+ export const ctx = require.context(
+   process.env.EXPO_ROUTER_APP_ROOT,
+   true,
+-  /^(?:\.\/)(?!(?:(?:(?:.*\+api)|(?:\+html)|(?:\+middleware)))\.[tj]sx?$).*(?:\.android|\.web)?\.[tj]sx?$/,
++  /^(?:\.\/)(?!(?:[^/]*\/)*_(?!(?:layout|sitemap)(?:\.(?:ios|android|native|web))?\.[tj]sx?$))(?!(?:(?:(?:.*\+api)|(?:\+html)|(?:\+middleware)))\.[tj]sx?$).*(?:\.android|\.web)?\.[tj]sx?$/,
+   process.env.EXPO_ROUTER_IMPORT_MODE
+ );
+diff --git a/_ctx.js b/_ctx.js
+index 0979e39c71aabfade7ec09f69f893044fe2ff35f..94603ef17b24c1a02ac0a094b1a891871679199d 100644
+--- a/_ctx.js
++++ b/_ctx.js
+@@ -1,6 +1,10 @@
++// TARODAN PATCH (patches/expo-router@6.0.24.patch): `_` ile başlayan yol
++// parçaları (`_hooks/`, `_lib/`, `__tests__/`, `_foo.tsx` …) route DEĞİLDİR;
++// yalnız `_layout` ve `_sitemap` (expo-router override) kalır. expo-router bunu kendisi yapmaz. expo-router
++// yükseltmesinde yeniden doğrula: __tests__/routerPrivateFolders.test.ts.
+ export const ctx = require.context(
+   process.env.EXPO_ROUTER_APP_ROOT,
+   true,
+   // Ignore root `./+html.js` and API route files `./generate+api.tsx`.
+-  /^(?:\.\/)(?!(?:(?:(?:.*\+api)|(?:\+html)))\.[tj]sx?$).*\.[tj]sx?$/
++  /^(?:\.\/)(?!(?:[^/]*\/)*_(?!(?:layout|sitemap)(?:\.(?:ios|android|native|web))?\.[tj]sx?$))(?!(?:(?:(?:.*\+api)|(?:\+html)))\.[tj]sx?$).*\.[tj]sx?$/
+ );
+diff --git a/_ctx.web.js b/_ctx.web.js
+index 8061699188ad92137c40ab0228a381b736f5d35c..95724be7a3f5ff7b7e9638abfff249943954d92f 100644
+--- a/_ctx.web.js
++++ b/_ctx.web.js
+@@ -1,6 +1,10 @@
++// TARODAN PATCH (patches/expo-router@6.0.24.patch): `_` ile başlayan yol
++// parçaları (`_hooks/`, `_lib/`, `__tests__/`, `_foo.tsx` …) route DEĞİLDİR;
++// yalnız `_layout` ve `_sitemap` (expo-router override) kalır. expo-router bunu kendisi yapmaz. expo-router
++// yükseltmesinde yeniden doğrula: __tests__/routerPrivateFolders.test.ts.
+ export const ctx = require.context(
+   process.env.EXPO_ROUTER_APP_ROOT,
+   true,
+-  /^(?:\.\/)(?!(?:(?:(?:.*\+api)|(?:\+middleware)|(?:\+(html|native-intent))))\.[tj]sx?$).*(?:\.android|\.ios|\.native)?\.[tj]sx?$/,
++  /^(?:\.\/)(?!(?:[^/]*\/)*_(?!(?:layout|sitemap)(?:\.(?:ios|android|native|web))?\.[tj]sx?$))(?!(?:(?:(?:.*\+api)|(?:\+middleware)|(?:\+(html|native-intent))))\.[tj]sx?$).*(?:\.android|\.ios|\.native)?\.[tj]sx?$/,
+   process.env.EXPO_ROUTER_IMPORT_MODE
+ );
+diff --git a/build/typed-routes/index.js b/build/typed-routes/index.js
+index fcd91e2aadc991294e87afaa021feefd569b431a..208f590158bf2e9f9c6c4c01f54e75e09cbb09db 100644
+--- a/build/typed-routes/index.js
++++ b/build/typed-routes/index.js
+@@ -43,6 +43,10 @@ function getWatchHandler(outputDir, { ctx = defaultCtx, regenerateFn = exports.r
+             }
+         }
+         else if (type === 'add') {
++            // TARODAN PATCH: dev oturumunda eklenen `_hooks/…`, `__tests__/…` gibi
++            // dosyalar typed routes'a girmesin (ilk taramayla aynı kural).
++            if (!_ctx_shared_1.EXPO_ROUTER_CTX_IGNORE.test(relativePath))
++                return;
+             ctx.__add(relativePath);
+             if ((0, matchers_1.isTypedRoute)(basename)) {
+                 routeFiles.add(relativePath);
