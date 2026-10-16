@@ -15,12 +15,19 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ reason: 'Hesabınızı açmak için 0850 000 00 00 arayın' }),
 }));
 
-let mockAuthenticated = true;
+// Görüntüsüz soğuk açılış (ertelenmiş oturum): arayüz misafir ama saklı token var.
 jest.mock('@/stores/authStore', () => ({
   useAuthStore: (sel?: (state: { isAuthenticated: boolean; logout: () => void }) => unknown) => {
-    const state = { isAuthenticated: mockAuthenticated, logout: jest.fn() };
+    const state = { isAuthenticated: false, logout: jest.fn() };
     return sel ? sel(state) : state;
   },
+}));
+
+let mockStoredToken: string | null = 'token-1';
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn(async (k: string) => (k === 'accessToken' ? mockStoredToken : null)),
+  setItemAsync: jest.fn(),
+  deleteItemAsync: jest.fn(),
 }));
 
 const mockGetProfile = jest.fn();
@@ -29,6 +36,7 @@ jest.mock('@/lib/api', () => ({
   resetBannedRedirect: jest.fn(),
 }));
 
+import { SESSION_PROBE } from '@/lib/api/sessionState';
 import BannedScreen from '../index';
 
 const PHISH = 'Hesabınızı açmak için 0850 000 00 00 arayın';
@@ -40,15 +48,17 @@ const banError = (bannedReason: unknown) =>
 beforeEach(() => {
   resetRouterMocks();
   mockGetProfile.mockReset();
-  mockAuthenticated = true;
+  mockStoredToken = 'token-1';
 });
 
 describe('BannedScreen', () => {
-  it('nedeni sunucudan gösterir; URL parametresindeki metni göstermez', async () => {
+  it('nedeni sunucudan gösterir (saklı token yeter, isAuthenticated beklenmez); URL metnini göstermez', async () => {
     mockGetProfile.mockRejectedValue(banError('Sahte ilan'));
     renderWithProviders(<BannedScreen />);
     expect(await screen.findByText('Sahte ilan')).toBeOnTheScreen();
     expect(screen.queryByText(PHISH)).toBeNull();
+    // Ertelenmiş oturumda da Bearer taşısın diye oturum yoklaması olarak gider.
+    expect(mockGetProfile).toHaveBeenCalledWith(SESSION_PROBE);
   });
 
   it('sunucu neden vermezse yalnız sabit metin (parametre yine yok sayılır)', async () => {
@@ -65,10 +75,12 @@ describe('BannedScreen', () => {
     await waitFor(() => expect(dismissToMock).toHaveBeenCalled());
   });
 
-  it('oturum yoksa istek atılmaz, parametre metni yine gösterilmez', () => {
-    mockAuthenticated = false;
+  it('saklı token yoksa istek atılmaz, yönlendirme yok, parametre metni yine gösterilmez', async () => {
+    mockStoredToken = null;
     renderWithProviders(<BannedScreen />);
+    await new Promise((r) => setTimeout(r, 0));
     expect(mockGetProfile).not.toHaveBeenCalled();
+    expect(dismissToMock).not.toHaveBeenCalled();
     expect(screen.queryByText(PHISH)).toBeNull();
   });
 });

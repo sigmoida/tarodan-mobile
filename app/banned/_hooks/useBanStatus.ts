@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import * as SecureStore from 'expo-secure-store';
 import { userApi } from '@/lib/api';
+import { SESSION_PROBE } from '@/lib/api/sessionState';
 import { qk } from '@/lib/query';
-import { useAuthStore } from '@/stores/authStore';
 
 export type BanStatus = { banned: boolean; reason: string | null };
 
@@ -17,24 +18,34 @@ const isBanError = (e: unknown): e is { response: { status: 403; data: { errorCo
  * "şu numarayı arayın", "şu siteye girin") gösterebiliyordu. Artık parametre yok sayılır.
  *
  * Banlı kullanıcının kimliği doğrulanmış her isteği (destek / çıkış hariç) `403 USER_BANNED`
- * + `bannedReason` döner (API `BannedUserGuard`); ekran bunu `GET /users/me` ile okur. İstek
- * BAŞARILI olursa hesap banlı değildir (`banned: false` — ekran ana sayfaya döner).
- * Oturum yoksa sorgu yok: sabit metin gösterilir. Önbelleğe alınmaz, yeniden denenmez.
+ * + `bannedReason` döner (API `BannedUserGuard`); ekran bunu `GET /users/me` ile okur.
+ *
+ * Saklı access token VARSA istek atılır — `isAuthenticated` beklenmez: görüntüsüz soğuk
+ * açılışta (ertelenmiş oturum) arayüz misafirdir ama ban nedeni yine gösterilmeli. İstek
+ * `SESSION_PROBE` ile gider (ertelenmiş oturumda da Bearer taşır).
+ *  - `{ banned: true, reason }` → neden gösterilir;
+ *  - `{ banned: false }` (istek başarılı) → hesap banlı değil, ekran ana sayfaya döner;
+ *  - `null` → bilinmiyor (token yok / ağ): sabit metin. Önbelleğe alınmaz, yeniden denenmez.
  */
 export function useBanStatus() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return useQuery({
     queryKey: qk.auth.banStatus,
-    enabled: isAuthenticated,
     retry: false,
     gcTime: 0,
     staleTime: 0,
-    queryFn: async (): Promise<BanStatus> => {
+    queryFn: async (): Promise<BanStatus | null> => {
+      let token: string | null = null;
       try {
-        await userApi.getProfile();
+        token = await SecureStore.getItemAsync('accessToken');
+      } catch {
+        return null;
+      }
+      if (!token) return null;
+      try {
+        await userApi.getProfile(SESSION_PROBE);
         return { banned: false, reason: null };
       } catch (e) {
-        if (!isBanError(e)) throw e;
+        if (!isBanError(e)) return null;
         const raw = e.response.data.bannedReason;
         const reason = typeof raw === 'string' && raw.trim() ? raw.trim() : null;
         return { banned: true, reason };
