@@ -65,6 +65,19 @@ describe('app.json — Android izinleri', () => {
     expect(fs.existsSync(path.join(ROOT, 'plugins/withLegacyStoragePermissions.js'))).toBe(false);
   });
 
+  it('SYSTEM_ALERT_WINDOW ve RECEIVE_BOOT_COMPLETED kaldırılır (overlay yok, zamanlanmış yerel bildirim yok)', () => {
+    const blocked = expo.android.blockedPermissions ?? [];
+    expect(blocked).toContain('android.permission.SYSTEM_ALERT_WINDOW');
+    expect(blocked).toContain('android.permission.RECEIVE_BOOT_COMPLETED');
+  });
+
+  it('RECEIVE_BOOT_COMPLETED yalnız zamanlanmış yerel bildirimler içindir — uygulama zamanlamaz', () => {
+    const offenders = [...walk(path.join(ROOT, 'app')), ...walk(path.join(ROOT, 'src'))]
+      .filter((f) => !f.includes(`${path.sep}__tests__${path.sep}`))
+      .filter((f) => fs.readFileSync(f, 'utf8').includes('scheduleNotificationAsync('));
+    expect(offenders).toEqual([]);
+  });
+
   it('POST_NOTIFICATIONS kalır', () => {
     expect(expo.android.permissions).toContain('android.permission.POST_NOTIFICATIONS');
   });
