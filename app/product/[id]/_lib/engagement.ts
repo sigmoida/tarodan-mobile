@@ -1,15 +1,18 @@
-// Teklif / takas girişlerinin görünürlük kuralı — çipler, alt bardaki satır ve galeri rozeti TEK kaynak.
-import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
+// Teklif / takas girişlerinin görünürlük kuralı — alt bardaki satır ve takas rozeti TEK kaynak.
+import { isProductTradeBadgeVisible } from '@/components/product/productCardBadges';
 import type { Product } from './types';
 
 export interface OfferTradeAvailability {
-  /** "Teklif Ver" / "Pazarlık yapılabilir": ilan satılabilir ve izleyen sahip değil. */
+  /** "Teklif Ver": ilan satılabilir ve izleyen sahip değil. */
   offer: boolean;
-  /** "Takas Teklifi" / "Takas Açık": yukarıdakine ek olarak ilan takasa açık ve giriş platformda açık. */
+  /**
+   * "Takas Teklifi": ilan takasa açık + satılabilir ve izleyen sahip değil. Üyelik/platform kapısı
+   * YOK (web ile aynı): yetkisizlik düğmeye basınca dialog ile bildirilir (`useProductActions`).
+   */
   trade: boolean;
   /**
-   * Galeri "Takas Açık" rozeti: ilan takasa açık, satılabilir ve takas girişi platformda açık.
-   * Sahip de görür (kendi ilanının durumu); satılmış/rezerve/stoksuz ilanda yok.
+   * Fiyat altı "Takas" rozeti: ilan takasa açık ve satılabilir. Sahip de görür (kendi ilanının
+   * durumu); satılmış/rezerve/stoksuz ilanda yok. Üyelik kapısına bağlı değil.
    */
   tradeBadge: boolean;
 }
@@ -27,9 +30,9 @@ export function isPurchasable(product: Product, isOutOfStock: boolean): boolean 
  */
 export function getOfferTradeAvailability(
   product: Product,
-  { isOwner, isOutOfStock, showTradeEntry }: { isOwner: boolean; isOutOfStock: boolean; showTradeEntry: boolean },
+  { isOwner, isOutOfStock }: { isOwner: boolean; isOutOfStock: boolean },
 ): OfferTradeAvailability {
   const purchasable = isPurchasable(product, isOutOfStock);
-  const tradeBadge = purchasable && showTradeEntry && isProductTradeOpen(product);
+  const tradeBadge = purchasable && isProductTradeBadgeVisible(product);
   return { offer: purchasable && !isOwner, trade: tradeBadge && !isOwner, tradeBadge };
 }

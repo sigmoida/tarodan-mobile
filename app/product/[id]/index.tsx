@@ -28,7 +28,6 @@ import { ProductTitleBlock } from './_components/ProductTitleBlock';
 import { ProductDescription } from './_components/ProductDescription';
 import { ProductBuyBar, ProductOfferTradeRow, ProductSecondaryActions } from './_components/ProductActions';
 import { getOfferTradeAvailability } from './_lib/engagement';
-import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { SellerCard } from './_components/SellerCard';
 import { ProductSpecs } from './_components/ProductSpecs';
 import { ProductReviewsPreview } from './_components/ProductReviewsPreview';
@@ -52,10 +51,9 @@ function ProductSkeleton() {
 }
 
 /**
- * Ürün detayı — web `ListingDetailClient` blokları ve sırası: galeri, başlık, fiyat bloğu, açıklama,
- * durum uyarısı, adet seçici, satıcı kartı, özellik tabloları, değerlendirmeler, benzer ürünler.
- * Sabit alt bar (platform kalıbı): üstte ince "Takas Teklifi" · "Teklif Ver" satırı (tek giriş;
- * fiyatın altındaki çipler kısayol), altında fiyat · "Hemen Al" · "Sepete Ekle" (misafir de ekler;
+ * Ürün detayı — web `ListingDetailClient` blokları ve sırası: galeri, başlık, fiyat bloğu, rozet satırı
+ * (%İndirim · Takas), durum uyarısı, açıklama, adet seçici, satıcı kartı, özellik tabloları, değerlendirmeler, benzer ürünler.
+ * Sabit alt bar (platform kalıbı): üstte ince "Takas Teklifi" · "Teklif Ver" satırı (tek giriş), altında fiyat · "Hemen Al" · "Sepete Ekle" (misafir de ekler;
  * sahipte fiyat · "Düzenle").
  * Mantık `_hooks/`'ta; hook'lar PageShell'in yükleniyor/boş dallarından ÖNCE koşulsuz çağrılır.
  */
@@ -98,10 +96,8 @@ export default function ProductDetailScreen() {
   // Sahiplik TEK kaynaktan (kartlarla aynı kural): sellerId ?? seller.id === oturum kullanıcısı.
   const isOwner = Boolean(product && isAuthenticated && isOwnProduct(product, user?.id));
   const reportOnly = !sellerId;
-  // iOS: yetkisi olmayana takas girişi gösterilmez (bkz. useFeatureAccess).
-  const { showTradeEntry } = useFeatureAccess();
   const availability = product
-    ? getOfferTradeAvailability(product, { isOwner, isOutOfStock, showTradeEntry })
+    ? getOfferTradeAvailability(product, { isOwner, isOutOfStock })
     : { offer: false, trade: false, tradeBadge: false };
   const price = product ? getProductPriceInfo(product) : null;
   const openReviews = () => router.push(`/product/${productId}/reviews`);
@@ -210,7 +206,6 @@ export default function ProductDetailScreen() {
             currentImage={currentImage}
             onPageChange={setCurrentImage}
             onOpenViewer={(index) => setViewer({ open: true, index })}
-            tradeOpen={availability.tradeBadge}
           />
 
           <View style={styles.body}>
@@ -218,9 +213,7 @@ export default function ProductDetailScreen() {
               product={product}
               price={price}
               favoriteCount={favorite.favoriteCount}
-              availability={availability}
-              onMakeOffer={actions.handleMakeOffer}
-              onTrade={actions.handleTrade}
+              tradeBadge={availability.tradeBadge}
             />
             <ProductDescription product={product} />
             <ProductSecondaryActions

@@ -817,7 +817,6 @@
     "boxedCondition": "Kutu durumu",
     "boxed": "Kutulu",
     "unboxed": "Kutusuz",
-    "tradeOpenBadge": "Takas Açık",
     "viewCountLabel": "{count} görüntülenme",
     "favoriteCountLabel": "{count} favori",
     "reservedStockInfo": "Stok: {quantity} · {reserved} adedi aktif takas/sipariş için rezerve · Satışta görünen: {available}",
@@ -850,8 +849,7 @@
     "commissionRuleUnavailable": "Kategori, fiyat ve üyelik tipinize uygun aktif komisyon kuralı bulunamadığı için bu ilan oluşturulamaz.",
     "packageFeeLabel": "Paket ücreti",
     "sampleDimensionsLabel": "Örnek ölçü (en × boy × yükseklik)",
-    "packageFeeNeedsPriceAndCategory": "Paket ücretinizi görmek için fiyat ve kategori girin.",
-    "negotiable": "Pazarlık yapılabilir"
+    "packageFeeNeedsPriceAndCategory": "Paket ücretinizi görmek için fiyat ve kategori girin."
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",
@@ -3070,6 +3068,7 @@
     "deleteCardBodyNeutral": "{brand} •••• {last4} kartını silmek istediğine emin misin?"
   },
   "seller": {
+    "premiumBadge": "Premium",
     "sellerProfile": "Satıcı Profili",
     "allListings": "Tüm İlanlar",
     "activeListings": "Aktif İlanlar",

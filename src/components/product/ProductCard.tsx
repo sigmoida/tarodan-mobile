@@ -13,10 +13,9 @@ import {
   isProductOnSaleDisplay,
   isProductOutOfStock,
 } from '@/utils/productPrice';
-import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import { formatPrice } from '@/utils/format';
 import { OutOfStockOverlay } from './OutOfStockOverlay';
-import { getProductSalePercent, selectProductCardBadges, type ProductCardBadge } from './productCardBadges';
+import { getProductSalePercent, isProductTradeBadgeVisible, selectProductCardBadges, type ProductCardBadge } from './productCardBadges';
 
 const { colors, spacing, typography, radiusRole, iconSize } = theme;
 
@@ -235,7 +234,7 @@ function ProductCardBase({
       onSale: isProductOnSaleDisplay(product) && getProductOriginalPriceForDisplay(product) > getProductEffectivePrice(product),
       salePercent: getProductSalePercent(product),
       outOfStock: isProductOutOfStock(product),
-      isTrade: isProductTradeOpen(product),
+      isTrade: isProductTradeBadgeVisible(product),
       badges: selectProductCardBadges(product),
     }),
     [product],

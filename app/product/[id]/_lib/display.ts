@@ -3,9 +3,9 @@ import { transformImageUrl, IMAGE_PLACEHOLDER } from '@/utils/imageUrl';
 import {
   getProductEffectivePrice,
   getProductOriginalPriceForDisplay,
-  getProductDiscountPercent,
   isProductOnSaleDisplay,
 } from '@/utils/productPrice';
+import { getProductSalePercent } from '@/components/product/productCardBadges';
 import type { Product } from './types';
 
 export interface PriceInfo {
@@ -25,7 +25,7 @@ export function getProductPriceInfo(product: Product): PriceInfo {
     effectivePrice: getProductEffectivePrice(p),
     onSale: isProductOnSaleDisplay(p),
     originalPrice: getProductOriginalPriceForDisplay(p),
-    discountPct: getProductDiscountPercent(p),
+    discountPct: getProductSalePercent(p),
   };
 }
 

@@ -28,10 +28,11 @@ export function NewTradeGate({ f }: { f: NewTradeController }) {
           <Text variant="h2" style={styles.premiumTitle}>{upgradeInfo.title}</Text>
           <Text variant="body" style={styles.premiumSubtitle}>{upgradeInfo.message}</Text>
 
-          {/* Ücretli kademe özellik listesi + yükseltme düğmesi iOS'ta kapalı:
-              uygulama içinde ücretli kademeden söz etmek/satmak Apple IAP'siz
-              yapılamıyor (Guideline 3.1.1 / 3.1.3). Başlık + nötr mesaj + "Geri"
-              kalır ki ekran kendini açıklasın ve kullanıcı çıkabilsin. */}
+          {/* Ücretli kademe özellik listesi + yükseltme düğmesi mağaza sürümlerinde (iOS + Android,
+              `CAN_BUY_DIGITAL=false`) kapalı: uygulama içinde ücretli kademeden söz etmek/satmak
+              mağaza ödeme kurallarına aykırı (Apple 3.1.1 / 3.1.3, Play). Başlık + nötr mesaj +
+              "Geri" kalır — ürün detayındaki Takas Teklifi dialog'uyla AYNI metin
+              (`getUpgradeMessage('tradeFeature')`). */}
           <UpgradeCta>
             <View style={styles.premiumFeatures}>
               <View style={styles.premiumFeature}>

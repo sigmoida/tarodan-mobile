@@ -817,7 +817,6 @@
     "boxedCondition": "Box condition",
     "boxed": "Boxed",
     "unboxed": "Unboxed",
-    "tradeOpenBadge": "Open to Trade",
     "viewCountLabel": "{count} views",
     "favoriteCountLabel": "{count} favorites",
     "reservedStockInfo": "Stock: {quantity} · {reserved} reserved for active trades/orders · Shown as available: {available}",
@@ -850,8 +849,7 @@
     "commissionRuleUnavailable": "This listing cannot be created because no active commission rule matches your category, price, and membership type.",
     "packageFeeLabel": "Package fee",
     "sampleDimensionsLabel": "Sample size (W × L × H)",
-    "packageFeeNeedsPriceAndCategory": "Enter a price and a category to see your package fee.",
-    "negotiable": "Open to offers"
+    "packageFeeNeedsPriceAndCategory": "Enter a price and a category to see your package fee."
   },
   "cart": {
     "addToCartFailed": "Could not add to cart",
@@ -3070,6 +3068,7 @@
     "deleteCardBodyNeutral": "Are you sure you want to delete the {brand} •••• {last4} card?"
   },
   "seller": {
+    "premiumBadge": "Premium",
     "sellerProfile": "Seller Profile",
     "allListings": "All Listings",
     "activeListings": "Active Listings",

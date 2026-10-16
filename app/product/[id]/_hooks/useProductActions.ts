@@ -5,11 +5,13 @@ import { useEffect, useState } from 'react';
 import { Share } from 'react-native';
 import { router } from 'expo-router';
 import { navigateTo } from '@/lib/navigation/goTo';
-import { toast } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { useCartStore } from '@/stores/cartStore';
 import { useCartSync } from '@/hooks/useCartSync';
 import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
 import { isOwnProduct } from '@/hooks/useFavoriteToggle';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { getUpgradeMessage } from '@/utils/membershipLimits';
 import { asLabel, formatPrice } from '@/utils/format';
 import { buildShareContent, productShareUrl } from '@/utils/share';
 import { clampCartQuantity } from '../_lib/quantity';
@@ -56,6 +58,7 @@ export function useProductActions({
   user: { id?: string } | null | undefined;
 }) {
   const { t } = useTranslation();
+  const { canTrade } = useFeatureAccess();
   const { isInCart, setBuyNow } = useCartStore();
   // Sepet yazmaları üyede sunucuya da aynalanır.
   const cart = useCartSync();
@@ -128,6 +131,13 @@ export function useProductActions({
     if (!product) return;
     if (!requireAuth(t('product.signInToTrade'))) return;
     if (!product.seller?.id) return toast.error(t('trade.sellerNotFound'));
+    // Düğme herkese görünür (web ile aynı); üyeliği takasa izin vermeyene yalnız bilgi dialog'u —
+    // mağaza kuralı gereği satın alma/yükseltme düğmesi YOK (`getUpgradeMessage` nötr metni verir).
+    if (!canTrade) {
+      const { title, message } = getUpgradeMessage(t, 'tradeFeature');
+      appAlert(title, message);
+      return;
+    }
     router.push(`/trade/new?targetProductId=${productId}&targetSellerId=${product.seller.id}` as any);
   };
 
