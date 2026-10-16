@@ -14,6 +14,11 @@ overrides:
 
 packageExtensionsChecksum: sha256-NuMppV6YwvkaNCt+Q5ksLroEaRkfJTvklO2AEITXd6Y=
 
+patchedDependencies:
+  expo-router@6.0.24:
+    hash: 68d7189dba5a879af9df94e65edace055dabaf67c3733675bc7cb1be883a6d7b
+    path: patches/expo-router@6.0.24.patch
+
 importers:
 
   .:
@@ -98,7 +103,7 @@ importers:
         version: 0.32.17(expo@54.0.36)(react-native@0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
       expo-router:
         specifier: ~6.0.24
-        version: 6.0.24(1bb200bcdab0e19bc0d7a86d61700545)
+        version: 6.0.24(patch_hash=68d7189dba5a879af9df94e65edace055dabaf67c3733675bc7cb1be883a6d7b)(1bb200bcdab0e19bc0d7a86d61700545)
       expo-secure-store:
         specifier: ~15.0.8
         version: 15.0.8(expo@54.0.36)
@@ -6874,7 +6879,7 @@ snapshots:
       wrap-ansi: 7.0.0
       ws: 8.21.0
     optionalDependencies:
-      expo-router: 6.0.24(1bb200bcdab0e19bc0d7a86d61700545)
+      expo-router: 6.0.24(patch_hash=68d7189dba5a879af9df94e65edace055dabaf67c3733675bc7cb1be883a6d7b)(1bb200bcdab0e19bc0d7a86d61700545)
       react-native: 0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0)
     transitivePeerDependencies:
       - bufferutil
@@ -9974,7 +9979,7 @@ snapshots:
       - supports-color
       - typescript
 
-  expo-router@6.0.24(1bb200bcdab0e19bc0d7a86d61700545):
+  expo-router@6.0.24(patch_hash=68d7189dba5a879af9df94e65edace055dabaf67c3733675bc7cb1be883a6d7b)(1bb200bcdab0e19bc0d7a86d61700545):
     dependencies:
       '@expo/metro-runtime': 6.1.2(expo@54.0.36)(react-dom@19.1.0(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       '@expo/schema-utils': 0.1.9
