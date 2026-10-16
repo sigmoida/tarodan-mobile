@@ -24,7 +24,7 @@ export function usePaymentHistory() {
   const statusConfig = buildStatusConfig(t);
 
   const query = useQuery({
-    queryKey: qk.payments.mine,
+    queryKey: qk.payments.history,
     enabled: isAuthenticated,
     queryFn: async (): Promise<Payment[]> => {
       // Web ile aynı kaynak: GET /payments/me. Yanıt alanları (orderNumber,

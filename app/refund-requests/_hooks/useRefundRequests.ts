@@ -3,7 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import i18n from '@/i18n/config';
 import { refundsApi } from '@/lib/api';
-import { useAppMutation } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import { captureException } from '@/services/sentry';
 import { useAuthStore } from '@/stores/authStore';
 import { readList } from '@/utils/apiEnvelope';
@@ -26,7 +26,7 @@ export function useRefundRequests() {
   const [tab, setTab] = useState<RefundTab>('buyer');
 
   const query = useQuery({
-    queryKey: ['refund-requests', tab],
+    queryKey: qk.refunds.list(tab),
     queryFn: async () => {
       const res = await (tab === 'seller' ? refundsApi.getSeller() : refundsApi.getMine());
       return readList<RefundRequestRow>(res);
@@ -35,7 +35,7 @@ export function useRefundRequests() {
   });
 
   const cancelMutation = useAppMutation((id: string) => refundsApi.cancel(id), {
-    invalidates: [['refund-requests']],
+    invalidates: [qk.refunds.all],
     success: i18n.t('refund.cancelSuccessBody'),
     error: i18n.t('refund.cancelFailed'),
     onError: (e) => captureException(e, { level: 'error', tags: { flow: 'refund.buyer.cancel' } }),

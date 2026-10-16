@@ -2,6 +2,7 @@ import { logger, safeError } from '@/services/logger';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
 import { collectionsApi } from '@/lib/api';
@@ -20,7 +21,7 @@ export function useLikedCollections() {
   const [refreshing, setRefreshing] = useState(false);
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['liked-collections'],
+    queryKey: qk.collections.liked,
     queryFn: async () => {
       try {
         const response = await collectionsApi.getLikedCollections();
@@ -58,7 +59,7 @@ export function useLikedCollections() {
   const handleUnlike = async (collectionId: string) => {
     try {
       await collectionsApi.unlike(collectionId);
-      queryClient.invalidateQueries({ queryKey: ['liked-collections'] });
+      queryClient.invalidateQueries({ queryKey: qk.collections.liked });
       toast.success(t('collection.removedFromLikes'));
     } catch (err) {
       logger.error('Failed to unlike collection', { err: safeError(err) });

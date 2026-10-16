@@ -27,7 +27,7 @@ export function useTradeCounter() {
   };
 
   const tradeQuery = useQuery<Trade | null>({
-    queryKey: ['trade', id],
+    queryKey: qk.trades.detail(String(id ?? '')),
     queryFn: async () => {
       if (!id) return null;
       const response = await tradesApi.getOne(id);
@@ -76,7 +76,7 @@ export function useTradeCounter() {
 
   // Kullanıcının aktif ürünleri (takasa uygun)
   const myProductsQuery = useQuery({
-    queryKey: ['my-tradeable-products', user?.id],
+    queryKey: qk.trades.myTradeableForCounter(user?.id),
     queryFn: async () => {
       if (!user?.id) return [];
       const response = await productsApi.getAll({ sellerId: user.id, tradeOnly: true, status: 'active' });
@@ -89,7 +89,7 @@ export function useTradeCounter() {
 
   // Karşı tarafın takasa uygun ürünleri
   const theirProductsQuery = useQuery({
-    queryKey: ['other-tradeable-products', otherPartyId],
+    queryKey: qk.trades.sellerTradeableForCounter(otherPartyId),
     queryFn: async () => {
       if (!otherPartyId) return [];
       const response = await productsApi.getAll({ sellerId: otherPartyId, tradeOnly: true, status: 'active' });

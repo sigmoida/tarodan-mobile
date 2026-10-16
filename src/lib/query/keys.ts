@@ -49,6 +49,20 @@ export const qk = {
     /** Ürün değerlendirmeleri ekranı: sayfalı liste + puan özeti. */
     reviewsAll: (id: string) => ["product-reviews-all", id] as const,
     ratingStats: (id: string) => ["product-rating-stats", id] as const,
+    /** Prefix root'lar — her ürünün yorum / yorum ekranı / puan sorgularını yakalar (engelleme). */
+    reviewsRoot: ["product-reviews"] as const,
+    reviewsAllRoot: ["product-reviews-all"] as const,
+    ratingStatsRoot: ["product-rating-stats"] as const,
+    /** Yeni mesaj ekranının ürün özeti (`GET /products/:id` ham gövde). Tekil `product` kökünün
+     *  altında (`detail(id)` invalidasyonu bunu da tazeler) ama detayla şekil paylaşmaz. */
+    composeSummary: (id: string) => ["product", id, "compose"] as const,
+    /** Filtre seçenekleri (`/products/filters`, opsiyonel üretici slug'ı). */
+    filterOptions: (manufacturerSlug: string) => ["product-filters", manufacturerSlug] as const,
+    /** Arama önerileri (ürün/kategori/marka) ve satıcı önerileri + engelleme için kökleri. */
+    autocomplete: (q: string) => ["autocomplete-rich", q] as const,
+    autocompleteAll: ["autocomplete-rich"] as const,
+    autocompleteSellers: (q: string) => ["autocomplete-sellers", q] as const,
+    autocompleteSellersAll: ["autocomplete-sellers"] as const,
     /** Ürün detayı "Benzer Ürünler". */
     similar: (id: string, limit?: number) => ["product", id, "similar", limit] as const,
     /** "Ürün artık satışta değil" ekranının ürünü (404/pasif ilan da dönebilir). */
@@ -72,6 +86,11 @@ export const qk = {
     myListingsStats: ["my-listings-stats"] as const,
     /** İlanlarım "Süresi dolan" sayacı (`limit=1` + `meta.total`). `my-listings` kökünün altında → `myListingsAll` ile tazelenir. */
     myListingsExpiredCount: ["my-listings", "expired-count"] as const,
+    /** Satıcı paneli "Aktif ilan" sayacı — `my-listings` kökünün altında. */
+    myListingsActiveCount: ["my-listings", "active-count"] as const,
+    /** Koleksiyona ürün ekleme listesi (yalnız active/sold). `myListings('all')` ile ÇAKIŞMASIN
+     *  diye ayrı yaprak (o sekme filtresiz tüm listeyi tutar). */
+    myListingsForCollection: ["my-listings", "collection-picker"] as const,
     myFeatured: ["my-featured-listings"] as const,
     listings: (filters?: Filters) => ["listings", filters] as const,
     /** Kategori ekranı ürünleri (arama + sıralama + ölçek). */
@@ -104,6 +123,12 @@ export const qk = {
     /** Marka / üretici detayı (slug) ve ürünleri (varlık id'si). */
     brand: (slug: string) => ["brand", slug] as const,
     brandProducts: (id?: string) => ["brand-products", id] as const,
+    /** Prefix root'lar — her marka / üretici / model ürün listesini yakalar (engelleme). */
+    brandProductsAll: ["brand-products"] as const,
+    manufacturerProductsAll: ["manufacturer-products"] as const,
+    modelProductsAll: ["model-products"] as const,
+    /** Kategori detayı (slug). */
+    category: (slug: string) => ["category", slug] as const,
     manufacturer: (slug: string) => ["manufacturer", slug] as const,
     manufacturerProducts: (id?: string) => ["manufacturer-products", id] as const,
     /** Model detayı (slug) ve o modele ait ürünler. */
@@ -124,7 +149,8 @@ export const qk = {
     top: ["collections", "top"] as const,
     mine: ["my-collections"] as const,
     liked: ["liked-collections"] as const,
-    picker: ["collection-picker"] as const,
+    /** Ürün ekleme ekranı: koleksiyondaki productId → itemId haritası. */
+    picker: (collectionId: string) => ["collection-picker", collectionId] as const,
     profile: (userId: string) => ["profile-collections", userId] as const,
   },
 
@@ -135,7 +161,17 @@ export const qk = {
     /** Siparişin TÜM e-Arşiv belgeleri (`/elogo/invoices/by-order/:id/all`). */
     elogoInvoices: (id: string) => ["elogo-invoices", id] as const,
     sellerInvoice: (id: string) => ["seller-invoice", id] as const,
-    sellerPending: ["seller-pending-orders"] as const,
+    /** Satıcı (Satışlarım) sorguları — hepsi `orders` kökünün altında: `qk.orders.all`
+     *  invalidasyonu (satış aksiyonları, iptal…) liste, kazanç, sayaç ve detayı birlikte tazeler. */
+    sellerAll: ["orders", "seller"] as const,
+    sellerList: (filter: string) => ["orders", "seller", "list", filter] as const,
+    sellerEarnings: ["orders", "seller", "earnings"] as const,
+    /** Satıcı paneli: kargo bekleyen (paid) sipariş sayısı. */
+    sellerPending: ["orders", "seller", "pending-count"] as const,
+    /** Satış detayı (satıcı gözü). Alıcı `detail(id)` ile şekil paylaşmadığı için ayrı yaprak. */
+    saleDetail: (id: string) => ["orders", "sale", id] as const,
+    /** Çok satıcılı sepet grubu. */
+    group: (id: string) => ["orders", "group", id] as const,
     /** İlan formu: tek ürün komisyon/hak ediş önizlemesi (`GET /orders/commission-preview`). */
     commissionPreview: (amount: string, categoryId: string, packageTier: string | null) =>
       ["orders", "commission-preview", amount, categoryId, packageTier] as const,
@@ -145,18 +181,35 @@ export const qk = {
     all: ["trades"] as const,
     list: (filters?: Filters) => ["trades", "list", filters] as const,
     detail: (id: string) => ["trade", id] as const,
+    /** Prefix root — TEKİL `trade` detayları (`all` = `["trades"]` bunları YAKALAMAZ). */
+    detailAll: ["trade"] as const,
     /** Takas ödeme dökümü (v2 fiyatlama) — v1 takasta boş gövde döner. */
     paymentQuote: (id: string) => ["trade", id, "payment-quote"] as const,
     /** Kaydedilmemiş teklifin canlı fiyatı — teklif oluşturma ekranı. */
     previewQuote: (mine: unknown, theirs: unknown, cash: number, payer: string) =>
       ["trade", "preview-quote", mine, theirs, cash, payer] as const,
-    statusCounts: ["trades-status-counts"] as const,
+    /** Takaslarım segment sayaçları — `trades` kökünün ALTINDA: takas aksiyonlarının
+     *  `qk.trades.all` invalidasyonu sayaçları da tazeler. */
+    statusCounts: ["trades", "status-counts"] as const,
+    /** status-counts'ta olmayan tek durum sayacı (İptal / Reddedilen; `pageSize=1` + total). */
+    statusCountBy: (status: string) => ["trades", "status-counts", status] as const,
     /** Profil menüsü rozeti: yanıt bekleyen takas sayısı. */
     pendingCount: ["trades", "pending-count"] as const,
     targetListing: (id: string) => ["trade-target-listing", id] as const,
-    myTradeable: ["my-tradeable-products"] as const,
+    /** Prefix root — kullanıcının takasa uygun ürünlerinin her varyantı. */
+    myTradeableAll: ["my-tradeable-products"] as const,
+    /** Yeni takas: takasa uygun ürünlerim (hedef ilan hariç — filtre anahtarda). */
+    myTradeable: (userId: string | undefined, excludeListingId?: string) =>
+      ["my-tradeable-products", userId, "new", excludeListingId ?? null] as const,
+    /** Karşı teklif: takasa uygun ürünlerim (farklı uç: `products.getAll`). */
+    myTradeableForCounter: (userId: string | undefined) =>
+      ["my-tradeable-products", userId, "counter"] as const,
+    sellerTradeableAll: ["seller-tradeable-products"] as const,
     sellerTradeable: (sellerId: string) =>
       ["seller-tradeable-products", sellerId] as const,
+    /** Karşı teklif: karşı tarafın takasa uygun ürünleri (farklı uç → ayrı yaprak). */
+    sellerTradeableForCounter: (sellerId: string | undefined) =>
+      ["seller-tradeable-products", sellerId, "counter"] as const,
   },
 
   offers: {
@@ -173,17 +226,27 @@ export const qk = {
   },
 
   membership: {
+    /** TEK kök — iptal/değişim/yenileme `all` ile profil rozeti, yönetim ekranı, katmanlar ve
+     *  limitler (`membershipLimits.mine`) birlikte tazelenir. */
     all: ["membership"] as const,
     /** Üyelik katmanları + fiyatları (checkout ekranı). */
-    tiers: ["membership-tiers"] as const,
-    me: ["membership-me"] as const,
+    tiers: ["membership", "tiers"] as const,
+    /** Profil rozeti: `/membership/me`'den yalnız efektif tier (string). */
+    me: ["membership", "me", "tier"] as const,
+    /** Üyelik yönetimi: `/membership/me` tam gövde. `me` (tier string) ile şekil paylaşmaz. */
+    current: ["membership", "me", "full"] as const,
     discounts: ["my-discounts"] as const,
     discountProducts: ["my-products-for-discount"] as const,
     eligibleForFeatured: ["eligible-for-featured"] as const,
   },
 
   payments: {
+    /** Prefix kök — ödemelerim sorgularının hepsi (liste + geçmiş). */
     mine: ["my-payments"] as const,
+    /** Ödemelerim (durum filtresiyle; boş = tümü). */
+    list: (status: string) => ["my-payments", "list", status] as const,
+    /** Ödeme geçmişi ekranı (ekran modeline çevrilmiş satırlar — `list` ile şekil paylaşmaz). */
+    history: ["my-payments", "history"] as const,
     /** Prefix kök — kart silinince her amacın listesi birlikte tazelenir. */
     savedCardsAll: ["saved-cards"] as const,
     /**
@@ -198,7 +261,11 @@ export const qk = {
     businessStats: ["business-stats"] as const,
     /** 2FA açık mı — kaynak TwoFactorSecret.isEnabled, user nesnesinde yok. */
     twoFactorStatus: ["two-factor-status"] as const,
+    /** Prefix root — `user` altındaki her sorgu (hesap alanı değişince). */
+    all: ["user"] as const,
     detail: (id: string) => ["user", id] as const,
+    /** Kendi analitiğim (`/users/me/analytics`, dönem). */
+    analytics: (period: string) => ["analytics", period] as const,
     stats: (id?: string) => ["user-stats", id] as const,
     /** Prefix root — invalidate every user-stats variant (with/without id). */
     statsAll: ["user-stats"] as const,
@@ -218,6 +285,7 @@ export const qk = {
     list: ["blocked-users"] as const,
     /** Hedefi engelledim mi? (menüde Engelle / Engeli Kaldır). */
     status: (id: string) => ["block-status", id] as const,
+    statusAll: ["block-status"] as const,
   },
 
   seller: {
@@ -229,6 +297,9 @@ export const qk = {
     stats: (id: string) => ["seller-stats", id] as const,
     products: (id: string) => ["seller-products", id] as const,
     ratings: (id: string) => ["seller-ratings", id] as const,
+    ratingsAll: ["seller-ratings"] as const,
+    /** Satıcı paneli istatistik birleşimi. `stats(id)` (herkese açık profil) ile ÇAKIŞMASIN. */
+    dashboardStats: (isBusiness: boolean) => ["seller-dashboard", "stats", isBusiness] as const,
     ratingStats: (id: string) => ["seller-rating-stats", id] as const,
     collections: (id: string) => ["seller-collections", id] as const,
   },
@@ -284,7 +355,10 @@ export const qk = {
   },
 
   refunds: {
-    requests: (filters?: Filters) => ["refund-requests", filters] as const,
+    all: ["refund-requests"] as const,
+    /** İade talepleri sekmesi: `buyer` (benim taleplerim) / `seller` (bana gelenler). */
+    list: (tab: string) => ["refund-requests", "list", tab] as const,
+    detail: (id: string) => ["refund-requests", "detail", id] as const,
   },
 
   featured: {

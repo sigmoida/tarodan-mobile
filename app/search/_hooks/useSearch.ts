@@ -176,7 +176,7 @@ export function useSearch() {
   }, []);
 
   const autocompleteQueryRes = useQuery({
-    queryKey: ['autocomplete-rich', autocompleteQuery],
+    queryKey: qk.products.autocomplete(autocompleteQuery),
     queryFn: async () => {
       if (!autocompleteQuery) return null;
       try {
@@ -193,7 +193,7 @@ export function useSearch() {
 
   // İsimle satıcı arama — autocomplete'te "Satıcılar" bölümü
   const sellerAutoRes = useQuery({
-    queryKey: ['autocomplete-sellers', autocompleteQuery],
+    queryKey: qk.products.autocompleteSellers(autocompleteQuery),
     queryFn: async () => {
       if (!autocompleteQuery) return [];
       try {

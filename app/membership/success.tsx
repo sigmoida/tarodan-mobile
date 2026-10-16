@@ -8,6 +8,7 @@ import { router, useLocalSearchParams, Redirect } from 'expo-router';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { requestVerify, verifyBudgetWaitMs } from '@/lib/payment/verifyPacer';
 import type { TFunction } from 'i18next';
@@ -107,9 +108,8 @@ function MembershipSuccessBody() {
       }
       if (cancelled) return;
       await refreshUserData?.();
-      // Tüm üyelik query'lerini tazele (profil rozeti ['membership-me'] kullanır).
-      queryClient.invalidateQueries({ queryKey: ['membership'] });
-      queryClient.invalidateQueries({ queryKey: ['membership-me'] });
+      // Tüm üyelik query'lerini tazele — profil rozeti (`qk.membership.me`) da `membership` kökünün altında.
+      queryClient.invalidateQueries({ queryKey: qk.membership.all });
     };
     run();
     return () => { cancelled = true; };

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { ordersApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import type { Sale, FilterType } from '../_lib/types';
@@ -17,7 +18,7 @@ export function useSales() {
   const [refreshing, setRefreshing] = useState(false);
 
   const { data: salesData, isLoading, refetch } = useQuery({
-    queryKey: ['orders', 'seller', filter],
+    queryKey: qk.orders.sellerList(filter),
     queryFn: async () => {
       try {
         const params: any = { role: 'seller', limit: 100 };
@@ -49,7 +50,7 @@ export function useSales() {
   // pendingEarnings filtrelenmiş + sayfalı `sales` listesinden hesaplanıyordu → 'paid'
   // filtresine basınca toplam kazanç 0'a düşüyordu. Artık tüm siparişler üzerinden tek sorgu.
   const { data: earningsResp } = useQuery({
-    queryKey: ['orders', 'seller', 'earnings'],
+    queryKey: qk.orders.sellerEarnings,
     queryFn: () => ordersApi.getSellerEarnings(),
     enabled: isAuthenticated,
   });

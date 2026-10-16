@@ -23,7 +23,7 @@ export function useOrderGroup() {
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
 
   const { data: group, isLoading, refetch, error } = useQuery({
-    queryKey: ['order-group', id],
+    queryKey: qk.orders.group(String(id ?? '')),
     queryFn: async (): Promise<GroupDetail> => {
       const response = await ordersApi.getGroup(id!);
       const raw: any = response.data?.data ?? response.data;
@@ -85,7 +85,7 @@ export function useOrderGroup() {
     mutationFn: (input: { reasonCode: OrderCancellationReason; reason?: string }) =>
       ordersApi.cancelGroup(id!, input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['order-group', id] });
+      queryClient.invalidateQueries({ queryKey: qk.orders.group(String(id ?? '')) });
       queryClient.invalidateQueries({ queryKey: qk.orders.all });
       toast.success(t('order.orderCancelled'));
     },

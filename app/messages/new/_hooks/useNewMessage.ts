@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
@@ -48,7 +49,7 @@ export function useNewMessage() {
 
   // Fetch recipient profile if a recipient id is provided (seller, product, or trade context)
   const { data: preselectedUser } = useQuery({
-    queryKey: ['user', recipientId],
+    queryKey: qk.user.detail(recipientId ?? ''),
     queryFn: async () => {
       if (!recipientId) return null;
       try {
@@ -76,7 +77,7 @@ export function useNewMessage() {
 
   // Fetch product details if productId is provided
   const { data: product } = useQuery({
-    queryKey: ['product', productId],
+    queryKey: qk.products.composeSummary(productId ?? ''),
     queryFn: async () => {
       if (!productId) return null;
       try {

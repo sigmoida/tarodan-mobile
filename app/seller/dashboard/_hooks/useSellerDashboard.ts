@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { userApi, ordersApi, productsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import type { SellerStats } from '../_lib/types';
@@ -18,7 +19,7 @@ export function useSellerDashboard() {
   // - /users/me/analytics (totalSales/totalRevenue/pendingOrders)
   // business-stats yalnızca isBusiness olduğunda EK olarak istenir.
   const statsQuery = useQuery<SellerStats>({
-    queryKey: ['seller-stats', isBusiness],
+    queryKey: qk.seller.dashboardStats(isBusiness),
     queryFn: async () => {
       const [productStatsRes, analyticsRes, businessStatsRes] = await Promise.allSettled([
         productsApi.getMyStats(),
@@ -58,7 +59,7 @@ export function useSellerDashboard() {
   });
 
   const pendingOrdersQuery = useQuery({
-    queryKey: ['seller-pending-orders'],
+    queryKey: qk.orders.sellerPending,
     queryFn: async () => {
       const response = await ordersApi.getAll({ role: 'seller', status: 'paid' });
       const payload = response.data?.data ?? response.data ?? [];
@@ -68,7 +69,7 @@ export function useSellerDashboard() {
   });
 
   const myListingsQuery = useQuery({
-    queryKey: ['seller-my-listings-count'],
+    queryKey: qk.products.myListingsActiveCount,
     queryFn: async () => {
       const response = await productsApi.getMyListings({ status: 'active' });
       const payload = response.data?.data ?? response.data ?? [];

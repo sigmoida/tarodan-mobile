@@ -24,7 +24,7 @@ export function useCategory() {
   const [layout, setLayout] = useState<'grid' | 'list'>('grid');
 
   const { data: category } = useQuery({
-    queryKey: ['category', slug],
+    queryKey: qk.catalog.category(slug ?? ''),
     queryFn: async () => {
       try {
         const response = await categoriesApi.getBySlug(slug);

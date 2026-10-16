@@ -28,7 +28,7 @@ export function useCollectionDetail() {
   const [likeCount, setLikeCount] = useState(0);
 
   const { data: apiCollection, isLoading, refetch } = useQuery({
-    queryKey: ['collection', id],
+    queryKey: qk.collections.detail(String(id)),
     queryFn: async () => {
       try {
         const response = await api.get(`/collections/${id}`);
@@ -98,13 +98,13 @@ export function useCollectionDetail() {
         setIsLiked(serverLiked);
         setLikeCount(serverCount);
       }
-      queryClient.invalidateQueries({ queryKey: ['collections'] });
-      queryClient.invalidateQueries({ queryKey: ['liked-collections'] });
+      queryClient.invalidateQueries({ queryKey: qk.collections.all });
+      queryClient.invalidateQueries({ queryKey: qk.collections.liked });
       queryClient.invalidateQueries({ queryKey: qk.collections.mine });
       // ['collection', id] cache'ini taze tut ki tekrar girince stale (eski isLiked/likeCount)
       // gelmesin. Cache'i elle güncelliyoruz (viewCount backend'de tekilleştirildiği için
       // refetch de güvenli olurdu; yine de gereksiz istekten kaçınıyoruz).
-      queryClient.setQueryData(['collection', id], (old: any) =>
+      queryClient.setQueryData(qk.collections.detail(String(id)), (old: any) =>
         old ? { ...old, isLiked: serverLiked, likeCount: serverCount ?? old.likeCount } : old
       );
     } catch {

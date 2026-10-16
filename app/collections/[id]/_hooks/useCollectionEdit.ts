@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { useTranslation } from 'react-i18next';
 import { appAlert, toast } from '@/ui';
 import { api } from '@/lib/api';
@@ -26,10 +27,11 @@ export function useCollectionEdit() {
 
   // Fetch collection
   const { data: collection, isLoading } = useQuery<Collection>({
-    queryKey: ['collection', id],
+    queryKey: qk.collections.detail(String(id)),
     queryFn: async () => {
       const response = await api.get(`/collections/${id}`);
-      return response.data;
+      // Detay ekranıyla AYNI anahtar (`qk.collections.detail`) → aynı şekil: zarf varsa aç.
+      return response.data?.data ?? response.data;
     },
     enabled: !!id,
   });
@@ -74,9 +76,9 @@ export function useCollectionEdit() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collection', id] });
-      queryClient.invalidateQueries({ queryKey: ['collections'] });
-      queryClient.invalidateQueries({ queryKey: ['my-collections'] });
+      queryClient.invalidateQueries({ queryKey: qk.collections.detail(String(id)) });
+      queryClient.invalidateQueries({ queryKey: qk.collections.all });
+      queryClient.invalidateQueries({ queryKey: qk.collections.mine });
       toast.success(t('collection.collectionUpdated'));
     },
     onError: (error: any) => {
@@ -88,8 +90,8 @@ export function useCollectionEdit() {
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/collections/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collections'] });
-      queryClient.invalidateQueries({ queryKey: ['my-collections'] });
+      queryClient.invalidateQueries({ queryKey: qk.collections.all });
+      queryClient.invalidateQueries({ queryKey: qk.collections.mine });
       toast.success(t('collection.collectionDeleted'));
       setTimeout(() => router.replace('/collections'), 1500);
     },
@@ -102,7 +104,7 @@ export function useCollectionEdit() {
   const removeItemMutation = useMutation({
     mutationFn: (itemId: string) => api.delete(`/collections/${id}/items/${itemId}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collection', id] });
+      queryClient.invalidateQueries({ queryKey: qk.collections.detail(String(id)) });
       toast.success(t('collection.productRemoved'));
     },
     onError: (error: any) => {

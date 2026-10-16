@@ -22,7 +22,7 @@ export function useSavedSearches() {
   const maxSavedSearches = limits?.maxSavedSearches || 5;
 
   const { data: searchesData, isLoading, refetch } = useQuery({
-    queryKey: ['saved-searches'],
+    queryKey: qk.user.savedSearches,
     queryFn: async (): Promise<SavedSearch[]> => {
       try {
         const stored = await AsyncStorage.getItem(STORAGE_KEY);
@@ -68,7 +68,7 @@ export function useSavedSearches() {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['saved-searches'] });
+      queryClient.invalidateQueries({ queryKey: qk.user.savedSearches });
     },
   });
 

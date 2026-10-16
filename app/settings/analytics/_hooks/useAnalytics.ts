@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useFocusEffect } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import { qk } from "@/lib/query";
 import { api } from "@/lib/api";
 import { useRefresh } from "@/hooks/useRefresh";
 import { useAuthStore } from "@/stores/authStore";
@@ -31,7 +32,7 @@ export function useAnalytics() {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ["analytics", timeRange],
+    queryKey: qk.user.analytics(timeRange),
     queryFn: async () => {
       const response = await api.get("/users/me/analytics", {
         params: { period: timeRange },

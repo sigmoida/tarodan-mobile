@@ -21,7 +21,7 @@ export function usePayments() {
   const retry = useDoRetryPayment();
 
   const paymentsQuery = useQuery({
-    queryKey: [...qk.payments.mine, statusFilter],
+    queryKey: qk.payments.list(statusFilter),
     queryFn: async () => {
       const params: any = { page: 1, limit: 50 };
       if (statusFilter) params.status = statusFilter;

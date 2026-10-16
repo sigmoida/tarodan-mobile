@@ -50,7 +50,7 @@ export function useNewTrade() {
   const { canTrade } = useFeatureAccess();
 
   const { data: targetProduct } = useQuery({
-    queryKey: ['trade-target-listing', listingId],
+    queryKey: qk.trades.targetListing(listingId ?? ''),
     queryFn: async () => {
       const res = await listingsApi.getOne(listingId!);
       return res.data?.product || res.data?.data || res.data;
@@ -62,7 +62,7 @@ export function useNewTrade() {
     targetSellerIdParam || targetProduct?.seller?.id || targetProduct?.sellerId || '';
 
   const { data: myProducts, isLoading: loadingMyProducts } = useQuery({
-    queryKey: ['my-tradeable-products', user?.id],
+    queryKey: qk.trades.myTradeable(user?.id, listingId),
     queryFn: async () => {
       // tradeEligible: aktif takasta olan veya müsait stoğu olmayan ürünler backend'de elenir
       const response = await productsApi.getMyListings({ status: 'active', tradeEligible: true });
@@ -80,7 +80,7 @@ export function useNewTrade() {
   });
 
   const { data: theirProducts, isLoading: loadingTheirProducts } = useQuery({
-    queryKey: ['seller-tradeable-products', targetSellerId],
+    queryKey: qk.trades.sellerTradeable(targetSellerId),
     queryFn: async () => {
       const response = await listingsApi.getAll({
         sellerId: targetSellerId,
@@ -105,15 +105,13 @@ export function useNewTrade() {
   }, [listingId, theirProducts]);
 
   const invalidateTradeRelatedQueries = () => {
-    queryClient.invalidateQueries({ queryKey: ['trades'] });
-    queryClient.invalidateQueries({ queryKey: ['my-tradeable-products'] });
-    queryClient.invalidateQueries({ queryKey: ['seller-tradeable-products'] });
-    queryClient.invalidateQueries({ queryKey: ['products'] });
-    queryClient.invalidateQueries({
-      predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === 'product',
-    });
-    queryClient.invalidateQueries({ queryKey: ['listings'] });
-    queryClient.invalidateQueries({ queryKey: ['my-listings'] });
+    queryClient.invalidateQueries({ queryKey: qk.trades.all });
+    queryClient.invalidateQueries({ queryKey: qk.trades.myTradeableAll });
+    queryClient.invalidateQueries({ queryKey: qk.trades.sellerTradeableAll });
+    queryClient.invalidateQueries({ queryKey: qk.products.all });
+    queryClient.invalidateQueries({ queryKey: qk.products.detailAll });
+    queryClient.invalidateQueries({ queryKey: qk.products.listingsAll });
+    queryClient.invalidateQueries({ queryKey: qk.products.myListingsAll });
   };
 
   const createTradeMutation = useAppMutation(

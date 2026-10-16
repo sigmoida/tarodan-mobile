@@ -8,7 +8,7 @@ import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { refundsApi } from '@/lib/api';
-import { useAppMutation } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import { formatPrice } from '@/utils/format';
 import { useAuthStore } from '@/stores/authStore';
 import { captureException } from '@/services/sentry';
@@ -34,7 +34,7 @@ export default function RefundDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['refund-requests', 'detail', id],
+    queryKey: qk.refunds.detail(String(id ?? '')),
     queryFn: async () => {
       const res: any = await refundsApi.getById(id as string);
       return (res?.data?.data ?? res?.data ?? res) as any;
@@ -43,7 +43,7 @@ export default function RefundDetailScreen() {
   });
 
   const cancelMutation = useAppMutation(() => refundsApi.cancel(id as string), {
-    invalidates: [['refund-requests']],
+    invalidates: [qk.refunds.all],
     success: t('refund.cancel.successMessage'),
     error: t('common.genericError'),
     onSuccess: () => {
