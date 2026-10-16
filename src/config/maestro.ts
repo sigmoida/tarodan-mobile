@@ -42,7 +42,7 @@ export function getMaestroAutoLoginCredentials(): MaestroCredentials | null {
     console.warn(
       '[maestro] EXPO_PUBLIC_MAESTRO=1 ama EXPO_PUBLIC_MAESTRO_EMAIL / ' +
         'EXPO_PUBLIC_MAESTRO_PASSWORD eksik — auto-login YAPILMAYACAK. ' +
-        'İkisini de build/Metro env\'ine ekleyin (bkz. docs/maestro/README.md).',
+        'İkisini de build/Metro env\'ine ekleyin (bkz. maestro/README.md).',
     );
     return null;
   }

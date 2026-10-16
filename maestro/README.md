@@ -3,7 +3,7 @@
 Bu klasör mobil uygulamanın e2e test akışlarını barındırır. [Maestro](https://maestro.mobile.dev) kullanılır — YAML tabanlı.
 
 > **Önemli:** Flow'lar **Expo Go değil, dev build**'i hedefler (`appId: ${APP_ID}`, varsayılan `com.tarodan.app`; bkz. [Uygulama kimliği](#uygulama-kimliği-appid)).
-> Test koşumu için Metro (ya da release build) **`EXPO_PUBLIC_MAESTRO=1`** + **`EXPO_PUBLIC_MAESTRO_EMAIL`** + **`EXPO_PUBLIC_MAESTRO_PASSWORD`** ile derlenmeli; bu, [authStore.loadToken](../../src/stores/authStore.ts) içindeki auto-login'i açar (login UI'sını atlar). Kapının tek kaynağı [src/config/maestro.ts](../../src/config/maestro.ts). En kolay yol: **`pnpm maestro:dev <flow>`** (bkz. [run.sh](../../maestro/run.sh)) — backend health + booted simülatör + Metro'yu garanti edip flow'u görünür simülatörde koşar.
+> Test koşumu için Metro (ya da release build) **`EXPO_PUBLIC_MAESTRO=1`** + **`EXPO_PUBLIC_MAESTRO_EMAIL`** + **`EXPO_PUBLIC_MAESTRO_PASSWORD`** ile derlenmeli; bu, [authStore.loadToken](../src/stores/authStore.ts) içindeki auto-login'i açar (login UI'sını atlar). Kapının tek kaynağı [src/config/maestro.ts](../src/config/maestro.ts). En kolay yol: **`pnpm maestro:dev <flow>`** (bkz. [run.sh](run.sh)) — backend health + booted simülatör + Metro'yu garanti edip flow'u görünür simülatörde koşar.
 
 ## Kurulum (tek seferlik)
 
@@ -178,7 +178,7 @@ maestro/
 
 Expo Router + React Native Paper UI'ı Maestro'nun text dump'ına `text` alanı olarak değil **`accessibilityText`** olarak çıkıyor. Maestro `tapOn: "..."` accessibility text'inde substring/regex araması yapar. Bu yüzden:
 
-- ✅ İyi: `tapOn: id: "tab-profile"` — alt menü sekmeleri testID ile (`tab-home`, `tab-favorites`, `tab-cart`, `tab-profile`, `tab-sell`; Mesajlar / Bildirimler sekme değil → sekme köklerinin üst barındaki `app-shell-messages` / `app-shell-notifications`; bkz. [AppTabBar](../../src/components/shell/AppTabBar.tsx), [ShellHeaderActions](../../src/components/shell/ShellHeaderActions.tsx)). Arama: `runFlow: ../subflows/open-search.yaml`
+- ✅ İyi: `tapOn: id: "tab-profile"` — alt menü sekmeleri testID ile (`tab-home`, `tab-favorites`, `tab-cart`, `tab-profile`, `tab-sell`; Mesajlar / Bildirimler sekme değil → sekme köklerinin üst barındaki `app-shell-messages` / `app-shell-notifications`; bkz. [AppTabBar](../src/components/shell/AppTabBar.tsx), [ShellHeaderActions](../src/components/shell/ShellHeaderActions.tsx)). Arama: `runFlow: ../subflows/open-search.yaml`
 - ✅ İyi: `assertVisible: text: ".*sonuç bulundu.*"`
 - ❌ Çalışmaz: `tapOn: "Profil"` (anchor'sız aramada multi-part label'a takılabilir)
 
@@ -264,7 +264,7 @@ pnpm test:e2e --testPathPattern=payment-bypass
 
 `.github/workflows/maestro-cloud.yml` hazır ama `MAESTRO_CLOUD_API_KEY` secret'ı eklenmediği sürece no-op olarak biter (notice mesajı bırakır).
 
-**Ayrıntılı kurulum talimatı:** [CLOUD_SETUP.md](CLOUD_SETUP.md).
+**Ayrıntılı kurulum talimatı:** [CLOUD_SETUP.md](../docs/maestro/CLOUD_SETUP.md).
 
 Şimdiye kadar: **API katmanı CI'da koşuyor; UI testleri yerelden manuel koşuluyor.** Bu pratik ayrım: para hareketleri ve veri kontratları otomatik korunuyor, UI smoke'ları sürüm öncesi spot kontrol için yerelde.
 
@@ -307,7 +307,7 @@ defaults write com.apple.iphonesimulator HardwareKeyboardEnabled -bool true
 Maestro flow'larında login UI üzerinden geçmek yerine `authStore.loadToken`
 boot sırasında otomatik login yapar:
 
-- **Kapı (tek kaynak)**: [`src/config/maestro.ts`](../../src/config/maestro.ts) →
+- **Kapı (tek kaynak)**: [`src/config/maestro.ts`](../src/config/maestro.ts) →
   `IS_MAESTRO = process.env.EXPO_PUBLIC_MAESTRO === '1'`. Auto-login,
   `EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN`, maskesiz şifre alanları (login/kayıt),
   login `getValues()` fallback'i ve kayıt doğum tarihi ön doldurması hep bu
@@ -318,7 +318,7 @@ boot sırasında otomatik login yapar:
   - `EXPO_PUBLIC_MAESTRO_EMAIL` ve `EXPO_PUBLIC_MAESTRO_PASSWORD` — **ikisi de
     zorunlu, kodda varsayılan YOK**. Biri eksikse auto-login yapılmaz ve açılışta
     `[maestro] … eksik — auto-login YAPILMAYACAK` `console.warn`'ı basılır.
-    `pnpm maestro:dev` ([run.sh](../../maestro/run.sh)) bunları kendisi set eder
+    `pnpm maestro:dev` ([run.sh](run.sh)) bunları kendisi set eder
     (varsayılan `zeynep@demo.com` / `Demo123!` yalnız bu shell script'inde, dev seed'i).
   - `EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN=1` (opsiyonel, kayıt/misafir yolculukları):
     yalnız `EXPO_PUBLIC_MAESTRO=1` ile birlikte etkilidir.
@@ -351,7 +351,7 @@ Maestro kod yolları **production build'lere sızmaz** çünkü:
    `EXPO_PUBLIC_MAESTRO` set edilmediği için `IS_MAESTRO` `undefined === '1'`, yani
    sabit `false` olur; Maestro şubeleri hiçbir koşulda çalışmaz.
 2. EAS `production` profili hiçbir `EXPO_PUBLIC_MAESTRO*` değişkeni taşımaz — bu
-   [src/config/__tests__/maestro.test.ts](../../src/config/__tests__/maestro.test.ts)
+   [src/config/__tests__/maestro.test.ts](../src/config/__tests__/maestro.test.ts)
    içinde `eas.json` okunarak birim testiyle çivilidir (CI'da kırılır).
 3. Test kimlik bilgileri kodda **yok** — yalnız env'den okunur; env yoksa
    auto-login denenmez.
