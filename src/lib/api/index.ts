@@ -1,4 +1,5 @@
 import { api } from "./client";
+import { apiPath } from "./path";
 import { authApi } from "./auth";
 import { productsApi } from "./products";
 import { categoriesApi, collectionsApi } from "./catalog";
@@ -52,12 +53,12 @@ export const endpoints = {
     getAll: (params?: Record<string, any>) =>
       api.get("/products", { params }).then((res) => res.data),
     getOne: (id: string | number) =>
-      api.get(`/products/${id}`).then((res) => res.data),
+      api.get(apiPath`/products/${id}`).then((res) => res.data),
   },
   categories: {
     getAll: () => api.get("/categories").then((res) => res.data),
     getOne: (id: string) =>
-      api.get(`/categories/${id}`).then((res) => res.data),
+      api.get(apiPath`/categories/${id}`).then((res) => res.data),
   },
   orders: ordersApi,
   messages: messagesApi,

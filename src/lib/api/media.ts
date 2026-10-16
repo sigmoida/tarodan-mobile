@@ -1,4 +1,5 @@
 import { api } from './client';
+import { apiPath, keyPath } from './path';
 import { appendRNFile, type RNFile } from './formData';
 
 /**
@@ -103,7 +104,8 @@ export const mediaApi = {
       '/media/product-image/rotate',
       { detailKey },
     ),
-  deleteFile: (key: string) => api.delete(`/media/file/${key}`),
+  // Sunucu ucu `file/*` joker: key'in `/`'leri korunur, her parça ayrı kodlanır (`keyPath`).
+  deleteFile: (key: string) => api.delete(apiPath`/media/file/${keyPath(key)}`),
 };
 
 // Upload API — backend `/media` modülüne yönlendirilmiş eski uyumluluk katmanı.

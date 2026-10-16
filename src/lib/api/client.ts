@@ -12,6 +12,7 @@ import { neutralizeUpsellError } from "./iosNeutralErrors";
 import { noteNetworkFailure } from "@/lib/network/networkFailure";
 import { isInvalidTwoFactorCode, isTwoFactorCodeRequest } from "./twoFactorCodeError";
 import { resolveApiBaseUrl } from "./baseUrl";
+import { apiPath } from "./path";
 
 // API URL çözümleme kuralı tek kaynakta: `./baseUrl` (env → Expo LAN host → emülatör).
 const API_URL = resolveApiBaseUrl();
@@ -35,7 +36,8 @@ export const buildAvatarUrl = (
   userId: string,
   versionHint?: string | null,
 ): string => {
-  const base = `${API_URL}/users/${userId}/avatar`;
+  // `userId` sunucu/route verisi — yol segmenti olarak kodlanır (`./path`).
+  const base = `${API_URL}${apiPath`/users/${userId}/avatar`}`;
   if (!versionHint) return base;
   const filename = versionHint.split("?")[0].split("/").pop() || "";
   return filename ? `${base}?v=${encodeURIComponent(filename)}` : base;

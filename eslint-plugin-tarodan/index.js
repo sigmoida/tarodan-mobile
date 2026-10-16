@@ -440,8 +440,64 @@ const noInlineQueryKey = {
   },
 };
 
+/**
+ * API yolu kodlanmadan interpolasyon yasak (güvenlik). expo-router parametreleri (derin
+ * bağlantı/push) çözülmüş gelir; `api.post(`/trades/${id}/accept`)` içinde `id =
+ * "x/../../offers/<id>/accept?"` isteği başka bir uca yönlendirebiliyordu. Yol değişkeni
+ * `apiPath` etiketli şablonla yazılır (her interpolasyon `seg()` → doğrula + encode),
+ * bkz. `src/lib/api/path.ts`. Sorgu parametreleri axios `params` ile gider.
+ */
+const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options']);
+const API_CLIENTS = new Set(['api', 'guestApi']);
+
+/** `api.get(...)`, `guestApi.post(...)`, `paymentHttp(id).post(...)` gibi bir HTTP çağrısı mı? */
+function isApiClientCall(callee) {
+  if (!callee || callee.type !== 'MemberExpression' || callee.computed) return false;
+  if (callee.property.type !== 'Identifier' || !HTTP_METHODS.has(callee.property.name)) return false;
+  const obj = callee.object;
+  if (obj.type === 'Identifier') return API_CLIENTS.has(obj.name);
+  // `paymentHttp(paymentId).post(...)` — axios instance döndüren fabrika.
+  return obj.type === 'CallExpression' && obj.callee.type === 'Identifier' && /Http$/.test(obj.callee.name);
+}
+
+/** Kodlanmamış dinamik yol mu? Şablon (interpolasyonlu) ya da sabit olmayan `+` birleştirme. */
+function isUnencodedDynamicPath(node) {
+  if (!node) return false;
+  if (node.type === 'TemplateLiteral') return node.expressions.length > 0;
+  if (node.type === 'BinaryExpression' && node.operator === '+') {
+    const isStatic = (n) => n.type === 'Literal' || (n.type === 'TemplateLiteral' && n.expressions.length === 0);
+    if (!isStatic(node.left) && node.left.type !== 'BinaryExpression') return true;
+    if (!isStatic(node.right)) return true;
+    return isUnencodedDynamicPath(node.left);
+  }
+  return false;
+}
+
+/** @type {import('eslint').Rule.RuleModule} */
+const encodedApiPath = {
+  meta: {
+    type: 'problem',
+    docs: { description: 'API yolundaki değişkenler apiPath`…` ile kodlanmalı (yol enjeksiyonu)' },
+    schema: [],
+    messages: {
+      unencoded:
+        "API yolunda kodlanmamış değişken — apiPath`/x/${id}` kullan (`@/lib/api/path`); sorgu değerleri axios `params` ile. Bkz. CLAUDE.md §6.",
+    },
+  },
+  create(context) {
+    return {
+      CallExpression(node) {
+        if (!isApiClientCall(node.callee)) return;
+        const url = node.arguments[0];
+        if (isUnencodedDynamicPath(url)) context.report({ node: url, messageId: 'unencoded' });
+      },
+    };
+  },
+};
+
 module.exports = {
   rules: {
+    'encoded-api-path': encodedApiPath,
     'no-inline-query-key': noInlineQueryKey,
     'empty-state-standard': emptyStateStandard,
     'restrict-button-icon': restrictButtonIcon,

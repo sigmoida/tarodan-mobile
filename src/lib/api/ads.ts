@@ -1,4 +1,5 @@
 import { guestApi } from "./client";
+import { apiPath } from "./path";
 
 /**
  * Yayındaki reklam bannerı — canlı yanıttan doğrulanan gövde.
@@ -86,14 +87,14 @@ export const adsApi = {
     guestApi.get<ActiveAd[]>("/ads/active", { params }),
 
   /** Gösterim ölçümü — banner ekrana gelince bir kez. */
-  recordImpression: (id: string) => guestApi.post(`/ads/${id}/impression`),
+  recordImpression: (id: string) => guestApi.post(apiPath`/ads/${id}/impression`),
 
   /**
    * Tıklama ölçümü — yönlendirmeden önce. Görselli reklamda sunucu tıklamayı
    * yalnız `?hotspot=` ile sayar; metin/eski reklamda parametresiz gönderilir.
    */
   recordClick: (id: string, hotspotId?: string) =>
-    guestApi.post(`/ads/${id}/click`, undefined, {
+    guestApi.post(apiPath`/ads/${id}/click`, undefined, {
       params: hotspotId ? { hotspot: hotspotId } : undefined,
     }),
 };

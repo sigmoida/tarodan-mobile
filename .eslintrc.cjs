@@ -160,6 +160,13 @@ module.exports = {
       rules: { 'tarodan/no-inline-query-key': 'warn' },
     },
     {
+      // Güvenlik: API yolundaki değişkenler `apiPath` ile kodlanır (src/lib/api/path.ts) —
+      // derin bağlantı parametresi isteği başka bir uca yönlendiremesin.
+      files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+      excludedFiles: DESIGN_TEST_FILES,
+      rules: { 'tarodan/encoded-api-path': 'warn' },
+    },
+    {
       // Renk kaynağı dosyaları raw-color / paper kurallarından muaf.
       files: MIGRATION_OVERRIDES,
       rules: {

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
 import { CAN_BUY_DIGITAL, limitAlert } from '@/lib/purchases';
 import { api, addressesApi } from '@/lib/api';
+import { apiPath } from '@/lib/api/path';
 import { qk, useAppMutation } from '@/lib/query';
 import { addressRoutes, type Address } from '../_lib/types';
 
@@ -15,7 +16,7 @@ export function useAddressActions(addresses: Address[], maxAddresses: number) {
   const { t } = useTranslation();
 
   const deleteMutation = useAppMutation(
-    (addressId: string) => api.delete(`/users/me/addresses/${addressId}`),
+    (addressId: string) => api.delete(apiPath`/users/me/addresses/${addressId}`),
     {
       invalidates: [qk.user.addresses],
       success: t('address.deleted'),

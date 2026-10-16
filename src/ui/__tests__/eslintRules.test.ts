@@ -267,3 +267,43 @@ describe('tarodan/no-inline-query-key', () => {
     expect(reports).toHaveLength(0);
   });
 });
+
+describe('tarodan/encoded-api-path', () => {
+  const ident = (name: string) => ({ type: 'Identifier', name });
+  const lit = (value: string) => ({ type: 'Literal', value });
+  const tpl = (exprCount: number) => ({
+    type: 'TemplateLiteral',
+    quasis: [],
+    expressions: Array.from({ length: exprCount }, (_, i) => ident(`v${i}`)),
+  });
+  const tagged = (tag: string) => ({ type: 'TaggedTemplateExpression', tag: ident(tag), quasi: tpl(1) });
+  const plus = (left: any, right: any) => ({ type: 'BinaryExpression', operator: '+', left, right });
+  const call = (object: any, method: string, url: any) => ({
+    type: 'CallExpression',
+    callee: { type: 'MemberExpression', computed: false, object, property: ident(method) },
+    arguments: [url],
+  });
+  const visit = (node: any) => {
+    const { reports, context } = makeContext();
+    plugin.rules['encoded-api-path'].create(context).CallExpression(node);
+    return reports.length;
+  };
+
+  it('api/guestApi/…Http() çağrısında interpolasyonlu şablon ya da dinamik birleştirme uyarı verir', () => {
+    expect(visit(call(ident('api'), 'post', tpl(1)))).toBe(1);
+    expect(visit(call(ident('guestApi'), 'get', tpl(2)))).toBe(1);
+    expect(visit(call(ident('api'), 'delete', plus(lit('/trades/'), ident('id'))))).toBe(1);
+    expect(visit(call(ident('api'), 'patch', plus(plus(lit('/a/'), ident('id')), lit('/b'))))).toBe(1);
+    const paymentHttp = { type: 'CallExpression', callee: ident('paymentHttp'), arguments: [ident('id')] };
+    expect(visit(call(paymentHttp, 'post', tpl(1)))).toBe(1);
+  });
+
+  it('apiPath etiketli şablon, sabit yol, interpolasyonsuz şablon ve ilgisiz çağrılar serbest', () => {
+    expect(visit(call(ident('api'), 'post', tagged('apiPath')))).toBe(0);
+    expect(visit(call(ident('api'), 'get', lit('/trades')))).toBe(0);
+    expect(visit(call(ident('api'), 'get', tpl(0)))).toBe(0);
+    expect(visit(call(ident('api'), 'get', plus(lit('/a'), lit('/b'))))).toBe(0);
+    expect(visit(call(ident('map'), 'get', tpl(1)))).toBe(0);
+    expect(visit(call(ident('api'), 'getUri', tpl(1)))).toBe(0);
+  });
+});

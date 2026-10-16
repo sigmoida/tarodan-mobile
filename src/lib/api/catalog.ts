@@ -1,4 +1,5 @@
 import { api, guestApi } from './client';
+import { apiPath } from './path';
 import { MEDIA_UPLOAD_TIMEOUT_MS } from './media';
 import { appendRNFile } from './formData';
 
@@ -7,9 +8,9 @@ export const categoriesApi = {
   getAll: (params?: Record<string, any>) =>
     api.get('/categories', { params }),
   getOne: (id: string) =>
-    api.get(`/categories/${id}`),
+    api.get(apiPath`/categories/${id}`),
   getBySlug: (slug: string) =>
-    api.get(`/categories/slug/${slug}`),
+    api.get(apiPath`/categories/slug/${slug}`),
 };
 
 // Collections API - Web ile aynı endpoint'ler
@@ -21,35 +22,35 @@ export const collectionsApi = {
   getLikedCollections: (params?: Record<string, any>) =>
     api.get('/collections/liked', { params }),
   getOne: (id: string) =>
-    api.get(`/collections/${id}`),
+    api.get(apiPath`/collections/${id}`),
   getBySlug: (slug: string) =>
-    api.get(`/collections/slug/${slug}`),
+    api.get(apiPath`/collections/slug/${slug}`),
   getUserCollections: (userId: string, params?: Record<string, any>) =>
-    api.get(`/collections/user/${userId}`, { params }),
+    api.get(apiPath`/collections/user/${userId}`, { params }),
   // DTO alanı `coverImageKey` (S3 key); dosya yüklemek için PATCH /collections/:id/cover kullanılır.
   create: (data: { name: string; description?: string; coverImageKey?: string; isPublic?: boolean; categoryId?: string }) =>
     api.post('/collections', data),
   update: (id: string, data: { name?: string; description?: string; coverImageKey?: string; isPublic?: boolean; categoryId?: string | null }) =>
-    api.patch(`/collections/${id}`, data),
+    api.patch(apiPath`/collections/${id}`, data),
   /** Kapak görseli yükle/değiştir — multipart, alan adı `cover` */
   updateCover: (id: string, file: { uri: string; name: string; type: string }) => {
     const formData = new FormData();
     appendRNFile(formData, 'cover', file);
-    return api.patch(`/collections/${id}/cover`, formData, {
+    return api.patch(apiPath`/collections/${id}/cover`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: MEDIA_UPLOAD_TIMEOUT_MS,
     });
   },
   delete: (id: string) =>
-    api.delete(`/collections/${id}`),
+    api.delete(apiPath`/collections/${id}`),
   addItem: (id: string, data: { productId: string; sortOrder?: number; isFeatured?: boolean }) =>
-    api.post(`/collections/${id}/items`, data),
+    api.post(apiPath`/collections/${id}/items`, data),
   removeItem: (id: string, itemId: string) =>
-    api.delete(`/collections/${id}/items/${itemId}`),
+    api.delete(apiPath`/collections/${id}/items/${itemId}`),
   like: (id: string) =>
-    api.post(`/collections/${id}/like`),
+    api.post(apiPath`/collections/${id}/like`),
   unlike: (id: string) =>
-    api.delete(`/collections/${id}/like`),
+    api.delete(apiPath`/collections/${id}/like`),
 };
 
 /** Destek / İletişim */
@@ -67,7 +68,7 @@ export const supportApi = {
   }) => api.post('/support/tickets', data),
   getMyTickets: (params?: { page?: number; pageSize?: number; status?: string }) =>
     api.get('/support/tickets/me', { params }),
-  getTicket: (id: string) => api.get(`/support/tickets/${id}`),
+  getTicket: (id: string) => api.get(apiPath`/support/tickets/${id}`),
   addMessage: (id: string, data: { content: string; attachments?: string[] }) =>
-    api.post(`/support/tickets/${id}/messages`, data),
+    api.post(apiPath`/support/tickets/${id}/messages`, data),
 };

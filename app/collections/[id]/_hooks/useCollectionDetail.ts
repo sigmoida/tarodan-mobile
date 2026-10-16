@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api, collectionsApi } from '@/lib/api';
+import { apiPath } from '@/lib/api/path';
 import { qk } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
@@ -18,7 +19,7 @@ import { toast } from '@/ui';
  */
 export function useCollectionDetail() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
   const { isAuthenticated, user } = useAuthStore();
   // Premium/business üyeler zaten koleksiyon oluşturabildiği için upsell'i gizle.
@@ -31,7 +32,7 @@ export function useCollectionDetail() {
     queryKey: qk.collections.detail(String(id)),
     queryFn: async () => {
       try {
-        const response = await api.get(`/collections/${id}`);
+        const response = await api.get(apiPath`/collections/${id}`);
         return response.data.data || response.data;
       } catch {
         return null;

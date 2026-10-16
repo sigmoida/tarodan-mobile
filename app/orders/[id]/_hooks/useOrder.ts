@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { apiPath } from '@/lib/api/path';
 import { isNotFoundError, qk } from '@/lib/query';
 import { apiStatusToUi } from '@/utils/orderStatus';
 import type { OrderDetail } from '../_lib/types';
@@ -11,7 +12,7 @@ export function useOrder(id: string | undefined) {
     enabled: !!id,
     queryFn: async (): Promise<OrderDetail | null> => {
       try {
-        const response = await api.get(`/orders/${id}`);
+        const response = await api.get(apiPath`/orders/${id ?? ''}`);
         const data = response.data?.data ?? response.data;
         if (!data) return null;
         return {

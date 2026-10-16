@@ -7,6 +7,7 @@ import { qk } from '@/lib/query';
 import { useTranslation } from 'react-i18next';
 import { appAlert, toast } from '@/ui';
 import { api } from '@/lib/api';
+import { apiPath } from '@/lib/api/path';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { useAuthStore } from '@/stores/authStore';
 import { buildCollectionEditSchema, type CollectionForm, type Collection } from '../_lib/collectionEditSchema';
@@ -19,7 +20,7 @@ import { useCollectionCover } from '../../_hooks/useCollectionCover';
  */
 export function useCollectionEdit() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -29,7 +30,7 @@ export function useCollectionEdit() {
   const { data: collection, isLoading } = useQuery<Collection>({
     queryKey: qk.collections.detail(String(id)),
     queryFn: async () => {
-      const response = await api.get(`/collections/${id}`);
+      const response = await api.get(apiPath`/collections/${id}`);
       // Detay ekranıyla AYNI anahtar (`qk.collections.detail`) → aynı şekil: zarf varsa aç.
       return response.data?.data ?? response.data;
     },
@@ -64,7 +65,7 @@ export function useCollectionEdit() {
   const updateMutation = useMutation({
     mutationFn: async (data: CollectionForm) => {
       // Metin alanları JSON ile (API @Body() UpdateCollectionDto bekler, FileInterceptor yok)
-      await api.patch(`/collections/${id}`, {
+      await api.patch(apiPath`/collections/${id}`, {
         name: data.name,
         description: data.description || undefined,
         isPublic: data.isPublic,
@@ -88,7 +89,7 @@ export function useCollectionEdit() {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: () => api.delete(`/collections/${id}`),
+    mutationFn: () => api.delete(apiPath`/collections/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.collections.all });
       queryClient.invalidateQueries({ queryKey: qk.collections.mine });
@@ -102,7 +103,7 @@ export function useCollectionEdit() {
 
   // Remove item mutation
   const removeItemMutation = useMutation({
-    mutationFn: (itemId: string) => api.delete(`/collections/${id}/items/${itemId}`),
+    mutationFn: (itemId: string) => api.delete(apiPath`/collections/${id}/items/${itemId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.collections.detail(String(id)) });
       toast.success(t('collection.productRemoved'));
