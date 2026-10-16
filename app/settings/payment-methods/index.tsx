@@ -13,8 +13,8 @@ import { apiErrorMessage } from "@/lib/api/errorText";
 import { useSavedCards } from "@/lib/payment/useSavedCards";
 import { qk } from "@/lib/query";
 import { CAN_BUY_DIGITAL } from "@/lib/purchases";
-import { styles } from './_payment-methods/_lib/styles';
-import { SavedCardBadges } from './_payment-methods/_components/SavedCardBadges';
+import { styles } from './_lib/styles';
+import { SavedCardBadges } from './_components/SavedCardBadges';
 
 /**
  * Kayıtlı Kartlarım (mobil) — web profile/payment-methods paritesi.

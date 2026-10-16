@@ -4,8 +4,8 @@ App Store Guideline `3.1.1`, `3.1.3(g)` ve `2.1(b)` reddine karşı: iOS
 uygulamasından **üyelik aboneliği** ve **ilan öne çıkarma (boost)** satın alma
 yüzeylerinin ve bunlara giden tüm çağrıların kaldırılması.
 
-Bağlam ve önceki turlar: `docs/APP_REVIEW_1.2_ENGELLEME_DEVIR.md`,
-`docs/APP_REVIEW_CEVAP_1.2.md`.
+Bağlam ve önceki turlar: `docs/app-review/APP_REVIEW_1.2_ENGELLEME_DEVIR.md`,
+`docs/app-review/APP_REVIEW_CEVAP_1.2.md`.
 
 ---
 
@@ -235,7 +235,7 @@ anahtarları **silinmez** — Android ve web hâlâ kullanıyor.
   "Restore Purchases", App Store sunucu bildirimleri. Komisyon %30, yıllık geliri
   1M$ altındaki geliştiriciler için %15.
 - **Guideline 2.1 (demo hesabı)** ve **1.2 (ekran kaydı + filtreleme anlatımı)** —
-  `docs/APP_REVIEW_CEVAP_1.2.md`'de ayrıca ele alınıyor.
+  `docs/app-review/APP_REVIEW_CEVAP_1.2.md`'de ayrıca ele alınıyor.
 - **App Store Connect metadata** — Privacy Policy URL ve EULA alanı. Uygulamada
   abonelik kalmayınca `3.1.2(c)`'nin uygulama içi şartları düşer; ASC'deki
   gizlilik politikası alanı her hâlükârda zorunlu.

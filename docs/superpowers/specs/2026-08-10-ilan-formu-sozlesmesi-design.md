@@ -1,7 +1,7 @@
 # İlan Formu Sözleşmesi (Tasarım)
 
 **Tarih:** 2026-08-10
-**Kaynak:** `mobile-parity docs/18-api-delta-2026-08-07.md` §2 (a–e)
+**Kaynak:** `docs/mobile-parity/18-api-delta-2026-08-07.md` §2 (a–e)
 **Ana repo:** `sigmoida/tarodan-app` `development` @ `cfc058da` (2026-08-07)
 **Backlog:** `docs/PARITE_KALAN_ISLER.md` → P1 #2, P1 #3, P2 #6, #7, #8
 

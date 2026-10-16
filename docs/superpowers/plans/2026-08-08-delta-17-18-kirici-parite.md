@@ -2059,12 +2059,12 @@ npx expo start -c
 
 `docs/superpowers/reports/2026-08-08-delta-17-18-kapanis.md` — hangi maddeler
 kapandı, Görev 0'ın kapısında hangileri düştü, backend'den ne bekleniyor.
-`mobile-parity docs/13-parity-matrix.md`'ye kapanan satırlar için `↳ ✅ 2026-08-08`
+`docs/mobile-parity/13-parity-matrix.md`'ye kapanan satırlar için `↳ ✅ 2026-08-08`
 notu ekle (3 Ağustos turundaki kalıp).
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add docs "mobile-parity docs/13-parity-matrix.md"
+git add docs "docs/mobile-parity/13-parity-matrix.md"
 git commit -m "docs(report): close out the delta 17/18 breaking-parity round"
 ```

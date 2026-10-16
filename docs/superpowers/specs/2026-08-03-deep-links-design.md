@@ -6,7 +6,7 @@ App Links). Bu tur **teslime hazır paket** üretir; dosyaları web/infra yayın
 
 Öncül: `docs/ios-universal-links.md` (yerini alacak) ·
 `docs/superpowers/reports/2026-08-03-parite-p1-p2-kapanis.md` §4 ·
-`mobile-parity docs/12-mobile-platform.md` §2
+`docs/mobile-parity/12-mobile-platform.md` §2
 
 ---
 
@@ -29,7 +29,7 @@ düşüyor ve `https://` linkleri tarayıcıda kalıyor. Bu iddia düzeltilecek.
 
 `docs/ios-universal-links.md:55-79`'daki `components` listesi **mobil
 expo-router yol adlarıyla** yazılmış. Gerçek web yolları
-`mobile-parity docs/12-mobile-platform.md` §2 tablosunda:
+`docs/mobile-parity/12-mobile-platform.md` §2 tablosunda:
 
 | AASA'da yazan | Gerçek web yolu | Sonuç |
 | --- | --- | --- |

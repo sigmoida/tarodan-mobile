@@ -1,7 +1,7 @@
 # Kargo Akışı ve Takip Kodu (Tasarım)
 
 **Tarih:** 2026-08-10
-**Kaynak:** `mobile-parity docs/18-api-delta-2026-08-07.md` §4, artı delta 18'den
+**Kaynak:** `docs/mobile-parity/18-api-delta-2026-08-07.md` §4, artı delta 18'den
 sonra giren `8f9ae671` (hiçbir delta dosyasında yok)
 **Ana repo:** `sigmoida/tarodan-app` `development` @ `cfc058da` (2026-08-07)
 **Backlog:** `docs/PARITE_KALAN_ISLER.md` → P1 #4, matris #20
