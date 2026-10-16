@@ -161,7 +161,7 @@ describe('teklif/takas görünürlüğü (tek kaynak)', () => {
     expect(avail({ tradeAvailable: true })).toEqual({ offer: true, trade: true, tradeBadge: true });
   });
 
-  it('sahipte teklif/takas kapalı; galeri rozeti sahibe de görünür', () => {
+  it('sahipte teklif/takas kapalı; takas rozeti sahibe de görünür', () => {
     expect(avail({ tradeAvailable: true }, { isOwner: true })).toEqual({ offer: false, trade: false, tradeBadge: true });
   });
 
@@ -171,8 +171,8 @@ describe('teklif/takas görünürlüğü (tek kaynak)', () => {
     expect(avail({ availableQuantity: 0 }, { isOutOfStock: true })).toEqual({ offer: false, trade: false, tradeBadge: false });
   });
 
-  it('platformda takas girişi kapalıysa (iOS yetki) takas yok, teklif var', () => {
-    expect(avail({ tradeAvailable: true }, { showTradeEntry: false })).toEqual({ offer: true, trade: false, tradeBadge: false });
+  it('platformda takas girişi kapalıysa (iOS yetki) aksiyon yok ama etiket durur, teklif var', () => {
+    expect(avail({ tradeAvailable: true }, { showTradeEntry: false })).toEqual({ offer: true, trade: false, tradeBadge: true });
   });
 });
 

@@ -1,88 +1,53 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Badge, Chip, Text, theme, Icon } from '@/ui';
+import { Text, theme, Icon } from '@/ui';
 import { formatPrice } from '@/utils/format';
 import type { PriceInfo } from '../_lib/display';
-import type { OfferTradeAvailability } from '../_lib/engagement';
 import type { Product } from '../_lib/types';
+import { ProductBadgeRow } from './ProductBadgeRow';
+import { ProductNotice } from './ProductNotice';
 
 const { colors, spacing, iconSize, priceColor } = theme;
 
 /**
- * Başlık, fiyat bloğu ve sayaçlar (web `ProductStaticInfoView`): h1 bold, satıldıysa "Satıldı"
- * rozeti; indirimdeyse üstü çizili eski fiyat + "%x indirim"; fiyat primary-500 bold (detay rengi);
- * fiyatın altında kısayol çipleri ("Pazarlık yapılabilir" → teklif, "Takas Açık" → takas; görünürlük
- * `getOfferTradeAvailability`, birincil giriş alt bardaki satır); görüntülenme + beğeni.
+ * Başlık, fiyat bloğu, rozet satırı, durum uyarısı ve sayaçlar (web `ProductStaticInfoView`): h1 bold;
+ * indirimdeyse üstü çizili eski fiyat; fiyat primary-500 bold (detay rengi); fiyatın hemen altında
+ * rozet satırı (Satıldı → %İndirim → Takas, bkz. `ProductBadgeRow`), onun altında durum/stok uyarısı;
+ * görüntülenme + beğeni. Teklif/takas girişi yalnız alt bardaki satırda (çip yok).
  */
 export function ProductTitleBlock({
   product,
   price,
   favoriteCount,
-  availability,
-  onMakeOffer,
-  onTrade,
+  tradeBadge,
 }: {
   product: Product;
   price: PriceInfo;
   favoriteCount: number;
-  availability: OfferTradeAvailability;
-  onMakeOffer: () => void;
-  onTrade: () => void;
+  /** Takas rozeti görünsün mü (`getOfferTradeAvailability().tradeBadge`). */
+  tradeBadge: boolean;
 }) {
   const { t } = useTranslation();
   return (
     <View style={styles.block}>
-      <View style={styles.titleRow}>
-        <Text variant="h2" style={styles.title} accessibilityRole="header">
-          {product.title}
-        </Text>
-        {product.status === 'sold' ? (
-          <Badge variant="danger" size="sm">
-            {t('product.sold')}
-          </Badge>
-        ) : null}
-      </View>
+      <Text variant="h2" accessibilityRole="header">
+        {product.title}
+      </Text>
 
       <View style={styles.priceBlock}>
         {price.onSale ? (
-          <View style={styles.oldRow}>
-            <Text variant="body" weight="regular" tone="subtle" style={styles.struck} testID="product-price-old">
-              {formatPrice(price.originalPrice)}
-            </Text>
-            {price.discountPct > 0 ? (
-              <Badge variant="danger" appearance="solid" size="sm">
-                %{price.discountPct} {t('product.discount')}
-              </Badge>
-            ) : null}
-          </View>
+          <Text variant="body" weight="regular" tone="subtle" style={styles.struck} testID="product-price-old">
+            {formatPrice(price.originalPrice)}
+          </Text>
         ) : null}
         <Text variant="h1" weight="bold" color={priceColor.detail} testID="product-price">
           {formatPrice(price.effectivePrice)}
         </Text>
-        {availability.offer || availability.trade ? (
-          <View style={styles.chips}>
-            {availability.offer ? (
-              <Chip
-                testID="product-negotiable-chip"
-                variant="primary"
-                label={t('product.negotiable')}
-                onPress={onMakeOffer}
-                accessibilityRole="button"
-              />
-            ) : null}
-            {availability.trade ? (
-              <Chip
-                testID="product-trade-chip"
-                variant="success"
-                label={t('product.tradeOpenBadge')}
-                onPress={onTrade}
-                accessibilityRole="button"
-              />
-            ) : null}
-          </View>
-        ) : null}
       </View>
+
+      <ProductBadgeRow product={product} price={price} tradeBadge={tradeBadge} />
+      <ProductNotice product={product} />
 
       <View style={styles.counters}>
         <View style={styles.counter}>
@@ -104,12 +69,8 @@ export function ProductTitleBlock({
 
 const styles = StyleSheet.create({
   block: { gap: spacing[4] },
-  titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing[3] },
-  title: { flexShrink: 1 },
   priceBlock: { gap: spacing[1] },
-  oldRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
   struck: { textDecorationLine: 'line-through' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2], marginTop: spacing[1] },
   counters: { flexDirection: 'row', alignItems: 'center', gap: spacing[4] },
   counter: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
 });

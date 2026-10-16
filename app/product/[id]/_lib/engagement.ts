@@ -1,15 +1,16 @@
-// Teklif / takas girişlerinin görünürlük kuralı — çipler, alt bardaki satır ve galeri rozeti TEK kaynak.
+// Teklif / takas girişlerinin görünürlük kuralı — alt bardaki satır ve takas rozeti TEK kaynak.
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 import type { Product } from './types';
 
 export interface OfferTradeAvailability {
-  /** "Teklif Ver" / "Pazarlık yapılabilir": ilan satılabilir ve izleyen sahip değil. */
+  /** "Teklif Ver": ilan satılabilir ve izleyen sahip değil. */
   offer: boolean;
-  /** "Takas Teklifi" / "Takas Açık": yukarıdakine ek olarak ilan takasa açık ve giriş platformda açık. */
+  /** "Takas Teklifi": yukarıdakine ek olarak ilan takasa açık ve takas girişi platformda açık (iOS feature gate). */
   trade: boolean;
   /**
-   * Galeri "Takas Açık" rozeti: ilan takasa açık, satılabilir ve takas girişi platformda açık.
-   * Sahip de görür (kendi ilanının durumu); satılmış/rezerve/stoksuz ilanda yok.
+   * Fiyat altı "Takas" rozeti: ilan takasa açık ve satılabilir. Sahip de görür (kendi ilanının
+   * durumu); satılmış/rezerve/stoksuz ilanda yok. iOS feature gate YALNIZ aksiyonu (`trade`) kapatır,
+   * etiketi değil (web ile aynı).
    */
   tradeBadge: boolean;
 }
@@ -30,6 +31,6 @@ export function getOfferTradeAvailability(
   { isOwner, isOutOfStock, showTradeEntry }: { isOwner: boolean; isOutOfStock: boolean; showTradeEntry: boolean },
 ): OfferTradeAvailability {
   const purchasable = isPurchasable(product, isOutOfStock);
-  const tradeBadge = purchasable && showTradeEntry && isProductTradeOpen(product);
-  return { offer: purchasable && !isOwner, trade: tradeBadge && !isOwner, tradeBadge };
+  const tradeBadge = purchasable && isProductTradeOpen(product);
+  return { offer: purchasable && !isOwner, trade: tradeBadge && showTradeEntry && !isOwner, tradeBadge };
 }

@@ -52,10 +52,9 @@ function ProductSkeleton() {
 }
 
 /**
- * Ürün detayı — web `ListingDetailClient` blokları ve sırası: galeri, başlık, fiyat bloğu, açıklama,
- * durum uyarısı, adet seçici, satıcı kartı, özellik tabloları, değerlendirmeler, benzer ürünler.
- * Sabit alt bar (platform kalıbı): üstte ince "Takas Teklifi" · "Teklif Ver" satırı (tek giriş;
- * fiyatın altındaki çipler kısayol), altında fiyat · "Hemen Al" · "Sepete Ekle" (misafir de ekler;
+ * Ürün detayı — web `ListingDetailClient` blokları ve sırası: galeri, başlık, fiyat bloğu, rozet satırı
+ * (Satıldı · %İndirim · Takas), durum uyarısı, açıklama, adet seçici, satıcı kartı, özellik tabloları, değerlendirmeler, benzer ürünler.
+ * Sabit alt bar (platform kalıbı): üstte ince "Takas Teklifi" · "Teklif Ver" satırı (tek giriş), altında fiyat · "Hemen Al" · "Sepete Ekle" (misafir de ekler;
  * sahipte fiyat · "Düzenle").
  * Mantık `_hooks/`'ta; hook'lar PageShell'in yükleniyor/boş dallarından ÖNCE koşulsuz çağrılır.
  */
@@ -210,7 +209,6 @@ export default function ProductDetailScreen() {
             currentImage={currentImage}
             onPageChange={setCurrentImage}
             onOpenViewer={(index) => setViewer({ open: true, index })}
-            tradeOpen={availability.tradeBadge}
           />
 
           <View style={styles.body}>
@@ -218,9 +216,7 @@ export default function ProductDetailScreen() {
               product={product}
               price={price}
               favoriteCount={favorite.favoriteCount}
-              availability={availability}
-              onMakeOffer={actions.handleMakeOffer}
-              onTrade={actions.handleTrade}
+              tradeBadge={availability.tradeBadge}
             />
             <ProductDescription product={product} />
             <ProductSecondaryActions
