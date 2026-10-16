@@ -73,14 +73,12 @@ export default function CheckoutScreen() {
         addresses={c.addresses}
         selectedAddressId={c.selectedAddressId}
         setSelectedAddressId={c.setSelectedAddressId}
-        shippingAddress={c.shippingAddress}
-        setShippingAddress={c.setShippingAddress}
+        shippingAddressStore={c.shippingAddressStore}
         billingDifferent={c.billingDifferent}
         setBillingDifferent={c.setBillingDifferent}
         selectedBillingAddressId={c.selectedBillingAddressId}
         setSelectedBillingAddressId={c.setSelectedBillingAddressId}
-        billingAddress={c.billingAddress}
-        setBillingAddress={c.setBillingAddress}
+        billingAddressStore={c.billingAddressStore}
       />
       <CheckoutSummarySection
         coupon={c.coupon}
