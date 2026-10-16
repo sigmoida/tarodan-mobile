@@ -192,11 +192,12 @@ describe('logout — yeniden giriş koruması', () => {
     expect(mockAuthLogout).toHaveBeenCalledTimes(1);
   });
 
-  it('çıkış hata verse de kilit bırakılır', async () => {
+  it('yerel temizlik adımı hata verse de çıkış tamamlanır ve kilit bırakılır', async () => {
     mockReset.mockImplementationOnce(() => {
       throw new Error('boom');
     });
-    await expect(useAuthStore.getState().logout()).rejects.toThrow('boom');
+    await expect(useAuthStore.getState().logout()).resolves.toBeUndefined();
     expect(isLogoutInProgress()).toBe(false);
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
   });
 });

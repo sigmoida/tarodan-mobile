@@ -38,7 +38,12 @@ jest.mock('react-i18next', () => ({
 const mockLogin = jest.fn(() => Promise.resolve());
 jest.mock('@/stores/authStore', () => ({
   useAuthStore: (sel?: (state: any) => unknown) => {
-    const state: any = { login: mockLogin };
+    // Kurumsal kontrol store'un refreshUserData'sından okunur (GET /users/me; girişin
+    // arka plan profil çekimiyle paylaşılan istek) — eşlenmiş kullanıcıyı döndürür.
+    const state: any = {
+      login: mockLogin,
+      refreshUserData: () => mockGetProfile().then((r: any) => r.data.user),
+    };
     return sel ? sel(state) : state;
   },
 }));

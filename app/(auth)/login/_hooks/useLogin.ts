@@ -30,12 +30,15 @@ export type LoginStep = 'email' | 'password' | 'googleOnly';
 export function useLogin() {
   const { t } = useTranslation();
   const login = useAuthStore((s) => s.login);
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
   const [step, setStep] = useState<LoginStep>('email');
   const [notRegistered, setNotRegistered] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [requires2FA, setRequires2FA] = useState(false);
-  const social = useSocialSignIn();
+  // 2FA'lı hesap Google/Apple ile açılamaz: parola girişinin e-posta adımına dönülür, kod
+  // parola adımında istenir (`useSocialSignIn`). `back` aşağıda tanımlı — çağrı anında hazır.
+  const social = useSocialSignIn({ onPasswordLoginRequired: () => back() });
   const { googleLoading, appleLoading, appleAvailable, handleGoogle, handleApple } = social;
 
   // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
@@ -86,23 +89,11 @@ export function useLogin() {
       // Doğrulanmamış e-posta banner'ı yalnızca login HATASI ('verify/doğrula')
       // ile tetiklenir (onError); başarılı login her zaman doğrulanmış kullanıcıdandır.
       // Kurumsal yükseltme kontrolü web gibi /users/me'den okunur (login response'unda
-      // companyName/taxId/membership yok).
+      // companyName/taxId/membership yok). `refreshUserData`, girişin başlattığı tam profil
+      // çekimiyle AYNI isteği paylaşır (ikinci istek yok) ve sonucu store'a yazar.
       try {
-        const profileResponse = (await authApi.getProfile()).data as {
-          user?: Record<string, unknown>;
-        } & Record<string, unknown>;
-        const currentUser = (profileResponse?.user ?? profileResponse) as {
-          companyName?: string | null;
-          taxId?: string | null;
-          membershipTier?: string | null;
-          membership?: { tier?: { type?: string; name?: string } | null } | null;
-        };
-        const membershipTier =
-          currentUser?.membership?.tier?.type ||
-          currentUser?.membership?.tier?.name ||
-          currentUser?.membershipTier ||
-          'free';
-        const isBusinessTier = String(membershipTier).toLowerCase().includes('business');
+        const currentUser = await refreshUserData();
+        const isBusinessTier = currentUser?.membershipTier === 'business';
         const hasBusinessInfo = !!(currentUser?.companyName && currentUser?.taxId);
         if (hasBusinessInfo && !isBusinessTier) {
           // iOS'ta bu uyarı yalnız kurumsal üyeliğe satış yapmak için var;

@@ -1,14 +1,20 @@
 import { create } from "zustand";
 import { SERVER_MAX_ADDRESSES } from "@/lib/addressLimit";
-import * as SecureStore from "expo-secure-store";
 import { authApi, userApi } from "@/lib/api";
 // Doğrudan modülden (barrel değil): kuşak sayacı ve ertelenmiş oturum bayrağı tek kaynak.
 import {
   SESSION_PROBE,
   advanceSessionEpoch,
   getSessionEpoch,
+  resetBannedRedirect,
   setSessionDeferred,
 } from "@/lib/api/sessionState";
+import {
+  clearStoredTokens,
+  readAccessToken,
+  readRefreshToken,
+  writeTokenPair,
+} from "@/lib/api/tokenStorage";
 import {
   bindPaymentCapabilitiesToAccount,
   clearAllPaymentCapabilities,
@@ -72,11 +78,78 @@ export function isLogoutInProgress(): boolean {
 }
 
 /** Yerel temizlik adımı çıkışı yarıda bırakmasın (SecureStore hatası vb.). */
-async function bestEffort(step: string, fn: () => Promise<unknown>): Promise<void> {
+function bestEffortSync(step: string, fn: () => void): void {
   try {
-    await fn();
+    fn();
   } catch (error) {
     logger.error("Logout local cleanup failed", { step, err: safeError(error) });
+  }
+}
+
+/** Sunucuda iptal için çıkıştan ÖNCE okunan kimlik bilgileri (yerel temizlik bunları siler). */
+interface RevocationCredentials {
+  accessToken: string | null;
+  refreshToken: string | null;
+}
+
+async function readRevocationCredentials(fallbackAccess: string | null): Promise<RevocationCredentials> {
+  const read = async (fn: () => Promise<string | null>) => {
+    try {
+      return await fn();
+    } catch {
+      return null;
+    }
+  };
+  const [accessToken, refreshToken] = await Promise.all([read(readAccessToken), read(readRefreshToken)]);
+  return { accessToken: accessToken ?? fallbackAccess, refreshToken };
+}
+
+/**
+ * Çıkışın sunucu tarafı — yerel temizlikten SONRA, arka planda, beklenmeden: çıkış çevrimdışı da
+ * anında biter. İkisi paralel ve süre sınırlı; ikisi de interceptor'SIZ istemciyle, açıkça
+ * verilen kimlikle gider (token'lar yerelde zaten silindi; 401 refresh/çıkış döngüsü yok):
+ * - bu cihazın push token'ı deaktive edilir (çıkış sonrası bu cihaza bildirim gitmesin);
+ * - `POST /auth/logout` refresh token'ı sunucuda iptal eder (body — mobil çerez taşımaz).
+ */
+function revokeSessionOnServer(credentials: RevocationCredentials): void {
+  // Lazy require: push → api → authStore import zinciriyle döngü oluşmasın.
+  let unregister: Promise<unknown> = Promise.resolve();
+  try {
+    const { unregisterPushNotifications } = require("../services/push");
+    unregister = Promise.resolve(unregisterPushNotifications(credentials.accessToken));
+  } catch {
+    /* best-effort — Expo Go'da no-op */
+  }
+  let serverLogout: Promise<unknown> = Promise.resolve();
+  try {
+    serverLogout = Promise.resolve(authApi.logout(credentials.refreshToken));
+  } catch (error) {
+    serverLogout = Promise.reject(error);
+  }
+  void withTimeout(unregister, LOGOUT_NETWORK_TIMEOUT_MS).catch(() => undefined);
+  void withTimeout(serverLogout, LOGOUT_NETWORK_TIMEOUT_MS).catch((error) => {
+    // Best-effort: report logout failures so we don't lose them silently (no-op in dev/Expo Go).
+    logger.captureException(error, { level: "warning", tags: { flow: "logout" } });
+  });
+}
+
+/** Sunucuya gidilmeyen çıkışta da yerel push durumu (rozet, bildirim merkezi) temizlenir. */
+function clearLocalPushStateQuietly(): void {
+  try {
+    const push = require("../services/push");
+    if (typeof push.clearLocalPushState === "function") void push.clearLocalPushState();
+  } catch {
+    /* best-effort */
+  }
+}
+
+/** Mesaj socket'i çıkışta HEMEN kapanır (store'daki token'ın null'lanmasını beklemeden). */
+function disconnectSocketQuietly(): void {
+  try {
+    const { disconnectSocket } = require("../services/socket");
+    disconnectSocket();
+  } catch {
+    /* best-effort */
   }
 }
 
@@ -465,7 +538,13 @@ function persistSnapshot(user: User): void {
  * tüketiciler (bearer'lı görseller, socket) ölü token'la kalır.
  */
 async function applyProfile(apiUser: unknown, token: string, generation: number): Promise<void> {
-  const freshToken = (await SecureStore.getItemAsync("accessToken")) || token;
+  let stored: string | null = null;
+  try {
+    stored = await readAccessToken();
+  } catch {
+    /* anahtar zinciri okunamadı — açılıştaki token kullanılır */
+  }
+  const freshToken = stored || token;
   // Yanıt beklenirken çıkış / başka hesapla giriş oldu: bu profil artık geçersiz.
   if (generation !== getSessionEpoch() || inFlightLogout) return;
   const { user: previous, serverLimits } = useAuthStore.getState();
@@ -481,23 +560,119 @@ async function applyProfile(apiUser: unknown, token: string, generation: number)
     isLoading: false,
   });
   persistSnapshot(mappedUser);
+  // Doğrulandı: bekleyen doğrulama denemesi gereksiz, geri çekilme sıfırlanır.
+  cancelValidationRetry();
+  validationAttempt = 0;
   // Ödeme yetki belirteci kimliği bu hesap (açılışta yüklenen oturum).
   if (previous?.id !== mappedUser.id) void bindPaymentCapabilitiesToAccount(mappedUser.id);
 }
 
 /**
- * Açılışın arka plan profil doğrulaması (saklı görüntüyle oturum zaten açık).
- * - Başarı: taze profil + taze token store'a ve görüntüye yazılır; profile bağlı
- *   yönlendirmeler (`BusinessMembershipGuard`) `user` değişince yeniden çalışır.
+ * `GET /users/me` tek-uçuş (aynı oturum kuşağında): girişin hemen ardından başlayan tam profil
+ * çekimi, açılış doğrulaması ve `refreshUserData` (ör. giriş ekranının kurumsal kontrolü,
+ * `useFullProfile`) aynı isteği paylaşır — giriş sonrası iki ayrı profil isteği atılmaz.
+ */
+let profileFlight: { epoch: number; promise: Promise<{ data: unknown }> } | null = null;
+
+function fetchProfileShared(): Promise<{ data: unknown }> {
+  const epoch = getSessionEpoch();
+  if (profileFlight && profileFlight.epoch === epoch) return profileFlight.promise;
+  let promise: Promise<{ data: unknown }>;
+  try {
+    promise = Promise.resolve(userApi.getProfile() as Promise<{ data: unknown }>);
+  } catch (error) {
+    promise = Promise.reject(error);
+  }
+  const flight = { epoch, promise };
+  profileFlight = flight;
+  const clear = () => {
+    if (profileFlight === flight) profileFlight = null;
+  };
+  promise.then(clear, clear);
+  return promise;
+}
+
+/**
+ * Doğrulama hatası yeniden denenmeli mi? Yanıtsız (ağ / zaman aşımı), 5xx, 408, 429 ya da
+ * refresh'in geçici hatası. 403 (ban → interceptor `/banned`'a yönlendirir) ve diğer 4xx değil.
+ */
+function isRetryableValidationError(error: unknown): boolean {
+  const e = error as { response?: { status?: number }; refreshTransient?: boolean } | null;
+  if (e?.refreshTransient) return true;
+  const status = e?.response?.status;
+  if (typeof status !== "number") return true;
+  return status >= 500 || status === 408 || status === 429;
+}
+
+/** Arka plan profil doğrulamasının yeniden denemesi (oturum AÇIK kalır): 15 sn'den, ≤ 5 dk. */
+const VALIDATION_RETRY_BASE_MS = 15_000;
+const VALIDATION_RETRY_MAX_MS = 5 * 60_000;
+
+let validationRetry: { cancel: () => void } | null = null;
+let validationAttempt = 0;
+
+function cancelValidationRetry(): void {
+  validationRetry?.cancel();
+  validationRetry = null;
+}
+
+/**
+ * Bir yeniden denemeyi şu anların İLKİNE kurar: süre dolunca, bağlantı geri gelince
+ * (`subscribeOnline` — çevrimdışı diyaloğu ve TanStack `onlineManager` ile aynı karar) ya da
+ * gerçek ön plana dönüşte (`focusManager` ile aynı kural). İptal fonksiyonu döner.
+ */
+function armRetry(delay: number, fire: () => void): { cancel: () => void } {
+  const timer = setTimeout(fire, delay);
+  const stopOnline = subscribeOnline((online) => {
+    if (online) fire();
+  });
+  const track = createForegroundTracker();
+  const appState = AppState.addEventListener("change", (next) => {
+    if (track(next) === "foreground") fire();
+  });
+  return {
+    cancel: () => {
+      clearTimeout(timer);
+      stopOnline();
+      appState.remove();
+    },
+  };
+}
+
+/**
+ * Doğrulama GEÇİCİ bir hatayla düştü: arayüz saklı (ya da giriş yanıtındaki) kullanıcıyla
+ * oturumu AÇIK göstermeye devam eder — misafire düşmez — ve doğrulama geri çekilerek yeniden
+ * denenir. Bu arada giriş/çıkış olduysa (kuşak değişti) ya da profil başka yoldan geldiyse
+ * deneme yapılmaz.
+ */
+function scheduleValidationRetry(token: string, generation: number): void {
+  cancelValidationRetry();
+  const delay = Math.min(VALIDATION_RETRY_BASE_MS * 2 ** validationAttempt, VALIDATION_RETRY_MAX_MS);
+  validationAttempt += 1;
+  validationRetry = armRetry(delay, () => {
+    cancelValidationRetry();
+    if (generation !== getSessionEpoch() || inFlightLogout) return;
+    const state = useAuthStore.getState();
+    if (!state.isAuthenticated || state.profileValidated) return;
+    void validateSessionInBackground(token, generation);
+  });
+}
+
+/**
+ * Arka plan profil doğrulaması — açılışta (saklı görüntüyle oturum zaten açık) ve her girişin
+ * hemen ardından (giriş yanıtı üyelik kademesi / kurumsal alanları taşımaz).
+ * - Başarı: taze TAM profil + taze token store'a ve görüntüye yazılır (`profileValidated`);
+ *   profile bağlı yönlendirmeler (`BusinessMembershipGuard`) `user` değişince yeniden çalışır.
  * - 401: interceptor refresh'i denedi; refresh düştüyse `handleAuthFailure` zorunlu
  *   çıkışı ZATEN yaptı (kuşak değişti → burada iş yok). Refresh başarılı olup istek
  *   yine 401 dönerse eski açılış yolunun karşılığı: oturum kapanır (zorunlu çıkış).
- * - Ağ hatası / 5xx / 403 (ban → interceptor `/banned`'a yönlendirir): saklı
- *   kullanıcıyla devam; profil sonraki `refreshUserData`'da tazelenir.
+ * - Geçici hata (ağ / 5xx / 429 / refresh'in geçici hatası): oturum açık kalır, doğrulama
+ *   geri çekilerek yeniden denenir (`scheduleValidationRetry`).
+ * - 403 (ban → interceptor `/banned`'a yönlendirir) / diğer 4xx: mevcut kullanıcıyla devam.
  */
 async function validateSessionInBackground(token: string, generation: number): Promise<void> {
   try {
-    const response = await userApi.getProfile();
+    const response = await fetchProfileShared();
     await applyProfile(response.data, token, generation);
   } catch (error) {
     if (generation !== getSessionEpoch() || inFlightLogout) return;
@@ -506,7 +681,11 @@ async function validateSessionInBackground(token: string, generation: number): P
       level: "warning",
       tags: { flow: unauthorized ? "auth.loadToken" : "auth.validateSession" },
     });
-    if (!unauthorized || !useAuthStore.getState().isAuthenticated) return;
+    if (!useAuthStore.getState().isAuthenticated) return;
+    if (!unauthorized) {
+      if (isRetryableValidationError(error)) scheduleValidationRetry(token, generation);
+      return;
+    }
     // Token sunucuda geçersiz: sunucu çağrıları (push iptali / logout) yine 401 alırdı.
     await useAuthStore.getState().logout({ reason: "forced", skipServer: true });
   }
@@ -521,11 +700,11 @@ const KEYCHAIN_RETRY_MS = 250;
  */
 async function readAccessTokenWithRetry(): Promise<string | null> {
   try {
-    return await SecureStore.getItemAsync("accessToken");
+    return await readAccessToken();
   } catch (error) {
     logger.warn("Access token read failed, retrying", { err: safeError(error) });
     await new Promise((resolve) => setTimeout(resolve, KEYCHAIN_RETRY_MS));
-    return SecureStore.getItemAsync("accessToken");
+    return readAccessToken();
   }
 }
 
@@ -558,35 +737,41 @@ function scheduleDeferredSessionRetry(): void {
   const generation = getSessionEpoch();
   const delay = Math.min(DEFERRED_RETRY_BASE_MS * 2 ** deferredAttempt, DEFERRED_RETRY_MAX_MS);
   deferredAttempt += 1;
-  const fire = () => {
+  deferredRetry = armRetry(delay, () => {
     cancelDeferredSessionRetry();
     if (generation !== getSessionEpoch() || inFlightLogout) return;
     if (useAuthStore.getState().isAuthenticated) return;
     void retryDeferredSession();
-  };
-  const timer = setTimeout(fire, delay);
-  const stopOnline = subscribeOnline((online) => {
-    if (online) fire();
   });
-  const track = createForegroundTracker();
-  const appState = AppState.addEventListener("change", (next) => {
-    if (track(next) === "foreground") fire();
-  });
-  deferredRetry = {
-    cancel: () => {
-      clearTimeout(timer);
-      stopOnline();
-      appState.remove();
-    },
-  };
 }
 
 async function retryDeferredSession(): Promise<void> {
   await useAuthStore.getState().loadToken();
-  if (!useAuthStore.getState().isAuthenticated) return;
+  const { isAuthenticated, user } = useAuthStore.getState();
+  if (!isAuthenticated) return;
   deferredAttempt = 0;
+  // Ertelenmiş (misafir görünen) sürede sepete eklenenler sunucuya hiç gitmedi: misafir→üye
+  // geçişi — birleştirme bekliyor işaretlenir (`useCartMergeOnLogin`).
+  if (user?.id) markCartMergePending(user.id);
   // Misafirken çekilmiş listeler (sepet, favoriler, rozetler…) token'la yeniden çekilsin.
   refetchServerStateForNewSession();
+}
+
+/**
+ * Misafir→üye geçişi: yerel sepette satır varsa sunucu sepetiyle birleştirme bu kullanıcı için
+ * BEKLİYOR işaretlenir (kalıcı; başarıya dek her açılış/bağlantı dönüşünde yeniden denenir).
+ * Soğuk açılış (saklı oturum) geçiş DEĞİLDİR — işaretlenmez. Lazy require: cartStore döngüsü.
+ */
+function markCartMergePending(userId: string): void {
+  try {
+    const { useCartStore } = require("./cartStore");
+    const cart = useCartStore.getState();
+    if (cart.items.length > 0 && typeof cart.markMergePending === "function") {
+      cart.markMergePending(userId);
+    }
+  } catch {
+    /* best-effort — birleştirme yapılmazsa yerel sepet yine durur */
+  }
 }
 
 /**
@@ -601,9 +786,10 @@ export async function discardStoredSession(): Promise<void> {
   advanceSessionEpoch();
   setSessionDeferred(false);
   cancelDeferredSessionRetry();
+  cancelValidationRetry();
   deferredAttempt = 0;
-  await bestEffort("accessToken", () => SecureStore.deleteItemAsync("accessToken"));
-  await bestEffort("refreshToken", () => SecureStore.deleteItemAsync("refreshToken"));
+  validationAttempt = 0;
+  await clearStoredTokens();
   await clearUserSnapshot();
   useAuthStore.setState({
     isAuthenticated: false,
@@ -646,13 +832,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     advanceSessionEpoch();
     // Ertelenmiş misafir hâli biter: istekler bu oturumun token'ını taşır.
     setSessionDeferred(false);
-    // Açılışta ertelenmiş oturum denemesi artık gereksiz (kullanıcı kendisi giriş yaptı).
+    // Açılışta ertelenmiş oturum / önceki oturumun doğrulama denemesi artık gereksiz.
     cancelDeferredSessionRetry();
+    cancelValidationRetry();
     deferredAttempt = 0;
-    await SecureStore.setItemAsync("accessToken", token);
-    if (refreshToken) {
-      await SecureStore.setItemAsync("refreshToken", refreshToken);
-    }
+    validationAttempt = 0;
+    // Önceki oturumdan kalan ban yönlendirmesi bayrağı yeni oturumu kilitlemesin.
+    resetBannedRedirect();
+    // Çift tutarlı yazılır: yanıt refresh vermediyse önceki oturumun refresh token'ı SİLİNİR
+    // (kalsaydı sonraki yenileme önceki hesabın oturumunu diriltirdi); yazım düşerse ikisi de
+    // silinir ve giriş hata verir (yarım çift kalmaz).
+    await writeTokenPair({ accessToken: token, refreshToken: refreshToken || null });
     const mappedUser = mapApiUserToUser(user);
     const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
     logger.debug("Auth stored", { tier: mappedUser.membershipTier });
@@ -666,6 +856,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Ödeme yetki belirteci kimliği bu hesap; başka hesabın belirteçleri (zorunlu
     // çıkıştan kalmış) silinir.
     void bindPaymentCapabilitiesToAccount(mappedUser.id);
+    // Misafir→üye geçişi: misafirken sepete eklenenler sunucu sepetiyle birleştirilecek.
+    markCartMergePending(mappedUser.id);
     // Misafir/önceki oturumdan kalan listeler yeni token'la yeniden çekilsin.
     // Token set'ten SONRA — yeniden çekim yeni token'ı taşımalı.
     refetchServerStateForNewSession();
@@ -675,6 +867,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       email: mappedUser.email,
       username: mappedUser.displayName,
     });
+    // Giriş yanıtı TAM profil değil (üyelik kademesi / kurumsal alanlar / bio… yok): açılıştaki
+    // doğrulamanın aynısı hemen arka planda çalışır; tam profil store'a ve görüntüye yazılır
+    // (`profileValidated`), geçici hatada geri çekilerek yeniden denenir. Beklenmez.
+    void validateSessionInBackground(token, getSessionEpoch());
   },
 
   // Web ile aynı endpoint: POST /auth/logout
@@ -704,33 +900,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       advanceSessionEpoch();
       setSessionDeferred(false);
       cancelDeferredSessionRetry();
+      cancelValidationRetry();
+      validationAttempt = 0;
 
-      if (!skipServer) {
-        // Bu cihazın push token'ını sunucuda deaktive et (çıkış sonrası bu cihaza
-        // bildirim gitmesin). Token hâlâ geçerliyken, logout çağrısından önce yap.
-        // Lazy require: push → api → authStore import zinciriyle döngü oluşmasın.
-        try {
-          const { unregisterPushNotifications } = require("../services/push");
-          // Süre sınırlı: çıkış hiçbir ağ çağrısına takılıp kalmamalı. Bu await
-          // response interceptor'ın içinden de çalışıyor; asılırsa axios'un
-          // reject'ini bloklar ve arayüz sonsuz "yükleniyor"da kalır.
-          await withTimeout(unregisterPushNotifications(), LOGOUT_NETWORK_TIMEOUT_MS);
-        } catch {
-          /* best-effort — Expo Go'da no-op, hata oturumu engellemesin */
-        }
-        try {
-          await withTimeout(authApi.logout(), LOGOUT_NETWORK_TIMEOUT_MS);
-        } catch (error) {
-          // Best-effort: report logout failures so we don't lose them silently
-          // (no-op in dev/Expo Go).
-          logger.captureException(error, {
-            level: "warning",
-            tags: { flow: "logout" },
-          });
-        }
-      }
-      await bestEffort("accessToken", () => SecureStore.deleteItemAsync("accessToken"));
-      await bestEffort("refreshToken", () => SecureStore.deleteItemAsync("refreshToken"));
+      // Sunucuda iptal için kimlik bilgileri yerel temizlikten ÖNCE okunur (yalnız anahtar
+      // zinciri okuması — ağ beklenmez). Zorunlu çıkışta da denenir: access token hâlâ geçerli
+      // olabilir (ör. yalnız refresh iptal edildi); geçersizse istek sessizce 401 alır.
+      const credentials = skipServer
+        ? null
+        : await readRevocationCredentials(get().token);
+
+      // YEREL TEMİZLİK ÖNCE: çıkış çevrimdışı da anında biter, hiçbir ağ çağrısını beklemez.
+      await clearStoredTokens();
       set({
         isAuthenticated: false,
         token: null,
@@ -739,14 +920,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         limits: null,
         serverLimits: null,
       });
+      // Sonraki oturum (ban kalkınca ya da başka hesap) ban ekranına yeniden yönlendirilebilsin.
+      resetBannedRedirect();
+      // Mesaj socket'i kapanır (eski token'la açık kalmasın).
+      bestEffortSync("socket", disconnectSocketQuietly);
       // Kullanıcıya özel yerel state (sepet/favori/mesaj rozetleri, query cache).
       // Lazy require: messagesStore → authStore import zinciriyle döngü oluşmasın.
       // Zorunlu çıkışta ödeme yetki belirteçleri kalır (süren 3DS ödemesi için).
       const { resetUserStores } = require("./resetUserStores");
       // Uçuş sırasında katılan çağrı nedeni yükseltmiş olabilir (`inFlightReason`).
       appliedReason = inFlightReason;
-      resetUserStores(appliedReason);
+      bestEffortSync("resetUserStores", () => resetUserStores(appliedReason));
       logger.setUser(null);
+
+      // Sunucu tarafı en iyi çaba, süre sınırlı, BEKLENMEZ (push iptali + refresh iptali).
+      // Bu çağrılar interceptor'sız gider: çıkışın kendi 401'i yeni bir çıkış/yönlendirme
+      // tetiklemez (bkz. `revokeSessionOnServer`). Yerel push durumu orada da temizlenir.
+      if (credentials) revokeSessionOnServer(credentials);
+      else clearLocalPushStateQuietly();
     })().finally(() => {
       inFlightLogout = null;
     });
@@ -761,8 +952,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // ki gerçekten çıkışlı (misafir) başlansın. Yalnız test gate'i — prod'da unset.
     if (IS_MAESTRO_NO_AUTOLOGIN) {
       advanceSessionEpoch();
-      await bestEffort("accessToken", () => SecureStore.deleteItemAsync("accessToken"));
-      await bestEffort("refreshToken", () => SecureStore.deleteItemAsync("refreshToken"));
+      await clearStoredTokens();
       set({
         isAuthenticated: false,
         token: null,
@@ -900,12 +1090,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // giriş olduysa önceki oturumun profili yeni oturuma (ya da çıkış yapmış store'a) yazılmaz.
     const generation = getSessionEpoch();
     try {
-      const response = await userApi.getProfile();
+      // Uçuştaki giriş sonrası / açılış doğrulamasıyla aynı isteği paylaşır.
+      const response = await fetchProfileShared();
       if (generation !== getSessionEpoch() || inFlightLogout) return null;
       const mappedUser = mapApiUserToUser(response.data);
       const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
       set({ user: mappedUser, profileValidated: true, limits });
       persistSnapshot(mappedUser);
+      // Tam profil geldi: bekleyen doğrulama denemesi gereksiz.
+      cancelValidationRetry();
+      validationAttempt = 0;
       return mappedUser;
     } catch (error) {
       logger.error("Failed to refresh user data", { err: safeError(error) });

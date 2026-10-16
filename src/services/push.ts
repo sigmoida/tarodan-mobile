@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { theme } from '@/ui';
-import { api } from '@/lib/api';
+import { api, guestApi } from '@/lib/api';
 import { queryClient, qk } from '@/lib/query';
 import i18n from '@/i18n/config';
 import { notificationRoute } from '../utils/notificationRoute';
@@ -160,7 +160,33 @@ export async function registerForPushNotifications(): Promise<string | null> {
   return token;
 }
 
-export async function unregisterPushNotifications(): Promise<void> {
+/**
+ * Çıkışta yerel push durumunu temizler: uygulama simgesi rozeti sıfırlanır ve önceki hesabın
+ * bildirim merkezinde duran bildirimleri kaldırılır (ortak cihazda mesaj önizlemeleri kalmasın;
+ * dokununca çıkış yapmış hesabın ekranına gitmesin). En iyi çaba, fırlatmaz.
+ */
+export async function clearLocalPushState(): Promise<void> {
+  if (isExpoGo || !Notifications) return;
+  try {
+    await Promise.allSettled([
+      Promise.resolve(Notifications.setBadgeCountAsync?.(0)),
+      Promise.resolve(Notifications.dismissAllNotificationsAsync?.()),
+    ]);
+  } catch {
+    /* en iyi çaba */
+  }
+}
+
+/**
+ * Bu cihazın push token'ını sunucuda deaktive eder ve yerel push durumunu temizler (çıkış).
+ *
+ * `accessToken` çıkıştan ÖNCE okunan oturum token'ıdır: çağrı yerel temizlikten SONRA, arka
+ * planda yapılır; token'lar o anda silinmiş olduğu için istek interceptor'sız istemciyle
+ * (`guestApi`) açık Bearer ile gider — 401'i refresh / zorunlu çıkış döngüsü başlatmaz.
+ * Token yoksa (oturum zaten yok) sunucuya gidilmez, yalnız yerel temizlik yapılır.
+ */
+export async function unregisterPushNotifications(accessToken?: string | null): Promise<void> {
+  await clearLocalPushState();
   if (isExpoGo || !Notifications) {
     return;
   }
@@ -179,13 +205,14 @@ export async function unregisterPushNotifications(): Promise<void> {
       Notifications.getExpoPushTokenAsync({ projectId }),
       PUSH_TOKEN_TIMEOUT_MS,
     );
-    if (!tokenResponse) return;
+    if (!tokenResponse?.data || !accessToken) return;
     // Aynı endpoint'e revoke:true ile gidiyoruz; backend bu token'ı
     // push_tokens tablosunda isActive=false yapar (notification.service.ts).
-    await api.post('/notifications/push-token', {
-      token: tokenResponse.data,
-      revoke: true,
-    }).catch(() => null);
+    await guestApi.post(
+      '/notifications/push-token',
+      { token: tokenResponse.data, revoke: true },
+      { headers: { Authorization: `Bearer ${accessToken}` }, timeout: PUSH_TOKEN_TIMEOUT_MS },
+    ).catch(() => null);
   } catch (error) {
     logger.error('Error unregistering push token', { err: safeError(error) });
   }
