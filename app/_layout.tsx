@@ -25,11 +25,10 @@ import { useMessagingSocket } from "@/hooks/messaging";
 // Paylaşılan QueryClient — logout'ta resetUserStores aynı örneği temizler.
 import { queryClient } from "@/lib/queryClient";
 import { queryPersistOptions } from "@/lib/query/persist";
-import {
-  registerForPushNotifications,
-  setupPushNotificationRouting,
-} from "@/services/push";
-import { settlePendingPushRevoke } from "@/services/pushRevocation";
+import { setupPushNotificationRouting } from "@/services/push";
+import { usePushRegistration } from "@/hooks/usePushRegistration";
+import { useAppBadgeSync } from "@/hooks/useAppBadgeSync";
+import { NotificationPrePromptHost } from "@/components/notifications/NotificationPrePromptHost";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { initSentry } from "@/services/sentry";
 import AnimatedSplash from "@/components/AnimatedSplash";
@@ -52,34 +51,25 @@ initSentry();
 // yeniden kurulum "boş AsyncStorage" ile saptanıyor. `loadToken` bunu bekler. Fırlatmaz.
 const secureSessionReady = prepareSecureSession();
 
-// Conditionally import notifications - only in development builds, not Expo Go
-let Notifications: any = null;
 const isExpoGo = Constants.executionEnvironment === "storeClient";
-
-if (!isExpoGo) {
-  try {
-    Notifications = require("expo-notifications");
-  } catch (e) {
-    console.log("⚠️ expo-notifications not available");
-  }
-}
 
 // Prevent splash screen from hiding
 SplashScreen.preventAutoHideAsync();
 
-// Configure notifications (only in development builds, not Expo Go)
-if (!isExpoGo && Notifications) {
-  try {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-      }),
-    });
-  } catch (e) {
-    console.log("⚠️ Notification handler setup failed (normal in Expo Go)");
-  }
+// Ön plan bildirim sunumu (`setNotificationHandler`) BURADA DEĞİL: tek tanım
+// `@/services/push` (shouldShowBanner/shouldShowList). Buradaki ikinci kopya kullanımdan
+// kalkmış `shouldShowAlert` ile onu eziyordu.
+
+/**
+ * Push kaydı (izin verilmişse sessizce; yeniden deneme / ön plan / token yenilenmesi) + uygulama
+ * simgesi rozeti. QueryClientProvider'ın ALTINDA (rozet okunmamış sayısı sorgusunu izler).
+ * Kayıt, önceki çıkışın bekleyen push iptalini bekler (`syncPushRegistration`).
+ */
+function PushBridge() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  usePushRegistration(isAuthenticated, !isExpoGo);
+  useAppBadgeSync(isAuthenticated);
+  return null;
 }
 
 /** QueryClientProvider'ın altında çalışması gereken global mesaj socket köprüsü (#77). */
@@ -97,7 +87,6 @@ function CartMergeBridge() {
 
 export default function RootLayout() {
   const loadToken = useAuthStore((s) => s.loadToken);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   // appReady: hazırlık bitti. splashDone: animasyonlu splash çıkışını tamamladı.
   // Native splash'i AnimatedSplash kapatır (onLayout) → beyaz parlama olmaz.
   const [appReady, setAppReady] = useState(false);
@@ -142,18 +131,10 @@ export default function RootLayout() {
     // `loadToken` store eylemi — referansı sabit, efekt yalnız mount'ta çalışır.
   }, [loadToken]);
 
-  // Push token kaydının TEK yeri: açılışta oturum açıksa da, çıkışlı açılıp sonra girişte de
-  // `isAuthenticated` true'ya döner. (Eski `prepare()` içindeki kayıt ölüydü: mount anındaki
-  // `isAuthenticated` kapanışı hep false'tu.) registerToken upsert — çift çağrı zararsız.
-  useEffect(() => {
-    if (isAuthenticated && !isExpoGo) {
-      // Önceki çıkışın push iptali uçuştaysa önce o sonuçlansın (≤ 5 sn): sunucu iptali cihaz
-      // token'ının TÜM kayıtlarını kapatır, yeni kaydın ardından ulaşırsa onu da kapatırdı.
-      settlePendingPushRevoke()
-        .then(() => registerForPushNotifications())
-        .catch(() => {});
-    }
-  }, [isAuthenticated]);
+  // Push token kaydının TEK yeri: <PushBridge/> (`usePushRegistration`). Açılışta oturum açıksa
+  // da, çıkışlı açılıp sonra girişte de `isAuthenticated` true'ya döner; kayıt önceki çıkışın
+  // bekleyen push iptalini bekler (≤ 5 sn) ve İZİN İSTEMEZ — izin değer anında ön-izin
+  // sheet'iyle istenir (<NotificationPrePromptHost/>).
 
   // Global mesaj socket köprüsü (#77) QueryClientProvider'ın ALTINDA çalışmalı
   // (useQueryClient) → <MessagingSocketBridge/> olarak provider içinde render edilir.
@@ -193,6 +174,9 @@ export default function RootLayout() {
           {/* Global mesaj socket köprüsü (#77) — provider altında setQueryData için. */}
           <MessagingSocketBridge />
           <CartMergeBridge />
+          <PushBridge />
+          {/* Bildirim ön-izin sheet'i: değer anında (mesaj / teklif / sipariş) açılır. */}
+          <NotificationPrePromptHost />
           {/* Kurumsal hesap business üyelik yoksa üyelik sayfasına yönlendirir (web ile aynı). */}
           <BusinessMembershipGuard />
           {/* Native Alert.alert yerine temalı dialog — appAlert() bu host'u kullanır.

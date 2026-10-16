@@ -28,6 +28,16 @@ describe('routeFromNotification — satıcı push dokunuşu', () => {
     expect(mockPush).toHaveBeenCalledWith('/sales/o1');
   });
 
+  it('payment_received ("Yeni Sipariş", eski push: audience yok) -> satış ekranı /sales/:id', () => {
+    routeFromNotification({ orderId: 'o1', type: 'payment_received' });
+    expect(mockPush).toHaveBeenCalledWith('/sales/o1');
+  });
+
+  it('payment_received eski zil linki (/profile/payments) alıcı ekranını açmaz', () => {
+    routeFromNotification({ orderId: 'o1', type: 'payment_received', link: '/profile/payments' });
+    expect(mockPush).toHaveBeenCalledWith('/sales/o1');
+  });
+
   it('order_cancelled (alıcı, link yok) -> /orders/:id', () => {
     routeFromNotification({ orderId: 'o1', type: 'order_cancelled' });
     expect(mockPush).toHaveBeenCalledWith('/orders/o1');

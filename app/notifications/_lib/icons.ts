@@ -31,6 +31,7 @@ export function getIconForType(type: string): { icon: IconName; color: string; b
     case 'order_cancelled_by_platform':
     case 'order_cancelled_by_platform_seller':
     case 'trade_cancelled_by_platform':
+    case 'trade_cancelled':
     case 'order_cancelled_out_of_stock':
     case 'offer_cancelled_out_of_stock':
     case 'offer_counter_declined':
@@ -61,6 +62,7 @@ export function getIconForType(type: string): { icon: IconName; color: string; b
     case 'listing_expiring':
     case 'listing_expired':
     case 'refund_disputed':
+    case 'trade_dispute_opened':
       return { icon: 'clock', color: theme.colors.warning[500], bg: theme.colors.warning[100] };
 
     // ---- Teklifler ----
@@ -80,6 +82,7 @@ export function getIconForType(type: string): { icon: IconName; color: string; b
       return { icon: 'arrows-right-left', color: theme.colors.info[500], bg: theme.colors.info[100] };
     case 'trade_accepted':
     case 'trade_completed':
+    case 'trade_dispute_resolved':
       return { icon: 'arrows-right-left', color: theme.colors.success[500], bg: theme.colors.success[100] };
 
     // ---- Mesaj ----

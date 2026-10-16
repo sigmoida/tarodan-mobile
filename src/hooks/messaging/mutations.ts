@@ -9,6 +9,7 @@ import { isCachedLimitExhausted, type DailyLimit } from '@/lib/messaging/dailyLi
 import type { QueryClient } from '@tanstack/react-query';
 import type { Message, MessageThread } from '@/stores/messagesStore';
 import { normalizeMessage, normalizeThread } from '@/lib/messaging/normalize';
+import { offerNotificationPrompt } from '@/lib/notifications/prePrompt';
 import {
   applyIncomingToCache,
   applyThreadReadToCache,
@@ -68,6 +69,8 @@ export function useSendMessage() {
       const isOpen = useMessagesStore.getState().currentThreadId === threadId;
       applyIncomingToCache(qc, threadId, message, { isOpen, myUserId });
       consumeDailyMessage(qc);
+      // Değer anı: yanıt geldiğinde haberdar olmak için bildirim izni (uygunsa, bir kez).
+      void offerNotificationPrompt('message');
     },
   });
 }
@@ -94,7 +97,10 @@ export function useCreateThread() {
     onSuccess: (thread, { content }) => {
       prependThreadToCache(qc, thread);
       // Thread açmak mesaj sayılmaz; yalnız ilk mesaj gönderildiyse hak düşer.
-      if (content) consumeDailyMessage(qc);
+      if (content) {
+        consumeDailyMessage(qc);
+        void offerNotificationPrompt('message');
+      }
     },
   });
 }

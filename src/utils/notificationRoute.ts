@@ -73,6 +73,17 @@ function decodeSafeRouteId(raw: string | undefined): string | null {
   return isSafeRouteId(decoded) ? decoded : null;
 }
 
+/** Web `/profile/<bölüm>` liste ekranları → mobil karşılıkları. */
+const PROFILE_LIST_ROUTES: Record<string, string> = {
+  orders: '/orders',
+  trades: '/trades',
+  offers: '/offers',
+  messages: '/messages',
+  favorites: '/(tabs)/favorites',
+  payments: '/settings/payments',
+  notifications: '/notifications',
+};
+
 export function toMobileRoute(link: string): string | null {
   if (!link || link.includes('{{')) return null; // interpole edilmemiş şablon
   // Mobilden kaldırılan sayfalar (SSS → Yardım; bilgi/CMS sayfaları → uygulama
@@ -147,6 +158,9 @@ export function toMobileRoute(link: string): string | null {
         if (section === 'trades') return `/trade/${sectionId}`;
         return `/refund-requests/${sectionId}`;
       }
+      // Liste bölümleri (yönetici yayını hedef linki bunları kullanabilir — izin listesi
+      // `@tarodan/types` NOTIFICATION_INTERNAL_PATHS): profil sekmesi yerine ilgili ekran.
+      if (!sectionId && section && PROFILE_LIST_ROUTES[section]) return PROFILE_LIST_ROUTES[section]!;
       return '/(tabs)/profile';
     }
     case 'refund-requests':
@@ -271,14 +285,29 @@ function isSellerOrderLink(link: string | null | undefined): boolean {
  */
 function isSellerOrderType(type: string | null | undefined): boolean {
   if (!type) return false;
-  return type.endsWith('_seller') || type === 'product_sold' || type === 'cargo_movement_missing';
+  return (
+    type.endsWith('_seller') ||
+    type === 'product_sold' ||
+    type === 'cargo_movement_missing' ||
+    SELLER_ONLY_TYPES.has(type)
+  );
 }
 
-/** Sipariş bildiriminin hedef kitlesi: önce audience, sonra link deseni, en son tip. */
+/**
+ * YALNIZ satıcıya giden ama eski kayıtlarda linki satıcı sipariş yolu OLMAYAN tipler.
+ * `payment_received` satıcının "Yeni Sipariş" bildirimidir: eski zil satırları
+ * `/profile/payments` linkiyle kayıtlı, eski push'lar `audience` taşımıyordu — ikisi de alıcının
+ * sipariş ekranını açıyordu. Tip, linkten ÖNCE değerlendirilir.
+ */
+const SELLER_ONLY_TYPES = new Set(['payment_received']);
+
+/** Sipariş bildiriminin hedef kitlesi: önce audience, sonra satıcıya özgü tip, link deseni, tip adı. */
 function isSellerAudience(n: NotificationLike | null | undefined): boolean {
   const d = n?.data || {};
   if (d.audience === 'seller') return true;
   if (d.audience === 'buyer') return false;
+  const type = n?.type ?? d.type;
+  if (typeof type === 'string' && SELLER_ONLY_TYPES.has(type)) return true;
   const links = [d.link, n?.link].filter(Boolean);
   if (links.length > 0) return links.some(isSellerOrderLink);
   // Push payload'ında `type` data içinde de gelir.

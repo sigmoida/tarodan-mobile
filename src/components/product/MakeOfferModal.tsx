@@ -20,6 +20,7 @@ import { offersApi } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { IS_MAESTRO } from '@/config/maestro';
 import { usePriceLimits } from '@/hooks/usePriceLimits';
+import { offerNotificationPrompt } from '@/lib/notifications/prePrompt';
 import { offerPriceFloor } from '@/lib/shared/priceLimits';
 import { formatPrice } from '../../utils/format';
 import { MIN_OFFER_RATIO, offerPresets } from './offerPresets';
@@ -63,7 +64,11 @@ export default function MakeOfferModal({
   const createOfferMutation = useMutation({
     // Değerler çağrı anında geçirilir: modal kapanınca form state'i sıfırlanıyor.
     mutationFn: (vars: { amount: number; message?: string }) => offersApi.create({ productId, ...vars }),
-    onSuccess: () => onSuccess?.(),
+    onSuccess: () => {
+      onSuccess?.();
+      // Değer anı: teklif yanıtlandığında haberdar olmak için bildirim izni (uygunsa, bir kez).
+      void offerNotificationPrompt('offer');
+    },
     onError: (e) => toast.error(apiErrorMessage(e, t('product.offerFailed'))),
   });
 

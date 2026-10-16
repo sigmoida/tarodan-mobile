@@ -2282,7 +2282,28 @@
     "emailSmsSection": "E-posta ve SMS",
     "emailEnableLabel": "E-posta Bildirimlerini Etkinleştir",
     "smsLabel": "SMS Bildirimleri",
-    "preferencesInfo": "Bildirim tercihlerinizi istediğiniz zaman değiştirebilirsiniz. Önemli güvenlik ve hesap bildirimleri her zaman gönderilir."
+    "preferencesInfo": "Bildirim tercihlerinizi istediğiniz zaman değiştirebilirsiniz. Önemli güvenlik ve hesap bildirimleri her zaman gönderilir.",
+    "permission": {
+      "sectionTitle": "Cihaz izni",
+      "statusLabel": "Bu cihazda bildirimler",
+      "granted": "Açık",
+      "denied": "Kapalı",
+      "undetermined": "İzin verilmedi",
+      "deniedHint": "Bildirimler cihaz ayarlarında kapalı. Sipariş, teklif ve mesajlardan haberdar olmak için Ayarlar'dan açabilirsiniz.",
+      "undeterminedHint": "Sipariş, teklif ve mesajlardan anında haberdar olmak için bildirimlere izin verin.",
+      "openSettings": "Ayarları Aç",
+      "allow": "Bildirimlere İzin Ver",
+      "unavailableHint": "Bu cihazda anlık bildirim kullanılamıyor."
+    },
+    "prePrompt": {
+      "title": "Bildirimleri açalım mı?",
+      "reasonMessage": "Mesajınıza yanıt geldiğinde hemen haberiniz olsun.",
+      "reasonOffer": "Teklifiniz kabul edildiğinde ya da karşı teklif geldiğinde hemen haberiniz olsun.",
+      "reasonOrder": "Siparişiniz kargoya verildiğinde ve teslim edildiğinde haberiniz olsun.",
+      "detail": "Bildirim türlerini istediğiniz zaman Ayarlar → Bildirimler'den değiştirebilirsiniz.",
+      "allow": "Bildirimleri Aç",
+      "later": "Şimdi Değil"
+    }
   },
   "profile": {
     "profile": "Profil",
