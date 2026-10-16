@@ -12,7 +12,7 @@ export function ProductTopActions({
   isFavorite,
   favoriteLoading,
   reportOnly,
-  hideFavorite = false,
+  isOwner = false,
   onFavorite,
   onShare,
   onMenu,
@@ -21,8 +21,8 @@ export function ProductTopActions({
   favoriteLoading: boolean;
   /** Satıcı menüsü yoksa (sahip / satıcı bilinmiyor) yalnız ilan şikayeti: web'deki bayrak ikonu. */
   reportOnly: boolean;
-  /** Kendi ilanı: favori kalbi çizilmez (kart ve web ile tutarlı — kendi ürünü favorilenemez). */
-  hideFavorite?: boolean;
+  /** Kendi ilanı: favori kalbi de şikayet bayrağı da çizilmez (kendi ilanı favorilenmez/şikayet edilmez); yalnız paylaş kalır. */
+  isOwner?: boolean;
   onFavorite: () => void;
   onShare: () => void;
   onMenu: () => void;
@@ -31,7 +31,7 @@ export function ProductTopActions({
   return (
     <>
       <FloatingIconButton icon="share" accessibilityLabel={t('product.share')} onPress={onShare} />
-      {hideFavorite ? null : (
+      {isOwner ? null : (
         <FloatingIconButton
           testID="product-favorite-button"
           icon="heart"
@@ -42,12 +42,14 @@ export function ProductTopActions({
           disabled={favoriteLoading}
         />
       )}
-      <FloatingIconButton
-        testID="product-report-button"
-        icon={reportOnly ? 'flag' : 'ellipsis-vertical'}
-        accessibilityLabel={t('report.report')}
-        onPress={onMenu}
-      />
+      {isOwner ? null : (
+        <FloatingIconButton
+          testID="product-report-button"
+          icon={reportOnly ? 'flag' : 'ellipsis-vertical'}
+          accessibilityLabel={t('report.report')}
+          onPress={onMenu}
+        />
+      )}
     </>
   );
 }

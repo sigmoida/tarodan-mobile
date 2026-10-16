@@ -186,14 +186,15 @@ describe('Ürün detay ekranı', () => {
     expect(screen.queryByTestId('product-negotiable-chip')).toBeNull();
   });
 
-  it('sahip: favori kalbi çizilmez; diğer yüzen adalar durur', async () => {
+  it('sahip: favori kalbi ve şikayet bayrağı çizilmez; paylaş durur', async () => {
     mockAuth = { isAuthenticated: true, user: { id: 's1' } };
     getOneMock.mockResolvedValue({ data: { data: productFixture() } });
     renderWithProviders(<ProductDetailScreen />);
 
     await waitFor(() => expect(screen.getByTestId('product-detail-edit-button')).toBeOnTheScreen());
     expect(screen.queryByTestId('product-favorite-button')).toBeNull();
-    expect(screen.getByTestId('product-report-button')).toBeOnTheScreen();
+    expect(screen.queryByTestId('product-report-button')).toBeNull();
+    expect(screen.getByTestId('product-back-button')).toBeOnTheScreen();
     expect(screen.getByLabelText('Paylaş')).toBeOnTheScreen();
   });
 

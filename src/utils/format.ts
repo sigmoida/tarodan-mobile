@@ -319,7 +319,7 @@ export function formatRelativeDate(
     if (diffMin < 60) return t('time.relative.minutes', { count: diffMin });
     if (diffHr < 24) return t('time.relative.hours', { count: diffHr });
     if (diffDay < 7) return t('time.relative.days', { count: diffDay });
-    return formatLongDate(d, t('common.dateLocale')) ?? '';
+    return formatLongDate(d, t('common.dateLocale'))!; // `d` yukarıda doğrulandı
   }
 
   const locale = localeOrT;
@@ -328,12 +328,12 @@ export function formatRelativeDate(
     if (diffMin < 60) return `${diffMin} min ago`;
     if (diffHr < 24) return `${diffHr} hr ago`;
     if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
-    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    return formatLongDate(d, 'en-US')!;
   }
 
   if (diffSec < 60) return 'Az önce';
   if (diffMin < 60) return `${diffMin} dk önce`;
   if (diffHr < 24) return `${diffHr} sa önce`;
   if (diffDay < 7) return `${diffDay} gün önce`;
-  return formatLongDate(d, 'tr-TR') ?? '';
+  return formatLongDate(d, 'tr-TR')!;
 }

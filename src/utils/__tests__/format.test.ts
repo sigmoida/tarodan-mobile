@@ -209,9 +209,10 @@ describe('formatPrice: web ile aynı, dilden bağımsız', () => {
     const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const trOut = formatRelativeDate(old); // ör. "30 Temmuz 2026" (tam ay adı)
     await i18n.changeLanguage('en');
-    const enOut = formatRelativeDate(old); // ör. "Jul 30, 2026" (kısaltılmış ay adı)
+    const enOut = formatRelativeDate(old); // ör. "July 30, 2026" (formatLongDate ile aynı uzun biçim)
     expect(enOut).not.toBe(trOut);
-    expect(enOut).toMatch(/^[A-Za-z]{3} \d{1,2}, \d{4}$/);
+    expect(enOut).toMatch(/^[A-Za-z]+ \d{1,2}, \d{4}$/);
+    expect(enOut).toBe(formatLongDate(old, 'en-US'));
   });
 });
 

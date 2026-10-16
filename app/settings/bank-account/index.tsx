@@ -21,6 +21,9 @@ export default function BankAccountScreen() {
     return <AuthGatePage title={title} icon="credit-card" subtitle={t('auth.loginToContinue')} />;
   }
 
+  // Kayıtlı sayılması için IBAN şart: boş nesne gelirse Güncelle/Sil görünmez.
+  const hasAccount = !!f.account?.iban;
+
   return (
     <PageShell
       title={title}
@@ -33,14 +36,14 @@ export default function BankAccountScreen() {
           variant="primary"
           size="lg"
           fullWidth
-          title={f.account ? t('discount.update') : t('common.save')}
+          title={hasAccount ? t('discount.update') : t('common.save')}
           onPress={f.onSubmit}
           isLoading={f.isSaving}
           disabled={f.isSaving}
         />
       }
     >
-      {f.account ? (
+      {f.account?.iban ? (
         <BankAccountSummary
           iban={f.account.iban}
           accountHolder={f.account.accountHolder}
@@ -77,7 +80,7 @@ export default function BankAccountScreen() {
           />
         </Form>
 
-        {f.account && (
+        {hasAccount && (
           <Button
             testID="bank-account-delete-button"
             variant="ghost"

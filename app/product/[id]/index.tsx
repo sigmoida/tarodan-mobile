@@ -6,6 +6,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { PageShell } from '@/components/common/PageShell';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
+import { isOwnProduct } from '@/hooks/useFavoriteToggle';
 import { SignupPrompt } from '@/components/SignupPrompt';
 import MakeOfferModal from '@/components/product/MakeOfferModal';
 import AddToCollectionModal from '@/components/product/AddToCollectionModal';
@@ -94,10 +95,9 @@ export default function ProductDetailScreen() {
     extraActions: [{ label: t('product.reportListing'), onPress: actions.handleReport }],
   });
 
-  const isOwner = Boolean(
-    product && isAuthenticated && user?.id && product.seller?.id && user.id === product.seller.id,
-  );
-  const reportOnly = !sellerId || isOwner;
+  // Sahiplik TEK kaynaktan (kartlarla aynı kural): sellerId ?? seller.id === oturum kullanıcısı.
+  const isOwner = Boolean(product && isAuthenticated && isOwnProduct(product, user?.id));
+  const reportOnly = !sellerId;
   // iOS: yetkisi olmayana takas girişi gösterilmez (bkz. useFeatureAccess).
   const { showTradeEntry } = useFeatureAccess();
   const availability = product
@@ -152,7 +152,7 @@ export default function ProductDetailScreen() {
                 isFavorite={favorite.isFavorite}
                 favoriteLoading={favorite.favoriteLoading}
                 reportOnly={reportOnly}
-                hideFavorite={isOwner}
+                isOwner={isOwner}
                 onFavorite={favorite.toggle}
                 onShare={actions.handleShare}
                 onMenu={reportOnly ? actions.handleReport : sellerActions.open}
