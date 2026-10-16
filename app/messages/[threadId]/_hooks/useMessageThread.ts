@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { FlatList } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -40,12 +40,21 @@ export function useMessageThread() {
   const markAsRead = useMarkAsRead();
   const typing = useTypingIndicator(threadId);
 
-  const [inputText, setInputText] = useState('');
+  // Yazılan metin BURADA değil, `MessageInputBar`'ın kendi state'inde: her tuş vuruşu yalnız
+  // input barını yeniden çizer (controller + mesaj listesi değil). Gönderimde `handleSend(text)`.
   const [sending, setSending] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   // Seçilen foto gönderilmeden önce input üstünde önizlenir; kullanıcı onaylayınca gönderilir.
   const [pendingImage, setPendingImage] = useState<LocalImageFile | null>(null);
   const [filterWarning, setFilterWarning] = useState<string | null>(null);
+  // İçerik filtresi uyarısını 5 sn sonra gizleyen zamanlayıcı — yeni uyarıda ve unmount'ta temizlenir.
+  const filterWarningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (filterWarningTimer.current) clearTimeout(filterWarningTimer.current);
+    },
+    [],
+  );
   const [showReportModal, setShowReportModal] = useState(false);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   // İlk açılışta liste en alta konumlanana dek gizli tutulur (zıplama görünmesin).
@@ -126,9 +135,13 @@ export function useMessageThread() {
     setPendingImage(fromPickerAsset(asset, asset.uri.split('/').pop() || `image_${Date.now()}.jpg`));
   };
 
-  const handleSend = async () => {
+  /**
+   * Metni (input barının state'i) gönderir. `true` → gönderildi, input bar metni temizler;
+   * `false` → gönderilmedi (filtre, hata, koşul), metin olduğu gibi kalır.
+   */
+  const handleSend = async (inputText: string): Promise<boolean> => {
     const trimmed = inputText.trim();
-    if ((!trimmed && !pendingImage) || !threadId || sending || uploadingImage || !canSend) return;
+    if ((!trimmed && !pendingImage) || !threadId || sending || uploadingImage || !canSend) return false;
 
     typing.stopTyping();
 
@@ -137,8 +150,12 @@ export function useMessageThread() {
       const violations = detectViolations(trimmed);
       if (violations.length > 0) {
         setFilterWarning(getViolationMessage(violations));
-        setTimeout(() => setFilterWarning(null), 5000);
-        return;
+        if (filterWarningTimer.current) clearTimeout(filterWarningTimer.current);
+        filterWarningTimer.current = setTimeout(() => {
+          filterWarningTimer.current = null;
+          setFilterWarning(null);
+        }, 5000);
+        return false;
       }
     }
 
@@ -158,7 +175,7 @@ export function useMessageThread() {
           content = embedImageInMessage(trimmed, url);
         } catch (e: any) {
           toast.error(apiErrorMessage(e, t('message.imageSendFailed')));
-          return;
+          return false;
         } finally {
           setUploadingImage(false);
         }
@@ -166,21 +183,24 @@ export function useMessageThread() {
 
       try {
         await sendMessage.mutateAsync({ threadId, content });
-        setInputText('');
         setPendingImage(null);
         // Kullanıcının kendi mesajı: konumdan bağımsız HER ZAMAN dibe kaydır.
         forceScrollToBottom();
+        return true;
       } catch (e: any) {
         // Sunucu mesajı önce: `e.message` axios'un ham "Request failed with
         // status code 400" metni idi.
         toast.error(apiErrorMessage(e, t('message.sendFailed')));
+        return false;
       }
     } finally {
       setSending(false);
     }
   };
 
-  const groupedMessages = groupMessagesByDate(messages, t);
+  // Referans kararlı: controller başka bir state yüzünden render olduğunda liste satırları
+  // (MessageList `rows` useMemo'su) yeniden türetilmesin.
+  const groupedMessages = useMemo(() => groupMessagesByDate(messages, t), [messages, t]);
   const other = currentThread ? getOtherParticipant(currentThread) : null;
 
   // Engelleme/şikayet paylaşılan hook'ta: onay, bildirim ve invalidasyon TEK
@@ -216,9 +236,7 @@ export function useMessageThread() {
     currentThread,
     messages,
     isLoadingMessages,
-    // input state
-    inputText,
-    setInputText,
+    // input state (metin MessageInputBar'da)
     sending,
     uploadingImage,
     pendingImage,
