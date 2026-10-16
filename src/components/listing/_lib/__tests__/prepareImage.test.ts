@@ -5,6 +5,8 @@ jest.mock('expo', () => ({ requireOptionalNativeModule: jest.fn() }));
 import {
   MAX_UPLOAD_EDGE,
   UPLOAD_JPEG_QUALITY,
+  PREPARE_TIMEOUT_MS,
+  createPreparer,
   createSerialRunner,
   jpegName,
   loadImageManipulator,
@@ -130,7 +132,28 @@ describe('prepareImageForUpload', () => {
     expect(out.type).toBe('image/jpeg');
   });
 
-  it('manipulator yoksa (eski binary) orijinalle devam eder', async () => {
+  it.each([
+    ['image/png', 'logo.png'],
+    ['image/webp', 'a.webp'],
+    ['image/gif', 'a.gif'],
+  ])('%s büyük olsa da yeniden kodlanmaz (saydamlık/animasyon korunur)', async (type, name) => {
+    const { manipulator, calls } = fakeManipulator();
+    const big = file({ uri: `file:///${name}`, name, type, width: 4000, height: 3000 });
+    expect(await prepareImageForUpload(big, manipulator)).toBe(big);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('büyük JPEG küçültülür', async () => {
+    const { manipulator, calls } = fakeManipulator();
+    const out = await prepareImageForUpload(
+      file({ uri: 'file:///a.jpg', name: 'a.jpg', type: 'image/jpeg' }),
+      manipulator,
+    );
+    expect(calls[0]!.resize).toEqual([{ width: MAX_UPLOAD_EDGE }]);
+    expect(out.type).toBe('image/jpeg');
+  });
+
+  it('manipulator yoksa (yeniden derlenmemiş dev-client) orijinalle devam eder', async () => {
     const original = file();
     expect(await prepareImageForUpload(original, null)).toBe(original);
   });
@@ -152,7 +175,7 @@ describe('prepareImageForUpload', () => {
   });
 });
 
-describe('loadImageManipulator (OTA ile eski binary koruması)', () => {
+describe('loadImageManipulator (native modül yoksa koruma)', () => {
   const mockRequire = requireOptionalNativeModule as jest.Mock;
 
   it('native modül yoksa null', () => {
@@ -213,5 +236,65 @@ describe('createSerialRunner', () => {
     await expect(second).rejects.toThrow('x');
     await expect(third).resolves.toBe(3);
     expect(order).toEqual(['a:start', 'a:end', 'b', 'c']);
+  });
+});
+
+describe('createPreparer (seri + süre sınırı + iptal)', () => {
+  afterEach(() => jest.useRealTimers());
+
+  const done = (f: LocalImageFile): LocalImageFile => ({ ...f, uri: `${f.uri}#prepared` });
+  const never = () => new Promise<LocalImageFile>(() => undefined);
+
+  it('takılan hazırlama süre dolunca ORİJİNAL dosyayla biter ve sıra bir sonrakine geçer', async () => {
+    jest.useFakeTimers();
+    const prepare = jest.fn((f: LocalImageFile) => (f.name === 'stuck.jpg' ? never() : Promise.resolve(done(f))));
+    const run = createPreparer({ prepare });
+    const stuck = file({ uri: 'file:///stuck.jpg', name: 'stuck.jpg' });
+    const next = file({ uri: 'file:///next.jpg', name: 'next.jpg' });
+    const first = run(stuck, new AbortController().signal);
+    const second = run(next, new AbortController().signal);
+    await jest.advanceTimersByTimeAsync(0);
+    expect(prepare).toHaveBeenCalledTimes(1);
+    await jest.advanceTimersByTimeAsync(PREPARE_TIMEOUT_MS - 1);
+    expect(prepare).toHaveBeenCalledTimes(1); // süre dolmadan sıra ilerlemez
+
+    await jest.advanceTimersByTimeAsync(1);
+    await expect(first).resolves.toBe(stuck);
+    await expect(second).resolves.toEqual(done(next));
+    expect(prepare).toHaveBeenCalledTimes(2);
+  });
+
+  it('iptal: takılan kalem hemen AbortError alır, sıra ilerler; sırası gelmemiş iptal edilen hiç hazırlanmaz', async () => {
+    const prepare = jest.fn((f: LocalImageFile) => (f.name === 'stuck.jpg' ? never() : Promise.resolve(done(f))));
+    const run = createPreparer({ prepare });
+    const a = new AbortController();
+    const b = new AbortController();
+    const c = new AbortController();
+    const first = run(file({ uri: 'file:///stuck.jpg', name: 'stuck.jpg' }), a.signal);
+    const second = run(file({ uri: 'file:///queued.jpg', name: 'queued.jpg' }), b.signal);
+    const third = run(file({ uri: 'file:///c.jpg', name: 'c.jpg' }), c.signal);
+
+    b.abort(); // sırada bekliyor
+    await expect(second).rejects.toMatchObject({ name: 'AbortError' });
+    a.abort(); // native adımda takılı
+    await expect(first).rejects.toMatchObject({ name: 'AbortError' });
+
+    await expect(third).resolves.toMatchObject({ uri: 'file:///c.jpg#prepared' });
+    expect(prepare.mock.calls.map(([f]) => f.name)).toEqual(['stuck.jpg', 'c.jpg']);
+  });
+
+  it('hazırlama hata verirse orijinal döner', async () => {
+    const run = createPreparer({ prepare: () => Promise.reject(new Error('boom')) });
+    const original = file();
+    await expect(run(original, new AbortController().signal)).resolves.toBe(original);
+  });
+
+  it('önceden iptal edilmiş sinyal: hazırlama hiç çağrılmaz', async () => {
+    const prepare = jest.fn(async (f: LocalImageFile) => f);
+    const run = createPreparer({ prepare });
+    const ctrl = new AbortController();
+    ctrl.abort();
+    await expect(run(file(), ctrl.signal)).rejects.toMatchObject({ name: 'AbortError' });
+    expect(prepare).not.toHaveBeenCalled();
   });
 });

@@ -377,10 +377,12 @@ const ImageTile = memo(function ImageTile({
           style={({ pressed }) => [styles.fill, rippleClip(), showPressedStyle(pressed) && styles.pressed]}
         >
           {/* Yüklenene kadar picker'ın YEREL önizlemesi, sonra sunucunun döndürdüğü URL. Yerel
-              URI yalnız gösterim içindir; payload sunucu anahtarlarından kurulur. */}
+              URI yalnız gösterim içindir; payload sunucu anahtarlarından kurulur. Cihaz URI'sine
+              yalnız yerel dosyası olan (yeni seçilmiş) kalemde izin verilir — sunucu verisinde
+              asla (`imageUrl.ts` kuralı). */}
           <AppImage
             source={image.uri}
-            allowDeviceUris
+            allowDeviceUris={!!image.file}
             recyclingKey={id}
             style={[styles.fill, busy && !failed && styles.busyImage]}
           />

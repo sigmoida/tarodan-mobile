@@ -30,7 +30,7 @@ export type ProductImageUploadResult = {
 export const mediaApi = {
   /**
    * TEK ürün görseli — dosya bazlı ilerleme ve iptal için (web `uploadProductImage`).
-   * İlan formu bunu kullanır: tek istekte giden partide bir dosyanın hatası hepsini
+   * Eski toplu yükleme (tüm görseller tek istekte) kaldırıldı: bir dosyanın hatası hepsini
    * düşürüyor, dosya başına ilerleme/iptal/yeniden deneme mümkün olmuyordu.
    */
   uploadProductImage: (
@@ -48,13 +48,6 @@ export const mediaApi = {
         if (!options?.onProgress || !event.total) return;
         options.onProgress((event.loaded / event.total) * 100);
       },
-    });
-  },
-  uploadProductImages: (files: RNFile[]) => {
-    const formData = new FormData();
-    files.forEach(file => appendRNFile(formData, 'images', file));
-    return api.post('/media/upload/product', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
   uploadAvatar: (file: RNFile) => {

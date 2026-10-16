@@ -28,7 +28,7 @@ import {
   type UploadPort,
   type UploadQueue,
 } from '../_lib/uploadQueue';
-import { createSerialRunner, prepareImageForUpload, type LocalImageFile } from '../_lib/prepareImage';
+import { createPreparer, type LocalImageFile } from '../_lib/prepareImage';
 import { MIN_IMAGE_BYTES } from '../_lib/constants';
 
 /** Varsayılan kontenjan (üyelik limiti okunamadıysa) — eski davranışla aynı. */
@@ -45,18 +45,18 @@ function toLocalFile(asset: ImagePicker.ImagePickerAsset, index: number): LocalI
   };
 }
 
-/** Hazırlama (küçült/sıkıştır) tek tek: tam çözünürlüklü çözme bellek açısından ağır. */
-const runSerial = createSerialRunner();
+/**
+ * Hazırlama (küçült/sıkıştır) tek tek — tam çözünürlüklü çözme bellek açısından ağır — ama
+ * süre sınırlı (20 sn → orijinal) ve iptal edilebilir; takılan bir görsel sırayı kilitlemez.
+ */
+const prepareForUpload = createPreparer();
 
 /**
- * Üretim portu: hazırla (≤1600 px JPEG) → dosya başına tek istek (ilerleme + iptal +
+ * Üretim portu: hazırla (fotoğraf ≤1600 px JPEG) → dosya başına tek istek (ilerleme + iptal +
  * 120 sn). Sunucu dizi döndürür; tek dosyada ilk eleman sonuçtur.
  */
 const defaultUpload: UploadPort = async (file, { signal, onProgress }) => {
-  const prepared = await runSerial(() => {
-    if (signal.aborted) throw abortError();
-    return prepareImageForUpload(file);
-  });
+  const prepared = await prepareForUpload(file, signal);
   if (signal.aborted) throw abortError();
   const res = await mediaApi.uploadProductImage(
     {
@@ -178,7 +178,8 @@ export function useListingImageUpload({ maxImages: maxImagesParam, upload }: Par
         allowsMultipleSelection: true,
         selectionLimit: remaining,
         // Çözünürlüğü düşürmez; asıl küçültme `prepareImageForUpload`'ta. JPEG kalır ki
-        // manipulator yoksa (eski binary) sunucu dosyayı yine kabul etsin (HEIC değil).
+        // hazırlama atlanırsa (zaman aşımı, işlem hatası, yeniden derlenmemiş dev-client)
+        // sunucu dosyayı yine kabul etsin (HEIC değil).
         quality: 0.8,
       });
       if (result.canceled || result.assets.length === 0) return;

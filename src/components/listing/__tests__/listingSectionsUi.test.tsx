@@ -11,6 +11,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-
 import { theme } from '@/ui';
 import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 import { State } from 'react-native-gesture-handler';
+import { Image as ExpoImage } from 'expo-image';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
@@ -333,6 +334,27 @@ describe('Fotoğraflar bölümü', () => {
     expect(f.removeImage as jest.Mock).toHaveBeenCalledWith('b');
     expect(screen.getByTestId('listing-image-blocker')).toBeTruthy();
     expect(screen.getByText('Yüklenemeyen görsel var. Tekrar deneyin ya da o görseli kaldırın.')).toBeTruthy();
+  });
+
+  it('cihaz URI\'si yalnız yerel dosyası olan (yeni seçilmiş) kalemde gösterilir; sunucu verisinde asla', () => {
+    render(
+      <ListingImagesSection
+        f={imagesF({
+          images: [
+            img('a'),
+            local('b', 'uploading'),
+            // Sunucudan gelmiş gibi görünen ama cihaz URI'si taşıyan kalem: yerel dosyası yok.
+            img('c', 'ready', { uri: 'file:///tmp/sneaky.jpg' }),
+          ],
+        })}
+      />,
+    );
+    layoutGrid();
+    const sources = screen.UNSAFE_getAllByType(ExpoImage).map((n) => (n.props.source as { uri: string }).uri);
+    expect(sources[0]).toBe('https://cdn.example.com/a.jpg');
+    expect(sources[1]).toBe('file:///tmp/b.jpg');
+    // Yer tutucu (gömülü veri) — cihaz URI'si çözülmez.
+    expect(sources[2]).toMatch(/^data:image\//);
   });
 
   it('hatalı kapak karosu sunucu mesajını gösterir', () => {
