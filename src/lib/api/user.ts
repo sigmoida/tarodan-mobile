@@ -5,7 +5,8 @@ import { appendRNFile } from "./formData";
 
 // User API - Web ile aynı endpoint'ler
 export const userApi = {
-  getProfile: () => api.get("/users/me"),
+  /** `config`: yalnız açılışın ertelenmiş oturum denemesi `SESSION_PROBE` verir (`./sessionState`). */
+  getProfile: (config?: object) => api.get("/users/me", config),
   updateProfile: (
     data:
       | {
