@@ -30,7 +30,8 @@ jest.mock('@/lib/network/networkStatus', () => ({
 import * as SecureStore from 'expo-secure-store';
 import { authApi, userApi } from '@/lib/api';
 import { claimBannedRedirect } from '@/lib/api/sessionState';
-import { clearLocalPushState, unregisterPushNotifications } from '../../services/push';
+import { unregisterPushNotifications } from '../../services/push';
+import { resetPushRevocationForTests } from '../../services/pushRevocation';
 import { disconnectSocket } from '../../services/socket';
 import { useAuthStore, type User } from '../authStore';
 import { USER_SNAPSHOT_KEY, serializeUserSnapshot } from '../userSnapshot';
@@ -87,6 +88,8 @@ beforeEach(async () => {
   vault = new Map();
   jest.clearAllMocks();
   getProfile.mockReset();
+  (unregisterPushNotifications as jest.Mock).mockImplementation(() => Promise.resolve());
+  resetPushRevocationForTests();
 });
 
 afterAll(() => {
@@ -120,16 +123,53 @@ describe('giriş', () => {
     expect(s.limits?.isAdFree).toBe(true);
   });
 
-  it('refreshUserData giriş sonrası çekimle aynı isteği paylaşır (ikinci istek yok)', async () => {
-    let resolve!: (v: unknown) => void;
-    getProfile.mockReturnValueOnce(new Promise((r) => (resolve = r)));
+  it('refreshUserData her zaman YENİ istek atar; eski (önce başlamış) yanıt yenisinin üstüne yazmaz', async () => {
+    let resolveLoginFetch!: (v: unknown) => void;
+    getProfile.mockReturnValueOnce(new Promise((r) => (resolveLoginFetch = r)));
+    getProfile.mockResolvedValueOnce({ data: { ...user(), displayName: 'Yeni', companyName: 'Acme', taxId: '1' } });
 
     await useAuthStore.getState().login('at-1', user(), 'rt-1');
-    const shared = useAuthStore.getState().refreshUserData();
-    resolve({ data: { ...user(), companyName: 'Acme', taxId: '1' } });
+    // Değişiklikten sonra çağrılan refreshUserData uçuştaki giriş çekimine KATILMAZ.
+    const fresh = await useAuthStore.getState().refreshUserData();
+    expect(getProfile).toHaveBeenCalledTimes(2);
+    expect(fresh?.displayName).toBe('Yeni');
 
-    expect((await shared)?.companyName).toBe('Acme');
-    expect(getProfile).toHaveBeenCalledTimes(1);
+    // Giriş çekiminin (daha eski) yanıtı sonradan dönse de yazılmaz.
+    resolveLoginFetch({ data: { ...user(), displayName: 'Eski' } });
+    await flush();
+    expect(useAuthStore.getState().user?.displayName).toBe('Yeni');
+  });
+
+  it('yerel güncellemeden (updateUser) önce başlamış profil yanıtı onun üstüne yazmaz', async () => {
+    let resolveFetch!: (v: unknown) => void;
+    getProfile.mockReturnValueOnce(new Promise((r) => (resolveFetch = r)));
+    await useAuthStore.getState().login('at-1', user(), 'rt-1');
+
+    useAuthStore.getState().updateUser({ displayName: 'Kaydedildi' });
+    resolveFetch({ data: { ...user(), displayName: 'Eski' } });
+    await flush();
+
+    expect(useAuthStore.getState().user?.displayName).toBe('Kaydedildi');
+  });
+
+  it('önceki çıkışın push iptali uçuştaysa giriş önce onu bekler (kayıt iptalden sonra)', async () => {
+    let finishRevoke!: () => void;
+    (unregisterPushNotifications as jest.Mock).mockReturnValueOnce(
+      new Promise<void>((r) => (finishRevoke = r)),
+    );
+    getProfile.mockResolvedValue({ data: user() });
+    await useAuthStore.getState().logout({ skipServer: true });
+
+    let loggedIn = false;
+    const login = useAuthStore.getState().login('at-b', user({ id: 'b' }), 'rt-b').then(() => {
+      loggedIn = true;
+    });
+    await flush();
+    expect(loggedIn).toBe(false);
+
+    finishRevoke();
+    await login;
+    expect(loggedIn).toBe(true);
   });
 
   it('yanıt refresh token vermezse önceki oturumun refresh token’ı SİLİNİR', async () => {
@@ -142,7 +182,8 @@ describe('giriş', () => {
     expect(vault.has('refreshToken')).toBe(false);
   });
 
-  it('token yazımı düşerse yarım çift kalmaz (ikisi de silinir) ve giriş hata verir', async () => {
+  it('access yazımı düşerse yeni refresh KALIR, eski access silinir; giriş hata verir', async () => {
+    vault.set('accessToken', 'old-access-of-previous-account');
     vault.set('refreshToken', 'old');
     secure.setItemAsync.mockImplementation((k: string, v: string) => {
       if (k === 'accessToken') return Promise.reject(new Error('keychain write failed'));
@@ -154,8 +195,22 @@ describe('giriş', () => {
       'keychain write failed',
     );
     expect(vault.has('accessToken')).toBe(false);
-    expect(vault.has('refreshToken')).toBe(false);
+    expect(vault.get('refreshToken')).toBe('rt-3');
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  });
+
+  it('refresh yazımı düşerse ikisi de silinir (yarım çift kalmaz)', async () => {
+    vault.set('accessToken', 'old-access');
+    vault.set('refreshToken', 'old');
+    secure.setItemAsync.mockImplementation((k: string, v: string) => {
+      if (k === 'refreshToken') return Promise.reject(new Error('keychain write failed'));
+      vault.set(k, v);
+      return Promise.resolve();
+    });
+
+    await expect(useAuthStore.getState().login('at-4', user(), 'rt-4')).rejects.toThrow();
+    expect(vault.has('accessToken')).toBe(false);
+    expect(vault.has('refreshToken')).toBe(false);
   });
 
   it('önceki oturumun ban yönlendirmesi bayrağı girişte sıfırlanır', async () => {
@@ -174,7 +229,7 @@ describe('çıkış', () => {
     jest.clearAllMocks();
   });
 
-  it('yerel temizlik ağı BEKLEMEZ (çevrimdışı da anında biter); sunucu iptali açık kimlikle', async () => {
+  it('yerel temizlik ağı BEKLEMEZ (çevrimdışı da anında biter); refresh token body’de iptal edilir', async () => {
     (unregisterPushNotifications as jest.Mock).mockReturnValue(new Promise(() => undefined));
     (authApi.logout as jest.Mock).mockReturnValue(new Promise(() => undefined));
 
@@ -184,22 +239,21 @@ describe('çıkış', () => {
     expect(s.isAuthenticated).toBe(false);
     expect(vault.has('accessToken')).toBe(false);
     expect(vault.has('refreshToken')).toBe(false);
-    // Kimlik bilgileri temizlikten ÖNCE okunup açıkça verildi.
-    expect(unregisterPushNotifications).toHaveBeenCalledWith('at-1');
+    // Push iptali oturumsuz (uç @Public), iptal edilebilir sinyalle; refresh temizlikten ÖNCE okundu.
+    expect(unregisterPushNotifications).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
     expect(authApi.logout).toHaveBeenCalledWith('rt-1');
     expect(disconnectSocket).toHaveBeenCalled();
   });
 
-  it('zorunlu çıkışta da push iptali denenir (token hâlâ geçerli olabilir)', async () => {
+  it('zorunlu çıkışta da push iptal edilir', async () => {
     await useAuthStore.getState().logout({ reason: 'forced' });
-    expect(unregisterPushNotifications).toHaveBeenCalledWith('at-1');
+    expect(unregisterPushNotifications).toHaveBeenCalledTimes(1);
   });
 
-  it('sunucusuz çıkış (hesap silindi) yalnız yerel push kaydını temizler', async () => {
+  it('sunucusuz çıkışta (hesap silindi / oturum sunucuda geçersiz) da push iptal edilir; refresh iptali yok', async () => {
     await useAuthStore.getState().logout({ reason: 'accountDeleted' });
-    expect(unregisterPushNotifications).not.toHaveBeenCalled();
+    expect(unregisterPushNotifications).toHaveBeenCalledTimes(1);
     expect(authApi.logout).not.toHaveBeenCalled();
-    expect(clearLocalPushState).toHaveBeenCalled();
   });
 
   it('ban yönlendirmesi bayrağı çıkışta sıfırlanır (sonraki oturum takılı kalmaz)', async () => {

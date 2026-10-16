@@ -29,6 +29,7 @@ import {
   registerForPushNotifications,
   setupPushNotificationRouting,
 } from "@/services/push";
+import { settlePendingPushRevoke } from "@/services/pushRevocation";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { initSentry } from "@/services/sentry";
 import AnimatedSplash from "@/components/AnimatedSplash";
@@ -146,7 +147,11 @@ export default function RootLayout() {
   // `isAuthenticated` kapanışı hep false'tu.) registerToken upsert — çift çağrı zararsız.
   useEffect(() => {
     if (isAuthenticated && !isExpoGo) {
-      registerForPushNotifications().catch(() => {});
+      // Önceki çıkışın push iptali uçuştaysa önce o sonuçlansın (≤ 5 sn): sunucu iptali cihaz
+      // token'ının TÜM kayıtlarını kapatır, yeni kaydın ardından ulaşırsa onu da kapatırdı.
+      settlePendingPushRevoke()
+        .then(() => registerForPushNotifications())
+        .catch(() => {});
     }
   }, [isAuthenticated]);
 

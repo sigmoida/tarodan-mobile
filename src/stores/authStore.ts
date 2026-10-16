@@ -15,6 +15,7 @@ import {
   readRefreshToken,
   writeTokenPair,
 } from "@/lib/api/tokenStorage";
+import { settlePendingPushRevoke, startPushRevoke } from "../services/pushRevocation";
 import {
   bindPaymentCapabilitiesToAccount,
   clearAllPaymentCapabilities,
@@ -86,61 +87,31 @@ function bestEffortSync(step: string, fn: () => void): void {
   }
 }
 
-/** Sunucuda iptal için çıkıştan ÖNCE okunan kimlik bilgileri (yerel temizlik bunları siler). */
-interface RevocationCredentials {
-  accessToken: string | null;
-  refreshToken: string | null;
-}
-
-async function readRevocationCredentials(fallbackAccess: string | null): Promise<RevocationCredentials> {
-  const read = async (fn: () => Promise<string | null>) => {
-    try {
-      return await fn();
-    } catch {
-      return null;
-    }
-  };
-  const [accessToken, refreshToken] = await Promise.all([read(readAccessToken), read(readRefreshToken)]);
-  return { accessToken: accessToken ?? fallbackAccess, refreshToken };
+/** Çıkışta refresh token'ı yerel temizlikten ÖNCE okur (sunucuda iptal için); okunamazsa null. */
+async function readRefreshTokenForRevocation(): Promise<string | null> {
+  try {
+    return await readRefreshToken();
+  } catch {
+    return null;
+  }
 }
 
 /**
- * Çıkışın sunucu tarafı — yerel temizlikten SONRA, arka planda, beklenmeden: çıkış çevrimdışı da
- * anında biter. İkisi paralel ve süre sınırlı; ikisi de interceptor'SIZ istemciyle, açıkça
- * verilen kimlikle gider (token'lar yerelde zaten silindi; 401 refresh/çıkış döngüsü yok):
- * - bu cihazın push token'ı deaktive edilir (çıkış sonrası bu cihaza bildirim gitmesin);
- * - `POST /auth/logout` refresh token'ı sunucuda iptal eder (body — mobil çerez taşımaz).
+ * `POST /auth/logout` — yerel temizlikten SONRA, arka planda, süre sınırlı, beklenmeden (çıkış
+ * çevrimdışı da anında biter). Interceptor'SIZ istemciyle gider; refresh token BODY'de (mobil
+ * çerez taşımaz) ve sunucuda iptal edilir.
  */
-function revokeSessionOnServer(credentials: RevocationCredentials): void {
-  // Lazy require: push → api → authStore import zinciriyle döngü oluşmasın.
-  let unregister: Promise<unknown> = Promise.resolve();
+function revokeRefreshTokenOnServer(refreshToken: string | null): void {
+  let serverLogout: Promise<unknown>;
   try {
-    const { unregisterPushNotifications } = require("../services/push");
-    unregister = Promise.resolve(unregisterPushNotifications(credentials.accessToken));
-  } catch {
-    /* best-effort — Expo Go'da no-op */
-  }
-  let serverLogout: Promise<unknown> = Promise.resolve();
-  try {
-    serverLogout = Promise.resolve(authApi.logout(credentials.refreshToken));
+    serverLogout = Promise.resolve(authApi.logout(refreshToken));
   } catch (error) {
     serverLogout = Promise.reject(error);
   }
-  void withTimeout(unregister, LOGOUT_NETWORK_TIMEOUT_MS).catch(() => undefined);
   void withTimeout(serverLogout, LOGOUT_NETWORK_TIMEOUT_MS).catch((error) => {
     // Best-effort: report logout failures so we don't lose them silently (no-op in dev/Expo Go).
     logger.captureException(error, { level: "warning", tags: { flow: "logout" } });
   });
-}
-
-/** Sunucuya gidilmeyen çıkışta da yerel push durumu (rozet, bildirim merkezi) temizlenir. */
-function clearLocalPushStateQuietly(): void {
-  try {
-    const push = require("../services/push");
-    if (typeof push.clearLocalPushState === "function") void push.clearLocalPushState();
-  } catch {
-    /* best-effort */
-  }
 }
 
 /** Mesaj socket'i çıkışta HEMEN kapanır (store'daki token'ın null'lanmasını beklemeden). */
@@ -537,7 +508,12 @@ function persistSnapshot(user: User): void {
  * açılışta okunan `token` BAYAT — store'a taze olanı yaz, yoksa store'dan okuyan
  * tüketiciler (bearer'lı görseller, socket) ölü token'la kalır.
  */
-async function applyProfile(apiUser: unknown, token: string, generation: number): Promise<void> {
+async function applyProfile(
+  apiUser: unknown,
+  token: string,
+  generation: number,
+  seq: number,
+): Promise<void> {
   let stored: string | null = null;
   try {
     stored = await readAccessToken();
@@ -547,6 +523,11 @@ async function applyProfile(apiUser: unknown, token: string, generation: number)
   const freshToken = stored || token;
   // Yanıt beklenirken çıkış / başka hesapla giriş oldu: bu profil artık geçersiz.
   if (generation !== getSessionEpoch() || inFlightLogout) return;
+  // Daha yeni bir profil (ya da yerel güncelleme) zaten uygulandı: bu eski yanıt yazılmaz.
+  if (!claimProfileApply(seq)) {
+    if (useAuthStore.getState().isLoading) useAuthStore.setState({ isLoading: false });
+    return;
+  }
   const { user: previous, serverLimits } = useAuthStore.getState();
   const mappedUser = mapApiUserToUser(apiUser);
   // Oturum doğrulandı: istekler yeniden Bearer taşır (ertelenmiş misafir hâli biter).
@@ -567,29 +548,37 @@ async function applyProfile(apiUser: unknown, token: string, generation: number)
   if (previous?.id !== mappedUser.id) void bindPaymentCapabilitiesToAccount(mappedUser.id);
 }
 
-/**
- * `GET /users/me` tek-uçuş (aynı oturum kuşağında): girişin hemen ardından başlayan tam profil
- * çekimi, açılış doğrulaması ve `refreshUserData` (ör. giriş ekranının kurumsal kontrolü,
- * `useFullProfile`) aynı isteği paylaşır — giriş sonrası iki ayrı profil isteği atılmaz.
+/*
+ * Profil sıra numarası: her `GET /users/me` isteği başlarken bir numara alır; yanıt yalnız
+ * kendisinden YENİ bir yanıt (ya da yerel güncelleme, `updateUser`) uygulanmadıysa yazılır.
+ * Böylece bir değişiklikten (profil kaydı vb.) ÖNCE başlamış, geç dönen bir yanıt sonrakinin
+ * — ya da değişikliğin yerel yansımasının — üstüne yazmaz. Her çağrı kendi isteğini atar
+ * (paylaşım yok): değişiklikten sonra çağrılan `refreshUserData` öncesindeki uçuşa katılmaz.
  */
-let profileFlight: { epoch: number; promise: Promise<{ data: unknown }> } | null = null;
+let profileSeq = 0;
+let appliedProfileSeq = 0;
 
-function fetchProfileShared(): Promise<{ data: unknown }> {
-  const epoch = getSessionEpoch();
-  if (profileFlight && profileFlight.epoch === epoch) return profileFlight.promise;
-  let promise: Promise<{ data: unknown }>;
-  try {
-    promise = Promise.resolve(userApi.getProfile() as Promise<{ data: unknown }>);
-  } catch (error) {
-    promise = Promise.reject(error);
-  }
-  const flight = { epoch, promise };
-  profileFlight = flight;
-  const clear = () => {
-    if (profileFlight === flight) profileFlight = null;
+/** Yanıt uygulanabilir mi? (kendisinden yeni bir şey uygulanmadıysa) — evetse sırayı üstlenir. */
+function claimProfileApply(seq: number): boolean {
+  if (seq <= appliedProfileSeq) return false;
+  appliedProfileSeq = seq;
+  return true;
+}
+
+/** Yerel profil değişikliği (`updateUser`): uçuştaki daha eski yanıtlar artık yazılmaz. */
+function markLocalProfileChange(): void {
+  profileSeq += 1;
+  appliedProfileSeq = profileSeq;
+}
+
+/** `GET /users/me` — yeni bir istek; sıra numarasıyla döner. */
+async function fetchProfile(config?: typeof SESSION_PROBE): Promise<{ seq: number; data: unknown }> {
+  profileSeq += 1;
+  const seq = profileSeq;
+  const response = (await (config ? userApi.getProfile(config) : userApi.getProfile())) as {
+    data: unknown;
   };
-  promise.then(clear, clear);
-  return promise;
+  return { seq, data: response.data };
 }
 
 /**
@@ -672,8 +661,8 @@ function scheduleValidationRetry(token: string, generation: number): void {
  */
 async function validateSessionInBackground(token: string, generation: number): Promise<void> {
   try {
-    const response = await fetchProfileShared();
-    await applyProfile(response.data, token, generation);
+    const response = await fetchProfile();
+    await applyProfile(response.data, token, generation, response.seq);
   } catch (error) {
     if (generation !== getSessionEpoch() || inFlightLogout) return;
     const unauthorized = httpStatusOf(error) === 401;
@@ -839,9 +828,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     validationAttempt = 0;
     // Önceki oturumdan kalan ban yönlendirmesi bayrağı yeni oturumu kilitlemesin.
     resetBannedRedirect();
+    // Önceki çıkışın push iptali hâlâ uçuştaysa ÖNCE o sonuçlansın (≤ 5 sn; aşarsa iptal edilir):
+    // giriş sonrası push kaydı (`isAuthenticated` → kayıt) iptalden sonra sunucuya ulaşmalı.
+    await settlePendingPushRevoke();
     // Çift tutarlı yazılır: yanıt refresh vermediyse önceki oturumun refresh token'ı SİLİNİR
-    // (kalsaydı sonraki yenileme önceki hesabın oturumunu diriltirdi); yazım düşerse ikisi de
-    // silinir ve giriş hata verir (yarım çift kalmaz).
+    // (kalsaydı sonraki yenileme önceki hesabın oturumunu diriltirdi); refresh yazımı düşerse
+    // ikisi de silinir ve giriş hata verir (yarım çift kalmaz).
     await writeTokenPair({ accessToken: token, refreshToken: refreshToken || null });
     const mappedUser = mapApiUserToUser(user);
     const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
@@ -903,12 +895,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       cancelValidationRetry();
       validationAttempt = 0;
 
-      // Sunucuda iptal için kimlik bilgileri yerel temizlikten ÖNCE okunur (yalnız anahtar
-      // zinciri okuması — ağ beklenmez). Zorunlu çıkışta da denenir: access token hâlâ geçerli
-      // olabilir (ör. yalnız refresh iptal edildi); geçersizse istek sessizce 401 alır.
-      const credentials = skipServer
-        ? null
-        : await readRevocationCredentials(get().token);
+      // Sunucuda iptal için refresh token yerel temizlikten ÖNCE okunur (yalnız anahtar
+      // zinciri okuması — ağ beklenmez).
+      const refreshToken = skipServer ? null : await readRefreshTokenForRevocation();
 
       // YEREL TEMİZLİK ÖNCE: çıkış çevrimdışı da anında biter, hiçbir ağ çağrısını beklemez.
       await clearStoredTokens();
@@ -933,11 +922,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       bestEffortSync("resetUserStores", () => resetUserStores(appliedReason));
       logger.setUser(null);
 
-      // Sunucu tarafı en iyi çaba, süre sınırlı, BEKLENMEZ (push iptali + refresh iptali).
-      // Bu çağrılar interceptor'sız gider: çıkışın kendi 401'i yeni bir çıkış/yönlendirme
-      // tetiklemez (bkz. `revokeSessionOnServer`). Yerel push durumu orada da temizlenir.
-      if (credentials) revokeSessionOnServer(credentials);
-      else clearLocalPushStateQuietly();
+      // Sunucu tarafı en iyi çaba, süre sınırlı, BEKLENMEZ; interceptor'sız (çıkışın kendi 401'i
+      // yeni bir çıkış/yönlendirme tetiklemez).
+      // - Push iptali HER çıkışta (zorunlu / sunucusuz dahil): uç oturum istemez, cihaz bildirim
+      //   almayı keser; yerel push durumu da temizlenir. Bekleyen iptal tutulur — sonraki giriş
+      //   ve push kaydı önce onu bekler (`@/services/pushRevocation`).
+      // - Refresh token iptali (`POST /auth/logout`) yalnız sunuculu çıkışta.
+      void startPushRevoke();
+      if (!skipServer) revokeRefreshTokenOnServer(refreshToken);
     })().finally(() => {
       inFlightLogout = null;
     });
@@ -1007,8 +999,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // beklenir; hata aşağıdaki catch'e düşer (yalnız kesin 401'de oturum kapanır).
         // Sonraki açılış görüntüyle ağsız açılır. Web ile aynı endpoint: GET /users/me
         // `SESSION_PROBE`: ertelenmiş oturumun yeniden denemesinde de token'ı taşıyan TEK istek.
-        const response = await userApi.getProfile(SESSION_PROBE);
-        await applyProfile(response.data, token, generation);
+        const response = await fetchProfile(SESSION_PROBE);
+        await applyProfile(response.data, token, generation, response.seq);
         // Yanıt beklenirken çıkış olduysa `applyProfile` yazmaz; yükleme yine biter.
         if (get().isLoading) set({ isLoading: false });
       } else if (maestroCredentials) {
@@ -1079,6 +1071,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (currentUser) {
       const updatedUser = { ...currentUser, ...userData };
       const limits = mergeLimits(updatedUser.membershipTier, get().serverLimits);
+      // Değişiklikten önce başlamış profil yanıtları bu yerel güncellemenin üstüne yazmasın.
+      markLocalProfileChange();
       set({ user: updatedUser, limits });
       persistSnapshot(updatedUser);
     }
@@ -1090,9 +1084,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // giriş olduysa önceki oturumun profili yeni oturuma (ya da çıkış yapmış store'a) yazılmaz.
     const generation = getSessionEpoch();
     try {
-      // Uçuştaki giriş sonrası / açılış doğrulamasıyla aynı isteği paylaşır.
-      const response = await fetchProfileShared();
+      // Her çağrı YENİ istek (değişiklikten sonra çağrılınca öncesindeki uçuşa katılmaz).
+      const response = await fetchProfile();
       if (generation !== getSessionEpoch() || inFlightLogout) return null;
+      // Bundan yeni bir profil zaten uygulandı: eski yanıt yazılmaz, güncel kullanıcı döner.
+      if (!claimProfileApply(response.seq)) {
+        return get().profileValidated ? get().user : null;
+      }
       const mappedUser = mapApiUserToUser(response.data);
       const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
       set({ user: mappedUser, profileValidated: true, limits });

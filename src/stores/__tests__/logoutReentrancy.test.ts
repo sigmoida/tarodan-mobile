@@ -4,7 +4,8 @@
  * Döngü (hesap silme): silinen hesabın token'ıyla `unregisterPushNotifications`
  * (POST /notifications/push-token) → 401 → refresh 401 → `handleAuthFailure` →
  * yeniden `logout` → yine push iptali … Koruma iki katlı:
- * - `logout({ reason: 'accountDeleted' })` sunucuya HİÇ istek atmaz;
+ * - `logout({ reason: 'accountDeleted' })` oturum isteyen hiçbir uca gitmez (push iptali artık
+ *   oturumsuz — sunucuda @Public — ve interceptor'sız gider; 401 döngüsü kuramaz);
  * - eşzamanlı `logout()` çağrıları tek çıkışı paylaşır (`isLogoutInProgress`).
  */
 jest.mock('@/lib/api', () => ({
@@ -23,6 +24,7 @@ import * as SecureStore from 'expo-secure-store';
 import { authApi } from '@/lib/api';
 import { getSessionEpoch } from '@/lib/api/sessionState';
 import { unregisterPushNotifications } from '../../services/push';
+import { resetPushRevocationForTests } from '../../services/pushRevocation';
 import { resetUserStores } from '../resetUserStores';
 import * as paymentCapability from '@/lib/payment/paymentCapability';
 import { isLogoutInProgress, useAuthStore, type User } from '../authStore';
@@ -53,6 +55,8 @@ const user: User = {
 };
 
 beforeEach(async () => {
+  // Önceki testin askıda bıraktığı push iptali girişi (≤ 5 sn) bekletmesin.
+  resetPushRevocationForTests();
   await useAuthStore.getState().login('token-1', user, 'refresh-1');
   jest.clearAllMocks();
   mockAuthLogout.mockImplementation(() => Promise.resolve());
@@ -60,11 +64,12 @@ beforeEach(async () => {
 });
 
 describe('logout — hesap silindi (yalnız yerel)', () => {
-  it('sunucu çağrısı yok; token, store ve kullanıcı state\'i temizlenir', async () => {
+  it('refresh iptali yok (oturumsuz push iptali yine gider); token, store ve kullanıcı state\'i temizlenir', async () => {
     const epoch = getSessionEpoch();
     await useAuthStore.getState().logout({ reason: 'accountDeleted' });
 
-    expect(mockUnregister).not.toHaveBeenCalled();
+    // Push iptal ucu oturum istemez (@Public) — 401 döngüsü yok; cihaz bildirim almayı keser.
+    expect(mockUnregister).toHaveBeenCalledTimes(1);
     expect(mockAuthLogout).not.toHaveBeenCalled();
     expect(getSessionEpoch()).toBe(epoch + 1);
     expect(mockDeleteItem).toHaveBeenCalledWith('accessToken');
@@ -78,7 +83,6 @@ describe('logout — hesap silindi (yalnız yerel)', () => {
 
   it('skipServer başka bir nedenle de açıkça istenebilir', async () => {
     await useAuthStore.getState().logout({ skipServer: true });
-    expect(mockUnregister).not.toHaveBeenCalled();
     expect(mockAuthLogout).not.toHaveBeenCalled();
     expect(mockReset).toHaveBeenCalledWith('user');
   });

@@ -30,21 +30,33 @@ import { unregisterPushNotifications } from '../push';
 
 beforeEach(() => jest.clearAllMocks());
 
-it('açık Bearer ile, interceptor’sız istemciden iptal edilir; yerel durum temizlenir', async () => {
-  await unregisterPushNotifications('access-1');
+it('oturumsuz (Bearer’sız), interceptor’sız istemciden iptal edilir; yerel durum temizlenir', async () => {
+  await unregisterPushNotifications();
 
   expect(mockApiPost).not.toHaveBeenCalled();
   expect(mockGuestPost).toHaveBeenCalledWith(
     '/notifications/push-token',
     { token: 'ExponentPushToken[abc]', revoke: true },
-    expect.objectContaining({ headers: { Authorization: 'Bearer access-1' } }),
+    expect.not.objectContaining({ headers: expect.anything() }),
   );
   expect(mockNotifications.setBadgeCountAsync).toHaveBeenCalledWith(0);
   expect(mockNotifications.dismissAllNotificationsAsync).toHaveBeenCalled();
 });
 
-it('access token yoksa sunucuya gidilmez, yalnız yerel temizlik', async () => {
-  await unregisterPushNotifications(null);
+it('iptal sinyali verildiyse istek gönderilmez (artık sunucuya ulaşamaz), yerel temizlik yapılır', async () => {
+  const controller = new AbortController();
+  controller.abort();
+  await unregisterPushNotifications({ signal: controller.signal });
   expect(mockGuestPost).not.toHaveBeenCalled();
   expect(mockNotifications.setBadgeCountAsync).toHaveBeenCalledWith(0);
+});
+
+it('istek sinyali taşır (bekleme sınırı aşılınca kesilebilsin)', async () => {
+  const controller = new AbortController();
+  await unregisterPushNotifications({ signal: controller.signal });
+  expect(mockGuestPost).toHaveBeenCalledWith(
+    '/notifications/push-token',
+    expect.anything(),
+    expect.objectContaining({ signal: controller.signal }),
+  );
 });
