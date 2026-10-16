@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import { deepLinkConfig, productionHosts } from "@/lib/deeplinks";
+import { parseStrictUrl } from "@/lib/security/url";
 import { logger } from "@/services/logger";
 
 /**
@@ -13,17 +14,20 @@ import { logger } from "@/services/logger";
  * 2) Expo Go LAN host (lokal geliştirme)
  * 3) Platform fallback'i (emülatör)
  *
- * RELEASE build'i (production / preview ortamı ya da ortamı belirsiz release
- * bundle'ı) ASLA düz HTTP'ye ya da LAN/emülatör adresine düşmez: env adresi
- * `https://` değilse (eksik, `http://`, bozuk) yapılandırma hatasıdır — konsola
- * yüksek sesle yazılır ve ORTAMIN KENDİ https API'si kullanılır (production →
- * `https://tarodan.com.tr/api`, preview → staging). Oturum belirteci, ödeme ve
- * kimlik verisi hiçbir koşulda şifresiz kanaldan gitmez. Yayın hattı aynı kuralı
- * yayından önce de uygular (`scripts/ci/release.sh` → `require_public_env`).
+ * Mağaza / staging build'i (`EXPO_PUBLIC_ENVIRONMENT` AÇIKÇA production, preview ya da
+ * staging) ASLA düz HTTP'ye ya da LAN/emülatör adresine düşmez: env adresi katı `https://`
+ * değilse (eksik, `http://`, bozuk, `user@`'li) yapılandırma hatasıdır — hata günlüğe (Sentry)
+ * yazılır ve ORTAMIN KENDİ https API'si kullanılır (production → `https://tarodan.com.tr/api`,
+ * preview/staging → staging). Oturum belirteci, ödeme ve kimlik verisi bu build'lerde hiçbir
+ * koşulda şifresiz kanaldan gitmez. Yayın hattı aynı kuralı yayından önce de uygular
+ * (`scripts/ci/release.sh` → `require_public_env`).
+ *
+ * Ortamı BELİRSİZ build (yerel release, Maestro) production'a SESSİZCE yönlendirilmez:
+ * yapılandırılan adres olduğu gibi kullanılır (release bundle'ında https değilse uyarı yazılır).
  */
 
 export type ApiUrlInputs = {
-  /** `EXPO_PUBLIC_ENVIRONMENT`: development | preview | production | undefined. */
+  /** `EXPO_PUBLIC_ENVIRONMENT`: development | preview | staging | production | undefined. */
   environment: string | undefined;
   /** `EXPO_PUBLIC_API_URL`. */
   envUrl: string | undefined;
@@ -34,20 +38,15 @@ export type ApiUrlInputs = {
   platform?: string;
 };
 
-/** Bu build'de API adresi https olmak ZORUNDA mı (mağaza / staging / release bundle'ı). */
-export function isReleaseEnvironment(environment: string | undefined, isDev: boolean): boolean {
-  if (environment === "production" || environment === "preview") return true;
-  if (environment === "development") return false;
-  return !isDev;
+/** Bu build'de API adresi https olmak ZORUNDA mı: yalnız AÇIKÇA mağaza / staging ortamı. */
+export function isReleaseEnvironment(environment: string | undefined): boolean {
+  return environment === "production" || environment === "preview" || environment === "staging";
 }
-
-/** Kullanıcı bilgisi (`user@`) taşımayan, host'u olan mutlak https adresi mi. */
-const HTTPS_URL = /^https:\/\/[^/?#\s@\\]+(?:[/?#][^\s]*)?$/i;
 
 /** Release yapılandırması bozuksa kullanılacak, ortamın kendi https API adresi. */
 export function releaseFallbackApiUrl(environment: string | undefined): string {
   const host =
-    environment === "preview" ? deepLinkConfig.stagingHosts[0] : productionHosts()[0];
+    environment === "production" ? productionHosts()[0] : deepLinkConfig.stagingHosts[0];
   return `https://${host}/api`;
 }
 
@@ -55,14 +54,21 @@ export function releaseFallbackApiUrl(environment: string | undefined): string {
 export function resolveApiBaseUrlFrom(inputs: ApiUrlInputs): string {
   const envUrl = (inputs.envUrl ?? "").trim().replace(/\/+$/, "");
 
-  if (isReleaseEnvironment(inputs.environment, inputs.isDev)) {
-    if (HTTPS_URL.test(envUrl)) return envUrl;
+  if (isReleaseEnvironment(inputs.environment)) {
+    if (parseStrictUrl(envUrl)) return envUrl;
     const fallback = releaseFallbackApiUrl(inputs.environment);
     logger.error("EXPO_PUBLIC_API_URL release build'inde https olmalı; düz HTTP'ye düşülmez", {
       configured: envUrl || "(boş)",
       fallback,
     });
     return fallback;
+  }
+
+  // Ortamı belirsiz release bundle'ı (yerel release, Maestro): adres olduğu gibi, ama görünür.
+  if (!inputs.isDev && inputs.environment !== "development" && !parseStrictUrl(envUrl)) {
+    logger.warn("EXPO_PUBLIC_ENVIRONMENT yok ve API adresi https değil — yapılandırılan adres kullanılıyor", {
+      configured: envUrl || "(boş)",
+    });
   }
 
   if (envUrl.length > 0) return envUrl;

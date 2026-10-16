@@ -1,27 +1,32 @@
 /**
- * API base URL: release build'i ASLA düz HTTP'ye / LAN adresine düşmez.
+ * API base URL: AÇIKÇA production / preview / staging build'i düz HTTP'ye / LAN adresine
+ * düşmez; ortamı belirsiz build production'a SESSİZCE yönlendirilmez.
  */
-jest.mock('@/services/logger', () => ({ logger: { error: jest.fn() } }));
+jest.mock('@/services/logger', () => ({ logger: { error: jest.fn(), warn: jest.fn() } }));
 
 import { logger } from '@/services/logger';
 import { isReleaseEnvironment, releaseFallbackApiUrl, resolveApiBaseUrlFrom } from '../baseUrl';
 
 const errSpy = logger.error as jest.Mock;
-beforeEach(() => errSpy.mockClear());
+const warnSpy = logger.warn as jest.Mock;
+beforeEach(() => {
+  errSpy.mockClear();
+  warnSpy.mockClear();
+});
 
 describe('isReleaseEnvironment', () => {
   it.each([
-    ['production', true, true],
-    ['preview', true, true],
-    ['development', false, false],
-    [undefined, true, false],
-    [undefined, false, true],
-  ])('%s (isDev=%s) → %s', (env, isDev, expected) => {
-    expect(isReleaseEnvironment(env as string | undefined, isDev as boolean)).toBe(expected);
+    ['production', true],
+    ['preview', true],
+    ['staging', true],
+    ['development', false],
+    [undefined, false],
+  ])('%s → %s', (env, expected) => {
+    expect(isReleaseEnvironment(env as string | undefined)).toBe(expected);
   });
 });
 
-describe('resolveApiBaseUrlFrom — release', () => {
+describe('resolveApiBaseUrlFrom — production / preview', () => {
   it('https env adresi aynen kullanılır (sondaki / atılır)', () => {
     expect(
       resolveApiBaseUrlFrom({ environment: 'production', envUrl: 'https://tarodan.com.tr/api/', isDev: false }),
@@ -35,6 +40,7 @@ describe('resolveApiBaseUrlFrom — release', () => {
     ['eksik', undefined],
     ['şemasız', 'tarodan.com.tr/api'],
     ['userinfo', 'https://evil@tarodan.com.tr/api'],
+    ['varsayılan dışı port', 'https://tarodan.com.tr:8443/api'],
   ])('production + %s adres → production https API, hata yazılır', (_n, envUrl) => {
     const url = resolveApiBaseUrlFrom({
       environment: 'production',
@@ -53,22 +59,42 @@ describe('resolveApiBaseUrlFrom — release', () => {
     );
   });
 
-  it('ortamı belirsiz release bundle da LAN/emülatör http adresine düşmez', () => {
-    const url = resolveApiBaseUrlFrom({ environment: undefined, envUrl: undefined, isDev: false, platform: 'android' });
-    expect(url.startsWith('https://')).toBe(true);
-  });
-
   it('releaseFallbackApiUrl ortamın kendi host\'u', () => {
     expect(releaseFallbackApiUrl('production')).toBe('https://tarodan.com.tr/api');
     expect(releaseFallbackApiUrl('preview')).toBe('https://staging.tarodan.com.tr/api');
+    expect(releaseFallbackApiUrl('staging')).toBe('https://staging.tarodan.com.tr/api');
+  });
+});
+
+describe('resolveApiBaseUrlFrom — ortamı belirsiz release (yerel release, Maestro)', () => {
+  it('yapılandırılan adres OLDUĞU GİBİ kullanılır; production\'a sessizce yönlendirilmez, uyarı yazılır', () => {
+    expect(
+      resolveApiBaseUrlFrom({ environment: undefined, envUrl: 'http://192.168.1.5:3001/api', isDev: false }),
+    ).toBe('http://192.168.1.5:3001/api');
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(errSpy).not.toHaveBeenCalled();
+  });
+
+  it('https adreste uyarı yok', () => {
+    expect(
+      resolveApiBaseUrlFrom({ environment: undefined, envUrl: 'https://staging.tarodan.com.tr/api', isDev: false }),
+    ).toBe('https://staging.tarodan.com.tr/api');
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('adres yoksa geliştirme yedeği (production değil)', () => {
+    const url = resolveApiBaseUrlFrom({ environment: undefined, envUrl: undefined, isDev: false, platform: 'android' });
+    expect(url).toBe('http://10.0.2.2:3001/api');
+    expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('resolveApiBaseUrlFrom — geliştirme', () => {
-  it('env adresi (http olsa da) kullanılır', () => {
+  it('env adresi (http olsa da) kullanılır, uyarı yok', () => {
     expect(
       resolveApiBaseUrlFrom({ environment: 'development', envUrl: 'http://10.0.0.2:3001/api', isDev: true }),
     ).toBe('http://10.0.0.2:3001/api');
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 
   it('env yoksa LAN host / emülatör / localhost', () => {
