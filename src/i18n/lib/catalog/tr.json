@@ -6936,6 +6936,7 @@
     "offer": {
       "alreadyInStatus": "Bu teklif zaten {status} durumunda",
       "alreadyPendingOffer": "Bu ürüne zaten bekleyen bir teklifiniz var. Önce mevcut teklifi iptal edin.",
+      "amountBelowMinimum": "Teklif tutarı minimum {minPrice} TL olmalıdır.",
       "awaitingBuyerResponse": "Alıcının mevcut karşı teklife yanıt vermesi bekleniyor; şu an yeni karşı teklif verilemez",
       "belowMinimumBuyerCounter": "Teklif tutarı çok düşük. Ürün fiyatı: {productPrice} TL. Minimum: {minOffer} TL (fiyatın %{minOfferPercentage}'i).",
       "belowMinimumOffer": "Teklif tutarı çok düşük. Ürün fiyatı: {productPrice} TL. Minimum teklif: {minOffer} TL (fiyatın %{minOfferPercentage}'i). Teklifiniz: {offerAmount} TL",
