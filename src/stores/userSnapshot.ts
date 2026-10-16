@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import { SECURE_STORE_OPTIONS } from "@/lib/api/tokenStorage";
 import { logger, safeError } from "../services/logger";
 import type { User } from "./authStore";
 
@@ -94,7 +95,8 @@ export function parseUserSnapshot(raw: string | null | undefined): UserSnapshot 
 export async function writeUserSnapshot(user: User): Promise<void> {
   const json = serializeUserSnapshot(user);
   try {
-    if (json) await SecureStore.setItemAsync(USER_SNAPSHOT_KEY, json);
+    // Token'larla aynı anahtar zinciri erişilebilirliği (`SECURE_STORE_OPTIONS`).
+    if (json) await SecureStore.setItemAsync(USER_SNAPSHOT_KEY, json, SECURE_STORE_OPTIONS);
     else await SecureStore.deleteItemAsync(USER_SNAPSHOT_KEY);
   } catch (error) {
     logger.warn("User snapshot write failed", { err: safeError(error) });

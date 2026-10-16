@@ -18,6 +18,7 @@ import { NotoSans_600SemiBold } from "@expo-google-fonts/noto-sans/600SemiBold";
 import { NotoSans_700Bold } from "@expo-google-fonts/noto-sans/700Bold";
 import { AlertDialogHost, BrandFontProvider, ToastHost } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
+import { prepareSecureSession } from "@/stores/secureSessionSetup";
 import { useCartMergeOnLogin } from '@/hooks/useServerCart';
 import { useMembershipLimits } from '@/hooks/useMembershipLimits';
 import { useMessagingSocket } from "@/hooks/messaging";
@@ -44,6 +45,11 @@ import { NetworkMonitor } from "@/lib/network";
 // EXPO_PUBLIC_SENTRY_DSN is unset (see services/sentry.ts guard); real
 // reporting requires a dev/production build with a DSN configured.
 initSentry();
+
+// Güvenli depo hazırlığı (yeniden kurulumda bayat anahtar zinciri oturumunu silme + iOS
+// erişilebilirlik göçü) modül yüklenirken, HİÇBİR ekran AsyncStorage'a yazmadan önce başlar:
+// yeniden kurulum "boş AsyncStorage" ile saptanıyor. `loadToken` bunu bekler. Fırlatmaz.
+const secureSessionReady = prepareSecureSession();
 
 // Conditionally import notifications - only in development builds, not Expo Go
 let Notifications: any = null;
@@ -123,6 +129,7 @@ export default function RootLayout() {
     // olmayan eski kurulumun İLK açılışı profili bekler (bkz. authStore.loadToken).
     async function prepare() {
       try {
+        await secureSessionReady;
         await loadToken();
       } catch (e) {
         logger.warn('App bootstrap failed', { err: safeError(e) });
