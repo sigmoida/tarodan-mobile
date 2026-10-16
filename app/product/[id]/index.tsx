@@ -106,14 +106,16 @@ export default function ProductDetailScreen() {
   // üst aksiyonlar, modaller ve tam veri isteyen bölümler.
   const visible = !!product && !!price;
   const ready = visible && full;
+  // Hata sonrası "Tekrar Dene" sürerken iskelet (hata kartı basılı kalmasın).
+  const retrying = !product && isError && productQuery.isFetching;
   return (
     <PageShell
       header={false}
       mode="list"
       padding={false}
-      loading={isLoading}
+      loading={isLoading || retrying}
       loadingFallback={<ProductSkeleton />}
-      error={!product && isError ? productQuery.error : undefined}
+      error={!product && isError && !retrying ? productQuery.error : undefined}
       onRetry={refetchProduct}
       empty={!isLoading && !isError && !product}
       emptyState={{
