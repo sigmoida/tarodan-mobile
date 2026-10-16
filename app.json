@@ -70,6 +70,7 @@
     "android": {
       "package": "com.tarodan.app",
       "googleServicesFile": "./google-services.json",
+      "allowBackup": false,
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
