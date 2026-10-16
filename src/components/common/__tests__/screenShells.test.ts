@@ -1,6 +1,6 @@
 /**
  * Envanter testi: `app/**` altındaki HER rota ekranı bir kabuk içerir — üst bar/güvenli alan elle
- * çizilmez. Kabuklar: PageShell (+ ContentPage/InfoPage/EntityProductsScreen/
+ * çizilmez. Kabuklar: PageShell (+ ContentPage/EntityProductsScreen/
  * ListingForm / AddressForm / DiscountForm gibi onu saran sayfa bileşenleri), AppShell (sekme kökü), AuthShell, GateScreen /
  * FullScreenGate (bilinçli çubuksuz kapı ekranları), OwnSiteWebView (+ onu saran LegalWebPage), Redirect (ekran değil).
  *
@@ -14,7 +14,7 @@ const ROOT = path.resolve(__dirname, '../../../..');
 const APP = path.join(ROOT, 'app');
 
 const SHELL =
-  /<(PageShell|ContentPage|InfoPage|EntityProductsScreen|ListingForm|AddressForm|DiscountForm|AppShell|AuthShell|AuthGatePage|GateScreen|FullScreenGate|OwnSiteWebView|LegalWebPage|Redirect)\b/;
+  /<(PageShell|ContentPage|EntityProductsScreen|ListingForm|AddressForm|DiscountForm|AppShell|AuthShell|AuthGatePage|GateScreen|FullScreenGate|OwnSiteWebView|LegalWebPage|Redirect)\b/;
 
 /** `header={<Özel />}` ile üst barı kendisi veren ekranlar (ScreenHeader'ı `titleSlot` ile sarar). */
 const CUSTOM_HEADER_ALLOWED = ['app/messages/[threadId]/index.tsx'];

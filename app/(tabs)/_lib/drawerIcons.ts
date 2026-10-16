@@ -2,8 +2,8 @@ import type { IconName } from '@/ui';
 
 /**
  * Yan menü satır ikonları — satır anahtarına (`ProfileMenuItem.key`) göre. Menü modeli
- * (`profileMenu.ts`) ikon taşımaz; profil ekranı ikonsuz kalır. Tanımsız anahtar (bilgi/hukuki
- * sayfalar dahil) `DEFAULT_DRAWER_ICON` alır.
+ * (`profileMenu.ts`) ikon taşımaz; profil ekranı ikonsuz kalır. Tanımsız anahtar (yasal
+ * belgeler dahil) `DEFAULT_DRAWER_ICON` alır.
  */
 export const DEFAULT_DRAWER_ICON: IconName = 'document-text';
 
@@ -30,11 +30,6 @@ const DRAWER_ICONS: Record<string, IconName> = {
   // İletişim
   support: 'lifebuoy',
   help: 'question-mark-circle',
-  // Bilgi
-  about: 'information-circle',
-  authenticity: 'shield-check',
-  'collectors-guide': 'academic-cap',
-  'platform-fee': 'building-storefront',
 };
 
 export function drawerIconFor(key: string): IconName {

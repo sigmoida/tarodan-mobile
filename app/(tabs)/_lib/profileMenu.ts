@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 import type { IconName } from '@/ui';
-import { buildAccountPages, buildInfoPages } from './infoPages';
+import { buildAccountPages } from './accountPages';
 import { buildLegalPages } from './legalPages';
 
 /** Sayaç gösterebilen menü satırları — sayaç `useHomeBadges`'den gelir. */
@@ -268,16 +268,6 @@ export function buildProfileMenuGroups(
       surface: 'drawer',
       guest: true,
       items: [
-        { key: 'about', label: t('mobile.settingsAbout'), to: '/about' },
-        { key: 'authenticity', label: t('mobile.settingsAuthenticity'), to: '/authenticity' },
-        { key: 'collectors-guide', label: t('footer.collectorsGuide'), to: '/collectors-guide' },
-        { key: 'platform-fee', label: t('footer.platformServiceFee'), to: '/platform-hizmet-bedeli' },
-        ...buildInfoPages(t).map((p) => ({
-          key: `info-${p.route}`,
-          label: p.label,
-          to: `/${p.route}`,
-          testID: `profile-info-${p.route}-link`,
-        })),
         ...buildLegalPages(t).map((p) => ({
           key: `legal-${p.slug}`,
           label: p.label,

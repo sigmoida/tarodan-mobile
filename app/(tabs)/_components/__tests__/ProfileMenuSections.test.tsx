@@ -40,7 +40,7 @@ it('yalnız Hesap grubunu başlıksız gösterir; yan menü grupları profilde y
   for (const title of ['Alışveriş', 'Finans', 'Koleksiyon', 'Analiz', 'İletişim', 'Bilgi ve Yasal']) {
     expect(screen.queryByText(title)).toBeNull();
   }
-  for (const id of ['profile-orders-link', 'profile-offers-link', 'profile-payments-link', 'profile-info-about-link']) {
+  for (const id of ['profile-orders-link', 'profile-offers-link', 'profile-payments-link', 'profile-legal-terms-link']) {
     expect(screen.queryByTestId(id)).toBeNull();
   }
 });

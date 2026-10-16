@@ -52,21 +52,6 @@ export const collectionsApi = {
     api.delete(`/collections/${id}/like`),
 };
 
-/** CMS statik sayfalar (hakkımızda, gizlilik, KVKK vb.) */
-export const pagesApi = {
-  getBySlug: (slug: string) =>
-    guestApi.get<{
-      id: string;
-      slug: string;
-      title: string;
-      content: string;
-      metaTitle: string | null;
-      metaDescription: string | null;
-      metaKeywords: string | null;
-      updatedAt: string;
-    }>(`/pages/${slug}`),
-};
-
 /** Destek / İletişim */
 export const supportApi = {
   guestContact: (data: { name: string; email: string; message: string; subject?: string }) =>

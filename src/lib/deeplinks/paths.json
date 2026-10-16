@@ -58,8 +58,6 @@
       "comment": "TEYIT: web yolu dogrulanmadi; toMobileRoute eslemesi yok" },
     { "pattern": "/brands/*", "sample": "/brands/bmw", "include": true, "confirmed": false,
       "comment": "TEYIT: web yolu dogrulanmadi; toMobileRoute eslemesi yok" },
-    { "pattern": "/sayfa/*", "sample": "/sayfa/hakkimizda", "include": true, "confirmed": false,
-      "comment": "TEYIT: CMS sayfalari; toMobileRoute eslemesi yok" },
     { "pattern": "/membership", "sample": "/membership", "include": true, "confirmed": false,
       "comment": "TEYIT: web yolu dogrulanmadi; toMobileRoute eslemesi yok" },
     { "pattern": "/pricing", "sample": "/pricing", "include": true, "confirmed": false,

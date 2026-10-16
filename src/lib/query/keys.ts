@@ -110,7 +110,6 @@ export const qk = {
     carModel: (slug: string) => ["car-model", slug] as const,
     modelProducts: (slug: string) => ["model-products", slug] as const,
     carModels: (filters?: Filters) => ["car-models", filters] as const,
-    pages: (slug?: string) => ["pages", slug] as const,
   },
 
   collections: {

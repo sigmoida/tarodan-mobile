@@ -4,6 +4,7 @@ import { pathFromUrl, stripLocalePrefix } from '@/lib/deeplinks';
 import { toMobileRoute } from '@/utils/notificationRoute';
 import { navigateTo } from '@/lib/navigation/goTo';
 import { ownWebPageUrl } from '@/lib/web';
+import { LEGAL_WEB_DOCS } from '@/lib/legal/webDocs';
 import { isPurchasePath } from './purchasePath';
 import { safeAdHref } from './safeAdHref';
 
@@ -55,10 +56,9 @@ function renamedRoute(seg: string[]): string | null {
       return id ? `/seller/${id}` : null;
     case 'wishlist':
       return '/favorites';
-    case 'secure-swap':
-      return '/guvenli-takas';
-    case 'platform-service-fee':
-      return '/platform-hizmet-bedeli';
+    // Web SSS'si → native Yardım Merkezi (SSS + iletişim; ayrı SSS ekranı yok).
+    case 'faq':
+      return '/help';
     case 'sell':
       return '/(tabs)/sell';
     default:
@@ -66,29 +66,18 @@ function renamedRoute(seg: string[]): string | null {
   }
 }
 
-/** Web ile mobilde AYNI adı taşıyan, tek segmentli sayfalar. */
-const SAME_NAME_PAGES = new Set([
+/**
+ * Web ile mobilde AYNI adı taşıyan, tek segmentli sayfalar. Bilgi sayfaları
+ * (hakkımızda, rehberler, alıcı koruması, güvenli takas …) mobilde YOK: onlara
+ * giden linkler uygulama içi web ekranına düşer. Yasal belgeler native rotadır
+ * (web'in uygulama modu sayfasını gösterir — `@/lib/legal/webDocs`).
+ */
+export const SAME_NAME_PAGES = new Set<string>([
   'cart',
   'support',
-  'faq',
-  'guides',
-  'size-guide',
-  'collectors-guide',
-  'payment-options',
-  'shipping-delivery',
-  'authenticity',
-  'buyer-protection',
-  'security-features',
-  'about',
   'contact',
   'newsletter',
-  'cookies',
-  'distance-sales',
-  'intellectual-property',
-  'privacy',
-  'refund-policy',
-  'seller-agreement',
-  'terms',
+  ...LEGAL_WEB_DOCS,
 ]);
 
 /**
@@ -99,9 +88,7 @@ const SAME_NAME_PAGES = new Set([
 export const NATIVE_SAME_PATH_HEADS = new Set([
   'brands',
   'category',
-  'sayfa',
   'models',
-  'returns-exchanges',
   'following',
 ]);
 
