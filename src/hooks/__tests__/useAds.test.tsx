@@ -68,6 +68,37 @@ describe('useAds', () => {
     expect(result.current.ads.map((a) => a.id)).toEqual(['ok']);
   });
 
+  it('uca platform=app gönderilir', async () => {
+    mockGetActive.mockResolvedValue({ data: [] });
+    const { result } = run();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(mockGetActive).toHaveBeenCalledWith({ platform: 'app' });
+  });
+
+  it('yeni API: platform alanı varken yalnız app/all gösterilir (deviceType yok sayılır)', async () => {
+    mockGetActive.mockResolvedValue({
+      data: [
+        ad({ id: 'app', platform: 'app', deviceType: 'mobile' }),
+        ad({ id: 'all', platform: 'all', deviceType: 'all' }),
+        ad({ id: 'web', platform: 'web', deviceType: 'all' }),
+        // Türetilmiş deviceType "desktop" olsa da platform kararı geçerli.
+        ad({ id: 'appDesk', platform: 'APP', deviceType: 'desktop' }),
+      ],
+    });
+    const { result } = run();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.ads.map((a) => a.id)).toEqual(['app', 'all', 'appDesk']);
+  });
+
+  it('eski API (platform yok): deviceType kuralı (all/mobile) sürer', async () => {
+    mockGetActive.mockResolvedValue({
+      data: [ad({ id: 'all' }), ad({ id: 'mob', deviceType: 'mobile' }), ad({ id: 'desk', deviceType: 'desktop' })],
+    });
+    const { result } = run();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.ads.map((a) => a.id)).toEqual(['all', 'mob']);
+  });
+
   it('sunucu isAdFree:true derse uç çağrılmaz', () => {
     setServerLimits({ isAdFree: true });
     const { result } = run();

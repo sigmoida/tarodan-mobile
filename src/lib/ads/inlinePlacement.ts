@@ -1,28 +1,17 @@
 /**
- * Izgara içi (inline) reklam yerleşimi — web `lib/ads/inlinePlacement.ts` ile
- * aynı kural: ilk afiş 8. kartın ardından, sonrakiler her 16 kartta bir, ilkine
- * ek olarak en çok 1 tekrar (toplam en çok 2 afiş).
+ * Izgara içi (inline) reklam yerleşimi: liste başına EN ÇOK 1 afiş, 8. kartın
+ * ardından bir kez (ürün sahibi kararı; sunucu da konum başına en çok 1 reklam döndürür).
  */
 
-/** İlk satır içi afiş 8. kartın ardından gelir. */
+/** Satır içi afiş 8. kartın ardından (bir kez) gelir. */
 export const INLINE_AD_FIRST_AFTER = 8;
-/** Sonrakiler her 16 kartta bir… */
-export const INLINE_AD_EVERY = 16;
-/** …ve ilkine ek olarak en çok bu kadar tekrar edilir. */
-export const INLINE_AD_MAX_REPEATS = 1;
 
 /**
  * Bu kartın (0 tabanlı sıra) hemen ardına satır içi afiş girer mi? Döndürülen
- * sayı yuvanın sırası (0 = ilk) — yuva anahtarına girer ki her yuva farklı
- * afiş seçebilsin. Girmezse `null`.
+ * sayı yuvanın sırası (tek yuva: `0`) — yuva anahtarına girer. Girmezse `null`.
  */
 export function inlineAdSlotAfter(cardIndex: number): number | null {
-  const cardNumber = cardIndex + 1;
-  if (cardNumber < INLINE_AD_FIRST_AFTER) return null;
-  const offset = cardNumber - INLINE_AD_FIRST_AFTER;
-  if (offset % INLINE_AD_EVERY !== 0) return null;
-  const slot = offset / INLINE_AD_EVERY;
-  return slot <= INLINE_AD_MAX_REPEATS ? slot : null;
+  return cardIndex + 1 === INLINE_AD_FIRST_AFTER ? 0 : null;
 }
 
 /** Izgara satırı: `columns` karta kadar kart ya da tam genişlikte bir afiş yuvası. */
