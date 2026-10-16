@@ -1,4 +1,4 @@
-import { getProductSalePercent, selectProductCardBadges, type ProductCardBadgeSource } from '../productCardBadges';
+import { getProductSalePercent, isProductTradeBadgeVisible, selectProductCardBadges, type ProductCardBadgeSource } from '../productCardBadges';
 
 // Web `productCardBadges.test.ts` vakalarının mobil portu: aynı girdiler -> aynı çıktılar.
 const base: ProductCardBadgeSource & { id: string } = { id: 'p1', price: 100 };
@@ -23,6 +23,24 @@ describe('selectProductCardBadges', () => {
 
   it('discountPercent yoksa yüzde eski/yeni fiyattan hesaplanır (yuvarlanmış)', () => {
     expect(selectProductCardBadges({ ...base, oldPrice: 150 })[0]).toEqual({ kind: 'sale', percent: 33 });
+  });
+
+  it('eski+yeni fiyat varsa yüzde HER ZAMAN fiyattan hesaplanır (API discountPercent ezilir)', () => {
+    expect(getProductSalePercent({ ...base, oldPrice: 150, discountPercent: 50 })).toBe(33);
+    expect(getProductSalePercent({ ...base, oldPrice: 150, discountPercent: 0 })).toBe(33);
+  });
+
+  it('eski fiyat yoksa discountPercent yuvarlanır (19.6 -> 20); 0.4 -> rozet yok', () => {
+    expect(getProductSalePercent({ ...base, isOnSale: true, discountPercent: 19.6 })).toBe(20);
+    expect(getProductSalePercent({ ...base, isOnSale: true, discountPercent: 0.4 })).toBe(0);
+  });
+
+  it('takas rozeti yalnız satın alınabilir ilanda: sold/reserved/stok 0 -> yok', () => {
+    expect(kinds({ ...base, tradeAvailable: true, status: 'active', availableQuantity: 2 } as never)).toEqual(['trade']);
+    expect(kinds({ ...base, tradeAvailable: true, status: 'sold' } as never)).toEqual([]);
+    expect(kinds({ ...base, tradeAvailable: true, status: 'reserved' } as never)).toEqual([]);
+    expect(kinds({ ...base, tradeAvailable: true, availableQuantity: 0 } as never)).toEqual([]);
+    expect(isProductTradeBadgeVisible({ ...base, tradeAvailable: true, status: 'sold' } as never)).toBe(false);
   });
 
   it('yüzde < 1 ise indirim rozeti hiç çıkmaz (asla "%0")', () => {

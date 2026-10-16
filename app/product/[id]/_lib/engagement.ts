@@ -1,5 +1,5 @@
 // Teklif / takas girişlerinin görünürlük kuralı — alt bardaki satır ve takas rozeti TEK kaynak.
-import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
+import { isProductTradeBadgeVisible } from '@/components/product/productCardBadges';
 import type { Product } from './types';
 
 export interface OfferTradeAvailability {
@@ -33,6 +33,6 @@ export function getOfferTradeAvailability(
   { isOwner, isOutOfStock }: { isOwner: boolean; isOutOfStock: boolean },
 ): OfferTradeAvailability {
   const purchasable = isPurchasable(product, isOutOfStock);
-  const tradeBadge = purchasable && isProductTradeOpen(product);
+  const tradeBadge = purchasable && isProductTradeBadgeVisible(product as never);
   return { offer: purchasable && !isOwner, trade: tradeBadge && !isOwner, tradeBadge };
 }

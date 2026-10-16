@@ -152,14 +152,16 @@ describe('Ürün detay ekranı', () => {
     expect(screen.queryByTestId('product-badge-trade')).toBeNull();
   });
 
-  it('satılmış takas ilanında Takas rozeti ve teklif/takas satırı yok; Satıldı rozeti var', async () => {
+  it('satılmış takas ilanında rozet satırı yok (Satıldı tekrarı yok), uyarı söyler; teklif/takas satırı yok', async () => {
     getOneMock.mockResolvedValue({
       data: { data: productFixture({ tradeAvailable: true, status: 'sold', availableQuantity: 0 }) },
     });
     renderWithProviders(<ProductDetailScreen />);
 
     await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
-    expect(screen.getByTestId('product-badge-sold')).toBeOnTheScreen();
+    expect(screen.queryByTestId('product-badge-sold')).toBeNull();
+    expect(screen.queryByTestId('product-badge-row')).toBeNull();
+    expect(screen.getByTestId('product-notice')).toBeOnTheScreen();
     expect(screen.queryByTestId('product-badge-trade')).toBeNull();
     expect(screen.queryByTestId('product-offer-trade-row')).toBeNull();
   });

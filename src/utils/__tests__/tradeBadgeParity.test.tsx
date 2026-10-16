@@ -51,3 +51,21 @@ describe.each(layouts)('ProductCard (%s) trade badge', (layout) => {
     expect(badge()).toBeNull();
   });
 });
+
+describe.each(layouts)('ProductCard (%s) trade badge - satın alınabilirlik', (layout) => {
+  const badge = () => screen.queryAllByLabelText(/takas/i)[0] ?? screen.queryByText(/takas/i);
+  const renderCard = (item: Record<string, unknown>) => render(<ProductCard product={item as never} layout={layout} />);
+
+  it('hides the badge on sold / reserved / zero-stock listings', () => {
+    for (const extra of [{ status: 'sold' }, { status: 'reserved' }, { availableQuantity: 0 }]) {
+      const { unmount } = renderCard({ ...base, tradeAvailable: true, ...extra });
+      expect(badge()).toBeNull();
+      unmount();
+    }
+  });
+
+  it('shows the badge on an active in-stock listing', () => {
+    renderCard({ ...base, tradeAvailable: true, status: 'active', availableQuantity: 3 });
+    expect(badge()).toBeTruthy();
+  });
+});

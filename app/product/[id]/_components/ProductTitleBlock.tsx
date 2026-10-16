@@ -13,7 +13,7 @@ const { colors, spacing, iconSize, priceColor } = theme;
 /**
  * Başlık, fiyat bloğu, rozet satırı, durum uyarısı ve sayaçlar (web `ProductStaticInfoView`): h1 bold;
  * indirimdeyse üstü çizili eski fiyat; fiyat primary-500 bold (detay rengi); fiyatın hemen altında
- * rozet satırı (Satıldı → %İndirim → Takas, bkz. `ProductBadgeRow`), onun altında durum/stok uyarısı;
+ * rozet satırı (%İndirim → Takas, bkz. `ProductBadgeRow`), onun altında durum/stok uyarısı;
  * görüntülenme + beğeni. Teklif/takas girişi yalnız alt bardaki satırda (çip yok).
  */
 export function ProductTitleBlock({
@@ -46,7 +46,7 @@ export function ProductTitleBlock({
         </Text>
       </View>
 
-      <ProductBadgeRow product={product} price={price} tradeBadge={tradeBadge} />
+      <ProductBadgeRow price={price} tradeBadge={tradeBadge} />
       <ProductNotice product={product} />
 
       <View style={styles.counters}>
