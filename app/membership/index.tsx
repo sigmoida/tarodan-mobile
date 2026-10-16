@@ -2,6 +2,7 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { PageShell } from '@/components/common/PageShell';
 
 import { useMembership } from './_hooks/useMembership';
+import { MembershipSkeleton } from './_components/MembershipSkeletons';
 import {
   MembershipBanners,
   MembershipCurrentPlan,
@@ -24,6 +25,7 @@ export default function MembershipScreen() {
       title={f.t('mobile.membershipTitle')}
       onBack={f.guardLocked ? f.handleLockedExit : f.handleBack}
       loading={f.loading}
+      loadingFallback={<MembershipSkeleton />}
       error={f.error}
       errorMessage={f.error ?? undefined}
       onRetry={f.fetchData}

@@ -3,6 +3,7 @@ import { PageShell } from '@/components/common/PageShell';
 import { useOfferDetail } from './_hooks/useOfferDetail';
 import { OfferDetailCards } from './_components/OfferDetailCards';
 import { OfferDetailActions } from './_components/OfferDetailActions';
+import { OfferDetailSkeleton } from './_components/OfferDetailSkeleton';
 import { CounterOfferModal } from '../_modals/CounterOfferModal';
 
 /** Teklif detayı — PageShell (yükleme/hata kabukta) + SectionCard gövdesi; karşı teklif diyaloğu overlay'de. */
@@ -14,6 +15,7 @@ export default function OfferDetailScreen() {
     <PageShell
       title={t('offer.detailTitle')}
       loading={f.isLoading}
+      loadingFallback={<OfferDetailSkeleton />}
       error={!f.isLoading && (f.error || !f.offer)}
       onRetry={() => f.refetch()}
       refreshing={f.refreshing}

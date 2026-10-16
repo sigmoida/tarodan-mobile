@@ -15,6 +15,7 @@ import { FOCUS_LIST_STALE_MS, useRefetchStaleOnFocus } from '@/hooks/useRefetchS
 import { captureException } from '@/services/sentry';
 import { PageShell } from '@/components/common/PageShell';
 import { refundHistoryActionLabel } from './_lib/history';
+import { RefundDetailSkeleton } from './_components/RefundDetailSkeleton';
 import { styles } from './_lib/styles';
 
 function formatDate(value?: string): string {
@@ -74,6 +75,7 @@ export default function RefundDetailScreen() {
         title={t('refund.detail.title')}
         onBack={back}
         loading={isLoading && !data}
+        loadingFallback={<RefundDetailSkeleton />}
         empty={!isLoading && !data}
         emptyState={{ icon: 'receipt-percent', title: t('refund.detail.notFound'), subtitle: t('emptyState.notFoundHint') }}
       />

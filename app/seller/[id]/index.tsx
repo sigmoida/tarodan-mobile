@@ -8,6 +8,7 @@ import UserActionsButton from '@/components/UserActionsSheet';
 import { useSellerProfile } from './_hooks/useSellerProfile';
 import { SellerProfileCard } from './_components/SellerProfileCard';
 import { SellerTabs } from './_components/SellerTabs';
+import { SellerProfileSkeleton } from './_components/SellerProfileSkeleton';
 
 /**
  * Satıcı herkese açık profili — PageShell (üstte şikayet/engelle menüsü) içinde başlık kartı ve
@@ -23,6 +24,7 @@ export default function SellerProfileScreen() {
       title={t('seller.sellerProfile')}
       onBack={goBack}
       loading={f.isLoading}
+      loadingFallback={<SellerProfileSkeleton />}
       error={f.loadFailed || undefined}
       onRetry={f.retry}
       empty={!f.isLoading && !f.seller}

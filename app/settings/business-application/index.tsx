@@ -8,6 +8,7 @@ import { useDocumentUpload } from './_hooks/useDocumentUpload';
 import { DetailsTab } from './_sections/DetailsTab';
 import { StakeholdersTab } from './_sections/StakeholdersTab';
 import { DocumentsTab } from './_sections/DocumentsTab';
+import { BusinessApplicationSkeleton } from './_components/BusinessApplicationSkeleton';
 
 /**
  * Kurumsal başvuru tamamlama — THIN ekran. Üç sekme (ChipTabs); her sekme kendi
@@ -41,7 +42,12 @@ export default function BusinessApplicationScreen() {
   }
 
   return (
-    <PageShell title={title} onBack={goBack} loading={f.isLoading}>
+    <PageShell
+      title={title}
+      onBack={goBack}
+      loading={f.isLoading}
+      loadingFallback={<BusinessApplicationSkeleton />}
+    >
       {f.isMissing ? (
         <>
           <Alert variant="warning" title={t('businessApplication.notFoundTitle')}>

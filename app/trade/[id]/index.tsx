@@ -22,6 +22,7 @@ import { TradeMessages } from "./_components/TradeMessages";
 import { TradeShippingSection } from "./_components/TradeShippingSection";
 import { TradeProtectionCard } from "./_components/TradeProtectionCard";
 import { TradeActions } from "./_components/TradeActions";
+import { TradeDetailSkeleton } from "./_components/TradeDetailSkeleton";
 import { RejectTradeModal } from "./_modals/RejectTradeModal";
 
 /**
@@ -52,7 +53,9 @@ export default function TradeDetailScreen() {
   };
 
   if (isLoading) {
-    return <PageShell title={t('trade.detailTitle')} onBack={handleBack} loading />;
+    return (
+      <PageShell title={t('trade.detailTitle')} onBack={handleBack} loading loadingFallback={<TradeDetailSkeleton />} />
+    );
   }
 
   if (!trade) {

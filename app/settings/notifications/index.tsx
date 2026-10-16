@@ -4,6 +4,7 @@ import { PageShell } from "@/components/common/PageShell";
 import { useTranslation } from "react-i18next";
 import { useNotificationSettings } from "./_hooks/useNotificationSettings";
 import { NotificationCards } from "./_components/NotificationCards";
+import { NotificationSettingsSkeleton } from "./_components/NotificationSettingsSkeleton";
 
 /**
  * Bildirim tercihleri — PageShell (Skeleton / hata / çekip yenileme) + SectionCard bölümleri,
@@ -37,6 +38,7 @@ export default function NotificationSettingsScreen() {
       title={title}
       onBack={onBack}
       loading={f.isLoading}
+      loadingFallback={<NotificationSettingsSkeleton />}
       error={f.loadFailed ? true : undefined}
       errorMessage={t("settings.notificationSettingsLoadFailed")}
       onRetry={f.retryLoad}

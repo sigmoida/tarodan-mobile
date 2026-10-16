@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { PageShell } from '@/components/common/PageShell';
 
 import { useBusinessStats } from './_hooks/useBusinessStats';
+import { BusinessSkeleton } from './_components/BusinessSkeleton';
 import {
   BusinessCompanyHeader,
   BusinessTabs,
@@ -23,6 +24,7 @@ export default function BusinessDashboardScreen() {
       title={f.t('mobile.settingsBusiness')}
       onBack={onBack}
       loading={f.loading}
+      loadingFallback={<BusinessSkeleton />}
       empty={!!f.error}
       // Hata durumunda eylem: şirket adı eksikse profile, değilse işletme hesabı açmaya.
       emptyState={{
