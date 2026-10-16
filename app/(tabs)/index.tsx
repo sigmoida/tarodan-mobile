@@ -109,7 +109,7 @@ export default function HomeScreen() {
         scrollEventThrottle={16}
       >
         <AdBanner position="topbar" session={adSession} />
-        <AdBanner position="header" session={adSession} />
+        <AdBanner position="header" session={adSession} style={styles.adHeader} />
         {/* Hero yokken (boş liste) sarmalayıcı da yok: ilk bölüm üstteki reklam/üst barın altından
             tek `HOME_SECTION_GAP` ile (sections dolgusu) başlar. Yükleniyorsa yalnız son açılışta
             hero vardıysa yer tutulur (`reserveSpace`). */}
@@ -131,7 +131,7 @@ export default function HomeScreen() {
           <Spotlights collector={data.featuredCollector} business={data.featuredBusiness} />
         </View>
 
-        <AdBanner position="footer" session={adSession} />
+        <AdBanner position="footer" session={adSession} style={styles.adFooter} />
         <View style={{ height: tabInset }} />
       </Animated.ScrollView>
 
