@@ -4,10 +4,13 @@
  * ErrorState + yeniden dene, boş = EmptyState. Kaldırma / sepet geri bildirimi eylemsiz `toast`
  * (hook'ta; web ile aynı). Kaydırma alt menüyü daraltır. URL `/favorites`.
  */
+import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Button, EmptyState, ErrorState, pageListContentStyle, usePageScrollValue } from '@/ui';
+import { listWindowing } from '@/lib/list/windowing';
+import type { WishlistItem } from '@/hooks/useFavorites';
 import { tabDiag } from '@/components/_tabDiag';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { AppShell } from '@/components/shell/AppShell';
@@ -17,6 +20,8 @@ import { useFavoritesScreen } from './_hooks/useFavoritesScreen';
 import { styles } from './_lib/styles';
 import { FavoriteCard } from './_components/FavoriteCard';
 
+const favoriteKey = (item: WishlistItem) => item.id;
+
 function FavoritesScreen() {
   const { t } = useTranslation();
   const f = useFavoritesScreen();
@@ -25,6 +30,11 @@ function FavoritesScreen() {
   const page = usePageScrollValue();
   // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
+  // Kararlı renderItem — `f` (sepet durumu dahil) değişince yeniden kurulur, satırlar güncel kalır.
+  const renderFavorite = useCallback(
+    ({ item }: { item: WishlistItem }) => <FavoriteCard item={item} f={f} />,
+    [f],
+  );
 
   if (!f.isAuthenticated) {
     return (
@@ -57,7 +67,8 @@ function FavoritesScreen() {
         scrollEventThrottle={16}
         testID="favorites-list"
         data={initialLoading || loadFailed ? [] : f.items}
-        keyExtractor={(item) => item.id}
+        keyExtractor={favoriteKey}
+        {...listWindowing}
         contentContainerStyle={page.contentStyle([pageListContentStyle, { paddingBottom: tabInset }])}
         progressViewOffset={page.topInset}
         refreshing={f.refreshing}
@@ -91,7 +102,7 @@ function FavoritesScreen() {
             />
           ) : null
         }
-        renderItem={({ item }) => <FavoriteCard item={item} f={f} />}
+        renderItem={renderFavorite}
       />
     </AppShell>
   );

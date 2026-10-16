@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
@@ -10,7 +11,7 @@ const { colors, iconSize, spacing, radiusRole } = theme;
  * Koleksiyon kartı (web `CollectionCard`): kare kapak, ad (2 satır), açıklama (1 satır),
  * "N araç" + görüntülenme/beğeni sayaçları ve sahip altlığı. Ürün kartıyla aynı çerçeve.
  */
-export function CollectionCard({ item }: { item: any }) {
+export const CollectionCard = memo(function CollectionCard({ item }: { item: any }) {
   const { t } = useTranslation();
   const cover = item.coverImageUrl ?? item.coverImage;
   const ownerName = item.userName || item.user?.displayName || t('collection.anonymous');
@@ -67,7 +68,7 @@ export function CollectionCard({ item }: { item: any }) {
       </View>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

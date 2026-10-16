@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Avatar, Text } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +13,7 @@ import type { MessagesTabController } from '../_hooks/useMessagesTab';
  * Tek sohbet satırı — ortak `InboxRow` iskeleti (Bildirimler ile aynı): avatar, ad/zaman,
  * ürün bağlamı, son mesaj, okunmamış adet. Okunmamış bilgi zemin tonu + adet rozetinde.
  */
-export function ThreadRow({ thread, f }: { thread: MessageThread; f: MessagesTabController }) {
+export const ThreadRow = memo(function ThreadRow({ thread, f }: { thread: MessageThread; f: MessagesTabController }) {
   const { t } = useTranslation();
   const other = f.safeGetOther(thread);
 
@@ -50,4 +51,4 @@ export function ThreadRow({ thread, f }: { thread: MessageThread; f: MessagesTab
       onPress={() => router.push(`/messages/${thread.id}`)}
     />
   );
-}
+});

@@ -4,6 +4,7 @@ import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { EmptyState, ErrorState, Input, SkeletonAvatar, SkeletonText, Text, pageListContentStyle, theme, ListRowCard, usePageScrollHandler } from '@/ui';
+import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
 import { EntityLogo } from '@/components/catalog/EntityLogo';
 import { listingCount } from '@/utils/catalogListings';
@@ -12,7 +13,10 @@ import { useManufacturers, type Manufacturer } from './_hooks/useManufacturers';
 const { colors, spacing } = theme;
 const SKELETON_ROWS = [0, 1, 2, 3, 4, 5];
 
-function ManufacturerRow({ item }: { item: Manufacturer }) {
+const renderManufacturer = ({ item }: { item: Manufacturer }) => <ManufacturerRow item={item} />;
+const manufacturerKey = (item: Manufacturer) => item.id;
+
+const ManufacturerRow = React.memo(function ManufacturerRow({ item }: { item: Manufacturer }) {
   const { t } = useTranslation();
   const count = listingCount(item);
   return (
@@ -28,7 +32,7 @@ function ManufacturerRow({ item }: { item: Manufacturer }) {
       </View>
     </ListRowCard>
   );
-}
+});
 
 /**
  * Üreticiler (web `/manufacturers`): arama + üretici satırları. Eski "Markalar" listesi
@@ -44,8 +48,9 @@ export default function ManufacturersScreen() {
       <Animated.FlatList
         {...page.listProps}
         data={f.isLoading || f.error ? [] : f.items}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ManufacturerRow item={item} />}
+        keyExtractor={manufacturerKey}
+        renderItem={renderManufacturer}
+        {...listWindowing}
         contentContainerStyle={page.contentStyle(styles.content)}
         keyboardShouldPersistTaps="handled"
         refreshControl={
