@@ -113,12 +113,17 @@ export function useHomeData() {
     popular: popular.data ?? [],
     loadingPopular: popular.isLoading,
     manufacturers: manufacturers.data ?? [],
+    loadingManufacturers: manufacturers.isLoading,
     topCollections: topCollections.data ?? [],
     loadingTopCollections: topCollections.isLoading,
     /** Web gibi: haftanın koleksiyoneri yoksa en iyi koleksiyonların ilki. */
     featuredCollector: featuredCollector.data ?? topCollections.data?.[0] ?? null,
     featuredBusiness: featuredBusiness.data ?? null,
-    loadingSpotlights: featuredCollector.isLoading || featuredBusiness.isLoading,
+    // Koleksiyoner yoksa en iyi koleksiyonların ilkine düşülür → o liste de beklenir (geç gelip zıplamasın).
+    loadingSpotlights:
+      featuredCollector.isLoading ||
+      featuredBusiness.isLoading ||
+      (!featuredCollector.data && topCollections.isLoading),
     refetchAll: async () => {
       await Promise.all([
         featured.refetch(),
