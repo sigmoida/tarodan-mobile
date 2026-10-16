@@ -219,6 +219,65 @@ describe('Ürün detay ekranı', () => {
     expect(screen.queryByTestId('product-seller-premium-badge')).toBeNull();
   });
 
+  it('üyeliği takasa izin vermeyen kullanıcıda da Takas Teklifi düğmesi + rozet görünür; basınca dialog, /trade/new yok', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'u9', membershipTier: 'free' } as any };
+    getOneMock.mockResolvedValue({ data: { data: productFixture({ tradeAvailable: true }) } });
+    renderWithProviders(<ProductDetailScreen />);
+
+    await waitFor(() => expect(screen.getByTestId('product-detail-trade-button')).toBeOnTheScreen());
+    expect(screen.getByTestId('product-badge-trade')).toBeOnTheScreen();
+    const { appAlert } = jest.requireMock('@/ui');
+    appAlert.mockClear();
+    const push = jest.requireMock('expo-router').router.push as jest.Mock;
+    push.mockClear();
+    fireEvent.press(screen.getByTestId('product-detail-trade-button'));
+    expect(appAlert).toHaveBeenCalledTimes(1);
+    // Mağaza kuralı: dialog'da satın alma/yükseltme düğmesi yok (yalnız varsayılan Tamam).
+    expect(appAlert.mock.calls[0][2]).toBeUndefined();
+    expect(push).not.toHaveBeenCalledWith(expect.stringContaining('/trade/new'));
+  });
+
+  it('üyeliği takasa izin veren kullanıcı Takas Teklifi ile /trade/new\'e gider', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'u9', membershipTier: 'premium' } as any };
+    getOneMock.mockResolvedValue({ data: { data: productFixture({ tradeAvailable: true }) } });
+    renderWithProviders(<ProductDetailScreen />);
+
+    await waitFor(() => expect(screen.getByTestId('product-detail-trade-button')).toBeOnTheScreen());
+    const { appAlert } = jest.requireMock('@/ui');
+    appAlert.mockClear();
+    fireEvent.press(screen.getByTestId('product-detail-trade-button'));
+    expect(appAlert).not.toHaveBeenCalled();
+    expect(jest.requireMock('expo-router').router.push).toHaveBeenCalledWith(
+      '/trade/new?targetProductId=p1&targetSellerId=s1',
+    );
+  });
+
+  it('misafire de Takas Teklifi görünür; basınca giriş istenir', async () => {
+    jest.useFakeTimers();
+    try {
+      getOneMock.mockResolvedValue({ data: { data: productFixture({ tradeAvailable: true }) } });
+      renderWithProviders(<ProductDetailScreen />);
+      await waitFor(() => expect(screen.getByTestId('product-detail-trade-button')).toBeOnTheScreen());
+      fireEvent.press(screen.getByTestId('product-detail-trade-button'));
+      act(() => {
+        jest.advanceTimersByTime(1600);
+      });
+      expect(jest.requireMock('expo-router').router.push).toHaveBeenCalledWith('/(auth)/login');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('sahipte Takas Teklifi düğmesi yok ama Takas rozeti var', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 's1' } };
+    getOneMock.mockResolvedValue({ data: { data: productFixture({ tradeAvailable: true }) } });
+    renderWithProviders(<ProductDetailScreen />);
+
+    await waitFor(() => expect(screen.getByTestId('product-detail-edit-button')).toBeOnTheScreen());
+    expect(screen.queryByTestId('product-detail-trade-button')).toBeNull();
+    expect(screen.getByTestId('product-badge-trade')).toBeOnTheScreen();
+  });
+
   it('misafir "Teklif Ver"e dokununca giriş istenir (modal açılmaz)', async () => {
     jest.useFakeTimers();
     try {

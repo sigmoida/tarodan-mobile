@@ -19,7 +19,7 @@ import i18n from '@/i18n/config';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 jest.mock('@/hooks/useFeatureAccess', () => ({
-  useFeatureAccess: () => ({ showTradeEntry: true, showCollectionEntry: true }),
+  useFeatureAccess: () => ({ canTrade: true, showCollectionEntry: true }),
 }));
 
 const base = { id: 'p1', title: 'Model', price: 100, status: 'active', availableQuantity: 5, images: [] };
@@ -148,11 +148,10 @@ describe('adet tavanı', () => {
 });
 
 describe('teklif/takas görünürlüğü (tek kaynak)', () => {
-  const avail = (over: Record<string, unknown> = {}, opts: Partial<{ isOwner: boolean; isOutOfStock: boolean; showTradeEntry: boolean }> = {}) =>
+  const avail = (over: Record<string, unknown> = {}, opts: Partial<{ isOwner: boolean; isOutOfStock: boolean }> = {}) =>
     getOfferTradeAvailability({ ...base, ...over } as Product, {
       isOwner: false,
       isOutOfStock: false,
-      showTradeEntry: true,
       ...opts,
     });
 
@@ -169,10 +168,6 @@ describe('teklif/takas görünürlüğü (tek kaynak)', () => {
     expect(avail({ status: 'sold', tradeAvailable: true })).toEqual({ offer: false, trade: false, tradeBadge: false });
     expect(avail({ status: 'reserved' })).toEqual({ offer: false, trade: false, tradeBadge: false });
     expect(avail({ availableQuantity: 0 }, { isOutOfStock: true })).toEqual({ offer: false, trade: false, tradeBadge: false });
-  });
-
-  it('platformda takas girişi kapalıysa (iOS yetki) aksiyon yok ama etiket durur, teklif var', () => {
-    expect(avail({ tradeAvailable: true }, { showTradeEntry: false })).toEqual({ offer: true, trade: false, tradeBadge: true });
   });
 });
 

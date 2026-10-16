@@ -46,7 +46,7 @@ describe.each(['ios', 'android'] as const)('dijital satış kapısı (%s)', (os)
     expect(queryByText("Premium'a geç")).toBeNull();
   });
 
-  it('useFeatureAccess: yetkisiz üyeye takas/koleksiyon girişi yok, misafire var', () => {
+  it('useFeatureAccess: yetkisiz üyeye koleksiyon girişi yok (takas girişi kapıya bağlı değil), misafire var', () => {
     const { renderHook } = require('@testing-library/react-native');
     const useFeatureAccess = load(() => require('@/hooks/useFeatureAccess').useFeatureAccess);
     mockAuth = {
@@ -55,12 +55,12 @@ describe.each(['ios', 'android'] as const)('dijital satış kapısı (%s)', (os)
       limits: { canTrade: false, canCreateCollections: false },
     };
     const member = renderHook(() => useFeatureAccess()).result.current;
-    expect(member.showTradeEntry).toBe(false);
+    expect(member.canTrade).toBe(false);
     expect(member.showCollectionEntry).toBe(false);
 
     mockAuth = { isAuthenticated: false, user: null, limits: null };
     const guest = renderHook(() => useFeatureAccess()).result.current;
-    expect(guest.showTradeEntry).toBe(true);
+    expect(guest).not.toHaveProperty('showTradeEntry');
     expect(guest.showCollectionEntry).toBe(true);
   });
 

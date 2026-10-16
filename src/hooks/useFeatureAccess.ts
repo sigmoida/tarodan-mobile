@@ -7,8 +7,11 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
  * `canTrade`: web `trades/new` ile aynı kural — sunucu limitleri yüklüyse onlar,
  * değilse üyelik kademesi. `canCreateCollections`: yalnız sunucu limiti.
  *
- * `show*Entry`: özelliğin GİRİŞ noktası (ürün sayfasındaki Takas düğmesi,
- * "Koleksiyona ekle", "Koleksiyon oluştur" kartları) gösterilsin mi?
+ * Takas girişi (ürün sayfasındaki "Takas Teklifi" düğmesi + "Takas" rozeti) üyelik kapısına BAĞLI DEĞİL:
+ * takasa açık ve satın alınabilir ilanda herkese görünür (web ile aynı); yetkisiz kullanıcı düğmeye
+ * basınca bilgilendirme dialog'u görür (`canTrade` ile karar verilir), satın alma/yükseltme düğmesi yok.
+ *
+ * `showCollectionEntry`: "Koleksiyona ekle", "Koleksiyon oluştur" kartları gösterilsin mi?
  * - Satın almanın mümkün olduğu platformda her zaman: kapı ekranı yükseltmeye
  *   çağırır.
  * - Satın alma kapalıyken (CAN_BUY_DIGITAL=false: iOS VE Android) yalnız
@@ -31,7 +34,6 @@ export function useFeatureAccess() {
   return {
     canTrade,
     canCreateCollections,
-    showTradeEntry: visible(canTrade),
     showCollectionEntry: visible(canCreateCollections),
   };
 }

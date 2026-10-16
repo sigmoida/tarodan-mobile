@@ -28,7 +28,6 @@ import { ProductTitleBlock } from './_components/ProductTitleBlock';
 import { ProductDescription } from './_components/ProductDescription';
 import { ProductBuyBar, ProductOfferTradeRow, ProductSecondaryActions } from './_components/ProductActions';
 import { getOfferTradeAvailability } from './_lib/engagement';
-import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { SellerCard } from './_components/SellerCard';
 import { ProductSpecs } from './_components/ProductSpecs';
 import { ProductReviewsPreview } from './_components/ProductReviewsPreview';
@@ -97,10 +96,8 @@ export default function ProductDetailScreen() {
   // Sahiplik TEK kaynaktan (kartlarla aynı kural): sellerId ?? seller.id === oturum kullanıcısı.
   const isOwner = Boolean(product && isAuthenticated && isOwnProduct(product, user?.id));
   const reportOnly = !sellerId;
-  // iOS: yetkisi olmayana takas girişi gösterilmez (bkz. useFeatureAccess).
-  const { showTradeEntry } = useFeatureAccess();
   const availability = product
-    ? getOfferTradeAvailability(product, { isOwner, isOutOfStock, showTradeEntry })
+    ? getOfferTradeAvailability(product, { isOwner, isOutOfStock })
     : { offer: false, trade: false, tradeBadge: false };
   const price = product ? getProductPriceInfo(product) : null;
   const openReviews = () => router.push(`/product/${productId}/reviews`);
