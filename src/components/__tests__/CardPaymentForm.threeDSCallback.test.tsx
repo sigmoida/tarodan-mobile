@@ -24,30 +24,43 @@ jest.mock('@/lib/api', () => ({
 }));
 
 let mockWebViewNav: ((nav: { url: string }) => void) | undefined;
+let mockShouldStart: ((req: { url: string }) => boolean) | undefined;
 jest.mock('react-native-webview', () => {
   /* eslint-disable @typescript-eslint/no-var-requires */
   const React = require('react');
   const { View } = require('react-native');
   /* eslint-enable @typescript-eslint/no-var-requires */
   return {
-    WebView: (props: { onNavigationStateChange?: (nav: { url: string }) => void }) => {
+    WebView: (props: {
+      onNavigationStateChange?: (nav: { url: string }) => void;
+      onShouldStartLoadWithRequest?: (req: { url: string }) => boolean;
+    }) => {
       mockWebViewNav = props.onNavigationStateChange;
+      mockShouldStart = props.onShouldStartLoadWithRequest;
       return React.createElement(View, { testID: 'paytr-webview' });
     },
     WebViewNavigation: {},
   };
 });
 
-import { __resetVerifyPacer } from '@/lib/payment/verifyPacer';
+import { act } from '@testing-library/react-native';
+import { appAlert } from '@/ui';
+import { __resetVerifyPacer, PAYMENT_POLL_DURATION_MS } from '@/lib/payment/verifyPacer';
 import CardPaymentForm from '../CardPaymentForm';
 
 const PAY = 'pay-1';
 const pending = { data: { status: 'pending' } };
 const completed = { data: { status: 'completed' } };
 
-async function openThreeDS(onSuccess = jest.fn(), onFail = jest.fn()) {
+async function openThreeDS(onSuccess = jest.fn(), onFail = jest.fn(), onUncertain = jest.fn()) {
   renderWithProviders(
-    <CardPaymentForm target={{ orderId: 'o-1' }} paymentId={PAY} onSuccess={onSuccess} onFail={onFail} />,
+    <CardPaymentForm
+      target={{ orderId: 'o-1' }}
+      paymentId={PAY}
+      onSuccess={onSuccess}
+      onFail={onFail}
+      onUncertain={onUncertain}
+    />,
   );
   fireEvent.changeText(screen.getByTestId('card-holder'), 'Ahmet Yılmaz');
   fireEvent.changeText(screen.getByTestId('card-number'), '4111111111111111');
@@ -58,11 +71,13 @@ async function openThreeDS(onSuccess = jest.fn(), onFail = jest.fn()) {
   fireEvent.press(screen.getByTestId('card-submit'));
   await waitFor(() => expect(screen.getByTestId('paytr-webview')).toBeTruthy());
   mockWebViewNav?.({ url: PAYTR_ACTION });
-  return { onSuccess, onFail };
+  return { onSuccess, onFail, onUncertain };
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockWebViewNav = undefined;
+  mockShouldStart = undefined;
   __resetVerifyPacer();
   mockStatus.mockResolvedValue(pending);
 });
@@ -120,12 +135,45 @@ describe('CardPaymentForm 3DS dönüşü', () => {
     expect(onFail).not.toHaveBeenCalled();
   });
 
-  it('gerçek dönüş adresi ama sunucu henüz "ödendi" demiyor → başarı YOK', async () => {
+  it('başarı adresi WebView\'de yüklenmez (onShouldStartLoadWithRequest false), diğerleri yüklenir', async () => {
+    await openThreeDS();
+    expect(mockShouldStart?.({ url: 'https://acs.examplebank.com.tr/3ds' })).toBe(true);
+    expect(mockShouldStart?.({ url: 'https://evil.example/payment/success' })).toBe(true);
+    expect(mockShouldStart?.({ url: 'https://tarodan.com.tr/payment/success' })).toBe(false);
+  });
+
+  it('gerçek dönüş adresi + sunucu "bekliyor" → WebView kapanır, doğrulanıyor; sonra "ödendi" → başarı', async () => {
     const { onSuccess } = await openThreeDS();
-    mockWebViewNav?.({ url: 'https://tarodan.com.tr/payment/success?orderId=o-1' });
+    act(() => mockWebViewNav?.({ url: 'https://tarodan.com.tr/payment/success?orderId=o-1' }));
     await waitFor(() => expect(mockStatus).toHaveBeenCalledWith(PAY));
-    await new Promise((r) => setTimeout(r, 0));
+    // Web sitemizin başarı sayfası uygulamada çizilmez; ekran doğrulama durumunda.
+    expect(screen.queryByTestId('paytr-webview')).toBeNull();
+    expect(screen.getByTestId('payment-verifying-note')).toBeTruthy();
     expect(onSuccess).not.toHaveBeenCalled();
+
+    mockStatus.mockResolvedValue(completed);
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(PAY), { timeout: 8000 });
+    expect(onSuccess).toHaveBeenCalledTimes(1);
+  }, 15000);
+
+  it('sunucu süre boyunca "ödendi" demezse: başarı YOK, kapatılamayan "belirsiz" uyarısı → onUncertain', async () => {
+    jest.useFakeTimers();
+    try {
+      const { onSuccess, onUncertain } = await openThreeDS();
+      act(() => mockWebViewNav?.({ url: 'https://tarodan.com.tr/payment/success' }));
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(PAYMENT_POLL_DURATION_MS + 10_000);
+      });
+      expect(onSuccess).not.toHaveBeenCalled();
+      const call = (appAlert as jest.Mock).mock.calls.find(([, , buttons]) => Array.isArray(buttons));
+      expect(call).toBeTruthy();
+      expect(call![3]).toEqual({ cancelable: false });
+      expect(onUncertain).not.toHaveBeenCalled();
+      act(() => call![2][0].onPress());
+      expect(onUncertain).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('gerçek dönüş adresi + sunucu "ödendi" → başarı (yoklamayı beklemeden)', async () => {

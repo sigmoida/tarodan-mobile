@@ -246,6 +246,21 @@ export default function PaymentScreen() {
     }
   };
 
+  /**
+   * Ödeme durumu doğrulanamadı (belirsiz): kullanıcı kartı yeniden girmesin diye ödemenin
+   * hedefine gider — ödendiyse orada görünür, değilse oradan yeniden ödenir. Misafirin sipariş
+   * ekranı yok: sipariş takibine.
+   */
+  const routeToTarget = (target: DirectFormTarget, membership: boolean) => {
+    if (membership) router.replace('/membership' as never);
+    else if (isGuest) router.replace('/order-track' as never);
+    else if (target.tradeId) router.replace({ pathname: '/trade/[id]', params: { id: target.tradeId } } as never);
+    else if (target.orderId) router.replace({ pathname: '/orders/[id]', params: { id: target.orderId } } as never);
+    else if (target.checkoutGroupId)
+      router.replace({ pathname: '/orders/group/[id]', params: { id: target.checkoutGroupId } } as never);
+    else router.replace('/orders' as never);
+  };
+
   const routeToFail = (pid: string = paymentId) => {
     router.replace({ pathname: '/payment/fail', params: { paymentId: pid, guest: params.guest } } as any);
   };
@@ -286,6 +301,7 @@ export default function PaymentScreen() {
             paymentId={paymentId}
             onSuccess={(pid) => routeToSuccess(pid, state.isMembership)}
             onFail={() => routeToFail()}
+            onUncertain={() => routeToTarget(state.target!, state.isMembership)}
           />
         </View>
       ) : null}

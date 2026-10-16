@@ -47,6 +47,12 @@ interface Props {
   onSuccess: (paymentId: string) => void;
   onFail?: () => void;
   /**
+   * Doğrulama süresi doldu, ödeme durumu BELİRSİZ (ödendi de ödenmedi de denemez): uyarı
+   * kapatılınca çağrılır — çağıran siparişe / takasa yönlendirir (yeniden kart girip çift
+   * tahsilat riski yok). Verilmezse eski davranış: form ekranda kalır.
+   */
+  onUncertain?: () => void;
+  /**
    * Ödemenin PayTR mağazası (API delta 20). Kartlar mağazaya özeldir: yalnız bu
    * amacın kartları listelenir — diğer mağazanın kartı direct-form'da
    * `404 server.payment.savedCardNotFound` verir.
@@ -78,6 +84,7 @@ export default function CardPaymentForm({
   amount,
   onSuccess,
   onFail,
+  onUncertain,
   purpose = 'checkout',
   cardStorageEnabled = false,
   isGuest = false,
@@ -116,9 +123,11 @@ export default function CardPaymentForm({
   const resolvedRef = useRef(false);
   const onSuccessRef = useRef(onSuccess);
   const onFailRef = useRef(onFail);
+  const onUncertainRef = useRef(onUncertain);
   useEffect(() => {
     onSuccessRef.current = onSuccess;
     onFailRef.current = onFail;
+    onUncertainRef.current = onUncertain;
   });
 
   const resolveSuccess = (pid: string) => {
@@ -187,12 +196,23 @@ export default function CardPaymentForm({
         timer = setTimeout(poll, PAYMENT_STATUS_POLL_MS);
         return;
       }
-      // Yoklama süresi doldu (terminal duruma ulaşılamadı).
+      // Yoklama süresi doldu (terminal duruma ulaşılamadı): ödeme BELİRSİZ. Kapatılamayan
+      // uyarı; çağıran yönlendirme verdiyse siparişe gidilir (kart yeniden girilmez).
       stopVerify();
       if (verifying && !threeDSHtml) {
         setVerifying(false);
-        setProcessing(false);
-        appAlert(t('payment.connectionIssueTitle'), t('payment.verifyTimeoutBody'), undefined, PAYMENT_ALERT);
+        const uncertain = onUncertainRef.current;
+        if (uncertain) {
+          appAlert(
+            t('payment.connectionIssueTitle'),
+            t('payment.verifyTimeoutBody'),
+            [{ text: t('common.ok'), onPress: () => uncertain() }],
+            PAYMENT_ALERT,
+          );
+        } else {
+          setProcessing(false);
+          appAlert(t('payment.connectionIssueTitle'), t('payment.verifyTimeoutBody'), undefined, PAYMENT_ALERT);
+        }
       }
     };
     timer = setTimeout(poll, PAYMENT_STATUS_POLL_MS);
@@ -308,15 +328,32 @@ export default function CardPaymentForm({
   }
 
   // 3D Secure: bankanın doğrulama sayfası. Yalnız KENDİ dönüş adresimiz (katı köken + yol
-  // eşleşmesi, `threeDSCallbackResult`) sayılır: başarı adresi sunucu doğrulamasını tetikler,
-  // başarısızlık adresi sonucu bildirir. Benzer görünen başka adresler yok sayılır.
-  function onNav(nav: WebViewNavigation) {
-    const result = threeDSCallbackResult(nav.url);
-    if (result === 'success') {
-      if (paymentId) void confirmPaidFromCallback(paymentId);
-    } else if (result === 'fail') {
+  // eşleşmesi, `threeDSCallbackResult`) sayılır; benzer görünen başka adresler yok sayılır.
+  //  - başarısızlık adresi → sonuç bildirilir;
+  //  - başarı adresi → WebView KAPANIR (web sitemizin başarı sayfası uygulamada çizilmez),
+  //    ekran "doğrulanıyor" durumuna geçer ve sunucu durumu yoklanır: "ödendi" → başarı,
+  //    "başarısız" → başarısızlık, süre dolarsa "ödeme belirsiz" uyarısı (`onUncertain`).
+  //    `onSuccess` sunucu "ödendi" demeden ASLA çağrılmaz.
+  // Dönüş ele alındıysa `true` (WebView o adresi yüklemesin).
+  const callbackHandledRef = useRef(false);
+  function handleThreeDSCallback(url: string | undefined): boolean {
+    const result = threeDSCallbackResult(url);
+    if (!result) return false;
+    if (result === 'fail') {
       resolveFail();
+      return true;
     }
+    if (callbackHandledRef.current) return true;
+    callbackHandledRef.current = true;
+    setThreeDSHtml(null);
+    if (paymentId) {
+      setProcessing(true);
+      setVerifying(true);
+      void confirmPaidFromCallback(paymentId);
+    } else {
+      setProcessing(false);
+    }
+    return true;
   }
 
   if (threeDSHtml) {
@@ -345,7 +382,12 @@ export default function CardPaymentForm({
         <WebView
           originWhitelist={['*']}
           source={{ html: threeDSHtml }}
-          onNavigationStateChange={onNav}
+          // İki kanca birlikte: Android form POST'u / bazı yönlendirmeler için
+          // `onShouldStartLoadWithRequest` çağrılmaz, gezinme durumu yine bildirilir.
+          onShouldStartLoadWithRequest={(req) => !handleThreeDSCallback(req.url)}
+          onNavigationStateChange={(nav: WebViewNavigation) => {
+            handleThreeDSCallback(nav.url);
+          }}
           startInLoadingState
         />
       </View>
