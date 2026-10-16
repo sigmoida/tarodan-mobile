@@ -1,4 +1,6 @@
 import { api, guestApi } from './client';
+import { DOCUMENT_UPLOAD_TIMEOUT_MS } from './media';
+import { appendRNFile } from './formData';
 import type { OrderCancellationReason } from '@/lib/shared/orderCancellation';
 
 // Orders API - Web ile aynı endpoint'ler
@@ -391,9 +393,10 @@ export const sellerInvoiceApi = {
    *  Backend: POST /orders/:id/seller-invoice — multipart/form-data, alan adı `file`. */
   upload: (orderId: string, file: { uri: string; name: string; type: string }) => {
     const formData = new FormData();
-    formData.append('file', file as any);
+    appendRNFile(formData, 'file', file);
     return api.post(`/orders/${orderId}/seller-invoice`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: DOCUMENT_UPLOAD_TIMEOUT_MS,
     });
   },
   /** İndirme — S3 presigned URL ({ url, fileName }) */

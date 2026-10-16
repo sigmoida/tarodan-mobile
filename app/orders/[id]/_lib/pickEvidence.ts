@@ -1,12 +1,13 @@
-import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import type { RNFile } from '@/lib/api';
+import { fromPickerAsset, pickerQuality, type LocalImageFile } from '@/lib/media';
 
 /**
  * Galeriden en fazla `remaining` kanıt fotoğrafı seçer. İzin yoksa `'denied'`
- * döner — çağıran (iade ekranı) mesajı satır içi gösterir.
+ * döner — çağıran (iade ekranı) mesajı satır içi gösterir. Dosyalar yerel URI'yle
+ * döner (önizleme); küçültme ve iOS FormData biçimi yükleme anında
+ * (`useUploadRefundEvidence`).
  */
-export async function pickEvidencePhotos(remaining: number): Promise<RNFile[] | 'denied'> {
+export async function pickEvidencePhotos(remaining: number): Promise<LocalImageFile[] | 'denied'> {
   if (remaining <= 0) return [];
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) return 'denied';
@@ -14,12 +15,8 @@ export async function pickEvidencePhotos(remaining: number): Promise<RNFile[] | 
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     allowsMultipleSelection: true,
     selectionLimit: remaining,
-    quality: 0.8,
+    quality: pickerQuality(),
   });
   if (result.canceled || !result.assets?.length) return [];
-  return result.assets.slice(0, remaining).map((a, i) => ({
-    uri: Platform.OS === 'android' ? a.uri : a.uri.replace('file://', ''),
-    name: a.fileName || `evidence_${i}.jpg`,
-    type: a.mimeType || 'image/jpeg',
-  }));
+  return result.assets.slice(0, remaining).map((a, i) => fromPickerAsset(a, `evidence_${i}.jpg`));
 }

@@ -1,11 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { appAlert, toast } from '@/ui';
 import { mediaApi } from '@/lib/api';
 import { apiErrorLines } from '@/lib/api/errorText';
 import { useLatestRef } from '@/hooks/useLatestRef';
+import {
+  abortError,
+  canReusePreparedFile,
+  fromPickerAsset,
+  pickerQuality,
+  preparedFileExists,
+  prepareUploadImage,
+  releasePreparedFile,
+  type ImagePreparer,
+  type LocalImageFile,
+} from '@/lib/media';
 
 import {
   applyUploadEvent,
@@ -21,52 +31,18 @@ import {
   toImageKeys,
   type ListingImage,
 } from '../_lib/images';
-import {
-  abortError,
-  createUploadQueue,
-  type QueueEvent,
-  type UploadPort,
-  type UploadQueue,
-} from '../_lib/uploadQueue';
-import { createPreparer, type LocalImageFile } from '../_lib/prepareImage';
+import { createUploadQueue, type QueueEvent, type UploadPort, type UploadQueue } from '../_lib/uploadQueue';
 import { MIN_IMAGE_BYTES } from '../_lib/constants';
 
 /** Varsayılan kontenjan (üyelik limiti okunamadıysa) — eski davranışla aynı. */
 const DEFAULT_MAX_IMAGES = 5;
 
-/** Picker varlığı → yüklenecek yerel dosya. */
-function toLocalFile(asset: ImagePicker.ImagePickerAsset, index: number): LocalImageFile {
-  return {
-    uri: asset.uri,
-    name: asset.fileName || `image_${Date.now()}_${index}.jpg`,
-    type: asset.mimeType || 'image/jpeg',
-    width: asset.width || undefined,
-    height: asset.height || undefined,
-  };
-}
-
 /**
- * Hazırlama (küçült/sıkıştır) tek tek — tam çözünürlüklü çözme bellek açısından ağır — ama
- * süre sınırlı (20 sn → orijinal) ve iptal edilebilir; takılan bir görsel sırayı kilitlemez.
- */
-const prepareForUpload = createPreparer();
-
-/**
- * Üretim portu: hazırla (fotoğraf ≤1600 px JPEG) → dosya başına tek istek (ilerleme + iptal +
- * 120 sn). Sunucu dizi döndürür; tek dosyada ilk eleman sonuçtur.
+ * Üretim portu: HAZIRLANMIŞ dosyayı (hook hazırlar) dosya başına tek istekle yükler (ilerleme +
+ * iptal + 120 sn). Sunucu dizi döndürür; tek dosyada ilk eleman sonuçtur.
  */
 const defaultUpload: UploadPort = async (file, { signal, onProgress }) => {
-  const prepared = await prepareForUpload(file, signal);
-  if (signal.aborted) throw abortError();
-  const res = await mediaApi.uploadProductImage(
-    {
-      // iOS FormData `file://` önekisiz yolu bekliyor (eski toplu yüklemeyle aynı).
-      uri: Platform.OS === 'android' ? prepared.uri : prepared.uri.replace('file://', ''),
-      name: prepared.name,
-      type: prepared.type,
-    },
-    { signal, onProgress },
-  );
+  const res = await mediaApi.uploadProductImage(file, { signal, onProgress });
   const [result] = Array.isArray(res.data) ? res.data : [res.data];
   if (!result?.cardKey || !result?.detailKey) throw new Error('NO_SERVER_RESULT');
   return {
@@ -79,8 +55,10 @@ const defaultUpload: UploadPort = async (file, { signal, onProgress }) => {
 interface Params {
   /** Üyeliğe göre izin verilen görsel adedi. */
   maxImages?: number;
-  /** Testler için değiştirilebilir yükleme portu. */
+  /** Testler için değiştirilebilir yükleme portu (hazırlanmış dosyayı alır). */
   upload?: UploadPort;
+  /** Testler için değiştirilebilir hazırlayıcı (varsayılan: uygulama geneli seri hazırlayıcı). */
+  prepare?: ImagePreparer;
 }
 
 /**
@@ -92,7 +70,7 @@ interface Params {
  * anahtarlı kalemlerden türetilir (`imageKeys`); bekleyen/hatalı kalem varken
  * `submitBlocker` gönderimi engeller. Ekran kapanınca uçuştaki istekler iptal edilir.
  */
-export function useListingImageUpload({ maxImages: maxImagesParam, upload }: Params = {}) {
+export function useListingImageUpload({ maxImages: maxImagesParam, upload, prepare }: Params = {}) {
   const { t } = useTranslation();
   const maxImages = maxImagesParam || DEFAULT_MAX_IMAGES;
 
@@ -126,12 +104,53 @@ export function useListingImageUpload({ maxImages: maxImagesParam, upload }: Par
   // Kuyruk bir KEZ kurulur: her render'da yeniden yaratılırsa aktif istekler ve iptal
   // denetleyicileri kaybolurdu. Port ve çevirici ref'ten okunur (bayat kapanış yok).
   const uploadRef = useLatestRef(upload ?? defaultUpload);
+  const prepareRef = useLatestRef(prepare ?? prepareUploadImage);
   const tRef = useLatestRef(t);
   const queueRef = useRef<UploadQueue | null>(null);
   if (!queueRef.current) {
     queueRef.current = createUploadQueue({
-      upload: (file, options) => uploadRef.current(file, options),
+      /**
+       * Hazırla (fotoğraf ≤1600 px JPEG; seri, 20 sn tavan, iptal edilebilir) → yükle. Hazırlanmış
+       * dosya kalemde saklanır: yeniden deneme onu kullanır, ikinci kez küçültmez.
+       */
+      upload: async (file, options) => {
+        const { clientId, signal } = options;
+        let prepared = imagesRef.current.find((item) => item.id === clientId)?.preparedFile;
+        // Sistem cache'i boşalttıysa saklanan dosya yok: düşür, orijinalden yeniden hazırla.
+        if (prepared && !(await preparedFileExists(prepared))) {
+          update((prev) => patchImage(prev, clientId, { preparedFile: undefined }));
+          prepared = undefined;
+        }
+        if (!prepared) {
+          prepared = await prepareRef.current(file, { signal });
+          // Hazırlama sürerken kalem kaldırıldı / liste yeniden kuruldu: dosya sahipsiz kalmasın.
+          if (signal.aborted || !imagesRef.current.some((item) => item.id === clientId)) {
+            releasePreparedFile(prepared);
+            throw abortError();
+          }
+          // Yalnız GERÇEK hazırlama çıktısı saklanır. Orijinal döndüyse (PNG/küçük JPEG/manipulator
+          // yok → anında; süre doldu/işlem hatası → yeniden denemede bir şans daha) saklanmaz.
+          if (prepared !== file) {
+            const keep = prepared;
+            update((prev) => patchImage(prev, clientId, { preparedFile: keep }));
+          }
+        }
+        return uploadRef.current(prepared, options);
+      },
       onEvent: (event: QueueEvent) => {
+        // Yüklendi: hazırlanmış geçici dosyanın işi bitti (kalemden de düşer — applyUploadEvent).
+        if (event.status === 'ready') {
+          releasePreparedFile(imagesRef.current.find((item) => item.id === event.clientId)?.preparedFile);
+        }
+        // Dosyaya bağlı olabilecek hata (4xx; 408/429 hariç): hazırlanmış dosya bırakılır, yeniden
+        // deneme orijinalden yeniden hazırlar. Geçici hatada (ağ/5xx/408/429) aynı dosya kullanılır.
+        if (event.status === 'failed' && !canReusePreparedFile(event.error)) {
+          const stale = imagesRef.current.find((item) => item.id === event.clientId)?.preparedFile;
+          if (stale) {
+            releasePreparedFile(stale);
+            update((prev) => patchImage(prev, event.clientId, { preparedFile: undefined }));
+          }
+        }
         const tr = tRef.current;
         const errorText =
           event.status === 'failed'
@@ -145,17 +164,29 @@ export function useListingImageUpload({ maxImages: maxImagesParam, upload }: Par
   }
   const queue = queueRef.current;
 
-  // Ekran kapanınca uçuştaki ve sıradaki istekler iptal edilir.
-  useEffect(() => () => queue.cancelAll(), [queue]);
+  /** Listedeki bütün hazırlanmış geçici dosyaları sil (liste yeniden kurulurken / ekran kapanırken). */
+  const releaseAllPrepared = useCallback(() => {
+    imagesRef.current.forEach((item) => releasePreparedFile(item.preparedFile));
+  }, []);
+
+  // Ekran kapanınca uçuştaki ve sıradaki istekler iptal edilir, geçici dosyalar silinir.
+  useEffect(
+    () => () => {
+      queue.cancelAll();
+      releaseAllPrepared();
+    },
+    [queue, releaseAllPrepared],
+  );
 
   /** Listeyi dışarıdan kur (düzenleme prefill'i / 409 tazeleme / sıfırlama) — süren yüklemeler iptal. */
   const replaceImages = useCallback(
     (next: ListingImage[]) => {
       queue.cancelAll();
+      releaseAllPrepared();
       rotatingIdsRef.current.clear();
       update(() => next);
     },
-    [queue, update],
+    [queue, releaseAllPrepared, update],
   );
 
   const pickImages = async () => {
@@ -177,10 +208,9 @@ export function useListingImageUpload({ maxImages: maxImagesParam, upload }: Par
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
         selectionLimit: remaining,
-        // Çözünürlüğü düşürmez; asıl küçültme `prepareImageForUpload`'ta. JPEG kalır ki
-        // hazırlama atlanırsa (zaman aşımı, işlem hatası, yeniden derlenmemiş dev-client)
-        // sunucu dosyayı yine kabul etsin (HEIC değil).
-        quality: 0.8,
+        // Çözünürlüğü düşürmez; asıl küçültme hazırlamada (`@/lib/media`). 0.8 güvenlik ağıdır:
+        // hazırlama atlanırsa da JPEG gider, EXIF/GPS taşınmaz (bkz. `pickerQuality`).
+        quality: pickerQuality(),
       });
       if (result.canceled || result.assets.length === 0) return;
       assets = result.assets;
@@ -208,12 +238,15 @@ export function useListingImageUpload({ maxImages: maxImagesParam, upload }: Par
     }
 
     // Seçer seçmez yerel önizlemeyle listeye gir, sonra kuyruğa al.
-    const added = accepted.map((asset, i) => imageFromFile(toLocalFile(asset, i)));
+    const added = accepted.map((asset, i) => imageFromFile(fromPickerAsset(asset, `image_${Date.now()}_${i}.jpg`)));
     update((prev) => [...prev, ...added]);
     queue.enqueue(added.map((item) => ({ clientId: item.id, file: item.file as LocalImageFile })));
   };
 
-  /** Hata alan kalemi yeniden kuyruğa al (diğer kalemler etkilenmez). */
+  /**
+   * Hata alan kalemi yeniden kuyruğa al (diğer kalemler etkilenmez). Hazırlanmış dosya geçici
+   * hatada yeniden kullanılır; 4xx sonrası ya da dosya silinmişse orijinalden yeniden hazırlanır.
+   */
   const retryImage = (id: string) => {
     const target = imagesRef.current.find((item) => item.id === id);
     if (!target?.file || target.status !== 'failed') return;
@@ -224,6 +257,7 @@ export function useListingImageUpload({ maxImages: maxImagesParam, upload }: Par
   /** Kalemi KİMLİĞİNDEN kaldır (indeks, sıralama/çevirme sırasında kayar); süren isteği de durdur. */
   const removeImage = (id: string) => {
     queue.cancel(id);
+    releasePreparedFile(imagesRef.current.find((item) => item.id === id)?.preparedFile);
     rotatingIdsRef.current.delete(id);
     update((prev) => removeImageById(prev, id));
   };

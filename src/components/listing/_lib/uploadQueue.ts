@@ -9,7 +9,7 @@
  * React'ten bağımsızdır: `upload` portu dışarıdan verilir, bu yüzden kısmi
  * hata, iptal, eşzamanlılık sınırı ve ilerleme davranışı doğrudan test edilir.
  */
-import type { LocalImageFile } from './prepareImage';
+import { isAbortError, type LocalImageFile } from '@/lib/media';
 
 export const UPLOAD_CONCURRENCY = 3;
 /** İlerleme bu adımlarla yayılır — her bayt olayında state güncellemesi yapılmasın. */
@@ -28,7 +28,7 @@ export interface UploadResult {
 /** Tek dosyayı yükleyen port — iptal ve ilerleme desteklemek zorundadır. */
 export type UploadPort = (
   file: LocalImageFile,
-  options: { signal: AbortSignal; onProgress: (percent: number) => void },
+  options: { signal: AbortSignal; onProgress: (percent: number) => void; clientId: string },
 ) => Promise<UploadResult>;
 
 export interface QueueItem {
@@ -53,18 +53,6 @@ export interface UploadQueue {
   cancelAll(): void;
   /** Test/teşhis: o an aktif istek sayısı. */
   activeCount(): number;
-}
-
-export const isAbortError = (error: unknown): boolean =>
-  (error as { name?: string } | null)?.name === 'AbortError' ||
-  (error as { name?: string } | null)?.name === 'CanceledError' ||
-  (error as { code?: string } | null)?.code === 'ERR_CANCELED';
-
-/** İptal hatası (RN'de `DOMException` yok). */
-export function abortError(): Error {
-  const error = new Error('Aborted');
-  error.name = 'AbortError';
-  return error;
 }
 
 export function createUploadQueue(options: {
@@ -101,6 +89,7 @@ export function createUploadQueue(options: {
 
     try {
       const result = await options.upload(item.file, {
+        clientId: item.clientId,
         signal: controller.signal,
         onProgress: (percent) => {
           // Baytlar bitti ama yanıt beklenirken "işleniyor": sunucuda moderasyon,

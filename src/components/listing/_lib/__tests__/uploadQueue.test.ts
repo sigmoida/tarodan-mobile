@@ -1,5 +1,5 @@
-import { createUploadQueue, isAbortError, type QueueEvent, type UploadPort } from '../uploadQueue';
-import type { LocalImageFile } from '../prepareImage';
+import { createUploadQueue, type QueueEvent, type UploadPort } from '../uploadQueue';
+import type { LocalImageFile } from '@/lib/media';
 
 const file = (n: number): LocalImageFile => ({ uri: `file:///${n}.jpg`, name: `${n}.jpg`, type: 'image/jpeg' });
 
@@ -119,13 +119,5 @@ describe('yükleme kuyruğu', () => {
     calls[1]!.resolve({ cardKey: 'k', detailKey: 'd' });
     await flush();
     expect(statusOf('a')).toEqual(['queued', 'uploading', 'failed', 'queued', 'uploading', 'ready']);
-  });
-
-  it('isAbortError: axios/fetch iptal biçimleri', () => {
-    expect(isAbortError({ name: 'AbortError' })).toBe(true);
-    expect(isAbortError({ name: 'CanceledError' })).toBe(true);
-    expect(isAbortError({ code: 'ERR_CANCELED' })).toBe(true);
-    expect(isAbortError(new Error('x'))).toBe(false);
-    expect(isAbortError(null)).toBe(false);
   });
 });
