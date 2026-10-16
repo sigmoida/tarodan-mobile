@@ -37,6 +37,8 @@ jest.mock('expo-image-picker', () => ({
 jest.mock('@/lib/api', () => ({
   mediaApi: { uploadMessageImage: jest.fn() },
 }));
+// API kökü sabit: `[IMG:]` mutlak hedefi + bearer yalnız bu origin'deki mesaj eki ucu.
+jest.mock('@/lib/api/baseUrl', () => ({ resolveApiBaseUrl: () => 'https://api.tarodan.com/api' }));
 
 // Selector-aware: `useMessageThread` hook'u selector'süz çağırıyor, `AppImage`
 // ise `useAuthStore((s) => s.token)` ile abone oluyor (bearer'lı mesaj eki).
@@ -266,6 +268,18 @@ describe('mesaj eki görselleri — bearer + şema beyaz listesi', () => {
     renderWithProviders(<MessageThreadScreen />);
 
     expect(attachmentImages()[0].props.source.headers).toBeUndefined();
+  });
+
+  it('yabancı host işaretli ek HİÇ render edilmez; token hiçbir görsele gitmez', () => {
+    mockMessagesQuery = makeMessagesQuery([
+      message({ content: 'bak [IMG:https://evil.example/api/media/message-attachment/a1]' }),
+    ]);
+    renderWithProviders(<MessageThreadScreen />);
+
+    const sources = screen.UNSAFE_queryAllByType(ExpoImage).map((n: any) => n.props.source);
+    expect(sources.some((s: any) => String(s?.uri || '').includes('evil.example'))).toBe(false);
+    expect(JSON.stringify(sources)).not.toContain('test-token');
+    expect(screen.queryByText(/\[IMG:/)).toBeNull();
   });
 
   it('karşı tarafın elle yazdığı `file:` eki HİÇ render edilmez (I1)', () => {
