@@ -97,10 +97,39 @@ describe('ProductCard — grid', () => {
     expect(screen.getAllByText('0')).toHaveLength(2);
   });
 
-  it('favori kalbi ve "Sepette" rozeti kartta yok (web kartında yok)', () => {
+  it('"Sepette" rozeti kartta yok (web kartında yok); onToggleFavorite verilmezse kalp de yok', () => {
     render(<ProductCard product={base} />);
+    expect(screen.queryByTestId('product-card-favorite-p1')).toBeNull();
     expect(screen.queryByLabelText(/favori/i)).toBeNull();
     expect(screen.queryByText(/sepette/i)).toBeNull();
+  });
+});
+
+describe('ProductCard — favori kalbi', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it.each(['grid', 'list'] as const)('%s: pasif kalp "Favorilere Ekle"; basınca toggle(id), kart AÇILMAZ', (layout) => {
+    const onToggle = jest.fn();
+    render(<ProductCard product={base} layout={layout} onToggleFavorite={onToggle} />);
+    const heart = screen.getByTestId('product-card-favorite-p1');
+    expect(heart.props.accessibilityLabel).toBe('Favorilere Ekle');
+    fireEvent.press(heart);
+    expect(onToggle).toHaveBeenCalledWith('p1');
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(productsApi.recordClick).not.toHaveBeenCalled();
+  });
+
+  it('aktif: etiket "Favorilerden Çıkar"', () => {
+    render(<ProductCard product={base} isFavorite onToggleFavorite={jest.fn()} />);
+    expect(screen.getByLabelText('Favorilerden Çıkar')).toBeTruthy();
+  });
+
+  it('kalp varken kartın kendisine basmak yine ürünü açar', () => {
+    const onToggle = jest.fn();
+    render(<ProductCard product={base} onToggleFavorite={onToggle} />);
+    fireEvent.press(screen.getByText('Hot Wheels Supra'));
+    expect(mockPush).toHaveBeenCalledWith('/product/p1');
+    expect(onToggle).not.toHaveBeenCalled();
   });
 });
 

@@ -2,7 +2,9 @@
  * Modeller: marka başına SectionCard + model kartları; boş durum; model detayında tek ProductCard ızgarası.
  */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
+// Kartlardaki favori kalbi (`useProductCardFavorites`) React Query ister: provider'lı render.
+import { renderWithProviders as render } from '@/test-utils';
 import { router } from 'expo-router';
 
 jest.mock('expo-router', () => ({

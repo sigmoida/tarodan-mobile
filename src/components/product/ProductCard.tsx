@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, View, type LayoutChangeEvent, type LayoutRectangle, type ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { AppImage } from '@/components/AppImage';
-import { ProductBadge, Text, theme, Icon } from '@/ui';
+import { GLASS_ICON_BUTTON_SIZE_SM, GlassIconButton, ProductBadge, Text, theme, Icon } from '@/ui';
 import { productsApi } from '@/lib/api';
 import {
   ProductPriceFields,
@@ -45,6 +45,9 @@ export interface ProductCardProduct extends ProductPriceFields {
   rating?: { average: number | null; count: number } | null;
   /** Liste görünümünde iki satıra kadar gösterilir. */
   description?: string | null;
+  /** Satıcı (kendi ilanında favori kalbi gösterilmez — bkz. `useProductCardFavorites`). */
+  sellerId?: string | null;
+  seller?: { id?: string | null } | null;
 }
 
 export type ProductCardLayout = 'grid' | 'list';
@@ -69,6 +72,13 @@ export interface ProductCardProps {
   overlayStart?: React.ReactNode;
   /** Kartın altında, kart dokunuşunun dışında (ör. sepete ekle düğmesi). */
   footer?: React.ReactNode;
+  /**
+   * Görselin sağ altında cam favori kalbi; yalnız verilince çizilir. Çağıran liste başına
+   * `useProductCardFavorites()` ile alır (`{...favoriteProps(product)}`) — kimliği sabit tutun.
+   */
+  onToggleFavorite?: (productId: string) => void;
+  /** Dolu kalp (favoride). */
+  isFavorite?: boolean;
   style?: ViewStyle;
   testID?: string;
 }
@@ -84,6 +94,28 @@ function pickStartBadges(product: ProductCardProduct) {
   let left = MAX_START_BADGES;
   const [showSponsored, showTrade, showCampaign] = wanted.map((w) => (w && left > 0 ? (left--, true) : false));
   return { showSponsored, showTrade, showCampaign, campaign };
+}
+
+/** Kalbin görsel köşesine uzaklığı (rozetlerle aynı iç boşluk). */
+const FAVORITE_INSET = spacing[1.5];
+
+/**
+ * Görselin sağ altındaki cam favori kalbi (32pt, dokunma alanı 44pt). Kartın Pressable'ının KARDEŞİ
+ * olarak çizilir: basmak kartı açmaz. Pasif: çizgi kalp; aktif: dolu `danger-500`.
+ */
+function FavoriteHeart({ productId, isFavorite, onToggle }: { productId: string; isFavorite: boolean; onToggle: (id: string) => void }) {
+  const { t } = useTranslation();
+  return (
+    <GlassIconButton
+      size="sm"
+      icon="heart"
+      iconVariant={isFavorite ? 'solid' : 'outline'}
+      iconColor={isFavorite ? colors.danger[500] : undefined}
+      accessibilityLabel={t(isFavorite ? 'product.removeFromFavorites' : 'product.addToFavorites')}
+      testID={`product-card-favorite-${productId}`}
+      onPress={() => onToggle(productId)}
+    />
+  );
 }
 
 /** Bir `Text` kısa yolu: web kartındaki "text-xs text-subtle" meta metni. */
@@ -149,8 +181,8 @@ const MetaRow = React.memo(function MetaRow({ product, listOrder }: { product: P
  * alır; fiyat, indirim, stok ve görseli kendisi türetir — çağıran hiçbirini önceden hesaplamaz.
  * Başlık, fiyat ve görsel her zaman çizilir; `showMeta` ikincil bilgiyi açar/kapatır.
  *
- * Web'de olmayan şeyler (favori kalbi, "Sepette" rozeti, ön sipariş/sınırlı rozeti) kartta yok:
- * favori ürün detayında, diğerleri ürün detayında/filtrelerde.
+ * Favori kalbi görselin sağ altında (web ile birlikte eklendi; `onToggleFavorite` verilince). Web'de
+ * olmayan "Sepette" rozeti ve ön sipariş/sınırlı rozeti kartta yok (ürün detayında/filtrelerde).
  */
 function ProductCardBase({
   product,
@@ -162,10 +194,20 @@ function ProductCardBase({
   overlay,
   overlayStart,
   footer,
+  onToggleFavorite,
+  isFavorite = false,
   style,
   testID,
 }: ProductCardProps) {
   const { t } = useTranslation();
+  // Liste: görsel satırda dikey ortalı (yükseklik gövdeye bağlı) — kalbi ölçülen konuma yerleştir.
+  const [listImageFrame, setListImageFrame] = useState<LayoutRectangle | null>(null);
+  const onListImageLayout = onToggleFavorite
+    ? (e: LayoutChangeEvent) => setListImageFrame(e.nativeEvent.layout)
+    : undefined;
+  const heart = onToggleFavorite ? (
+    <FavoriteHeart productId={product.id} isFavorite={isFavorite} onToggle={onToggleFavorite} />
+  ) : null;
 
   const { effective, original, onSale, discount, outOfStock, isTrade, showSponsored, showTrade, showCampaign, campaign } = useMemo(
     () => ({
@@ -201,7 +243,7 @@ function ProductCardBase({
           accessibilityState={{ selected }}
           style={({ pressed }) => [styles.listCard, selected && styles.selected, pressed && styles.pressed]}
         >
-          <View style={styles.listImage}>
+          <View style={styles.listImage} onLayout={onListImageLayout}>
             <AppImage
               source={imageSource}
               recyclingKey={product.id}
@@ -242,6 +284,7 @@ function ProductCardBase({
             {onSale ? <ProductBadge variant="sale">%{discount}</ProductBadge> : null}
           </View>
         </Pressable>
+        {heart ? <View style={[styles.favoriteBox, listHeartPosition(listImageFrame)]}>{heart}</View> : null}
         {overlay ? <View style={styles.overlayEnd}>{overlay}</View> : null}
         {footer ? <View style={styles.listFooter}>{footer}</View> : null}
       </View>
@@ -311,15 +354,37 @@ function ProductCardBase({
         </View>
       </Pressable>
       {footer ? <View style={styles.gridFooter}>{footer}</View> : null}
+      {heart ? (
+        // Görselle aynı kare (kenarlık içinde): kalp sağ alt köşeye oturur, kare dokunuşu geçirir.
+        <View style={styles.gridImageFrame} pointerEvents="box-none">
+          <View style={[styles.favoriteBox, styles.favoriteGrid]}>{heart}</View>
+        </View>
+      ) : null}
       {overlay ? <View style={styles.overlayEnd}>{overlay}</View> : null}
       {overlayStart ? <View style={styles.overlayStart}>{overlayStart}</View> : null}
     </View>
   );
 }
 
+/** Liste kalbinin konumu: ölçülen görsel çerçevesinin sağ altı (ölçüm gelene dek üst hizalı varsayım). */
+function listHeartPosition(frame: LayoutRectangle | null): ViewStyle {
+  const x = frame?.x ?? LIST_IMAGE_ORIGIN;
+  const y = frame?.y ?? LIST_IMAGE_ORIGIN;
+  const w = frame?.width ?? LIST_IMAGE_SIZE;
+  const h = frame?.height ?? LIST_IMAGE_SIZE;
+  return {
+    left: x + w - GLASS_ICON_BUTTON_SIZE_SM - spacing[1],
+    top: y + h - GLASS_ICON_BUTTON_SIZE_SM - spacing[1],
+  };
+}
+
 export const ProductCard = React.memo(ProductCardBase);
 
 export default ProductCard;
+
+/** Liste görseli: 80pt; kartın kenarlığı (1) + iç boşluğu içinde başlar. */
+const LIST_IMAGE_SIZE = spacing[20];
+const LIST_IMAGE_ORIGIN = spacing[3] + 1;
 
 const styles = StyleSheet.create({
   fill: { width: '100%', height: '100%' },
@@ -373,6 +438,10 @@ const styles = StyleSheet.create({
   gridFooter: { paddingHorizontal: spacing[2.5], paddingBottom: spacing[2.5] },
   overlayEnd: { position: 'absolute', top: spacing[1.5], right: spacing[1.5], zIndex: 1 },
   overlayStart: { position: 'absolute', top: spacing[1.5], left: spacing[1.5], zIndex: 1 },
+  // Grid görsel karesi: kart kenarlığının (1pt) içinde, kare.
+  gridImageFrame: { position: 'absolute', top: 1, left: 1, right: 1, aspectRatio: 1, zIndex: 1 },
+  favoriteBox: { position: 'absolute', zIndex: 1 },
+  favoriteGrid: { right: FAVORITE_INSET, bottom: FAVORITE_INSET },
 
   // ===== LİSTE (web: rounded-lg border p-3 gap-3, 80pt görsel, fiyat tam genişlikte sağa yaslı) =====
   listCard: {

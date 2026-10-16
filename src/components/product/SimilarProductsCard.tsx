@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { EmptyState, SectionCard, theme } from '@/ui';
+import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { ProductCard, type ProductCardProduct } from './ProductCard';
 
 const { spacing } = theme;
@@ -23,6 +24,7 @@ export function SimilarProductsCard({
 }) {
   const { t } = useTranslation();
   const list = items ?? [];
+  const favoriteProps = useProductCardFavorites();
   if (list.length === 0 && !emptyText) return null;
   return (
     <SectionCard title={title} testID={testID}>
@@ -32,7 +34,7 @@ export function SimilarProductsCard({
         <View style={styles.grid}>
           {list.map((product) => (
             <View key={product.id} style={styles.cell}>
-              <ProductCard product={product} showMeta={false} />
+              <ProductCard product={product} showMeta={false} {...favoriteProps(product)} />
             </View>
           ))}
         </View>

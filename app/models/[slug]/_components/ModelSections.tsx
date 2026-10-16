@@ -3,6 +3,7 @@ import { AppImage } from '@/components/AppImage';
 import { useTranslation } from 'react-i18next';
 import { EmptyState, SectionCard, SkeletonCard, Text } from '@/ui';
 import { ProductCard } from '@/components/product';
+import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { styles } from '../_lib/styles';
 import type { CarModelDetail } from '../_lib/types';
 import type { ModelDetailController } from '../_hooks/useModelDetail';
@@ -44,6 +45,7 @@ export function ModelHero({ model }: { model: CarModelDetail }) {
 export function ModelProductsGrid({ f }: { f: ModelDetailController }) {
   const { t } = useTranslation();
   const { model, products, productsQuery } = f;
+  const favoriteProps = useProductCardFavorites();
 
   return (
     <SectionCard
@@ -69,7 +71,7 @@ export function ModelProductsGrid({ f }: { f: ModelDetailController }) {
         <View style={styles.grid}>
           {products.map((p) => (
             <View key={p.id} style={styles.cell}>
-              <ProductCard product={p} />
+              <ProductCard product={p} {...favoriteProps(p)} />
             </View>
           ))}
         </View>

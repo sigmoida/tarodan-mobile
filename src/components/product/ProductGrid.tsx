@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { RefreshControl, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { EmptyState, ErrorState, Spinner, pageListContentStyle, theme, useShellPageScroll, type PageScroll } from '@/ui';
+import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { ProductCard, type ProductCardLayout, type ProductCardProduct } from './ProductCard';
 import { PRODUCT_GRID_GAP, ProductGridSkeleton, ProductListEmpty, useProductCellWidth } from './ProductListStates';
 
@@ -50,14 +51,31 @@ interface GridCellProps {
   width: number;
   showMeta: boolean;
   onItemPress?: (product: ProductCardProduct) => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (productId: string) => void;
 }
 
 /** Tek hücre: `onPress` ürün başına KARARLI kalır (memo'lu `ProductCard` kaydırmada yeniden çizilmez). */
-const GridCell = React.memo(function GridCell({ item, layout, width, showMeta, onItemPress }: GridCellProps) {
+const GridCell = React.memo(function GridCell({
+  item,
+  layout,
+  width,
+  showMeta,
+  onItemPress,
+  isFavorite,
+  onToggleFavorite,
+}: GridCellProps) {
   const handlePress = useCallback(() => onItemPress?.(item), [onItemPress, item]);
   return (
     <View style={layout === 'list' ? styles.listCell : { width }}>
-      <ProductCard product={item} layout={layout} showMeta={showMeta} onPress={onItemPress ? handlePress : undefined} />
+      <ProductCard
+        product={item}
+        layout={layout}
+        showMeta={showMeta}
+        onPress={onItemPress ? handlePress : undefined}
+        isFavorite={isFavorite}
+        onToggleFavorite={onToggleFavorite}
+      />
     </View>
   );
 });
@@ -66,6 +84,7 @@ const GridCell = React.memo(function GridCell({ item, layout, width, showMeta, o
  * Ürün listelerinin TEK ızgara/listesi: 2 sütun (web `grid-cols-2 gap-3`) ya da tek sütun liste, sonsuz
  * kaydırma, çekip yenileme; yükleniyor = iskelet, boş = tek boş durum, hata = ErrorState.
  * Kartlar memo'lu `ProductCard`; `renderItem` kararlı (kaydırmada satırlar yeniden çizilmez).
+ * Favori kalbi otomatik bağlanır (`useProductCardFavorites`; kendi ilanında yok, misafirde giriş akışı).
  * Bir kabuğun (`PageShell mode="list"` / `AppShell`) altındaysa listeyi kabuğun kaydırma kenarı
  * sinyaline OTOMATİK bağlar (içerik üst barın altından kayar, ekranlar değişmez); kabuk yoksa düz liste.
  */
@@ -94,12 +113,25 @@ export function ProductGrid({
   const columns = layout === 'list' ? 1 : 2;
   // Tek tük kalan son kart komşusundan geniş olmasın: hücre genişliği açık verilir.
   const cellWidth = useProductCellWidth();
+  // Favori kalbi: liste başına tek Set; hücreye ilkel `isFavorite` + sabit toggle (memo korunur).
+  const favoriteProps = useProductCardFavorites();
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<ProductCardProduct>) => (
-      <GridCell item={item} layout={layout} width={cellWidth} showMeta={showMeta} onItemPress={onItemPress} />
-    ),
-    [layout, showMeta, onItemPress, cellWidth],
+    ({ item }: ListRenderItemInfo<ProductCardProduct>) => {
+      const fav = favoriteProps(item);
+      return (
+        <GridCell
+          item={item}
+          layout={layout}
+          width={cellWidth}
+          showMeta={showMeta}
+          onItemPress={onItemPress}
+          isFavorite={fav.isFavorite}
+          onToggleFavorite={fav.onToggleFavorite}
+        />
+      );
+    },
+    [layout, showMeta, onItemPress, cellWidth, favoriteProps],
   );
 
   // Kabuk kaydırma sinyali (yoksa null → bağlanmaz). iOS `contentInset` + Android üst dolgusu

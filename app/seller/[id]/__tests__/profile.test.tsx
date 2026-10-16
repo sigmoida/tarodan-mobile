@@ -3,7 +3,9 @@
  * Koleksiyonlar), bulunamadı durumu, kendi profilinde Mesaj/Takip yok.
  */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
+// Kartlardaki favori kalbi (`useProductCardFavorites`) React Query ister: provider'lı render.
+import { renderWithProviders as render } from '@/test-utils';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true) },

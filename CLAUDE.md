@@ -396,8 +396,14 @@ and turns them into **errors**, so write new code warning-free.
 - **One product card.** Every product tile is `ProductCard` (`@/components/product`; grid + list,
   mirrors web `ProductCard` at phone width) — never a local card. Lists use `ProductGrid`
   (skeleton → single empty state → error), sort via `ProductSortModal`, active filters via
-  `ActiveFilterChips`; collection tiles are `CollectionCard` (`@/components/collection`). No favourite
-  heart / "in cart" pill on cards (web has none).
+  `ActiveFilterChips`; collection tiles are `CollectionCard` (`@/components/collection`). Cards carry
+  a favourite heart (decided for web + mobile together): small glass circle (`GlassIconButton
+  size="sm"`, 32pt, 44pt hitSlop) at the image's bottom-right, outline / solid `danger-500`, drawn as a
+  sibling of the card `Pressable` (tapping it never opens the product). Wire it once per list with
+  `useProductCardFavorites()` (`@/hooks/useFavoriteToggle`) → `<ProductCard {...favoriteProps(p)} />`
+  (`ProductGrid` does it itself); it hides the heart on the user's own listing and sends guests to
+  sign-in. Detail and card share `useFavoriteToggle` (one toggle flow, one favorites cache). Still no
+  "in cart" pill on cards (web has none).
 - **Tap targets ≥ 44pt** — visuals may stay at the web size, close the gap with
   `hitSlop` (Button/IconButton/Chip already do).
 - **Press feedback:** Android = `android_ripple`, iOS = the existing pressed opacity — both from

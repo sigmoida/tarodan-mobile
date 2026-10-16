@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Avatar, ChipTabs, EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
 
 import { ProductCard } from '@/components/product';
+import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { CollectionCard } from '@/components/collection/CollectionCard';
 import { sellerRatingSummary } from '../_lib/rating';
 import { styles } from '../_lib/styles';
@@ -19,6 +20,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
   const { t } = useTranslation();
   const { activeTab, products, reviews, collections } = f;
   const rating = sellerRatingSummary(f);
+  const favoriteProps = useProductCardFavorites();
   return (
     <>
       <ChipTabs<Tab>
@@ -39,7 +41,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
           <View style={styles.grid}>
             {products.map((product: any) => (
               <View key={product.id} style={styles.cell}>
-                <ProductCard product={product} />
+                <ProductCard product={product} {...favoriteProps(product)} />
               </View>
             ))}
           </View>
