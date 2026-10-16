@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supportApi } from '@/lib/api';
 import { qk, useAppMutation } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
+import { FOCUS_LIST_STALE_MS, useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { captureException } from '@/services/sentry';
 import type { TicketDetail } from '../_lib/types';
 
@@ -28,6 +29,8 @@ export function useSupportTicket() {
       return (res?.data ?? res) as TicketDetail;
     },
     enabled: isAuthenticated && !!id,
+    // Yanıtlar destek ekibinden gelir: dönüşte bundan eskiyse tazelenir.
+    staleTime: FOCUS_LIST_STALE_MS,
   });
 
   const replyMutation = useAppMutation(
@@ -49,11 +52,8 @@ export function useSupportTicket() {
     setRefreshing(false);
   }, [refetch]);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (isAuthenticated && id) refetch();
-    }, [isAuthenticated, id, refetch]),
-  );
+  // Ekrana dönüşte yalnız bayatsa tazele (her odakta değil; ilk açılışta ikinci istek yok).
+  useRefetchStaleOnFocus([qk.support.detail(id)], isAuthenticated && !!id);
 
   return { ticket, isLoading, refreshing, onRefresh, reply, setReply, replyMutation };
 }

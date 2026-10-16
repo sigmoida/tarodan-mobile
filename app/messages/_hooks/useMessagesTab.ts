@@ -1,13 +1,14 @@
-import { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMessagesStore, type MessageThread } from '@/stores/messagesStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useThreadsQuery, useDailyMessageLimit } from '@/hooks/messaging';
+import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
+import { qk } from '@/lib/query';
 
 /**
  * Messages-tab controller — threads artık React Query (#77); focus'ta
- * refetch, güvenli participant resolver ve limit türevleri burada.
+ * yalnız bayatsa tazeleme, güvenli participant resolver ve limit türevleri burada.
  * getOtherParticipant client store'dan; günlük hak sunucudan (useDailyMessageLimit).
  */
 export function useMessagesTab() {
@@ -18,14 +19,9 @@ export function useMessagesTab() {
   const daily = useDailyMessageLimit();
   const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (isAuthenticated) {
-        refetch();
-        daily.refetch();
-      }
-    }, [isAuthenticated, refetch, daily.refetch]),
-  );
+  // Dönüşte yalnız bayatsa tazele: yeni mesajları socket köprüsü zaten invalidate ediyor,
+  // her odakta iki istek (ilk açılışta ikişer) gereksizdi.
+  useRefetchStaleOnFocus([qk.messaging.threads, qk.messaging.dailyLimit], isAuthenticated);
 
   const onRefresh = async () => {
     setRefreshing(true);

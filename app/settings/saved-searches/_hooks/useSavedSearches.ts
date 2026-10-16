@@ -1,11 +1,11 @@
-import { useCallback } from 'react';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { confirm } from '@/ui';
 import { qk, useAppMutation } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
+import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { STORAGE_KEY, type SavedSearch } from '../_lib/types';
 import { buildSearchParams } from '../_lib/helpers';
 
@@ -21,7 +21,7 @@ export function useSavedSearches() {
 
   const maxSavedSearches = limits?.maxSavedSearches || 5;
 
-  const { data: searchesData, isLoading, refetch } = useQuery({
+  const { data: searchesData, isLoading } = useQuery({
     queryKey: ['saved-searches'],
     queryFn: async (): Promise<SavedSearch[]> => {
       try {
@@ -38,13 +38,8 @@ export function useSavedSearches() {
 
   const searches: SavedSearch[] = searchesData || [];
 
-  useFocusEffect(
-    useCallback(() => {
-      if (isAuthenticated) {
-        refetch();
-      }
-    }, [isAuthenticated]),
-  );
+  // Ekrana dönüşte yalnız bayatsa tazele (silme/bildirim yazımları zaten invalidate ediyor).
+  useRefetchStaleOnFocus([qk.user.savedSearches], isAuthenticated);
 
   const deleteMutation = useAppMutation(
     async (searchId: string) => {

@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
+import { FOCUS_LIST_STALE_MS, useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { apiStatusToUi, uiFilterToApiStatusParam } from '@/utils/orderStatus';
 import {
   normalizeOrder,
@@ -90,18 +90,14 @@ export function useOrders() {
       return normalized.map((order): OrderListEntry => ({ kind: 'order', order }));
     },
     enabled: isAuthenticated,
+    // Durumu satıcı/kargo değiştirir: dönüşte bundan eskiyse tazelenir (odak etkisi aşağıda).
+    staleTime: FOCUS_LIST_STALE_MS,
   });
 
   const entries: OrderListEntry[] = ordersData || [];
 
-  // Refresh on focus
-  useFocusEffect(
-    useCallback(() => {
-      if (isAuthenticated) {
-        refetch();
-      }
-    }, [isAuthenticated])
-  );
+  // Ekrana dönüşte yalnız bayatsa tazele (her odakta değil; ilk açılışta ikinci istek yok).
+  useRefetchStaleOnFocus([qk.orders.all], isAuthenticated);
 
   const onRefresh = async () => {
     setRefreshing(true);

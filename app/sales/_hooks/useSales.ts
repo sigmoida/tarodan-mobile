@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
+import { FOCUS_LIST_STALE_MS, useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import type { Sale, FilterType } from '../_lib/types';
 import { saleBadgeStatus } from '../_lib/status';
 
@@ -41,6 +42,8 @@ export function useSales() {
       }
     },
     enabled: isAuthenticated,
+    // Yeni satış / durum değişimi alıcıdan gelir: dönüşte bundan eskiyse tazelenir.
+    staleTime: FOCUS_LIST_STALE_MS,
   });
 
   const sales: Sale[] = salesData || [];
@@ -56,14 +59,8 @@ export function useSales() {
   const totalEarnings = earningsResp?.data?.totalEarnings ?? 0;
   const pendingEarnings = earningsResp?.data?.pendingEarnings ?? 0;
 
-  // Refresh on focus
-  useFocusEffect(
-    useCallback(() => {
-      if (isAuthenticated) {
-        refetch();
-      }
-    }, [isAuthenticated]),
-  );
+  // Ekrana dönüşte yalnız bayatsa tazele (liste + kazanç; ilk açılışta ikinci istek yok).
+  useRefetchStaleOnFocus([qk.orders.all], isAuthenticated);
 
   const onRefresh = async () => {
     setRefreshing(true);

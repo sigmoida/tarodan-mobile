@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/ui";
 import { supportApi } from "@/lib/api";
+import { qk } from "@/lib/query";
 import { useAuthStore } from "@/stores/authStore";
 import { useTranslation } from "react-i18next";
 import { useTimingValues } from "@/hooks/useTimingPolicy";
@@ -14,6 +16,7 @@ import { buildFaqCategories } from "../_lib/faq";
 export function useHelp() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCategory, setExpandedCategory] = useState<string | null>(
     "general",
@@ -79,6 +82,8 @@ export function useHelp() {
           message: contactMessage.trim(),
         });
         setContactMessage("");
+        // "Destek Taleplerim" listesi yalnız bayatsa tazeleniyor → yeni talep görünsün.
+        void queryClient.invalidateQueries({ queryKey: qk.support.tickets });
         toast.success(t("help.ticketCreated"));
       } else {
         // Misafir: kimlik bağlı ticket oluşturulamaz; misafir iletişim formuna düşer.
