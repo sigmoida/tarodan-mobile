@@ -1,4 +1,5 @@
-export const STORAGE_KEY = 'diecast_saved_searches';
+// Anahtarın tek kaynağı `@/stores/savedSearchesStorage` (çıkışta oradan silinir).
+export { SAVED_SEARCHES_STORAGE_KEY as STORAGE_KEY } from '@/stores/savedSearchesStorage';
 
 export interface SavedSearch {
   id: string;
