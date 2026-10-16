@@ -5,6 +5,7 @@ import { useMessagesStore } from './messagesStore';
 import { useDisputeDraftStore } from './disputeDraftStore';
 import { usePendingAuthEmailStore } from './pendingAuthEmailStore';
 import { clearUserSnapshot } from './userSnapshot';
+import { clearPersistedQueryCache } from '@/lib/query/persist';
 
 /**
  * Çıkışın kaynağı: `user` = kullanıcının kendi çıkışı (profil, ban/onay
@@ -42,6 +43,9 @@ export function resetUserStores(reason: LogoutReason = 'user'): void {
 
   // Bildirim + mesaj rozeti dahil tüm react-query önbelleği (örn. 'notifications-unread').
   queryClient.clear();
+  // Diske saklanan önbellek (yalnız herkese açık katalog, `@/lib/query/persist`) de silinir:
+  // sonraki soğuk açılış önceki oturumdan hiçbir şey geri yüklemez. En iyi çaba, fırlatmaz.
+  void clearPersistedQueryCache();
 
   // Açılışın saklı kullanıcı görüntüsü (PII: e-posta, vergi no) — token'lar zaten silindi;
   // ortak cihazda önceki hesabın bilgisi kalmasın. En iyi çaba, fırlatmaz.

@@ -5,7 +5,7 @@ import { logger, safeError } from "@/services/logger";
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import * as SplashScreen from "expo-splash-screen";
 import Constants from "expo-constants";
 import { useFonts } from "expo-font";
@@ -23,6 +23,7 @@ import { useMembershipLimits } from '@/hooks/useMembershipLimits';
 import { useMessagingSocket } from "@/hooks/messaging";
 // Paylaşılan QueryClient — logout'ta resetUserStores aynı örneği temizler.
 import { queryClient } from "@/lib/queryClient";
+import { queryPersistOptions } from "@/lib/query/persist";
 import {
   registerForPushNotifications,
   setupPushNotificationRouting,
@@ -161,7 +162,9 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+      {/* Kalıcı önbellek: yalnız herkese açık katalog sorguları diske yazılır (izin listesi,
+          `@/lib/query/persist`); geri yükleme bitene kadar sorgular ağa çıkmaz. */}
+      <PersistQueryClientProvider client={queryClient} persistOptions={queryPersistOptions}>
         <LocaleProvider>
         <BrandFontProvider ready={brandFontEnabled}>
           {/* Yığın ekranları beyaz üst bar: koyu içerik. Turuncu marka barlı sekme kökleri (AppShell)
@@ -202,7 +205,7 @@ export default function RootLayout() {
           )}
         </BrandFontProvider>
         </LocaleProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </ErrorBoundary>
     </GestureHandlerRootView>
   );
