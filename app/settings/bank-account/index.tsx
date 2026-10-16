@@ -33,7 +33,7 @@ export default function BankAccountScreen() {
           variant="primary"
           size="lg"
           fullWidth
-          title={f.existing ? t('discount.update') : t('common.save')}
+          title={f.account ? t('discount.update') : t('common.save')}
           onPress={f.onSubmit}
           isLoading={f.isSaving}
           disabled={f.isSaving}
@@ -77,7 +77,7 @@ export default function BankAccountScreen() {
           />
         </Form>
 
-        {f.existing && (
+        {f.account && (
           <Button
             testID="bank-account-delete-button"
             variant="ghost"

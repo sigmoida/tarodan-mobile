@@ -1,6 +1,7 @@
 import {
   asLabel,
   formatOrderStatus,
+  formatLongDate,
   formatPrice,
   formatPriceNumber,
   formatRelativeDate,
@@ -211,5 +212,24 @@ describe('formatPrice: web ile aynı, dilden bağımsız', () => {
     const enOut = formatRelativeDate(old); // ör. "Jul 30, 2026" (kısaltılmış ay adı)
     expect(enOut).not.toBe(trOut);
     expect(enOut).toMatch(/^[A-Za-z]{3} \d{1,2}, \d{4}$/);
+  });
+});
+
+describe('formatLongDate', () => {
+  it('ISO tarihi uzun biçimde yazar (gün ay yıl)', () => {
+    expect(formatLongDate('2026-10-12T09:30:00.000Z', 'tr-TR')).toMatch(/12 Ekim 2026/);
+    expect(formatLongDate(new Date('2026-10-12T09:30:00.000Z'), 'en-US')).toMatch(/October/);
+  });
+
+  it('boş ya da geçersiz tarih için null döner', () => {
+    expect(formatLongDate(undefined, 'tr-TR')).toBeNull();
+    expect(formatLongDate(null, 'tr-TR')).toBeNull();
+    expect(formatLongDate('', 'tr-TR')).toBeNull();
+    expect(formatLongDate('bu bir tarih değil', 'tr-TR')).toBeNull();
+    expect(formatLongDate(new Date(NaN), 'tr-TR')).toBeNull();
+  });
+
+  it('geçersiz yerel etiket çökmez, varsayılan yerele düşer', () => {
+    expect(formatLongDate('2026-10-12T09:30:00.000Z', 'not a locale!!')).toEqual(expect.any(String));
   });
 });
