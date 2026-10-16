@@ -8,14 +8,18 @@ import { styles } from '../_lib/styles';
 import type { useCheckout } from '../_hooks/useCheckout';
 
 type Ctrl = ReturnType<typeof useCheckout>;
+type Props = Pick<Ctrl, 'isBuyNow' | 'payableItems' | 'lineQuantityFor' | 'lineSubtotalFor'>;
 
 /**
  * Ödenecek ürünler — sayfanın en üstü, "ne için ödüyorum" sorusu (web `OrderItemsCard`).
  *
  * Ayrılan satırlar burada YOK: sunucu onları fiyatlamadı, listede bırakmak "—" tutarlı bir satır
  * gösterirdi. Gerekçeleriyle birlikte `CheckoutUnavailableItems` kartında gösteriliyorlar.
+ *
+ * `React.memo` + dar prop'lar: adres/iletişim alanlarına yazarken (controller render'ı) bu kart
+ * yeniden çizilmez; prop'lar controller'da referans-kararlı (useMemo/useCallback).
  */
-export function CheckoutItemsSection({ c }: { c: Ctrl }) {
+export const CheckoutItemsSection = React.memo(function CheckoutItemsSection(c: Props) {
   const { t } = useTranslation();
   return (
     <SectionCard title={t('checkout.orderSummary')} testID="checkout-items">
@@ -62,4 +66,4 @@ export function CheckoutItemsSection({ c }: { c: Ctrl }) {
       </View>
     </SectionCard>
   );
-}
+});

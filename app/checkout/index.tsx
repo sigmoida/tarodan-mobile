@@ -14,6 +14,10 @@ import { OtpModal } from './_modals/OtpModal';
  * ve sipariş özeti alt alta; "Ödeme Yap" sabit alt barda. Web stepper'ı bilinçli kaldırmış; mobil de
  * artık adım adım ilerlemez. Mantığın tamamı `useCheckout`'ta (ödeme-kritik controller, değişmedi);
  * burası yalnız sunum.
+ *
+ * Bölümler `React.memo` ve dar prop alır (controller'da referans-kararlı): adres alanına yazarken
+ * ürün/özet kartları yeniden çizilmez. Misafir alanları (RHF), OTP kodu ve geri sayımı kendi
+ * bileşenlerinde — tuş vuruşu / saniyelik tik checkout'u baştan çizmez.
  */
 export default function CheckoutScreen() {
   const { t } = useTranslation();
@@ -44,11 +48,10 @@ export default function CheckoutScreen() {
           <OtpModal
             visible={c.otpModalOpen}
             onClose={c.closeOtpModal}
-            email={c.guestEmail.trim().toLowerCase()}
-            otpCode={c.otpCode}
-            setOtpCode={c.setOtpCode}
+            email={c.otpEmail}
+            codeResetSeq={c.otpCodeResetSeq}
             otpError={c.otpError}
-            otpExpiresIn={c.otpExpiresIn}
+            resendAt={c.otpResendAt}
             otpSending={c.otpSending}
             loading={c.loading}
             onSubmit={c.handleOtpSubmit}
@@ -57,10 +60,44 @@ export default function CheckoutScreen() {
         </>
       }
     >
-      <CheckoutItemsSection c={c} />
+      <CheckoutItemsSection
+        isBuyNow={c.isBuyNow}
+        payableItems={c.payableItems}
+        lineQuantityFor={c.lineQuantityFor}
+        lineSubtotalFor={c.lineSubtotalFor}
+      />
       <CheckoutUnavailableItems items={c.unavailableItems} titleFor={c.cartTitleFor} />
-      <CheckoutAddressSection c={c} />
-      <CheckoutSummarySection c={c} />
+      <CheckoutAddressSection
+        isAuthenticated={c.isAuthenticated}
+        guestForm={c.guestForm}
+        addresses={c.addresses}
+        selectedAddressId={c.selectedAddressId}
+        setSelectedAddressId={c.setSelectedAddressId}
+        shippingAddress={c.shippingAddress}
+        setShippingAddress={c.setShippingAddress}
+        billingDifferent={c.billingDifferent}
+        setBillingDifferent={c.setBillingDifferent}
+        selectedBillingAddressId={c.selectedBillingAddressId}
+        setSelectedBillingAddressId={c.setSelectedBillingAddressId}
+        billingAddress={c.billingAddress}
+        setBillingAddress={c.setBillingAddress}
+      />
+      <CheckoutSummarySection
+        coupon={c.coupon}
+        couponDiscount={c.couponDiscount}
+        productAmount={c.productAmount}
+        shippingCost={c.shippingCost}
+        serviceFeeAmount={c.serviceFeeAmount}
+        total={c.total}
+        quantityDiscount={c.quantityDiscount}
+        feeDiscounts={c.feeDiscounts}
+        feeDiscountTotal={c.feeDiscountTotal}
+        quoteError={c.quoteError}
+        quoteLoading={c.quoteLoading}
+        retryQuote={c.retryQuote}
+        distanceSalesAccepted={c.distanceSalesAccepted}
+        toggleDistanceSales={c.toggleDistanceSales}
+      />
     </PageShell>
   );
 }
