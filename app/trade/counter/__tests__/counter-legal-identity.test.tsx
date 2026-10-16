@@ -40,6 +40,8 @@ const gateOpened = () =>
 async function changeAndSend(kind: 'product' | 'cash') {
   renderWithProviders(<TradeCounterScreen />);
   await waitFor(() => expect(screen.getByText('Benim Ürünüm')).toBeOnTheScreen());
+  // API iki tarafta da en az 1 ürün ister (CounterTradeDto ArrayMinSize(1)): iki taraftan da seç.
+  fireEvent.press(screen.getByText('Karşı Ürün'));
   if (kind === 'product') {
     fireEvent.press(screen.getByText('Benim Ürünüm'));
   } else {

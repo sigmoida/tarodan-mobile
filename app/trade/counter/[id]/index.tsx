@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/common/PageShell';
 import { useTradeCounter } from './_hooks/useTradeCounter';
-import { TradeCounterBody } from './_components/TradeCounterBody';
+import { TradeCounterBody, TradeCounterFooter } from './_components/TradeCounterBody';
 
 /**
  * Karşı teklif — İNCE ekran. `useTradeCounter` takas sorgusunu, seçim durumunu ve karşı teklif
@@ -23,6 +23,7 @@ export default function TradeCounterScreen() {
       onRetry={() => f.tradeQuery.refetch()}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
+      footer={f.trade ? <TradeCounterFooter f={f} /> : undefined}
     >
       <TradeCounterBody f={f} />
     </PageShell>

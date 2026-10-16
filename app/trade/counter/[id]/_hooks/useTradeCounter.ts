@@ -156,7 +156,8 @@ export function useTradeCounter() {
   };
 
   const handleSubmit = async () => {
-    if (selectedMine.length === 0 && selectedTheirs.length === 0) {
+    // API iki tarafta da en az 1 ürün ister (CounterTradeDto ArrayMinSize(1)); web ile aynı kural.
+    if (selectedMine.length === 0 || selectedTheirs.length === 0) {
       toast.error(t('trade.selectAtLeastOneOffer'));
       return;
     }
