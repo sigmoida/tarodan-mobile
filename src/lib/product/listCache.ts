@@ -17,9 +17,9 @@ export const PRODUCT_LIST_ROOTS: readonly QueryKey[] = [
   qk.products.myListingsAll,
   qk.favorites.all,
   qk.seller.productsAll,
-  ['brand-products'],
-  ['manufacturer-products'],
-  ['model-products'],
+  qk.catalog.brandProductsAll,
+  qk.catalog.manufacturerProductsAll,
+  qk.catalog.modelProductsAll,
 ];
 
 /** Sayfa / sarmal / iç içe `product` derinliği: `{ pages: [{ data: [item] }] }` = 4, favori `item.product` = 3. */
