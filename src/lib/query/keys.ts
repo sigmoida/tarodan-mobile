@@ -24,6 +24,8 @@ export const qk = {
     corporateInvitation: (token: string) => ['auth', 'corporate-invitation', token] as const,
     /** Kayıt sırasında debounce edilmiş kullanıcı adı uygunluğu sorgusu. */
     usernameAvailability: (username: string) => ['auth', 'username-availability', username] as const,
+    /** Ban ekranı: hesap banlı mı + sunucudaki ban nedeni (URL'den OKUNMAZ). */
+    banStatus: ['auth', 'ban-status'] as const,
   },
 
   consents: {

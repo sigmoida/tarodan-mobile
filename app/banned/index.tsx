@@ -1,20 +1,33 @@
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { useEffect } from 'react';
+import { Stack, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button } from '@/ui';
 import { GateScreen } from '@/components/common/GateScreen';
 import { useAuthStore } from '@/stores/authStore';
 import { resetBannedRedirect } from '@/lib/api';
+import { navigateTo } from '@/lib/navigation/goTo';
+import { useBanStatus } from './_hooks/useBanStatus';
 
 /**
  * Banlı kullanıcı ekranı. API interceptor'ı USER_BANNED (403) yakalayınca
  * buraya yönlendirir; geri navigasyon kapalıdır. Banlı kullanıcı yalnızca
  * destek talebi oluşturabilir veya çıkış yapabilir (backend BannedUserGuard
  * ile aynı izinler).
+ *
+ * Ban nedeni YALNIZ sunucudan gelir (`useBanStatus`); rota parametresi (`?reason=`)
+ * okunmaz — derin bağlantıyla bu ekrana keyfi metin basılamaz. Hesap banlı
+ * değilse (derin bağlantıyla gelinmiş) ana sayfaya dönülür.
  */
 export default function BannedScreen() {
   const { t } = useTranslation();
-  const { reason } = useLocalSearchParams<{ reason?: string }>();
   const logout = useAuthStore((s) => s.logout);
+  const { data: status } = useBanStatus();
+  const reason = status?.banned ? status.reason : null;
+  const notBanned = status?.banned === false;
+
+  useEffect(() => {
+    if (notBanned) navigateTo('/');
+  }, [notBanned]);
 
   const handleLogout = async () => {
     await logout();
