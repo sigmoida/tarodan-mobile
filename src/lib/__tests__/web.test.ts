@@ -56,7 +56,9 @@ describe('ownWebHosts — ortam başına kendi alan adlarımız', () => {
     expect(hosts.has('staging.tarodan.com.tr')).toBe(true);
     expect(hosts.has('tarodan.com.tr')).toBe(true);
     expect(isOtherEnvironmentHost('staging.tarodan.com.tr', hosts)).toBe(false);
-    expect(ownWebHosts(undefined, 'https://localhost:3000').has('localhost')).toBe(true);
+    expect(ownWebHosts(undefined, 'https://web.local.test').has('web.local.test')).toBe(true);
+    // Varsayılan dışı portlu env adresi kendi sitemiz sayılmaz (katı ayrıştırma).
+    expect(ownWebHosts(undefined, 'https://localhost:3000').has('localhost')).toBe(false);
   });
 });
 
@@ -101,6 +103,20 @@ describe('production build: staging adresi hiçbir yoldan açılmaz', () => {
     // Production sitesi ve dış siteler her zamanki gibi.
     expect(openAdLink.isOwnWebUrl('https://tarodan.com.tr/about')).toBe(true);
     expect(guard.decideWebRequest('https://example.com/x', true)).toBe('external');
+  });
+
+  it.each([
+    'https://x@staging.tarodan.com.tr/listings',
+    'https://tarodan.com.tr@staging.tarodan.com.tr/listings',
+    'https://staging.tarodan.com.tr:443@evil.example/x',
+    'https://tarodan.com.tr:8443/listings',
+    'https://tarodan.com.tr\\@staging.tarodan.com.tr/x',
+  ])('userinfo / port / ters eğik çizgi ile atlatma yok: %s', (url) => {
+    const { openAdLink, guard, route } = load();
+    expect(openAdLink.resolveAdLink(url)).toEqual({ kind: 'blocked', reason: 'unsafe' });
+    expect(openAdLink.isOwnWebUrl(url)).toBe(false);
+    expect(guard.decideWebRequest(url, true)).toBe('block');
+    expect(route.notificationRoute({ link: url })).toBeNull();
   });
 
   it('bildirim linkindeki staging adresi rota kaynağı sayılmaz', () => {

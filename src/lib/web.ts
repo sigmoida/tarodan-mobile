@@ -1,4 +1,5 @@
 import { deepLinkConfig, productionHosts } from '@/lib/deeplinks';
+import { strictHttpsHost } from '@/lib/security/url';
 
 /**
  * Kendi web sitemizin adresi — TEK kaynak (CLAUDE.md §5): reklam linkleri
@@ -17,11 +18,6 @@ export function webBaseUrl(): string {
 /** Kendi sitemizde bir yolun mutlak adresi. */
 export function ownWebPageUrl(path: string): string {
   return `${webBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`;
-}
-
-function hostOfUrl(url: string | null | undefined): string | null {
-  const m = url?.match(/^https?:\/\/([^/?#]+)/i);
-  return m ? m[1]!.toLowerCase().replace(/:\d+$/, '') : null;
 }
 
 /** Production alan adları + `www.` eşleri. */
@@ -43,7 +39,7 @@ export function ownWebHosts(
   webUrl: string | undefined = process.env.EXPO_PUBLIC_WEB_URL,
 ): ReadonlySet<string> {
   if (environment === 'production') return new Set(productionWebHosts());
-  const envHost = hostOfUrl(webUrl);
+  const envHost = strictHttpsHost(webUrl);
   return new Set([...allKnownWebHosts(), ...(envHost ? [envHost] : [])]);
 }
 
@@ -56,6 +52,18 @@ export function isOtherEnvironmentHost(
   hosts: ReadonlySet<string> = ownWebHosts(),
 ): boolean {
   if (!host) return false;
-  const h = host.toLowerCase().replace(/:\d+$/, '');
+  const h = host.toLowerCase();
   return allKnownWebHosts().includes(h) && !hosts.has(h);
+}
+
+/**
+ * Bu ortamın KENDİ sitesine giden katı `https://` adresi mi (`parseStrictUrl`: `user@`, port,
+ * ters eğik çizgi yok). Uygulama içi web ekranı / WebView yalnız bunları yükler.
+ */
+export function isOwnWebUrl(
+  url: string | null | undefined,
+  hosts: ReadonlySet<string> = ownWebHosts(),
+): boolean {
+  const host = strictHttpsHost(url);
+  return !!host && hosts.has(host);
 }

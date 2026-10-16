@@ -1,5 +1,6 @@
 import { deepLinkConfig } from '@/lib/deeplinks';
 import { ownWebHosts } from '@/lib/web';
+import { parseStrictUrl } from '@/lib/security/url';
 
 /**
  * 3D Secure dönüşü — WebView'in vardığı adres BİZİM ödeme dönüş adresimiz mi?
@@ -18,15 +19,12 @@ import { ownWebHosts } from '@/lib/web';
  *  - yol TAM OLARAK `/payment/success`, `/payment/fail` ya da `/payment/failure` (isteğe bağlı
  *    yayınlanan locale öneki `/en` ve sondaki `/`); sorgu/parça serbest.
  *
- * RN'in `URL` sınıfı WHATWG ayrıştırıcısı değil (regex tabanlı, `origin`'e userinfo'yu
- * katıyor); iOS/Android/Jest'te aynı sonucu vermesi için ayrıştırma burada, katı bir desenle.
+ * Ayrıştırma ortak katı ayrıştırıcıyla (`@/lib/security/url` — RN `URL` WHATWG değil).
  *
  * ⚠️ `success` SONUCU TEK BAŞINA ÖDEMEYİ KANITLAMAZ: çağıran (CardPaymentForm) başarıyı ancak
  * sunucudaki ödeme durumu "ödendi" ise gösterir. Bu eşleşme yalnız o doğrulamayı tetikler.
  */
 export type ThreeDSCallbackResult = 'success' | 'fail' | null;
-
-const STRICT_HTTPS_URL = /^https:\/\/([a-z0-9.-]+)(?::443)?(\/[^?#\s\\]*)?(?:\?[^#\s]*)?(?:#\S*)?$/i;
 
 const localePrefixes = () =>
   deepLinkConfig.locales.filter((l) => l !== deepLinkConfig.defaultLocale);
@@ -48,10 +46,7 @@ export function threeDSCallbackResult(
   url: string | null | undefined,
   hosts: ReadonlySet<string> = ownWebHosts(),
 ): ThreeDSCallbackResult {
-  if (!url) return null;
-  const m = STRICT_HTTPS_URL.exec(url.trim());
-  if (!m) return null;
-  const host = m[1]!.toLowerCase();
-  if (!hosts.has(host)) return null;
-  return callbackKind(m[2] ?? '/');
+  const parsed = parseStrictUrl(url);
+  if (!parsed || !hosts.has(parsed.host)) return null;
+  return callbackKind(parsed.path);
 }

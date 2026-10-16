@@ -1,5 +1,6 @@
 import { stripLocalePrefix } from '@/lib/deeplinks';
 import { ownWebHosts } from '@/lib/web';
+import { parseStrictUrl } from '@/lib/security/url';
 import { inAppWebHref, resolveRemovedPage } from '@/lib/navigation/removedPages';
 
 /**
@@ -210,13 +211,12 @@ function safePathFromLink(link: string | null | undefined): string | null {
   if (raw.startsWith('//')) return null;
   if (raw.startsWith('/')) return raw;
 
-  const https = raw.match(/^https:\/\/([^/?#]+)(.*)$/i);
-  if (!https) return null; // http:, javascript:, tarodanx:, mailto: … hepsi dışarıda
-  const host = https[1]!.toLowerCase().replace(/:\d+$/, '');
+  // Katı https (`@/lib/security/url`): http:, javascript:, tarodanx:, mailto:, `user@`, port … dışarıda.
+  const parsed = parseStrictUrl(raw);
+  if (!parsed) return null;
   // Yalnız BU ortamın alan adları (production'da staging linki rota kaynağı sayılmaz).
-  if (!ownWebHosts().has(host)) return null;
-  const rest = https[2] || '/';
-  return rest.startsWith('/') ? rest : `/${rest}`;
+  if (!ownWebHosts().has(parsed.host)) return null;
+  return `${parsed.path}${parsed.search}${parsed.hash}`;
 }
 
 /**

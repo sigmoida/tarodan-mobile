@@ -3,7 +3,8 @@ import { router } from 'expo-router';
 import { pathFromUrl, stripLocalePrefix } from '@/lib/deeplinks';
 import { toMobileRoute } from '@/utils/notificationRoute';
 import { navigateTo } from '@/lib/navigation/goTo';
-import { isOtherEnvironmentHost, ownWebHosts, ownWebPageUrl } from '@/lib/web';
+import { isOtherEnvironmentHost, isOwnWebUrl as isOwnSiteUrl, ownWebHosts, ownWebPageUrl } from '@/lib/web';
+import { looksAbsoluteHttpUrl, parseStrictUrl } from '@/lib/security/url';
 import { LEGAL_WEB_DOCS } from '@/lib/legal/webDocs';
 import { IN_APP_WEB_ROUTE, inAppWebHref, resolveRemovedPage } from '@/lib/navigation/removedPages';
 import { isPurchasePath } from './purchasePath';
@@ -12,9 +13,9 @@ import { safeAdHref } from './safeAdHref';
 /** Uygulama içi web ekranı (`app/in-app-web.tsx`) — mobil karşılığı olmayan site yolları için. */
 export { IN_APP_WEB_ROUTE };
 
-function hostOf(url: string | undefined): string | null {
-  const m = url?.match(/^https?:\/\/([^/?#]+)/i);
-  return m ? m[1]!.toLowerCase() : null;
+/** Katı ayrıştırılmış `http(s)://` host'u (`@/lib/security/url`); geçersiz / göreli → `null`. */
+function hostOf(url: string | null | undefined): string | null {
+  return parseStrictUrl(url, { allowHttp: true })?.host ?? null;
 }
 
 /**
@@ -23,11 +24,9 @@ function hostOf(url: string | undefined): string | null {
  */
 const OWN_HOSTS = ownWebHosts();
 
-/** Uygulama içi web ekranının açabileceği adres mi (https + bu ortamın kendi sitesi). */
+/** Uygulama içi web ekranının açabileceği adres mi (katı https + bu ortamın kendi sitesi). */
 export function isOwnWebUrl(url: string | null | undefined): boolean {
-  if (!url || !/^https:\/\//i.test(url)) return false;
-  const host = hostOf(url);
-  return !!host && OWN_HOSTS.has(host);
+  return isOwnSiteUrl(url, OWN_HOSTS);
 }
 
 /** Bizim ama bu ortamın olmayan site (production'da staging) — hiçbir yoldan açılmaz. */
@@ -108,6 +107,8 @@ export function resolveAdLink(linkUrl: string | null | undefined): AdLinkTarget 
   const safe = raw.replace(/^https?:\/\//i, (m) => m.toLowerCase());
 
   const host = hostOf(safe);
+  // Mutlak ama katı ayrıştırmadan geçmeyen adres (`https://x@staging…`, `:8443`, `\`): açılmaz.
+  if (!host && looksAbsoluteHttpUrl(safe)) return { kind: 'blocked', reason: 'unsafe' };
   // Production'da staging sitesi (ya da tersi): ne uygulama içinde ne tarayıcıda açılır.
   if (isOtherEnvironmentHost(host, OWN_HOSTS)) return { kind: 'blocked', reason: 'unsafe' };
   if (host && !OWN_HOSTS.has(host)) return { kind: 'external', url: safe };

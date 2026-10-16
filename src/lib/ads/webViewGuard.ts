@@ -1,5 +1,6 @@
 import { pathFromUrl } from '@/lib/deeplinks';
 import { isOtherEnvironmentUrl, isOwnWebUrl } from './openAdLink';
+import { parseStrictUrl } from '@/lib/security/url';
 import { isPurchasePath } from './purchasePath';
 import { isAppEmbedPath } from '@/lib/legal/webDocs';
 
@@ -51,7 +52,8 @@ export function decideWebRequest(
   if (SYSTEM_SCHEMES.test(url)) return 'external';
   // Bizim ama bu ortamın olmayan site (production'da staging): tarayıcıya da gönderilmez.
   if (isOtherEnvironmentUrl(url)) return 'block';
-  // Dış https linki sessizce yutulmaz — sistem tarayıcısı açar.
-  if (/^https:\/\//i.test(url)) return 'external';
+  // Dış https linki sessizce yutulmaz — sistem tarayıcısı açar; ama yalnız katı ayrıştırmadan
+  // geçerse (`https://x@staging…`, varsayılan dışı port, `\` → engel).
+  if (/^https:\/\//i.test(url)) return parseStrictUrl(url) ? 'external' : 'block';
   return 'block';
 }
