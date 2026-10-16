@@ -8,6 +8,7 @@ import {
   applyIncomingToCache,
   applyMessagesReadToCache,
 } from '@/lib/messaging/cache';
+import { invalidateBadgeCounts } from '@/hooks/useBadgePoll';
 import { useSocketAppLifecycle } from './useSocketAppLifecycle';
 
 /**
@@ -57,12 +58,17 @@ export function useMessagingSocket() {
     };
     const onReconnect = resync;
 
+    // Yeni bildirim (teklif / takas / sipariş…): rozetler yoklamayı beklemeden tazelenir.
+    const onNotificationNew = () => invalidateBadgeCounts(qc);
+
     socket.on('message:new', onMessageNew);
+    socket.on('notification:new', onNotificationNew);
     socket.on('thread:updated', onThreadUpdated);
     socket.on('message:read', onMessageRead);
     socket.io.on('reconnect', onReconnect);
     return () => {
       socket.off('message:new', onMessageNew);
+      socket.off('notification:new', onNotificationNew);
       socket.off('thread:updated', onThreadUpdated);
       socket.off('message:read', onMessageRead);
       socket.io.off('reconnect', onReconnect);

@@ -12,7 +12,8 @@ export function useNotificationUnreadCount(enabled: boolean): number {
   const { data } = useQuery({
     queryKey: qk.notifications.unread,
     enabled,
-    refetchInterval: 60000,
+    // Yoklama kendi `refetchInterval`'ı ile DEĞİL: rozetli odaktaki ekranların ortak tek döngüsü
+    // (`useBadgePoll`) tazeler; push / soket olayları `invalidateBadgeCounts` ile anında tazeler.
     refetchOnWindowFocus: true,
     queryFn: async () => {
       try {

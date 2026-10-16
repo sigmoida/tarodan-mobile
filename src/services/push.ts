@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { theme } from '@/ui';
 import { api } from '@/lib/api';
 import { queryClient, qk } from '@/lib/query';
+import { invalidateBadgeCounts } from '@/hooks/useBadgePoll';
 import i18n from '@/i18n/config';
 import { notificationRoute } from '../utils/notificationRoute';
 import { navigateTo } from '@/lib/navigation/goTo';
@@ -263,7 +264,8 @@ export function setupPushNotificationRouting(): () => void {
       // Yeni bildirim geldi: liste + rozet sayacı bayat. Bildirimler sekmesi staleTime'lı olduğu
       // için tazelemeyi burası tetikler (açıksa arka planda, değilse bir sonraki açılışta).
       queryClient.invalidateQueries({ queryKey: qk.notifications.list });
-      queryClient.invalidateQueries({ queryKey: qk.notifications.unread });
+      // Bildirim + bekleyen teklif/takas rozetleri (teklif/takas push'ları da bu yoldan gelir).
+      invalidateBadgeCounts(queryClient);
       const data = notification?.request?.content?.data;
       if (data?.autoOpen === true || data?.auto_open === true) {
         routeFromNotification(data);
