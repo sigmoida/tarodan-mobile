@@ -45,7 +45,11 @@ it('girişte izin İSTEMEDEN kaydeder', async () => {
   await act(async () => {
     await Promise.resolve();
   });
-  expect(mockSync).toHaveBeenCalledWith();
+  expect(mockSync).toHaveBeenCalledWith(
+    expect.objectContaining({ onlyIfChanged: false, isCurrent: expect.any(Function) }),
+  );
+  // isCurrent kayıt sürerken oturum değişirse yazımı keser (çıkışta efekt sökülür).
+  expect(mockSync.mock.calls[0][0].isCurrent()).toBe(true);
 });
 
 it('başarısız kayıt geri çekilmeyle yeniden denenir', async () => {
@@ -95,7 +99,27 @@ it('token yenilenince yeniden kaydeder; çıkışta abonelik kalkar', async () =
     tokenListener?.();
   });
   expect(mockSync).toHaveBeenCalledTimes(2);
+  // Token olayı yalnız token DEĞİŞTİYSE yazdırır.
+  expect(mockSync.mock.calls[1][0]).toMatchObject({ onlyIfChanged: true });
 
+  const isCurrent = mockSync.mock.calls[1][0].isCurrent;
   rerender({ authed: false });
   expect(tokenListener).toBeNull();
+  // Çıkıştan sonra uçuştaki kayıt artık geçerli sayılmaz.
+  expect(isCurrent()).toBe(false);
+});
+
+it('kayıt uçuştayken gelen token olayı YENİ kayıt başlatmaz (kendi alımımız döngüsü)', async () => {
+  let release: (v: string) => void = () => undefined;
+  mockSync.mockImplementationOnce(() => new Promise((r) => (release = r)));
+  renderHook(() => usePushRegistration(true));
+  await act(async () => {
+    tokenListener?.();
+    tokenListener?.();
+  });
+  expect(mockSync).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    release('registered');
+  });
+  expect(mockSync).toHaveBeenCalledTimes(1);
 });

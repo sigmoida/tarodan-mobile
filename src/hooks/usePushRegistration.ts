@@ -31,7 +31,6 @@ export function usePushRegistration(isAuthenticated: boolean, enabled = true): v
 
     let active = true;
     let running = false;
-    let rerun = false;
     let attempt = 0;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -40,17 +39,21 @@ export function usePushRegistration(isAuthenticated: boolean, enabled = true): v
       retryTimer = null;
     };
 
-    const run = async () => {
-      if (!active) return;
-      if (running) {
-        // Uçuştaki kayıt bitince bir kez daha (ör. bu arada token yenilendi).
-        rerun = true;
-        return;
-      }
+    /**
+     * `onlyIfChanged`: token olayından gelindi — token son yazılanla aynıysa yazma. Uçuşta bir
+     * kayıt varsa yeni çağrı YOK SAYILIR (o kayıt zaten en güncel token'ı alıp yazıyor; olay
+     * kendi token alımımızdan da gelebilir — yeniden tetiklemek sonsuz döngü olurdu).
+     */
+    const run = async (onlyIfChanged = false) => {
+      if (!active || running) return;
       running = true;
       clearRetry();
       try {
-        const result = await syncPushRegistration();
+        const result = await syncPushRegistration({
+          onlyIfChanged,
+          // Efekt söküldüyse (çıkış / hesap değişimi) token yazılmaz.
+          isCurrent: () => active,
+        });
         if (!active) return;
         lastResult.current = result;
         if (result === 'failed') {
@@ -66,10 +69,6 @@ export function usePushRegistration(isAuthenticated: boolean, enabled = true): v
         if (active) lastResult.current = 'failed';
       } finally {
         running = false;
-        if (rerun && active) {
-          rerun = false;
-          void run();
-        }
       }
     };
 
@@ -82,10 +81,11 @@ export function usePushRegistration(isAuthenticated: boolean, enabled = true): v
       void run();
     });
 
-    // Token yenilenmesi: kayıt sonucu ne olursa olsun yeni token yazılmalı.
+    // Token yenilenmesi: yalnız token GERÇEKTEN değiştiyse yazılır (`onlyIfChanged`); kendi
+    // token alımlarımızın tetiklediği olaylar `addPushTokenChangeListener`'da elenir.
     const removeTokenListener = addPushTokenChangeListener(() => {
       attempt = 0;
-      void run();
+      void run(true);
     });
 
     return () => {

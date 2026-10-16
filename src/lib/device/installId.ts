@@ -9,7 +9,7 @@ import { SECURE_STORE_OPTIONS } from '@/lib/api/tokenStorage';
  * rastgele bir değer: kullanıcıyı uygulamalar arası izlemeye yaramaz, yeniden kurulumda
  * yenilenir. Anahtar zinciri öğesi `THIS_DEVICE_ONLY` — yedekten başka cihaza taşınmaz.
  */
-const INSTALL_ID_KEY = 'tarodan.installId.v1';
+export const INSTALL_ID_KEY = 'tarodan.installId.v1';
 
 let cached: Promise<string> | null = null;
 
@@ -44,7 +44,7 @@ export function getInstallId(): Promise<string> {
   return cached;
 }
 
-/** YALNIZ TEST. */
-export function resetInstallIdForTests(): void {
+/** Bellek önbelleğini bırakır (yeniden kurulum silmesi + testler). */
+export function resetInstallIdCache(): void {
   cached = null;
 }

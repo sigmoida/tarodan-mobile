@@ -30,7 +30,12 @@ jest.mock('expo-notifications', () => ({
   setNotificationChannelAsync: jest.fn(async (id: string) => {
     calls.push(`channel:${id}`);
   }),
+  addPushTokenListener: jest.fn((cb: (e: { data: string }) => void) => {
+    mockTokenEvents.cb = cb;
+    return { remove: jest.fn() };
+  }),
 }));
+const mockTokenEvents: { cb: ((e: { data: string }) => void) | null } = { cb: null };
 const mockNotifications = jest.requireMock('expo-notifications') as Record<string, jest.Mock>;
 const mockApiPost = jest.fn(async (..._a: unknown[]) => ({}));
 jest.mock('@/lib/api', () => ({
@@ -50,9 +55,20 @@ const mockSettle = jest.fn(async () => {
   calls.push('settleRevoke');
 });
 jest.mock('../pushRevocation', () => ({ settlePendingPushRevoke: () => mockSettle() }));
+let mockAuthed = true;
+jest.mock('@/stores/authStore', () => ({
+  useAuthStore: { getState: () => ({ isAuthenticated: mockAuthed }) },
+}));
+let mockEpoch = 1;
+jest.mock('@/lib/api/sessionState', () => ({ getSessionEpoch: () => mockEpoch }));
 
 import { Platform } from 'react-native';
-import { resetPushModuleStateForTests, syncPushRegistration } from '../push';
+import {
+  addPushTokenChangeListener,
+  resetPushModuleStateForTests,
+  syncPushRegistration,
+  trackOwnTokenFetch,
+} from '../push';
 import { resetNotificationPermissionModuleForTests } from '@/lib/permissions/notifications';
 
 // Kanal sırası Android'e özgü: platform bu dosyada Android.
@@ -66,6 +82,8 @@ afterAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockAuthed = true;
+  mockEpoch = 1;
   calls.length = 0;
   resetPushModuleStateForTests();
   resetNotificationPermissionModuleForTests();
@@ -108,6 +126,67 @@ it('sunucu reddederse `failed` + Sentry uyarısı (yutulmaz)', async () => {
 
   await expect(syncPushRegistration()).resolves.toBe('failed');
   expect(mockCaptureMessage).toHaveBeenCalledWith(expect.stringContaining('(400)'), 'warning');
+});
+
+describe('oturum değişimi ve token olayları', () => {
+  const granted = () =>
+    mockNotifications.getPermissionsAsync.mockResolvedValueOnce({ status: 'granted', granted: true });
+
+  it('bekleyen iptal sürerken çıkış yapıldıysa token YAZILMAZ (cancelled)', async () => {
+    granted();
+    mockSettle.mockImplementationOnce(async () => {
+      mockAuthed = false;
+    });
+    await expect(syncPushRegistration()).resolves.toBe('cancelled');
+    expect(mockApiPost).not.toHaveBeenCalled();
+  });
+
+  it('oturum kuşağı değiştiyse (hesap değişti) yazılmaz', async () => {
+    granted();
+    mockSettle.mockImplementationOnce(async () => {
+      mockEpoch = 2;
+    });
+    await expect(syncPushRegistration()).resolves.toBe('cancelled');
+    expect(mockApiPost).not.toHaveBeenCalled();
+  });
+
+  it('çağıranın isCurrent denetimi false ise yazılmaz', async () => {
+    granted();
+    await expect(syncPushRegistration({ isCurrent: () => false })).resolves.toBe('cancelled');
+    expect(mockApiPost).not.toHaveBeenCalled();
+  });
+
+  it('onlyIfChanged: son yazılan token aynıysa tekrar yazılmaz', async () => {
+    granted();
+    await syncPushRegistration();
+    expect(mockApiPost).toHaveBeenCalledTimes(1);
+    granted();
+    await expect(syncPushRegistration({ onlyIfChanged: true })).resolves.toBe('registered');
+    expect(mockApiPost).toHaveBeenCalledTimes(1);
+  });
+
+  it('kendi token alımımızın tetiklediği olay dinleyiciyi çağırmaz; gerçek değişiklik çağırır', async () => {
+    jest.useFakeTimers();
+    try {
+      const listener = jest.fn();
+      const remove = addPushTokenChangeListener(listener);
+      // Kendi alımımız sırasında gelen olay (getExpoPushTokenAsync → cihaz token'ı).
+      await trackOwnTokenFetch(async () => {
+        mockTokenEvents.cb?.({ data: 'device-1' });
+      });
+      expect(listener).not.toHaveBeenCalled();
+      jest.advanceTimersByTime(2000);
+      // Aynı cihaz token'ı tekrar: değişiklik değil.
+      mockTokenEvents.cb?.({ data: 'device-1' });
+      expect(listener).not.toHaveBeenCalled();
+      // Gerçek yenilenme.
+      mockTokenEvents.cb?.({ data: 'device-2' });
+      expect(listener).toHaveBeenCalledTimes(1);
+      remove();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
 
 it('iOS gibi tekrar sorulamayan red: prompt olsa da diyalog açılmaz', async () => {

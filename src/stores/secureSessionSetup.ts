@@ -10,6 +10,7 @@ import {
 } from "@/lib/api/tokenStorage";
 import { advanceSessionEpoch } from "@/lib/api/sessionState";
 import { USER_SNAPSHOT_KEY } from "./userSnapshot";
+import { INSTALL_ID_KEY, resetInstallIdCache } from "@/lib/device/installId";
 import { logger, safeError } from "../services/logger";
 
 /**
@@ -101,6 +102,10 @@ export async function wipeSessionIfReinstalled(storage: MarkerStorage): Promise<
     await runTokenStorageExclusive(async () => {
       for (const key of SESSION_SECURE_KEYS) await SecureStore.deleteItemAsync(key);
     });
+    // Push kurulum kimliği de kuruluma özgü olmalı: iOS anahtar zinciri silmeden sağ çıkar.
+    // Silinemezse yeniden kurulum yine çözülür (kimlik yalnız ayırt edici, güvenlik sırrı değil).
+    await SecureStore.deleteItemAsync(INSTALL_ID_KEY).catch(() => undefined);
+    resetInstallIdCache();
     advanceSessionEpoch();
   } catch (error) {
     logger.warn("Reinstall wipe failed", { err: safeError(error) });

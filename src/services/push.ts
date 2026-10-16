@@ -19,6 +19,8 @@ import {
   requestNotificationPermission,
 } from '@/lib/permissions';
 import { settlePendingPushRevoke } from './pushRevocation';
+// Doğrudan modülden: oturum kuşağı tek kaynak (çıkış / hesap değişimi ilerletir).
+import { getSessionEpoch } from '@/lib/api/sessionState';
 
 /** Push token alımı için üst sınır — çıkış akışı bundan uzun bekleyemez. */
 const PUSH_TOKEN_TIMEOUT_MS = 5000;
@@ -141,9 +143,15 @@ export async function ensureNotificationChannels(): Promise<void> {
  * - `registered`: token sunucuya yazıldı;
  * - `failed`: token alınamadı ya da sunucu reddetti → yeniden denenir;
  * - `no-permission`: izin yok (sorulmadı / reddedildi) — sessizce geçilir;
- * - `unavailable`: Expo Go / simülatör / projectId yok.
+ * - `unavailable`: Expo Go / simülatör / projectId yok;
+ * - `cancelled`: kayıt sürerken oturum değişti/kapandı — token YAZILMADI (yeniden denenmez).
  */
-export type PushRegistrationResult = 'registered' | 'failed' | 'no-permission' | 'unavailable';
+export type PushRegistrationResult =
+  | 'registered'
+  | 'failed'
+  | 'no-permission'
+  | 'unavailable'
+  | 'cancelled';
 
 /** Kayıt seçenekleri. */
 export interface PushRegistrationOptions {
@@ -153,16 +161,68 @@ export interface PushRegistrationOptions {
    * Ayarlar → Bildirimler) istenir.
    */
   prompt?: boolean;
+  /**
+   * `true`: alınan Expo token'ı son başarıyla yazılanla AYNIYSA sunucuya yazılmaz (token
+   * yenilenme olayı — bizim kendi token alımımız da bu olayı tetikler).
+   */
+  onlyIfChanged?: boolean;
+  /**
+   * Kayıt hâlâ geçerli mi? Yazımdan hemen önce sorulur; `false` ise (çıkış yapıldı / hesap
+   * değişti) token YAZILMAZ. Oturum kuşağı ve oturum durumu ayrıca her zaman denetlenir.
+   */
+  isCurrent?: () => boolean;
+}
+
+/** Son başarıyla sunucuya yazılan Expo token'ı (bu JS oturumunda). */
+let lastPostedToken: string | null = null;
+/** Bizim tetiklediğimiz token alımı sürüyor mu (kayıt ya da çıkış iptali)? */
+let ownTokenFetches = 0;
+/** Son görülen cihaz (APNs/FCM) token'ı — aynı değerle gelen olay yenilenme değildir. */
+let lastDeviceToken: string | null = null;
+/**
+ * Kendi alımımızın sonunda native olay biraz gecikebilir; sayaç bu kadar sonra düşer ki o olay
+ * "yenilenme" sanılmasın.
+ */
+const OWN_FETCH_GRACE_MS = 1500;
+
+/**
+ * `getExpoPushTokenAsync` içeride cihaz token'ını da alır ve `addPushTokenListener` olayını
+ * TETİKLER. Bu sarmal kendi alımlarımızı işaretler; dinleyici o sırada gelen olayları yok sayar
+ * (yoksa kayıt → olay → kayıt sonsuz döngüye girerdi; çıkış iptalinin alımı da yeniden kayıt
+ * başlatırdı).
+ */
+export async function trackOwnTokenFetch<T>(work: () => Promise<T>): Promise<T> {
+  ownTokenFetches += 1;
+  try {
+    return await work();
+  } finally {
+    setTimeout(() => {
+      ownTokenFetches = Math.max(0, ownTokenFetches - 1);
+    }, OWN_FETCH_GRACE_MS);
+  }
 }
 
 async function fetchExpoPushToken(): Promise<string | null> {
   const projectId = resolveProjectId();
   if (!projectId || !Notifications) return null;
-  const response = await withTimeout<{ data: string }>(
-    Notifications.getExpoPushTokenAsync({ projectId }),
-    REGISTER_TOKEN_TIMEOUT_MS,
+  const response = await trackOwnTokenFetch(() =>
+    withTimeout<{ data: string }>(
+      Notifications.getExpoPushTokenAsync({ projectId }),
+      REGISTER_TOKEN_TIMEOUT_MS,
+    ),
   );
   return response?.data ?? null;
+}
+
+/** Oturum hâlâ açık mı? (authStore gevşek yüklenir: push ↔ authStore içe aktarma döngüsü olmasın.) */
+function sessionStillAuthenticated(): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires -- döngüsel içe aktarmayı önler
+    const { useAuthStore } = require('@/stores/authStore');
+    return useAuthStore.getState().isAuthenticated === true;
+  } catch {
+    return false;
+  }
 }
 
 /** Hata durumunu (yalnız HTTP kodu) özetler — gövde/başlık günlüğe girmez. */
@@ -191,6 +251,12 @@ async function runRegistration(
   if (!pushAvailable() || !resolveProjectId()) {
     return { result: 'unavailable', token: null };
   }
+  // Kaydın başladığı oturum kuşağı: çıkış / hesap değişimi kuşağı ilerletir.
+  const epoch = getSessionEpoch();
+  const stillCurrent = () =>
+    getSessionEpoch() === epoch &&
+    sessionStillAuthenticated() &&
+    (options.isCurrent ? options.isCurrent() : true);
 
   // Kanallar izin diyaloğundan ve token'dan ÖNCE (Android 13 diyaloğu kanal ister).
   await ensureNotificationChannels();
@@ -218,8 +284,16 @@ async function runRegistration(
   // Her kayıt yolu (giriş, yeniden deneme, ön plan, token yenilenmesi) buradan geçer.
   await settlePendingPushRevoke();
 
+  // Bu arada çıkış yapıldıysa (ya da başka hesap girdiyse) YAZMA: eski oturumla 401 alır ya da
+  // token'ı sonraki hesabın adına kaydederdi.
+  if (!stillCurrent()) return { result: 'cancelled', token: null };
+  if (options.onlyIfChanged && token === lastPostedToken) {
+    return { result: 'registered', token };
+  }
+
   try {
     await postPushToken(token);
+    lastPostedToken = token;
   } catch (error) {
     // Eskiden `.catch(debug)` ile yutuluyordu: kayıt başarısız olsa da kimse bilmiyordu.
     const status = failureStatus(error);
@@ -258,7 +332,16 @@ export async function registerForPushNotifications(): Promise<string | null> {
  */
 export function addPushTokenChangeListener(callback: () => void): () => void {
   if (isExpoGo || !Notifications?.addPushTokenListener) return () => {};
-  const sub = Notifications.addPushTokenListener(() => callback());
+  const sub = Notifications.addPushTokenListener((event: { data?: unknown }) => {
+    const deviceToken = typeof event?.data === 'string' ? event.data : JSON.stringify(event?.data ?? null);
+    const previous = lastDeviceToken;
+    lastDeviceToken = deviceToken;
+    // Kendi token alımımızın tetiklediği olay (kayıt ya da çıkış iptali) yenilenme DEĞİLDİR.
+    if (ownTokenFetches > 0) return;
+    // Aynı cihaz token'ı tekrar bildirildi: değişiklik yok.
+    if (previous !== null && previous === deviceToken) return;
+    callback();
+  });
   return () => {
     try {
       sub?.remove?.();
@@ -330,10 +413,13 @@ export async function unregisterPushNotifications(
       if (signal?.aborted) resolve(undefined);
       signal?.addEventListener('abort', () => resolve(undefined));
     });
+    // `trackOwnTokenFetch`: bu alımın tetiklediği token olayı yeniden kayıt başlatmasın.
     const tokenResponse = await Promise.race([
-      withTimeout<{ data: string }>(
-        Notifications.getExpoPushTokenAsync({ projectId }),
-        PUSH_TOKEN_TIMEOUT_MS,
+      trackOwnTokenFetch(() =>
+        withTimeout<{ data: string }>(
+          Notifications.getExpoPushTokenAsync({ projectId }),
+          PUSH_TOKEN_TIMEOUT_MS,
+        ),
       ),
       aborted,
     ]);
@@ -511,4 +597,7 @@ export function setupPushNotificationRouting(): () => void {
 export function resetPushModuleStateForTests(): void {
   routedIds.clear();
   channelsLocale = null;
+  lastPostedToken = null;
+  lastDeviceToken = null;
+  ownTokenFetches = 0;
 }
