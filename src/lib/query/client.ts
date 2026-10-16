@@ -15,8 +15,8 @@ installFocusManager();
 // Tek paylaşılan QueryClient — _layout'taki provider ve logout temizliği
 // (resetUserStores) aynı örneği kullansın diye modül seviyesinde.
 export const queryClient = createPlatformQueryClient({
-  // Ön plana dönüşte eskimiş sorgular partiler halinde (4'er, 300 ms arayla; önce en yeni
-  // oluşturulanlar) yeniden çekilir — 10–20 isteğin aynı anda çıkması yerine (`./staggeredFocusCache`).
+  // Ön plana dönüşte eskimiş sorgular partiler halinde yeniden çekilir (ilk 8 hemen, sonra 4'er /
+  // 300 ms; son etkinliğe göre sıralı) — 10–20 isteğin aynı anda çıkması yerine (`./staggeredFocusCache`).
   queryCache: new StaggeredFocusQueryCache(),
   defaultOptions: {
     queries: {

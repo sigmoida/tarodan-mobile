@@ -1,6 +1,7 @@
 import { QueryClient, QueryObserver, focusManager } from '@tanstack/react-query';
 import {
   FOCUS_REFETCH_BATCH,
+  FOCUS_REFETCH_FIRST_BATCH,
   FOCUS_REFETCH_STAGGER_MS,
   StaggeredFocusQueryCache,
 } from '../staggeredFocusCache';
@@ -43,35 +44,38 @@ describe('StaggeredFocusQueryCache', () => {
   /** QueryClient odak dinleyicisi `resumePausedMutations`'ı bekleyip sonra `onFocus` çağırır. */
   const flush = () => jest.advanceTimersByTimeAsync(0);
 
-  it('ön plana dönüşte eskimiş sorguları partiler halinde çeker', async () => {
-    const fns = observe(10);
+  it('ilk parti (8) hemen, kalanlar 4\'erli partilerle', async () => {
+    const fns = observe(14);
     focusManager.setFocused(false);
     focusManager.setFocused(true);
     await flush();
-    expect(calls(fns)).toBe(FOCUS_REFETCH_BATCH);
+    expect(calls(fns)).toBe(FOCUS_REFETCH_FIRST_BATCH);
     await jest.advanceTimersByTimeAsync(FOCUS_REFETCH_STAGGER_MS);
-    expect(calls(fns)).toBe(FOCUS_REFETCH_BATCH * 2);
+    expect(calls(fns)).toBe(FOCUS_REFETCH_FIRST_BATCH + FOCUS_REFETCH_BATCH);
     await jest.advanceTimersByTimeAsync(FOCUS_REFETCH_STAGGER_MS);
-    expect(calls(fns)).toBe(10);
+    expect(calls(fns)).toBe(14);
   });
 
-  it('önce en yeni oluşturulan sorgular çekilir', async () => {
-    const fns = observe(6);
+  it('oluşturulma sırasına değil son etkinliğe göre: en son güncellenen önce', async () => {
+    const fns = observe(12);
+    // Açılışta oluşan (ilk) sorgunun verisi en son güncellendi (kullanıcının baktığı ekran).
+    jest.advanceTimersByTime(1000);
+    client.setQueryData(['q', 0], 'newer');
     focusManager.setFocused(false);
     focusManager.setFocused(true);
     await flush();
-    expect(fns[5]).toHaveBeenCalled();
-    expect(fns[0]).not.toHaveBeenCalled();
+    expect(fns[0]).toHaveBeenCalled();
+    expect(fns[11]).not.toHaveBeenCalled();
   });
 
   it('partiler sürerken yine arka plana geçilirse kalanlar çekilmez', async () => {
-    const fns = observe(10);
+    const fns = observe(14);
     focusManager.setFocused(false);
     focusManager.setFocused(true);
     await flush();
     focusManager.setFocused(false);
     await jest.advanceTimersByTimeAsync(FOCUS_REFETCH_STAGGER_MS * 5);
-    expect(calls(fns)).toBe(FOCUS_REFETCH_BATCH);
+    expect(calls(fns)).toBe(FOCUS_REFETCH_FIRST_BATCH);
   });
 });
 
