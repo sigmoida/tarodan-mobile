@@ -3,6 +3,7 @@ import { clearAllPaymentCapabilities, unbindPaymentCapabilityAccount } from '@/l
 import { useCartStore } from './cartStore';
 import { useMessagesStore } from './messagesStore';
 import { useDisputeDraftStore } from './disputeDraftStore';
+import { usePendingAuthEmailStore } from './pendingAuthEmailStore';
 
 /**
  * Çıkışın kaynağı: `user` = kullanıcının kendi çıkışı (profil, ban/onay
@@ -34,6 +35,9 @@ export function resetUserStores(reason: LogoutReason = 'user'): void {
 
   // Takas itirazı taslakları kullanıcıya özel — sonraki oturuma kalmasın.
   useDisputeDraftStore.getState().clearAll();
+
+  // Doğrulama akışından kalan bellek içi e-posta (PII) sonraki oturuma kalmasın.
+  usePendingAuthEmailStore.getState().setEmail(null);
 
   // Bildirim + mesaj rozeti dahil tüm react-query önbelleği (örn. 'notifications-unread').
   queryClient.clear();

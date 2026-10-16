@@ -317,6 +317,7 @@
     "passwordComplexity": "Password must contain at least one uppercase, one lowercase, and one number",
     "mustAcceptTerms": "You must accept the terms of service",
     "verificationEmailResent": "Verification email resent!",
+    "verifyResentNeutral": "If an account exists for this email address, a verification link has been sent. Check your spam folder too.",
     "couldNotResendEmail": "Could not resend email",
     "emailPasswordRequired": "Email and password are required",
     "verificationEmailSent": "Verification email sent!",

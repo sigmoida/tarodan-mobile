@@ -10,7 +10,9 @@ import { buildRegisterSchema, type RegisterForm } from '../_lib/schema';
 import { useUsernameAvailability } from '@/hooks/useUsernameAvailability';
 import { useSocialSignIn } from '@/hooks/useSocialSignIn';
 import { IS_MAESTRO } from '@/config/maestro';
-import { useResendVerification } from './useResendVerification';
+import { usePendingAuthEmailStore } from '@/stores/pendingAuthEmailStore';
+import { RESEND_COOLDOWN_SECONDS } from '@/hooks/useResendVerification';
+import { startResendCooldown } from '@/stores/resendCooldownStore';
 
 /**
  * "Bu e-posta zaten kayıtlı" — kasıtlı olarak fırlatılan, KULLANICIYA
@@ -63,7 +65,6 @@ export function useRegister() {
   // Kayıt başarılıysa formun yerine web "Neredeyse Tamam!" durumu çizilir (aynı rota, ayrı akış
   // değil: geri dönüş yok, yalnız girişe/doğrulamaya yönlendirir). Doluysa durum açık.
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
-  const resend = useResendVerification(registeredEmail);
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterForm) => {
@@ -104,8 +105,10 @@ export function useRegister() {
     },
     onSuccess: (_res, data) => {
       setRegisteredEmail(data.email);
+      // Doğrulama ekranı (e-posta bağlantısı sonradan açılırsa) e-postayı buradan alır.
+      usePendingAuthEmailStore.getState().setEmail(data.email);
       // İlk doğrulama e-postası kayıtla birlikte gitti → tekrar gönder hemen açılmaz.
-      resend.startCooldown();
+      startResendCooldown(data.email, RESEND_COOLDOWN_SECONDS);
       toast.success(t('auth.registerSuccessVerify'));
     },
   });
@@ -133,7 +136,6 @@ export function useRegister() {
     usernameAvailability,
     social,
     registeredEmail,
-    resend,
     goToLogin,
     goToVerifyEmail,
   };
