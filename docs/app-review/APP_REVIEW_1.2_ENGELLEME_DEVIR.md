@@ -236,9 +236,9 @@ app/product/[id]/_hooks/useProductActions.ts              ← ürün şikayeti
 
 ## 10. İlgili dokümanlar
 
-- `docs/APP_REVIEW_RED_2026-07-16.md` — birinci reddin bulguları, kök sebepleri
+- `docs/app-review/APP_REVIEW_RED_2026-07-16.md` — birinci reddin bulguları, kök sebepleri
   ve kanıtları
-- `docs/APP_REVIEW_CEVAP_TASLAGI.md` — Resolution Center cevabı ve Review Notes
+- `docs/app-review/APP_REVIEW_CEVAP_TASLAGI.md` — Resolution Center cevabı ve Review Notes
   metinleri
 - `docs/RELEASE.md` — gerçek yayın hattı (staging OTA / production build)
 

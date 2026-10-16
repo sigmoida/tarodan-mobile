@@ -90,7 +90,7 @@ ekranında çıktığı için çalışan bir hesap olmadan tekrar dönme riski y
 - [ ] App Privacy'de "Data Used to Track You" bölümü **yok**, Coarse Location
       listede **yok**, değişiklikler **Publish** edilmiş.
 - [ ] Backend `fix/register-birthdate-optional` deploy edilmiş; doğum tarihi
-      atlayan kayıt `400` almıyor (komut: `docs/APP_REVIEW_RED_2026-07-16.md` §3).
+      atlayan kayıt `400` almıyor (komut: `docs/app-review/APP_REVIEW_RED_2026-07-16.md` §3).
 - [ ] Yeni build TestFlight'ta ve **iPad'de** login + kayıt + ürün + checkout
       elle denenmiş.
 - [ ] Review Notes'taki test hesabı gerçekten çalışıyor (doğrulanmış e-posta,
