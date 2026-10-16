@@ -1,5 +1,6 @@
 import { createPlatformQueryClient } from "@/lib/api-client/query";
 import { installOnlineManager } from "@/lib/network/onlineManager";
+import { retryUnlessClientError } from "./retry";
 
 // TanStack `onlineManager` cihaz bağlantısına bağlanır (ilk sorgudan önce): çevrimiçi olunca
 // eskimiş / hatalı sorgular tazelenir.
@@ -11,7 +12,9 @@ export const queryClient = createPlatformQueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5,
-      retry: 2,
+      // 4xx yeniden denenmez (tekrar denemek düzeltmez, aynı hatayı/isteği üç kez üretir);
+      // ağ/5xx en fazla 2 kez denenir. Kendi `retry`'sini veren sorgular bunu ezer.
+      retry: retryUnlessClientError,
       // 'always': çevrimdışıyken sorgular DURAKLATILMAZ (varsayılan 'online' duraklatır: ekran
       // yükleme/hata durumuna hiç girmeden boş kalır). Davranış bağlantı izlemesinden ÖNCEKİYLE
       // aynı kalır — istek denenir, ağ hatasıyla düşerse mevcut hata durumu görünür; yeniden
