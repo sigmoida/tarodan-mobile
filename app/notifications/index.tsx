@@ -3,6 +3,7 @@ import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { EmptyState, ErrorState, Spinner, TopBarAction, usePageScrollHandler } from '@/ui';
+import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { useNotifications } from './_hooks/useNotifications';
@@ -72,11 +73,7 @@ export default function NotificationsScreen() {
           data={f.notifications}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
-          // #82: virtualizasyon ayarı — çok sayıda bildirimde bellek/kaydırma.
-          windowSize={7}
-          initialNumToRender={8}
-          maxToRenderPerBatch={10}
-          removeClippedSubviews
+          {...listWindowing}
           contentContainerStyle={page.contentStyle(styles.listContent)}
           refreshing={f.refreshing}
           onRefresh={f.handleRefresh}
