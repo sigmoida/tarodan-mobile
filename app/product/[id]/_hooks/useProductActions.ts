@@ -11,6 +11,7 @@ import { useCartSync } from '@/hooks/useCartSync';
 import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
 import { isOwnProduct } from '@/hooks/useFavoriteToggle';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useSafeTimeout } from '@/hooks/useSafeTimeout';
 import { getUpgradeMessage } from '@/utils/membershipLimits';
 import { asLabel, formatPrice } from '@/utils/format';
 import { buildShareContent, productShareUrl } from '@/utils/share';
@@ -80,10 +81,12 @@ export function useProductActions({
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
 
+  // Gecikmeli giriş yönlendirmesi ekrandan çıkılınca iptal olur.
+  const schedule = useSafeTimeout();
   const requireAuth = (message: string) => {
     if (isAuthenticated) return true;
     toast.error(message);
-    setTimeout(() => router.push('/(auth)/login' as any), 1500);
+    schedule(() => router.push('/(auth)/login' as any), 1500);
     return false;
   };
 
