@@ -1,4 +1,5 @@
 import { api } from "./client";
+import { DOCUMENT_UPLOAD_TIMEOUT_MS } from "./media";
 
 // User API - Web ile aynı endpoint'ler
 export const userApi = {
@@ -125,6 +126,7 @@ export const sellerDocumentsApi = {
     formData.append("file", file as unknown as Blob);
     return api.post("/users/me/seller-documents", formData, {
       headers: { "Content-Type": "multipart/form-data" },
+      timeout: DOCUMENT_UPLOAD_TIMEOUT_MS,
     });
   },
   /** Başvuru yoksa backend 400/404 döner — çağıran taraf "başvuru yok" olarak ele alır. */

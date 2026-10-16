@@ -1,7 +1,7 @@
 // İade talebi formunun zod şeması (colocated).
 import type { TFunction } from 'i18next';
 import { z } from 'zod';
-import type { RNFile } from '@/lib/api';
+import type { LocalImageFile } from '@/lib/media';
 
 /** Açıklama zorunluysa en az bu kadar karakter (web ile aynı eşik). */
 export const REFUND_DESCRIPTION_MIN = 20;
@@ -43,7 +43,7 @@ export function refundRequestSchema(t: TFunction) {
     .object({
       reason: z.string().min(1, t('validation.required')),
       description: z.string(),
-      evidence: z.array(z.custom<RNFile>()),
+      evidence: z.array(z.custom<LocalImageFile>()),
       quantity: z.number().int().min(1),
     })
     .superRefine((v, ctx) => {

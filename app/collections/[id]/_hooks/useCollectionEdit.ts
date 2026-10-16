@@ -1,15 +1,16 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { appAlert, toast } from '@/ui';
 import { api } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { useAuthStore } from '@/stores/authStore';
 import { buildCollectionEditSchema, type CollectionForm, type Collection } from '../_lib/collectionEditSchema';
+import { coverFileFor, pickCollectionCover, uploadCollectionCover } from '../../_lib/cover';
+import type { LocalImageFile } from '@/lib/media';
 
 /**
  * Collection edit controller — owns the collection query, RHF form (zod), the
@@ -23,6 +24,8 @@ export function useCollectionEdit() {
   const queryClient = useQueryClient();
 
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  /** Seçilen kapağın dosya bilgisi (tür/boyut) — hazırlama için; önizleme `coverImage`. */
+  const pickedCoverRef = useRef<LocalImageFile | null>(null);
 
   // Fetch collection
   const { data: collection, isLoading } = useQuery<Collection>({
@@ -70,15 +73,7 @@ export function useCollectionEdit() {
 
       // Kapak değiştiyse ayrı multipart uca yükle (PATCH /collections/:id/cover, alan 'cover')
       if (coverImage && coverImage !== collection?.coverImageUrl) {
-        const formData = new FormData();
-        formData.append('cover', {
-          uri: coverImage,
-          type: 'image/jpeg',
-          name: 'cover.jpg',
-        } as any);
-        await api.patch(`/collections/${id}/cover`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await uploadCollectionCover(String(id), coverFileFor(coverImage, pickedCoverRef.current));
       }
     },
     onSuccess: () => {
@@ -119,15 +114,10 @@ export function useCollectionEdit() {
   });
 
   const pickCoverImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setCoverImage(result.assets[0].uri);
+    const picked = await pickCollectionCover();
+    if (picked) {
+      pickedCoverRef.current = picked;
+      setCoverImage(picked.uri);
     }
   };
 

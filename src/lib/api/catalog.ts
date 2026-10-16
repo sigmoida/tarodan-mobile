@@ -1,4 +1,5 @@
 import { api, guestApi } from './client';
+import { MEDIA_UPLOAD_TIMEOUT_MS } from './media';
 
 // Categories API - Web ile aynı endpoint'ler
 export const categoriesApi = {
@@ -35,6 +36,7 @@ export const collectionsApi = {
     formData.append('cover', file as any);
     return api.patch(`/collections/${id}/cover`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: MEDIA_UPLOAD_TIMEOUT_MS,
     });
   },
   delete: (id: string) =>

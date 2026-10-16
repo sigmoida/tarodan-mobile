@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
 import { api, collectionsApi } from '@/lib/api';
@@ -12,6 +11,8 @@ import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { buildCollectionSchema, type CollectionForm } from '../_lib/schema';
 import { buildCollectionTemplates, type CollectionTemplate } from '../_lib/templates';
+import { coverFileFor, pickCollectionCover, uploadCollectionCover } from '../../_lib/cover';
+import type { LocalImageFile } from '@/lib/media';
 
 /**
  * New-collection controller — owns the RHF+zod form, cover-image pick, template
@@ -28,6 +29,8 @@ export function useNewCollection() {
   const queryClient = useQueryClient();
 
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  /** Seçilen kapağın dosya bilgisi (tür/boyut) — hazırlama için; önizleme `coverImage`. */
+  const pickedCoverRef = useRef<LocalImageFile | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   const canCreateCollections = limits?.canCreateCollections || false;
@@ -61,15 +64,7 @@ export function useNewCollection() {
 
       // Kapak görseli varsa dönen id ile ayrı multipart uca yükle (PATCH /collections/:id/cover, alan 'cover')
       if (coverImage) {
-        const formData = new FormData();
-        formData.append('cover', {
-          uri: coverImage,
-          type: 'image/jpeg',
-          name: 'cover.jpg',
-        } as any);
-        await api.patch(`/collections/${res.data.id}/cover`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await uploadCollectionCover(res.data.id, coverFileFor(coverImage, pickedCoverRef.current));
       }
 
       // "Koleksiyona ekle" akışı: ürün yeni koleksiyona eklenir. Başarısızlık koleksiyonu geri
@@ -110,15 +105,10 @@ export function useNewCollection() {
   });
 
   const pickCoverImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setCoverImage(result.assets[0].uri);
+    const picked = await pickCollectionCover();
+    if (picked) {
+      pickedCoverRef.current = picked;
+      setCoverImage(picked.uri);
     }
   };
 

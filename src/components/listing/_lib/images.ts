@@ -16,7 +16,7 @@
  * varken gönderim `imageSubmitBlocker` ile engellenir.
  */
 import type { ImageKey } from './types';
-import type { LocalImageFile } from './prepareImage';
+import type { LocalImageFile } from '@/lib/media';
 import type { QueueEvent } from './uploadQueue';
 
 /**
@@ -35,8 +35,14 @@ export interface ListingImage extends Partial<ImageKey> {
   status: ListingImageStatus;
   /** 0–100, yalnız bayt aktarımı (yükleme sürerken). */
   progress?: number;
-  /** Yüklenecek yerel dosya — yalnız YENİ seçilen kalemde; yeniden deneme bunu kullanır. */
+  /** Picker'ın verdiği yerel dosya — yalnız YENİ seçilen kalemde (orijinal; silinmez). */
   file?: LocalImageFile;
+  /**
+   * Yüklemeye hazırlanmış (küçültülmüş) dosya — ilk denemede bir kez üretilir; yeniden deneme
+   * bunu kullanır (tekrar küçültme yok). Geçici cache dosyasıdır: yükleme bitince ya da kalem
+   * kaldırılınca silinir.
+   */
+  preparedFile?: LocalImageFile;
   /** Hata alan kalemin açıklaması (sunucu mesajı ya da yerel metin). */
   error?: string;
 }
@@ -151,7 +157,8 @@ export function imageSubmitBlocker(items: ReadonlyArray<ListingImage>): 'pending
 
 /**
  * Kuyruk olayını listeye uygula. Kalem bu arada kaldırıldıysa liste AYNEN döner.
- * Başarıda sunucu anahtarları + URL'si yazılır ve yerel dosya bırakılır; hatada `errorText`
+ * Başarıda sunucu anahtarları + URL'si yazılır ve yerel dosyalar bırakılır (hazırlanmış geçici
+ * dosyanın SİLİNMESİ çağıranın işi — saf fonksiyon); hatada `errorText`
  * (çağıran katalogdan üretir) kaleme yazılır.
  */
 export function applyUploadEvent(
@@ -168,6 +175,7 @@ export function applyUploadEvent(
     patch.detailKey = event.result.detailKey;
     if (event.result.url) patch.uri = event.result.url;
     patch.file = undefined;
+    patch.preparedFile = undefined;
     patch.error = undefined;
   }
   if (event.status === 'failed') {

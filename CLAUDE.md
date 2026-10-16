@@ -104,6 +104,11 @@ zustand store. React Query is the **single server-state**.
 - **Writes** → a **mutation hook** (`useDoXxx.ts`) that owns the snackbar/toast +
   `invalidateQueries`. This is the **only** way to mutate — so lists refresh
   automatically, no manual `refetch()`.
+- **Deliberate exception — file upload queue.** Per-file progress/cancel/retry uploads
+  (listing images) run outside a React Query mutation: image preparation (resize/compress,
+  serial gate, timeout, abort, temp-file cleanup, `pickerQuality()`) lives in `src/lib/media`,
+  the queue in the feature (`src/components/listing/_lib/uploadQueue.ts`). Every photo upload
+  goes through `src/lib/media` first; all other writes are still mutation hooks.
 - Every dialog/modal is its **own** component in `_modals/`, owning its
   `useZodForm` + zod schema + mutation. The screen holds only open/close state.
 

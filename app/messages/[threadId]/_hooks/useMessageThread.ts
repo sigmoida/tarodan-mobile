@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { FlatList, Platform } from 'react-native';
+import { FlatList } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
@@ -14,10 +14,11 @@ import {
   useDailyMessageLimit,
 } from '@/hooks/messaging';
 import { detectViolations, embedImageInMessage, getViolationMessage } from '@/utils/contentFilter';
-import { mediaApi } from '@/lib/api';
+import { fromPickerAsset, pickerQuality, type LocalImageFile } from '@/lib/media';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { getSocket } from '@/services/socket';
 import { groupMessagesByDate } from '../_lib/helpers';
+import { uploadMessageAttachment } from '../_lib/uploadAttachment';
 import { useBlockStatus, useBlockUser } from '@/hooks/useBlockUser';
 import { useTypingIndicator } from './useTypingIndicator';
 import { useAutoScroll } from './useAutoScroll';
@@ -43,7 +44,7 @@ export function useMessageThread() {
   const [sending, setSending] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   // Seçilen foto gönderilmeden önce input üstünde önizlenir; kullanıcı onaylayınca gönderilir.
-  const [pendingImage, setPendingImage] = useState<{ uri: string; name: string; type: string } | null>(null);
+  const [pendingImage, setPendingImage] = useState<LocalImageFile | null>(null);
   const [filterWarning, setFilterWarning] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
@@ -115,21 +116,14 @@ export function useMessageThread() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: false,
-      quality: 0.8,
+      quality: pickerQuality(),
     });
 
     if (result.canceled || !result.assets?.[0]) return;
 
     const asset = result.assets[0];
-    const filename = asset.uri.split('/').pop() || `image_${Date.now()}.jpg`;
-    const match = /\.(\w+)$/.exec(filename);
-    const type = asset.mimeType || (match ? `image/${match[1]}` : 'image/jpeg');
-
-    setPendingImage({
-      uri: Platform.OS === 'ios' ? asset.uri.replace('file://', '') : asset.uri,
-      name: filename,
-      type,
-    });
+    // Önizleme yerel URI'yle; küçültme ve iOS FormData biçimi gönderim anında.
+    setPendingImage(fromPickerAsset(asset, asset.uri.split('/').pop() || `image_${Date.now()}.jpg`));
   };
 
   const handleSend = async () => {
@@ -157,8 +151,7 @@ export function useMessageThread() {
       if (pendingImage) {
         setUploadingImage(true);
         try {
-          const response = await mediaApi.uploadMessageImage(pendingImage as any);
-          const url = (response.data as any)?.url ?? (response.data as any)?.data?.url;
+          const url = await uploadMessageAttachment(pendingImage);
           if (!url) throw new Error(t('message.imageUploadedNoUrl'));
           // İşaret formatının TEK kaynağı `embedImageInMessage` — burada elle
           // kurmak `parseMessageContent` ile sessizce birbirinden ayrılabilirdi.

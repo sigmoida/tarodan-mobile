@@ -20,6 +20,20 @@ const appendRNFile = (formData: FormData, field: string, file: RNFile) => {
  */
 export const PRODUCT_IMAGE_UPLOAD_TIMEOUT_MS = 120_000;
 
+/**
+ * Tek görsellik diğer yüklemelerin (avatar, mesaj eki, iade kanıtı, koleksiyon kapağı) süresi.
+ * Görsel yüklemeden önce ≤1600 px'e küçültülüyor (`@/lib/media`) ama hazırlama atlanabilir
+ * (yeniden derlenmemiş dev-client / 20 sn tavanı) ve sunucu her dosyada AI moderasyonu yapıyor;
+ * global 30 sn yavaş mobil veride yetmiyordu. Global ayara dokunulmaz.
+ */
+export const MEDIA_UPLOAD_TIMEOUT_MS = 60_000;
+
+/**
+ * Belge yüklemeleri (işletme belgesi, satıcı faturası): PDF'e dokunulmaz, 10 MB'a kadar
+ * olduğu gibi gider — ürün görseliyle aynı uzun tavan.
+ */
+export const DOCUMENT_UPLOAD_TIMEOUT_MS = 120_000;
+
 export type ProductImageUploadResult = {
   cardKey: string;
   detailKey: string;
@@ -55,6 +69,7 @@ export const mediaApi = {
     appendRNFile(formData, 'avatar', file);
     return api.post('/media/upload/avatar', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: MEDIA_UPLOAD_TIMEOUT_MS,
     });
   },
   uploadMessageImage: (file: RNFile) => {
@@ -66,6 +81,7 @@ export const mediaApi = {
       {
         headers: { 'Content-Type': 'multipart/form-data' },
         params: { folder: 'messages' },
+        timeout: MEDIA_UPLOAD_TIMEOUT_MS,
       },
     );
   },
@@ -79,6 +95,7 @@ export const mediaApi = {
       {
         headers: { 'Content-Type': 'multipart/form-data' },
         params: { folder: 'reviews' },
+        timeout: MEDIA_UPLOAD_TIMEOUT_MS,
       },
     );
   },

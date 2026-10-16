@@ -1,13 +1,19 @@
 import { requireOptionalNativeModule } from 'expo';
 
 jest.mock('expo', () => ({ requireOptionalNativeModule: jest.fn() }));
+const mockDelete = jest.fn(async (_uri: string, _opts?: unknown) => undefined);
+jest.mock('expo-file-system/legacy', () => ({
+  cacheDirectory: 'file:///cache/',
+  deleteAsync: (uri: string, opts?: unknown) => mockDelete(uri, opts),
+}));
 
 import {
+  IMAGE_PROFILES,
   MAX_UPLOAD_EDGE,
   UPLOAD_JPEG_QUALITY,
   PREPARE_TIMEOUT_MS,
   createPreparer,
-  createSerialRunner,
+  isReencodableImage,
   jpegName,
   loadImageManipulator,
   prepareImageForUpload,
@@ -15,6 +21,7 @@ import {
   type ImageManipulatorLike,
   type LocalImageFile,
 } from '../prepareImage';
+import { createSerialRunner } from '../serialRunner';
 
 const file = (over: Partial<LocalImageFile> = {}): LocalImageFile => ({
   uri: 'file:///tmp/IMG_0001.HEIC',
@@ -98,6 +105,7 @@ describe('prepareImageForUpload', () => {
       type: 'image/jpeg',
       width: 1600,
       height: 1200,
+      temporary: true,
     });
     expect(released).toEqual(expect.arrayContaining(['ctx', 'ref']));
   });
@@ -151,6 +159,36 @@ describe('prepareImageForUpload', () => {
     );
     expect(calls[0]!.resize).toEqual([{ width: MAX_UPLOAD_EDGE }]);
     expect(out.type).toBe('image/jpeg');
+  });
+
+  it('profil: avatar 600 px / 0.8, belge 2400 px / 0.85', async () => {
+    const avatar = fakeManipulator();
+    const a = await prepareImageForUpload(file(), avatar.manipulator, IMAGE_PROFILES.avatar);
+    expect(avatar.calls[0]!.resize).toEqual([{ width: 600 }]);
+    expect(avatar.saves).toEqual([{ format: 'jpeg', compress: 0.8 }]);
+    expect(a.width).toBe(600);
+
+    const doc = fakeManipulator();
+    await prepareImageForUpload(file(), doc.manipulator, IMAGE_PROFILES.document);
+    expect(doc.calls[0]!.resize).toEqual([{ width: 2400 }]);
+    expect(doc.saves).toEqual([{ format: 'jpeg', compress: 0.85 }]);
+  });
+
+  it('görsel olmayan dosya (PDF) olduğu gibi gider', async () => {
+    const { manipulator, calls } = fakeManipulator();
+    const pdf = file({ uri: 'file:///belge.pdf', name: 'belge.pdf', type: 'application/pdf', width: undefined });
+    expect(await prepareImageForUpload(pdf, manipulator)).toBe(pdf);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('isReencodableImage: fotoğraf evet; PNG/WebP/GIF/PDF hayır', () => {
+    expect(isReencodableImage('image/jpeg')).toBe(true);
+    expect(isReencodableImage('image/HEIC')).toBe(true);
+    expect(isReencodableImage('image/png')).toBe(false);
+    expect(isReencodableImage('image/webp')).toBe(false);
+    expect(isReencodableImage('image/gif')).toBe(false);
+    expect(isReencodableImage('application/pdf')).toBe(false);
+    expect(isReencodableImage(undefined)).toBe(false);
   });
 
   it('manipulator yoksa (yeniden derlenmemiş dev-client) orijinalle devam eder', async () => {
@@ -242,7 +280,15 @@ describe('createSerialRunner', () => {
 describe('createPreparer (seri + süre sınırı + iptal)', () => {
   afterEach(() => jest.useRealTimers());
 
+  beforeEach(() => mockDelete.mockClear());
   const done = (f: LocalImageFile): LocalImageFile => ({ ...f, uri: `${f.uri}#prepared` });
+  /** Hazırlayıcının cache'e yazdığı geçici dosya. */
+  const temp = (name: string): LocalImageFile => ({
+    uri: `file:///cache/ImageManipulator/${name}`,
+    name,
+    type: 'image/jpeg',
+    temporary: true,
+  });
   const never = () => new Promise<LocalImageFile>(() => undefined);
 
   it('takılan hazırlama süre dolunca ORİJİNAL dosyayla biter ve sıra bir sonrakine geçer', async () => {
@@ -251,8 +297,8 @@ describe('createPreparer (seri + süre sınırı + iptal)', () => {
     const run = createPreparer({ prepare });
     const stuck = file({ uri: 'file:///stuck.jpg', name: 'stuck.jpg' });
     const next = file({ uri: 'file:///next.jpg', name: 'next.jpg' });
-    const first = run(stuck, new AbortController().signal);
-    const second = run(next, new AbortController().signal);
+    const first = run(stuck, { signal: new AbortController().signal });
+    const second = run(next, { signal: new AbortController().signal });
     await jest.advanceTimersByTimeAsync(0);
     expect(prepare).toHaveBeenCalledTimes(1);
     await jest.advanceTimersByTimeAsync(PREPARE_TIMEOUT_MS - 1);
@@ -270,9 +316,9 @@ describe('createPreparer (seri + süre sınırı + iptal)', () => {
     const a = new AbortController();
     const b = new AbortController();
     const c = new AbortController();
-    const first = run(file({ uri: 'file:///stuck.jpg', name: 'stuck.jpg' }), a.signal);
-    const second = run(file({ uri: 'file:///queued.jpg', name: 'queued.jpg' }), b.signal);
-    const third = run(file({ uri: 'file:///c.jpg', name: 'c.jpg' }), c.signal);
+    const first = run(file({ uri: 'file:///stuck.jpg', name: 'stuck.jpg' }), { signal: a.signal });
+    const second = run(file({ uri: 'file:///queued.jpg', name: 'queued.jpg' }), { signal: b.signal });
+    const third = run(file({ uri: 'file:///c.jpg', name: 'c.jpg' }), { signal: c.signal });
 
     b.abort(); // sırada bekliyor
     await expect(second).rejects.toMatchObject({ name: 'AbortError' });
@@ -286,7 +332,7 @@ describe('createPreparer (seri + süre sınırı + iptal)', () => {
   it('hazırlama hata verirse orijinal döner', async () => {
     const run = createPreparer({ prepare: () => Promise.reject(new Error('boom')) });
     const original = file();
-    await expect(run(original, new AbortController().signal)).resolves.toBe(original);
+    await expect(run(original, { signal: new AbortController().signal })).resolves.toBe(original);
   });
 
   it('önceden iptal edilmiş sinyal: hazırlama hiç çağrılmaz', async () => {
@@ -294,7 +340,47 @@ describe('createPreparer (seri + süre sınırı + iptal)', () => {
     const run = createPreparer({ prepare });
     const ctrl = new AbortController();
     ctrl.abort();
-    await expect(run(file(), ctrl.signal)).rejects.toMatchObject({ name: 'AbortError' });
+    await expect(run(file(), { signal: ctrl.signal })).rejects.toMatchObject({ name: 'AbortError' });
     expect(prepare).not.toHaveBeenCalled();
+  });
+
+  it('profil seçenekleri hazırlamaya iletilir; sinyalsiz çağrı da çalışır', async () => {
+    const prepare = jest.fn(async (f: LocalImageFile) => f);
+    const run = createPreparer({ prepare });
+    const original = file();
+    await expect(run(original, IMAGE_PROFILES.avatar)).resolves.toBe(original);
+    expect(prepare).toHaveBeenCalledWith(original, { maxEdge: 600, quality: 0.8 });
+  });
+
+  it('süre dolduktan SONRA üretilen geçici dosya kimseye verilmeden silinir', async () => {
+    jest.useFakeTimers();
+    let finish!: (f: LocalImageFile) => void;
+    const run = createPreparer({ prepare: () => new Promise<LocalImageFile>((r) => (finish = r)) });
+    const original = file();
+    const result = run(original);
+    await jest.advanceTimersByTimeAsync(PREPARE_TIMEOUT_MS);
+    await expect(result).resolves.toBe(original);
+    finish(temp('late.jpg'));
+    await jest.advanceTimersByTimeAsync(0);
+    expect(mockDelete).toHaveBeenCalledWith('file:///cache/ImageManipulator/late.jpg', { idempotent: true });
+  });
+
+  it('iptal edilen kalemin geç gelen geçici dosyası silinir; teslim edilen dosya silinmez', async () => {
+    let finish!: (f: LocalImageFile) => void;
+    const run = createPreparer({ prepare: () => new Promise<LocalImageFile>((r) => (finish = r)) });
+    const ctrl = new AbortController();
+    const result = run(file(), { signal: ctrl.signal });
+    await Promise.resolve();
+    ctrl.abort();
+    await expect(result).rejects.toMatchObject({ name: 'AbortError' });
+    finish(temp('aborted.jpg'));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(mockDelete).toHaveBeenCalledWith('file:///cache/ImageManipulator/aborted.jpg', { idempotent: true });
+
+    mockDelete.mockClear();
+    const ok = createPreparer({ prepare: async () => temp('ok.jpg') });
+    await expect(ok(file())).resolves.toMatchObject({ uri: 'file:///cache/ImageManipulator/ok.jpg' });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(mockDelete).not.toHaveBeenCalled();
   });
 });
