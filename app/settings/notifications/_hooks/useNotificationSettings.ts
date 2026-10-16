@@ -15,7 +15,7 @@ import { DEFAULT_SETTINGS, type NotificationSettings } from '../_lib/types';
  */
 export function useNotificationSettings() {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
 
   // Yükleme hatası YUTULMAZ: eskiden `.catch(() => null)` ile ekran

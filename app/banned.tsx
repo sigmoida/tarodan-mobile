@@ -14,7 +14,7 @@ import { resetBannedRedirect } from '@/lib/api';
 export default function BannedScreen() {
   const { t } = useTranslation();
   const { reason } = useLocalSearchParams<{ reason?: string }>();
-  const { logout } = useAuthStore();
+  const logout = useAuthStore((s) => s.logout);
 
   const handleLogout = async () => {
     await logout();

@@ -20,7 +20,8 @@ import { isLegalTextPath } from '@/lib/shared/legalConsent';
  * Render etmez (null) — _layout.tsx içinde mount edilir.
  */
 export default function BusinessMembershipGuard() {
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const pathname = usePathname();
 
   useEffect(() => {

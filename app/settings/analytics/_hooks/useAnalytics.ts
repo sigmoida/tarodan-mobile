@@ -14,7 +14,8 @@ import { isPremiumTier } from "../_lib/premium";
  */
 export function useAnalytics() {
   const { t } = useTranslation();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const timeRange = "7d";
 
   // `useAuthStore().limits` is the client's merged tier table (TIER_LIMITS

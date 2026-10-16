@@ -23,7 +23,9 @@ import { useCollectionCover } from '../../_hooks/useCollectionCover';
  */
 export function useNewCollection() {
   const { t } = useTranslation();
-  const { isAuthenticated, limits, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const limits = useAuthStore((s) => s.limits);
+  const user = useAuthStore((s) => s.user);
   const { addProductId } = useLocalSearchParams<{ addProductId?: string }>();
   const queryClient = useQueryClient();
 

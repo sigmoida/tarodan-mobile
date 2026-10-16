@@ -31,7 +31,8 @@ import {
  */
 export function useCollectionsBrowse() {
   const { t } = useTranslation();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   // Premium/business üyeler zaten koleksiyon oluşturabildiği için upsell'i gizle.
   const isPremiumMember = user?.membershipTier === 'premium' || user?.membershipTier === 'business';
 

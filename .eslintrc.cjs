@@ -167,6 +167,13 @@ module.exports = {
       rules: { 'tarodan/no-inline-query-key': 'warn' },
     },
     {
+      // Argümansız use*Store() = tüm store aboneliği (her yazımda render) → selector (CLAUDE.md §8).
+      // Store dosyalarının kendisi ve testler muaf.
+      files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+      excludedFiles: [...DESIGN_TEST_FILES, 'src/stores/**'],
+      rules: { 'tarodan/no-whole-store-subscription': 'warn' },
+    },
+    {
       // Güvenlik: API yolundaki değişkenler `apiPath` ile kodlanır (src/lib/api/path.ts) —
       // derin bağlantı parametresi isteği başka bir uca yönlendiremesin.
       files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],

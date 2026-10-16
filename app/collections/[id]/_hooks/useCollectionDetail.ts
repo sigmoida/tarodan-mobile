@@ -21,7 +21,8 @@ export function useCollectionDetail() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   // Premium/business üyeler zaten koleksiyon oluşturabildiği için upsell'i gizle.
   const isPremiumMember =
     user?.membershipTier === 'premium' || user?.membershipTier === 'business';

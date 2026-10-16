@@ -15,7 +15,7 @@ import { useAuthStore } from '@/stores/authStore';
  */
 export function useSocialSignIn() {
   const { t } = useTranslation();
-  const { login } = useAuthStore();
+  const login = useAuthStore((s) => s.login);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);

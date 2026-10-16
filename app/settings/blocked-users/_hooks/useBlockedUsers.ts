@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/authStore';
  * mutation'ı paylaşılan `useBlockUser`'da; bu hook yalnız okur.
  */
 export function useBlockedUsers() {
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const query = useQuery({
     queryKey: qk.blocks.list,

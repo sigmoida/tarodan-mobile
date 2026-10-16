@@ -36,7 +36,7 @@ const { colors } = theme;
  * bölümler (Takas, Popüler, Koleksiyonlar, Haftanın…) ilk kareden sonra bağlanır, o ana dek iskelet.
  */
 export default function HomeScreen() {
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const incrementListingView = useGuestStore((s) => s.incrementListingView);
 
   const data = useHomeData();

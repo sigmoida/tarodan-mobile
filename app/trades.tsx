@@ -54,7 +54,8 @@ function buildFilters(t: TFn): {
 export default function TradesScreen() {
   const { t } = useTranslation();
   const FILTERS = buildFilters(t);
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const [filter, setFilter] = useState<TradesTabFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
   const page = usePageScrollHandler();

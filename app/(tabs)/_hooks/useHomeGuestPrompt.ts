@@ -5,7 +5,9 @@ type PromptType = 'favorites' | 'message' | 'purchase';
 
 /** Misafir kullanıcı için gecikmeli signup prompt (3sn). */
 export function useHomeGuestPrompt(isAuthenticated: boolean) {
-  const { getPromptType, setLastPromptShown, canShowPrompt } = useGuestStore();
+  const getPromptType = useGuestStore((s) => s.getPromptType);
+  const setLastPromptShown = useGuestStore((s) => s.setLastPromptShown);
+  const canShowPrompt = useGuestStore((s) => s.canShowPrompt);
   const [showPrompt, setShowPrompt] = useState(false);
   const [promptType, setPromptType] = useState<PromptType | null>(null);
 

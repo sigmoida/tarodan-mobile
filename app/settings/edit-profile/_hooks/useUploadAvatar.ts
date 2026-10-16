@@ -18,7 +18,7 @@ import { useRefreshAccount } from './useRefreshAccount';
  */
 export function useUploadAvatar() {
   const { t } = useTranslation();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const refreshAccount = useRefreshAccount();
   const [preview, setPreview] = useState<string | null>(null);
   // Seçici açılmadan gelen ikinci dokunuş "picker already presented" ile reddedilir → tek giriş.

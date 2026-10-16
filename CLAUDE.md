@@ -143,6 +143,14 @@ Stores hold **only client/UI state** (auth token, cart, filters, drafts). A stor
 must **never fetch** — server data belongs in React Query. (Migrating
 `favoritesStore`/`messagesStore` fetches to query hooks is Faz 1.)
 
+**Subscribe per field, never to the whole store.** `useAuthStore()` / `useCartStore()` with no
+argument re-renders the component on EVERY store write. Use a selector
+(`useAuthStore((s) => s.user)`), `useShallow` (`zustand/react/shallow`) for a multi-field pick, and
+`useXxxStore.getState()` inside callbacks. Per-item derived state is a selector too
+(`useCartStore((s) => s.items.some((i) => i.productId === id))`). Guarded by the
+`tarodan/no-whole-store-subscription` lint rule (warning). Test mocks must accept a selector:
+`(sel) => (sel ? sel(state) : state)` (+ `getState` if the code calls it).
+
 ## 9. Folder shape per route (mirror web)
 
 **expo-router does NOT hide `_` folders by itself** — it treats every `.ts/.tsx`

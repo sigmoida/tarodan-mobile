@@ -11,7 +11,7 @@ import { useAuthStore } from '@/stores/authStore';
  * Taze kullanıcıyı (ya da `null`) döndürür.
  */
 export function useRefreshAccount() {
-  const { refreshUserData } = useAuthStore();
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
   const queryClient = useQueryClient();
   return useCallback(async () => {
     const fresh = await refreshUserData();

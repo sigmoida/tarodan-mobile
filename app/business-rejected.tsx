@@ -13,7 +13,8 @@ import { useBusinessGateExit } from '@/hooks/useBusinessGateExit';
  */
 export default function BusinessRejectedScreen() {
   const { t } = useTranslation();
-  const { user, logout } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
   // Başvuru artık reddedilmiş değilse (bayat görüntü / yeniden başvuru onaylandı) kapıdan çık.
   useBusinessGateExit('rejected');
 

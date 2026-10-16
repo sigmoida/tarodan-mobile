@@ -54,7 +54,8 @@ export default function ProductDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams();
   const productId = String(id);
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
 
   const productQuery = useProduct(productId, isAuthenticated);
   const { data: product, isLoading, isError, refetch: refetchProduct } = productQuery;

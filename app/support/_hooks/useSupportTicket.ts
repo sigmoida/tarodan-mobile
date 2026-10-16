@@ -16,7 +16,7 @@ import type { TicketDetail } from '../_lib/types';
 export function useSupportTicket() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [refreshing, setRefreshing] = useState(false);
   const [reply, setReply] = useState('');
 

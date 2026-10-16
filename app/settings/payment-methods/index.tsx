@@ -32,7 +32,7 @@ const buildCardTypeLabels = (t: TFunction): Record<string, string> => ({
 
 export default function PaymentMethodsScreen() {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const queryClient = useQueryClient();
   const cardTypeLabels = buildCardTypeLabels(t);
   const title = t("payment.savedCardsTitle");

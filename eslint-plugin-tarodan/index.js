@@ -547,6 +547,36 @@ const encodedApiPath = {
   },
 };
 
+/**
+ * `useXxxStore()` — argümansız (tüm store'a abone) çağrı. Store'daki HER yazım bileşeni yeniden
+ * render eder; selector (`useAuthStore((s) => s.user)`) ya da çok alanda `useShallow` kullan,
+ * callback içinde okuma için `useXxxStore.getState()`. Bkz. CLAUDE.md §8.
+ * Not: `useSyncExternalStore` her zaman argümanlı olduğundan eşleşmez.
+ *
+ * @type {import('eslint').Rule.RuleModule}
+ */
+const noWholeStoreSubscription = {
+  meta: {
+    type: 'suggestion',
+    docs: { description: "Argümansız use*Store() (tüm store aboneliği) yerine selector kullan" },
+    schema: [],
+    messages: {
+      whole:
+        "'{{name}}()' tüm store'a abone olur (her yazımda render). Selector kullan: {{name}}((s) => s.alan); çok alanda useShallow; callback'te {{name}}.getState(). Bkz. CLAUDE.md §8.",
+    },
+  },
+  create(context) {
+    return {
+      CallExpression(node) {
+        const callee = node.callee;
+        if (callee.type !== 'Identifier' || !/^use[A-Z]\w*Store$/.test(callee.name)) return;
+        if (node.arguments.length > 0) return;
+        context.report({ node, messageId: 'whole', data: { name: callee.name } });
+      },
+    };
+  },
+};
+
 module.exports = {
   rules: {
     'encoded-api-path': encodedApiPath,
@@ -558,5 +588,6 @@ module.exports = {
     'no-lira-symbol': noLiraSymbol,
     'no-custom-screen-header': noCustomScreenHeader,
     'no-native-header': noNativeHeader,
+    'no-whole-store-subscription': noWholeStoreSubscription,
   },
 };

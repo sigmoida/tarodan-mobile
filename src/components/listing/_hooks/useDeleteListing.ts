@@ -20,7 +20,7 @@ import { invalidateListingCaches } from '../_lib/invalidate';
 export function useDeleteListing(productId?: string) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { refreshUserData } = useAuthStore();
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
 
   return useMutation({
     mutationFn: (removal: ListingRemovalPayload) => productsApi.delete(productId!, removal),

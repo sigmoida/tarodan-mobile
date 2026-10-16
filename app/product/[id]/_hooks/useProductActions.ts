@@ -59,7 +59,9 @@ export function useProductActions({
 }) {
   const { t } = useTranslation();
   const { canTrade } = useFeatureAccess();
-  const { isInCart, setBuyNow } = useCartStore();
+  // Yalnız bu ürünün sepet durumuna abone ol (diğer satırların değişimi render tetiklemez).
+  const inCart = useCartStore((s) => s.items.some((i) => i.productId === productId));
+  const setBuyNow = useCartStore((s) => s.setBuyNow);
   // Sepet yazmaları üyede sunucuya da aynalanır.
   const cart = useCartSync();
 
@@ -110,7 +112,7 @@ export function useProductActions({
     if (!product) return;
     if (isOutOfStock) return toast.error(t('cart.outOfStock'));
     const item = buildCartItem(product, images) as any;
-    if (!isInCart(productId)) cart.add(item, clampCartQuantity(quantity, product, isOwnerProduct));
+    if (!useCartStore.getState().isInCart(productId)) cart.add(item, clampCartQuantity(quantity, product, isOwnerProduct));
     const line = useCartStore.getState().items.find((i) => i.productId === productId);
     setBuyNow(item, line?.quantity ?? clampCartQuantity(quantity, product, isOwnerProduct));
     router.push('/checkout?buyNow=1' as any);
@@ -181,7 +183,7 @@ export function useProductActions({
   return {
     quantity,
     setQuantity,
-    inCart: isInCart(productId),
+    inCart,
     offerModalOpen,
     setOfferModalOpen,
     collectionModalOpen,

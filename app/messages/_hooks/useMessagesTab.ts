@@ -13,7 +13,8 @@ import { qk } from '@/lib/query';
  */
 export function useMessagesTab() {
   const { t } = useTranslation();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const getOtherParticipant = useMessagesStore((s) => s.getOtherParticipant);
   const { data: threads = [], isLoading, isError, isFetched: hasLoadedThreads, refetch } = useThreadsQuery();
   const daily = useDailyMessageLimit();

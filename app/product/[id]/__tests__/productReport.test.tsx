@@ -5,9 +5,13 @@
 import { act, renderHook } from '@testing-library/react-native';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
-jest.mock('@/stores/cartStore', () => ({
-  useCartStore: () => ({ isInCart: () => false, setBuyNow: jest.fn() }),
-}));
+jest.mock('@/stores/cartStore', () => {
+  const state = { items: [] as any[], isInCart: () => false, setBuyNow: jest.fn() };
+  // Selector'lü abonelik + `getState()` (useProductActions).
+  const useCartStore: any = (sel?: (s: typeof state) => unknown) => (sel ? sel(state) : state);
+  useCartStore.getState = () => state;
+  return { useCartStore };
+});
 jest.mock('@/hooks/useCartSync', () => ({ useCartSync: () => ({ add: jest.fn(), removeByProductId: jest.fn() }) }));
 jest.mock('@/ui', () => ({
   ...jest.requireActual('@/ui'),

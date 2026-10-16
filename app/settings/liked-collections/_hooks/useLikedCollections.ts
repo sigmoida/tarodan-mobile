@@ -16,7 +16,7 @@ import type { LikedCollection } from '../_lib/types';
  */
 export function useLikedCollections() {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 

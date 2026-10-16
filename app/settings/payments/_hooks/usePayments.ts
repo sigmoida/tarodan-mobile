@@ -17,7 +17,7 @@ import { useDoRetryPayment } from './useDoRetryPayment';
  */
 export function usePayments() {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const retry = useDoRetryPayment();
 

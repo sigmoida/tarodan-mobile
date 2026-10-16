@@ -67,7 +67,7 @@ export default function MembershipSuccessScreen() {
 function MembershipSuccessBody() {
   const { t } = useTranslation();
   const { paymentId, tier } = useLocalSearchParams<{ paymentId?: string; tier?: string }>();
-  const { refreshUserData } = useAuthStore();
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
   const queryClient = useQueryClient();
   const tierFeatures = useMemo(() => buildTierFeatures(t), [t]);
   // Üyelik alındı: geri tuşu ödeme ekranına DÖNMEZ — ana sayfaya (iOS'ta geri oku/kaydırma kapalı).

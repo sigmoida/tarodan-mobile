@@ -58,7 +58,8 @@ const BLOCK_INVALIDATES = [
  * Backend: `GET /users/:id/block`.
  */
 export function useBlockStatus(targetUserId?: string) {
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const enabled = !!targetUserId && !!isAuthenticated && user?.id !== targetUserId;
 
   const query = useQuery({

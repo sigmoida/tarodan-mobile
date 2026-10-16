@@ -15,7 +15,8 @@ import { useAuthStore } from "@/stores/authStore";
 export function useSellerProfile() {
   const { id } = useLocalSearchParams();
   const sellerId = String(id ?? "");
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const { isFollowing, followSeller, unfollowSeller } = useFollowing();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<

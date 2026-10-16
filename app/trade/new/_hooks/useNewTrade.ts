@@ -35,7 +35,9 @@ export function useNewTrade() {
     firstQueryParam(params.targetProductId);
   const targetSellerIdParam = (firstQueryParam(params.targetSellerId) || '').trim();
 
-  const { user, isAuthenticated, limits, refreshUserData } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1); // 1: Select my items, 2: Select their items, 3: Review

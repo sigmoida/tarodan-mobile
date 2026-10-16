@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { AppImage } from '@/components/AppImage';
 import { ProductPrice } from '@/components/product';
+import { useCartStore } from '@/stores/cartStore';
 import type { WishlistItem } from '@/hooks/useFavorites';
 import { styles } from '../_lib/styles';
 import type { FavoritesScreenController } from '../_hooks/useFavoritesScreen';
@@ -26,7 +27,8 @@ export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScre
   const { product } = item;
   const open = () => router.push(`/product/${item.productId}`);
   const isActive = product.status === 'active';
-  const inCart = f.isInCart(item.productId);
+  // Kart başına selector: yalnız bu ürünün sepet durumu değişince bu kart yeniden render olur.
+  const inCart = useCartStore((s) => s.items.some((i) => i.productId === item.productId));
   const cartLabel = inCart ? t('product.goToCart') : t('product.addToCart');
 
   return (
