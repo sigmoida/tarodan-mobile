@@ -1,12 +1,12 @@
-import { MODAL_CLOSE_HEADER_HEIGHT, MODAL_MAX_WIDTH } from '@/ui';
+import { MODAL_MAX_WIDTH } from '@/ui';
 import { popupMediaLimits, POPUP_MAX_HEIGHT_RATIO } from '../popupLayout';
 import { fitBox } from '../adAspect';
 
 describe('popupMediaLimits', () => {
-  it('kart ekranın %80\'ini aşmaz; gövde iç boşluksuz: görsel kutusu = kart - başlık satırı', () => {
+  it('kart ekranın %80\'ini aşmaz; media varyantı: görsel kutusu = kartın tamamı (başlık satırı düşülmez)', () => {
     const l = popupMediaLimits({ width: 390, height: 844 }, { top: 0, bottom: 0 });
     expect(l.cardMaxHeight).toBeCloseTo(844 * POPUP_MAX_HEIGHT_RATIO, 6);
-    expect(l.height).toBeCloseTo(844 * 0.8 - MODAL_CLOSE_HEADER_HEIGHT, 6);
+    expect(l.height).toBeCloseTo(844 * 0.8, 6);
     expect(l.width).toBe(390 - 32);
   });
 

@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { useAds } from '@/hooks/useAds';
 import type { ActiveAd } from '@/lib/api';
 import { newRotationSeed, pickAd } from './pickAd';
-import { canShowPopupAd, clearPopupAdShown, markPopupAdShown } from './popupFrequency';
+import {
+  filterDismissedPopupAds,
+  markPopupAdDismissed,
+  popupDismissKey,
+  popupFrequencyOf,
+} from './popupFrequency';
 import { useScreenActive } from './useScreenActive';
 
 /**
@@ -14,77 +20,90 @@ import { useScreenActive } from './useScreenActive';
 export const POPUP_AD_DELAY_MS = 3500;
 
 /**
- * Popup reklamı: cihaz başına 24 saatte en çok bir kez, yalnız `blocked`
- * değilken (başka bir Modal/istem açık değilken), ekran odaktayken ve
- * `POPUP_AD_DELAY_MS` sonra. Bir engel gecikme süresinde çıkarsa sayaç iptal
- * olur, kalkınca yeniden başlar. Gösterim anında damga atılır — kapatılmasa da
- * uygulama yeniden açılınca tekrar çıkmaz. Reklamsız üyede/reklam yoksa hiç çıkmaz.
+ * Popup reklamı (yalnız ana sayfada bağlı). Sıklık reklam başınadır (`popupFrequency.ts`):
  *
- * Reklamsız üye yarışı: girişli kullanıcıda üyelik hakları (`limitsReady`)
- * belli olmadan aday seçilmez ve sayaç başlamaz (misafirde beklenmez). Popup
- * açıkken `isAdFree` true olursa popup kapanır ve az önce atılan damga geri
- * alınır — üye görmediği/görmemesi gereken bir popup için 24 saat kilitlenmez.
+ * - **Ziyaret**: ana sekme her ODAK kazandığında (soğuk açılış = ilk odak, sekmeye dönüş,
+ *   üstteki ekrandan geri gelme) yeni bir ziyaret başlar ve popup yeniden değerlendirilir.
+ *   Uygulamanın arka plandan öne gelmesi odak olayı DEĞİLDİR: yeni ziyaret açmaz, bu ziyarette
+ *   gösterilmiş/kapatılmış popup yeniden çıkmaz (henüz açılmamışsa sayaç kaldığı yerden kurulur).
+ * - Ziyaret başına en çok bir popup; açılmadan önce kapatılmış (`until_dismissed` + anahtar)
+ *   reklamlar `pickAd`'den ÖNCE elenir.
+ * - `close` KULLANICI kapatmasıdır (X, arka plan, geri tuşu, reklama dokunma): `until_dismissed`
+ *   ise anahtar yazılır; `every_visit` hiçbir şey yazmaz.
+ *
+ * Korumalar: reklamsız üyede/reklam yoksa hiç çıkmaz; girişli kullanıcıda üyelik hakları
+ * (`limitsReady`) belli olmadan sayaç başlamaz; `blocked` iken (başka Modal/istem açık) ve ekran
+ * odakta/önde değilken açılmaz; `POPUP_AD_DELAY_MS` sonra açılır, gecikmede engel çıkarsa sayaç
+ * iptal olur. Popup açıkken üye reklamsız çıkarsa popup kapanır ve "kapatıldı" YAZILMAZ —
+ * kullanıcı görmemesi gereken bir popup'ı kapatmış sayılmaz (eski damga geri alımının karşılığı).
  */
 export function usePopupAd(blocked: boolean): { ad: ActiveAd | null; close: () => void } {
   const { ads, isAdFree, limitsReady } = useAds('popup');
   const [seed] = useState(newRotationSeed);
-  const candidate = isAdFree || !limitsReady ? null : pickAd(ads, 'popup', seed);
-  const candidateRef = useRef(candidate);
-  candidateRef.current = candidate;
+  const eligible = !isAdFree && limitsReady && ads.length > 0;
+  const adsRef = useRef(ads);
+  adsRef.current = ads;
   const blockedRef = useRef(blocked);
   blockedRef.current = blocked;
 
-  // `null`: depodan henüz okunmadı.
-  const [capAllows, setCapAllows] = useState<boolean | null>(null);
+  // 0: henüz odak gelmedi. Her odakta artar (yeni ziyaret).
+  const [visit, setVisit] = useState(0);
+  const visitRef = useRef(visit);
+  visitRef.current = visit;
+  useFocusEffect(
+    useCallback(() => {
+      setVisit((v) => v + 1);
+    }, []),
+  );
+  // Bu ziyarette popup değerlendirmesi bitti mi (gösterildi+kapandı ya da aday yok).
+  const [doneVisit, setDoneVisit] = useState(0);
+  const done = doneVisit === visit;
+
   const [shown, setShown] = useState<ActiveAd | null>(null);
-  const [done, setDone] = useState(false);
-  const markedRef = useRef<Promise<void> | null>(null);
+  const shownRef = useRef(shown);
+  shownRef.current = shown;
+  // Bu oturumda kapatılanlar: depo yazımı bitmeden yeni ziyaret başlasa da tekrar çıkmasın.
+  const dismissedThisSession = useRef(new Set<string>());
   // Ekran odakta + uygulama önde (hero/gösterim sayacıyla aynı tek kaynak).
-  const focused = useScreenActive();
+  const active = useScreenActive();
 
   useEffect(() => {
-    let cancelled = false;
-    canShowPopupAd().then((ok) => {
-      if (!cancelled) setCapAllows(ok);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const hasCandidate = !!candidate;
-  useEffect(() => {
-    if (!hasCandidate || capAllows !== true || done || shown || blocked || !focused) return;
+    if (visit === 0 || !eligible || done || shown || blocked || !active) return;
     let cancelled = false;
     const timer = setTimeout(async () => {
-      // Depo başka bir yerden güncellenmiş olabilir (ör. yarışan ikinci örnek).
-      if (!(await canShowPopupAd())) {
-        if (!cancelled) setDone(true);
+      const open = (await filterDismissedPopupAds(adsRef.current)).filter(
+        (ad) => !dismissedThisSession.current.has(popupDismissKey(ad)),
+      );
+      // Beklerken bir engel çıktıysa açma — engel kalkınca sayaç yeniden kurulur.
+      if (cancelled || blockedRef.current) return;
+      const ad = pickAd(open, 'popup', seed);
+      if (!ad) {
+        setDoneVisit(visit);
         return;
       }
-      const ad = candidateRef.current;
-      // Beklerken bir engel çıktıysa açma — engel kalkınca sayaç yeniden kurulur.
-      if (cancelled || !ad || blockedRef.current) return;
       setShown(ad);
-      markedRef.current = markPopupAdShown();
     }, POPUP_AD_DELAY_MS);
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [hasCandidate, capAllows, done, shown, blocked, focused]);
+  }, [visit, eligible, done, shown, blocked, active, seed]);
 
-  // Açıkken üye reklamsız çıktı: kapat, damgayı geri al (yazım bitince sil).
+  // Açıkken üye reklamsız çıktı: kapat; kullanıcı kapatmadığı için "kapatıldı" yazılmaz.
   useEffect(() => {
     if (!isAdFree || !shown) return;
     setShown(null);
-    setDone(true);
-    void (markedRef.current ?? Promise.resolve()).then(() => clearPopupAdShown());
+    setDoneVisit(visitRef.current);
   }, [isAdFree, shown]);
 
   const close = useCallback(() => {
+    const ad = shownRef.current;
+    if (ad && popupFrequencyOf(ad) === 'until_dismissed') {
+      dismissedThisSession.current.add(popupDismissKey(ad));
+      void markPopupAdDismissed(ad);
+    }
     setShown(null);
-    setDone(true);
+    setDoneVisit(visitRef.current);
   }, []);
 
   return { ad: shown, close };
