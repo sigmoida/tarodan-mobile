@@ -32,6 +32,15 @@ export interface AdCampaign {
   endsAt?: string;
 }
 
+/** Reklamın yayınlandığı platform (yeni API). `app` = mobil uygulama. */
+export type AdPlatform = 'web' | 'app' | 'all';
+
+/**
+ * Popup sıklığı (yeni API): `every_visit` her ana sayfa ziyaretinde yeniden gösterilir;
+ * `until_dismissed` kullanıcı kapatana dek (reklam + `popupVersion` başına).
+ */
+export type PopupFrequency = 'every_visit' | 'until_dismissed';
+
 export interface ActiveAd {
   id: string;
   title: string;
@@ -49,7 +58,14 @@ export interface ActiveAd {
   width: number | null;
   height: number | null;
   position: string;
+  /** Geriye uyum: yeni API bunu `platform`dan türetip göndermeye devam eder. */
   deviceType: string;
+  /** Yeni API alanı; eski yanıtta yok → istemci `deviceType` filtresine düşer. */
+  platform?: AdPlatform;
+  /** Yeni API alanı; yoksa `until_dismissed` sayılır (`popupFrequency.ts`). */
+  popupFrequency?: PopupFrequency;
+  /** Popup içerik sürümü — artınca kapatılmış popup yeniden gösterilir. Yoksa `1`. */
+  popupVersion?: number;
   /**
    * Duyurulan kampanya (kupon kodu, flaş geri sayım). Eski API yanıtlarında
    * alan yok ya da `null` — ikisi de "kampanya yok".
@@ -62,8 +78,11 @@ export interface ActiveAd {
  * `guestApi` kullanılır (misafire de reklam gösterilir).
  */
 export const adsApi = {
-  /** Yayındaki reklamlar. Parametreler opsiyoneldir; filtreyi istemci yapar. */
-  getActive: (params?: { position?: string; device?: string }) =>
+  /**
+   * Yayındaki reklamlar. Mobil `platform=app` gönderir (sunucu web'e özel reklamları eler);
+   * eski API parametreyi yok sayar, filtreyi istemci yine yapar (`useAds`).
+   */
+  getActive: (params?: { position?: string; device?: string; platform?: 'app' }) =>
     guestApi.get<ActiveAd[]>("/ads/active", { params }),
 
   /** Gösterim ölçümü — banner ekrana gelince bir kez. */

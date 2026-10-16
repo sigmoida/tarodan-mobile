@@ -7,16 +7,29 @@ import { hasAdCreative } from '@/lib/ads/creative';
 import { useAuthStore } from '@/stores/authStore';
 import { useMembershipLimits } from './useMembershipLimits';
 
-/** Bu istemcide gösterilebilecek cihaz hedefleri. */
+/** Bu istemcide gösterilebilecek platformlar (yeni API `platform` alanı). */
+const PLATFORM_TARGETS = ['app', 'all'];
+/** Eski API (`platform` yok): gösterilebilecek cihaz hedefleri. */
 const DEVICE_TARGETS = ['all', 'mobile'];
+
+/**
+ * Reklam bu istemcide (uygulama) gösterilebilir mi? Yeni API `platform` gönderir:
+ * yalnız `app`/`all`. Alan yoksa (eski API) eski `deviceType` kuralı.
+ */
+export function isAppTargetedAd(ad: Pick<ActiveAd, 'platform' | 'deviceType'>): boolean {
+  if (typeof ad.platform === 'string' && ad.platform.trim()) {
+    return PLATFORM_TARGETS.includes(ad.platform.trim().toLowerCase());
+  }
+  return DEVICE_TARGETS.includes((ad.deviceType || 'all').toLowerCase());
+}
 
 /**
  * Belirli bir konumdaki reklam bannerları.
  *
- * Uç `position`/`device` query parametrelerini opsiyonel kabul ediyor ama
- * geçerli değerleri sözleşmede yazılı değil; yanlış bir değer sessizce boş
- * liste döndürürdü. Bu yüzden tüm aktif reklamlar tek sorguda çekilip filtre
- * istemcide yapılır (liste küçük, tek query tüm ekranlarda paylaşılır).
+ * Tüm konumlar tek sorguda (`platform=app`) çekilir, konum filtresi istemcide
+ * yapılır (liste küçük, tek query tüm ekranlarda paylaşılır). Platform filtresi
+ * sunucuda da yapılır; istemci yine `isAppTargetedAd` ile eler (eski API
+ * parametreyi yok sayar).
  *
  * Reklamsızlık YALNIZ sunucu kararıdır: `GET /membership/me/limits` boolean
  * `isAdFree` döndürürse (admin kutusu) ONA uyulur; `null`/eksik ya da henüz
@@ -36,7 +49,7 @@ export function useAds(position: string) {
   // Reklamsızlık kararı verilebilir mi? Misafirde sunucu hakkı yok → beklenmez.
   // Girişli üyede hak yazılana (ya da alınamadığı kesinleşene) dek karar belli
   // değildir: erken "reklam göster" diyen tüketici (popup) sonradan reklamsız
-  // çıkan üyeye reklam gösterip 24 saatlik hakkını yakardı.
+  // çıkan üyeye reklam gösterirdi.
   const limitsReady = !isAuthenticated || serverLimits != null || settledWithoutLimits === true;
 
   const adsQuery = useQuery({
@@ -46,7 +59,7 @@ export function useAds(position: string) {
     staleTime: 5 * 60_000,
     queryFn: async () => {
       try {
-        const res = await adsApi.getActive();
+        const res = await adsApi.getActive({ platform: 'app' });
         return unwrapList<ActiveAd>(res.data);
       } catch {
         // Reklam ikincil içerik — hata ekranı gösterme, sessizce boş geç.
@@ -63,7 +76,7 @@ export function useAds(position: string) {
       (all ?? []).filter(
         (ad) =>
           ad.position === position &&
-          DEVICE_TARGETS.includes((ad.deviceType || 'all').toLowerCase()) &&
+          isAppTargetedAd(ad) &&
           hasAdCreative(ad),
       ),
     [all, position],

@@ -228,6 +228,7 @@ export {
 	MODAL_CLOSE_HEADER_HEIGHT,
 	type ModalProps,
 	type ModalSize,
+	type ModalVariant,
 } from './components/Modal';
 export { ModalFooter, type ModalFooterProps } from './components/ModalFooter';
 // Alttan açılan her şey bu üç primitive'den (ham RN Modal ile sheet yazılmaz).

@@ -1,5 +1,5 @@
 /**
- * /listings: header + inline (8. karttan sonra, 24. karttan sonra) + footer
+ * /listings: header + inline (liste başına tek: 8. karttan sonra) + footer
  * reklam yuvaları. Izgara 2 sütunlu satırlara bölünür; afiş tam genişlikte.
  */
 import React from 'react';

@@ -1,13 +1,13 @@
 import { inlineAdSlotAfter, withInlineAds } from '../inlinePlacement';
 
-describe('inlineAdSlotAfter (web ile aynı kural)', () => {
-  it('8. karttan sonra, sonra 16 kartta bir, en çok 2 yuva', () => {
+describe('inlineAdSlotAfter (liste başına tek afiş)', () => {
+  it('yalnız 8. karttan sonra, tek yuva', () => {
     const slots: Record<number, number> = {};
     for (let i = 0; i < 200; i += 1) {
       const s = inlineAdSlotAfter(i);
       if (s !== null) slots[i + 1] = s; // kart numarası -> yuva sırası
     }
-    expect(slots).toEqual({ 8: 0, 24: 1 });
+    expect(slots).toEqual({ 8: 0 });
   });
 });
 
@@ -28,13 +28,15 @@ describe('withInlineAds', () => {
     expect(rows[4]).toMatchObject({ kind: 'ad', slot: 0, key: 'ad-0' });
   });
 
-  it('en çok iki afiş; 24. karttan sonra ikinci yuva, kart sırası bozulmaz', () => {
-    const rows = withInlineAds(cards(60), 2);
-    const slots = rows.filter((r) => r.kind === 'ad').map((r) => (r.kind === 'ad' ? r.slot : -1));
-    expect(slots).toEqual([0, 1]);
-    expect(itemsOf(rows)).toEqual(cards(60));
-    const idx = rows.findIndex((r) => r.kind === 'ad' && r.slot === 1);
-    expect(itemsOf(rows.slice(0, idx)).length).toBe(24);
+  it('uzun listede de tek afiş (8. karttan sonra); kart sırası bozulmaz', () => {
+    for (const cols of [1, 2]) {
+      const rows = withInlineAds(cards(60), cols);
+      const ads = rows.filter((r) => r.kind === 'ad');
+      expect(ads).toEqual([{ kind: 'ad', key: 'ad-0', slot: 0 }]);
+      expect(itemsOf(rows)).toEqual(cards(60));
+      const idx = rows.findIndex((r) => r.kind === 'ad');
+      expect(itemsOf(rows.slice(0, idx)).length).toBe(8);
+    }
   });
 
   it('dolmamış satırı kapatıp afişi ardına koyar (3 sütunda 8. kart satır ortasında)', () => {
