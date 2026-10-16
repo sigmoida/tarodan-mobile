@@ -5,7 +5,7 @@ import { View, StyleSheet } from 'react-native';
 import { AppImage } from '../AppImage';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { tr } from 'date-fns/locale/tr';
 import { theme, Text, StatusBadge, Avatar, Icon, ListRowCard } from '@/ui';
 import { formatPrice } from '../../utils/format';
 
