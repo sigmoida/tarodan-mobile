@@ -1,9 +1,7 @@
 import React, { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
-import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Text, Input, Textarea, Button, SectionCard, theme, Icon } from '@/ui';
-import { DocLink } from '@/components/content/DocBlocks';
 
 import { styles } from '../_lib/styles';
 import { buildContactOptions } from '../_lib/faq';
@@ -11,7 +9,7 @@ import type { HelpController } from '../_hooks/useHelp';
 
 const { colors, iconSize } = theme;
 
-/** İletişim seçenekleri (e-posta), mesaj formu ve uygulama bilgisi — SectionCard'lar. */
+/** İletişim seçenekleri (e-posta) ve mesaj formu — SectionCard'lar. */
 export function HelpContact({ f }: { f: HelpController }) {
   const { t } = useTranslation();
   const contactOptions = useMemo(() => buildContactOptions(t), [t]);
@@ -64,16 +62,6 @@ export function HelpContact({ f }: { f: HelpController }) {
           disabled={f.contactSubmitting}
         />
       </SectionCard>
-
-      <View style={styles.appInfo}>
-        <Text variant="caption" tone="subtle">
-          Tarodan v1.0.0
-        </Text>
-        <View style={styles.appLinks}>
-          <DocLink label={t('mobile.pagePrivacy')} onPress={() => router.push('/privacy')} />
-          <DocLink label={t('mobile.pageTerms')} onPress={() => router.push('/terms')} />
-        </View>
-      </View>
     </>
   );
 }
