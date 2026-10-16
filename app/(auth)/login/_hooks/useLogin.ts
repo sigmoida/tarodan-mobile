@@ -1,8 +1,8 @@
 import { logger } from '@/services/logger';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { toast } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { CAN_BUY_DIGITAL, limitAlert } from '@/lib/purchases';
@@ -39,10 +39,19 @@ export function useLogin() {
 
   // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
   const schema = useMemo(() => buildLoginSchema(t), [t]);
+  // `?email=` — kayıt / e-posta doğrulama sonrası girişe taşınan adres (alan önceden dolu gelir).
+  const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
+  const prefillEmail = typeof emailParam === 'string' ? emailParam.trim() : '';
   const form = useZodForm(schema, {
-    defaultValues: { email: '', password: '', twoFactorCode: '' },
+    defaultValues: { email: prefillEmail, password: '', twoFactorCode: '' },
   });
   const { handleSubmit, getValues, setError, setValue, trigger, clearErrors } = form;
+
+  // Ekran zaten açıkken (yığındaki login'e `dismissTo`) param sonradan gelebilir; kullanıcının
+  // yazdığı e-postanın üzerine yazılmaz.
+  useEffect(() => {
+    if (prefillEmail && !getValues('email')) setValue('email', prefillEmail);
+  }, [prefillEmail, getValues, setValue]);
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginForm) =>

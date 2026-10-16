@@ -55,6 +55,27 @@ describe('redirectSystemPath — web yolu → mobil rota', () => {
   });
 });
 
+describe('redirectSystemPath — e-posta doğrulama bağlantısı (token korunur)', () => {
+  // Soğuk açılış (initial: true) VE uygulama açıkken (initial: false) aynı sonuç; `token`
+  // sorgusu düşmez, `/en/` locale öneki soyulur, custom scheme de çalışır.
+  it.each([
+    ['https://tarodan.com.tr/verify-email?token=abc123', '/verify-email?token=abc123'],
+    ['https://tarodan.com.tr/en/verify-email?token=abc123', '/verify-email?token=abc123'],
+    ['https://tarodan.com.tr/tr/verify-email?token=abc123', '/verify-email?token=abc123'],
+    ['https://www.tarodan.com.tr/verify-email?token=abc123', '/verify-email?token=abc123'],
+    ['tarodan://verify-email?token=abc123', '/verify-email?token=abc123'],
+  ])('%s → %s', (url, expected) => {
+    expect(call(url, true)).toBe(expected);
+    expect(call(url, false)).toBe(expected);
+  });
+
+  it('uygulama açıkken sekme gezinmesi tetiklemez (doğrulama ekranı yığına itilir)', () => {
+    mockDismissTo.mockClear();
+    call('https://tarodan.com.tr/verify-email?token=abc123', false);
+    expect(mockDismissTo).not.toHaveBeenCalled();
+  });
+});
+
 describe('redirectSystemPath — dokunulmayanlar', () => {
   it('yolsuz kök URL\'i olduğu gibi bırakır (bağlantısız açılış)', () => {
     expect(call('tarodan:///')).toBe('tarodan:///');

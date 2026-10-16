@@ -31,14 +31,19 @@ jest.mock('@/lib/api', () => ({
   authApi: { verifyEmail: jest.fn(), resendVerification: jest.fn() },
 }));
 import { authApi } from '@/lib/api';
+import { usePendingAuthEmailStore } from '@/stores/pendingAuthEmailStore';
 
 import VerifyEmailScreen from '../verify-email';
 
 const mockVerify = authApi.verifyEmail as jest.Mock;
+const mockResend = authApi.resendVerification as jest.Mock;
 
 describe('J45 · e-posta doğrulama (süresi geçmiş token)', () => {
   beforeEach(() => {
     mockVerify.mockReset();
+    mockResend.mockReset();
+    mockResend.mockResolvedValue({ data: {} });
+    usePendingAuthEmailStore.setState({ email: null });
     mockReplace.mockClear();
     mockBack.mockClear();
     mockParams = {};
@@ -65,7 +70,7 @@ describe('J45 · e-posta doğrulama (süresi geçmiş token)', () => {
     // Başlık artık katalogdaki `auth.emailVerified` — ekranın kendi kopyası
     // ("E-postanız doğrulandı") kaldırıldı, aynı cümlenin iki sürümü kalmasın.
     await waitFor(() => expect(screen.getByText('E-posta Doğrulandı!')).toBeOnTheScreen());
-    fireEvent.press(screen.getByText('Devam Et'));
+    fireEvent.press(screen.getByText('Giriş Yap'));
     expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
   });
 
@@ -91,5 +96,86 @@ describe('J45 · e-posta doğrulama (süresi geçmiş token)', () => {
 
     await waitFor(() => expect(screen.getByText('Doğrulama Başarısız')).toBeOnTheScreen());
     expect(screen.getByText('Yeni Bağlantı Gönder')).toBeOnTheScreen();
+  });
+  it('J45.6 misafir + hata → e-posta alanı + "Yeni Bağlantı Gönder"; yazılan adrese resend-verification', async () => {
+    mockParams = { token: 'used' };
+    mockVerify.mockRejectedValue({ response: { data: { message: 'Bağlantı daha önce kullanılmış.' } } });
+    renderWithProviders(<VerifyEmailScreen />);
+
+    await waitFor(() => expect(screen.getByText('Doğrulama Başarısız')).toBeOnTheScreen());
+    expect(screen.getByText('Bağlantı daha önce kullanılmış.')).toBeOnTheScreen();
+    fireEvent.changeText(screen.getByTestId('resend-verification-email-input'), 'misafir@demo.com');
+    fireEvent.press(screen.getByTestId('resend-verification-button'));
+
+    await waitFor(() => expect(mockResend).toHaveBeenCalledWith('misafir@demo.com'));
+    // Başarılı gönderimden sonra 60 sn geri sayım: tekrar basış kilitli.
+    await waitFor(() => expect(screen.getByText('Tekrar gönder (60s)')).toBeOnTheScreen());
+    expect(screen.getByTestId('resend-verification-button')).toBeDisabled();
+  });
+
+  it('J45.7 misafir: geçersiz e-posta → resend-verification çağrılmaz, doğrulama mesajı çıkar', async () => {
+    mockParams = { token: 'used' };
+    mockVerify.mockRejectedValue({});
+    renderWithProviders(<VerifyEmailScreen />);
+
+    await waitFor(() => expect(screen.getByText('Doğrulama Başarısız')).toBeOnTheScreen());
+    fireEvent.changeText(screen.getByTestId('resend-verification-email-input'), 'gecersiz');
+    fireEvent.press(screen.getByTestId('resend-verification-button'));
+
+    await waitFor(() => expect(screen.getByText('Geçerli e-posta girin')).toBeOnTheScreen());
+    expect(mockResend).not.toHaveBeenCalled();
+  });
+
+  it('J45.8 boş durumda (token yok) misafir de yeni bağlantı isteyebilir; kayıt e-postası önceden dolu', async () => {
+    usePendingAuthEmailStore.setState({ email: 'yeni@demo.com' });
+    renderWithProviders(<VerifyEmailScreen />);
+
+    const input = screen.getByTestId('resend-verification-email-input');
+    expect(input.props.value).toBe('yeni@demo.com');
+    fireEvent.press(screen.getByTestId('resend-verification-button'));
+    await waitFor(() => expect(mockResend).toHaveBeenCalledWith('yeni@demo.com'));
+  });
+
+  it('J45.9 başarı + bilinen e-posta → "Giriş Yap" e-postayı login\'e taşır ve bellekteki kopyayı siler', async () => {
+    usePendingAuthEmailStore.setState({ email: 'kayit@demo.com' });
+    mockParams = { token: 'good-token' };
+    mockVerify.mockResolvedValue({});
+    renderWithProviders(<VerifyEmailScreen />);
+
+    await waitFor(() => expect(screen.getByText('E-posta Doğrulandı!')).toBeOnTheScreen());
+    expect(
+      screen.getByText(/Artık hesabınıza giriş yapabilirsiniz/),
+    ).toBeOnTheScreen();
+    fireEvent.press(screen.getByText('Giriş Yap'));
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: '/(auth)/login',
+      params: { email: 'kayit@demo.com' },
+    });
+    expect(usePendingAuthEmailStore.getState().email).toBeNull();
+  });
+
+  it('J45.10 başarı + `?email=` param → login\'e o e-posta taşınır', async () => {
+    mockParams = { token: 'good-token', email: 'param@demo.com' };
+    mockVerify.mockResolvedValue({});
+    renderWithProviders(<VerifyEmailScreen />);
+
+    await waitFor(() => expect(screen.getByText('E-posta Doğrulandı!')).toBeOnTheScreen());
+    fireEvent.press(screen.getByText('Giriş Yap'));
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: '/(auth)/login',
+      params: { email: 'param@demo.com' },
+    });
+  });
+
+  it('J45.11 girişli kullanıcı: e-posta alanı yok, düğme oturum e-postasına gönderir', async () => {
+    mockParams = { token: 'expired' };
+    mockAuth = { isAuthenticated: true, user: { email: 'a@b.com' } };
+    mockVerify.mockRejectedValue({});
+    renderWithProviders(<VerifyEmailScreen />);
+
+    await waitFor(() => expect(screen.getByText('Doğrulama Başarısız')).toBeOnTheScreen());
+    expect(screen.queryByTestId('resend-verification-email-input')).toBeNull();
+    fireEvent.press(screen.getByTestId('resend-verification-button'));
+    await waitFor(() => expect(mockResend).toHaveBeenCalledWith('a@b.com'));
   });
 });

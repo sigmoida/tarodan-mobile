@@ -10,6 +10,7 @@ import { useForm } from 'react-hook-form';
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
+  useLocalSearchParams: () => ({}),
   router: { push: (...a: unknown[]) => mockPush(...a), replace: jest.fn(), back: jest.fn() },
 }));
 jest.mock('react-i18next', () => ({

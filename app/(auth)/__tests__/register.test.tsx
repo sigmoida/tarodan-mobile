@@ -28,6 +28,7 @@ jest.mock('@/services/appleSignin', () => ({
   isAppleAvailable: () => Promise.resolve(true),
 }));
 import RegisterScreen from '../register';
+import { usePendingAuthEmailStore } from '@/stores/pendingAuthEmailStore';
 
 const mockRegister = authApi.register as jest.Mock;
 
@@ -75,7 +76,12 @@ describe('J43 · aynı email ile kayıt reddi (register)', () => {
     expect(screen.queryByTestId('register-submit-button')).toBeNull();
 
     fireEvent.press(screen.getByTestId('register-go-login-button'));
-    expect(routerMock.router.dismissTo).toHaveBeenCalledWith('/(auth)/login');
+    expect(routerMock.router.dismissTo).toHaveBeenCalledWith({
+      pathname: '/(auth)/login',
+      params: { email: 'dupe@demo.com' },
+    });
+    // Doğrulama ekranı için e-posta bellekte taşınır.
+    expect(usePendingAuthEmailStore.getState().email).toBe('dupe@demo.com');
     fireEvent.press(screen.getByTestId('register-verify-later-link'));
     expect(pushMock).toHaveBeenCalledWith('/(auth)/verify-email');
   });

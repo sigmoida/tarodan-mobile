@@ -94,7 +94,7 @@ export const authApi = {
     guestApi.post('/auth/reset-password', { token, newPassword }),
   verifyEmail: (token: string) =>
     guestApi.post('/auth/verify-email', { token }),
-  resendVerification: (email: string) => api.post('/auth/resend-verification', { email }),
+  resendVerification: (email: string) => guestApi.post('/auth/resend-verification', { email }),
   /**
    * Kurumsal davet doğrulama (public, throttle 20/dk). Geçersiz/süresi dolmuş
    * davette **400** döner — bu durumda form gösterilmez.

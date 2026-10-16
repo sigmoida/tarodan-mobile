@@ -19,6 +19,7 @@ const mockAlert = appAlert as unknown as jest.Mock;
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
+  useLocalSearchParams: () => ({}),
   router: {
     replace: (...a: any[]) => mockReplace(...a),
     push: (...a: any[]) => mockPush(...a),

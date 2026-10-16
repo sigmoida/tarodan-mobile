@@ -10,7 +10,8 @@ import { buildRegisterSchema, type RegisterForm } from '../_lib/schema';
 import { useUsernameAvailability } from '@/hooks/useUsernameAvailability';
 import { useSocialSignIn } from '@/hooks/useSocialSignIn';
 import { IS_MAESTRO } from '@/config/maestro';
-import { useResendVerification } from './useResendVerification';
+import { usePendingAuthEmailStore } from '@/stores/pendingAuthEmailStore';
+import { useResendVerification } from '@/hooks/useResendVerification';
 
 /**
  * "Bu e-posta zaten kayıtlı" — kasıtlı olarak fırlatılan, KULLANICIYA
@@ -104,6 +105,8 @@ export function useRegister() {
     },
     onSuccess: (_res, data) => {
       setRegisteredEmail(data.email);
+      // Doğrulama ekranı (e-posta bağlantısı sonradan açılırsa) e-postayı buradan alır.
+      usePendingAuthEmailStore.getState().setEmail(data.email);
       // İlk doğrulama e-postası kayıtla birlikte gitti → tekrar gönder hemen açılmaz.
       resend.startCooldown();
       toast.success(t('auth.registerSuccessVerify'));
@@ -120,7 +123,13 @@ export function useRegister() {
 
   const handleBack = () => (router.canGoBack() ? router.back() : router.replace('/(auth)/login'));
   // Login yığında varsa ona dön (çift login ekranı olmaz), yoksa aç.
-  const goToLogin = () => router.dismissTo('/(auth)/login');
+  // Kayıt e-postası girişe taşınır (alan önceden dolu gelir).
+  const goToLogin = () =>
+    router.dismissTo(
+      registeredEmail
+        ? { pathname: '/(auth)/login', params: { email: registeredEmail } }
+        : '/(auth)/login',
+    );
   const goToVerifyEmail = () => router.push('/(auth)/verify-email');
 
   return {

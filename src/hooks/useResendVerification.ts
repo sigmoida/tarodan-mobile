@@ -7,8 +7,8 @@ import { useAppMutation } from '@/lib/query';
 export const RESEND_COOLDOWN_SECONDS = 60;
 
 /**
- * Kayıt sonrası "Doğrulama e-postasını tekrar gönder" (web `useRegister.resendVerification`:
- * `POST /auth/resend-verification`, oturumsuz, yalnız e-posta). Geri sayım kayıt anında başlar
+ * Kayıt sonrası ve e-posta doğrulama ekranında "Doğrulama e-postasını tekrar gönder"
+ * (web `useRegister.resendVerification`: `POST /auth/resend-verification`, oturumsuz, yalnız e-posta). Geri sayım kayıt anında başlar
  * (ilk e-posta zaten gönderildi) ve her başarılı gönderimde yeniden kurulur; toast'lar
  * `useAppMutation`'da.
  */
