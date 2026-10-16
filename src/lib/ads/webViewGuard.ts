@@ -1,5 +1,5 @@
 import { pathFromUrl } from '@/lib/deeplinks';
-import { isOwnWebUrl } from './openAdLink';
+import { isOtherEnvironmentUrl, isOwnWebUrl } from './openAdLink';
 import { isPurchasePath } from './purchasePath';
 import { isAppEmbedPath } from '@/lib/legal/webDocs';
 
@@ -49,6 +49,8 @@ export function decideWebRequest(
   // intent:, itms-apps:, tarodan:, javascript:, data:, http: …) engellenir.
   // WebView `originWhitelist={['*']}` ile HER adresi buraya sorar.
   if (SYSTEM_SCHEMES.test(url)) return 'external';
+  // Bizim ama bu ortamın olmayan site (production'da staging): tarayıcıya da gönderilmez.
+  if (isOtherEnvironmentUrl(url)) return 'block';
   // Dış https linki sessizce yutulmaz — sistem tarayıcısı açar.
   if (/^https:\/\//i.test(url)) return 'external';
   return 'block';

@@ -1,4 +1,5 @@
-import { deepLinkConfig, stripLocalePrefix } from '@/lib/deeplinks';
+import { stripLocalePrefix } from '@/lib/deeplinks';
+import { ownWebHosts } from '@/lib/web';
 import { inAppWebHref, resolveRemovedPage } from '@/lib/navigation/removedPages';
 
 /**
@@ -212,7 +213,8 @@ function safePathFromLink(link: string | null | undefined): string | null {
   const https = raw.match(/^https:\/\/([^/?#]+)(.*)$/i);
   if (!https) return null; // http:, javascript:, tarodanx:, mailto: … hepsi dışarıda
   const host = https[1]!.toLowerCase().replace(/:\d+$/, '');
-  if (!deepLinkConfig.hosts.includes(host)) return null;
+  // Yalnız BU ortamın alan adları (production'da staging linki rota kaynağı sayılmaz).
+  if (!ownWebHosts().has(host)) return null;
   const rest = https[2] || '/';
   return rest.startsWith('/') ? rest : `/${rest}`;
 }
