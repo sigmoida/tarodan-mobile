@@ -1,19 +1,16 @@
-import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
-import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { toast } from '@/ui';
 import { qk } from '@/lib/query';
-import { useFavorites } from '@/hooks/useFavorites';
+import { useFavoriteToggle } from '@/hooks/useFavoriteToggle';
 import { invalidateProductLists } from '../_lib/invalidate';
 import type { Product } from '../_lib/types';
 
 /**
- * Favori (beğeni) durumu + toggle. Beğeni sayısı server likeCount'undan
- * senkronlanır ve optimistic güncellenir.
- *
- * Favoriler `useFavorites` (React Query) üzerinden gelir — davranış korunur;
- * bu hook'un dışına (çağıran ekrana) hiçbir değişiklik sızmaz.
+ * Favori (beğeni) durumu + toggle. Akış (misafir uyarısı + giriş, ekle/çıkar, toast, çift dokunma
+ * kilidi) ürün kartıyla ORTAK: `useFavoriteToggle`. Kalp durumu favorites cache'inden reaktif
+ * okunur — kartta değişen favori detayda da aynı görünür (ve tersi).
+ * Detaya özel: beğeni sayısı server likeCount'undan senkronlanır ve iyimser güncellenir; başarılı
+ * toggle'da detay + listeler tazelenir (beğeni sayısı listelerde de görünür).
  */
 export function useProductFavorite({
   product,
@@ -24,21 +21,16 @@ export function useProductFavorite({
   productId: string;
   isAuthenticated: boolean;
 }) {
-  const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { addToFavorites, removeFromFavorites, isInFavorites, fetchFavorites } =
-    useFavorites();
+  const { favoriteIds, toggle: toggleFavorite, refetch } = useFavoriteToggle();
 
-  const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 
-  // Giriş yapılıysa favoride mi kontrol et.
+  // Detay açılınca favori listesini tazele (başka cihazda değişmiş olabilir).
   useEffect(() => {
-    if (isAuthenticated && productId) {
-      fetchFavorites().then(() => setIsFavorite(isInFavorites(productId)));
-    }
-  }, [isAuthenticated, productId]);
+    if (isAuthenticated && productId) void refetch();
+  }, [isAuthenticated, productId, refetch]);
 
   // Beğeni sayısını server likeCount'undan senkronla.
   useEffect(() => {
@@ -46,42 +38,19 @@ export function useProductFavorite({
   }, [product]);
 
   const toggle = async () => {
-    if (!isAuthenticated) {
-      toast.error(t('product.signInToFavorite'));
-      setTimeout(() => router.push('/(auth)/login'), 1500);
-      return;
-    }
     setFavoriteLoading(true);
     try {
-      if (isFavorite) {
-        const success = await removeFromFavorites(productId);
-        if (success) {
-          setIsFavorite(false);
-          setFavoriteCount((c) => Math.max(0, c - 1));
-          invalidateProductLists(queryClient);
-          queryClient.invalidateQueries({ queryKey: qk.products.detail(productId) });
-          toast.success(t('product.favoriteRemoved'));
-        } else {
-          toast.error(t('product.favoriteRemoveFailed'));
-        }
-      } else {
-        const success = await addToFavorites(productId);
-        if (success) {
-          setIsFavorite(true);
-          setFavoriteCount((c) => c + 1);
-          invalidateProductLists(queryClient);
-          queryClient.invalidateQueries({ queryKey: qk.products.detail(productId) });
-          toast.success(t('product.favoriteAdded'));
-        } else {
-          toast.error(t('product.favoriteAddFailed'));
-        }
+      const result = await toggleFavorite(productId);
+      if (result === 'added' || result === 'removed') {
+        setFavoriteCount((c) => (result === 'added' ? c + 1 : Math.max(0, c - 1)));
+        invalidateProductLists(queryClient);
+        queryClient.invalidateQueries({ queryKey: qk.products.detail(productId) });
       }
-    } catch {
-      toast.error(t('utility.error500.title'));
     } finally {
       setFavoriteLoading(false);
     }
   };
 
+  const isFavorite = isAuthenticated && favoriteIds.has(productId);
   return { isFavorite, favoriteCount, favoriteLoading, toggle };
 }

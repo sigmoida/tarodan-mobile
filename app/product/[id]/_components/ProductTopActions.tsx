@@ -33,7 +33,7 @@ export function ProductTopActions({
         icon="heart"
         iconVariant={isFavorite ? 'solid' : 'outline'}
         iconColor={isFavorite ? theme.colors.danger[500] : undefined}
-        accessibilityLabel={t('product.addToFavorites')}
+        accessibilityLabel={t(isFavorite ? 'product.removeFromFavorites' : 'product.addToFavorites')}
         onPress={onFavorite}
         disabled={favoriteLoading}
       />

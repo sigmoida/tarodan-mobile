@@ -26,6 +26,9 @@ export interface WishlistItem {
   addedAt: string;
 }
 
+/** Veri yokken sabit boş liste: `items` kimliği render'lar arasında değişmez (türetilen Set/memo'lar boşuna yenilenmez). */
+const NO_ITEMS: WishlistItem[] = [];
+
 /** Pozitif sonlu sayı (string de kabul) ya da `undefined`. */
 function toPositiveNumber(v: unknown): number | undefined {
   const n = typeof v === 'string' ? Number(v) : v;
@@ -95,7 +98,7 @@ export function useFavorites() {
     },
   });
 
-  const items: WishlistItem[] = query.data ?? [];
+  const items: WishlistItem[] = query.data ?? NO_ITEMS;
 
   // İmperatif kontroller cache'i TAZE okur (closure `items` bayat kalabilir; ör.
   // fetchFavorites().then(() => isInFavorites(id)) akışında sync sonuç şart).

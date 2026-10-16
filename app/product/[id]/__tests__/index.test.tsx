@@ -45,6 +45,7 @@ jest.mock('@/stores/guestStore', () => ({
 }));
 jest.mock('@/hooks/useFavorites', () => ({
   useFavorites: () => ({
+    items: [],
     addToFavorites: jest.fn(),
     removeFromFavorites: jest.fn(),
     isInFavorites: () => false,
