@@ -76,7 +76,9 @@ export {
 export {
 	GlassIconButton,
 	GLASS_ICON_BUTTON_SIZE,
+	GLASS_ICON_BUTTON_SIZE_SM,
 	type GlassIconButtonProps,
+	type GlassIconButtonSize,
 	type GlassIconTone,
 } from './components/GlassIconButton';
 export { usePressScale, PRESS_SCALE, PRESS_SPRING } from './lib/pressScale';
