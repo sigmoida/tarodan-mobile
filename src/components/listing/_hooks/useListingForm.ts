@@ -21,14 +21,8 @@ import { activatedStatus, activationMessageKey } from '../_lib/activation';
 import { useDispatchAddress } from './useDispatchAddress';
 import { invalidateListingCaches as invalidateListingCachesShared } from '../_lib/invalidate';
 import { useDeleteListing } from './useDeleteListing';
-import { useCommissionPreview } from './useCommissionPreview';
-import {
-  commissionPreviewAmount,
-  defaultSaleDates,
-  salePayload,
-  saleStartsLater,
-} from '../_lib/sale';
-import { priceFieldError, priceLimitHint, salePriceFieldError, type PriceBaseline } from '../_lib/priceRules';
+import { defaultSaleDates, salePayload } from '../_lib/sale';
+import { priceLimitHint, type PriceBaseline } from '../_lib/priceRules';
 import { usePriceLimits } from '@/hooks/usePriceLimits';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import { useLatestRef } from '@/hooks/useLatestRef';
@@ -59,8 +53,9 @@ import type { MappedListing } from '../_lib/editMapper';
  *
  * Performans: serbest metin alanları (başlık, açıklama, model kodu, set adedi) controller'da
  * İZLENMEZ — `FormTextField` (useController) kendi alanını çizer, değerler gönderimde
- * `getValues()` ile okunur. Yalnız mantığı süren alanlar `useWatch` ile izlenir (kategori, marka,
- * üretici, seçimler, fiyat/adet → komisyon önizlemesi). Bölümlere giden işleyiciler
+ * `getValues()` ile okunur. Fiyat/adet de İZLENMEZ: türetmeleri (fiyat hatası, indirim yüzdesi,
+ * komisyon önizlemesi) yaprakta `useListingPricing` hesaplar. Yalnız mantığı süren alanlar
+ * `useWatch` ile izlenir (kategori, marka, üretici, seçimler). Bölümlere giden işleyiciler
  * referans-kararlı; bölümler `memoSection` ile yalnız okudukları alan değişince çizilir.
  */
 // Sabit boş dizi: `?? []` her render'da yeni referans üretip memo'lu kargo bölümünü çizdirirdi.
@@ -137,14 +132,12 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const form = useZodForm(buildListingFormSchema(t), { defaultValues: emptyListingFormValues });
   const { control, setValue, getValues } = form;
   /**
-   * YALNIZ mantığı süren alanlar izlenir (`useWatch`): seçimler dokunuşla değişir, fiyat/adet
-   * komisyon önizlemesini ve fiyat hatasını sürer. Başlık/açıklama/model kodu/set adedi
-   * İZLENMEZ — tuş vuruşu controller'ı ve formun geri kalanını yeniden çizmesin diye alanlar
-   * `FormTextField` ile kendi değerini okur; gönderimde `getValues()`.
+   * YALNIZ mantığı süren alanlar izlenir (`useWatch`): seçimler dokunuşla değişir. Başlık/
+   * açıklama/model kodu/set adedi ve fiyat/adet İZLENMEZ — tuş vuruşu controller'ı ve formun
+   * geri kalanını yeniden çizmesin diye alanlar kendi değerini okur (`FormTextField`,
+   * `useListingPricing`); gönderimde `getValues()`.
    */
   const [
-    price,
-    quantity,
     categoryId,
     condition,
     brandId,
@@ -163,8 +156,6 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   ] = useWatch({
     control,
     name: [
-      'price',
-      'quantity',
       'categoryId',
       'condition',
       'brandId',
@@ -335,32 +326,22 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     limits,
   });
 
-  // Komisyon önizlemesi — indirim BUGÜN geçerliyse indirimli fiyattan sorulur
-  // (create + edit; web düzenleme ekranı hâlâ normal fiyatı kullanıyor).
-  const saleFields = { price, salePrice, saleStartDate, saleEndDate };
+  // İndirim alanları + GÜNCEL fiyat (fiyat izlenmez → gönderim anında formdan okunur).
+  const currentSaleFields = () => ({ price: getValues('price'), salePrice, saleStartDate, saleEndDate });
 
   // Admin fiyat sınırları (yüklenemezse / boşsa kural yok — form asla bloklanmaz). Düzenlemede
   // yüklenen ilk fiyatlar taban altındaysa DEĞİŞTİRİLMEDİKÇE hata verilmez (eski kayıt muafiyeti).
   const { minPrice, maxPrice } = usePriceLimits();
-  const priceLimits = { minPrice, maxPrice };
+  // Referans-kararlı: fiyat bölümünün memo anahtarı (`useListingPricing`).
+  const priceLimits = useMemo(() => ({ minPrice, maxPrice }), [minPrice, maxPrice]);
   const [priceBaseline, setPriceBaseline] = useState<PriceBaseline | null>(null);
   // Limit hatası yazarken kırmızı yanmaz: alan terk edilince (blur) ya da gönderim denenince görünür
   // (ipucu satırı HEP görünür). Gönderim kapısı (`validate`) bundan bağımsız, her zaman çalışır.
   const [priceBlurred, setPriceBlurred] = useState(false);
   const [salePriceBlurred, setSalePriceBlurred] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const priceError =
-    priceBlurred || submitAttempted
-      ? priceFieldError(t, price, priceLimits, priceBaseline) ?? undefined
-      : undefined;
-  const salePriceError =
-    salePriceBlurred || submitAttempted
-      ? salePriceFieldError(t, saleFields, priceLimits, priceBaseline) ?? undefined
-      : undefined;
+  // Fiyat hatası / indirim yüzdesi / komisyon önizlemesi yaprakta: `useListingPricing`.
   const priceHint = priceLimitHint(t, priceLimits);
-  const { commissionPreview, commissionLoading, commissionError, commissionEnabled } =
-    useCommissionPreview(commissionPreviewAmount(saleFields), categoryId, shippingPackageTier);
-  const saleStartsOn = saleStartsLater(saleFields);
 
   // Picker modal visibility
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
@@ -555,13 +536,6 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     );
   const selectedMaterial = effectiveMaterials.find((m) => m.slug === material);
 
-  const listPriceNum = Number(price) || 0;
-  const salePriceNum = Number(salePrice) || 0;
-  const discountPercent =
-    listPriceNum > 0 && salePriceNum > 0 && salePriceNum < listPriceNum
-      ? Math.round((1 - salePriceNum / listPriceNum) * 100)
-      : 0;
-
   // -----------------------------------------------------------------------
   // Submit
   // -----------------------------------------------------------------------
@@ -575,7 +549,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     return {
       title,
       description: description || undefined,
-      price: Number(price),
+      price: Number(getValues('price')),
       categoryId,
       condition,
       brandId: brandId || undefined,
@@ -610,7 +584,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
    * `salePrice < max(originalPrice, price)` ise ürünü indirimli açar, aksi
    * halde indirim alanlarını yok sayar. Etkin fiyatı İSTEMCİ TÜRETMEZ.
    */
-  const buildSalePayload = (): Record<string, unknown> => ({ ...salePayload(saleFields) });
+  const buildSalePayload = (): Record<string, unknown> => ({ ...salePayload(currentSaleFields()) });
 
   const validate = (): boolean => {
     setSubmitAttempted(true);
@@ -760,6 +734,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   /** Gönderim: oluşturma (`POST`) ya da düzenleme (`PATCH`) + sonuç uyarısı. */
   const publish = async () => {
     setIsSubmitting(true);
+    // Adet izlenmez (yaprak alanı) → gönderim anında formdan.
+    const quantity = getValues('quantity');
     try {
       if (!isEdit) {
         await productsApi.create({
@@ -930,9 +906,11 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     // shared fields (başlık/açıklama/model kodu/set adedi izlenmez: `FormTextField`)
     setTitle,
     setDescription,
-    price, setPrice,
-    priceError, priceHint, onPriceBlur,
-    quantity, setQuantity,
+    setPrice,
+    priceHint, onPriceBlur,
+    // Fiyat türetmelerinin girdileri (`useListingPricing` yaprakta okur).
+    priceLimits, priceBaseline, priceBlurred, salePriceBlurred, submitAttempted,
+    setQuantity,
     reservedQty,
     categoryId, setCategoryId,
     condition, setCondition,
@@ -953,7 +931,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     isPreorder, setIsPreorder,
     shippingPackageTier, setShippingPackageTier,
     packageTiers, packageTiersLoading, packageTiersError,
-    salePrice, setSalePrice, salePriceError, onSalePriceBlur,
+    salePrice, setSalePrice, onSalePriceBlur,
     saleStartDate, setSaleStartDate,
     saleEndDate, setSaleEndDate,
     reactivateQuantity, setReactivateQuantity,
@@ -988,12 +966,6 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     modelsLoading,
     // Kimlik kontrolü/kapısı süresince de devre dışı (ikinci basış yok).
     isSubmitting: isSubmitting || checkingIdentity || deleteListing.isPending,
-    // commission
-    commissionPreview,
-    commissionLoading,
-    commissionError,
-    commissionEnabled,
-    saleStartsOn,
     // picker visibility
     showCategoryPicker, setShowCategoryPicker,
     showBrandPicker, setShowBrandPicker,
@@ -1014,7 +986,6 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     effectiveScales,
     effectiveMaterials,
     selectedMaterial,
-    discountPercent,
     // handlers
     handleSubmit: stableHandleSubmit,
     handleReactivate: stableHandleReactivate,

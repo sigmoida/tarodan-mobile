@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
@@ -25,19 +25,14 @@ export function useEmailChangeFlow({ onVerified }: { onVerified?: () => void } =
 
   const [phase, setPhase] = useState<EmailPhase>('entering');
   const [pendingEmail, setPendingEmail] = useState('');
-  const [resendIn, setResendIn] = useState(0);
+  // Yeniden gönderme sınırı (ms). Saniyelik geri sayım yaprakta (`EmailResendButton` →
+  // `useSecondsUntil`): her tik bu akış hook'unu ve formu yeniden çizmesin.
+  const [resendAt, setResendAt] = useState(0);
 
   const emailSchema = useMemo(() => buildEmailChangeSchema(t), [t]);
   const codeSchema = useMemo(() => buildEmailCodeSchema(t), [t]);
   const emailForm = useZodForm(emailSchema, { defaultValues: { newEmail: '' } });
   const codeForm = useZodForm(codeSchema, { defaultValues: { code: '' } });
-
-  // Yeniden gönderme geri sayımı (yerel zamandan; sunucu 60 sn cooldown uyguluyor).
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const id = setInterval(() => setResendIn((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(id);
-  }, [resendIn]);
 
   const request = useMutation({
     mutationFn: (newEmail: string) => authApi.requestEmailChange(newEmail),
@@ -45,7 +40,8 @@ export function useEmailChangeFlow({ onVerified }: { onVerified?: () => void } =
       setPendingEmail(newEmail);
       codeForm.reset({ code: '' });
       setPhase('codeSent');
-      setResendIn(EMAIL_CODE_RESEND_SECONDS);
+      // Yerel zamandan; sunucu 60 sn cooldown uyguluyor.
+      setResendAt(Date.now() + EMAIL_CODE_RESEND_SECONDS * 1000);
       toast.success(t('profile.emailChangeCodeSent'));
     },
     onError: (e, newEmail) => {
@@ -83,7 +79,8 @@ export function useEmailChangeFlow({ onVerified }: { onVerified?: () => void } =
     isEmailVerified: !!user?.isEmailVerified,
     phase,
     pendingEmail,
-    resendIn,
+    /** Yeniden gönderilebileceği an (ms); kalan saniye yaprakta `useSecondsUntil`. */
+    resendAt,
     emailForm,
     codeForm,
     /** Kod adımından yeni adresi düzeltmek için geri dön (yazılan değer korunur). */
@@ -94,7 +91,7 @@ export function useEmailChangeFlow({ onVerified }: { onVerified?: () => void } =
     submitEmail: emailForm.handleSubmit((v) => request.mutate(v.newEmail.trim())),
     submitCode: codeForm.handleSubmit((v) => verify.mutate(v.code.trim())),
     resend: () => {
-      if (resendIn > 0 || request.isPending || !pendingEmail) return;
+      if (Date.now() < resendAt || request.isPending || !pendingEmail) return;
       request.mutate(pendingEmail);
     },
     isRequesting: request.isPending,

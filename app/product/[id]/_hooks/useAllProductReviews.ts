@@ -35,9 +35,9 @@ export function useAllProductReviews(productId: string, enabled: boolean) {
       const loaded = allPages.reduce((sum, p) => sum + p.items.length, 0);
       return loaded < lastPage.total ? lastPage.page + 1 : undefined;
     },
-    // Bound resident pages (#76) — page number drives paging, safe under trimming.
-    maxPages: 5,
-    getPreviousPageParam: (firstPage) => (firstPage.page > 1 ? firstPage.page - 1 : undefined),
+    // NOT: `maxPages` bilerek YOK (`useSearch` ile aynı gerekçe): ekran `fetchPreviousPage`
+    // çağırmaz, ~100 satırdan sonra 1. sayfa düşünce liste sıçrıyordu (ayrıca `getNextPageParam`
+    // tüm sayfaların toplamını sayar). Bellek FlatList pencerelemesiyle (`listWindowing`) sınırlı.
   });
 
   const reviews: ProductReview[] = (list.data?.pages ?? []).flatMap((p) => p.items);

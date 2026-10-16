@@ -12,6 +12,7 @@ import { apiErrorMessage } from '@/lib/api/errorText';
 import { useAuthStore } from '@/stores/authStore';
 import { buildCollectionEditSchema, type CollectionForm, type Collection } from '../_lib/collectionEditSchema';
 import { useCollectionCover } from '../../_hooks/useCollectionCover';
+import { useSafeTimeout } from '@/hooks/useSafeTimeout';
 
 /**
  * Collection edit controller — owns the collection query, RHF form (zod), the
@@ -19,6 +20,8 @@ import { useCollectionCover } from '../../_hooks/useCollectionCover';
  * Lifted verbatim from the monolithic EditCollectionScreen.
  */
 export function useCollectionEdit() {
+  // Silme sonrası gecikmeli yönlendirme ekrandan çıkılınca iptal olur.
+  const schedule = useSafeTimeout();
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const user = useAuthStore((s) => s.user);
@@ -94,7 +97,7 @@ export function useCollectionEdit() {
       queryClient.invalidateQueries({ queryKey: qk.collections.all });
       queryClient.invalidateQueries({ queryKey: qk.collections.mine });
       toast.success(t('collection.collectionDeleted'));
-      setTimeout(() => router.replace('/collections'), 1500);
+      schedule(() => router.replace('/collections'), 1500);
     },
     onError: (error: any) => {
       toast.error(apiErrorMessage(error, t('collection.deleteFailed')));

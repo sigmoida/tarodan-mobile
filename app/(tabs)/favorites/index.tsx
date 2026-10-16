@@ -10,6 +10,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Button, EmptyState, ErrorState, pageListContentStyle, useDelayedLoading, usePageScrollValue } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
+import { useStableCallback } from '@/hooks/useStableCallback';
 import type { WishlistItem } from '@/hooks/useFavorites';
 import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
@@ -33,10 +34,15 @@ function FavoritesScreen() {
   const page = usePageScrollValue();
   // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
-  // Kararlı renderItem — `f` (sepet durumu dahil) değişince yeniden kurulur, satırlar güncel kalır.
+  // Kararlı renderItem + memo'lu kart: işleyiciler referans-kararlı (en güncel `f`'i çağırır), sepet
+  // durumu kartın kendi seçicisinde — ekran render olsa da satırlar yeniden çizilmez.
+  const onRemove = useStableCallback(f.handleRemove);
+  const onCartAction = useStableCallback(f.handleCartAction);
   const renderFavorite = useCallback(
-    ({ item }: { item: WishlistItem }) => <FavoriteCard item={item} f={f} />,
-    [f],
+    ({ item }: { item: WishlistItem }) => (
+      <FavoriteCard item={item} onRemove={onRemove} onCartAction={onCartAction} />
+    ),
+    [onRemove, onCartAction],
   );
 
   if (!f.isAuthenticated) {

@@ -3,7 +3,8 @@
  *
  * - Misafir ad/e-posta/telefon RHF'de: tuş vuruşu checkout controller'ını (`useCheckout`)
  *   yeniden çalıştırmaz.
- * - Adres alanına yazmak controller'ı çalıştırır ama memo'lu özet kartı yeniden çizilmez.
+ * - Adres alanına yazmak da controller'ı çalıştırmaz (değer adres deposunda, yaprak abone) ve
+ *   memo'lu özet kartı yeniden çizilmez.
  * - OTP kodu ve saniyelik geri sayım modalın içinde: controller'ı yeniden çalıştırmaz.
  */
 import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
@@ -132,10 +133,11 @@ describe('checkout — yazarken render yalıtımı', () => {
     expect(mockControllerRuns).toBe(runs);
     expect(screen.getByTestId('guest-name-input').props.value).toBe('Al');
 
-    // Adres alanı controller state'inde (controller çalışır) ama özet kartı memo'lu.
+    // Adres alanı depoda: controller çalışmaz, özet kartı yeniden çizilmez; alan güncellenir.
     fireEvent.changeText(screen.getByTestId('shipping-fullname-input'), 'Ali');
-    expect(mockControllerRuns).toBeGreaterThan(runs);
+    expect(mockControllerRuns).toBe(runs);
     expect(mockSummaryRenders).toBe(summary);
+    expect(screen.getByTestId('shipping-fullname-input').props.value).toBe('Ali');
   });
 
   it('OTP kodu ve geri sayım controller\'ı yeniden çalıştırmaz', async () => {

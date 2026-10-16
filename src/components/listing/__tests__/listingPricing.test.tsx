@@ -11,12 +11,24 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
 }));
 
-import { ListingPricingSection } from '../_sections/ListingPricingSection';
-import { ListingShippingSection } from '../_sections/ListingShippingSection';
+import { ListingPricingView } from '../_sections/ListingPricingSection';
+import { ListingShippingView } from '../_sections/ListingShippingSection';
+import type { ListingPricing } from '../_hooks/useListingPricing';
 import { ListingOptionsSection } from '../_sections/ListingOptionsSection';
 import type { ListingFormController } from '../_hooks/useListingForm';
 
 const asF = (o: Record<string, unknown>) => o as unknown as ListingFormController;
+
+/**
+ * Görünümler controller'ı (`f`) ve yaprakta türetilen fiyat değerlerini (`d`, `useListingPricing`)
+ * ayrı alır; testte ikisi aynı düz nesneden okunur.
+ */
+function ListingPricingSection({ f }: { f: ListingFormController }) {
+  return <ListingPricingView f={f} d={f as unknown as ListingPricing} />;
+}
+function ListingShippingSection({ f }: { f: ListingFormController }) {
+  return <ListingShippingView f={f} d={f as unknown as ListingPricing} />;
+}
 
 const PREVIEW = {
   sellerFeeAmount: 25,

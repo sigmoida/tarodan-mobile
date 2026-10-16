@@ -2,6 +2,8 @@ import { createPlatformQueryClient } from "@/lib/api-client/query";
 import { installOnlineManager } from "@/lib/network/onlineManager";
 import { installFocusManager } from "./focusManager";
 import { retryUnlessClientError } from "./retry";
+import { qk } from "./keys";
+import { StaggeredFocusQueryCache } from "./staggeredFocusCache";
 
 // TanStack `onlineManager` cihaz bağlantısına bağlanır (ilk sorgudan önce): çevrimiçi olunca
 // eskimiş / hatalı sorgular tazelenir.
@@ -13,6 +15,9 @@ installFocusManager();
 // Tek paylaşılan QueryClient — _layout'taki provider ve logout temizliği
 // (resetUserStores) aynı örneği kullansın diye modül seviyesinde.
 export const queryClient = createPlatformQueryClient({
+  // Ön plana dönüşte eskimiş sorgular partiler halinde yeniden çekilir (ilk 8 hemen, sonra 4'er /
+  // 300 ms; son etkinliğe göre sıralı) — 10–20 isteğin aynı anda çıkması yerine (`./staggeredFocusCache`).
+  queryCache: new StaggeredFocusQueryCache(),
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5,
@@ -35,3 +40,27 @@ export const queryClient = createPlatformQueryClient({
     },
   },
 });
+
+/** Yavaş değişen katalog / ayar verisi: 30 dk taze, ön plana dönüşte yeniden çekilmez. */
+export const SLOW_DATA_STALE_MS = 30 * 60 * 1000;
+
+/**
+ * Admin'in seyrek değiştirdiği katalog (kategori ağacı, marka/üretici/model listeleri, ilan filtre
+ * seçenekleri) her ön plana dönüşte yeniden çekilmesin. Sorgu kendi `staleTime`'ını verirse o
+ * geçerlidir (`setQueryDefaults` < gözlemci seçenekleri). Önek eşleşir: `["categories"]` ağaç +
+ * koleksiyon kategorilerini de kapsar. Fiyat/politika ayarları (`publicSettings`, `timingPolicy`)
+ * bilerek YOK: kendi staleTime'ları var ve dönüşte tazelenmeleri istenir.
+ */
+const SLOW_DATA_PREFIXES = [
+  qk.catalog.categories,
+  qk.catalog.brands,
+  qk.catalog.manufacturers,
+  qk.catalog.carModelsAll,
+  qk.products.filterOptionsAll,
+];
+for (const prefix of SLOW_DATA_PREFIXES) {
+  queryClient.setQueryDefaults(prefix, {
+    staleTime: SLOW_DATA_STALE_MS,
+    refetchOnWindowFocus: false,
+  });
+}

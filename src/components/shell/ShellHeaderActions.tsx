@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { GlassIconButton, theme } from '@/ui';
+import { GlassIconButton, theme, useScreenFocused } from '@/ui';
+import { useBadgePoll } from '@/hooks/useBadgePoll';
 import {
   DEFAULT_SHELL_ACTIONS,
   DEFAULT_SHELL_LEADING,
@@ -66,6 +67,8 @@ function SettingsAction() {
 function InboxActions() {
   const { t } = useTranslation();
   const counts = useShellCounts();
+  // Sayaçlar yalnız bu sekme kökü ODAKTAYKEN yoklanır (tek ortak 60 sn döngü, `useBadgePoll`).
+  useBadgePoll(useScreenFocused());
   const openMessages = useLockedPush('/messages');
   const openNotifications = useLockedPush('/notifications');
   return (
