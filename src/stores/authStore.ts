@@ -12,6 +12,9 @@ import { usePendingAuthEmailStore } from "./pendingAuthEmailStore";
 import { readUserSnapshot, writeUserSnapshot } from "./userSnapshot";
 import { logger, safeError } from "../services/logger";
 import { withTimeout } from "../utils/withTimeout";
+import { AppState } from "react-native";
+import { subscribeOnline } from "@/lib/network/networkStatus";
+import { createForegroundTracker } from "@/lib/query/focusManager";
 import { IS_MAESTRO_NO_AUTOLOGIN, getMaestroAutoLoginCredentials } from "@/config/maestro";
 
 /** Çıkıştaki ağ çağrıları için üst sınır — kullanıcı bekletilmez. */
@@ -493,6 +496,89 @@ async function validateSessionInBackground(token: string, generation: number): P
   }
 }
 
+/** Anahtar zinciri okuma hatasında ikinci denemeden önceki bekleme. */
+const KEYCHAIN_RETRY_MS = 250;
+
+/**
+ * Access token'ı okur; anahtar zinciri hatasında bir kez daha dener. İkinci hata da
+ * FIRLATILIR — çağıran bunu "oturum yok" saymamalı (token'lar silinmez).
+ */
+async function readAccessTokenWithRetry(): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync("accessToken");
+  } catch (error) {
+    logger.warn("Access token read failed, retrying", { err: safeError(error) });
+    await new Promise((resolve) => setTimeout(resolve, KEYCHAIN_RETRY_MS));
+    return SecureStore.getItemAsync("accessToken");
+  }
+}
+
+/** Ertelenmiş oturum denemesinin aralığı: 30 sn'den başlar, her geçici hatada ikiye katlanır (≤ 5 dk). */
+const DEFERRED_RETRY_BASE_MS = 30_000;
+const DEFERRED_RETRY_MAX_MS = 5 * 60_000;
+
+let deferredRetry: { cancel: () => void } | null = null;
+let deferredAttempt = 0;
+
+/** Ertelenmiş oturum denemesini iptal eder (giriş / çıkış / başarılı yükleme). */
+function cancelDeferredSessionRetry(): void {
+  deferredRetry?.cancel();
+  deferredRetry = null;
+}
+
+/**
+ * Açılışta oturum GEÇİCİ bir hatayla doğrulanamadı (çevrimdışı, 5xx, anahtar zinciri
+ * okunamadı): token'lar saklı, uygulama misafir açıldı. `loadToken` şu anların İLKİNDE
+ * yeniden çalışır: bağlantı geri gelince (`subscribeOnline` — çevrimdışı diyaloğu ve
+ * TanStack `onlineManager` ile aynı karar), gerçek ön plana dönüşte (`focusManager` ile
+ * aynı kural) ya da geri çekilen süre dolunca (bağlantı hiç kopmadan 5xx alındıysa).
+ * Bu arada giriş/çıkış olduysa (kuşak değişti) deneme yapılmaz.
+ */
+function scheduleDeferredSessionRetry(): void {
+  cancelDeferredSessionRetry();
+  const generation = authGeneration;
+  const delay = Math.min(DEFERRED_RETRY_BASE_MS * 2 ** deferredAttempt, DEFERRED_RETRY_MAX_MS);
+  deferredAttempt += 1;
+  const fire = () => {
+    cancelDeferredSessionRetry();
+    if (generation !== authGeneration || inFlightLogout) return;
+    if (useAuthStore.getState().isAuthenticated) return;
+    void retryDeferredSession();
+  };
+  const timer = setTimeout(fire, delay);
+  const stopOnline = subscribeOnline((online) => {
+    if (online) fire();
+  });
+  const track = createForegroundTracker();
+  const appState = AppState.addEventListener("change", (next) => {
+    if (track(next) === "foreground") fire();
+  });
+  deferredRetry = {
+    cancel: () => {
+      clearTimeout(timer);
+      stopOnline();
+      appState.remove();
+    },
+  };
+}
+
+async function retryDeferredSession(): Promise<void> {
+  await useAuthStore.getState().loadToken();
+  if (!useAuthStore.getState().isAuthenticated) return;
+  deferredAttempt = 0;
+  // Misafirken çekilmiş listeler (sepet, favoriler, rozetler…) token'la yeniden çekilsin.
+  refetchServerStateForNewSession();
+}
+
+/**
+ * Misafir/önceki oturumdan kalan listeler yeni token'la yeniden çekilir. Beklenmez:
+ * oturum açılışı ağ çağrısına takılmasın. Lazy require: döngüsel import (logout ile aynı).
+ */
+function refetchServerStateForNewSession(): void {
+  const { resetServerStateForNewSession } = require("./resetUserStores");
+  void resetServerStateForNewSession();
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: true,
@@ -509,6 +595,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (token: string, user: User, refreshToken?: string) => {
     // Yeni oturum: açılışın uçuştaki arka plan doğrulaması bu oturuma yazmasın.
     authGeneration += 1;
+    // İstemci kuşağı da: önceki oturumdan uçuşta kalan bir refresh bu oturumun token'ını
+    // ezmesin, sonucu (ör. kesin red) bu oturumu zorunlu çıkışa sokmasın.
+    advanceSessionEpoch();
+    // Açılışta ertelenmiş oturum denemesi artık gereksiz (kullanıcı kendisi giriş yaptı).
+    cancelDeferredSessionRetry();
+    deferredAttempt = 0;
     await SecureStore.setItemAsync("accessToken", token);
     if (refreshToken) {
       await SecureStore.setItemAsync("refreshToken", refreshToken);
@@ -525,10 +617,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // çıkıştan kalmış) silinir.
     void bindPaymentCapabilitiesToAccount(mappedUser.id);
     // Misafir/önceki oturumdan kalan listeler yeni token'la yeniden çekilsin.
-    // Token set'ten SONRA — yeniden çekim yeni token'ı taşımalı. Beklenmez:
-    // giriş ağ çağrısına takılmasın. Lazy require: döngüsel import (logout ile aynı).
-    const { resetServerStateForNewSession } = require("./resetUserStores");
-    void resetServerStateForNewSession();
+    // Token set'ten SONRA — yeniden çekim yeni token'ı taşımalı.
+    refetchServerStateForNewSession();
     // Tag every subsequent Sentry event with the active user.
     logger.setUser({
       id: mappedUser.id,
@@ -563,6 +653,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       advanceSessionEpoch();
       // Store kuşağı da: açılışın arka plan profil doğrulaması kapanan oturuma yazmasın.
       authGeneration += 1;
+      cancelDeferredSessionRetry();
 
       if (!skipServer) {
         // Bu cihazın push token'ını sunucuda deaktive et (çıkış sonrası bu cihaza
@@ -608,28 +699,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loadToken: async () => {
     // Açılış: süresi dolmuş ödeme yetki belirteci kayıtlarını süpür (beklenmez, fırlatmaz).
     void sweepExpiredPaymentCapabilities();
+    // Maestro register/guest journey: keychain (SecureStore) clearState'i atlatıp
+    // önceki oturumun token'ını taşıyabiliyor. NO_AUTOLOGIN modunda token'ı temizle
+    // ki gerçekten çıkışlı (misafir) başlansın. Yalnız test gate'i — prod'da unset.
+    if (IS_MAESTRO_NO_AUTOLOGIN) {
+      await bestEffort("accessToken", () => SecureStore.deleteItemAsync("accessToken"));
+      await bestEffort("refreshToken", () => SecureStore.deleteItemAsync("refreshToken"));
+      set({
+        isAuthenticated: false,
+        token: null,
+        user: null,
+        limits: null,
+        serverLimits: null,
+        isLoading: false,
+      });
+      return;
+    }
+    let token: string | null;
     try {
-      // Maestro register/guest journey: keychain (SecureStore) clearState'i atlatıp
-      // önceki oturumun token'ını taşıyabiliyor. NO_AUTOLOGIN modunda token'ı temizle
-      // ki gerçekten çıkışlı (misafir) başlansın. Yalnız test gate'i — prod'da unset.
-      if (IS_MAESTRO_NO_AUTOLOGIN) {
-        await SecureStore.deleteItemAsync("accessToken");
-        await SecureStore.deleteItemAsync("refreshToken");
-        set({
-          isAuthenticated: false,
-          token: null,
-          user: null,
-          limits: null,
-          serverLimits: null,
-          isLoading: false,
-        });
-        return;
-      }
-      const token = await SecureStore.getItemAsync("accessToken");
-      // Token yoksa Maestro kimliğine bir kez bak (kapı kapalıysa null).
-      const maestroCredentials = token ? null : getMaestroAutoLoginCredentials();
+      token = await readAccessTokenWithRetry();
+    } catch (error) {
+      // Anahtar zinciri iki kez okunamadı: bu "oturum yok" DEĞİL (iOS'ta kilit açılmadan
+      // arka planda açılış tipik). Token'lar silinmez; misafir başlanır, oturum bir sonraki
+      // ön plana dönüşte / bağlantı gelince yeniden yüklenir.
+      logger.captureException(error, { level: "warning", tags: { flow: "auth.loadToken.keychain" } });
+      set({ isLoading: false });
+      scheduleDeferredSessionRetry();
+      return;
+    }
+    // Token yoksa Maestro kimliğine bir kez bak (kapı kapalıysa null).
+    const maestroCredentials = token ? null : getMaestroAutoLoginCredentials();
+    const generation = authGeneration;
+    try {
       if (token) {
-        const generation = authGeneration;
         const snapshot = await readUserSnapshot();
         if (snapshot) {
           // Açılış AĞI BEKLEMEZ: token + saklı kullanıcı görüntüsüyle oturum hemen
@@ -649,8 +751,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           return;
         }
         // Görüntü yok (bu sürüme ilk geçiş ya da yazım hatası): eski yol — profil
-        // beklenir; hata aşağıdaki catch'e düşer (oturum kapanır). Sonraki açılış
-        // görüntüyle ağsız açılır. Web ile aynı endpoint: GET /users/me
+        // beklenir; hata aşağıdaki catch'e düşer (yalnız kesin 401'de oturum kapanır).
+        // Sonraki açılış görüntüyle ağsız açılır. Web ile aynı endpoint: GET /users/me
         const response = await userApi.getProfile();
         await applyProfile(response.data, token, generation);
         // Yanıt beklenirken çıkış olduysa `applyProfile` yazmaz; yükleme yine biter.
@@ -691,22 +793,37 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ isLoading: false });
       }
     } catch (error) {
-      // Token invalid or expired — usually 401 (expected). Report only once,
-      // tagged so dashboards can filter expected vs unexpected.
+      // Profil beklenirken oturum değişti: interceptor zorunlu çıkışı (refresh kesin
+      // reddedildi) ZATEN yaptı ya da kullanıcı bu arada giriş yaptı — burada iş yok.
+      if (generation !== authGeneration || inFlightLogout) {
+        if (get().isLoading) set({ isLoading: false });
+        return;
+      }
+      const unauthorized = httpStatusOf(error) === 401;
+      // Tag'li rapor: panolar beklenen (401) ile beklenmeyeni ayırabilsin.
       logger.captureException(error, {
         level: "warning",
-        tags: { flow: "auth.loadToken" },
+        tags: { flow: unauthorized ? "auth.loadToken" : "auth.loadToken.transient" },
       });
-      await SecureStore.deleteItemAsync("accessToken");
-      await SecureStore.deleteItemAsync("refreshToken");
-      set({
-        isAuthenticated: false,
-        token: null,
-        user: null,
-        limits: null,
-        serverLimits: null,
-        isLoading: false,
-      });
+      if (unauthorized) {
+        // Kesin: refresh başarılı olduğu halde istek yine 401 → token sunucuda geçersiz.
+        await bestEffort("accessToken", () => SecureStore.deleteItemAsync("accessToken"));
+        await bestEffort("refreshToken", () => SecureStore.deleteItemAsync("refreshToken"));
+        set({
+          isAuthenticated: false,
+          token: null,
+          user: null,
+          limits: null,
+          serverLimits: null,
+          isLoading: false,
+        });
+        return;
+      }
+      // Geçici (ağ / zaman aşımı / 5xx / refresh'in geçici hatası / 403): token'lar KALIR.
+      // Bu sürüme geçen kullanıcı ilk açılışta çevrimdışıysa çıkış yapılmış olmasın —
+      // misafir başlanır, doğrulama bağlantı gelince / ön plana dönüşte yeniden denenir.
+      set({ isLoading: false });
+      scheduleDeferredSessionRetry();
     }
   },
 
@@ -722,8 +839,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   // Web ile aynı endpoint: GET /users/me
   refreshUserData: async () => {
+    // `applyProfile` ile aynı kuşak koruması: yanıt beklenirken çıkış / başka hesapla
+    // giriş olduysa önceki oturumun profili yeni oturuma (ya da çıkış yapmış store'a) yazılmaz.
+    const generation = authGeneration;
     try {
       const response = await userApi.getProfile();
+      if (generation !== authGeneration || inFlightLogout) return null;
       const mappedUser = mapApiUserToUser(response.data);
       const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
       set({ user: mappedUser, limits });
