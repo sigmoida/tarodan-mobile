@@ -16,7 +16,8 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
  */
 export default function SellerRegisterScreen() {
   const { t } = useTranslation();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const title = t('seller.businessAccountTitle');
 
   const handleBack = () =>

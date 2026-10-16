@@ -21,7 +21,9 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
  * - Misafire her zaman: giriş kapısı ilgili ekranda.
  */
 export function useFeatureAccess() {
-  const { isAuthenticated, user, limits } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
+  const limits = useAuthStore((s) => s.limits);
 
   const canTrade =
     limits != null

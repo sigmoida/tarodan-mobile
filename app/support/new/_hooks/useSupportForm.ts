@@ -14,7 +14,8 @@ import { UUID_RE } from '../_lib/constants';
  */
 export function useSupportForm() {
   const { t } = useTranslation();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState('medium');

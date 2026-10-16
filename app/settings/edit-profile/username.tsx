@@ -13,7 +13,7 @@ import { UsernameClaimForm, UsernameReadOnly } from './_sections/UsernameClaimFo
  */
 export default function UsernameScreen() {
   const { t } = useTranslation();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
 
   if (user?.usernameClaimed !== false) {
     return (

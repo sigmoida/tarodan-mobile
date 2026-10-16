@@ -22,7 +22,7 @@ import { OFFER_INVALIDATES } from '../../_lib/invalidates';
  */
 export function useOfferDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
 
   // Karşı teklif modalı (`CounterOfferModal` — kendi formu + mutation'ı); null = kapalı.
   const [counterTarget, setCounterTarget] = useState<Offer | null>(null);

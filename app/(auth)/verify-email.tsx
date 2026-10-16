@@ -20,7 +20,8 @@ export default function VerifyEmailScreen() {
     token?: string;
     email?: string;
   }>();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const pendingEmail = usePendingAuthEmailStore((st) => st.email);
   // API doğrulama yanıtında e-posta dönmez: güvenilir kaynaklar oturum ve kayıt anında saklanan adres.
   // `?email=` bağlantı paramı DOĞRULANMAMIŞ girdidir: metinde gösterilmez, store'un önüne geçmez,

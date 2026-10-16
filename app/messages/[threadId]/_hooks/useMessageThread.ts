@@ -31,7 +31,7 @@ import { useAutoScroll } from './useAutoScroll';
 export function useMessageThread() {
   const { t } = useTranslation();
   const { threadId } = useLocalSearchParams<{ threadId: string }>();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const getOtherParticipant = useMessagesStore((s) => s.getOtherParticipant);
   const setCurrentThreadId = useMessagesStore((s) => s.setCurrentThreadId);
   const { data: currentThread = null } = useThreadQuery(threadId);

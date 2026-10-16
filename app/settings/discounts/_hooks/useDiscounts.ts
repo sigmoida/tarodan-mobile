@@ -16,7 +16,8 @@ import { useDiscountsQuery } from './useDiscountsQuery';
  */
 export function useDiscounts() {
   const { t } = useTranslation();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const [filter, setFilter] = useState<'' | 'active' | 'inactive' | 'expired'>('');
 
   const discountsQuery = useDiscountsQuery();

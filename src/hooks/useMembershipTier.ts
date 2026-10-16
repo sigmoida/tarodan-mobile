@@ -9,7 +9,8 @@ import { useAuthStore } from '@/stores/authStore';
  * bayat kalabilir, bu yüzden API'nin döndürdüğü efektif katman önceliklidir.
  */
 export function useMembershipTier() {
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const { data: membershipData } = useQuery({
     queryKey: qk.membership.me,
     queryFn: async () => {

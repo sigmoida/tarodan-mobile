@@ -36,7 +36,7 @@ const entryKey = (e: OrderListEntry): string => (e.kind === 'order' ? e.order.id
  * from the monolithic OrdersScreen.
  */
 export function useOrders() {
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   // Bu ekran alıcı-only (Siparişlerim). Satıcı satışları /sales'te.
   const role: 'buyer' | 'seller' = 'buyer';
   const [filter, setFilter] = useState<FilterType>('all');

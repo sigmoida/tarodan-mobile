@@ -29,7 +29,8 @@ export default function OffersScreen() {
     Array.isArray(params.tab) ? params.tab[0] : params.tab
   )?.toLowerCase();
 
-  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const authLoading = useAuthStore((s) => s.isLoading);
   const page = usePageScrollHandler();
   const [activeTab, setActiveTab] = useState<TabType>(
     tabFromUrl === "sent" ? "sent" : "received",

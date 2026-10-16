@@ -22,7 +22,8 @@ export function useMembershipCheckout() {
   const { t } = useTranslation();
   const membershipTiers = useMemo(() => buildMembershipTiers(t), [t]);
   const { tier: tierParam, period: periodParam } = useLocalSearchParams<{ tier: string; period?: string }>();
-  const { isAuthenticated, refreshUserData } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
   const [loading, setLoading] = useState(false);
 
   const tier = membershipTiers[tierParam as MembershipTierKey] || membershipTiers.premium;

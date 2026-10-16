@@ -24,7 +24,7 @@ const { colors, spacing, iconSize, minTouchTarget } = theme;
  */
 export function AccountSection() {
   const { t } = useTranslation();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const canClaim = user?.usernameClaimed === false;
   const showUsername = canClaim || !!user?.username;
 

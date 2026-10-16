@@ -9,7 +9,7 @@ import { useAuthStore } from "@/stores/authStore";
  */
 export function useInvalidateMyListings() {
   const queryClient = useQueryClient();
-  const { refreshUserData } = useAuthStore();
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
   return (productId?: string) => {
     invalidateListingCaches(queryClient, productId);
     refreshUserData();

@@ -11,7 +11,8 @@ import type { SellerStats } from '../_lib/types';
  * listings count), derived values and refresh. Lifted verbatim (§12).
  */
 export function useSellerDashboard() {
-  const { user, isAuthenticated } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isBusiness = user?.membershipTier === 'business';
 
   // İşletme olmayan satıcılarda /users/me/business-stats 400 döndüğü için panel boş kalıyordu.

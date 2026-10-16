@@ -72,13 +72,11 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const { t } = useTranslation();
   const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
 
-  const {
-    isAuthenticated,
-    isLoading: authLoading,
-    user,
-    limits,
-    refreshUserData,
-  } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const authLoading = useAuthStore((s) => s.isLoading);
+  const user = useAuthStore((s) => s.user);
+  const limits = useAuthStore((s) => s.limits);
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
 
   // IBAN kapısı (yalnız yeni ilan; web `BankGate`): hesap yoksa form GÖSTERİLMEZ.
   // Anahtar Banka Hesabım ekranıyla ORTAK (`qk.user.bankAccount`): orada kaydedilince

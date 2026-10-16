@@ -21,7 +21,7 @@ import { useCollectionCover } from '../../_hooks/useCollectionCover';
 export function useCollectionEdit() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
 
   const { coverImage, setCoverImage, pickCoverImage, uploadCover } = useCollectionCover();

@@ -11,7 +11,7 @@ import type { TicketSummary } from '../_lib/types';
  * AYNEN taşındı (yalnız sorgu anahtarı merkezi kayıttan: `qk.support.mine`, değer aynı).
  */
 export function useSupportTickets() {
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [refreshing, setRefreshing] = useState(false);
 
   const { data, isLoading, isError, refetch } = useQuery({

@@ -17,7 +17,8 @@ const UPGRADE_REDIRECT_DELAY_MS = 1500;
  */
 export function useMyCollections() {
   const { t } = useTranslation();
-  const { limits, isAuthenticated } = useAuthStore();
+  const limits = useAuthStore((s) => s.limits);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const canCreateCollections = limits?.canCreateCollections || false;
 
   const query = useQuery({

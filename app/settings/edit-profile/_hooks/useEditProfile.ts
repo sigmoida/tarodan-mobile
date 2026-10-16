@@ -31,7 +31,9 @@ type UpdateVars = {
  */
 export function useEditProfile() {
   const { t } = useTranslation();
-  const { user, isAuthenticated, refreshUserData } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
   const queryClient = useQueryClient();
 
   const isBusinessTier = (user as any)?.membershipTier === 'business';

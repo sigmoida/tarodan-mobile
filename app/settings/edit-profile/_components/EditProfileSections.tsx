@@ -18,7 +18,7 @@ const { colors, iconSize } = theme;
  */
 export function AvatarSection({ avatar }: { avatar: AvatarUploadController }) {
   const { t } = useTranslation();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   return (
     <View style={styles.avatarSection}>
       <Pressable

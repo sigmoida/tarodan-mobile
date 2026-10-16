@@ -31,7 +31,7 @@ import { RejectTradeModal } from "./_modals/RejectTradeModal";
 export default function TradeDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const tradeId = String(id);
 
   const {

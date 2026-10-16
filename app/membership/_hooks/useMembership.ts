@@ -22,7 +22,9 @@ import { useMembershipData } from "./useMembershipData";
 export function useMembership() {
   const { t } = useTranslation();
   const tierFeatures = useMemo(() => buildTierFeatures(t), [t]);
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
     "monthly",
   );

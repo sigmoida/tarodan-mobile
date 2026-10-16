@@ -80,7 +80,7 @@ export function normalizeFollowing(body: RawFollowingBody): FollowedSeller[] {
 export function useFollowing() {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const query = useQuery({
     queryKey: qk.follow.following,

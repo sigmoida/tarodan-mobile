@@ -21,7 +21,8 @@ type Envelope = { data?: MeTrust } & MeTrust;
  * başlığında çipti; şimdi Profili Düzenle'de bir Switch satırı.
  */
 export function useTrustVisibility() {
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const key = qk.user.meTrust(user?.id ? String(user.id) : undefined);
 

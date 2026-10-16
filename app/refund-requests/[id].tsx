@@ -31,7 +31,8 @@ export default function RefundDetailScreen() {
   const { t } = useTranslation();
   const refundStatusConfig = useRefundStatusConfig();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const [refreshing, setRefreshing] = useState(false);
 
   // Anahtar sorgu ile odak tazelemesi arasında tek yerde.

@@ -10,7 +10,8 @@ import { useAuthStore } from '@/stores/authStore';
  * sorguları kaldırıldı: profil artık web `ProfileSidebar` gibi sayısız, gruplu bir menü.
  */
 export function useProfileData() {
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 

@@ -30,7 +30,8 @@ export function useAddressesQuery() {
  * (ör. form ekranından) veri bayatsa tazeler.
  */
 export function useAddresses() {
-  const { isAuthenticated, limits } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const limits = useAuthStore((s) => s.limits);
   const query = useAddressesQuery();
   const { refetch } = query;
   const { refreshing, onRefresh } = useRefresh(refetch);

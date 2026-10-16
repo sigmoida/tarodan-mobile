@@ -19,7 +19,8 @@ import { useRefreshAccount } from './useRefreshAccount';
  */
 export function useEmailChangeFlow({ onVerified }: { onVerified?: () => void } = {}) {
   const { t } = useTranslation();
-  const { user, updateUser } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const updateUser = useAuthStore((s) => s.updateUser);
   const refreshAccount = useRefreshAccount();
 
   const [phase, setPhase] = useState<EmailPhase>('entering');

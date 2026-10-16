@@ -22,7 +22,7 @@ const sellerKey = (seller: FollowedSeller) => seller.id;
  */
 export default function FollowingScreen() {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { following, isLoading, isError, fetchFollowing, unfollowSeller, getFollowingCount } = useFollowing();
   const [refreshing, setRefreshing] = useState(false);
   const page = usePageScrollHandler();

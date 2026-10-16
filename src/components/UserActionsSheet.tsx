@@ -49,7 +49,7 @@ export function useUserActionsSheet({
   extraActions,
 }: UserActionsProps) {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [reportVisible, setReportVisible] = useState(false);
   const { isBlocked } = useBlockStatus(userId);
 

@@ -26,7 +26,7 @@ type SalesPage = PageInfo & { sales: Sale[] };
  * verbatim from the monolithic screen (§12).
  */
 export function useSales() {
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [filter, setFilter] = useState<FilterType>('all');
   const [refreshing, setRefreshing] = useState(false);
 

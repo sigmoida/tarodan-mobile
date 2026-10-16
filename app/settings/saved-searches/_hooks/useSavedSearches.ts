@@ -16,7 +16,8 @@ import { buildSearchParams } from '../_lib/helpers';
  */
 export function useSavedSearches() {
   const { t } = useTranslation();
-  const { isAuthenticated, limits } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const limits = useAuthStore((s) => s.limits);
   const queryClient = useQueryClient();
 
   const maxSavedSearches = limits?.maxSavedSearches || 5;

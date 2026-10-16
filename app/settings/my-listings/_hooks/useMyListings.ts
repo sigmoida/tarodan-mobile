@@ -42,7 +42,9 @@ export interface RemovalTarget {
 export function useMyListings() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { user, limits, refreshUserData } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const limits = useAuthStore((s) => s.limits);
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
   const [filter, setFilter] = useState<FilterType>("all");
   const [refreshing, setRefreshing] = useState(false);
   // Eylem menüsü (ActionSheet): ilan menü KAPANIRKEN de durur (satırlar kaybolmasın); yalnız

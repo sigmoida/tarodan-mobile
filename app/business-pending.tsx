@@ -13,7 +13,8 @@ import { useBusinessGateExit } from '@/hooks/useBusinessGateExit';
  */
 export default function BusinessPendingScreen() {
   const { t } = useTranslation();
-  const { user, logout } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
   // Başvuru artık beklemede değilse (bayat görüntü → doğrulama `approved` getirdi) kapıdan çık.
   useBusinessGateExit('pending');
 

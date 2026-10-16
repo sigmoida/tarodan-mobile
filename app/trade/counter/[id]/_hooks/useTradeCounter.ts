@@ -18,7 +18,7 @@ import { itemId, offerSignature, type Trade, type TradeItem } from '../_lib/type
 export function useTradeCounter() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
 
   const handleBack = () => {
