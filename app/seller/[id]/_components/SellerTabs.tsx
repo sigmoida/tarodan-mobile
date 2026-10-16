@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Avatar, ChipTabs, EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
+import { Avatar, Button, ChipTabs, EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
 
 import { ProductCard } from '@/components/product';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
@@ -15,6 +15,19 @@ const { colors, iconSize } = theme;
 
 type Tab = SellerProfileController['activeTab'];
 
+// Profil bir ScrollView içinde: tüm ilanları/yorumları tek seferde mount etmeyiz (satıcıda yüzlerce
+// ilan olabilir). İlk dilim çizilir, "Daha Fazla" ile artar.
+const LISTINGS_PAGE = 20;
+const REVIEWS_PAGE = 10;
+const COLLECTIONS_PAGE = 20;
+
+/** Görünür öğe sayısı: `pageSize` ile başlar, `showMore` her seferinde `pageSize` ekler. */
+function useVisibleCount(pageSize: number) {
+  const [count, setCount] = React.useState(pageSize);
+  const showMore = React.useCallback(() => setCount((c) => c + pageSize), [pageSize]);
+  return [count, showMore] as const;
+}
+
 /** Sekme çubuğu + içerik (web `SellerProfileClient`): ilanlar (ProductCard), değerlendirmeler, koleksiyonlar. */
 export function SellerTabs({ f }: { f: SellerProfileController }) {
   const { t } = useTranslation();
@@ -22,6 +35,12 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
   const rating = sellerRatingSummary(f);
   // Kendi profilinde ilanların hepsi kullanıcının: kalp hiç çizilmez (DTO'da satıcı olmasa da).
   const favoriteProps = useProductCardFavorites();
+  const [listingsShown, moreListings] = useVisibleCount(LISTINGS_PAGE);
+  const [reviewsShown, moreReviews] = useVisibleCount(REVIEWS_PAGE);
+  const [collectionsShown, moreCollections] = useVisibleCount(COLLECTIONS_PAGE);
+  const moreButton = (testID: string, onPress: () => void) => (
+    <Button variant="outline" title={t('common.more')} onPress={onPress} testID={testID} style={styles.showMore} />
+  );
   return (
     <>
       <ChipTabs<Tab>
@@ -40,13 +59,16 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
           <EmptyState placement="inline" testID="seller-empty-listings" icon="magnifying-glass" title={t('seller.noActiveListings')} subtitle={t('home.noProductsYetHint')} />
         ) : (
           <View style={styles.grid}>
-            {products.map((product: any) => (
+            {products.slice(0, listingsShown).map((product: any) => (
               <View key={product.id} style={styles.cell}>
                 <ProductCard product={product} {...(f.isOwnProfile ? null : favoriteProps(product))} />
               </View>
             ))}
           </View>
         ))}
+      {activeTab === 'listings' && products.length > listingsShown
+        ? moreButton('seller-more-listings', moreListings)
+        : null}
 
       {activeTab === 'reviews' &&
         (reviews.length === 0 ? (
@@ -62,7 +84,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
               ) : null
             }
           >
-            {reviews.map((review: any, i: number) => {
+            {reviews.slice(0, reviewsShown).map((review: any, i: number) => {
               // Kullanıcı/satıcı değerlendirmesi DTO'su: { score, comment, createdAt, giverName, giver: { displayName, avatarUrl } }
               const score = review.score ?? review.rating ?? 0;
               const reviewerName =
@@ -99,19 +121,25 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
             })}
           </SectionCard>
         ))}
+      {activeTab === 'reviews' && reviews.length > reviewsShown
+        ? moreButton('seller-more-reviews', moreReviews)
+        : null}
 
       {activeTab === 'collections' &&
         (collections.length === 0 ? (
           <EmptyState placement="inline" testID="seller-empty-collections" icon="rectangle-stack" title={t('seller.noCollections')} subtitle={t('emptyState.collectionsHint')} />
         ) : (
           <View style={styles.grid}>
-            {collections.map((collection: any) => (
+            {collections.slice(0, collectionsShown).map((collection: any) => (
               <View key={collection.id} style={styles.cell}>
                 <CollectionCard item={collection} />
               </View>
             ))}
           </View>
         ))}
+      {activeTab === 'collections' && collections.length > collectionsShown
+        ? moreButton('seller-more-collections', moreCollections)
+        : null}
     </>
   );
 }
