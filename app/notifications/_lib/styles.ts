@@ -7,11 +7,6 @@ const { colors, spacing, radius, radiusRole } = theme;
 // Route-local stylesheet (§12) — satır iskeleti ortak `InboxRow`'da; burada yalnız sol kutu içerikleri.
 export const styles = StyleSheet.create({
   footerSpinner: { paddingVertical: spacing[4] },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
   // Yığın ekranı: alt menü yok; son satır ev göstergesinin üstünde kalsın.
   listContent: {
     flexGrow: 1,

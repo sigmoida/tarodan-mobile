@@ -158,7 +158,8 @@ describe('J113 · tümünü okundu butonu ve navigasyon wiring', () => {
     getUnreadCount.mockResolvedValue({ data: { count: 1 } });
     renderWithProviders(<NotificationsScreen />);
 
-    const btn = await screen.findByText('Tümünü oku');
+    // Sağ eylem: okunmamış sayısı rozetli tek cam ikon (metin hapı değil).
+    const btn = await screen.findByTestId('notifications-mark-all-read');
     fireEvent.press(btn);
     await waitFor(() => expect(markAllAsRead).toHaveBeenCalledTimes(1));
   });
@@ -171,7 +172,7 @@ describe('J113 · tümünü okundu butonu ve navigasyon wiring', () => {
     renderWithProviders(<NotificationsScreen />);
 
     await screen.findByText('Yeni Mesaj');
-    expect(screen.queryByText('Tümünü oku')).toBeNull();
+    expect(screen.queryByTestId('notifications-mark-all-read')).toBeNull();
   });
 
   it('J113.3 bildirime tıklayınca ilgili rotaya push edilir', async () => {
