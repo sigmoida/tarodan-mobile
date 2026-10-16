@@ -14,7 +14,6 @@
 jest.mock('@/lib/api', () => ({
   authApi: { logout: jest.fn(() => Promise.resolve()) },
   userApi: { getProfile: jest.fn() },
-  advanceSessionEpoch: jest.fn(),
 }));
 jest.mock('../../services/push', () => ({
   unregisterPushNotifications: jest.fn(() => Promise.resolve()),
@@ -34,8 +33,9 @@ jest.mock('@/lib/network/networkStatus', () => ({
 
 import * as SecureStore from 'expo-secure-store';
 
-import { useAuthStore, type User } from '../authStore';
-import { advanceSessionEpoch, userApi } from '@/lib/api';
+import { discardStoredSession, useAuthStore, type User } from '../authStore';
+import { userApi } from '@/lib/api';
+import { SESSION_PROBE, getSessionEpoch, isSessionDeferred } from '@/lib/api/sessionState';
 import { resetServerStateForNewSession, resetUserStores } from '../resetUserStores';
 import { USER_SNAPSHOT_KEY, serializeUserSnapshot } from '../userSnapshot';
 
@@ -245,7 +245,130 @@ describe('oturum kuşağı', () => {
   });
 
   it('login istemci oturum kuşağını ilerletir (önceki oturumun refresh’i yazamaz)', async () => {
+    const epoch = getSessionEpoch();
     await useAuthStore.getState().login('token-1', user());
-    expect(advanceSessionEpoch).toHaveBeenCalledTimes(1);
+    expect(getSessionEpoch()).toBe(epoch + 1);
+  });
+});
+
+describe('ertelenmiş (doğrulanmamış) oturum — arayüz misafir, istekler de misafir', () => {
+  it('geçici hata: oturum ertelenir; yeniden deneme isteği SESSION_PROBE taşır, başarıda bayrak kalkar', async () => {
+    legacySession();
+    getProfile.mockRejectedValueOnce(networkError());
+
+    await useAuthStore.getState().loadToken();
+
+    expect(isSessionDeferred()).toBe(true);
+    expect(getProfile).toHaveBeenLastCalledWith(SESSION_PROBE);
+
+    getProfile.mockResolvedValueOnce({ data: user() });
+    await goOnline();
+
+    expect(getProfile).toHaveBeenLastCalledWith(SESSION_PROBE);
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    // Oturum doğrulandı: istekler yeniden token'ı taşır.
+    expect(isSessionDeferred()).toBe(false);
+  });
+
+  it('anahtar zinciri hatası da oturumu erteler; görüntüyle açılınca bayrak kalkar', async () => {
+    legacySession();
+    vault.set(USER_SNAPSHOT_KEY, serializeUserSnapshot(user())!);
+    secure.getItemAsync
+      .mockImplementationOnce(() => Promise.reject(new Error('keychain locked')))
+      .mockImplementationOnce(() => Promise.reject(new Error('keychain locked')));
+
+    await useAuthStore.getState().loadToken();
+    expect(isSessionDeferred()).toBe(true);
+
+    getProfile.mockResolvedValueOnce({ data: user() });
+    await goOnline();
+    expect(isSessionDeferred()).toBe(false);
+  });
+
+  it('ertelenmişken kullanıcı giriş yaparsa bayrak kalkar', async () => {
+    legacySession();
+    getProfile.mockRejectedValueOnce(networkError());
+    await useAuthStore.getState().loadToken();
+
+    await useAuthStore.getState().login('token-b', user({ id: 'b' }));
+
+    expect(isSessionDeferred()).toBe(false);
+  });
+
+  it('discardStoredSession: sessiz atma — token/görüntü silinir, kuşak ilerler, misafir verisi sıfırlanmaz', async () => {
+    legacySession();
+    vault.set(USER_SNAPSHOT_KEY, 'bozuk');
+    getProfile.mockRejectedValueOnce(networkError());
+    await useAuthStore.getState().loadToken();
+    const epoch = getSessionEpoch();
+
+    await discardStoredSession();
+
+    expect(getSessionEpoch()).toBe(epoch + 1);
+    expect(isSessionDeferred()).toBe(false);
+    expect(vault.has('accessToken')).toBe(false);
+    expect(vault.has('refreshToken')).toBe(false);
+    expect(vault.has(USER_SNAPSHOT_KEY)).toBe(false);
+    // Zorunlu çıkış DEĞİL: misafir sepeti / önbellek dokunulmaz.
+    expect(resetUserStores).not.toHaveBeenCalled();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    // Ertelenmiş deneme de durdu.
+    await goOnline();
+    expect(getProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it('kesin 401 (eski yol): token silme kuşağı ilerletir (uçuştaki refresh geri yazamaz)', async () => {
+    legacySession();
+    getProfile.mockRejectedValueOnce({ response: { status: 401 } });
+    const epoch = getSessionEpoch();
+
+    await useAuthStore.getState().loadToken();
+
+    expect(getSessionEpoch()).toBeGreaterThan(epoch);
+    expect(vault.has('accessToken')).toBe(false);
+  });
+});
+
+describe('profileValidated — tam profil (GET /users/me) bu oturumda geldi mi', () => {
+  it('görüntüyle açılış: false; arka plan doğrulaması gelince true', async () => {
+    legacySession();
+    vault.set(USER_SNAPSHOT_KEY, serializeUserSnapshot(user())!);
+    let resolve!: (v: unknown) => void;
+    getProfile.mockReturnValueOnce(new Promise((r) => (resolve = r)));
+
+    await useAuthStore.getState().loadToken();
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    expect(useAuthStore.getState().profileValidated).toBe(false);
+
+    resolve({ data: user({ phone: '+905321112233', bio: 'Merhaba' }) });
+    await flush();
+    await flush();
+
+    expect(useAuthStore.getState().profileValidated).toBe(true);
+    expect(useAuthStore.getState().user?.phone).toBe('+905321112233');
+  });
+
+  it('giriş yanıtı tam profil değil: false; refreshUserData başarılıysa true', async () => {
+    await useAuthStore.getState().login('token-1', user());
+    expect(useAuthStore.getState().profileValidated).toBe(false);
+
+    getProfile.mockResolvedValueOnce({ data: user({ bio: 'Merhaba' }) });
+    await useAuthStore.getState().refreshUserData();
+
+    expect(useAuthStore.getState().profileValidated).toBe(true);
+    expect(useAuthStore.getState().user?.bio).toBe('Merhaba');
+  });
+
+  it('refreshUserData düşerse false kalır; çıkış sıfırlar', async () => {
+    await useAuthStore.getState().login('token-1', user());
+    getProfile.mockRejectedValueOnce(networkError());
+    await useAuthStore.getState().refreshUserData();
+    expect(useAuthStore.getState().profileValidated).toBe(false);
+
+    getProfile.mockResolvedValueOnce({ data: user() });
+    await useAuthStore.getState().refreshUserData();
+    expect(useAuthStore.getState().profileValidated).toBe(true);
+    await useAuthStore.getState().logout({ skipServer: true });
+    expect(useAuthStore.getState().profileValidated).toBe(false);
   });
 });

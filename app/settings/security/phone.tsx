@@ -22,6 +22,9 @@ export default function PhoneVerificationScreen() {
     <PageShell
       title={t('profile.security.phoneVerification')}
       onBack={f.onBack}
+      loading={f.profileLoading}
+      error={f.profileError}
+      onRetry={f.retryProfile}
       footer={
         isEnter ? (
           <Button

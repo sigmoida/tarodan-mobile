@@ -21,6 +21,8 @@ jest.mock('@/stores/authStore', () => ({
     const state: any = {
       user: mockUser,
       isAuthenticated: true,
+      // Tam profil bu oturumda geldi (kapı `profileFullLoad.test.tsx`'te).
+      profileValidated: true,
       updateUser: jest.fn(),
       refreshUserData: mockRefreshUserData,
     };

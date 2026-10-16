@@ -44,6 +44,10 @@ export default function EditProfileScreen() {
   return (
     <PageShell
       title={t("mobile.settingsEditProfile")}
+      // Form tam profille açılır (saklı görüntüde telefon / doğum tarihi / bio yok).
+      loading={f.profileLoading}
+      error={f.profileError}
+      onRetry={f.retryProfile}
       footer={
         // Yalnız kaydedilecek değişiklik varken (veya kayıt sürerken) görünür.
         f.isDirty || f.updateMutation.isPending ? (
