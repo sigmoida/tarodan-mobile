@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import type { Notification } from '../_lib/types';
 import { routeForNotification } from '../_lib/route';
 import { navigateTo } from '@/lib/navigation/goTo';
+import { trimInfiniteToFirstPage } from '@/lib/query/infinite';
 import { useNotificationUnreadCount } from '@/hooks/useNotificationUnreadCount';
 
 /**
@@ -182,7 +183,11 @@ export function useNotifications() {
     try {
       // 1. sayfa düşmüşse refetch yalnız ara sayfaları yeniler → baştan yükle.
       if (firstPageDropped) await queryClient.resetQueries({ queryKey: qk.notifications.list });
-      else await refetch();
+      else {
+        // Yüklü TÜM sayfaları sırayla çekmek yerine ilk sayfaya kırp (tek istek).
+        trimInfiniteToFirstPage(queryClient, qk.notifications.list);
+        await refetch();
+      }
     } finally {
       setRefreshing(false);
     }

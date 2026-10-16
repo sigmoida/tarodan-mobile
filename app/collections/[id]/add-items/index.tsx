@@ -8,6 +8,7 @@ import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
 import { useAddItems } from './_hooks/useAddItems';
 import { styles } from './_lib/styles';
+import type { Listing } from './_lib/types';
 import { ListingPickerRow } from './_components/ListingPickerRow';
 import { navigateTo } from '@/lib/navigation/goTo';
 
@@ -18,9 +19,18 @@ export default function AddCollectionItemsScreen() {
   const { t } = useTranslation();
   const f = useAddItems();
   const page = usePageScrollHandler();
+  const { effectiveItemId, pending, toggle } = f;
   const renderListing = useCallback(
-    ({ item }: { item: (typeof f.filtered)[number] }) => <ListingPickerRow listing={item} f={f} />,
-    [f],
+    ({ item }: { item: Listing }) => (
+      <ListingPickerRow
+        listing={item}
+        added={!!effectiveItemId(item.id)}
+        busy={!!pending[item.id]}
+        onToggle={toggle}
+      />
+    ),
+    // `effectiveItemId` overlay/sunucu haritası değişince yenilenir → satırlar yeni `added` alır.
+    [effectiveItemId, pending, toggle],
   );
 
   return (
