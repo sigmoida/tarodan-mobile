@@ -73,8 +73,8 @@
 #       ona eşit olmalı (eşit değil ya da okunamıyorsa gönderilmez).
 #       FP env'i verilirse build mesajına `ci-fp:<FP>` damgalanır ve EAS'in
 #       runtime'ı tutmazsa uyarılır (plan'daki döngü koruması bunu okur).
-#       Build'den ÖNCE Maestro/E2E test kancası denetimi: profil env'inde
-#       EXPO_PUBLIC_MAESTRO* varsa (production'da EAS sunucu ortamında da) durur.
+#       Build'den ÖNCE Maestro/E2E test kancası denetimi: profil env'inde ya da
+#       profilin EAS ortamında (proje + hesap kapsamı) EXPO_PUBLIC_MAESTRO* varsa durur.
 #       OTA ve fingerprint yolları aynı denetimi `require_public_env`'de yapar.
 #
 # Neden profil env'i burada yükleniyor: `eas update` eas.json'daki build
@@ -170,19 +170,32 @@ assert_no_test_hooks() {
   done
 }
 
-# Store build'i öncesi: profil env'i (eas.json) ve production için EAS sunucusundaki
-# ortam değişkenleri test kancası taşımıyor mu? EAS bulut build'i runner env'ini
-# değil eas.json + EAS ortam değişkenlerini kullanır; ikisi de burada denetlenir.
-# `eas env:list` okunamazsa production build'i DURUR (kapalı-başarısız).
+# Bir build profilinin EAS bulutunda kullandığı ortam (eas-cli kuralı): eas.json'da
+# `environment` varsa o; yoksa developmentClient → development, internal dağıtım →
+# preview, aksi halde (mağaza) production. Ör. `staging` mağaza profili → production.
+eas_build_environment() {
+  node -e '
+    const p = (require(process.argv[1]).build || {})[process.argv[2]];
+    if (!p) { console.error("eas.json: build." + process.argv[2] + " yok"); process.exit(1); }
+    console.log(p.environment || (p.developmentClient ? "development" : p.distribution === "internal" ? "preview" : "production"));
+  ' "$ROOT/eas.json" "$1"
+}
+
+# Store build'i öncesi: profil env'i (eas.json) ve EAS sunucusundaki ortam değişkenleri
+# (profilin kullandığı ortam; proje VE hesap kapsamı) test kancası taşımıyor mu? EAS bulut
+# build'i runner env'ini değil eas.json + EAS ortam değişkenlerini kullanır; hepsi burada
+# denetlenir. `eas env:list` okunamazsa build DURUR (kapalı-başarısız).
 assert_release_build_env() {
-  local profile="$1" vars
+  local profile="$1" environment scope vars
   ( load_profile_env "$profile"; assert_no_test_hooks "$profile" ) || exit 1
-  [ "$profile" = production ] || return 0
-  vars="$(eas env:list production --format short)" \
-    || die "EAS production ortam değişkenleri okunamadı — test kancası denetimi yapılamadan production build'i alınmaz."
-  if printf '%s\n' "$vars" | grep -Eq '(^|[^A-Z_])EXPO_PUBLIC_MAESTRO'; then
-    die "EAS production ortamında EXPO_PUBLIC_MAESTRO* değişkeni var — Maestro/E2E test kancaları production build'ine giremez."
-  fi
+  environment="$(eas_build_environment "$profile")" || die "build.$profile için EAS ortamı çözülemedi"
+  for scope in project account; do
+    vars="$(eas env:list "$environment" --scope "$scope" --format short)" \
+      || die "EAS $environment ortam değişkenleri ($scope kapsamı) okunamadı — test kancası denetimi yapılamadan $profile build'i alınmaz."
+    if printf '%s\n' "$vars" | grep -Eq '(^|[^A-Z_])EXPO_PUBLIC_MAESTRO'; then
+      die "EAS $environment ortamında ($scope kapsamı) EXPO_PUBLIC_MAESTRO* değişkeni var — Maestro/E2E test kancaları $profile build'ine giremez."
+    fi
+  done
 }
 
 fingerprint() {

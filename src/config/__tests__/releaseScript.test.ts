@@ -77,7 +77,7 @@ type RunOpts = {
   buildsSeq?: Build[][];
   /** Koşudan sonra okunacak dosyalar (geçici köke göre). */
   readFiles?: string[];
-  /** Sahte eas'in okuyacağı ek dosyalar ($FAKE_DIR'e yazılır; ör. `eas-env-production.txt`). */
+  /** Sahte eas'in okuyacağı ek dosyalar ($FAKE_DIR'e yazılır; ör. `eas-env-production-account.txt`). */
   fakeFiles?: Record<string, string>;
 };
 
@@ -374,27 +374,40 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     expect(r.easCalls('build')).toHaveLength(0);
   });
 
-  it('build-submit production: EAS sunucu ortamında EXPO_PUBLIC_MAESTRO varsa build alınmaz', () => {
-    const r = run(['build-submit', 'ios', 'production', '-'], {
-      fakeFiles: { 'eas-env-production.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\nEXPO_PUBLIC_MAESTRO=1\n' },
+  it.each([
+    ['production', 'production', 'project'],
+    ['production', 'production', 'account'],
+    // `staging` mağaza profili eas.json'da ortam belirtmez → EAS onu production ortamıyla derler.
+    ['staging', 'production', 'project'],
+    ['staging', 'production', 'account'],
+    // `preview` dahili dağıtım → preview ortamı.
+    ['preview', 'preview', 'account'],
+  ])('build-submit %s: EAS %s ortamında (%s kapsamı) EXPO_PUBLIC_MAESTRO varsa build alınmaz', (profile, env, scope) => {
+    const r = run(['build-submit', 'ios', profile, '-'], {
+      fakeFiles: { [`eas-env-${env}-${scope}.txt`]: 'EXPO_PUBLIC_SENTRY_DSN=*****\nEXPO_PUBLIC_MAESTRO=1\n' },
     });
     expect(r.status).not.toBe(0);
-    expect(r.all).toContain('EAS production ortamında');
+    expect(r.all).toContain(`EAS ${env} ortamında (${scope} kapsamı)`);
     expect(r.easCalls('build')).toHaveLength(0);
   });
 
-  it('build-submit production: EAS ortamı okunamazsa build alınmaz (kapalı-başarısız)', () => {
-    const r = run(['build-submit', 'ios', 'production', '-'], { env: { FAKE_EAS_FAIL_ENV_LIST: '1' } });
-    expect(r.status).not.toBe(0);
-    expect(r.easCalls('build')).toHaveLength(0);
+  it.each(['project', 'account'])('build-submit: EAS ortamı (%s kapsamı) okunamazsa build alınmaz (kapalı-başarısız)', (scope) => {
+    for (const profile of ['production', 'staging']) {
+      const r = run(['build-submit', 'ios', profile, '-'], { env: { FAKE_EAS_FAIL_ENV_LIST_SCOPE: scope } });
+      expect(r.status).not.toBe(0);
+      expect(r.easCalls('build')).toHaveLength(0);
+    }
   });
 
-  it('build-submit production: temiz ortamda build alınır', () => {
+  it('build-submit production: temiz ortamda (proje + hesap) build alınır', () => {
     const r = run(['build-submit', 'ios', 'production', '-'], {
-      fakeFiles: { 'eas-env-production.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\n' },
+      fakeFiles: { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\n' },
     });
     expect(r.status).toBe(0);
-    expect(r.easCalls('env:list')).toHaveLength(1);
+    expect(r.easCalls('env:list')).toEqual([
+      expect.stringContaining('env:list production --scope project'),
+      expect.stringContaining('env:list production --scope account'),
+    ]);
     expect(r.easCalls('build')).toHaveLength(1);
   });
 

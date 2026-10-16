@@ -84,8 +84,15 @@ switch (args[0]) {
     process.exit(Number(process.env.FAKE_BUILD_EXIT || 0));
   }
   case 'env:list': {
-    // EAS sunucu ortam değişkenleri: $FAKE_DIR/eas-env-<ortam>.txt (yoksa boş liste).
-    const p = path.join(dir, `eas-env-${args[1]}.txt`);
+    // EAS sunucu ortam değişkenleri: $FAKE_DIR/eas-env-<ortam>-<kapsam>.txt (kapsam
+    // varsayılanı project; yoksa boş liste). FAKE_EAS_FAIL_ENV_LIST_SCOPE=<kapsam> o
+    // kapsamın sorgusunu düşürür.
+    const scope = flag('--scope') || 'project';
+    if (process.env.FAKE_EAS_FAIL_ENV_LIST_SCOPE === scope) {
+      console.error(`fake eas: env:list (${scope}) başarısız (FAKE)`);
+      process.exit(1);
+    }
+    const p = path.join(dir, `eas-env-${args[1]}-${scope}.txt`);
     if (fs.existsSync(p)) process.stdout.write(fs.readFileSync(p, 'utf8'));
     break;
   }
