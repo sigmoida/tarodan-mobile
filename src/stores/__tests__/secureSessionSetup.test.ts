@@ -5,12 +5,25 @@
  * - bu sürüme güncelleyen kurulum (işaret yok ama AsyncStorage dolu) oturumunu KORUR;
  * - iOS erişilebilirlik göçü: eski öğeler silinip `SECURE_STORE_OPTIONS` ile yeniden yazılır.
  */
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
 import * as SecureStore from 'expo-secure-store';
-import { SECURE_STORE_OPTIONS } from '@/lib/api/tokenStorage';
+import { getSessionEpoch } from '@/lib/api/sessionState';
+import {
+  SECURE_STORE_OPTIONS,
+  readAccessToken,
+  readRefreshToken,
+  resetTokenStorageForTests,
+  writeTokenPair,
+} from '@/lib/api/tokenStorage';
 import {
   INSTALL_MARKER_KEY,
+  INSTALL_PENDING_KEY,
   KEYCHAIN_ACCESSIBILITY_MARKER_KEY,
   migrateKeychainAccessibility,
+  prepareSecureSession,
   wipeSessionIfReinstalled,
   type MarkerStorage,
 } from '../secureSessionSetup';
@@ -29,6 +42,9 @@ const markerStorage: MarkerStorage = {
   getItem: async (k) => storage.get(k) ?? null,
   setItem: async (k, v) => {
     storage.set(k, v);
+  },
+  removeItem: async (k) => {
+    storage.delete(k);
   },
   getAllKeys: async () => [...storage.keys()],
 };
@@ -61,11 +77,15 @@ afterAll(() => {
 });
 
 describe('wipeSessionIfReinstalled', () => {
-  it('yeniden kurulum (işaret yok, AsyncStorage boş): saklı oturum silinir, işaret konur', async () => {
+  it('yeniden kurulum (işaret yok, AsyncStorage boş): saklı oturum silinir, işaret konur, kuşak ilerler', async () => {
     seedSession();
+    const epoch = getSessionEpoch();
     await expect(wipeSessionIfReinstalled(markerStorage)).resolves.toBe('wiped');
     expect(vault.size).toBe(0);
     expect(storage.has(INSTALL_MARKER_KEY)).toBe(true);
+    expect(storage.has(INSTALL_PENDING_KEY)).toBe(false);
+    // Eski oturumun kuyruktaki yazımları (kuşak korumalı) düşer.
+    expect(getSessionEpoch()).toBe(epoch + 1);
   });
 
   it('güncellenen kurulum (işaret yok ama AsyncStorage dolu): oturum KORUNUR', async () => {
@@ -84,11 +104,73 @@ describe('wipeSessionIfReinstalled', () => {
     expect(secure.deleteItemAsync).not.toHaveBeenCalled();
   });
 
-  it('silme düşerse işaret konmaz (sonraki açılış yeniden dener)', async () => {
+  it('silme düşerse çözülmedi: işaret konmaz, "bekliyor" kalır', async () => {
     seedSession();
     secure.deleteItemAsync.mockImplementationOnce(() => Promise.reject(new Error('locked')));
-    await expect(wipeSessionIfReinstalled(markerStorage)).resolves.toBe('unknown');
+    await expect(wipeSessionIfReinstalled(markerStorage)).resolves.toBe('unresolved');
     expect(storage.has(INSTALL_MARKER_KEY)).toBe(false);
+    expect(storage.has(INSTALL_PENDING_KEY)).toBe(true);
+  });
+
+  it('"bekliyor" kaydı varsa AsyncStorage dolmuş olsa da sonraki açılış yine aday sayar (upgrade değil)', async () => {
+    seedSession();
+    storage.set(INSTALL_PENDING_KEY, '1');
+    storage.set('tarodan-cart', '{}');
+    await expect(wipeSessionIfReinstalled(markerStorage)).resolves.toBe('wiped');
+    expect(vault.size).toBe(0);
+    expect(storage.has(INSTALL_PENDING_KEY)).toBe(false);
+  });
+});
+
+describe('prepareSecureSession', () => {
+  beforeEach(() => resetTokenStorageForTests());
+  afterAll(() => resetTokenStorageForTests());
+
+  it('kontrol çözülmezse bu açılışta saklı oturum YOK sayılır; giriş yeni çift yazınca çözülür', async () => {
+    const asyncStorageModule = require('@react-native-async-storage/async-storage');
+    const asyncStorage = asyncStorageModule.default ?? asyncStorageModule;
+    await asyncStorage.clear();
+    seedSession();
+    secure.deleteItemAsync.mockImplementationOnce(() => Promise.reject(new Error('locked')));
+
+    await prepareSecureSession();
+
+    // Okumalar bayat oturumu görmez.
+    await expect(readAccessToken()).resolves.toBeNull();
+    await expect(readRefreshToken()).resolves.toBeNull();
+    expect(await asyncStorage.getItem(INSTALL_PENDING_KEY)).toBe('1');
+
+    // Bu kurulumun kullanıcısı giriş yaptı: yeni çift yazıldı → kontrol çözüldü.
+    await writeTokenPair({ accessToken: 'new-at', refreshToken: 'new-rt' });
+    await new Promise((r) => setTimeout(r, 0));
+    await expect(readAccessToken()).resolves.toBe('new-at');
+    expect(await asyncStorage.getItem(INSTALL_MARKER_KEY)).not.toBeNull();
+    expect(await asyncStorage.getItem(INSTALL_PENDING_KEY)).toBeNull();
+  });
+
+  it('okumalar hazırlık bitene kadar bekler (yeniden kurulumda bayat token hiç görülmez)', async () => {
+    const asyncStorageModule = require('@react-native-async-storage/async-storage');
+    const asyncStorage = asyncStorageModule.default ?? asyncStorageModule;
+    await asyncStorage.clear();
+    seedSession();
+    let releaseDelete!: () => void;
+    secure.deleteItemAsync.mockImplementationOnce(
+      (k: string) =>
+        new Promise<void>((resolve) => {
+          releaseDelete = () => {
+            vault.delete(k);
+            resolve();
+          };
+        }),
+    );
+
+    const prep = prepareSecureSession();
+    const read = readAccessToken();
+    await new Promise((r) => setTimeout(r, 0));
+    releaseDelete();
+    await prep;
+
+    await expect(read).resolves.toBeNull();
   });
 });
 
