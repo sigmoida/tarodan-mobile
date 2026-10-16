@@ -21,6 +21,9 @@ import { render, act } from '@testing-library/react-native';
 import { Image } from 'expo-image';
 import { AppImage } from '../AppImage';
 
+// API kökü sabit: bearer yalnız bu origin'deki `/media/message-attachment/<id>` ucuna gider.
+jest.mock('@/lib/api/baseUrl', () => ({ resolveApiBaseUrl: () => 'https://api.tarodan.com/api' }));
+
 jest.mock('@/stores/authStore', () => {
   const { create } = require('zustand');
   return { useAuthStore: create(() => ({ token: null })) };
@@ -114,6 +117,43 @@ describe('AppImage — authenticated opt-in yükleme (task 4)', () => {
 });
 
 /**
+ * Token sızıntısı (HIGH) — `authenticated` açıkken bearer HER URL'e ekleniyordu;
+ * mesaj gövdesindeki `[IMG:https://saldirgan/…]` alıcının access token'ını yabancı
+ * hosta taşıyordu. Header artık yalnız API origin'i + mesaj eki yoluna gider.
+ */
+describe('AppImage — bearer yalnız kendi mesaj eki ucuna', () => {
+  beforeEach(() => {
+    (useAuthStore as any).setState({ token: 'victim-token' });
+  });
+
+  const foreign = [
+    'https://evil.example/api/media/message-attachment/xyz',
+    'https://api.tarodan.com@evil.example/api/media/message-attachment/xyz',
+    'https://api.tarodan.com.evil.example/api/media/message-attachment/xyz',
+    'http://api.tarodan.com/api/media/message-attachment/xyz',
+    'https://api.tarodan.com/api/users/me',
+    'https://api.tarodan.com/api/media/message-attachment/../../users/me',
+    'https://api.tarodan.com/api/media/message-attachment/xyz?redirect=https://evil.example',
+  ];
+
+  it.each(foreign)('%s → Authorization header YOK', (uri) => {
+    const { UNSAFE_getByType } = render(<AppImage source={uri} authenticated />);
+    const img = UNSAFE_getByType(Image);
+    expect(img.props.source.headers).toBeUndefined();
+    expect(JSON.stringify(img.props.source)).not.toContain('victim-token');
+  });
+
+  it('kendi mesaj eki ucu → Authorization header VAR', () => {
+    const { UNSAFE_getByType } = render(
+      <AppImage source="https://api.tarodan.com/api/media/message-attachment/xyz" authenticated />,
+    );
+    expect(UNSAFE_getByType(Image).props.source.headers).toEqual({
+      Authorization: 'Bearer victim-token',
+    });
+  });
+});
+
+/**
  * I2 — authenticated bir yükleme başarısız olduğunda sessizce gri kutuya
  * düşmesin. Log `logger.debug` ile yazılır (release'te düşer) ve token/URL/query İÇERMEZ.
  */
@@ -130,7 +170,7 @@ describe('AppImage — başarısız bearer yüklemesi görünür olur (I2)', () 
   it('authenticated yükleme hatası debug günlüğü basar (token/URL sızdırmadan)', () => {
     (useAuthStore as any).setState({ token: 'secret-token-value' });
     const { UNSAFE_getByType } = render(
-      <AppImage source="https://api.tarodan.com/api/media/message-attachment/xyz?sig=SECRET" authenticated />
+      <AppImage source="https://api.tarodan.com/api/media/message-attachment/xyzSECRET" authenticated />
     );
 
     act(() => UNSAFE_getByType(Image).props.onError());

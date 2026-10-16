@@ -4,6 +4,33 @@
  */
 import { notificationRoute, toMobileRoute } from '../notificationRoute';
 
+/**
+ * Yol enjeksiyonu (HIGH) — çözülmüş kimlik expo-router parametresi olarak API yoluna
+ * giriyordu (`x/../../offers/<id>/accept`). Biçim dışı kimlik rotaya hiç girmez.
+ */
+describe('kimlik biçimi doğrulaması', () => {
+  it('?thread= kodlanmış yol içerirse sohbet listesine düşer', () => {
+    expect(toMobileRoute('/messages?thread=x%2F..%2F..%2Foffers%2Fo1%2Faccept')).toBe('/messages');
+    expect(toMobileRoute('/messages?thread=%E0%A4%A')).toBe('/messages');
+    expect(toMobileRoute('/messages?thread=3f2c1a9e-0b7d-4c1e-9a55-2d1f0e6b7c8a')).toBe(
+      '/messages/3f2c1a9e-0b7d-4c1e-9a55-2d1f0e6b7c8a',
+    );
+  });
+
+  it('yol segmentinde kodlanmış ayraç / nokta varsa link eşlenmez', () => {
+    expect(toMobileRoute('/trades/x%2F..%2Foffers')).toBeNull();
+    expect(toMobileRoute('/orders/a%3Fb')).toBeNull();
+    expect(toMobileRoute('/listings/..')).toBeNull();
+    expect(toMobileRoute('/trades/t-1')).toBe('/trade/t-1');
+  });
+
+  it('data kimlikleri biçim dışıysa yok sayılır (sayı kabul)', () => {
+    expect(notificationRoute({ data: { tradeId: '../offers/o1/accept' } })).toBeNull();
+    expect(notificationRoute({ data: { threadId: 't/../x', orderId: 'o 1' } })).toBeNull();
+    expect(notificationRoute({ data: { orderId: 42 } })).toBe('/orders/42');
+  });
+});
+
 describe('toMobileRoute — derin bağlantı yolları', () => {
   it('web ilan listesi filtre/sıralama sorgusuyla mobil ilan listesine gider', () => {
     expect(toMobileRoute('/listings')).toBe('/listings');

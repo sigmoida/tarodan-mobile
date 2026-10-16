@@ -1,4 +1,5 @@
 import { api } from "./client";
+import { apiPath } from "./path";
 
 /** Sunucu sepetindeki tek satır (CartItemResponseDto). */
 export interface ServerCartItem {
@@ -64,10 +65,10 @@ export const cartApi = {
 
   /** quantity: 0 → satırı kaldırır (backend sözleşmesi). */
   updateItem: (productId: string, quantity: number) =>
-    api.patch<ServerCart>(`/cart/items/${productId}`, { quantity }),
+    api.patch<ServerCart>(apiPath`/cart/items/${productId}`, { quantity }),
 
   removeItem: (productId: string) =>
-    api.delete<ServerCart>(`/cart/items/${productId}`),
+    api.delete<ServerCart>(apiPath`/cart/items/${productId}`),
 
   clear: () => api.delete("/cart"),
 };

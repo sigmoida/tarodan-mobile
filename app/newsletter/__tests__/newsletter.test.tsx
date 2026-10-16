@@ -121,7 +121,7 @@ describe('J117 · Bülten abonelik iptali (unsubscribe)', () => {
     getMock.mockResolvedValue({ data: { success: true } });
     renderWithProviders(<NewsletterUnsubscribeScreen />);
     await waitFor(() =>
-      expect(getMock).toHaveBeenCalledWith('/newsletter/unsubscribe?token=abc123'),
+      expect(getMock).toHaveBeenCalledWith('/newsletter/unsubscribe', { params: { token: 'abc123' } }),
     );
   });
 });

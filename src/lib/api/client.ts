@@ -12,30 +12,11 @@ import { acceptLanguageHeader } from "./acceptLanguage";
 import { neutralizeUpsellError } from "./iosNeutralErrors";
 import { noteNetworkFailure } from "@/lib/network/networkFailure";
 import { isInvalidTwoFactorCode, isTwoFactorCodeRequest } from "./twoFactorCodeError";
+import { resolveApiBaseUrl } from "./baseUrl";
+import { apiPath } from "./path";
 
-// API URL çözümleme sırası:
-// 1) EXPO_PUBLIC_API_URL (production / preview / staging build'leri için zorunlu)
-// 2) Expo Go LAN host (lokal geliştirme)
-// 3) Platform fallback'i (emülatör)
-const getApiUrl = () => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL;
-  if (envUrl && envUrl.length > 0) {
-    return envUrl.replace(/\/$/, "");
-  }
-
-  const expoHost = Constants.expoConfig?.hostUri?.split(":")[0];
-  if (expoHost) {
-    return `http://${expoHost}:3001/api`;
-  }
-
-  if (Platform.OS === "android") {
-    return "http://10.0.2.2:3001/api";
-  }
-
-  return "http://localhost:3001/api";
-};
-
-const API_URL = getApiUrl();
+// API URL çözümleme kuralı tek kaynakta: `./baseUrl` (env → Expo LAN host → emülatör).
+const API_URL = resolveApiBaseUrl();
 
 /** Çözümlenmiş API base URL'i (örn. http://host:3001/api). socket.ts gibi
  *  modüller buradan okur; URL çözümleme davranışını değiştirmez. */
@@ -56,7 +37,8 @@ export const buildAvatarUrl = (
   userId: string,
   versionHint?: string | null,
 ): string => {
-  const base = `${API_URL}/users/${userId}/avatar`;
+  // `userId` sunucu/route verisi — yol segmenti olarak kodlanır (`./path`).
+  const base = `${API_URL}${apiPath`/users/${userId}/avatar`}`;
   if (!versionHint) return base;
   const filename = versionHint.split("?")[0].split("/").pop() || "";
   return filename ? `${base}?v=${encodeURIComponent(filename)}` : base;

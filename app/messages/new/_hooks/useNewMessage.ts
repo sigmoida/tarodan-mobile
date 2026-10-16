@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { qk } from '@/lib/query';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
+import { apiPath } from '@/lib/api/path';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { toast } from '@/ui';
 import { useCreateThread, useDailyMessageLimit } from '@/hooks/messaging';
@@ -53,7 +54,7 @@ export function useNewMessage() {
     queryFn: async () => {
       if (!recipientId) return null;
       try {
-        const response = await api.get(`/users/${recipientId}/profile`);
+        const response = await api.get(apiPath`/users/${recipientId}/profile`);
         const profile = response.data?.data || response.data;
         if (!profile?.id) return null;
         return {
@@ -81,7 +82,7 @@ export function useNewMessage() {
     queryFn: async () => {
       if (!productId) return null;
       try {
-        const response = await api.get(`/products/${productId}`);
+        const response = await api.get(apiPath`/products/${productId}`);
         return response.data;
       } catch (error) {
         return null;

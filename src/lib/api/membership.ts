@@ -1,4 +1,5 @@
 import { api, guestApi } from './client';
+import { apiPath } from './path';
 import type { PaymentPurpose } from '@/lib/payment/capabilities';
 
 /** `GET /membership/cards` satırı (maskeli; PAN/CVV yok). */
@@ -58,7 +59,7 @@ export const membershipApi = {
   listCards: (purpose?: PaymentPurpose) =>
     api.get<SavedCard[]>('/membership/cards', purpose ? { params: { purpose } } : undefined),
   /** Kayıtlı kartı sil (PayTR'dan da silinir) — DELETE /membership/cards/:id */
-  deleteCard: (id: string) => api.delete(`/membership/cards/${id}`),
+  deleteCard: (id: string) => api.delete(apiPath`/membership/cards/${id}`),
   /** Üyelik ödemesini başlat — backend: POST /membership/payments/initiate */
   initiatePayment: (data: { tierType: string; billingPeriod: 'monthly' | 'yearly'; provider?: 'paytr' }) =>
     api.post('/membership/payments/initiate', data),
@@ -116,11 +117,11 @@ export type UpdateDiscountPayload = {
 
 export const discountsApi = {
   getAll: (params?: Record<string, any>) => api.get('/discounts', { params }),
-  getOne: (id: string) => api.get(`/discounts/${id}`),
+  getOne: (id: string) => api.get(apiPath`/discounts/${id}`),
   create: (data: CreateDiscountPayload) => api.post('/discounts', data),
   update: (id: string, data: UpdateDiscountPayload) =>
-    api.patch(`/discounts/${id}`, data),
-  delete: (id: string) => api.delete(`/discounts/${id}`),
+    api.patch(apiPath`/discounts/${id}`, data),
+  delete: (id: string) => api.delete(apiPath`/discounts/${id}`),
   validate: (data: {
     code: string;
     cartItems: Array<{ productId: string; quantity: number; price: number }>;

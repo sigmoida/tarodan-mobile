@@ -11,6 +11,7 @@
  */
 import i18n from '@/i18n/config';
 import type { MessageKey } from '@/i18n/lib/generated/keys';
+import { isApiMessageAttachmentUrl } from '@/lib/api/messageAttachment';
 
 export type ContentViolationType =
   | 'phone'
@@ -146,7 +147,10 @@ const ANY_URI_SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
  * dönüşebilir.
  *
  * Kabul edilenler:
- *   - mutlak `http(s)://`
+ *   - mutlak `http(s)://` YALNIZ kendi mesaj eki ucumuz: API origin'i +
+ *     `/media/message-attachment/<id>` (`isApiMessageAttachmentUrl`). Yabancı host
+ *     kabul edilmez: alıcının cihazı saldırganın sunucusuna istek atmasın (IP /
+ *     okundu sızıntısı) ve kimlikli yükleme bir yabancı hedefe hiç ulaşmasın.
  *   - `/` ile başlayan web-public relatif yol
  *   - çıplak depolama key'i (şemasız) — `..` segmenti içermemek şartıyla
  * Diğer her şey atılır: işaret metinden yine silinir (ham `[IMG:…]` metni
@@ -158,7 +162,7 @@ const ANY_URI_SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 function isAllowedImageTarget(raw: string): boolean {
   const s = raw.trim();
   if (!s) return false;
-  if (HTTP_URI_RE.test(s)) return true;
+  if (HTTP_URI_RE.test(s)) return isApiMessageAttachmentUrl(s);
   if (ANY_URI_SCHEME_RE.test(s)) return false;
   // Şemasız: çıplak key veya `/` relatif yol. Dizin çıkışı kabul edilmez —
   // yüzde kodlanmış (`%2e%2e`) ve ters bölülü varyantlar dahil. Çözme
@@ -197,7 +201,16 @@ export function formatMessagePreview(content: string): string {
   return text ? `${text} ${photoLabel}` : photoLabel;
 }
 
+/**
+ * Gönderim tarafı: işareti yalnız alıcının da render edeceği bir hedefle kurar.
+ * Sunucu beklenmedik bir URL döndürürse (yabancı host, `]`/boşluk içeren değer)
+ * fotoğrafsız/görünmez bir mesaj göndermek yerine hata fırlatılır — çağıran
+ * (`useMessageThread`) bunu "görsel gönderilemedi" toast'ına çevirir.
+ */
 export function embedImageInMessage(existingText: string, imageUrl: string): string {
+  if (/[\]\s]/.test(imageUrl) || !isAllowedImageTarget(imageUrl)) {
+    throw new Error('Invalid message image target');
+  }
   const base = existingText ? existingText.trim() + ' ' : '';
   return `${base}[IMG:${imageUrl}]`;
 }

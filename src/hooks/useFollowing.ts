@@ -2,6 +2,7 @@ import { logger, safeError } from '@/services/logger';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
+import { apiPath } from '@/lib/api/path';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -102,7 +103,7 @@ export function useFollowing() {
 
   const followSeller = async (sellerId: string): Promise<boolean> => {
     try {
-      const response = await api.post(`/users/${sellerId}/follow`);
+      const response = await api.post(apiPath`/users/${sellerId}/follow`);
       // API dönüşünden sonra yerel state'e ekle (store paritesi).
       const newFollowing: FollowedSeller = response.data?.user || {
         id: sellerId,
@@ -124,7 +125,7 @@ export function useFollowing() {
 
   const unfollowSeller = async (sellerId: string): Promise<boolean> => {
     try {
-      await api.delete(`/users/${sellerId}/follow`);
+      await api.delete(apiPath`/users/${sellerId}/follow`);
       qc.setQueryData<FollowedSeller[]>(qk.follow.following, (cur) =>
         (cur ?? []).filter((f) => f.id !== sellerId),
       );
