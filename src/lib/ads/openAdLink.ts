@@ -4,6 +4,9 @@ import { pathFromUrl, stripLocalePrefix } from '@/lib/deeplinks';
 import { toMobileRoute } from '@/utils/notificationRoute';
 import { navigateTo } from '@/lib/navigation/goTo';
 import { ownWebPageUrl } from '@/lib/web';
+import { queryClient } from '@/lib/query/client';
+import { qk } from '@/lib/query/keys';
+import { asManufacturerList, withManufacturerId } from '@/utils/manufacturerLookup';
 import { LEGAL_WEB_DOCS } from '@/lib/legal/webDocs';
 import { IN_APP_WEB_ROUTE, inAppWebHref, resolveRemovedPage } from '@/lib/navigation/removedPages';
 import { isPurchasePath } from './purchasePath';
@@ -157,13 +160,27 @@ export function isPurchaseLink(linkUrl: string | null | undefined): boolean {
   return target.kind === 'blocked' && target.reason === 'purchase';
 }
 
+/**
+ * Reklam linkleri üreticiyi ADLA taşır (`/listings?manufacturer=Hot+Wheels`). Üretici listesi
+ * React Query önbelleğinde varsa (ana sayfa / kategoriler / üreticiler ekranları doldurur) ad
+ * kimliğe çevrilip `manufacturerId` de eklenir; önbellek boşsa ya da ad bulunamazsa rota aynen kalır.
+ * `resolveAdLink` SAF kalır (render sırasında da çağrılıyor) — dönüşüm yalnız açarken yapılır.
+ */
+function withCachedManufacturerId(route: string): string {
+  if (!route.includes('manufacturer=')) return route;
+  return withManufacturerId(
+    route,
+    asManufacturerList(queryClient.getQueryData(qk.catalog.manufacturers)),
+  );
+}
+
 /** Reklam bağlantısını aç; açılan bir şey olduysa `true`. */
 export function openAdLink(linkUrl: string | null | undefined): boolean {
   const target = resolveAdLink(linkUrl);
   switch (target.kind) {
     case 'route':
       // Sekme hedefi (`/cart`, `/favorites`, `/`) alttaki `(tabs)`'a döner; diğerleri push.
-      navigateTo(target.route);
+      navigateTo(withCachedManufacturerId(target.route));
       return true;
     case 'external':
       Linking.openURL(target.url).catch(() => {});
