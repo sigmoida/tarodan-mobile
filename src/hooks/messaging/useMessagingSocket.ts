@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
+import { AppState } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { connectSocket, disconnectSocket, getSocket } from '@/services/socket';
+import { connectSocket, disconnectSocket, getSocket, onSocketInstanceChange } from '@/services/socket';
 import { useAuthStore } from '@/stores/authStore';
 import { useMessagesStore } from '@/stores/messagesStore';
 import { qk } from '@/lib/query';
@@ -8,7 +9,7 @@ import {
   applyIncomingToCache,
   applyMessagesReadToCache,
 } from '@/lib/messaging/cache';
-import { invalidateBadgeCounts } from '@/hooks/useBadgePoll';
+import { invalidateForNewNotification } from '@/hooks/useBadgePoll';
 import { useSocketAppLifecycle } from './useSocketAppLifecycle';
 
 /**
@@ -43,7 +44,9 @@ export function useMessagingSocket() {
       disconnectSocket();
       return;
     }
-    const socket = connectSocket(token);
+    // Arka plandayken (ör. sessiz token yenilemesi) BAĞLANILMAZ: ön plana dönüşte
+    // `useSocketAppLifecycle` taze token'la bağlar. Dinleyiciler yine de örneğe bağlanır.
+    if (AppState.currentState !== 'background') connectSocket(token);
 
     const onMessageNew = (p: { threadId: string; message: any }) => {
       const myUserId = useAuthStore.getState().user?.id;
@@ -57,21 +60,38 @@ export function useMessagingSocket() {
       applyMessagesReadToCache(qc, p.threadId, p.messageIds || []);
     };
     const onReconnect = resync;
+    // Yeni bildirim (teklif / takas / sipariş…): push alımıyla AYNI yardımcı (liste + rozetler).
+    const onNotificationNew = () => invalidateForNewNotification(qc);
 
-    // Yeni bildirim (teklif / takas / sipariş…): rozetler yoklamayı beklemeden tazelenir.
-    const onNotificationNew = () => invalidateBadgeCounts(qc);
-
-    socket.on('message:new', onMessageNew);
-    socket.on('notification:new', onNotificationNew);
-    socket.on('thread:updated', onThreadUpdated);
-    socket.on('message:read', onMessageRead);
-    socket.io.on('reconnect', onReconnect);
+    // Dinleyiciler soket ÖRNEĞİNE bağlanır; örnek sonradan oluşursa (arka planda token geldi,
+    // ön plana dönüşte bağlanıldı) `onSocketInstanceChange` ile yeni örneğe taşınır.
+    type AppSocket = NonNullable<ReturnType<typeof getSocket>>;
+    let attached: AppSocket | null = null;
+    const detach = () => {
+      if (!attached) return;
+      attached.off('message:new', onMessageNew);
+      attached.off('notification:new', onNotificationNew);
+      attached.off('thread:updated', onThreadUpdated);
+      attached.off('message:read', onMessageRead);
+      attached.io.off('reconnect', onReconnect);
+      attached = null;
+    };
+    const attach = (socket: ReturnType<typeof getSocket>) => {
+      if (socket === attached) return;
+      detach();
+      if (!socket) return;
+      socket.on('message:new', onMessageNew);
+      socket.on('notification:new', onNotificationNew);
+      socket.on('thread:updated', onThreadUpdated);
+      socket.on('message:read', onMessageRead);
+      socket.io.on('reconnect', onReconnect);
+      attached = socket;
+    };
+    attach(getSocket());
+    const stopWatching = onSocketInstanceChange(attach);
     return () => {
-      socket.off('message:new', onMessageNew);
-      socket.off('notification:new', onNotificationNew);
-      socket.off('thread:updated', onThreadUpdated);
-      socket.off('message:read', onMessageRead);
-      socket.io.off('reconnect', onReconnect);
+      stopWatching();
+      detach();
     };
   }, [token, qc, resync]);
 }

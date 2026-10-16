@@ -13,9 +13,25 @@ export const BADGE_POLL_MS = 60000;
 const BADGE_KEYS = [qk.notifications.unread, qk.offers.pendingCount, qk.trades.pendingCount] as const;
 const BADGE_HASHES = new Set(BADGE_KEYS.map((k) => hashKey(k)));
 
-/** Rozet sayaçlarını geçersiz kılar (push / soket olayı): yalnız ekranda olanlar yeniden çekilir. */
+/**
+ * Rozet sayaçlarını geçersiz kılar: yalnız ekranda olanlar yeniden çekilir. `cancelRefetch: false`:
+ * aynı bildirim hem push hem soketle gelince ikinci çağrı uçuştaki isteği iptal edip yenisini
+ * atmaz, ona bağlanır (çift istek yok).
+ */
 export function invalidateBadgeCounts(qc: QueryClient): void {
-  void qc.invalidateQueries({ predicate: (q) => BADGE_HASHES.has(q.queryHash) });
+  void qc.invalidateQueries(
+    { predicate: (q) => BADGE_HASHES.has(q.queryHash) },
+    { cancelRefetch: false },
+  );
+}
+
+/**
+ * Yeni bildirim geldi (push alımı VEYA soket `notification:new`) — TEK yardımcı: bildirim listesi
+ * + rozet sayaçları bayat. İkisi aynı bildirim için ardışık çalışsa da çift istek olmaz.
+ */
+export function invalidateForNewNotification(qc: QueryClient): void {
+  void qc.invalidateQueries({ queryKey: qk.notifications.list }, { cancelRefetch: false });
+  invalidateBadgeCounts(qc);
 }
 
 // ── Tek yoklama döngüsü (modül düzeyi, abone sayımlı) ────────────────────────────────────────
