@@ -1,15 +1,34 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Input, SectionCard, Switch } from '@/ui';
+import { Button, SectionCard, Switch } from '@/ui';
 import UpgradeCta from '@/components/UpgradeCta';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useStableCallback } from '@/hooks/useStableCallback';
 
 import type { ListingFormController } from '../_hooks/useListingForm';
+import { memoSection, type ListingFormKey } from '../_lib/memoSection';
 import { ChoiceChips, FieldGroup, ToggleRow, fieldStyles, type ChoiceOption } from './fields';
+import { FormTextField } from './FormTextField';
 import { navigateTo } from '@/lib/navigation/goTo';
 
 type SectionProps = { f: ListingFormController };
+
+/** Bu dosyadaki bölümün okuduğu controller alanları (memo karşılaştırması; bkz. `memoSection`). */
+const KEYS: readonly ListingFormKey[] = [
+  'form',
+  'isEdit',
+  'isPreorder',
+  'isSet',
+  'isTradeEnabled',
+  'limits',
+  'setIsPreorder',
+  'setIsSet',
+  'setIsTradeEnabled',
+  'setStatus',
+  'status',
+];
+
+const digitsOnly = (v: string) => v.replace(/[^0-9]/g, '');
 
 const goUpgrade = () => navigateTo('/(tabs)/profile');
 
@@ -25,7 +44,7 @@ export const SET_BUNDLE_ENABLED: boolean = false;
  * durumu (yalnız düzenleme). Takas hakkı yoksa anahtar yerine yükseltme bağlantısı
  * (`UpgradeCta`: satın alma kapalıysa hiç çizilmez) ve nötr açıklama.
  */
-export function ListingOptionsSection({ f }: SectionProps) {
+export const ListingOptionsSection = memoSection(function ListingOptionsSection({ f }: SectionProps) {
   const { t } = useTranslation();
   const canTrade = !!f.limits?.canTrade;
   const statusOptions = useMemo<ChoiceOption[]>(
@@ -36,7 +55,6 @@ export function ListingOptionsSection({ f }: SectionProps) {
     [t],
   );
   const onStatus = useStableCallback(f.setStatus);
-  const onBundleSize = useStableCallback((v: string) => f.setBundleSize(v.replace(/[^0-9]/g, '')));
 
   return (
     <SectionCard title={t('product.options')} bodyStyle={fieldStyles.body}>
@@ -75,10 +93,11 @@ export function ListingOptionsSection({ f }: SectionProps) {
       ) : null}
 
       {SET_BUNDLE_ENABLED && f.isSet ? (
-        <Input
+        <FormTextField
+          control={f.form.control}
+          name="bundleSize"
+          transform={digitsOnly}
           label={t('product.setPieceCount')}
-          value={f.bundleSize}
-          onChangeText={onBundleSize}
           keyboardType="number-pad"
           placeholder={t('product.setPiecePlaceholder')}
           helperText={t('product.setSizeHelper')}
@@ -109,4 +128,4 @@ export function ListingOptionsSection({ f }: SectionProps) {
       ) : null}
     </SectionCard>
   );
-}
+}, KEYS);

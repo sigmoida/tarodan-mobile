@@ -7,6 +7,7 @@ import { AppImage } from '@/components/AppImage';
 import { styles } from '../_lib/styles';
 import { formatTime } from '../_lib/helpers';
 import type { MessageThreadController } from '../_hooks/useMessageThread';
+import type { Message } from '@/stores/messagesStore';
 import { MessageTicks } from './MessageTicks';
 import { TypingIndicator } from './TypingIndicator';
 
@@ -22,6 +23,80 @@ const SKELETON_BUBBLES = [
   { side: 'right', width: '66%', lines: 2, showAvatar: false },
 ] as const;
 
+const DateDivider = React.memo(function DateDivider({ date }: { date: string }) {
+  return (
+    <View style={styles.dateDivider}>
+      <View style={styles.dateDividerLine} />
+      <Text variant="caption" style={styles.dateDividerText}>{date}</Text>
+      <View style={styles.dateDividerLine} />
+    </View>
+  );
+});
+
+/**
+ * Tek mesaj balonu. `React.memo` + `parseMessageContent` içerik başına useMemo: liste yeniden
+ * türetildiğinde (yeni mesaj, okundu durumu) değişmeyen mesajın ayrıştırması ve balonu tekrar
+ * çalışmaz (React Query yapısal paylaşımı değişmeyen mesaj nesnesinin referansını korur).
+ */
+const MessageRow = React.memo(function MessageRow({
+  message,
+  isOwn,
+  showAvatar,
+  otherAvatarUrl,
+  otherInitial,
+}: {
+  message: Message;
+  isOwn: boolean;
+  showAvatar: boolean;
+  otherAvatarUrl: string | undefined;
+  otherInitial: string;
+}) {
+  const content: string = message.content || '';
+  const parsed = React.useMemo(() => parseMessageContent(content), [content]);
+
+  return (
+    <View style={[styles.messageRow, isOwn ? styles.messageRowOwn : styles.messageRowOther]}>
+      {!isOwn && (
+        <View style={styles.avatarPlaceholder}>
+          {showAvatar ? <Avatar size="sm" source={otherAvatarUrl} name={otherInitial} /> : null}
+        </View>
+      )}
+
+      <View style={[styles.messageBubble, isOwn ? styles.messageBubbleOwn : styles.messageBubbleOther]}>
+        {parsed.images.length > 0 ? (
+          <View style={styles.messageImagesWrap}>
+            {parsed.images.map((img, idx) => (
+              <AppImage
+                key={`${message.id}-img-${idx}`}
+                source={img}
+                variant="card"
+                style={styles.messageImage}
+                resizeMode="cover"
+                // Mesaj ekleri API redirect uçtan gelir (`/api/media/message-attachment/{id}`)
+                // ve JWT ister — bearer'sız istek 401 alıp sessizce placeholder'a düşüyordu
+                // (task 4, parite P0 #4). Ürün görselleri gibi public değil, bu yüzden burada
+                // opt-in ediyoruz.
+                authenticated
+              />
+            ))}
+          </View>
+        ) : null}
+        {parsed.text ? (
+          <Text variant="bodySm" color={isOwn ? colors.text.inverted : colors.text.heading}>
+            {parsed.text}
+          </Text>
+        ) : null}
+        <View style={styles.messageFooter}>
+          <Text variant="caption" color={isOwn ? colors.overlay.white70 : colors.text.subtle}>
+            {formatTime(message.createdAt)}
+          </Text>
+          {isOwn && <MessageTicks status={message.status} />}
+        </View>
+      </View>
+    </View>
+  );
+});
+
 /**
  * Grouped, date-divided message list with own/other bubbles (web MessageBubble: kendi balonu
  * primary-500, karşı taraf çerçeveli beyaz; okundu işareti turuncu çift tik).
@@ -35,7 +110,7 @@ const SKELETON_BUBBLES = [
  */
 type Row =
   | { kind: 'divider'; key: string; date: string }
-  | { kind: 'message'; key: string; message: any; isOwn: boolean; showAvatar: boolean };
+  | { kind: 'message'; key: string; message: Message; isOwn: boolean; showAvatar: boolean };
 
 export function MessageList({ f }: { f: MessageThreadController }) {
   const { user, other } = f;
@@ -56,74 +131,22 @@ export function MessageList({ f }: { f: MessageThreadController }) {
     return out;
   }, [f.groupedMessages, user?.id]);
 
+  const otherAvatarUrl = other?.avatarUrl || undefined;
+  const otherInitial = other?.displayName?.charAt(0) || '?';
   const renderItem = React.useCallback(
     ({ item }: { item: Row }) => {
-      if (item.kind === 'divider') {
-        return (
-          <View style={styles.dateDivider}>
-            <View style={styles.dateDividerLine} />
-            <Text variant="caption" style={styles.dateDividerText}>{item.date}</Text>
-            <View style={styles.dateDividerLine} />
-          </View>
-        );
-      }
-
-      const { message, isOwn, showAvatar } = item;
-      const parsed = parseMessageContent(message.content || '');
-
+      if (item.kind === 'divider') return <DateDivider date={item.date} />;
       return (
-        <View
-          style={[styles.messageRow, isOwn ? styles.messageRowOwn : styles.messageRowOther]}
-        >
-          {!isOwn && (
-            <View style={styles.avatarPlaceholder}>
-              {showAvatar ? (
-                <Avatar
-                  size="sm"
-                  source={other?.avatarUrl || undefined}
-                  name={other?.displayName?.charAt(0) || '?'}
-                />
-              ) : null}
-            </View>
-          )}
-
-          <View
-            style={[styles.messageBubble, isOwn ? styles.messageBubbleOwn : styles.messageBubbleOther]}
-          >
-            {parsed.images.length > 0 ? (
-              <View style={styles.messageImagesWrap}>
-                {parsed.images.map((img, idx) => (
-                  <AppImage
-                    key={`${message.id}-img-${idx}`}
-                    source={img}
-                    variant="card"
-                    style={styles.messageImage}
-                    resizeMode="cover"
-                    // Mesaj ekleri API redirect uçtan gelir (`/api/media/message-attachment/{id}`)
-                    // ve JWT ister — bearer'sız istek 401 alıp sessizce placeholder'a düşüyordu
-                    // (task 4, parite P0 #4). Ürün görselleri gibi public değil, bu yüzden burada
-                    // opt-in ediyoruz.
-                    authenticated
-                  />
-                ))}
-              </View>
-            ) : null}
-            {parsed.text ? (
-              <Text variant="bodySm" color={isOwn ? colors.text.inverted : colors.text.heading}>
-                {parsed.text}
-              </Text>
-            ) : null}
-            <View style={styles.messageFooter}>
-              <Text variant="caption" color={isOwn ? colors.overlay.white70 : colors.text.subtle}>
-                {formatTime(message.createdAt)}
-              </Text>
-              {isOwn && <MessageTicks status={message.status} />}
-            </View>
-          </View>
-        </View>
+        <MessageRow
+          message={item.message}
+          isOwn={item.isOwn}
+          showAvatar={item.showAvatar}
+          otherAvatarUrl={otherAvatarUrl}
+          otherInitial={otherInitial}
+        />
       );
     },
-    [other?.avatarUrl, other?.displayName],
+    [otherAvatarUrl, otherInitial],
   );
 
   if (f.isLoadingMessages && f.messages.length === 0) {
@@ -148,6 +171,11 @@ export function MessageList({ f }: { f: MessageThreadController }) {
       onContentSizeChange={f.handleContentSizeChange}
       onScroll={f.handleScroll}
       scrollEventThrottle={16}
+      // Pencereleme: varsayılan 21 ekranlık pencere uzun geçmişte gereksiz satır tutar. İlk
+      // konumlanma `scrollToEnd` (useAutoScroll) ile yapılır; `initialNumToRender` varsayılanda
+      // bırakıldı ve satırlar ölçülerek yerleşir (getItemLayout yok — balon yüksekliği değişken).
+      windowSize={11}
+      maxToRenderPerBatch={10}
       ListFooterComponent={
         // TypingIndicator görünüp kaybolunca içerik yüksekliği DEĞİŞMESİN diye
         // sabit yükseklikli bir kapsayıcıya alınır (bkz. layout denetimi B3) —

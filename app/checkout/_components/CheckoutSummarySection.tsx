@@ -9,14 +9,33 @@ import { styles } from '../_lib/styles';
 import type { useCheckout } from '../_hooks/useCheckout';
 
 type Ctrl = ReturnType<typeof useCheckout>;
+type Props = Pick<
+  Ctrl,
+  | 'coupon'
+  | 'couponDiscount'
+  | 'productAmount'
+  | 'shippingCost'
+  | 'serviceFeeAmount'
+  | 'total'
+  | 'quantityDiscount'
+  | 'feeDiscounts'
+  | 'feeDiscountTotal'
+  | 'quoteError'
+  | 'quoteLoading'
+  | 'retryQuote'
+  | 'distanceSalesAccepted'
+  | 'toggleDistanceSales'
+>;
 
 /**
  * Sipariş özeti kartı (web `OrderSummarySidebar`): kupon, tutar satırları ve — tutarın hemen
  * altında — mesafeli satış sözleşmesi onayı. Onay ödemeyi kapatıyor (yasal yükümlülük) ve
  * sunucuya İLK çağrıda gidiyor (idempotency replay sonradan geleni işlemez). "Ödeme Yap"
  * düğmesi sabit alt barda (`CheckoutPayBar`).
+ *
+ * `React.memo` + dar prop'lar: adres/iletişim alanlarına yazarken bu kart yeniden çizilmez.
  */
-export function CheckoutSummarySection({ c }: { c: Ctrl }) {
+export const CheckoutSummarySection = React.memo(function CheckoutSummarySection(c: Props) {
   const { t } = useTranslation();
   return (
     <SectionCard title={t('checkout.orderSummary')} testID="checkout-summary">
@@ -48,4 +67,4 @@ export function CheckoutSummarySection({ c }: { c: Ctrl }) {
       </View>
     </SectionCard>
   );
-}
+});

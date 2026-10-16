@@ -103,7 +103,9 @@ describe('J2 · İlan formu render + submit butonu', () => {
     renderWithProviders(<ListingForm mode="create" />);
     expect(await screen.findByText('Ürününüzü koleksiyoncularla buluşturun')).toBeOnTheScreen();
     expect(screen.queryByText('Yeni İlan Oluştur')).toBeNull();
-    expect(screen.getByText('İlan Oluştur')).toBeOnTheScreen();
+    // Ön koşul kapısı (IBAN/adres sorguları) açılınca form ve düğme çizilir — senkron
+    // `getByText` sorgu zamanlamasına bağlı yarış idi.
+    expect(await screen.findByText('İlan Oluştur')).toBeOnTheScreen();
   });
 });
 

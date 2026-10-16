@@ -2,19 +2,38 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
-import { Alert, Input, Radio, SectionCard, Text } from '@/ui';
-import { PhoneInput } from '@/components/common';
+import { Alert, Radio, SectionCard, Text } from '@/ui';
 import { AddressSelector } from './AddressSelector';
+import { CheckoutGuestFields } from './CheckoutGuestFields';
 import { styles } from '../_lib/styles';
 import type { useCheckout } from '../_hooks/useCheckout';
 
 type Ctrl = ReturnType<typeof useCheckout>;
+type Props = Pick<
+  Ctrl,
+  | 'isAuthenticated'
+  | 'guestForm'
+  | 'addresses'
+  | 'selectedAddressId'
+  | 'setSelectedAddressId'
+  | 'shippingAddress'
+  | 'setShippingAddress'
+  | 'billingDifferent'
+  | 'setBillingDifferent'
+  | 'selectedBillingAddressId'
+  | 'setSelectedBillingAddressId'
+  | 'billingAddress'
+  | 'setBillingAddress'
+>;
 
 /**
  * Teslimat adresi + fatura adresi (web `AddressStep`). Misafirde iletişim alanları aynı kartın
  * içinde, adresin üstünde. State/doğrulama `useCheckout`'ta; burası yalnız sunum.
+ *
+ * Misafir alanları RHF'de (`CheckoutGuestFields`) — yazarken yalnız o alan render olur. Kart
+ * `React.memo`: kupon/özet değişimi adres formunu yeniden çizmez.
  */
-export function CheckoutAddressSection({ c }: { c: Ctrl }) {
+export const CheckoutAddressSection = React.memo(function CheckoutAddressSection(c: Props) {
   const { t } = useTranslation();
   return (
     <SectionCard title={t('checkout.shippingAddress')} testID="checkout-address">
@@ -23,36 +42,7 @@ export function CheckoutAddressSection({ c }: { c: Ctrl }) {
           <Alert variant="warning" style={styles.field}>
             {t('checkout.guestShoppingNotice')}
           </Alert>
-          <Input
-            label={t('checkout.guestName')}
-            required
-            value={c.guestName}
-            onChangeText={c.setGuestName}
-            containerStyle={styles.field}
-            testID="guest-name-input"
-          />
-          <Input
-            label={t('checkout.guestEmail')}
-            required
-            value={c.guestEmail}
-            onChangeText={c.setGuestEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            containerStyle={styles.field}
-            testID="guest-email-input"
-          />
-          <PhoneInput
-            testID="guest-phone-input"
-            label={t('checkout.guestPhone')}
-            required
-            // Çözülemeyen numara blur'da uyarır (gönderimi engelleyen kuralla aynı ayrıştırıcı).
-            validateOnBlur
-            countryCode={c.guestPhoneCountryCode}
-            onCountryCodeChange={c.setGuestPhoneCountryCode}
-            phone={c.guestPhone}
-            onPhoneChange={c.setGuestPhone}
-            containerStyle={styles.field}
-          />
+          <CheckoutGuestFields form={c.guestForm} />
           <View style={styles.guestDivider} />
         </View>
       ) : null}
@@ -107,4 +97,4 @@ export function CheckoutAddressSection({ c }: { c: Ctrl }) {
       </View>
     </SectionCard>
   );
-}
+});

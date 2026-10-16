@@ -1,6 +1,6 @@
 import { logger, safeError } from '@/services/logger';
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { appAlert, alertAfterClose, toast, type AlertDialogButton } from '@/ui';
@@ -32,6 +32,8 @@ import {
   validateInlineAddress,
 } from '../_lib/validation';
 import { useCoupon } from './useCoupon';
+import { useZodForm } from '@/ui/form';
+import { guestContactSchema, GUEST_CONTACT_DEFAULTS } from '../_lib/schema';
 import type { ShippingAddressInput, SavedAddress } from '../_lib/types';
 
 /**
@@ -42,6 +44,10 @@ import type { ShippingAddressInput, SavedAddress } from '../_lib/types';
 const MODAL_CLOSE_ALERT_DELAY_MS = 400;
 
 type ServerPrice = number | string | null | undefined;
+
+// Sabit boş diziler: `?? []` her render'da yeni referans üretip memo'lu bölümleri boşa çizdiriyordu.
+const NO_UNAVAILABLE: NonNullable<OrderQuoteResponse['unavailableItems']> = [];
+const NO_ADDRESSES: SavedAddress[] = [];
 
 /**
  * Payload'a girecek telefonların TAMAMI. Bir alan `null` ise o telefon bu
@@ -116,15 +122,34 @@ export function useCheckout() {
 
   const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
 
+  const itemsSignature = useMemo(
+    () => items.map((it) => `${it.productId}:${it.quantity}`).join(','),
+    [items],
+  );
+
+  // Anahtar satır İÇERİĞİNE bağlı (`itemsSignature`): `items` useMemo'su sepet store'u her
+  // değiştiğinde (aynı içerikle bile) yeni dizi üretir; kimliğe bağlı anahtar aynı sepette
+  // gereksiz yere yenileniyordu. Satırlar/adetler değişince yine yenilenir.
   const idempotencyKeyRef = useRef(generateUuidV4());
   useEffect(() => {
     idempotencyKeyRef.current = generateUuidV4();
-  }, [items]);
+  }, [itemsSignature]);
 
-  const [guestName, setGuestName] = useState('');
-  const [guestEmail, setGuestEmail] = useState('');
-  const [guestPhone, setGuestPhone] = useState('');
-  const [guestPhoneCountryCode, setGuestPhoneCountryCode] = useState(DEFAULT_COUNTRY_CODE);
+  /**
+   * Misafir iletişim alanları RHF'de (`CheckoutGuestFields`): tuş vuruşu bu controller'ı
+   * yeniden çizmez. Değerler doğrulama/gönderim anında `getValues()` ile okunur — eskiden
+   * render closure'ından okunan state'in aynısı (her tuşta render olduğu için hep günceldi).
+   */
+  const guestForm = useZodForm(guestContactSchema, { defaultValues: GUEST_CONTACT_DEFAULTS });
+  const readGuest = () => {
+    const g = guestForm.getValues();
+    return {
+      guestName: g.name ?? '',
+      guestEmail: g.email ?? '',
+      guestPhone: g.phone ?? '',
+      guestPhoneCountryCode: g.phoneCountryCode || DEFAULT_COUNTRY_CODE,
+    };
+  };
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | 'new'>('new');
   const [shippingAddress, setShippingAddress] = useState<ShippingAddressInput>(EMPTY_ADDRESS);
@@ -135,9 +160,22 @@ export function useCheckout() {
   const paymentProvider = 'paytr' as const;
 
   const [otpModalOpenState, setOtpModalOpenState] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
+  /**
+   * OTP kodu modalın KENDİ state'inde (`OtpModal`): tuş vuruşu checkout'u yeniden çizmez.
+   * Controller kodu temizlemek istediğinde (eskiden `setOtpCode('')`) bu sayacı artırır;
+   * modal sayaç değişince kodu boşaltır. Gönderimde kod `handleOtpSubmit(code)` ile gelir.
+   */
+  const [otpCodeResetSeq, setOtpCodeResetSeq] = useState(0);
+  const resetOtpCode = () => setOtpCodeResetSeq((n) => n + 1);
   const [otpSending, setOtpSending] = useState(false);
-  const [otpExpiresIn, setOtpExpiresIn] = useState(0);
+  /**
+   * Kodun yeniden gönderilebileceği an (ms). Saniyelik geri sayım modalın içinde
+   * (`OtpModal`) bundan türetilir — eskiden burada her saniye `setOtpExpiresIn` tüm checkout'u
+   * yeniden çiziyordu. Kural aynı: süre dolmadan "tekrar gönder" çalışmaz.
+   */
+  const [otpResendAt, setOtpResendAt] = useState(0);
+  /** Kodun gönderildiği e-posta — modal metni için (alan değeri her tuşta okunmasın). */
+  const [otpEmail, setOtpEmail] = useState('');
   const [otpError, setOtpError] = useState<string | null>(null);
 
   /**
@@ -178,7 +216,7 @@ export function useCheckout() {
 
   const closeOtpModal = () => {
     setOtpModalOpen(false);
-    setOtpCode('');
+    resetOtpCode();
     setOtpError(null);
     const pending = pendingAlertRef.current;
     if (pending) {
@@ -255,11 +293,6 @@ export function useCheckout() {
       queryClient.invalidateQueries({ queryKey: qk.cart.mine });
     }
   };
-  const itemsSignature = useMemo(
-    () => items.map((it) => `${it.productId}:${it.quantity}`).join(','),
-    [items],
-  );
-
   /**
    * Quote 400'ü KUPONA mı ait?
    *
@@ -350,7 +383,10 @@ export function useCheckout() {
    */
   const quantityDiscount = serverAmount(summary?.quantityDiscount);
   const feeDiscountTotal = serverAmount(summary?.feeDiscountTotal);
-  const feeDiscounts = Array.isArray(summary?.feeDiscounts) ? summary!.feeDiscounts! : [];
+  const feeDiscounts = useMemo(
+    () => (Array.isArray(summary?.feeDiscounts) ? summary!.feeDiscounts! : []),
+    [summary],
+  );
   /**
    * Sunucunun uyguladığı indirim — quote yanıtının KÖKÜNDEKİ `couponDiscount`.
    * `/discounts/validate`'in `estimatedDiscount`'u DEĞİL: o yalnız bir tahmin ve
@@ -361,7 +397,7 @@ export function useCheckout() {
   const shippingLoading = quoteQuery.isLoading;
 
   /** Quote'un fiyatlayamadığı satırlar — bilgi amaçlı, tutar türetilmez. */
-  const unavailableItems = quote?.unavailableItems ?? [];
+  const unavailableItems = quote?.unavailableItems ?? NO_UNAVAILABLE;
 
   /**
    * Ayrılan satırlar ödeme ÖZETİNDEN de çıkar (delta 18 §2): sunucu bunları
@@ -387,8 +423,10 @@ export function useCheckout() {
     [items, unavailableProductIds],
   );
   /** Ayrılan satırın sepetteki adı — `quote.items[]`'ta bu satır YOK, ad sepetten gelir. */
-  const cartTitleFor = (productId: string): string | undefined =>
-    items.find((i) => i.productId === productId)?.title;
+  const cartTitleFor = useCallback(
+    (productId: string): string | undefined => items.find((i) => i.productId === productId)?.title,
+    [items],
+  );
 
   // Sunucu satırı ayırdıysa sepetin yerel kopyası bayat: satır artık satın
   // alınamaz. Sepeti tazele (silme İSTEĞİ atma — sunucu zaten kendi kararını verdi).
@@ -406,11 +444,15 @@ export function useCheckout() {
    * ekran yer tutucu basar, yerel çarpıma DÜŞMEZ.
    */
   const quoteLines = useMemo(() => indexQuoteLines(quote?.items), [quote]);
-  const lineSubtotalFor = (productId: string): number | null =>
-    quoteLines.get(productId)?.subtotal ?? null;
+  const lineSubtotalFor = useCallback(
+    (productId: string): number | null => quoteLines.get(productId)?.subtotal ?? null,
+    [quoteLines],
+  );
   /** Sunucunun fiyatladığı adet; satır eşleşmezse `null` → ekran yerel adede döner. */
-  const lineQuantityFor = (productId: string): number | null =>
-    quoteLines.get(productId)?.quantity ?? null;
+  const lineQuantityFor = useCallback(
+    (productId: string): number | null => quoteLines.get(productId)?.quantity ?? null,
+    [quoteLines],
+  );
 
   const addressesQuery = useQuery({
     queryKey: qk.addresses.mine,
@@ -421,7 +463,7 @@ export function useCheckout() {
     },
     enabled: isAuthenticated,
   });
-  const addresses = addressesQuery.data ?? [];
+  const addresses = addressesQuery.data ?? NO_ADDRESSES;
 
   useEffect(() => {
     if (!isAuthenticated || addresses.length === 0) return;
@@ -430,12 +472,6 @@ export function useCheckout() {
     setSelectedAddressId(def.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, addresses]);
-
-  useEffect(() => {
-    if (!otpModalOpen) return;
-    const id = setInterval(() => setOtpExpiresIn((s) => (s > 0 ? s - 1 : 0)), 1000);
-    return () => clearInterval(id);
-  }, [otpModalOpen]);
 
   // NOT: kargo satırı artık şehre bağlı değil — quote şehirden bağımsız (`items`
   // gövdesi) ve `summary.total` kargoyu zaten içeriyor. Şehre bakan
@@ -467,13 +503,15 @@ export function useCheckout() {
    * bir girdiyi TR sanıp doğrulamayı ayrıştırırdı. `buildShippingPayload`'un
    * eşleştirmesiyle AYNI (tek kaynak, §5).
    */
-  const shippingPhoneSource = (): { phone: string; countryCode: string } =>
-    shippingAddress.phone.trim()
+  const shippingPhoneSource = (): { phone: string; countryCode: string } => {
+    const { guestPhone, guestPhoneCountryCode } = readGuest();
+    return shippingAddress.phone.trim()
       ? {
           phone: shippingAddress.phone,
           countryCode: shippingAddress.phoneCountryCode ?? DEFAULT_COUNTRY_CODE,
         }
       : { phone: guestPhone, countryCode: guestPhoneCountryCode };
+  };
 
   /**
    * Teslimat/fatura/iletişim alanları. Eskiden 3 adımlı akışın 1. adımının
@@ -482,6 +520,7 @@ export function useCheckout() {
    */
   const validateAddressForm = (): string | null => {
     if (!isAuthenticated) {
+      const { guestName, guestEmail, guestPhone, guestPhoneCountryCode } = readGuest();
       const guestErr = validateGuest(guestName, guestEmail, guestPhone, guestPhoneCountryCode);
       if (guestErr) return guestErr;
     }
@@ -521,6 +560,7 @@ export function useCheckout() {
     const phones: ResolvedPhones = { shipping: null, billing: null, guest: null };
 
     if (!(isAuthenticated && user)) {
+      const { guestPhone, guestPhoneCountryCode } = readGuest();
       const guest = parsePhoneForPayload(guestPhone, guestPhoneCountryCode);
       if (!guest) return { ok: false, message: getPhoneInvalidMessage() };
       phones.guest = guest;
@@ -651,6 +691,7 @@ export function useCheckout() {
       const shipping = buildShippingPayload(resolved.phones);
       const billing = buildBillingPayload(resolved.phones);
 
+      const { guestName, guestEmail } = readGuest();
       const checkoutPayload = {
         distanceSalesAccepted,
         // Quote ile AYNI satırlar (adet DAHİL) — farklı adet imzayı bozar → 409.
@@ -911,6 +952,7 @@ export function useCheckout() {
       return;
     }
 
+    const { guestName, guestEmail, guestPhone, guestPhoneCountryCode } = readGuest();
     const guestErr = validateGuest(guestName, guestEmail, guestPhone, guestPhoneCountryCode);
     if (guestErr) {
       toast.error(guestErr);
@@ -924,9 +966,10 @@ export function useCheckout() {
         expectedCheckoutCount: Math.max(1, items.length),
       });
       const expiresIn = resp?.data?.data?.expiresInSeconds ?? resp?.data?.expiresInSeconds ?? 180;
-      setOtpCode('');
+      resetOtpCode();
       setOtpError(null);
-      setOtpExpiresIn(expiresIn);
+      setOtpResendAt(Date.now() + expiresIn * 1000);
+      setOtpEmail(email);
       setOtpModalOpen(true);
     } catch (e: any) {
       if (handleEmailAlreadyRegistered(e)) return;
@@ -936,14 +979,14 @@ export function useCheckout() {
     }
   };
 
-  const handleOtpSubmit = async () => {
+  const handleOtpSubmit = async (otpCode: string) => {
     if (otpCode.length !== 6) return;
     await proceedCheckout(otpCode);
   };
 
   const handleOtpResend = async () => {
-    if (otpExpiresIn > 0 || otpSending) return;
-    const email = guestEmail.trim().toLowerCase();
+    if (Date.now() < otpResendAt || otpSending) return;
+    const email = readGuest().guestEmail.trim().toLowerCase();
     setOtpSending(true);
     try {
       const resp: any = await ordersApi.sendGuestVerificationCode({
@@ -951,12 +994,12 @@ export function useCheckout() {
         expectedCheckoutCount: Math.max(1, items.length),
       });
       const expiresIn = resp?.data?.data?.expiresInSeconds ?? resp?.data?.expiresInSeconds ?? 180;
-      setOtpExpiresIn(expiresIn);
-      setOtpCode('');
+      setOtpResendAt(Date.now() + expiresIn * 1000);
+      resetOtpCode();
       setOtpError(null);
     } catch (e: any) {
       // `handleEmailAlreadyRegistered` modalı `closeOtpModal` üzerinden kapatır:
-      // ham `setOtpModalOpen(false)` `otpCode`/`otpError`'ı temizlemiyor ve
+      // ham `setOtpModalOpen(false)` OTP kodunu/`otpError`'ı temizlemiyor ve
       // `pendingAlertRef`'i boşaltmıyordu → ertelenmiş bir uyarı askıda kalırdı.
       if (handleEmailAlreadyRegistered(e)) return;
       setOtpError(extractApiMessage(e) ?? t('checkout.codeSendFailed'));
@@ -965,16 +1008,20 @@ export function useCheckout() {
     }
   };
 
+  // Memo'lu bölümlere giden geri çağrılar referans-kararlı.
+  const { refetch: refetchQuote } = quoteQuery;
+  const retryQuote = useCallback(() => {
+    void refetchQuote();
+  }, [refetchQuote]);
+  const toggleDistanceSales = useCallback(() => setDistanceSalesAccepted((v) => !v), []);
+
   return {
     isAuthenticated,
     items,
     /** "Hemen Al" ile gelindi: yalnız tek ürün ödenir (web `buyNowNotice`). */
     isBuyNow,
-    // guest
-    guestName, setGuestName,
-    guestEmail, setGuestEmail,
-    guestPhone, setGuestPhone,
-    guestPhoneCountryCode, setGuestPhoneCountryCode,
+    // guest — RHF formu (`CheckoutGuestFields`); değerler gönderimde `getValues()` ile okunur
+    guestForm,
     // address
     selectedAddressId, setSelectedAddressId,
     shippingAddress, setShippingAddress,
@@ -1000,9 +1047,7 @@ export function useCheckout() {
     quoteLoading: quoteQuery.isLoading,
     /** Quote hatası — ekran ErrorState + "Tekrar Dene" gösterir (CLAUDE.md §11). */
     quoteError: quoteQuery.isError,
-    retryQuote: () => {
-      void quoteQuery.refetch();
-    },
+    retryQuote,
     coupon,
     /** Sunucunun uyguladığı indirim (quote kökü) — rozet bilgisi, özet satırı değil. */
     couponDiscount,
@@ -1010,9 +1055,9 @@ export function useCheckout() {
     loading: loading || checkingIdentity,
     handleCheckout,
     distanceSalesAccepted,
-    toggleDistanceSales: () => setDistanceSalesAccepted((v) => !v),
-    // otp
-    otpModalOpen, otpCode, setOtpCode, otpError, otpExpiresIn, otpSending,
+    toggleDistanceSales,
+    // otp — kod ve geri sayım modalın içinde (bkz. `otpCodeResetSeq`, `otpResendAt`)
+    otpModalOpen, otpCodeResetSeq, otpEmail, otpError, otpResendAt, otpSending,
     closeOtpModal, handleOtpSubmit, handleOtpResend,
   };
 }

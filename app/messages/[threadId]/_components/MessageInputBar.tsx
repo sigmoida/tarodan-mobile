@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Image as RNImage } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { IconButton, Input, Spinner, Text } from '@/ui';
@@ -9,10 +9,25 @@ import type { MessageThreadController } from '../_hooks/useMessageThread';
 /**
  * Pending-image preview bar + attach/text/send input row. PageShell'in sabit alt barına
  * (`footer`) konur: üst çizgi ve güvenli alan orada.
+ *
+ * Yazılan metin bu bileşenin KENDİ state'i: tuş vuruşu yalnız bu barı yeniden çizer, thread
+ * controller'ı ve mesaj listesini değil. Gönderim `f.handleSend(text)`; `true` dönerse temizlenir.
  */
 export function MessageInputBar({ f }: { f: MessageThreadController }) {
   const { t } = useTranslation();
-  const sendDisabled = (!f.inputText.trim() && !f.pendingImage) || !f.canSend || f.sending;
+  const [text, setText] = useState('');
+  const { notifyTyping, handleSend } = f;
+  const onChangeText = useCallback(
+    (value: string) => {
+      setText(value);
+      notifyTyping();
+    },
+    [notifyTyping],
+  );
+  const onSend = async () => {
+    if (await handleSend(text)) setText('');
+  };
+  const sendDisabled = (!text.trim() && !f.pendingImage) || !f.canSend || f.sending;
   return (
     <>
       {/* Seçilen foto önizlemesi — gönder butonuyla onaylanana dek bekler */}
@@ -55,11 +70,8 @@ export function MessageInputBar({ f }: { f: MessageThreadController }) {
         <View style={styles.inputWrapper}>
           <Input
             placeholder={f.canSend ? t('message.typeMessage') : t('message.messageLimitReached')}
-            value={f.inputText}
-            onChangeText={(text) => {
-              f.setInputText(text);
-              f.notifyTyping();
-            }}
+            value={text}
+            onChangeText={onChangeText}
             multiline
             // Varsayılan TEK satır (düğmelerle aynı 40pt); yazdıkça büyür, `MESSAGE_INPUT_MAX_HEIGHT`'ta
             // kayar. Input'un alt boşluğu sıfır: düğmeler alttan kutuyla hizalı.
@@ -77,7 +89,7 @@ export function MessageInputBar({ f }: { f: MessageThreadController }) {
           shape="round"
           size="md"
           accessibilityLabel={t('common.send')}
-          onPress={f.handleSend}
+          onPress={onSend}
           disabled={sendDisabled}
         />
       </View>

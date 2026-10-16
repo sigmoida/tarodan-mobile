@@ -347,9 +347,10 @@ describe('proceedCheckout telefon kapısı — gönderim setLoading ÖNCESİ dur
     await waitFor(() => expect(result.current.total).toBe(165));
 
     act(() => {
-      result.current.setGuestName('Ali Veli');
-      result.current.setGuestEmail('ali@example.com');
-      result.current.setGuestPhone('05321234567890');
+      // Misafir alanları RHF formunda (CheckoutGuestFields); OTP kodu modalın state'inde.
+      result.current.guestForm.setValue('name', 'Ali Veli');
+      result.current.guestForm.setValue('email', 'ali@example.com');
+      result.current.guestForm.setValue('phone', '05321234567890');
       result.current.setShippingAddress({
         fullName: 'Ali Veli',
         phone: '',
@@ -357,11 +358,10 @@ describe('proceedCheckout telefon kapısı — gönderim setLoading ÖNCESİ dur
         district: 'Kadıköy',
         address: 'Test Sokak No:1',
       });
-      result.current.setOtpCode('123456');
     });
 
     await act(async () => {
-      await result.current.handleOtpSubmit();
+      await result.current.handleOtpSubmit('123456');
     });
 
     expect(ordersApi.checkoutGuest).not.toHaveBeenCalled();

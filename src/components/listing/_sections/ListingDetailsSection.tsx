@@ -1,14 +1,50 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Input, SectionCard } from '@/ui';
+import { SectionCard } from '@/ui';
 import { useStableCallback } from '@/hooks/useStableCallback';
 
 import { buildConditions } from '../_lib/constants';
 import { MAX_COLORS } from '../_lib/schema';
 import type { ListingFormController } from '../_hooks/useListingForm';
+import { memoSection, type ListingFormKey } from '../_lib/memoSection';
 import { ChoiceChips, ColorChips, FieldGroup, PickerField, fieldStyles, type ChoiceOption } from './fields';
+import { FormTextField } from './FormTextField';
 
 type SectionProps = { f: ListingFormController };
+
+/** Bu dosyadaki bölümün okuduğu controller alanları (memo karşılaştırması; bkz. `memoSection`). */
+const KEYS: readonly ListingFormKey[] = [
+  'form',
+  'brandId',
+  'brandsLoading',
+  'colorList',
+  'colors',
+  'condition',
+  'effectiveScales',
+  'isBoxed',
+  'models',
+  'modelsLoading',
+  'scale',
+  'selectedBrand',
+  'selectedCategory',
+  'selectedManufacturer',
+  'selectedMaterial',
+  'selectedModel',
+  'setBrandSearch',
+  'setCategorySearch',
+  'setCondition',
+  'setIsBoxed',
+  'setManufacturerSearch',
+  'setScale',
+  'setShowBrandPicker',
+  'setShowCategoryPicker',
+  'setShowManufacturerPicker',
+  'setShowMaterialPicker',
+  'setShowModelPicker',
+  'setShowYearPicker',
+  'toggleColor',
+  'year',
+];
 
 const BOXED_VALUES = ['boxed', 'unboxed'] as const;
 type BoxedValue = (typeof BOXED_VALUES)[number];
@@ -17,7 +53,7 @@ type BoxedValue = (typeof BOXED_VALUES)[number];
  * Ürün detayları (web `ProductDetailsCard`): kategori, durum, marka, model, ölçek, malzeme,
  * üretici, renk, kutu, model kodu, yıl. Seçici satırları `ListingPickers` modallarını açar.
  */
-export function ListingDetailsSection({ f }: SectionProps) {
+export const ListingDetailsSection = memoSection(function ListingDetailsSection({ f }: SectionProps) {
   const { t } = useTranslation();
   const conditions = useMemo(() => buildConditions(t), [t]);
   const scaleOptions = useMemo<ChoiceOption[]>(
@@ -129,10 +165,10 @@ export function ListingDetailsSection({ f }: SectionProps) {
         <ChoiceChips options={boxedOptions} selected={f.isBoxed} onSelect={onBoxed} />
       </FieldGroup>
 
-      <Input
+      <FormTextField
+        control={f.form.control}
+        name="modelCode"
         label={t('product.modelCodeLabel')}
-        value={f.modelCode}
-        onChangeText={f.setModelCode}
         placeholder={t('product.modelCodePlaceholder')}
         maxLength={100}
         style={fieldStyles.flush}
@@ -146,4 +182,4 @@ export function ListingDetailsSection({ f }: SectionProps) {
       />
     </SectionCard>
   );
-}
+}, KEYS);

@@ -9,7 +9,6 @@ import { toast } from "@/ui";
 import { copyToClipboard } from "@/lib/clipboard";
 import { deriveTradeView } from "./_lib/derive";
 import { useTrade } from "./_hooks/useTrade";
-import { useCountdown } from "./_hooks/useCountdown";
 import { useTradeActions } from "./_hooks/useTradeActions";
 import { useTradePaymentQuote } from "./_hooks/useTradePaymentQuote";
 import { TradeStatusHeader } from "./_components/TradeStatusHeader";
@@ -42,7 +41,6 @@ export default function TradeDetailScreen() {
     refetch,
   } = useTrade(id as string | undefined);
   const { refreshing, onRefresh } = useRefresh(refetch);
-  const now = useCountdown();
   const actions = useTradeActions(tradeId);
   const { quote: paymentQuote } = useTradePaymentQuote(tradeId);
 
@@ -100,7 +98,6 @@ export default function TradeDetailScreen() {
       <TradeStatusHeader
         trade={trade}
         t={t}
-        now={now}
         hasPaymentStep={view.hasPaymentStep}
         viewerRole={tradeViewerRole(trade, user?.id)}
       />

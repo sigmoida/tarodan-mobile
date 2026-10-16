@@ -1,5 +1,5 @@
 import i18n from '@/i18n/config';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { discountsApi } from '@/lib/api';
 import { extractApiMessage } from '../_lib/validation';
@@ -78,29 +78,34 @@ export function useCoupon(items: CartLine[], isAuthenticated: boolean) {
     },
   });
 
-  const apply = () => {
-    const trimmed = code.trim();
-    if (!trimmed || mutation.isPending) return;
-    mutation.mutate(trimmed);
-  };
+  // Dönen nesne referans-kararlı: memo'lu `CheckoutSummarySection` yalnız kupon durumu
+  // değişince yeniden çizilsin (adres alanına yazarken değil). `mutate` React Query'de kararlı.
+  const { isPending, mutate } = mutation;
+  return useMemo(() => {
+    const apply = () => {
+      const trimmed = code.trim();
+      if (!trimmed || isPending) return;
+      mutate(trimmed);
+    };
 
-  const remove = () => {
-    setApplied(null);
-    setError(null);
-    setCode('');
-  };
+    const remove = () => {
+      setApplied(null);
+      setError(null);
+      setCode('');
+    };
 
-  return {
-    code,
-    setCode,
-    applied,
-    error,
-    apply,
-    remove,
-    isPending: mutation.isPending,
-    /** Checkout payload'ına ve quote isteğine eklenecek kod (kupon yoksa undefined). */
-    couponCode: applied?.code,
-  };
+    return {
+      code,
+      setCode,
+      applied,
+      error,
+      apply,
+      remove,
+      isPending,
+      /** Checkout payload'ına ve quote isteğine eklenecek kod (kupon yoksa undefined). */
+      couponCode: applied?.code,
+    };
+  }, [code, applied, error, isPending, mutate]);
 }
 
 export type CouponController = ReturnType<typeof useCoupon>;
