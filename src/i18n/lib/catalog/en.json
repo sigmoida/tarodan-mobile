@@ -2455,6 +2455,7 @@
       "saveCodesHint": "Save the backup codes below somewhere safe.",
       "oneTimeWarning": "These codes are shown only once. You'll need them to sign in if you lose access to your phone.",
       "copyAllCodes": "Copy All Codes",
+      "copiedClipboardClears": "Copied. For your security, the clipboard will be cleared in {seconds} seconds.",
       "setupFailed": "2FA setup could not be started",
       "verifyFailed": "Verification failed",
       "disableFailed": "2FA could not be disabled",

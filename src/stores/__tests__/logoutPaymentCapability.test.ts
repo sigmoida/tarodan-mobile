@@ -32,10 +32,15 @@ import { userApi } from '@/lib/api';
 import { useAuthStore, type User } from '../authStore';
 import {
   __resetPaymentCapabilities,
+  __setPaymentCapabilityStoreFactory,
   PAYMENT_CAPABILITY_TTL_MS,
   paymentCapabilityHeaders,
   rememberPaymentCapability,
 } from '@/lib/payment/paymentCapability';
+
+// Kalıcı depo üretimde SecureStore (`secureCapabilityStore.test.ts`); buradaki akış testleri
+// aynı `KeyValueStore` arayüzünü taşıyan bellek-içi AsyncStorage mock'uyla koşar.
+__setPaymentCapabilityStoreFactory(() => AsyncStorage as never);
 
 const user = (id: string): User => ({
   id,

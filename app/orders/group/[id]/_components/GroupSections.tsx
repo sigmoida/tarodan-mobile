@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { View, Pressable, Linking } from 'react-native';
+import { View, Pressable } from 'react-native';
+import { openExternalUrlSafely } from '@/lib/security/openExternalUrl';
 import { AppImage } from '@/components/AppImage';
 import { SectionCard, StatusBadge, Text, Button, Alert, theme } from '@/ui';
 import { router } from 'expo-router';
@@ -119,7 +120,7 @@ export function GroupPackageCard({ pkg }: { pkg: GroupPackage }) {
           variant="outline"
           size="sm"
           title={t('order.trackOnSurat')}
-          onPress={() => Linking.openURL(view.trackingUrl!)}
+          onPress={() => void openExternalUrlSafely(view.trackingUrl)}
         />
       )}
     </SectionCard>

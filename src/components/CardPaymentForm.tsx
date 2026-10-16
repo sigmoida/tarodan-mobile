@@ -18,7 +18,9 @@ import {
 } from '@/lib/payment/paytrDirectForm';
 import { PAYMENT_POLL_DURATION_MS, PAYMENT_STATUS_POLL_MS, startVerifyLoop } from '@/lib/payment/verifyPacer';
 import { isPaidPaymentStatus } from '@/lib/payment/status';
+import { threeDSCallbackResult } from '@/lib/payment/threeDSCallback';
 import { formatPriceNumber } from '@/utils/format';
+import { useScreenCaptureProtection } from '@/lib/security/screenCapture';
 
 /**
  * ⚠️ 3DS SONRASI DURUM YOKLAMASI BİLEREK React Query'de DEĞİL (CLAUDE.md §6'nın
@@ -44,6 +46,12 @@ interface Props {
   amount?: number;
   onSuccess: (paymentId: string) => void;
   onFail?: () => void;
+  /**
+   * Doğrulama süresi doldu, ödeme durumu BELİRSİZ (ödendi de ödenmedi de denemez): uyarı
+   * kapatılınca çağrılır — çağıran siparişe / takasa yönlendirir (yeniden kart girip çift
+   * tahsilat riski yok). Verilmezse eski davranış: form ekranda kalır.
+   */
+  onUncertain?: () => void;
   /**
    * Ödemenin PayTR mağazası (API delta 20). Kartlar mağazaya özeldir: yalnız bu
    * amacın kartları listelenir — diğer mağazanın kartı direct-form'da
@@ -76,12 +84,15 @@ export default function CardPaymentForm({
   amount,
   onSuccess,
   onFail,
+  onUncertain,
   purpose = 'checkout',
   cardStorageEnabled = false,
   isGuest = false,
   paymentId: initialPaymentId,
 }: Props) {
   const { t } = useTranslation();
+  // Kart numarası / CVV ve 3DS sayfası ekran görüntüsüne, kayda ve uygulama değiştiriciye düşmez.
+  useScreenCaptureProtection();
   // Kayıtlı kart listesi yalnız bu amaçta kart saklama açıkken alınır.
   const cardsQuery = useSavedCards({ purpose, enabled: cardStorageEnabled });
   const cards = useMemo(() => (cardStorageEnabled ? cardsQuery.data ?? [] : []), [cardStorageEnabled, cardsQuery.data]);
@@ -112,9 +123,11 @@ export default function CardPaymentForm({
   const resolvedRef = useRef(false);
   const onSuccessRef = useRef(onSuccess);
   const onFailRef = useRef(onFail);
+  const onUncertainRef = useRef(onUncertain);
   useEffect(() => {
     onSuccessRef.current = onSuccess;
     onFailRef.current = onFail;
+    onUncertainRef.current = onUncertain;
   });
 
   const resolveSuccess = (pid: string) => {
@@ -126,6 +139,28 @@ export default function CardPaymentForm({
     if (resolvedRef.current) return;
     resolvedRef.current = true;
     onFailRef.current?.();
+  };
+
+  /** Sunucudaki ödeme durumu (misafir: yetki belirteciyle `status-guest`). */
+  const readPaymentStatus = async (pid: string): Promise<unknown> => {
+    const res = isGuest ? await paymentsApi.getStatusLightGuest(pid) : await paymentsApi.getStatusLight(pid);
+    const body = (res as { data?: { data?: { status?: unknown }; status?: unknown } } | undefined)?.data;
+    return (body?.data ?? body ?? {}).status;
+  };
+
+  // 3DS dönüş adresine varıldı: başarı YALNIZ sunucu "ödendi" derse gösterilir. Adres
+  // (sahte bir yönlendirme dahil) tek başına başarı sayılmaz; değilse yoklama sürer.
+  const confirmingRef = useRef(false);
+  const confirmPaidFromCallback = async (pid: string) => {
+    if (confirmingRef.current || resolvedRef.current) return;
+    confirmingRef.current = true;
+    try {
+      if (isPaidPaymentStatus(await readPaymentStatus(pid))) resolveSuccess(pid);
+    } catch {
+      /* yoksay: yoklama/verify döngüsü durumu doğrulamaya devam eder */
+    } finally {
+      confirmingRef.current = false;
+    }
   };
 
   // 3DS WebView açıkken VEYA directForm ağ/timeout hatası sonrası (verifying) ödeme
@@ -147,13 +182,10 @@ export default function CardPaymentForm({
     const stopVerify = startVerifyLoop(paymentId, { guest: isGuest });
     const poll = async () => {
       try {
-        const res: any = isGuest
-          ? await paymentsApi.getStatusLightGuest(paymentId)
-          : await paymentsApi.getStatusLight(paymentId);
-        const data = res?.data?.data ?? res?.data ?? {};
+        const status = await readPaymentStatus(paymentId);
         if (!alive) return;
-        if (isPaidPaymentStatus(data.status)) resolveSuccess(paymentId);
-        else if (data.status === 'failed') resolveFail();
+        if (isPaidPaymentStatus(status)) resolveSuccess(paymentId);
+        else if (status === 'failed') resolveFail();
       } catch { /* yoksay, tekrar dene */ }
       if (!alive) return;
       if (resolvedRef.current) {
@@ -164,12 +196,23 @@ export default function CardPaymentForm({
         timer = setTimeout(poll, PAYMENT_STATUS_POLL_MS);
         return;
       }
-      // Yoklama süresi doldu (terminal duruma ulaşılamadı).
+      // Yoklama süresi doldu (terminal duruma ulaşılamadı): ödeme BELİRSİZ. Kapatılamayan
+      // uyarı; çağıran yönlendirme verdiyse siparişe gidilir (kart yeniden girilmez).
       stopVerify();
       if (verifying && !threeDSHtml) {
         setVerifying(false);
-        setProcessing(false);
-        appAlert(t('payment.connectionIssueTitle'), t('payment.verifyTimeoutBody'), undefined, PAYMENT_ALERT);
+        const uncertain = onUncertainRef.current;
+        if (uncertain) {
+          appAlert(
+            t('payment.connectionIssueTitle'),
+            t('payment.verifyTimeoutBody'),
+            [{ text: t('common.ok'), onPress: () => uncertain() }],
+            PAYMENT_ALERT,
+          );
+        } else {
+          setProcessing(false);
+          appAlert(t('payment.connectionIssueTitle'), t('payment.verifyTimeoutBody'), undefined, PAYMENT_ALERT);
+        }
       }
     };
     timer = setTimeout(poll, PAYMENT_STATUS_POLL_MS);
@@ -284,14 +327,33 @@ export default function CardPaymentForm({
     }
   }
 
-  // 3D Secure: bankanın doğrulama sayfası; callback URL'ine ulaşınca sonuç.
-  function onNav(nav: WebViewNavigation) {
-    const url = (nav.url || '').toLowerCase();
-    if (url.includes('/payment/success')) {
-      if (paymentId) resolveSuccess(paymentId);
-    } else if (url.includes('/payment/fail') || url.includes('/payment/failure')) {
+  // 3D Secure: bankanın doğrulama sayfası. Yalnız KENDİ dönüş adresimiz (katı köken + yol
+  // eşleşmesi, `threeDSCallbackResult`) sayılır; benzer görünen başka adresler yok sayılır.
+  //  - başarısızlık adresi → sonuç bildirilir;
+  //  - başarı adresi → WebView KAPANIR (web sitemizin başarı sayfası uygulamada çizilmez),
+  //    ekran "doğrulanıyor" durumuna geçer ve sunucu durumu yoklanır: "ödendi" → başarı,
+  //    "başarısız" → başarısızlık, süre dolarsa "ödeme belirsiz" uyarısı (`onUncertain`).
+  //    `onSuccess` sunucu "ödendi" demeden ASLA çağrılmaz.
+  // Dönüş ele alındıysa `true` (WebView o adresi yüklemesin).
+  const callbackHandledRef = useRef(false);
+  function handleThreeDSCallback(url: string | undefined): boolean {
+    const result = threeDSCallbackResult(url);
+    if (!result) return false;
+    if (result === 'fail') {
       resolveFail();
+      return true;
     }
+    if (callbackHandledRef.current) return true;
+    callbackHandledRef.current = true;
+    setThreeDSHtml(null);
+    if (paymentId) {
+      setProcessing(true);
+      setVerifying(true);
+      void confirmPaidFromCallback(paymentId);
+    } else {
+      setProcessing(false);
+    }
+    return true;
   }
 
   if (threeDSHtml) {
@@ -320,7 +382,12 @@ export default function CardPaymentForm({
         <WebView
           originWhitelist={['*']}
           source={{ html: threeDSHtml }}
-          onNavigationStateChange={onNav}
+          // İki kanca birlikte: Android form POST'u / bazı yönlendirmeler için
+          // `onShouldStartLoadWithRequest` çağrılmaz, gezinme durumu yine bildirilir.
+          onShouldStartLoadWithRequest={(req) => !handleThreeDSCallback(req.url)}
+          onNavigationStateChange={(nav: WebViewNavigation) => {
+            handleThreeDSCallback(nav.url);
+          }}
           startInLoadingState
         />
       </View>

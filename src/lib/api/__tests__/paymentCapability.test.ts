@@ -26,9 +26,14 @@ import { paymentsApi } from '../checkout';
 import { buildDirectFormBody } from '@/lib/payment/directFormBody';
 import {
   __resetPaymentCapabilities,
+  __setPaymentCapabilityStoreFactory,
   bindPaymentCapabilitiesToAccount,
   unbindPaymentCapabilityAccount,
 } from '@/lib/payment/paymentCapability';
+
+// Kalıcı depo üretimde SecureStore (`secureCapabilityStore.test.ts`); buradaki akış testleri
+// aynı `KeyValueStore` arayüzünü taşıyan bellek-içi AsyncStorage mock'uyla koşar.
+__setPaymentCapabilityStoreFactory(() => AsyncStorage as never);
 
 const apiPost = api.post as jest.Mock;
 const apiGet = api.get as jest.Mock;

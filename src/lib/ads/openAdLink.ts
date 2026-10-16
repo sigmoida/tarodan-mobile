@@ -3,7 +3,8 @@ import { router } from 'expo-router';
 import { pathFromUrl, stripLocalePrefix } from '@/lib/deeplinks';
 import { toMobileRoute } from '@/utils/notificationRoute';
 import { navigateTo } from '@/lib/navigation/goTo';
-import { ownWebPageUrl } from '@/lib/web';
+import { isOtherEnvironmentHost, isOwnWebUrl as isOwnSiteUrl, ownWebHosts, ownWebPageUrl } from '@/lib/web';
+import { looksAbsoluteHttpUrl, parseStrictUrl } from '@/lib/security/url';
 import { LEGAL_WEB_DOCS } from '@/lib/legal/webDocs';
 import { IN_APP_WEB_ROUTE, inAppWebHref, resolveRemovedPage } from '@/lib/navigation/removedPages';
 import { isPurchasePath } from './purchasePath';
@@ -12,26 +13,25 @@ import { safeAdHref } from './safeAdHref';
 /** Uygulama içi web ekranı (`app/in-app-web.tsx`) — mobil karşılığı olmayan site yolları için. */
 export { IN_APP_WEB_ROUTE };
 
-function hostOf(url: string | undefined): string | null {
-  const m = url?.match(/^https?:\/\/([^/?#]+)/i);
-  return m ? m[1]!.toLowerCase() : null;
+/** Katı ayrıştırılmış `http(s)://` host'u (`@/lib/security/url`); geçersiz / göreli → `null`. */
+function hostOf(url: string | null | undefined): string | null {
+  return parseStrictUrl(url, { allowHttp: true })?.host ?? null;
 }
 
-/** Kendi web sitemizin host'ları — bunlara giden link uygulama içinde açılır. */
-const OWN_HOSTS = new Set(
-  [
-    'tarodan.com.tr',
-    'www.tarodan.com.tr',
-    'staging.tarodan.com.tr',
-    hostOf(process.env.EXPO_PUBLIC_WEB_URL),
-  ].filter((h): h is string => !!h),
-);
+/**
+ * Kendi web sitemizin host'ları — bunlara giden link uygulama içinde açılır. ORTAM BAŞINA
+ * (`ownWebHosts`): production build'inde staging alan adı YOK.
+ */
+const OWN_HOSTS = ownWebHosts();
 
-/** Uygulama içi web ekranının açabileceği adres mi (https + kendi sitemiz). */
+/** Uygulama içi web ekranının açabileceği adres mi (katı https + bu ortamın kendi sitesi). */
 export function isOwnWebUrl(url: string | null | undefined): boolean {
-  if (!url || !/^https:\/\//i.test(url)) return false;
-  const host = hostOf(url);
-  return !!host && OWN_HOSTS.has(host);
+  return isOwnSiteUrl(url, OWN_HOSTS);
+}
+
+/** Bizim ama bu ortamın olmayan site (production'da staging) — hiçbir yoldan açılmaz. */
+export function isOtherEnvironmentUrl(url: string | null | undefined): boolean {
+  return isOtherEnvironmentHost(hostOf(url ?? undefined), OWN_HOSTS);
 }
 
 /** Hedefin ne olacağı — saf çözümleme, yan etkisiz (test edilebilir). */
@@ -107,6 +107,10 @@ export function resolveAdLink(linkUrl: string | null | undefined): AdLinkTarget 
   const safe = raw.replace(/^https?:\/\//i, (m) => m.toLowerCase());
 
   const host = hostOf(safe);
+  // Mutlak ama katı ayrıştırmadan geçmeyen adres (`https://x@staging…`, `:8443`, `\`): açılmaz.
+  if (!host && looksAbsoluteHttpUrl(safe)) return { kind: 'blocked', reason: 'unsafe' };
+  // Production'da staging sitesi (ya da tersi): ne uygulama içinde ne tarayıcıda açılır.
+  if (isOtherEnvironmentHost(host, OWN_HOSTS)) return { kind: 'blocked', reason: 'unsafe' };
   if (host && !OWN_HOSTS.has(host)) return { kind: 'external', url: safe };
 
   const path = pathFromUrl(safe) ?? '/';

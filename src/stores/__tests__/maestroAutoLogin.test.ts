@@ -18,6 +18,9 @@ jest.mock('../resetUserStores', () => ({
   resetUserStores: jest.fn(),
   resetServerStateForNewSession: jest.fn(() => Promise.resolve()),
 }));
+// Ödeme yetki belirteci deposu da SecureStore kullanıyor; açılış süpürmesi buradaki
+// sıralı anahtar zinciri mock'larını tüketmesin (yalnız bellek).
+jest.mock('@/lib/payment/secureCapabilityStore', () => ({ createSecureCapabilityStore: () => null }));
 
 const ENV_KEYS = [
   'EXPO_PUBLIC_MAESTRO',

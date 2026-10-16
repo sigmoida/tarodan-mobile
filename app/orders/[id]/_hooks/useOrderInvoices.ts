@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
 import { sellerInvoiceApi } from '@/lib/api';
 import { qk } from '@/lib/query';
+import { isTrustedDocumentUrl } from '@/lib/security/trustedDocumentUrl';
 import { useOrderElogoInvoices } from '@/hooks/useOrderElogoInvoices';
 import type { Notify } from '../_lib/types';
 
@@ -44,8 +45,10 @@ export function useOrderInvoices(id: string, orderStatus: string | undefined, no
     try {
       const res = await sellerInvoiceApi.download(id);
       const url = res.data?.url;
-      if (url) await Linking.openURL(url);
-      else notify(t('order.invoiceNotFound'), 'danger');
+      if (!url) notify(t('order.invoiceNotFound'), 'danger');
+      // Yalnız https + izinli host (`trustedDocumentUrl`); değilse "açılamadı".
+      else if (!isTrustedDocumentUrl(url)) notify(t('order.invoiceOpenFailed'), 'danger');
+      else await Linking.openURL(url);
     } catch {
       notify(t('order.invoiceOpenFailed'), 'danger');
     } finally {

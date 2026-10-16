@@ -73,6 +73,9 @@
 #       ona eşit olmalı (eşit değil ya da okunamıyorsa gönderilmez).
 #       FP env'i verilirse build mesajına `ci-fp:<FP>` damgalanır ve EAS'in
 #       runtime'ı tutmazsa uyarılır (plan'daki döngü koruması bunu okur).
+#       Build'den ÖNCE Maestro/E2E test kancası denetimi: profil env'inde ya da
+#       profilin EAS ortamında (proje + hesap kapsamı) EXPO_PUBLIC_MAESTRO* varsa durur.
+#       OTA ve fingerprint yolları aynı denetimi `require_public_env`'de yapar.
 #
 # Neden profil env'i burada yükleniyor: `eas update` eas.json'daki build
 # profilinin `env` bloğunu OKUMAZ; EXPO_PUBLIC_* değerlerini runner ortamından
@@ -108,15 +111,21 @@ profile_env() {
 # OTA'nın bundle'a gömdüğü ve yayın öncesi BOŞ OLAMAYACAK değişkenler.
 REQUIRED_PUBLIC_ENV="EXPO_PUBLIC_ENVIRONMENT EXPO_PUBLIC_API_URL EXPO_PUBLIC_WEB_URL"
 
+# Maestro/E2E test kancalarını açan değişkenler (src/config/maestro.ts: auto-login,
+# maskesiz şifre, form ön doldurma). Yayına giden bundle'da ASLA bulunmaz: runner'dan
+# sızmış değer `load_profile_env`'de silinir, profilde varsa `assert_no_test_hooks` durur.
+TEST_HOOK_ENV="EXPO_PUBLIC_MAESTRO EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN EXPO_PUBLIC_MAESTRO_EMAIL EXPO_PUBLIC_MAESTRO_PASSWORD"
+
 # Profil env'ini bu kabuğa export eder. Process substitution (`< <(...)`)
 # KULLANILMAZ: içindeki hata set -e'ye ulaşmaz ve döngü boş env ile sessizce
 # devam ederdi (→ API adresi boş bir OTA). Önce çıktı alınır, hata varsa durulur.
 # Runner'dan sızmış eski değerler önce temizlenir: doğrulama yalnız eas.json'dan
-# gelen değerleri görsün.
+# gelen değerleri görsün (test kancası değişkenleri dahil — `eas update` runner
+# env'ini bundle'a gömer).
 load_profile_env() {
   local profile="$1" lines line key
   lines="$(profile_env "$profile")" || die "eas.json build.$profile env'i okunamadı"
-  for key in $REQUIRED_PUBLIC_ENV; do unset "$key"; done
+  for key in $REQUIRED_PUBLIC_ENV $TEST_HOOK_ENV; do unset "$key"; done
   while IFS= read -r line; do
     if [ -n "$line" ]; then export "${line?}"; fi
   done <<< "$lines"
@@ -133,6 +142,7 @@ require_public_env() {
     https://*) ;;
     *) die "EXPO_PUBLIC_API_URL https:// ile başlamalı ($profile: '$EXPO_PUBLIC_API_URL')." ;;
   esac
+  assert_no_test_hooks "$profile"
   [ -n "$branch" ] || return 0
   channel="$(node -e 'const p=require(process.argv[1]).build[process.argv[2]];console.log((p&&p.channel)||"")' "$ROOT/eas.json" "$profile")"
   [ "$channel" = "$branch" ] \
@@ -149,6 +159,43 @@ require_public_env() {
       [ "$EXPO_PUBLIC_ENVIRONMENT" = preview ] \
         || die "staging OTA'sı EXPO_PUBLIC_ENVIRONMENT=preview ister ('$EXPO_PUBLIC_ENVIRONMENT')." ;;
   esac
+}
+
+# Yüklenmiş profil env'inde Maestro/E2E test kancası açık mı? Açıksa yayın durur.
+assert_no_test_hooks() {
+  local profile="$1" key
+  for key in $TEST_HOOK_ENV; do
+    [ -z "${!key:-}" ] \
+      || die "eas.json build.$profile.env.$key tanımlı — Maestro/E2E test kancaları yayına giden build/OTA'ya giremez."
+  done
+}
+
+# Bir build profilinin EAS bulutunda kullandığı ortam (eas-cli kuralı): eas.json'da
+# `environment` varsa o; yoksa developmentClient → development, internal dağıtım →
+# preview, aksi halde (mağaza) production. Ör. `staging` mağaza profili → production.
+eas_build_environment() {
+  node -e '
+    const p = (require(process.argv[1]).build || {})[process.argv[2]];
+    if (!p) { console.error("eas.json: build." + process.argv[2] + " yok"); process.exit(1); }
+    console.log(p.environment || (p.developmentClient ? "development" : p.distribution === "internal" ? "preview" : "production"));
+  ' "$ROOT/eas.json" "$1"
+}
+
+# Store build'i öncesi: profil env'i (eas.json) ve EAS sunucusundaki ortam değişkenleri
+# (profilin kullandığı ortam; proje VE hesap kapsamı) test kancası taşımıyor mu? EAS bulut
+# build'i runner env'ini değil eas.json + EAS ortam değişkenlerini kullanır; hepsi burada
+# denetlenir. `eas env:list` okunamazsa build DURUR (kapalı-başarısız).
+assert_release_build_env() {
+  local profile="$1" environment scope vars
+  ( load_profile_env "$profile"; assert_no_test_hooks "$profile" ) || exit 1
+  environment="$(eas_build_environment "$profile")" || die "build.$profile için EAS ortamı çözülemedi"
+  for scope in project account; do
+    vars="$(eas env:list "$environment" --scope "$scope" --format short)" \
+      || die "EAS $environment ortam değişkenleri ($scope kapsamı) okunamadı — test kancası denetimi yapılamadan $profile build'i alınmaz."
+    if printf '%s\n' "$vars" | grep -Eq '(^|[^A-Z_])EXPO_PUBLIC_MAESTRO'; then
+      die "EAS $environment ortamında ($scope kapsamı) EXPO_PUBLIC_MAESTRO* değişkeni var — Maestro/E2E test kancaları $profile build'ine giremez."
+    fi
+  done
 }
 
 fingerprint() {
@@ -355,6 +402,7 @@ build_submit() {
   # plan, EAS'in sonradan hesapladığı runtime ile art arda tutmazlığı buradan
   # yakalar (bkz. build_history — sonsuz build döngüsü koruması).
   if [ -n "${FP:-}" ]; then extra=(--message "ci-fp:$FP"); fi
+  assert_release_build_env "$profile"
   eas build --platform "$platform" --profile "$profile" "${extra[@]+"${extra[@]}"}" \
     --non-interactive --wait --json > eas-build.json \
     || die "eas build başarısız ($platform/$profile)"

@@ -40,7 +40,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, guestApi } from '@/lib/api/client';
 import { paymentsApi } from '@/lib/api';
 import { useAuthStore, type User } from '@/stores/authStore';
-import { __resetPaymentCapabilities } from '@/lib/payment/paymentCapability';
+import { __resetPaymentCapabilities, __setPaymentCapabilityStoreFactory } from '@/lib/payment/paymentCapability';
+
+// Kalıcı depo üretimde SecureStore (`secureCapabilityStore.test.ts`); bu akış testi aynı
+// `KeyValueStore` arayüzünü taşıyan bellek-içi AsyncStorage mock'uyla koşar.
+__setPaymentCapabilityStoreFactory(() => AsyncStorage as never);
 import { __resetVerifyPacer } from '@/lib/payment/verifyPacer';
 import PaymentSuccessScreen from '../success';
 

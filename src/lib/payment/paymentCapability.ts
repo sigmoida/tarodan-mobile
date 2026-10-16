@@ -16,9 +16,10 @@
  * Saklama: web belirteci `sessionStorage` + bellek kopyasında tutar. Mobilde
  * banka uygulamasına (3DS) geçişte OS uygulamanın JS sürecini öldürebiliyor;
  * yalnız bellek yetmez. Belirteç `payment-capability.<paymentId>` anahtarıyla
- * (web anahtarıyla aynı) AsyncStorage'a da yazılır. Kayıt ömrü belirtecin
+ * (web anahtarıyla aynı) SecureStore'a da yazılır (`./secureCapabilityStore`; eski
+ * sürümlerin AsyncStorage kayıtları ilk kullanımda taşınıp silinir). Kayıt ömrü belirtecin
  * kendi JWT `exp`'inden gelir (`capabilityLifetimeMs`). Okurken süresi dolan
- * silinir ve yok sayılır. Her AsyncStorage erişimi try/catch içinde: depo yoksa
+ * silinir ve yok sayılır. Her depo erişimi try/catch içinde: depo yoksa
  * ya da hata verirse yalnız bellek kopyası kullanılır (akış aynı süreçte yine
  * tamamlanır).
  *
@@ -43,6 +44,7 @@
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { isFinalPaymentStatus } from './status';
+import { createSecureCapabilityStore, type KeyValueStore } from './secureCapabilityStore';
 
 /**
  * Yedek ömür: JWT `exp` okunamazsa. Sunucudaki ömürle aynı
@@ -64,7 +66,7 @@ export const ISSUE_LATENCY_MARGIN_MS = 30_000;
  */
 export const CLOCK_ROLLBACK_TOLERANCE_MS = 60_000;
 
-/** AsyncStorage anahtarı — web `sessionStorage` anahtarıyla aynı. */
+/** Depo anahtarı — web `sessionStorage` anahtarıyla aynı (SecureStore'un izin verdiği karakterler). */
 const KEY_PREFIX = 'payment-capability.';
 const storageKey = (paymentId: string) => `${KEY_PREFIX}${paymentId}`;
 
@@ -137,14 +139,6 @@ function isLive(entry: Entry, now: number): boolean {
   return entry.storedAt === undefined || now >= entry.storedAt - CLOCK_ROLLBACK_TOLERANCE_MS;
 }
 
-type KeyValueStore = {
-  getItem(key: string): Promise<string | null>;
-  setItem(key: string, value: string): Promise<unknown>;
-  removeItem(key: string): Promise<unknown>;
-  getAllKeys(): Promise<readonly string[]>;
-  multiGet(keys: readonly string[]): Promise<readonly (readonly [string, string | null])[]>;
-  multiRemove(keys: readonly string[]): Promise<unknown>;
-};
 
 /**
  * Bellek önbelleği. `null` = bu süreçte depoya bakıldı, kayıt yok: durum
@@ -179,17 +173,18 @@ let account: string | null = null;
  */
 let sessionEpoch = 0;
 
+/** Yalnız testler: kalıcı depoyu değiştirmek için (`__setPaymentCapabilityStoreFactory`). */
+let storeFactory: (() => KeyValueStore | null) | null = null;
+
 /**
- * AsyncStorage ilk kullanımda yüklenir. Native modül yoksa paket import anında
- * fırlatır (mock'suz Jest, bozuk kurulum); statik import bu hatayı bütün
+ * Kalıcı depo (SecureStore, `./secureCapabilityStore`) ilk kullanımda kurulur. Native modül
+ * yoksa (bozuk kurulum, Expo Go dışı eksik modül) `null` döner; statik import bu hatayı bütün
  * `@/lib/api` barrel'ına taşırdı. Yüklenemezse yalnız bellek kullanılır.
  */
 function persistentStorage(): KeyValueStore | null {
   if (storage === undefined) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const mod = require('@react-native-async-storage/async-storage');
-      storage = (mod?.default ?? mod ?? null) as KeyValueStore | null;
+      storage = (storeFactory ?? createSecureCapabilityStore)();
     } catch {
       storage = null;
     }
@@ -490,8 +485,18 @@ export function withPaymentCapability(
 }
 
 /**
+ * Yalnız testler için: kalıcı depoyu verilen üreticiyle kurar (`null` → varsayılan SecureStore).
+ * Kayıt/okuma mantığı testleri herhangi bir bellek-içi `KeyValueStore` ile koşabilir; SecureStore
+ * bağlantısı ve AsyncStorage'dan geçiş `secureCapabilityStore.test.ts`'te.
+ */
+export function __setPaymentCapabilityStoreFactory(factory: (() => KeyValueStore | null) | null): void {
+  storeFactory = factory;
+  storage = undefined;
+}
+
+/**
  * Yalnız testler için: bellek kopyasını ve depo bağlantısını sıfırlar
- * (AsyncStorage içeriğine dokunmaz — "uygulama yeniden başladı" benzetimi).
+ * (depo içeriğine dokunmaz — "uygulama yeniden başladı" benzetimi).
  */
 export function __resetPaymentCapabilities(): void {
   memory.clear();

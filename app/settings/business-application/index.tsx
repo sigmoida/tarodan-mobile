@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, ChipTabs, ErrorState } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
+import { useScreenCaptureProtection } from '@/lib/security/screenCapture';
 import { useBusinessApplication, type BusinessApplicationTab } from './_hooks/useBusinessApplication';
 import { useDocumentUpload } from './_hooks/useDocumentUpload';
 import { DetailsTab } from './_sections/DetailsTab';
@@ -18,6 +19,8 @@ export default function BusinessApplicationScreen() {
   const { t } = useTranslation();
   const f = useBusinessApplication();
   const upload = useDocumentUpload();
+  // IBAN, vergi no ve yetkili kimlik bilgileri ekran görüntüsüne / uygulama değiştiriciye düşmez.
+  useScreenCaptureProtection();
   const title = t('businessApplication.headerTitle');
 
   const TABS: { key: BusinessApplicationTab; label: string }[] = [

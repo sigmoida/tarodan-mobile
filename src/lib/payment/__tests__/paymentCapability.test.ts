@@ -22,7 +22,13 @@ import {
   sweepExpiredPaymentCapabilities,
   unbindPaymentCapabilityAccount,
   withPaymentCapability,
+  __setPaymentCapabilityStoreFactory,
 } from '../paymentCapability';
+
+// Kalıcı depo üretimde SecureStore (`./secureCapabilityStore`, testi
+// `secureCapabilityStore.test.ts`). Buradaki kayıt/okuma/sahiplik mantığı, aynı
+// `KeyValueStore` arayüzünü taşıyan bellek-içi AsyncStorage mock'uyla koşar.
+__setPaymentCapabilityStoreFactory(() => AsyncStorage as never);
 
 const PAY = 'pay-1';
 const KEY = `payment-capability.${PAY}`;

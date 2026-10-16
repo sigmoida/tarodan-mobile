@@ -113,6 +113,9 @@ importers:
       expo-router:
         specifier: 6.0.24
         version: 6.0.24(patch_hash=660ea67c89ca059f103a4003c740fe37d7f4df3edfbe62f929e119f0dd60ea64)(1bb200bcdab0e19bc0d7a86d61700545)
+      expo-screen-capture:
+        specifier: ~8.0.10
+        version: 8.0.10(expo@54.0.36)(react@19.1.0)
       expo-secure-store:
         specifier: ~15.0.8
         version: 15.0.8(expo@54.0.36)
@@ -3243,6 +3246,12 @@ packages:
         optional: true
       react-server-dom-webpack:
         optional: true
+
+  expo-screen-capture@8.0.10:
+    resolution: {integrity: sha512-yoD4giW4gg3PHQxkOrL4ArZCn3NJtLnL9opdZV2rMv94PXYZSNbTvhMipYVoDXKEj19k+R3fjoQGZpH9gCFILA==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
 
   expo-secure-store@15.0.8:
     resolution: {integrity: sha512-lHnzvRajBu4u+P99+0GEMijQMFCOYpWRO4dWsXSuMt77+THPIGjzNvVKrGSl6mMrLsfVaKL8BpwYZLGlgA+zAw==}
@@ -10066,6 +10075,11 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
       - supports-color
+
+  expo-screen-capture@8.0.10(expo@54.0.36)(react@19.1.0):
+    dependencies:
+      expo: 54.0.36(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(expo-router@6.0.24)(graphql@16.8.1)(react-native-webview@13.15.0(react-native@0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.7)(@react-native/metro-config@0.86.0(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
+      react: 19.1.0
 
   expo-secure-store@15.0.8(expo@54.0.36):
     dependencies:
