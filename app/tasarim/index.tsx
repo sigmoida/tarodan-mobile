@@ -3,6 +3,7 @@ import { PageShell } from '@/components/common/PageShell';
 import { shouldShowDiagnostics } from '@/config/diagnostics';
 import { Showcase } from './_components/Showcase';
 import { SheetShowcase } from './_components/SheetShowcase';
+import { LoadingShowcase } from './_components/LoadingShowcase';
 
 /**
  * /tasarim — @/ui tasarım vitrini. YALNIZ geliştirme ve staging/preview build'lerinde açılır
@@ -17,6 +18,7 @@ export default function DesignShowcaseScreen() {
     <PageShell title="Tasarım">
       <Showcase />
       <SheetShowcase />
+      <LoadingShowcase />
     </PageShell>
   );
 }
