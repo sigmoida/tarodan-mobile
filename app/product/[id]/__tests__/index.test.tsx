@@ -11,16 +11,23 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'p1' }),
 }));
 
+// Geçiş sinyali testte elle sürülür (gerçek kanca `src/hooks/__tests__/useTransitionReady` altında).
+let mockTransitionReady = true;
+jest.mock('@/hooks/useTransitionReady', () => ({ useTransitionReady: () => mockTransitionReady }));
+
 jest.mock('@/lib/api', () => ({
   productsApi: {
     getOne: jest.fn(),
     incrementView: jest.fn(() => Promise.resolve({ data: {} })),
     getMyById: jest.fn(),
+    getSimilar: jest.fn(() => Promise.resolve({ data: [] })),
   },
   ratingsApi: { getProductRatings: jest.fn(() => Promise.resolve({ data: { ratings: [] } })) },
   userReportsApi: { create: jest.fn() },
 }));
-import { productsApi } from '@/lib/api';
+import { productsApi, ratingsApi } from '@/lib/api';
+import { QueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 
 // Ağır child modaller test kapsamı dışı — izole et (ekranı test ediyoruz, çocuklarını değil).
 jest.mock('@/components/product/MakeOfferModal', () => ({ __esModule: true, default: () => null }));
@@ -57,6 +64,12 @@ jest.mock('@/hooks/useFavorites', () => ({
 import ProductDetailScreen from '../index';
 
 const getOneMock = productsApi.getOne as jest.Mock;
+const incrementViewMock = productsApi.incrementView as jest.Mock;
+const ratingsMock = ratingsApi.getProductRatings as jest.Mock;
+
+/** Önbelleği test boyunca tutan istemci (yer tutucu testi: liste verisi render'dan önce silinmesin). */
+const persistentClient = () =>
+  new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity, networkMode: 'always' } } });
 
 function productFixture(overrides: Record<string, unknown> = {}) {
   return {
@@ -82,6 +95,9 @@ const renderOrder = (node: { props: { testID?: unknown }; children: unknown[] })
 describe('Ürün detay ekranı', () => {
   beforeEach(() => {
     getOneMock.mockReset();
+    incrementViewMock.mockClear();
+    ratingsMock.mockClear();
+    mockTransitionReady = true;
     mockAuth = { isAuthenticated: false, user: null };
   });
 
@@ -341,10 +357,98 @@ describe('Ürün detay ekranı', () => {
     );
   });
 
-  it('ürün bulunamazsa boş durum gösterir', async () => {
-    getOneMock.mockRejectedValue(new Error('404'));
+  it('ürün bulunamazsa (404) boş durum gösterir, hata değil', async () => {
+    getOneMock.mockRejectedValue({ response: { status: 404 } });
     renderWithProviders(<ProductDetailScreen />);
 
     await waitFor(() => expect(screen.getByText('Ürün bulunamadı')).toBeOnTheScreen());
+    expect(screen.queryByTestId('error-state')).toBeNull();
+    // 404 yeniden denenmez.
+    expect(getOneMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('ağ / 5xx hatası "bulunamadı" değil: hata + Tekrar Dene; yeniden deneyince ürün açılır', async () => {
+    getOneMock.mockRejectedValue({ response: { status: 503 } });
+    renderWithProviders(<ProductDetailScreen />);
+
+    await waitFor(() => expect(screen.getByTestId('error-state')).toBeOnTheScreen(), { timeout: 4000 });
+    expect(screen.queryByText('Ürün bulunamadı')).toBeNull();
+    // Bir yeniden deneme (ağ/5xx) yapıldı.
+    expect(getOneMock).toHaveBeenCalledTimes(2);
+
+    getOneMock.mockResolvedValue({ data: { data: productFixture() } });
+    fireEvent.press(within(screen.getByTestId('error-state')).getByRole('button'));
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+  });
+
+  it('görüntülenme sorgu dışında, ürün başına bir kez sayılır; sayı detaya yazılır, listeler invalidate edilmez', async () => {
+    const queryClient = persistentClient();
+    queryClient.setQueryData(qk.products.popular, [{ id: 'baska', title: 'Başka', price: 5 }]);
+    const invalidate = jest.spyOn(queryClient, 'invalidateQueries');
+    getOneMock.mockResolvedValue({ data: { data: productFixture({ viewCount: 7 }) } });
+    incrementViewMock.mockResolvedValueOnce({ data: { viewCount: 42 } });
+    const view = renderWithProviders(<ProductDetailScreen />, { queryClient });
+
+    await waitFor(() => expect(screen.getByText(/^42 /)).toBeOnTheScreen());
+    expect(incrementViewMock).toHaveBeenCalledTimes(1);
+    expect(getOneMock).toHaveBeenCalledTimes(1);
+    expect(invalidate).not.toHaveBeenCalled();
+    expect(queryClient.getQueryState(qk.products.popular)?.isInvalidated).toBe(false);
+
+    // Yeniden render / tazeleme görüntülenmeyi yeniden saymaz.
+    view.rerender(<ProductDetailScreen />);
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: qk.products.detail('p1') });
+    });
+    expect(incrementViewMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('liste önbelleğindeki kartla anında açılır: galeri + başlık + fiyat; tam veri isteyen bölümler iskelet, alt bar yok', async () => {
+    const queryClient = persistentClient();
+    queryClient.setQueryData(qk.products.homeFeatured, [
+      { id: 'p1', title: 'Kart Başlığı', price: 990, images: [{ url: 'https://x/a.jpg' }], seller: { id: 's1' } },
+    ]);
+    let resolveDetail: (v: unknown) => void = () => undefined;
+    getOneMock.mockReturnValue(new Promise((r) => (resolveDetail = r)));
+    renderWithProviders(<ProductDetailScreen />, { queryClient });
+
+    expect(screen.getByText('Kart Başlığı')).toBeOnTheScreen();
+    expect(screen.getByTestId('product-price')).toHaveTextContent(/990/);
+    expect(screen.queryByTestId('product-skeleton')).toBeNull();
+    expect(screen.getByTestId('product-sections-skeleton')).toBeOnTheScreen();
+    expect(screen.queryByTestId('product-seller-card')).toBeNull();
+    expect(screen.queryByTestId('page-shell-footer')).toBeNull();
+    // Yer tutucu görüntülenme saymaz.
+    expect(incrementViewMock).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveDetail({ data: { data: productFixture() } });
+    });
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    expect(screen.queryByTestId('product-sections-skeleton')).toBeNull();
+    expect(screen.getByTestId('product-seller-card')).toBeOnTheScreen();
+    expect(screen.getByTestId('product-detail-add-to-cart-button')).toBeOnTheScreen();
+    expect(incrementViewMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('özellikler / değerlendirmeler / benzer ürünler geçiş bitince bağlanır (sorguları da); galeri, başlık, alt bar hemen', async () => {
+    mockTransitionReady = false;
+    getOneMock.mockResolvedValue({ data: { data: productFixture() } });
+    const view = renderWithProviders(<ProductDetailScreen />);
+
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    expect(screen.getByTestId('product-detail-add-to-cart-button')).toBeOnTheScreen();
+    expect(screen.getByTestId('product-seller-card')).toBeOnTheScreen();
+    expect(screen.queryByTestId('product-specs')).toBeNull();
+    expect(screen.queryByTestId('product-reviews')).toBeNull();
+    expect(screen.getByTestId('product-deferred-skeleton')).toBeOnTheScreen();
+    expect(ratingsMock).not.toHaveBeenCalled();
+
+    mockTransitionReady = true;
+    view.rerender(<ProductDetailScreen />);
+    await waitFor(() => expect(screen.getByTestId('product-reviews')).toBeOnTheScreen());
+    expect(screen.getByTestId('product-specs')).toBeOnTheScreen();
+    expect(screen.queryByTestId('product-deferred-skeleton')).toBeNull();
+    expect(ratingsMock).toHaveBeenCalledTimes(1);
   });
 });
