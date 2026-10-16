@@ -344,3 +344,76 @@ describe('Modal: gövde kaydırma, güvenli alan, klavye, toast katmanı', () =>
     resetToastForTests();
   });
 });
+
+describe('Modal: variant="media" (sade görsel kartı)', () => {
+  const absoluteWrapperOf = (node: unknown) => up(node, (s) => s.position === 'absolute');
+
+  it('başlık satırı yok (title yok sayılır); gövde iç boşluksuz, kart köşeleri kırpar', () => {
+    const { getByText, queryByText } = render(
+      <Modal isOpen onClose={jest.fn()} variant="media" title="Başlık">
+        <Text>görsel</Text>
+      </Modal>,
+    );
+    expect(queryByText('Başlık')).toBeNull();
+    expect(bodyOf(getByText('görsel'))?.padding).toBe(0);
+    expect(sheetOf(getByText('görsel'))?.overflow).toBe('hidden');
+  });
+
+  it('X her zaman var: içeriğin üstünde sağ üstte (mutlak), kartın içinde; etiketli, ≥ 44pt dokunma alanı', () => {
+    const onClose = jest.fn();
+    const { getByTestId, getByLabelText } = render(
+      <Modal isOpen onClose={onClose} variant="media" closeLabel="Kapat">
+        <Text>görsel</Text>
+      </Modal>,
+    );
+    const close = getByTestId('modal-close');
+    expect(getByLabelText('Kapat')).toBe(close);
+    expect(absoluteWrapperOf(close)).toMatchObject({
+      position: 'absolute',
+      top: expect.any(Number),
+      right: expect.any(Number),
+    });
+    expect(sheetOf(close)?.maxWidth).toBe(480); // kartın içinde
+    const st = StyleSheet.flatten(close.props.style as never) as { width: number };
+    const slop = (close.props.hitSlop as number | undefined) ?? 0;
+    expect(st.width + 2 * slop).toBeGreaterThanOrEqual(44);
+    fireEvent.press(close);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('kapat düğmesi gövdenin içinde değil (içeriğin üstüne biner)', () => {
+    const { getByTestId, getByText } = render(
+      <Modal isOpen onClose={jest.fn()} variant="media">
+        <Text>görsel</Text>
+      </Modal>,
+    );
+    let inBody = false;
+    for (let n = getByTestId('modal-close') as unknown as N | null; n; n = n.parent) {
+      const st = flat(n);
+      if (st && 'padding' in st && !('maxWidth' in st)) inBody = true;
+    }
+    expect(inBody).toBe(false);
+    expect(getByText('görsel')).toBeTruthy();
+  });
+
+  it("varsayılan Modal değişmez: showCloseButton X'i başlık satırında (mutlak konum yok)", () => {
+    const { getByTestId } = render(
+      <Modal isOpen onClose={jest.fn()} showCloseButton>
+        <Text>içerik</Text>
+      </Modal>,
+    );
+    expect(absoluteWrapperOf(getByTestId('modal-close'))).toBeUndefined();
+  });
+
+  it('geri tuşu ve arka plan media varyantında da kapatır', () => {
+    const onClose = jest.fn();
+    const { UNSAFE_getByType, getByText } = render(
+      <Modal isOpen onClose={onClose} variant="media">
+        <Text>görsel</Text>
+      </Modal>,
+    );
+    UNSAFE_getByType(RNModal).props.onRequestClose();
+    fireEvent.press(getByText('görsel'));
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+});
