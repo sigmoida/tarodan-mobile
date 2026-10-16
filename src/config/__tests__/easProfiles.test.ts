@@ -124,7 +124,7 @@ describe('eas.json — maestro profilinin kendi EAS ortamı var', () => {
   });
 
   it('README kimlik bilgilerinin yalnız bu ortama konacağını yazar', () => {
-    const readme = fs.readFileSync(path.resolve(__dirname, '../../../maestro/README.md'), 'utf8');
+    const readme = fs.readFileSync(path.resolve(__dirname, '../../../docs/maestro/README.md'), 'utf8');
     expect(readme).toContain('"environment": "maestro"');
     expect(readme).toMatch(/YALNIZ `maestro` EAS ortamına konur/);
     expect(readme).toContain('eas env:create --environment maestro');

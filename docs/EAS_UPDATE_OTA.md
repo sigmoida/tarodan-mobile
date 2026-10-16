@@ -68,7 +68,7 @@ publishing by hand (e.g. `EXPO_PUBLIC_ENVIRONMENT=preview` plus the rest of the
 ## Activation (one-time, operator)
 
 OTA is guarded behind EAS credentials, so nothing runs until these are done
-(see `SECRETS_SETUP.md`):
+(see [`SECRETS_SETUP.md`](./SECRETS_SETUP.md)):
 
 1. `expo-updates` is already a dependency (`~29.0.19`, Expo SDK 54 pin). A fresh
    `pnpm install` materializes it; it is embedded by the next **native** EAS

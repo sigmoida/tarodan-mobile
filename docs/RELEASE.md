@@ -380,7 +380,7 @@ ulaşamaz; production OTA onayı atlanamaz.
 > (iptal ve denetim ayrı olsun).
 
 Submit kimlik bilgileri EAS sunucularında durur, repoya girmez. Ayrıntı:
-[`SECRETS_SETUP.md`](../SECRETS_SETUP.md), OTA: [`EAS_UPDATE_OTA.md`](./EAS_UPDATE_OTA.md).
+[`SECRETS_SETUP.md`](./SECRETS_SETUP.md), OTA: [`EAS_UPDATE_OTA.md`](./EAS_UPDATE_OTA.md).
 
 ## Kopya kağıdı
 

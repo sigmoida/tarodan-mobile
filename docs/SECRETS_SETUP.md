@@ -69,7 +69,7 @@ iOS prod + staging'i yan yana tutabilir.
 
 > **Android da iOS gibi `.staging` alır** (`com.tarodan.app.staging`): iki ayrı Play
 > uygulaması, iki ayrı Firebase projesi, aynı cihazda yan yana kurulum. Android
-> için tüm kurulum adımları ve kimin yapacağı: [`docs/ANDROID_RELEASE.md`](./docs/ANDROID_RELEASE.md).
+> için tüm kurulum adımları ve kimin yapacağı: [`docs/ANDROID_RELEASE.md`](./ANDROID_RELEASE.md).
 >
 > Doğrula: `EXPO_PUBLIC_ENVIRONMENT=preview npx expo config --type public --json`
 > → `ios.bundleIdentifier` ve `android.package` `.staging` ile bitmeli;
@@ -121,7 +121,7 @@ Token olmadan kaldırmak build'i kırar — bu yüzden ikisi birlikte yapılır.
   GitHub Environment'ın (`staging`, `production-build`, `production`) her birine
   ayrı ayrı (tercihen environment başına ayrı Expo robot token'ı) eklenir.
   Token isteyen her job bir environment'a bağlı; secret'ı olmayan environment'ın
-  job'ları guard'lı no-op. Kurulum ve geçiş: [`docs/RELEASE.md`](./docs/RELEASE.md)
+  job'ları guard'lı no-op. Kurulum ve geçiş: [`docs/RELEASE.md`](./RELEASE.md)
   → "Gereken secret, değişken ve environment'lar".
 - (opsiyonel) `EAS_BUILD_PROFILE_OVERRIDE` — manuel workflow_dispatch için.
 
@@ -132,8 +132,8 @@ sadece `track` taşır — `serviceAccountKeyPath` YOK (eski `./google-services.
 değeri yanlıştı: o dosya Firebase config'i, Play service account'ı değil).
 
 Tam release akışı (staging OTA/preview + production tag) ve secrets tablosu:
-[`docs/RELEASE.md`](./docs/RELEASE.md). Android (Play, iki uygulamalı model,
-Firebase/FCM, Google girişi, assetlinks): [`docs/ANDROID_RELEASE.md`](./docs/ANDROID_RELEASE.md).
+[`docs/RELEASE.md`](./RELEASE.md). Android (Play, iki uygulamalı model,
+Firebase/FCM, Google girişi, assetlinks): [`docs/ANDROID_RELEASE.md`](./ANDROID_RELEASE.md).
 
 ## 5) İlk manuel build (workflow'dan önce sanity check)
 
@@ -176,7 +176,7 @@ ASC → TestFlight → External Testing → "Add Group" → "Enable Public Link"
 - [ ] Production API public URL'de erişilebilir (curl ile)
 - [ ] App icon 1024×1024 alpha kanalsız (icon.png)
 - [ ] Privacy Policy URL ASC'de doldurulu (zorunlu, app.tarodan.com/privacy gibi)
-- [ ] Release akışı okundu: [`docs/RELEASE.md`](./docs/RELEASE.md)
+- [ ] Release akışı okundu: [`docs/RELEASE.md`](./RELEASE.md)
 
 ## Standalone repo pipeline ön koşulları (2026-07-24)
 
@@ -190,7 +190,7 @@ mobile workflow'ları sessiz no-op olur (guard).
 | `MAESTRO_CLOUD_API_KEY` + `MAESTRO_CLOUD_PROJECT_ID` | Maestro Cloud | e2e (`maestro-cloud.yml`) |
 | GitHub `production` Environment | repo ayarı | TestFlight onay kapısı (`mobile-testflight.yml`) |
 | Apple ASC API key / Google Play service account | Apple + Google (imza Murat) | `eas submit` (`eas credentials`) |
-| Firebase `google-services.json` (`com.tarodan.app`) | Firebase konsolu | Production: repoda, proje `tarodan-c1290`. Staging Android (`com.tarodan.app.staging`) ayrı projede (`tarodan-staging`); dosyası repoda `google-services.staging.json` (EAS `preview` ortamında aynı içerikli `GOOGLE_SERVICES_JSON_STAGING` yedeği). Bkz. [`docs/ANDROID_RELEASE.md`](./docs/ANDROID_RELEASE.md). |
+| Firebase `google-services.json` (`com.tarodan.app`) | Firebase konsolu | Production: repoda, proje `tarodan-c1290`. Staging Android (`com.tarodan.app.staging`) ayrı projede (`tarodan-staging`); dosyası repoda `google-services.staging.json` (EAS `preview` ortamında aynı içerikli `GOOGLE_SERVICES_JSON_STAGING` yedeği). Bkz. [`docs/ANDROID_RELEASE.md`](./ANDROID_RELEASE.md). |
 | App Store Connect "Tarodan (Staging)" app | Apple (imza Murat) | Anında açılır, beta review YOK (internal TestFlight) |
 | `api.staging.tarodan.shop` teyidi | Coolify | `eas.json` preview env'deki adres gerçek staging domain mi? (teyit edilmedi) |
 
