@@ -186,7 +186,9 @@ describe('B6 · arama üst çubukları — ölçüm ve collapse', () => {
 
     // Yükleme sırasında bile FlatList monte.
     expect(screen.getByTestId('search-results-list')).toBeOnTheScreen();
-    expect(screen.getByTestId('product-grid-skeleton')).toBeOnTheScreen();
+    // Gecikmeli iskelet (theme.loading.delayMs): ilk karede yok, gecikmeden sonra boş-durum yuvasında.
+    expect(screen.queryByTestId('product-grid-skeleton')).toBeNull();
+    await waitFor(() => expect(screen.getByTestId('product-grid-skeleton')).toBeOnTheScreen());
 
     await act(async () => {
       resolve(mockListResponse([makeProduct('p1', 'Ferrari F40')]));

@@ -8,17 +8,17 @@ import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, ErrorState, pageListContentStyle, usePageScrollValue } from '@/ui';
+import { Button, EmptyState, ErrorState, pageListContentStyle, useDelayedLoading, usePageScrollValue } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
 import type { WishlistItem } from '@/hooks/useFavorites';
 import { tabDiag } from '@/components/_tabDiag';
-import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { useFavoritesScreen } from './_hooks/useFavoritesScreen';
 import { styles } from './_lib/styles';
 import { FavoriteCard } from './_components/FavoriteCard';
+import { FavoritesSkeleton } from './_components/FavoriteCardSkeleton';
 
 const favoriteKey = (item: WishlistItem) => item.id;
 
@@ -27,6 +27,9 @@ function FavoritesScreen() {
   const f = useFavoritesScreen();
   // Hook sırası sabit kalsın diye erken return'den ÖNCE (CLAUDE.md §12).
   const tabInset = useTabBarInset();
+  const initialLoading = f.isLoading && f.items.length === 0;
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const showSkeleton = useDelayedLoading(initialLoading);
   const page = usePageScrollValue();
   // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
@@ -50,7 +53,6 @@ function FavoritesScreen() {
     );
   }
 
-  const initialLoading = f.isLoading && f.items.length === 0;
   const loadFailed = !!f.error && f.items.length === 0;
 
   return (
@@ -72,8 +74,8 @@ function FavoritesScreen() {
         refreshing={f.refreshing}
         onRefresh={f.onRefresh}
         ListEmptyComponent={
-          initialLoading ? (
-            <RowListSkeleton rows={4} />
+          initialLoading || showSkeleton ? (
+            showSkeleton ? <FavoritesSkeleton /> : null
           ) : loadFailed ? (
             <ErrorState
               title={t('favorites.loadFailedTitle')}

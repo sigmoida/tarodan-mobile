@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { View, StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
-import { ErrorState, SkeletonCard, pageListContentStyle, theme, usePageScrollHandler } from "@/ui";
+import { ErrorState, pageListContentStyle, theme, useDelayedLoading, usePageScrollHandler } from "@/ui";
 import { PageShell } from "@/components/common/PageShell";
 import { useAuthStore } from "@/stores/authStore";
 import { useTimingValues } from "@/hooks/useTimingPolicy";
@@ -15,6 +15,7 @@ import { useOfferActions } from "./_hooks/useOfferActions";
 import { OffersTabs } from "./_components/OffersTabs";
 import { OffersEmpty } from "./_components/OffersEmpty";
 import { OfferCard } from "./_components/OfferCard";
+import { OfferCardSkeleton } from "./_components/OfferCardSkeleton";
 import { CounterOfferModal } from "./_modals/CounterOfferModal";
 import { BuyerCounterModal } from "./_modals/BuyerCounterModal";
 
@@ -61,6 +62,8 @@ export default function OffersScreen() {
     isError,
     refetch,
   } = useOffers(activeTab, isAuthenticated);
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const showSkeleton = useDelayedLoading(isLoading);
   // Gösterge yalnız kullanıcı çektiğinde (`isRefetching` sekme değişimi / invalidate'te de döner).
   const { refreshing, onRefresh } = useRefresh(refetch);
   const estimatedNetByOfferId = useCommissionPreview(offers, activeTab);
@@ -151,11 +154,13 @@ export default function OffersScreen() {
         removeClippedSubviews
         ListHeaderComponent={<OffersTabs activeTab={activeTab} onChange={setTab} />}
         ListEmptyComponent={
-          isLoading ? (
-            <View style={styles.skeletons}>
-              <SkeletonCard />
-              <SkeletonCard />
-            </View>
+          isLoading || showSkeleton ? (
+            showSkeleton ? (
+              <View style={styles.skeletons} testID="offers-skeleton">
+                <OfferCardSkeleton />
+                <OfferCardSkeleton />
+              </View>
+            ) : null
           ) : isError ? (
             // Hatayı boş durumdan ayır: "Henüz teklif yok" bir yükleme hatasını maskelememeli.
             <ErrorState message={t("offer.loadOffersFailed")} onRetry={() => refetch()} />

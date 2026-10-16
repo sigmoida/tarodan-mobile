@@ -2,7 +2,7 @@
  * Üreticiler (web /manufacturers): tek liste ekranı; eski /brands listesi buraya yönlenir.
  */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 
 jest.mock('expo-router', () => ({
@@ -45,10 +45,12 @@ describe('Üreticiler ekranı', () => {
     expect(router.push).toHaveBeenCalledWith('/ureticiler/bburago');
   });
 
-  it('yükleniyor: iskelet', () => {
+  it('yükleniyor: gecikmeden sonra iskelet', async () => {
     mockList.mockReturnValue({ ...base, items: [], isLoading: true });
     render(<ManufacturersScreen />);
-    expect(screen.getByTestId('manufacturers-skeleton')).toBeTruthy();
+    // <150 ms süren yüklemede iskelet hiç çizilmez (useDelayedLoading).
+    expect(screen.queryByTestId('manufacturers-skeleton')).toBeNull();
+    await waitFor(() => expect(screen.getByTestId('manufacturers-skeleton')).toBeTruthy());
   });
 
   it('hiç üretici yoksa ve aramada eşleşme yoksa farklı boş durum metni', () => {

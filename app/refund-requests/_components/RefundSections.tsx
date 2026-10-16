@@ -3,11 +3,12 @@ import { View, Pressable } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Chip, EmptyState, SectionCard, SkeletonCard, StatusBadge, Text, theme, appAlert } from '@/ui';
+import { Alert, Button, Chip, EmptyState, SectionCard, StatusBadge, Text, theme, appAlert, useDelayedLoading } from '@/ui';
 import { refundReasonLabel } from '@/lib/shared/status-configs';
 import { useRefundStatusConfig } from '@/lib/shared/refundStatus';
 
 import { styles } from '../_lib/styles';
+import { RefundCardSkeleton } from './RefundCardSkeleton';
 import { formatPrice } from '../_lib/format';
 import type { RefundRequestRow } from '../_lib/types';
 import type { RefundRequestsController } from '../_hooks/useRefundRequests';
@@ -125,11 +126,15 @@ function RefundCard({ f, rr }: Props & { rr: RefundRequestRow }) {
 /** Liste — yükleniyor (Skeleton) / boş / dolu üç hâli kendi içinde kapılar. */
 export function RefundList({ f }: Props) {
   const { t } = useTranslation();
-  if (f.isLoading && f.refunds.length === 0) {
+  const initialLoading = f.isLoading && f.refunds.length === 0;
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const showSkeleton = useDelayedLoading(initialLoading);
+  if (initialLoading || showSkeleton) {
+    if (!showSkeleton) return null;
     return (
-      <View style={styles.list}>
-        <SkeletonCard />
-        <SkeletonCard />
+      <View style={styles.list} testID="refunds-skeleton">
+        <RefundCardSkeleton />
+        <RefundCardSkeleton />
       </View>
     );
   }

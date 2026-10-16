@@ -1,16 +1,25 @@
 import { useState, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { useQuery, useQueries } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueries } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ChipTabs, EmptyState, ErrorState, SkeletonCard, pageListContentStyle, theme, usePageScrollHandler } from '@/ui';
+import {
+  ChipTabs,
+  EmptyState,
+  ErrorState,
+  pageListContentStyle,
+  theme,
+  useDelayedLoading,
+  usePageScrollHandler,
+} from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { tradesApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { listWindowing } from '@/lib/list/windowing';
 import { TradeCard, type TradeCardTrade } from '@/components/trade/TradeCard';
+import { SkeletonTradeCard } from '@/components/trade/SkeletonTradeCard';
 import type { TFn } from './trade/[id]/_lib/types';
 
 const { spacing } = theme;
@@ -68,7 +77,11 @@ export default function TradesScreen() {
       return { trades: list };
     },
     enabled: isAuthenticated,
+    // Filtre (chip) değişince önceki liste yerinde kalır, yeni filtre arkada yüklenir — iskelete düşmez.
+    placeholderData: keepPreviousData,
   });
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const showSkeleton = useDelayedLoading(isLoading);
 
   const tradesList: TradeCardTrade[] = tradesPayload?.trades ?? [];
 
@@ -169,11 +182,13 @@ export default function TradesScreen() {
         ListEmptyComponent={
           isError ? (
             <ErrorState message={t('trade.listLoadFailedHint')} onRetry={() => refetch()} />
-          ) : isLoading ? (
-            <View style={styles.skeletons}>
-              <SkeletonCard />
-              <SkeletonCard />
-            </View>
+          ) : isLoading || showSkeleton ? (
+            showSkeleton ? (
+              <View style={styles.skeletons} testID="trades-skeleton">
+                <SkeletonTradeCard />
+                <SkeletonTradeCard />
+              </View>
+            ) : null
           ) : (
             <EmptyState
               icon="arrows-right-left"

@@ -4,7 +4,7 @@ import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { PageShell } from '@/components/common/PageShell';
-import { ErrorState, pageListContentStyle, theme } from '@/ui';
+import { ErrorState, pageListContentStyle, theme, useDelayedLoading } from '@/ui';
 import { useTabBarPageScroll } from '@/components/shell/TabBarCollapse';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { withStackTabBar } from '@/components/shell/StackTabBar';
@@ -37,6 +37,8 @@ const { colors } = theme;
 function ListingsScreen() {
   const { t } = useTranslation();
   const f = useListings();
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez.
+  const showSkeleton = useDelayedLoading(f.isLoading);
   // Izgara içi (inline) reklam: 8. karttan sonra, sonra 16'da bir, en çok 2 (web ile aynı).
   // 2 sütunlu ızgara satırlara bölünür; afiş tam genişlikte kendi satırında durur.
   const adSession = useAdSession();
@@ -108,14 +110,19 @@ function ListingsScreen() {
           />
         }
         onEndReached={() => {
-          if (f.hasNextPage && !f.isFetchingNextPage) f.fetchNextPage();
+          if (f.hasNextPage && !f.isFetchingNextPage && !f.isFetchNextPageError) f.fetchNextPage();
         }}
         onEndReachedThreshold={0.5}
         ListHeaderComponent={<ListingsHeader f={f} session={adSession} />}
-        ListFooterComponent={<ListingsFooter loadingMore={f.isFetchingNextPage} session={adSession} />}
+        ListFooterComponent={<ListingsFooter
+            loadingMore={f.isFetchingNextPage}
+            loadMoreFailed={f.isFetchNextPageError}
+            onRetryLoadMore={() => f.fetchNextPage()}
+            session={adSession}
+          />}
         ListEmptyComponent={
-          f.isLoading ? (
-            <ProductGridSkeleton />
+          f.isLoading || showSkeleton ? (
+            showSkeleton ? <ProductGridSkeleton /> : null
           ) : f.isError ? (
             // Yükleme hatası "ilan yok" boş durumuyla maskelenmesin (arama ekranıyla aynı).
             <ErrorState title={t('utility.error500.title')} onRetry={() => f.refetch()} />
