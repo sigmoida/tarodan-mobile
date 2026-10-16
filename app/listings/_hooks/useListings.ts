@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { productsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
+import { trimInfiniteToFirstPage } from '@/lib/query/infinite';
 import { useProductFilterOptions } from '@/hooks/useProductFilterOptions';
 import {
   EMPTY_FILTERS,
@@ -123,17 +124,19 @@ export function useListings() {
     [],
   );
 
+  const queryClient = useQueryClient();
+  const listingsKey = qk.products.listings(filters);
   const {
     data,
     isLoading,
+    isError,
     isFetching,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     refetch,
-    isRefetching,
   } = useInfiniteQuery({
-    queryKey: qk.products.listings(filters),
+    queryKey: listingsKey,
     placeholderData: keepPreviousData,
     enabled: !waitingForManufacturers,
     initialPageParam: 1,
@@ -153,6 +156,22 @@ export function useListings() {
   });
 
   const listings: any[] = useMemo(() => flattenUniqueListings(data?.pages), [data]);
+
+  // Çekip-yenile: gösterge YALNIZ kullanıcı çektiğinde döner (`isRefetching` filtre/sıralama
+  // değişiminde — keepPreviousData — ve arka plan tazelemesinde de true oluyordu). Önce önbellek
+  // ilk sayfaya kırpılır: `refetch()` yüklü tüm sayfaları (en çok 5) sırayla çekerdi.
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshFirstPage = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      trimInfiniteToFirstPage(queryClient, listingsKey);
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+    // listingsKey her render'da yeni dizi; içeriği `filters`'tan türüyor.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryClient, refetch, filters]);
   const total = data?.pages[0]?.meta.total ?? 0;
   const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
@@ -187,9 +206,12 @@ export function useListings() {
     getSortLabel,
     // Üretici listesi beklenirken de yükleniyor say (sorgu bekletilir; boş sonuç ekranı çıkmasın).
     isLoading: isLoading || waitingForManufacturers,
+    /** Gösterilecek ilan YOKKEN yükleme hatası → ErrorState (sonraki sayfa hatasında ızgara kalır). */
+    isError: isError && listings.length === 0,
     isFetching,
     isFetchingNextPage,
-    isRefetching,
+    refreshing,
+    refreshFirstPage,
     hasNextPage,
     fetchNextPage,
     refetch,
