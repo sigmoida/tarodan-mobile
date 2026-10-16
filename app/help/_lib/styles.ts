@@ -27,14 +27,4 @@ export const styles = StyleSheet.create({
     borderLeftColor: colors.primary[500],
     borderRadius: radiusRole.card,
   },
-  contactOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    minHeight: theme.minTouchTarget,
-  },
-  contactInfo: {
-    flex: 1,
-    gap: spacing[0.5],
-  },
 });

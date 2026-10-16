@@ -1,67 +1,42 @@
-import React, { useMemo } from 'react';
-import { Pressable, View } from 'react-native';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Text, Input, Textarea, Button, SectionCard, theme, Icon } from '@/ui';
+import { Input, Textarea, Button, SectionCard } from '@/ui';
 
-import { styles } from '../_lib/styles';
-import { buildContactOptions } from '../_lib/faq';
 import type { HelpController } from '../_hooks/useHelp';
 
-const { colors, iconSize } = theme;
-
-/** İletişim seçenekleri (e-posta) ve mesaj formu — SectionCard'lar. */
+/** Mesaj gönderme formu (SectionCard). */
 export function HelpContact({ f }: { f: HelpController }) {
   const { t } = useTranslation();
-  const contactOptions = useMemo(() => buildContactOptions(t), [t]);
 
   return (
-    <>
-      <SectionCard title={t('guides.contactLink')}>
-        {contactOptions.map((option) => (
-          <Pressable
-            key={option.id}
-            accessibilityRole="link"
-            style={styles.contactOption}
-            onPress={option.action}
-          >
-            <View style={styles.contactInfo}>
-              <Text variant="bodySm" tone="muted">
-                {option.title}
-              </Text>
-              <Text variant="bodySm" tone="primary">
-                {option.subtitle}
-              </Text>
-            </View>
-            <Icon name="chevron-right" size={iconSize.md} color={colors.text.muted} />
-          </Pressable>
-        ))}
-      </SectionCard>
-
-      <SectionCard title={t('help.sendMessageTitle')}>
-        <Input label={t('checkout.guestName')} value={f.contactName} onChangeText={f.setContactName} />
-        <Input
-          label={t('common.email')}
-          value={f.contactEmail}
-          onChangeText={f.setContactEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <Textarea
-          label={t('help.messageLabel')}
-          value={f.contactMessage}
-          onChangeText={f.setContactMessage}
-          rows={4}
-        />
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          title={t('common.send')}
-          onPress={f.handleSubmitContact}
-          isLoading={f.contactSubmitting}
-          disabled={f.contactSubmitting}
-        />
-      </SectionCard>
-    </>
+    <SectionCard title={t('help.sendMessageTitle')}>
+      <Input
+        label={t('checkout.guestName')}
+        value={f.contactName}
+        onChangeText={f.setContactName}
+      />
+      <Input
+        label={t('common.email')}
+        value={f.contactEmail}
+        onChangeText={f.setContactEmail}
+        keyboardType='email-address'
+        autoCapitalize='none'
+      />
+      <Textarea
+        label={t('help.messageLabel')}
+        value={f.contactMessage}
+        onChangeText={f.setContactMessage}
+        rows={4}
+      />
+      <Button
+        variant='primary'
+        size='lg'
+        fullWidth
+        title={t('common.send')}
+        onPress={f.handleSubmitContact}
+        isLoading={f.contactSubmitting}
+        disabled={f.contactSubmitting}
+      />
+    </SectionCard>
   );
 }
