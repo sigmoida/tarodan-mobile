@@ -154,6 +154,12 @@ module.exports = {
       rules: DESIGN_WARNINGS,
     },
     {
+      // Query anahtarları yalnız `qk`'dan (CLAUDE.md §6) — kayıt defteri dosyası ve testler muaf.
+      files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+      excludedFiles: [...DESIGN_TEST_FILES, 'src/lib/query/keys.ts'],
+      rules: { 'tarodan/no-inline-query-key': 'warn' },
+    },
+    {
       // Renk kaynağı dosyaları raw-color / paper kurallarından muaf.
       files: MIGRATION_OVERRIDES,
       rules: {

@@ -45,6 +45,8 @@ export default function AddressesScreen() {
       title={title}
       onBack={onBack}
       loading={f.isLoading}
+      error={f.loadFailed || undefined}
+      onRetry={f.retry}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
       right={

@@ -40,7 +40,7 @@ export type ProductFilterOptions = {
 
 export function useProductFilterOptions(manufacturerSlug?: string): ProductFilterOptions {
   const filtersQuery = useQuery({
-    queryKey: ['product-filters', manufacturerSlug ?? ''],
+    queryKey: qk.products.filterOptions(manufacturerSlug ?? ''),
     queryFn: async () => {
       const res = await productsApi.getFilters(
         manufacturerSlug ? { manufacturer: manufacturerSlug } : undefined,

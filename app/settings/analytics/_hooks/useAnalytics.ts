@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { qk } from "@/lib/query";
 import { api } from "@/lib/api";
 import { useRefresh } from "@/hooks/useRefresh";
 import { useRefetchStaleOnFocus } from "@/hooks/useRefetchStaleOnFocus";
@@ -25,7 +26,7 @@ export function useAnalytics() {
   const isPremium = isPremiumTier({ tierType: user?.membershipTier });
 
   // Fetch analytics (anahtar sorgu ile odak tazelemesi arasında tek yerde).
-  const analyticsKey = ["analytics", timeRange] as const;
+  const analyticsKey = qk.user.analytics(timeRange);
   const {
     data: analyticsData,
     isLoading,

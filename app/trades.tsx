@@ -51,7 +51,7 @@ export default function TradesScreen() {
   const page = usePageScrollHandler();
 
   const { data: tradesPayload, isLoading, isError, refetch } = useQuery({
-    queryKey: ['trades', filter],
+    queryKey: qk.trades.list({ filter }),
     queryFn: async () => {
       // pageSize:100 → liste tek sayfada (çoğu kullanıcı için tamamı). 'Kargoda' artık
       // istemci tarafında değil, sunucuda (statusGroup) filtreleniyor → sayfaya takılmıyor.
@@ -75,7 +75,7 @@ export default function TradesScreen() {
   // Segment sayaçları — filtreden/sayfalamadan bağımsız tek sunucu agregatı.
   // tc.all = profil "Takaslar" tile'ı ile birebir.
   const { data: countsResp, refetch: refetchCounts } = useQuery({
-    queryKey: ['trades-status-counts'],
+    queryKey: qk.trades.statusCounts,
     queryFn: () => tradesApi.getStatusCounts(),
     enabled: isAuthenticated,
   });
@@ -83,7 +83,7 @@ export default function TradesScreen() {
   // Anahtar `statusCounts` önekini paylaşır → takas oluşunca/ödemede aynı invalidate tazeler.
   const extraCounts = useQueries({
     queries: (['cancelled', 'rejected'] as const).map((status) => ({
-      queryKey: [...qk.trades.statusCounts, status],
+      queryKey: qk.trades.statusCountBy(status),
       queryFn: async () => {
         const res = await tradesApi.getAll({ status, pageSize: '1' });
         const total = (res.data as { total?: number } | undefined)?.total;

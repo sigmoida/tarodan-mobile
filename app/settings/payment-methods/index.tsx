@@ -81,6 +81,9 @@ export default function PaymentMethodsScreen() {
       onRefresh={onRefresh}
       loading={cardsQuery.isLoading}
       loadingFallback={<RowListSkeleton rows={3} />}
+      // Liste alınamadı → "kayıtlı kart yok" değil, ErrorState + yeniden dene.
+      error={(cardsQuery.isError && !cardsQuery.data) || undefined}
+      onRetry={() => cardsQuery.refetch()}
     >
       <Text variant="bodySm" tone="muted">
         {/* Dijital satış kapalıyken (iOS + Android) abonelik satılmıyor (Apple 2.1(b) / Play): oto-yenileme ifadesi yok. */}

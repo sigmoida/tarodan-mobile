@@ -8,7 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { refundsApi } from '@/lib/api';
-import { useAppMutation } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import { formatPrice } from '@/utils/format';
 import { useAuthStore } from '@/stores/authStore';
 import { FOCUS_LIST_STALE_MS, useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
@@ -35,7 +35,7 @@ export default function RefundDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   // Anahtar sorgu ile odak tazelemesi arasında tek yerde.
-  const detailKey = ['refund-requests', 'detail', id] as const;
+  const detailKey = qk.refunds.detail(String(id ?? ''));
   const { data, isLoading, refetch } = useQuery({
     queryKey: detailKey,
     queryFn: async () => {
@@ -48,7 +48,7 @@ export default function RefundDetailScreen() {
   });
 
   const cancelMutation = useAppMutation(() => refundsApi.cancel(id as string), {
-    invalidates: [['refund-requests']],
+    invalidates: [qk.refunds.all],
     success: t('refund.cancel.successMessage'),
     error: t('common.genericError'),
     onSuccess: () => {

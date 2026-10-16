@@ -110,6 +110,19 @@ describe('J38 · bildirim listesi ve okunmamış sayaç', () => {
     expect(await screen.findByText('Henüz bildirim yok')).toBeOnTheScreen();
   });
 
+  it('J38.3b liste alınamazsa "bildirim yok" değil, ErrorState + yeniden dene', async () => {
+    getAll.mockRejectedValueOnce(new Error('Network Error'));
+    getUnreadCount.mockResolvedValue({ data: { count: 0 } });
+    renderWithProviders(<NotificationsScreen />);
+
+    expect(await screen.findByTestId('error-state')).toBeOnTheScreen();
+    expect(screen.queryByText('Henüz bildirim yok')).toBeNull();
+
+    getAll.mockResolvedValue({ data: { notifications: [] } });
+    fireEvent.press(screen.getByText('Tekrar Dene'));
+    expect(await screen.findByText('Henüz bildirim yok')).toBeOnTheScreen();
+  });
+
   it('J38.4 giriş yapılmadıysa giriş yap boş durumu gösterilir', async () => {
     mockAuthed = false;
     renderWithProviders(<NotificationsScreen />);

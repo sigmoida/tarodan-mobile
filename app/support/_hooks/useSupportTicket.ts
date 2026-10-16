@@ -3,7 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supportApi } from '@/lib/api';
-import { qk, useAppMutation } from '@/lib/query';
+import { isNotFoundError, qk, useAppMutation } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { FOCUS_LIST_STALE_MS, useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { captureException } from '@/services/sentry';
@@ -20,7 +20,7 @@ export function useSupportTicket() {
   const [refreshing, setRefreshing] = useState(false);
   const [reply, setReply] = useState('');
 
-  const { data: ticket, isLoading, refetch } = useQuery({
+  const { data: ticket, isLoading, error, refetch } = useQuery({
     queryKey: qk.support.detail(id),
     queryFn: async () => {
       // getTicketById tek bir ticket DTO döndürür → res.data ticket.
@@ -55,5 +55,11 @@ export function useSupportTicket() {
   // Ekrana dönüşte yalnız bayatsa tazele (her odakta değil; ilk açılışta ikinci istek yok).
   useRefetchStaleOnFocus([qk.support.detail(id)], isAuthenticated && !!id);
 
-  return { ticket, isLoading, refreshing, onRefresh, reply, setReply, replyMutation };
+  // Gerçek 404 → "bulunamadı"; diğer hatalar (ağ/5xx) → ErrorState + yeniden dene.
+  const loadFailed = !!error && !ticket && !isNotFoundError(error);
+  const retry = () => {
+    void refetch();
+  };
+
+  return { ticket, isLoading, loadFailed, retry, refreshing, onRefresh, reply, setReply, replyMutation };
 }

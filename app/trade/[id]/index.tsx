@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { PageShell } from "@/components/common/PageShell";
 import { useRefresh } from "@/hooks/useRefresh";
+import { isNotFoundError } from "@/lib/query";
 import { useAuthStore } from "@/stores/authStore";
 import { tradeViewerRole } from "@/lib/shared/tradeStatus";
 import { useTranslation } from "react-i18next";
@@ -37,6 +38,7 @@ export default function TradeDetailScreen() {
   const {
     data: trade,
     isLoading,
+    error,
     refetch,
   } = useTrade(id as string | undefined);
   const { refreshing, onRefresh } = useRefresh(refetch);
@@ -54,10 +56,13 @@ export default function TradeDetailScreen() {
   }
 
   if (!trade) {
+    // Gerçek 404 → "bulunamadı"; diğer hatalar (ağ/5xx) → ErrorState + yeniden dene.
     return (
       <PageShell
         title={t('trade.detailTitle')}
         onBack={handleBack}
+        error={(!!error && !isNotFoundError(error)) || undefined}
+        onRetry={() => refetch()}
         empty
         emptyState={{
           icon: "arrows-right-left",

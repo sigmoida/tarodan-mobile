@@ -14,7 +14,7 @@ import { useAuthStore } from '@/stores/authStore';
  */
 const BLOCK_INVALIDATES = [
   qk.blocks.list,
-  ['block-status'],
+  qk.blocks.statusAll,
   qk.products.all,
   // `products.all` (`["products"]`) tekil detay anahtarını (`["product", id]`)
   // yakalamaz: engellemeden önce açılmış bir ilan sayfası önbellekten
@@ -33,21 +33,21 @@ const BLOCK_INVALIDATES = [
   qk.collections.detailAll,
   qk.follow.following,
   qk.favorites.all,
-  // Kategori/marka/üretici/model listeleri, arama önerileri, yorumlar ve puanlar
-  // ham anahtarlarla (qk dışında) sorgulanıyor; kökleri burada — yoksa 5 dk
-  // staleTime boyunca engellenenin içeriği görünmeye devam ediyordu (Apple 1.2).
+  // Kategori/marka/üretici/model listeleri, arama önerileri, yorumlar ve puanlar —
+  // her varyantı yakalayan kökleri burada; yoksa 5 dk staleTime boyunca engellenenin
+  // içeriği görünmeye devam ediyordu (Apple 1.2). "Satışta değil" ekranının benzer
+  // ürünleri `qk.products.similar` (`product` kökü → `detailAll`) ile zaten kapsanır.
   qk.products.categoryProductsAll,
-  ['brand-products'],
-  ['manufacturer-products'],
-  ['model-products'],
-  ['product-unavailable-similar'],
-  ['autocomplete-rich'],
-  ['autocomplete-sellers'],
-  ['liked-collections'],
-  ['product-reviews'],
-  ['product-reviews-all'],
-  ['product-rating-stats'],
-  ['seller-ratings'],
+  qk.catalog.brandProductsAll,
+  qk.catalog.manufacturerProductsAll,
+  qk.catalog.modelProductsAll,
+  qk.products.autocompleteAll,
+  qk.products.autocompleteSellersAll,
+  qk.collections.liked,
+  qk.products.reviewsRoot,
+  qk.products.reviewsAllRoot,
+  qk.products.ratingStatsRoot,
+  qk.seller.ratingsAll,
   qk.offers.all,
   qk.trades.all,
   qk.notifications.list,

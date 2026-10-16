@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import i18n from '@/i18n/config';
 import { refundsApi } from '@/lib/api';
-import { useAppMutation } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import { captureException } from '@/services/sentry';
 import { useAuthStore } from '@/stores/authStore';
 import { FOCUS_LIST_STALE_MS, useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
@@ -26,7 +26,7 @@ export function useRefundRequests() {
   const [tab, setTab] = useState<RefundTab>('buyer');
 
   // Anahtar sorgu ile odak tazelemesi arasında tek yerde.
-  const listKey = ['refund-requests', tab] as const;
+  const listKey = qk.refunds.list(tab);
   const query = useQuery({
     queryKey: listKey,
     queryFn: async () => {
@@ -39,7 +39,7 @@ export function useRefundRequests() {
   });
 
   const cancelMutation = useAppMutation((id: string) => refundsApi.cancel(id), {
-    invalidates: [['refund-requests']],
+    invalidates: [qk.refunds.all],
     success: i18n.t('refund.cancelSuccessBody'),
     error: i18n.t('refund.cancelFailed'),
     onError: (e) => captureException(e, { level: 'error', tags: { flow: 'refund.buyer.cancel' } }),

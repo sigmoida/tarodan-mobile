@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 
 /**
@@ -14,7 +15,7 @@ export function useRefreshAccount() {
   const queryClient = useQueryClient();
   return useCallback(async () => {
     const fresh = await refreshUserData();
-    queryClient.invalidateQueries({ queryKey: ['user'] });
+    queryClient.invalidateQueries({ queryKey: qk.user.all });
     return fresh;
   }, [refreshUserData, queryClient]);
 }

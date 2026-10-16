@@ -22,19 +22,16 @@ export function useMyCollections() {
 
   const query = useQuery({
     queryKey: qk.collections.mine,
+    // Hata yutulmaz: önbelleğe `[]` yazmak "koleksiyon yok" gösteriyordu (anahtar paylaşımlı);
+    // fırlatılır → ekran ErrorState + yeniden dene.
     queryFn: async () => {
-      try {
-        const response = await api.get('/collections/me');
-        // API şekli: { collections, total, page, pageSize }
-        return (
-          response.data?.collections ??
-          response.data?.data ??
-          (Array.isArray(response.data) ? response.data : [])
-        );
-      } catch (error) {
-        console.log('Koleksiyonlar yüklenemedi');
-        return [];
-      }
+      const response = await api.get('/collections/me');
+      // API şekli: { collections, total, page, pageSize }
+      return (
+        response.data?.collections ??
+        response.data?.data ??
+        (Array.isArray(response.data) ? response.data : [])
+      );
     },
     enabled: isAuthenticated,
   });
@@ -62,6 +59,10 @@ export function useMyCollections() {
     canCreateCollections,
     collections,
     isLoading: query.isLoading,
+    loadFailed: query.isError && !query.data,
+    retry: () => {
+      void query.refetch();
+    },
     refreshing,
     onRefresh,
     handleCreateCollection,

@@ -23,7 +23,7 @@ export function usePaymentHistory() {
   const statusConfig = buildStatusConfig(t);
 
   const query = useQuery({
-    queryKey: qk.payments.mine,
+    queryKey: qk.payments.history,
     enabled: isAuthenticated,
     queryFn: async (): Promise<Payment[]> => {
       // Web ile aynı kaynak: GET /payments/me. Yanıt alanları (orderNumber,
@@ -46,7 +46,7 @@ export function usePaymentHistory() {
   });
 
   // Ekrana dönüşte yalnız bayatsa tazele (eskiden her odakta invalidate → istek).
-  useRefetchStaleOnFocus([qk.payments.mine], isAuthenticated);
+  useRefetchStaleOnFocus([qk.payments.history], isAuthenticated);
 
   // Çekip-yenile göstergesi yalnız KULLANICI çektiğinde; `isRefetching` arka plan
   // tazelemelerinde de true olup göstergeyi kendiliğinden döndürüyordu.
@@ -72,6 +72,8 @@ export function usePaymentHistory() {
     isAuthenticated,
     payments: query.data ?? [],
     isLoading: query.isLoading,
+    /** Geçmiş alınamadı (önbellekte de yok) — "geçmiş yok" değil, ErrorState + yeniden dene. */
+    loadFailed: query.isError && !query.data,
     isRefreshing: refreshing,
     fetchPayments: onRefresh,
     handlePaymentPress,

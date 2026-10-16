@@ -44,6 +44,8 @@ function CategoryScreen() {
         scroll={page}
         bottomInset={tabInset}
         loading={f.isLoading}
+        errorMessage={f.loadFailed ? t('collection.productsLoadFailed') : null}
+        onRetry={f.retry}
         refreshing={f.refreshing}
         onRefresh={f.onRefresh}
         filtered={!!f.searchQuery || !!f.selectedScale}

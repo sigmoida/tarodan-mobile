@@ -389,8 +389,60 @@ const emptyStateStandard = {
   },
 };
 
+/**
+ * Query anahtarlarının TEK kaynağı `qk` (`src/lib/query/keys.ts`, CLAUDE.md §6). Satır içi dizi
+ * (`queryKey: ['x', id]`, `invalidates: [['x']]`, `setQueryData(['x'], …)`) sessiz drift'in
+ * kaynağıydı (`['sale-order', id]` hiçbir mutasyonun tazelemediği anahtardı). Kayıt defteri
+ * dosyası ve testler `.eslintrc.cjs` override'ında muaf.
+ */
+const KEY_FIRST_ARG_METHODS = new Set([
+  'setQueryData',
+  'getQueryData',
+  'getQueryState',
+  'ensureQueryData',
+  'fetchQuery',
+  'prefetchQuery',
+]);
+
+const propName = (node) =>
+  node.key.type === 'Identifier' ? node.key.name : node.key.type === 'Literal' ? String(node.key.value) : null;
+
+/** @type {import('eslint').Rule.RuleModule} */
+const noInlineQueryKey = {
+  meta: {
+    type: 'suggestion',
+    docs: { description: 'queryKey satır içi dizi olamaz — qk (@/lib/query) kullan' },
+    schema: [],
+    messages: {
+      inline: "Satır içi query anahtarı — `qk.<domain>.*` (@/lib/query) kullan; yoksa src/lib/query/keys.ts'e ekle. Bkz. CLAUDE.md §6.",
+    },
+  },
+  create(context) {
+    return {
+      Property(node) {
+        const key = propName(node);
+        if (key === 'queryKey' && node.value.type === 'ArrayExpression') {
+          context.report({ node: node.value, messageId: 'inline' });
+        } else if (key === 'invalidates' && node.value.type === 'ArrayExpression') {
+          for (const el of node.value.elements) {
+            if (el && el.type === 'ArrayExpression') context.report({ node: el, messageId: 'inline' });
+          }
+        }
+      },
+      CallExpression(node) {
+        const c = node.callee;
+        if (c.type !== 'MemberExpression' || c.property.type !== 'Identifier') return;
+        if (!KEY_FIRST_ARG_METHODS.has(c.property.name)) return;
+        const first = node.arguments[0];
+        if (first && first.type === 'ArrayExpression') context.report({ node: first, messageId: 'inline' });
+      },
+    };
+  },
+};
+
 module.exports = {
   rules: {
+    'no-inline-query-key': noInlineQueryKey,
     'empty-state-standard': emptyStateStandard,
     'restrict-button-icon': restrictButtonIcon,
     'no-raw-style-values': noRawStyleValues,

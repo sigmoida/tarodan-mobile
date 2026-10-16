@@ -1,10 +1,10 @@
 import { logger, safeError } from '@/services/logger';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
 import { collectionsApi } from '@/lib/api';
-import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { IMAGE_PLACEHOLDER } from '@/utils/imageUrl';
@@ -21,7 +21,7 @@ export function useLikedCollections() {
   const [refreshing, setRefreshing] = useState(false);
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['liked-collections'],
+    queryKey: qk.collections.liked,
     queryFn: async () => {
       try {
         const response = await collectionsApi.getLikedCollections();
@@ -54,7 +54,7 @@ export function useLikedCollections() {
   const handleUnlike = async (collectionId: string) => {
     try {
       await collectionsApi.unlike(collectionId);
-      queryClient.invalidateQueries({ queryKey: ['liked-collections'] });
+      queryClient.invalidateQueries({ queryKey: qk.collections.liked });
       toast.success(t('collection.removedFromLikes'));
     } catch (err) {
       logger.error('Failed to unlike collection', { err: safeError(err) });

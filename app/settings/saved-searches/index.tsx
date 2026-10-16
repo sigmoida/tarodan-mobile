@@ -38,6 +38,8 @@ export default function SavedSearchesScreen() {
       }
       loading={f.isLoading}
       loadingFallback={<RowListSkeleton rows={4} />}
+      error={f.loadFailed || undefined}
+      onRetry={f.retry}
     >
       {/* Limit Info */}
       {nearLimit && (

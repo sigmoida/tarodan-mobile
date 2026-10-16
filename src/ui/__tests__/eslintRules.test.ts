@@ -230,3 +230,40 @@ describe('tarodan/restrict-button-icon', () => {
     expect(visit('Input', [attr('rightIcon', null)])).toBe(0);
   });
 });
+
+describe('tarodan/no-inline-query-key', () => {
+  const rule = () => {
+    const { reports, context } = makeContext();
+    return { reports, visitor: plugin.rules['no-inline-query-key'].create(context) };
+  };
+  const arr = (...elements: any[]) => ({ type: 'ArrayExpression', elements });
+  const lit = (value: string) => ({ type: 'Literal', value });
+  const ident = (name: string) => ({ type: 'Identifier', name });
+  const member = (name: string) => ({ type: 'MemberExpression', object: ident(name), property: ident('all') });
+  const prop = (key: string, value: any) => ({ type: 'Property', key: ident(key), value });
+  const call = (method: string, args: any[]) => ({
+    type: 'CallExpression',
+    callee: { type: 'MemberExpression', object: ident('queryClient'), property: ident(method) },
+    arguments: args,
+  });
+
+  it('queryKey / invalidates / setQueryData içindeki satır içi dizi uyarı verir', () => {
+    const { reports, visitor } = rule();
+    visitor.Property(prop('queryKey', arr(lit('sale-order'), ident('id'))));
+    visitor.Property(prop('queryKey', arr({ type: 'SpreadElement', argument: member('qk') }, lit('x'))));
+    visitor.Property(prop('invalidates', arr(member('qk'), arr(lit('refund-requests')))));
+    visitor.CallExpression(call('setQueryData', [arr(lit('collection')), ident('fn')]));
+    expect(reports).toHaveLength(4);
+  });
+
+  it('qk ifadeleri, değişkenler ve ilgisiz diziler serbest', () => {
+    const { reports, visitor } = rule();
+    visitor.Property(prop('queryKey', member('qk')));
+    visitor.Property(prop('queryKey', ident('searchKey')));
+    visitor.Property(prop('invalidates', arr(member('qk'))));
+    visitor.Property(prop('items', arr(lit('a'))));
+    visitor.CallExpression(call('setQueryData', [member('qk'), ident('fn')]));
+    visitor.CallExpression(call('includes', [arr(lit('a'))]));
+    expect(reports).toHaveLength(0);
+  });
+});

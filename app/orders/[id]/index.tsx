@@ -36,7 +36,7 @@ export default function OrderDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { data: order, isLoading, refetch } = useOrder(id);
+  const { data: order, isLoading, isError, refetch } = useOrder(id);
   const actions = useOrderActions(String(id), order ?? undefined);
   const invoices = useOrderInvoices(String(id), order?.status, actions.notify);
   // Pull-to-refresh siparişle birlikte e-Arşiv listesini de yeniler.
@@ -48,10 +48,13 @@ export default function OrderDetailScreen() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
   if (!isLoading && !order) {
+    // 404 → `useOrder` null döner ("bulunamadı"); diğer hatalar → ErrorState + yeniden dene.
     return (
       <PageShell
         title={t('order.orderDetails')}
         onBack={back}
+        error={isError || undefined}
+        onRetry={() => refetch()}
         empty
         emptyState={{
           icon: 'receipt-percent',

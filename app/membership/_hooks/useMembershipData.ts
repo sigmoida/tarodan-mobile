@@ -18,7 +18,7 @@ import {
  * dönüşte veri bayatsa arka planda sessizce tazelenir. Ödeme sonrası "mevcut plan" yine anında
  * güncellenir — başarı ekranı ve Abonelik Yönetimi `['membership']` önekini invalidate ediyor.
  *
- * - Üyelik: `qk.membership.details` — Abonelik Yönetimi ile AYNI anahtar ve AYNI açma kuralı
+ * - Üyelik: `qk.membership.current` — Abonelik Yönetimi ile AYNI anahtar ve AYNI açma kuralı
  *   (`data.data ?? data`), önbellek iki ekranda tutarlı.
  * - Kademeler/fiyatlar: `qk.membership.tiers` — üyelik checkout'uyla aynı anahtar ve ham liste
  *   (`readList`); ekran modeline (`PlatformSettings`) burada çevrilir. Fiyat/limit TEK KAYNAĞI
@@ -29,7 +29,7 @@ import {
  */
 export function useMembershipData(enabled: boolean) {
   const membershipQuery = useQuery({
-    queryKey: qk.membership.details,
+    queryKey: qk.membership.current,
     queryFn: async (): Promise<MembershipDetails | null> => {
       const response = await membershipApi.getCurrentMembership();
       return (response.data?.data ?? response.data ?? null) as MembershipDetails | null;
@@ -44,7 +44,7 @@ export function useMembershipData(enabled: boolean) {
     enabled,
   });
 
-  useRefetchStaleOnFocus([qk.membership.details, qk.membership.tiers], enabled);
+  useRefetchStaleOnFocus([qk.membership.current, qk.membership.tiers], enabled);
 
   const tiers = tiersQuery.data;
   const settings: PlatformSettings = useMemo(() => (tiers ? mapTiersToSettings(tiers) : {}), [tiers]);

@@ -14,7 +14,7 @@ export function useSupportTickets() {
   const { isAuthenticated } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: qk.support.mine,
     queryFn: async () => {
       // api interceptor yanıtı unwrap etmez → res.data backend gövdesi.
@@ -44,6 +44,11 @@ export function useSupportTickets() {
     isAuthenticated,
     tickets: data ?? [],
     isLoading,
+    /** Liste alınamadı ve önbellekte veri yok — "talep yok" değil, ErrorState. */
+    loadFailed: isError && !data,
+    retry: () => {
+      void refetch();
+    },
     refreshing,
     onRefresh,
   };

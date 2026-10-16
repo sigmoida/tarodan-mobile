@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { EmptyState, SkeletonCard, pageListContentStyle, usePageScrollHandler } from '@/ui';
+import { EmptyState, ErrorState, SkeletonCard, pageListContentStyle, usePageScrollHandler } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/common/PageShell';
@@ -81,6 +81,9 @@ export default function SalesScreen() {
               <SkeletonCard />
               <SkeletonCard />
             </View>
+          ) : s.loadFailed ? (
+            // Filtre çipleri (liste başlığı) yerinde kalır.
+            <ErrorState onRetry={() => s.refetch()} />
           ) : (
             <EmptyState
               icon="shopping-cart"

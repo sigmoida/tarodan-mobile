@@ -21,15 +21,16 @@ export function useSavedSearches() {
 
   const maxSavedSearches = limits?.maxSavedSearches || 5;
 
-  const { data: searchesData, isLoading } = useQuery({
-    queryKey: ['saved-searches'],
+  const { data: searchesData, isLoading, isError, refetch } = useQuery({
+    queryKey: qk.user.savedSearches,
     queryFn: async (): Promise<SavedSearch[]> => {
+      // Depolama okuma hatası FIRLATILIR (isError → ErrorState); yalnız bozuk JSON boş liste sayılır.
+      const stored = await AsyncStorage.getItem(STORAGE_KEY);
       try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
         const parsed = stored ? JSON.parse(stored) : [];
         return Array.isArray(parsed) ? parsed : [];
-      } catch (error) {
-        console.log('Failed to fetch saved searches');
+      } catch {
+        console.log('Failed to parse saved searches');
         return [];
       }
     },
@@ -63,7 +64,7 @@ export function useSavedSearches() {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['saved-searches'] });
+      queryClient.invalidateQueries({ queryKey: qk.user.savedSearches });
     },
   });
 
@@ -87,6 +88,11 @@ export function useSavedSearches() {
     maxSavedSearches,
     searches,
     isLoading,
+    /** Liste okunamadı (önbellekte de yok) — "kayıtlı arama yok" değil, ErrorState. */
+    loadFailed: isError && !searchesData,
+    retry: () => {
+      void refetch();
+    },
     toggleNotificationMutation,
     runSearch,
     handleDelete,

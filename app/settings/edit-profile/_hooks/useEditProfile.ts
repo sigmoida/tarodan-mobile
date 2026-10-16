@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { router } from 'expo-router';
 import { appAlert, toast } from '@/ui';
 import { userApi } from '@/lib/api';
@@ -106,7 +107,7 @@ export function useEditProfile() {
       // Store'u taze /users/me ile güncelle (web refreshUser() paritesi). Numara değiştiyse
       // `isPhoneVerified` da burada false'a döner ("doğrulanmış üye" kriteri).
       const fresh = await refreshUserData();
-      queryClient.invalidateQueries({ queryKey: ['user'] });
+      queryClient.invalidateQueries({ queryKey: qk.user.all });
       // Kayıt sonucu TAZE kullanıcıyla doğrulanır; tazeleme düştüyse PATCH
       // yanıtındaki (zarfsız kullanıcı nesnesi) telefona geri çekilinir.
       const savedPhone = fresh ? fresh.phone : responsePhone;
