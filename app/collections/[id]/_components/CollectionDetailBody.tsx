@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Alert, Avatar, Button, EmptyState, IconButton, SectionCard, Text, theme, Icon } from '@/ui';
 import { ProductCard } from '@/components/product';
+import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/collectionStyles';
 import type { CollectionDetailController } from '../_hooks/useCollectionDetail';
@@ -64,6 +65,8 @@ function CollectionHeaderActions({ f, onReport }: { f: CollectionDetailControlle
 export function CollectionDetailBody({ f, onReport }: { f: CollectionDetailController; onReport: () => void }) {
   const { t } = useTranslation();
   const { collection, items, id } = f;
+  // Kalp yalnız pazaryeri ürünü olan kalemde ve koleksiyon sahibi olmayana (sahibin kalemleri kendi ilanı).
+  const favoriteProps = useProductCardFavorites();
   const cover = collection.coverImageUrl ?? collection.coverImage;
 
   return (
@@ -136,16 +139,20 @@ export function CollectionDetailBody({ f, onReport }: { f: CollectionDetailContr
           />
         ) : (
           <View style={styles.itemsGrid}>
-            {items.map((item: any) => (
-              <View key={item.id} style={styles.itemCell}>
-                <ProductCard
-                  product={toCardProduct(item, t('product.productFallback'))}
-                  showMeta={false}
-                  trackClick={!!item.productId}
-                  onPress={() => item.productId && router.push(`/product/${item.productId}`)}
-                />
-              </View>
-            ))}
+            {items.map((item: any) => {
+              const product = toCardProduct(item, t('product.productFallback'));
+              return (
+                <View key={item.id} style={styles.itemCell}>
+                  <ProductCard
+                    product={product}
+                    showMeta={false}
+                    trackClick={!!item.productId}
+                    onPress={() => item.productId && router.push(`/product/${item.productId}`)}
+                    {...(item.productId && !f.isOwner ? favoriteProps(product) : null)}
+                  />
+                </View>
+              );
+            })}
           </View>
         )}
       </SectionCard>

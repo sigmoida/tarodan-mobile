@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Badge, EmptyState, SectionCard, SectionCardAction, SkeletonCard } from '@/ui';
 import { ProductCard, type ProductCardProduct } from '@/components/product';
+import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { homeStyles as styles } from '../_lib/homeStyles';
 
 type RailProps = {
@@ -36,6 +37,7 @@ function ProductRail({
   emptyState?: React.ReactNode;
   testID: string;
 }) {
+  const favoriteProps = useProductCardFavorites();
   if (!isLoading && items.length === 0 && !emptyState) return null;
   return (
     <SectionCard title={title} badge={badge} action={<SectionCardAction onPress={onSeeAll} />} testID={testID}>
@@ -53,7 +55,7 @@ function ProductRail({
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.railScroll} contentContainerStyle={styles.rail}>
           {items.slice(0, RAIL_LIMIT).map((item) => (
             <View key={item.id} style={styles.railCell}>
-              <ProductCard product={item} showMeta={false} onPress={() => onProductPress(item.id)} />
+              <ProductCard product={item} showMeta={false} onPress={() => onProductPress(item.id)} {...favoriteProps(item)} />
             </View>
           ))}
         </ScrollView>

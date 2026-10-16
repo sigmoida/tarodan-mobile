@@ -500,6 +500,7 @@
     "makeOffer": "Teklif Ver",
     "trade": "Takas Teklifi",
     "addToFavorites": "Favorilere Ekle",
+    "favoriteNamed": "{title} — Favori",
     "removeFromFavorites": "Favorilerden Çıkar",
     "removedFromFavorites": "Favorilerden çıkarıldı",
     "addedToFavorites": "Favorilere eklendi",

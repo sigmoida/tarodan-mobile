@@ -4,7 +4,8 @@
  */
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { render } from '@testing-library/react-native';
+// Kartlardaki favori kalbi (`useProductCardFavorites`) React Query ister: provider'lı render.
+import { renderWithProviders as render } from '@/test-utils';
 
 const mockListings = jest.fn();
 jest.mock('../_hooks/useListings', () => ({ useListings: () => mockListings() }));

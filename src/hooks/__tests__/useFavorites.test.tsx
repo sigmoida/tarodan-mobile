@@ -42,8 +42,10 @@ const srvItem = (productId: string) => ({
 });
 
 // children: any → test ortamındaki çift @types/react ReactNode uyuşmazlığından kaçın.
+// Test başına TEK client: wrapper her render'da çağrılır; içinde `new` her render'da cache'i
+// sıfırlayıp yeniden çekerdi (yazım sonrası tazeleme ile sonsuz döngü).
+let client: QueryClient;
 function wrapper({ children }: { children: any }) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
@@ -56,6 +58,7 @@ async function setup(initial: any[] = []) {
 }
 
 beforeEach(() => {
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   wishlist.get.mockReset().mockResolvedValue({ data: { items: [] } });
   wishlist.add.mockReset().mockResolvedValue({ data: {} });
   wishlist.remove.mockReset().mockResolvedValue({ data: {} });
@@ -114,6 +117,8 @@ describe('J21 · favoriden çıkarma (removeFromFavorites)', () => {
   it('var olan ürünü yerel listeden çıkarır', async () => {
     const { result } = await setup([srvItem('p1'), srvItem('p2')]);
     await waitFor(() => expect(result.current.getFavoriteCount()).toBe(2));
+    // Yazım bitince tek tazeleme: sunucu artık yalnız p2'yi döndürür.
+    wishlist.get.mockResolvedValue({ data: { items: [srvItem('p2')] } });
     let ok = false;
     await act(async () => { ok = await result.current.removeFromFavorites('p1'); });
     expect(ok).toBe(true);
@@ -124,6 +129,7 @@ describe('J21 · favoriden çıkarma (removeFromFavorites)', () => {
     const { result } = await setup([srvItem('p1')]);
     await waitFor(() => expect(result.current.getFavoriteCount()).toBe(1));
     wishlist.remove.mockRejectedValue({ response: { status: 404 } });
+    wishlist.get.mockResolvedValue({ data: { items: [] } });
     let ok = false;
     await act(async () => { ok = await result.current.removeFromFavorites('p1'); });
     expect(ok).toBe(true);

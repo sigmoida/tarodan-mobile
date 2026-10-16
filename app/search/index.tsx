@@ -12,6 +12,7 @@ import {
   ProductSortModal,
 } from '@/components/product';
 import ProductFilterSheet from '@/components/ProductFilterSheet';
+import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { styles } from './_lib/searchStyles';
 import { SEARCH_DRAW_DISTANCE, SEARCH_NUM_COLUMNS } from './_lib/searchConstants';
 import { useSearch } from './_hooks/useSearch';
@@ -38,15 +39,21 @@ export default function SearchScreen() {
   // Stable renderItem (#75) — memoized ProductCard bails out on unchanged rows.
   const isList = f.layout === 'list';
   const columns = isList ? 1 : SEARCH_NUM_COLUMNS;
+  const favoriteProps = useProductCardFavorites();
   const renderResult = useCallback(
     ({ item }: ListRenderItemInfo<any>) => (
       // Hücre genişliğini FlashList verir; sütun boşluğu SİMETRİK hücre dolgusuyla. index'e bağlı değil:
       // FlashList hücresi index değişince yeniden render etmez, başa öğe girerse sol/sağ ters kalırdı.
       <View style={styles.cell}>
-        <ProductCard testID="search-result-card" product={item} layout={isList ? 'list' : 'grid'} />
+        <ProductCard
+          testID="search-result-card"
+          product={item}
+          layout={isList ? 'list' : 'grid'}
+          {...favoriteProps(item)}
+        />
       </View>
     ),
-    [isList],
+    [isList, favoriteProps],
   );
 
   // Son sonuç satırı yukarı-çık FAB'ının ve gezinme çubuğunun altında kalmasın.

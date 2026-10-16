@@ -3,7 +3,9 @@
  * (ekranlar değişmez), kabuk yoksa düz liste; klavye ve anahtar disiplini.
  */
 import React from 'react';
-import { render, screen } from '@testing-library/react-native';
+import { screen } from '@testing-library/react-native';
+// Kartlardaki favori kalbi (`useProductCardFavorites`) React Query ister: provider'lı render.
+import { renderWithProviders as render } from '@/test-utils';
 import { ShellScrollProvider, usePageScrollHandler, theme } from '@/ui';
 import { ProductGrid } from '../ProductGrid';
 
