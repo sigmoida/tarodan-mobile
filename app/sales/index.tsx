@@ -1,7 +1,14 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { EmptyState, ErrorState, SkeletonCard, pageListContentStyle, usePageScrollHandler } from '@/ui';
+import {
+  EmptyState,
+  ErrorState,
+  SkeletonCard,
+  Spinner,
+  pageListContentStyle,
+  usePageScrollHandler,
+} from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/common/PageShell';
@@ -28,9 +35,19 @@ export default function SalesScreen() {
   const actions = useSaleActions();
   const page = usePageScrollHandler();
   // Kararlı renderItem (erken return'den ÖNCE — hook sırası sabit).
+  const { handleMarkAsProcessing, openShipDialog } = actions;
+  const { isPending: updating, variables: updatingVars } = actions.updateStatusMutation;
+  const updatingId = updating ? updatingVars?.orderId : undefined;
   const renderSale = useCallback(
-    ({ item }: { item: Sale }) => <SaleCard sale={item} actions={actions} />,
-    [actions],
+    ({ item }: { item: Sale }) => (
+      <SaleCard
+        sale={item}
+        onPrepare={handleMarkAsProcessing}
+        onShip={openShipDialog}
+        isUpdating={updatingId === item.id}
+      />
+    ),
+    [handleMarkAsProcessing, openShipDialog, updatingId],
   );
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
@@ -63,12 +80,16 @@ export default function SalesScreen() {
     >
       <Animated.FlatList
         {...page.listProps}
+        testID="sales-list"
         data={loading ? [] : s.filteredSales}
         keyExtractor={saleKey}
         {...listWindowing}
         contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
         refreshing={s.refreshing}
         onRefresh={s.onRefresh}
+        onEndReached={s.loadMore}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={s.isFetchingNextPage ? <Spinner style={styles.footerSpinner} /> : null}
         ListHeaderComponent={
           <View style={styles.header}>
             <SalesEarnings totalEarnings={s.totalEarnings} pendingEarnings={s.pendingEarnings} />

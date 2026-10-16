@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { appAlert, toast } from '@/ui';
 import i18n from '@/i18n/config';
 import { ordersApi, shippingApi, type Shipment } from '@/lib/api';
@@ -77,7 +77,9 @@ export function useSaleActions() {
     },
   );
 
-  const handleMarkAsProcessing = (order: Sale) => {
+  const { mutate: updateStatus } = updateStatusMutation;
+  // Kararlı referans: memo'lu SaleCard satırları her render'da yeniden çizilmesin.
+  const handleMarkAsProcessing = useCallback((order: Sale) => {
     appAlert(
       i18n.t('sale.markPreparingConfirmTitle'),
       i18n.t('sale.markPreparingConfirmBody'),
@@ -85,11 +87,17 @@ export function useSaleActions() {
         { text: i18n.t('common.cancel'), style: 'cancel' },
         {
           text: i18n.t('common.confirm'),
-          onPress: () => updateStatusMutation.mutate({ orderId: order.id, status: 'processing' }),
+          onPress: () => updateStatus({ orderId: order.id, status: 'processing' }),
         },
       ],
     );
-  };
+  }, [updateStatus]);
+
+  /** "Kargoya ver" satır düğmesi: gönderim diyaloğunu açar (kararlı referans). */
+  const openShipDialog = useCallback(
+    (order: Sale) => setShipDialog({ visible: true, order }),
+    [],
+  );
 
   const handleShip = () => {
     const order = shipDialog.order;
@@ -103,6 +111,7 @@ export function useSaleActions() {
     shipDialog,
     setShipDialog,
     handleMarkAsProcessing,
+    openShipDialog,
     handleShip,
   };
 }
