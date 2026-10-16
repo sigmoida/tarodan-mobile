@@ -7,7 +7,7 @@ import { captureException } from '@/services/sentry';
 import { toast } from '@/ui';
 import i18n from '@/i18n/config';
 import { errorText } from '@/lib/api/errorText';
-import { isDefinitiveItemRejection } from '@/lib/cart/mergeLocalCart';
+import { classifyCartError } from '@/lib/cart/mergeLocalCart';
 
 type NewCartItem = Omit<CartItem, 'id' | 'quantity' | 'addedAt'>;
 
@@ -33,8 +33,10 @@ export function useCartSync() {
   const queryClient = useQueryClient();
 
   /**
-   * @param onReject satırın KESİN reddinde (kalıcı 4xx) çağrılır — iyimser yazmayı geri almak
-   *   için. 401 / 403 / 429 gibi geçici hatalar ret DEĞİLDİR (`isDefinitiveItemRejection`).
+   * @param onReject KESİN retde çağrılır — iyimser yazmayı geri almak ve sunucunun mesajını
+   *   göstermek için: satırın kalıcı 4xx reddi ya da (kullanıcının kendi eylemi olduğu için)
+   *   kesin 403 (hesap düzeyi: e-posta doğrulanmadı / ban…, ya da satıra özgü). 401 / 408 / 429 /
+   *   tanınmayan 403 / 5xx / ağ geçicidir, ret DEĞİLDİR (`classifyCartError`).
    *   Verilmezse eski davranış (yalnız raporla) korunur.
    * @param resyncOnTransient geçici hatada satır sunucuya ulaşmadı: yerel satır KORUNUR ve
    *   sepet birleştirmesi bekliyor işaretlenir (`useCartMergeOnLogin` sonra gönderir).
@@ -49,7 +51,8 @@ export function useCartSync() {
     run()
       .then(() => queryClient.invalidateQueries({ queryKey: qk.cart.mine }))
       .catch((error) => {
-        if (isDefinitiveItemRejection(error)) {
+        const kind = classifyCartError(error);
+        if (kind === 'rejected' || kind === 'accountBlocked' || kind === 'itemForbidden') {
           onReject?.(errorText(error, i18n.t('cart.addToCartFailed')));
         } else if (resyncOnTransient && userId) {
           useCartStore.getState().markMergePending(userId);
