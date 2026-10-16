@@ -20,7 +20,10 @@ const hero = (over: Partial<typeof mockHero> = {}) => ({ ...mockHero, slides: []
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 jest.mock('@/lib/api', () => ({ api: { get: jest.fn(() => Promise.resolve({})) } }));
 jest.mock('@/services/logger', () => ({ logger: { debug: jest.fn() }, safeError: (e: unknown) => e }));
-jest.mock('@/stores/authStore', () => ({ useAuthStore: () => ({ isAuthenticated: false }) }));
+jest.mock('@/stores/authStore', () => ({ useAuthStore: (sel?: (s: { isAuthenticated: boolean }) => unknown) => {
+    const state = { isAuthenticated: false };
+    return sel ? sel(state) : state;
+  } }));
 jest.mock('@/stores/guestStore', () => ({
   useGuestStore: (sel: (s: { incrementListingView: () => void }) => unknown) => sel({ incrementListingView: jest.fn() }),
 }));

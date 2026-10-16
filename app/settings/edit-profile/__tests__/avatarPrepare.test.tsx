@@ -26,7 +26,10 @@ jest.mock('@/lib/api', () => ({
   mediaApi: { uploadAvatar: (...a: unknown[]) => mockUploadAvatar(...a) },
   userApi: { updateProfile: (...a: unknown[]) => mockUpdateProfile(...a) },
 }));
-jest.mock('@/stores/authStore', () => ({ useAuthStore: () => ({ user: { avatar: null } }) }));
+jest.mock('@/stores/authStore', () => ({ useAuthStore: (sel?: (s: { user: { avatar: null } }) => unknown) => {
+    const state = { user: { avatar: null } };
+    return sel ? sel(state) : state;
+  } }));
 jest.mock('../_hooks/useRefreshAccount', () => ({ useRefreshAccount: () => async () => ({ avatar: 'x' }) }));
 
 import { useUploadAvatar } from '../_hooks/useUploadAvatar';
