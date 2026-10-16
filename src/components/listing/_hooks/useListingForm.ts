@@ -1,8 +1,6 @@
 import { logger, safeError } from '@/services/logger';
 import { goBackOrHome } from '@/components/common/goBackOrHome';
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { Platform } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { useState, useEffect, useRef } from 'react';
 import { router } from 'expo-router';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -16,19 +14,8 @@ import { buildColorAndBoxPayload, serverErrorMessage } from '../_lib/payload';
 import { MAX_COLORS } from '../_lib/schema';
 import { globalCustomGroups, requiredGlobalGroups } from '../_lib/attributeGroups';
 import { toFormValues } from '../_lib/editMapper';
-import {
-  hasPendingImages,
-  imageFromKeys,
-  imagesFromMapped,
-  makeCoverById,
-  moveImageById,
-  patchImage,
-  removeImageById,
-  rotatedPreviewUri,
-  shiftImageById,
-  toImageKeys,
-  type ListingImage,
-} from '../_lib/images';
+import { imageSubmitBlocker, imagesFromMapped } from '../_lib/images';
+import { useListingImageUpload } from './useListingImageUpload';
 import { activatedStatus, activationMessageKey } from '../_lib/activation';
 import { useDispatchAddress } from './useDispatchAddress';
 import { invalidateListingCaches as invalidateListingCachesShared } from '../_lib/invalidate';
@@ -44,10 +31,10 @@ import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import { useLatestRef } from '@/hooks/useLatestRef';
 
 import { useAuthStore } from '../../../stores/authStore';
-import { api, productsApi, categoriesApi, bankAccountApi, shippingApi, mediaApi, type ListingRemovalPayload } from '@/lib/api';
+import { api, productsApi, categoriesApi, bankAccountApi, shippingApi, type ListingRemovalPayload } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { qk } from '@/lib/query';
-import { FALLBACK_SCALES, buildMaterials, BRAND_SLUGS, SCALE_SLUGS , MIN_IMAGE_BYTES } from '../_lib/constants';
+import { FALLBACK_SCALES, buildMaterials, BRAND_SLUGS, SCALE_SLUGS } from '../_lib/constants';
 import type {
   Category,
   Brand,
@@ -211,21 +198,11 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const [productLoading, setProductLoading] = useState(isEdit);
   const [productNotFound, setProductNotFound] = useState(false);
 
-  // Görseller: TEK liste (ekran sırası = payload sırası, ilk = kapak). Anahtarlar/URI'ler
-  // bundan türetilir — paralel diziler indeksle ayrışabiliyordu (`_lib/images.ts`).
-  const [images, setImages] = useState<ListingImage[]>([]);
-  const imageKeys = useMemo(() => toImageKeys(images), [images]);
-  const imagesRef = useLatestRef(images);
-  /** Çevirmesi süren kalemler — aynı karedeki ikinci dokunuş state'i görmeden kesilir. */
-  const rotatingIdsRef = useRef(new Set<string>());
-  const [uploadingImages, setUploadingImages] = useState(false);
-  /** Görsel sürükleniyor: form ScrollView'ı kaydırmayı bırakır (iki hareket çatışmasın). */
-  const [imageDragActive, setImageDragActive] = useState(false);
-  // Sürüklenecek ikinci görsel kalmadıysa kilit kalkar — sürükleme yarıda kesilip bitiş
-  // bildirimi gelmezse form kaydırması kalıcı kilitli kalmasın.
-  useEffect(() => {
-    if (images.length < 2) setImageDragActive(false);
-  }, [images.length]);
+  // Görseller: TEK liste (ekran sırası = payload sırası, ilk = kapak); seçme, dosya başına
+  // kuyruklu yükleme, sıralama ve çevirme `useListingImageUpload`'ta. Payload anahtarları
+  // (`imageKeys`) yalnız sunucu anahtarlı kalemlerden türetilir.
+  const imageUpload = useListingImageUpload({ maxImages: limits?.maxImagesPerListing });
+  const { images, imageKeys, replaceImages, imagesRef } = imageUpload;
 
   // Data from API
   const [categories, setCategories] = useState<Category[]>([]);
@@ -347,7 +324,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const applyMappedListing = (mapped: MappedListing) => {
     form.reset(mapped.values);
     setReservedQty(mapped.reservedQty);
-    setImages(imagesFromMapped(mapped.images));
+    replaceImages(imagesFromMapped(mapped.images));
     setSalePrice(mapped.sale.salePrice);
     setSaleStartDate(mapped.sale.saleStartDate);
     setSaleEndDate(mapped.sale.saleEndDate);
@@ -546,147 +523,6 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   };
 
   // -----------------------------------------------------------------------
-  // Image picker & upload
-  // -----------------------------------------------------------------------
-  const pickImages = async () => {
-    const maxImages = limits?.maxImagesPerListing || 5;
-    const remaining = maxImages - imageKeys.length;
-    if (remaining <= 0) {
-      appAlert(t('listing.imageLimitTitle'), t('product.maxImagesReached'));
-      return;
-    }
-
-    const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permResult.granted) {
-      appAlert(t('order.permissionRequired'), t('order.galleryPermissionBody'));
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      selectionLimit: remaining,
-      quality: 0.8,
-    });
-
-    if (result.canceled || result.assets.length === 0) return;
-
-    /**
-     * 1 KB altı dosyalar elenir — boş/bozuk kayıtlar ve galeri yer tutucuları
-     * buradan geliyor.
-     *
-     * ⚠️ Bu YALNIZCA istemci kuralı: sunucuda alt sınır YOK (`media.service.ts`
-     * yalnız 10 MB üst sınırına bakar), yani burada elenen bir dosya teknik
-     * olarak yüklenebilirdi. Sınır kalite için; 1 KB altında anlamlı bir ürün
-     * fotoğrafı pratikte yok. Web aynı kuralı 2026-08-15'te koydu.
-     *
-     * `fileSize` her platformda gelmiyor; GELMEYEN dosya elenmez — bilmediğimiz
-     * için reddetmek, kullanıcının geçerli fotoğrafını sessizce düşürmek olurdu.
-     */
-    const picked = result.assets.slice(0, remaining);
-    const assets = picked.filter(
-      (a) => typeof a.fileSize !== 'number' || a.fileSize >= MIN_IMAGE_BYTES,
-    );
-    const skipped = picked.length - assets.length;
-    if (assets.length === 0) {
-      appAlert(t('listing.imageTooSmallTitle'), t('listing.imageAllTooSmall'));
-      return;
-    }
-    if (skipped > 0) {
-      appAlert(t('listing.imageTooSmallTitle'), t('listing.imageTooSmallBody', { count: skipped }));
-    }
-    setUploadingImages(true);
-
-    try {
-      const formData = new FormData();
-      assets.forEach((asset, idx) => {
-        const uri = asset.uri;
-        const filename = asset.fileName || `image_${idx}.jpg`;
-        const type = asset.mimeType || 'image/jpeg';
-        formData.append('images', {
-          uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
-          name: filename,
-          type,
-        } as any);
-      });
-
-      const res = await api.post('/media/upload/product', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      const uploaded = Array.isArray(res.data) ? res.data : [res.data];
-
-      const usable = uploaded.filter((r: any) => r?.cardKey && r?.detailKey);
-      if (usable.length !== uploaded.length) {
-        toast.error(t('product.imageUploadIncomplete'));
-      }
-      // API'nin döndürdüğü URL esastır; yerel geçici URI'yi saklamak, kaydetme
-      // anında sunucuda karşılığı olmayan bir görselin "yüklenmiş" görünmesine
-      // yol açar (delta 18 §2d).
-      const added = usable.map((r: any) =>
-        imageFromKeys({ cardKey: r.cardKey, detailKey: r.detailKey }, r.cardUrl || r.detailUrl || ''),
-      );
-      setImages((prev) => [...prev, ...added]);
-    } catch (err: any) {
-      toast.error(apiErrorMessage(err, t('listing.imageUploadFailed')));
-    } finally {
-      setUploadingImages(false);
-    }
-  };
-
-  /** Kalemi KİMLİĞİNDEN kaldır (indeks, sıralama/çevirme sırasında kayar). */
-  const removeImage = (id: string) => {
-    rotatingIdsRef.current.delete(id);
-    setImages((prev) => removeImageById(prev, id));
-  };
-
-  /**
-   * Sıralama KİMLİKLE: konum işlem anındaki listeden çözülür (sürükleme/menü açıkken liste
-   * değişmiş olabilir). Sürükle-bırak: `to` = bırakılan yuva.
-   */
-  const moveImage = (id: string, to: number) => {
-    setImages((prev) => moveImageById(prev, id, to));
-  };
-
-  /** Menü "Sola/Sağa taşı": `delta` = -1 / +1. */
-  const shiftImage = (id: string, delta: number) => {
-    setImages((prev) => shiftImageById(prev, id, delta));
-  };
-
-  /** Kapak = ilk kalem (web `makeCover`). */
-  const makeCoverImage = (id: string) => {
-    setImages((prev) => makeCoverById(prev, id));
-  };
-
-  /**
-   * 90° çevir — sunucu depodaki detay türevini çevirip YENİ anahtarlar döner
-   * (`POST /media/product-image/rotate`; taze yüklenen geçici görsellerde de çalışır).
-   * Eski anahtarlar silinmez (sunucu temizler), bu yüzden hata durumunda kalem aynen kalır.
-   */
-  const rotateImage = async (id: string) => {
-    const target = imagesRef.current.find((item) => item.id === id);
-    if (!target || target.status !== 'ready' || rotatingIdsRef.current.has(id)) return;
-    rotatingIdsRef.current.add(id);
-    setImages((prev) => patchImage(prev, id, { status: 'rotating' }));
-    try {
-      const { data } = await mediaApi.rotateProductImage(target.detailKey);
-      // Kalem bu arada kaldırıldıysa `patchImage` hiçbir şey yapmaz.
-      setImages((prev) =>
-        patchImage(prev, id, {
-          cardKey: data.cardKey,
-          detailKey: data.detailKey,
-          uri: rotatedPreviewUri(data.cardUrl || data.detailUrl, target.uri),
-          status: 'ready',
-        }),
-      );
-    } catch {
-      setImages((prev) => patchImage(prev, id, { status: 'ready' }));
-      toast.error(t('product.imageUpload.rotateFailed'));
-    } finally {
-      rotatingIdsRef.current.delete(id);
-    }
-  };
-
-  // -----------------------------------------------------------------------
   // Category helpers
   // -----------------------------------------------------------------------
   const flattenCategories = (cats: Category[]): Category[] => {
@@ -793,10 +629,14 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const buildSalePayload = (): Record<string, unknown> => ({ ...salePayload(saleFields) });
 
   const validate = (): boolean => {
-    // Görsel yüklemesi/çevirmesi sürerken kaydedilen ilan, ekrandakinden farklı (eksik ya da
-    // çevrilmemiş) görselle giderdi — web `imageSubmitBlocker` "pending".
-    if (uploadingImages || hasPendingImages(images)) {
-      toast.error(t('product.imageUpload.blockerPending'));
+    // Görsel yüklemesi/çevirmesi sürerken ya da yüklenemeyen görsel varken kaydedilen ilan,
+    // ekrandakinden farklı (eksik ya da çevrilmemiş) görselle giderdi — payload yalnız sunucu
+    // anahtarlı kalemleri taşır (web `imageSubmitBlocker`). Güncel liste ref'ten okunur.
+    const imageBlocker = imageSubmitBlocker(imagesRef.current);
+    if (imageBlocker) {
+      toast.error(
+        t(imageBlocker === 'pending' ? 'product.imageUpload.blockerPending' : 'product.imageUpload.blockerFailed'),
+      );
       return false;
     }
     // Kurallar ve SIRALARI tek yerde (`_lib/validate.ts`) — kullanıcıya
@@ -1044,7 +884,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     form.setValue('colors', []);
     form.setValue('isBoxed', '');
     setGlobalAttributes({});
-    setImages([]);
+    replaceImages([]);
     setSalePrice('');
     const sale = defaultSaleDates();
     setSaleStartDate(sale.saleStartDate);
@@ -1103,18 +943,21 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     saleEndDate, setSaleEndDate,
     reactivateQuantity, setReactivateQuantity,
     reactivating,
-    // images
+    // images (`useListingImageUpload`)
     images,
     imageKeys,
-    uploadingImages,
-    pickImages,
-    removeImage,
-    moveImage,
-    shiftImage,
-    makeCoverImage,
-    rotateImage,
-    imageDragActive,
-    setImageDragActive,
+    maxImages: imageUpload.maxImages,
+    uploadingImages: imageUpload.uploadingImages,
+    imageSubmitBlocker: imageUpload.submitBlocker,
+    pickImages: imageUpload.pickImages,
+    retryImage: imageUpload.retryImage,
+    removeImage: imageUpload.removeImage,
+    moveImage: imageUpload.moveImage,
+    shiftImage: imageUpload.shiftImage,
+    makeCoverImage: imageUpload.makeCoverImage,
+    rotateImage: imageUpload.rotateImage,
+    imageDragActive: imageUpload.imageDragActive,
+    setImageDragActive: imageUpload.setImageDragActive,
     // data
     brands,
     models,

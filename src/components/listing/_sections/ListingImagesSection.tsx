@@ -5,7 +5,6 @@ import {
   ActionSheet,
   Alert,
   SectionCard,
-  Spinner,
   Text,
   androidRipple,
   rippleClip,
@@ -24,16 +23,19 @@ type SectionProps = { f: ListingFormController };
 
 /**
  * Fotoğraflar: ekleme kutusu (kontenjan doluysa bilgi kutusu) + web gibi ızgara (kapak 2×2).
- * İlk görsel kapak; karoda ✕ kaldır, ↻ 90° çevir, ☆ kapak yap. Basılı tut + sürükle sıralar;
- * karoya dokunmak aynı eylemleri menüde (ActionSheet) açar — ekran okuyucu ve küçük ekran yolu.
+ * Seçilen görsel hemen yerel önizlemesiyle karoda görünür ve kendi ilerlemesiyle yüklenir;
+ * yüklenemeyen karo "Tekrar dene" gösterir (diğerleri etkilenmez). Yükleme sürerken de yeni
+ * görsel eklenebilir. İlk görsel kapak; karoda ✕ kaldır, ↻ 90° çevir, ☆ kapak yap. Basılı
+ * tut + sürükle sıralar; karoya dokunmak aynı eylemleri menüde (ActionSheet) açar.
  */
 export function ListingImagesSection({ f }: SectionProps) {
   const { t } = useTranslation();
-  const maxImages = f.limits?.maxImagesPerListing || 5;
+  const maxImages = f.maxImages;
   const onPick = useStableCallback(f.pickImages);
   const onRemove = useStableCallback(f.removeImage);
   const onRotate = useStableCallback((id: string) => void f.rotateImage(id));
   const onMakeCover = useStableCallback(f.makeCoverImage);
+  const onRetry = useStableCallback(f.retryImage);
   const onMove = useStableCallback(f.moveImage);
   const onShift = useStableCallback(f.shiftImage);
   const onDragActiveChange = useStableCallback(f.setImageDragActive);
@@ -52,6 +54,14 @@ export function ListingImagesSection({ f }: SectionProps) {
     const last = f.images.length - 1;
     const busy = menuImage.status !== 'ready';
     const list: ActionSheetAction[] = [];
+    if (menuImage.status === 'failed') {
+      list.push({
+        key: 'retry',
+        label: t('product.imageUpload.retry'),
+        onPress: () => onRetry(menuImage.id),
+        testID: 'listing-image-menu-retry',
+      });
+    }
     if (menuIndex > 0) {
       list.push({
         key: 'cover',
@@ -90,27 +100,23 @@ export function ListingImagesSection({ f }: SectionProps) {
       testID: 'listing-image-menu-remove',
     });
     return list;
-  }, [menuImage, menuIndex, f.images.length, t, onMakeCover, onShift, onRotate, onRemove]);
+  }, [menuImage, menuIndex, f.images.length, t, onMakeCover, onShift, onRotate, onRemove, onRetry]);
 
   return (
     <SectionCard title={t('product.images')}>
-      {f.imageKeys.length < maxImages ? (
+      {/* Kontenjan: listedeki TÜM kalemler (bekleyen/hatalı dahil) yer kaplar; sayaç yalnız
+          yüklenmişleri gösterir. Hatalı kalem kaldırılınca yeri açılır. */}
+      {f.images.length < maxImages ? (
         <Pressable
           testID="listing-image-add"
           accessibilityRole="button"
-          accessibilityState={{ disabled: f.uploadingImages, busy: f.uploadingImages }}
           onPress={onPick}
           android_ripple={androidRipple()}
-          disabled={f.uploadingImages}
           style={({ pressed }) => [styles.addBox, rippleClip(), showPressedStyle(pressed) && styles.addBoxPressed]}
         >
-          {f.uploadingImages ? (
-            <Spinner />
-          ) : (
-            <Text variant="bodySm" weight="medium" tone="muted">
-              {t('listing.tapToUpload')}
-            </Text>
-          )}
+          <Text variant="bodySm" weight="medium" tone="muted">
+            {t('listing.tapToUpload')}
+          </Text>
           <Text variant="caption" tone="subtle">
             {t('listing.uploadedCount', { count: f.imageKeys.length, max: maxImages })}
           </Text>
@@ -132,10 +138,19 @@ export function ListingImagesSection({ f }: SectionProps) {
             onRemove={onRemove}
             onRotate={onRotate}
             onMakeCover={onMakeCover}
+            onRetry={onRetry}
             onMove={onMove}
             onDragActiveChange={onDragActiveChange}
           />
         </>
+      ) : null}
+
+      {/* Gönderim neden kilitli: yükleme bitmedi (düğme "Görseller yükleniyor…") ya da
+          yüklenemeyen görsel var — ikincisinde düğme açık kalır, burada nedeni yazılıdır. */}
+      {f.imageSubmitBlocker?.reason === 'failed' ? (
+        <Alert variant="danger" style={styles.blocker} testID="listing-image-blocker">
+          {f.imageSubmitBlocker.message}
+        </Alert>
       ) : null}
 
       <ActionSheet
@@ -165,6 +180,9 @@ const styles = StyleSheet.create({
     borderColor: colors.primary[500],
   },
   hint: {
+    marginTop: spacing[3],
+  },
+  blocker: {
     marginTop: spacing[3],
   },
 });

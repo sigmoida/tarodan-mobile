@@ -13,12 +13,41 @@ const appendRNFile = (formData: FormData, field: string, file: RNFile) => {
   formData.append(field, file as any);
 };
 
+/**
+ * Tek ürün görselinin istek süresi. Global 30 sn (`client.ts`) mobil veride büyük bir
+ * fotoğrafa yetmiyordu; sunucu da dosya başına moderasyon + iki sharp türevi + iki S3
+ * PUT yapıyor. Global ayara dokunulmaz — yalnız bu istek uzun bekler.
+ */
+export const PRODUCT_IMAGE_UPLOAD_TIMEOUT_MS = 120_000;
+
+export type ProductImageUploadResult = {
+  cardKey: string;
+  detailKey: string;
+  cardUrl?: string;
+  detailUrl?: string;
+};
+
 export const mediaApi = {
-  uploadProductImages: (files: RNFile[]) => {
+  /**
+   * TEK ürün görseli — dosya bazlı ilerleme ve iptal için (web `uploadProductImage`).
+   * Eski toplu yükleme (tüm görseller tek istekte) kaldırıldı: bir dosyanın hatası hepsini
+   * düşürüyor, dosya başına ilerleme/iptal/yeniden deneme mümkün olmuyordu.
+   */
+  uploadProductImage: (
+    file: RNFile,
+    options?: { signal?: AbortSignal; onProgress?: (percent: number) => void },
+  ) => {
     const formData = new FormData();
-    files.forEach(file => appendRNFile(formData, 'images', file));
-    return api.post('/media/upload/product', formData, {
+    appendRNFile(formData, 'images', file);
+    return api.post<ProductImageUploadResult[]>('/media/upload/product', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: PRODUCT_IMAGE_UPLOAD_TIMEOUT_MS,
+      signal: options?.signal,
+      onUploadProgress: (event) => {
+        // `total` bilinmiyorsa yüzde uydurulmaz — sahte ilerleme gösterilmez.
+        if (!options?.onProgress || !event.total) return;
+        options.onProgress((event.loaded / event.total) * 100);
+      },
     });
   },
   uploadAvatar: (file: RNFile) => {

@@ -14,25 +14,24 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { appAlert, toast } from '@/ui';
 import { makeTestQueryClient } from '../../../test-utils';
 import { MISSING_LEGAL_IDENTITY, settleGateAndWait } from '@/test-utils/legalIdentity';
+import * as ImagePicker from 'expo-image-picker';
+import { pickerAssets, uploadResponder } from '@/test-utils/listingUpload';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
   useLocalSearchParams: () => ({}),
 }));
 
-jest.mock('expo-image-picker', () => ({
-  requestMediaLibraryPermissionsAsync: jest.fn(async () => ({ granted: true })),
-  launchImageLibraryAsync: jest.fn(async () => ({
-    canceled: false,
-    assets: [{ uri: 'file:///tmp/photo.jpg', fileName: 'photo.jpg', mimeType: 'image/jpeg' }],
-  })),
-  MediaTypeOptions: { Images: 'Images' },
-}));
+jest.mock('expo-image-picker', () =>
+  jest.requireActual<typeof import('@/test-utils/listingUpload')>('@/test-utils/listingUpload').imagePickerMock(3),
+);
 
 const mockGet = jest.fn();
 const mockPost = jest.fn();
+const mockUpload = jest.fn();
 jest.mock('@/lib/api', () => ({
   api: { get: (...a: any[]) => mockGet(...a), post: (...a: any[]) => mockPost(...a), patch: jest.fn() },
+  mediaApi: { uploadProductImage: (...a: unknown[]) => mockUpload(...a) },
   legalIdentityApi: { getStatus: jest.fn(), submit: jest.fn() },
   productsApi: {
     create: jest.fn(async () => ({ data: {} })),
@@ -101,14 +100,8 @@ function wireApi() {
     }
     return Promise.resolve({ data: {} });
   });
-  mockPost.mockResolvedValue({
-    data: [1, 2, 3].map((n) => ({
-      cardKey: `card-${n}`,
-      detailKey: `detail-${n}`,
-      cardUrl: `https://example.com/card-${n}.jpg`,
-      detailUrl: `https://example.com/detail-${n}.jpg`,
-    })),
-  });
+  // Dosya başına bir yükleme: N. istek → card-N (en az 3 fotoğraf).
+  mockUpload.mockImplementation(uploadResponder());
 }
 
 async function renderFilledForm() {
@@ -184,8 +177,9 @@ describe('İlan verme · yasal kimlik kapısı', () => {
     await gateOpened();
 
     // Kapı açıkken: başlık değişir, bir görsel daha yüklenir.
-    mockPost.mockResolvedValueOnce({
-      data: [{ cardKey: 'card-4', detailKey: 'detail-4', cardUrl: 'https://example.com/card-4.jpg' }],
+    (ImagePicker.launchImageLibraryAsync as jest.Mock).mockResolvedValueOnce({
+      canceled: false,
+      assets: pickerAssets(1, 4),
     });
     act(() => result.current.setTitle('Güncel başlık'));
     await act(async () => {

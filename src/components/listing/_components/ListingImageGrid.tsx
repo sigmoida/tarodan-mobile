@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -11,11 +11,15 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import { useTranslation } from 'react-i18next';
 import { useLatestRef } from '@/hooks/useLatestRef';
+import { AppImage } from '@/components/AppImage';
 import {
+  Button,
   Icon,
   IconButton,
   Pill,
+  ProgressBar,
   Spinner,
+  Text,
   androidRipple,
   iconButtonBoxSize,
   rippleClip,
@@ -30,6 +34,8 @@ const { colors, spacing, radiusRole, typography, duration } = theme;
 
 /** Karolar arası boşluk (web `gap-2`). */
 const GAP = spacing[2];
+/** Karo içi yükleme çubuğu (web `h-1`). */
+const PROGRESS_HEIGHT = spacing[1];
 /** Basılı tutma süresi — sonra sürükleme başlar; öncesinde parmak kayarsa form kayar. */
 const LONG_PRESS_MS = 300;
 
@@ -54,6 +60,8 @@ export interface ListingImageGridProps {
   onRemove: (id: string) => void;
   onRotate: (id: string) => void;
   onMakeCover: (id: string) => void;
+  /** Hata alan kalemi yeniden yükle. */
+  onRetry: (id: string) => void;
   /** Sürükle-bırak: kalem KİMLİĞİ + bırakılan yuva; kaynak konumu üst güncel listeden çözer. */
   onMove: (id: string, to: number) => void;
   /** Sürükleme başladı/bitti — form ScrollView'ı bu sürede kaymaz. */
@@ -87,6 +95,7 @@ export function ListingImageGrid({
   onRemove,
   onRotate,
   onMakeCover,
+  onRetry,
   onMove,
   onDragActiveChange,
 }: ListingImageGridProps) {
@@ -205,6 +214,7 @@ export function ListingImageGrid({
               onRemove={onRemove}
               onRotate={onRotate}
               onMakeCover={onMakeCover}
+              onRetry={onRetry}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
               onDragAbort={handleDragAbort}
@@ -225,6 +235,7 @@ interface TileProps {
   onRemove: (id: string) => void;
   onRotate: (id: string) => void;
   onMakeCover: (id: string) => void;
+  onRetry: (id: string) => void;
   onDragStart: () => void;
   onDragEnd: (id: string, to: number) => void;
   onDragAbort: () => void;
@@ -240,14 +251,19 @@ const ImageTile = memo(function ImageTile({
   onRemove,
   onRotate,
   onMakeCover,
+  onRetry,
   onDragStart,
   onDragEnd,
   onDragAbort,
 }: TileProps) {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion();
-  const { id } = image;
-  const busy = image.status !== 'ready';
+  const { id, status } = image;
+  /** Yüklenmiş (sunucu anahtarlı) ve boşta değilse eylemler kapalı. */
+  const busy = status !== 'ready';
+  const uploading = status === 'queued' || status === 'uploading' || status === 'processing';
+  const failed = status === 'failed';
+  const progress = image.progress ?? 0;
   const label = { index: index + 1 };
 
   // İlk karede yerine OTURUR (sol üstten kayarak gelmesin); sonraki yuva değişimleri animasyonlu.
@@ -343,7 +359,7 @@ const ImageTile = memo(function ImageTile({
   return (
     <GestureDetector gesture={pan}>
       <Animated.View
-        style={[styles.tile, tileStyle]}
+        style={[styles.tile, failed && styles.tileFailed, tileStyle]}
         testID={`listing-image-tile-${index}`}
       >
         <Pressable
@@ -355,13 +371,21 @@ const ImageTile = memo(function ImageTile({
               : t('product.imageUpload.imageAlt', label)
           }
           accessibilityHint={t('product.imageUpload.reorderImage', label)}
-          accessibilityState={{ busy }}
+          accessibilityState={{ busy: busy && !failed }}
           onPress={() => onOpenMenu(id)}
           android_ripple={androidRipple()}
           style={({ pressed }) => [styles.fill, rippleClip(), showPressedStyle(pressed) && styles.pressed]}
         >
-          {/* Sunucu URL'si (yükleme anında API'nin döndürdüğü); `AppImage` yerine RN Image (eski şeritle aynı). */}
-          <Image source={{ uri: image.uri }} style={[styles.fill, busy && styles.busyImage]} />
+          {/* Yüklenene kadar picker'ın YEREL önizlemesi, sonra sunucunun döndürdüğü URL. Yerel
+              URI yalnız gösterim içindir; payload sunucu anahtarlarından kurulur. Cihaz URI'sine
+              yalnız yerel dosyası olan (yeni seçilmiş) kalemde izin verilir — sunucu verisinde
+              asla (`imageUrl.ts` kuralı). */}
+          <AppImage
+            source={image.uri}
+            allowDeviceUris={!!image.file}
+            recyclingKey={id}
+            style={[styles.fill, busy && !failed && styles.busyImage]}
+          />
         </Pressable>
 
         {isCover ? (
@@ -392,9 +416,48 @@ const ImageTile = memo(function ImageTile({
           </Pill>
         )}
 
-        {busy ? (
+        {status === 'rotating' ? (
           <View style={styles.busy} pointerEvents="none">
             <Spinner />
+          </View>
+        ) : null}
+
+        {/* Bayt aktarımı: gerçek yüzde. Aktarım bitip yanıt beklenirken sunucu tarafı
+            (moderasyon, dönüştürme, depolama) sürüyor; sahte yüzde yerine "İşleniyor". */}
+        {uploading ? (
+          <View style={styles.progressStrip} pointerEvents="none" testID={`listing-image-progress-${index}`}>
+            <Text variant="caption" weight="medium" tone="body" numberOfLines={1}>
+              {status === 'processing'
+                ? t('product.imageUpload.processing')
+                : status === 'queued'
+                  ? t('product.imageUpload.queued')
+                  : t('product.imageUpload.uploadingPercent', { progress })}
+            </Text>
+            <View
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('product.imageUpload.uploadProgressLabel', label)}
+              accessibilityValue={{ min: 0, max: 100, now: progress }}
+            >
+              <ProgressBar progress={progress / 100} height={PROGRESS_HEIGHT} />
+            </View>
+          </View>
+        ) : null}
+
+        {failed ? (
+          <View style={styles.failed} testID={`listing-image-failed-${index}`}>
+            {/* Küçük karoda yalnız kısa etiket sığar; ayrıntılı sunucu mesajı büyük (kapak) karoda. */}
+            <Text variant="caption" tone="danger" align="center" numberOfLines={isCover ? 3 : 1}>
+              {(isCover && image.error) || t('product.imageUpload.failed')}
+            </Text>
+            <Button
+              variant="secondary"
+              size="sm"
+              title={t('product.imageUpload.retry')}
+              onPress={() => onRetry(id)}
+              style={styles.retry}
+              testID={`listing-image-retry-${index}`}
+            />
           </View>
         ) : null}
 
@@ -455,12 +518,38 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  tileFailed: {
+    borderColor: colors.danger[300],
+  },
   pressed: { opacity: 0.85 },
   busyImage: { opacity: 0.6 },
   busy: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  progressStrip: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    gap: spacing[0.5],
+    paddingHorizontal: spacing[1.5],
+    paddingVertical: spacing[1],
+    backgroundColor: colors.overlay.white90,
+  },
+  failed: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[1],
+    padding: spacing[1.5],
+    // Sağ üstteki ✕ (kaldır) erişilebilir kalsın: üst pay köşe düğmesine bırakılır.
+    paddingTop: CORNER_INSET + CORNER_BOX,
+    backgroundColor: colors.overlay.white90,
+  },
+  retry: {
+    paddingHorizontal: spacing[2],
   },
   badge: {
     position: 'absolute',
