@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Button, Text } from '@/ui';
 import { GateScreen } from '@/components/common/GateScreen';
 import { useAuthStore } from '@/stores/authStore';
+import { useBusinessGateExit } from '@/hooks/useBusinessGateExit';
 
 /**
  * Kurumsal başvuru reddedildi ekranı. Web karşılığı:
@@ -13,6 +14,8 @@ import { useAuthStore } from '@/stores/authStore';
 export default function BusinessRejectedScreen() {
   const { t } = useTranslation();
   const { user, logout } = useAuthStore();
+  // Başvuru artık reddedilmiş değilse (bayat görüntü / yeniden başvuru onaylandı) kapıdan çık.
+  useBusinessGateExit('rejected');
 
   const handleLogout = async () => {
     await logout();
