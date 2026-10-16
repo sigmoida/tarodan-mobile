@@ -22,7 +22,8 @@ const layouts = ['grid', 'list'] as const;
 
 describe.each(layouts)('ProductCard (%s) trade badge', (layout) => {
   // Liste görünümünde telefonda rozet yalnız ikon (web `hidden sm:inline`): etiket erişilebilirlik adıyla aranır.
-  const badge = () => screen.queryByLabelText(/takas/i) ?? screen.queryByText(/takas/i);
+  // Kart etiketi de rozet adını içerir (erişilebilirlik) — birden çok eşleşme olabilir.
+  const badge = () => screen.queryAllByLabelText(/takas/i)[0] ?? screen.queryByText(/takas/i);
   const renderCard = (item: any) => render(<ProductCard product={item} layout={layout} />);
 
   it('shows the badge when only tradeAvailable is set', () => {

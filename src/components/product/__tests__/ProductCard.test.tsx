@@ -115,8 +115,38 @@ describe('ProductCard — grid', () => {
     const style = JSON.stringify(node?.props.style);
     expect(style).toContain('"top":6');
     expect(style).toContain('"left":6');
-    // Sağ boşluk = kalp inset (6) + kalp (32) + 4.
-    expect(style).toContain('"right":42');
+    // Web: left-1.5 + max-w calc(100% - 3.25rem) → sağdan 46pt (kalp inset 6 + kalp 32 + 8).
+    expect(style).toContain('"right":46');
+  });
+
+  it('sponsorlu yalnız isBoosted === true ile (boostedUntil tek başına rozet açmaz)', () => {
+    render(<ProductCard product={{ ...base, boostedUntil: '2099-01-01T00:00:00Z' } as never} />);
+    expect(screen.queryByText('Sponsorlu')).toBeNull();
+  });
+
+  it('indirim yüzdesi < 1 ise rozet çıkmaz (asla "%0")', () => {
+    render(<ProductCard product={{ ...base, price: 99.9, oldPrice: 100 }} />);
+    expect(screen.queryByText(/^%/)).toBeNull();
+  });
+
+  it('tradeAvailable=false eski alanları ezer: takas rozeti yok', () => {
+    render(<ProductCard product={{ ...base, tradeAvailable: false, isTradeEnabled: true } as never} />);
+    expect(screen.queryByText('Takas')).toBeNull();
+  });
+
+  it('erişilebilirlik: kart etiketi görünen rozetleri sırayla ekler (grid)', () => {
+    render(<ProductCard product={all as never} />);
+    expect(screen.getByLabelText('Hot Wheels Supra, %20 İndirim, Sponsorlu')).toBeTruthy();
+  });
+
+  it('erişilebilirlik: liste etiketi indirim + takas ikonunu içerir', () => {
+    render(<ProductCard layout="list" product={all as never} />);
+    expect(screen.getByLabelText('Hot Wheels Supra, %20 İndirim, Takas')).toBeTruthy();
+  });
+
+  it('erişilebilirlik: rozet yoksa etiket yalnız başlık', () => {
+    render(<ProductCard product={base} />);
+    expect(screen.getByLabelText('Hot Wheels Supra')).toBeTruthy();
   });
 
   it('overlayStart verilince sol üst rozet yığını çizilmez (çakışma yok)', () => {
@@ -201,9 +231,9 @@ describe('ProductCard — favori kalbi', () => {
   it('liste: kalp ölçülen görselin sağ üstüne oturur', () => {
     render(<ProductCard product={base} layout="list" onToggleFavorite={jest.fn()} />);
     layoutListImage();
-    // 13 + 80 - 32 - 4 = 57; 20 + 4 = 24
-    expect(heartBoxStyle('left')).toContain('"left":57');
-    expect(heartBoxStyle('left')).toContain('"top":24');
+    // Web top-1.5 right-1.5: 13 + 80 - 32 - 6 = 55; 20 + 6 = 26
+    expect(heartBoxStyle('left')).toContain('"left":55');
+    expect(heartBoxStyle('left')).toContain('"top":26');
   });
 
   it('grid: kalp görselin sağ üst köşesinde (alt değil)', () => {
@@ -214,11 +244,17 @@ describe('ProductCard — favori kalbi', () => {
     expect(style).not.toContain('"bottom"');
   });
 
-  it.each(['grid', 'list'] as const)('%s: overlay (sağ üst yuva) verilince kalp çizilmez, overlay kalır', (layout) => {
-    render(<ProductCard product={base} layout={layout} onToggleFavorite={jest.fn()} overlay={<Text>kaldır</Text>} />);
-    if (layout === 'list') layoutListImage();
+  it('grid: overlay (görselin sağ üst yuvası) verilince kalp çizilmez, overlay kalır', () => {
+    render(<ProductCard product={base} onToggleFavorite={jest.fn()} overlay={<Text>kaldır</Text>} />);
     expect(screen.queryByTestId('product-card-favorite-p1')).toBeNull();
     expect(screen.getByText('kaldır')).toBeTruthy();
+  });
+
+  it('liste: overlay satırın sağ üstündedir (görselde değil) — kalbi gizlemez', () => {
+    render(<ProductCard product={base} layout="list" onToggleFavorite={jest.fn()} overlay={<Text>seç</Text>} />);
+    layoutListImage();
+    expect(screen.getByTestId('product-card-favorite-p1')).toBeTruthy();
+    expect(screen.getByText('seç')).toBeTruthy();
   });
 
   it('aktif: aynı etiket, durum seçili', () => {
