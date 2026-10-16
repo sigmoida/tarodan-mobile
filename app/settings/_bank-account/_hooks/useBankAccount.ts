@@ -9,8 +9,8 @@ import { bankAccountApi, errorText } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
-import { dismissLegalIdentitySavedNotice } from '@/stores/legalIdentityRequestStore';
 import { goBackOrHome } from '@/components/common/goBackOrHome';
+import { useScreenFocused } from '@/ui/lib/screenFocus';
 import { formatIbanDisplay } from '@/utils/iban';
 import { buildBankAccountSchema, EMPTY_BANK_ACCOUNT, type BankAccountForm } from '../_lib/schema';
 import { sameBankAccountPayload, toBankAccountPayload } from '../_lib/payload';
@@ -44,6 +44,8 @@ export function useBankAccount() {
   const form = useZodForm(schema, { defaultValues: EMPTY_BANK_ACCOUNT });
   const { reset, getValues } = form;
   const mounted = useRef(true);
+  const focusedRef = useRef(true);
+  focusedRef.current = useScreenFocused();
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -70,14 +72,14 @@ export function useBankAccount() {
 
   const upsertMutation = useMutation({
     mutationFn: async (data: BankAccountForm) => bankAccountApi.upsert(toBankAccountPayload(data)),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      // PATCH yanıtı GET ile aynı şekil: önbelleğe HEMEN yaz — ilan formundaki IBAN kapısı
+      // (aynı anahtar) geri dönüşte eski `null` ile "IBAN ekleyin" göstermesin, özet kart
+      // güncel olsun. Sonra sunucudan tazele.
+      queryClient.setQueryData(qk.user.bankAccount, res.data || null);
       queryClient.invalidateQueries({ queryKey: qk.user.bankAccount });
       Keyboard.dismiss();
-      // Kimlik bu kayıtla yeni tamamlandıysa "kimlik kaydedildi" bildirimi bekliyor olabilir;
-      // tek toast gösterilir — son görünen banka "kaydedildi" olsun.
-      dismissLegalIdentitySavedNotice();
       toast.success(t('bankAccount.saved'));
-      if (returnToListing) goBackOrHome();
     },
     onError: (error) =>
       toast.error(errorText(error, t('bankAccount.saveFailed')).split('\n')[0]!),
@@ -86,6 +88,7 @@ export function useBankAccount() {
   const deleteMutation = useMutation({
     mutationFn: async () => bankAccountApi.remove(),
     onSuccess: () => {
+      queryClient.setQueryData(qk.user.bankAccount, null);
       queryClient.invalidateQueries({ queryKey: qk.user.bankAccount });
       reset(EMPTY_BANK_ACCOUNT);
       toast.success(t('bankAccount.deleted'));
@@ -98,14 +101,21 @@ export function useBankAccount() {
     const proceed = await requireIdentity();
     if (!mounted.current) return;
     if (!proceed) {
-      toast(t('bankAccount.identityRequired'));
+      // Oturum kapanınca da `false` döner; o durumda "kimlik gerekli" demek yanlış olur.
+      if (useAuthStore.getState().isAuthenticated) toast(t('bankAccount.identityRequired'));
       return;
     }
     if (!sameBankAccountPayload(data, getValues())) {
       toast(t('bankAccount.resubmitAfterIdentity'));
       return;
     }
-    upsertMutation.mutate(data);
+    // Geri dönüş çağrı seviyesinde: kullanıcı PATCH sürerken ekrandan çıktıysa (ya da üstüne başka
+    // ekran açıldıysa) fazladan bir ekran atılmaz.
+    upsertMutation.mutate(data, {
+      onSuccess: () => {
+        if (returnToListing && mounted.current && focusedRef.current) goBackOrHome();
+      },
+    });
   };
 
   const confirmDelete = async () => {
@@ -126,8 +136,8 @@ export function useBankAccount() {
     account: accountQuery.data ?? null,
     /** Yalnız ilk yükleme: yenilemede (refetch) form sökülmez. */
     isLoading: accountQuery.isPending,
-    /** Okuma hatası (önceden alınmış veri varsa form korunur). */
-    loadError: accountQuery.isError && !accountQuery.data ? accountQuery.error : null,
+    /** Okuma hatası; elde veri (hesap yok = `null` dahil) varsa form korunur. */
+    loadError: accountQuery.isError && accountQuery.data === undefined ? accountQuery.error : null,
     refetch: accountQuery.refetch,
     onSubmit: form.handleSubmit(save),
     isSaving: checkingIdentity || upsertMutation.isPending,

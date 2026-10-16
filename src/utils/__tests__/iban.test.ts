@@ -42,11 +42,11 @@ describe('formatIbanDisplay', () => {
 });
 
 describe('maskIban', () => {
-  it('keeps the first 4 and last 4 characters, grouped in blocks of 4', () => {
-    expect(maskIban('TR330006100519786457841326')).toBe('TR33 **** **** **** **** **13 26');
+  it('keeps the first 4 and last 4 characters: "TR33 **** 1326"', () => {
+    expect(maskIban('TR330006100519786457841326')).toBe('TR33 **** 1326');
   });
   it('accepts a spaced / lowercase input', () => {
-    expect(maskIban('tr33 0006 1005 1978 6457 8413 26')).toBe('TR33 **** **** **** **** **13 26');
+    expect(maskIban('tr33 0006 1005 1978 6457 8413 26')).toBe('TR33 **** 1326');
   });
   it('never leaks the middle digits', () => {
     expect(maskIban('TR330006100519786457841326')).not.toMatch(/0006|1005|1978|6457|8413/);

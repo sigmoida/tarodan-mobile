@@ -17,18 +17,22 @@ jest.mock('expo-router', () => ({
   ...jest.requireActual('@/test-utils/router-mock').routerMock,
   useLocalSearchParams: () => mockParams,
 }));
+import { qk } from '@/lib/query';
 import { backMock, canGoBackMock, replaceMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k }),
 }));
 
-jest.mock('@/stores/authStore', () => ({
-  useAuthStore: (sel?: (state: any) => unknown) => {
-    const state: any = { isAuthenticated: true };
-    return sel ? sel(state) : state;
-  },
-}));
+let mockAuthed = true;
+jest.mock('@/stores/authStore', () => {
+  const read = () => ({ isAuthenticated: mockAuthed });
+  const useAuthStore = Object.assign(
+    (sel?: (state: ReturnType<typeof read>) => unknown) => (sel ? sel(read()) : read()),
+    { getState: read },
+  );
+  return { useAuthStore };
+});
 
 jest.mock('@/lib/api', () => ({
   errorText: jest.requireActual('@/lib/api/errorText').errorText,
@@ -54,6 +58,7 @@ const IBAN = 'TR330006100519786457841326';
 
 beforeEach(() => {
   mockParams = {};
+  mockAuthed = true;
   resetRouterMocks();
   get.mockReset();
   upsert.mockClear();
@@ -124,6 +129,24 @@ describe('B-1.8 · banka hesabı formu', () => {
     fireEvent.press(screen.getByTestId('bank-account-submit-button'));
 
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('bankAccount.identityRequired'));
+    toastSpy.mockRestore();
+  });
+
+  it('oturum kapandıysa kimlik iptali "kimlik gerekli" toast\'ı göstermez', async () => {
+    get.mockResolvedValue({ data: null });
+    mockRequireIdentity.mockImplementation(async () => {
+      mockAuthed = false;
+      return false;
+    });
+    const toastSpy = jest.spyOn(jest.requireMock('@/ui'), 'toast').mockImplementation(() => 1);
+    renderWithProviders(<BankAccountScreen />);
+
+    fireEvent.changeText(await screen.findByTestId('bank-account-holder-input'), 'Mehmet Kaya');
+    fireEvent.changeText(screen.getByTestId('bank-account-iban-input'), IBAN);
+    fireEvent.press(screen.getByTestId('bank-account-submit-button'));
+
+    await waitFor(() => expect(mockRequireIdentity).toHaveBeenCalledTimes(1));
+    expect(toastSpy).not.toHaveBeenCalledWith('bankAccount.identityRequired');
     toastSpy.mockRestore();
   });
 
@@ -222,7 +245,7 @@ describe('B-1.8 · banka hesabı formu', () => {
 
       const card = await screen.findByTestId('bank-account-summary');
       expect(card).toBeTruthy();
-      expect(screen.getByText('TR33 **** **** **** **** **13 26')).toBeTruthy();
+      expect(screen.getByText('TR33 **** 1326')).toBeTruthy();
       expect(screen.getByText('bankAccount.savedBadge')).toBeTruthy();
       expect(screen.getAllByText('Ayşe Yılmaz').length).toBeGreaterThan(0);
       // Test çevirisi anahtarı döndürür; satırın çizilmesi yeterli.
@@ -286,6 +309,69 @@ describe('B-1.8 · banka hesabı formu', () => {
 
       fireEvent.press(screen.getByTestId('bank-account-submit-button'));
       await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/(tabs)'));
+    });
+  });
+
+  describe('önbellek ve geri dönüş güvenliği', () => {
+    const saved = { accountHolder: 'Mehmet Kaya', iban: IBAN, updatedAt: '2026-10-12T09:30:00.000Z' };
+
+    async function fillAndPress() {
+      fireEvent.changeText(await screen.findByTestId('bank-account-holder-input'), 'Mehmet Kaya');
+      fireEvent.changeText(screen.getByTestId('bank-account-iban-input'), IBAN);
+      fireEvent.press(screen.getByTestId('bank-account-submit-button'));
+    }
+
+    it('kayıttan sonra PATCH yanıtı önbelleğe hemen yazılır (ilan kapısı eski null\'ı görmez)', async () => {
+      get.mockResolvedValueOnce({ data: null }).mockReturnValue(new Promise(() => undefined));
+      upsert.mockResolvedValueOnce({ data: saved });
+      const view = renderWithProviders(<BankAccountScreen />);
+      await fillAndPress();
+
+      await waitFor(() => expect(view.queryClient.getQueryData(qk.user.bankAccount)).toEqual(saved));
+      expect(await screen.findByTestId('bank-account-summary')).toBeTruthy();
+    });
+
+    it('silince önbellek null olur, özet kart kalkar', async () => {
+      get.mockResolvedValueOnce({ data: saved }).mockReturnValue(new Promise(() => undefined));
+      const remove = bankAccountApi.remove as jest.Mock;
+      remove.mockResolvedValueOnce({});
+      const confirmSpy = jest.spyOn(jest.requireMock('@/ui'), 'confirm').mockResolvedValue(true);
+      const view = renderWithProviders(<BankAccountScreen />);
+      await screen.findByTestId('bank-account-summary');
+
+      fireEvent.press(screen.getByTestId('bank-account-delete-button'));
+      await waitFor(() => expect(view.queryClient.getQueryData(qk.user.bankAccount)).toBeNull());
+      await waitFor(() => expect(screen.queryByTestId('bank-account-summary')).toBeNull());
+      confirmSpy.mockRestore();
+    });
+
+    it('PATCH sürerken ekrandan çıkılırsa from=listing geri dönüşü fazladan ekran atmaz', async () => {
+      mockParams = { from: 'listing' };
+      get.mockResolvedValue({ data: null });
+      canGoBackMock.mockReturnValue(true);
+      let finish!: (v: unknown) => void;
+      upsert.mockImplementationOnce(() => new Promise((r) => (finish = r)));
+      const view = renderWithProviders(<BankAccountScreen />);
+      await fillAndPress();
+      await waitFor(() => expect(upsert).toHaveBeenCalledTimes(1));
+
+      view.unmount();
+      await act(async () => finish({ data: saved }));
+      expect(backMock).not.toHaveBeenCalled();
+      expect(replaceMock).not.toHaveBeenCalled();
+    });
+
+    it('hesap yokken (null) arka plan yenilemesi başarısız olursa form ErrorState ile değişmez', async () => {
+      get.mockResolvedValueOnce({ data: null }).mockRejectedValue(new Error('offline'));
+      const view = renderWithProviders(<BankAccountScreen />);
+      await screen.findByTestId('bank-account-holder-input');
+
+      await act(async () => {
+        await view.queryClient.invalidateQueries({ queryKey: qk.user.bankAccount });
+      });
+      await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+      expect(screen.queryByTestId('error-state')).toBeNull();
+      expect(screen.getByTestId('bank-account-holder-input')).toBeTruthy();
     });
   });
 });
