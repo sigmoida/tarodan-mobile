@@ -41,7 +41,7 @@ jest.mock('@/stores/authStore', () => ({
 }));
 
 import { membershipApi } from '@/lib/api';
-import PaymentMethodsScreen from '../../payment-methods';
+import PaymentMethodsScreen from '../index';
 
 it('kartlar amaçsız istenir; rozetler web ile aynı (amaç rozeti yok)', async () => {
   renderWithProviders(<PaymentMethodsScreen />);

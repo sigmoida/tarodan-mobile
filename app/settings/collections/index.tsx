@@ -6,8 +6,8 @@ import { AuthGatePage } from "@/components/common/AuthGatePage";
 import { PageShell } from "@/components/common/PageShell";
 import { RowListSkeleton } from "@/components/common/RowListSkeleton";
 import UpgradeCta from "@/components/UpgradeCta";
-import { useMyCollections } from "./_collections/_hooks/useMyCollections";
-import { styles } from "./_collections/_lib/styles";
+import { useMyCollections } from "./_hooks/useMyCollections";
+import { styles } from "./_lib/styles";
 
 /**
  * Koleksiyonlarım — PageShell + web gibi 2 sütun kart ızgarası. Sorgu ve "yeni" kapısı
