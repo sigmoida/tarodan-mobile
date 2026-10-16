@@ -10,9 +10,12 @@
 // kurunca testler kullanıcının GÖRDÜĞÜ metni doğrulamaya devam ediyor.
 // (Anahtar kullanımını kanıtlamak isteyen testler `react-i18next`'i kendi
 // dosyasında mock'lamaya devam edebilir — o mock bunu ezer.)
-import i18n from '@/i18n/config';
+import i18n, { ensureLocaleLoaded } from '@/i18n/config';
 
 // Cihaz dili jest ortamında `en-US` çözülüyor; testler Türkçe metne bakıyor.
+// Testler iki dili de kullanıyor (changeLanguage('en')) — lazy yüklemeyi baştan tamamla.
+ensureLocaleLoaded('tr');
+ensureLocaleLoaded('en');
 i18n.changeLanguage('tr');
 
 // Test modu: register birthDate öndolu (1990-01-01), şifre alanları maskesiz.
