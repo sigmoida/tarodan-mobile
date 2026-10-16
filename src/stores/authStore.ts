@@ -9,6 +9,7 @@ import {
 } from "@/lib/payment/paymentCapability";
 import type { LogoutReason } from "./resetUserStores";
 import { usePendingAuthEmailStore } from "./pendingAuthEmailStore";
+import { readUserSnapshot, writeUserSnapshot } from "./userSnapshot";
 import { logger, safeError } from "../services/logger";
 import { withTimeout } from "../utils/withTimeout";
 import { IS_MAESTRO_NO_AUTOLOGIN, getMaestroAutoLoginCredentials } from "@/config/maestro";
@@ -43,6 +44,18 @@ let inFlightLogout: Promise<void> | null = null;
 let inFlightReason: LogoutReason = "user";
 /** Son çıkışta `resetUserStores`'a gerçekten verilen neden (katılan çağrının ek temizliği için). */
 let appliedReason: LogoutReason | null = null;
+
+/**
+ * Store tarafı oturum kuşağı: her giriş ve çıkışta artar. Açılıştaki arka plan
+ * profil doğrulaması başladığı kuşak değiştiyse (bu arada çıkış ya da başka
+ * hesapla giriş) sonucunu YAZMAZ — yoksa kapanmış oturumu ya da önceki hesabın
+ * profilini yeni oturumun üstüne yazardı.
+ */
+let authGeneration = 0;
+
+/** HTTP durum kodu (axios hatası); yanıtsız (ağ) hatada `undefined`. */
+const httpStatusOf = (error: unknown): number | undefined =>
+  (error as { response?: { status?: number } } | null)?.response?.status;
 
 /** Bir çıkış sürüyor mu? `client.ts` `handleAuthFailure` bu sırada hiçbir şey yapmaz. */
 export function isLogoutInProgress(): boolean {
@@ -419,6 +432,67 @@ const calculateProfileCompletion = (user: any): number => {
   return Math.round((completed / fields.length) * 100);
 };
 
+/**
+ * Görüntüyü yalnız store'daki AKTİF oturumun kullanıcısıysa yazar: çıkıştan sonra
+ * dönen geç bir profil yanıtı silinmiş görüntüyü geri yazmasın.
+ */
+function persistSnapshot(user: User): void {
+  const state = useAuthStore.getState();
+  if (state.isAuthenticated && state.user?.id === user.id) void writeUserSnapshot(user);
+}
+
+/**
+ * `GET /users/me` yanıtını store'a uygular (açılış doğrulaması — arka plan ya da
+ * görüntüsüz eski yol). İstek 401 alıp sessiz refresh tetiklemiş olabilir (soğuk
+ * açılışta süresi dolmuş access token tipik): SecureStore'daki token yenilendi ve
+ * açılışta okunan `token` BAYAT — store'a taze olanı yaz, yoksa store'dan okuyan
+ * tüketiciler (bearer'lı görseller, socket) ölü token'la kalır.
+ */
+async function applyProfile(apiUser: unknown, token: string, generation: number): Promise<void> {
+  const freshToken = (await SecureStore.getItemAsync("accessToken")) || token;
+  // Yanıt beklenirken çıkış / başka hesapla giriş oldu: bu profil artık geçersiz.
+  if (generation !== authGeneration || inFlightLogout) return;
+  const { user: previous, serverLimits } = useAuthStore.getState();
+  const mappedUser = mapApiUserToUser(apiUser);
+  useAuthStore.setState({
+    isAuthenticated: true,
+    token: freshToken,
+    user: mappedUser,
+    limits: mergeLimits(mappedUser.membershipTier, serverLimits),
+    isLoading: false,
+  });
+  persistSnapshot(mappedUser);
+  // Ödeme yetki belirteci kimliği bu hesap (açılışta yüklenen oturum).
+  if (previous?.id !== mappedUser.id) void bindPaymentCapabilitiesToAccount(mappedUser.id);
+}
+
+/**
+ * Açılışın arka plan profil doğrulaması (saklı görüntüyle oturum zaten açık).
+ * - Başarı: taze profil + taze token store'a ve görüntüye yazılır; profile bağlı
+ *   yönlendirmeler (`BusinessMembershipGuard`) `user` değişince yeniden çalışır.
+ * - 401: interceptor refresh'i denedi; refresh düştüyse `handleAuthFailure` zorunlu
+ *   çıkışı ZATEN yaptı (kuşak değişti → burada iş yok). Refresh başarılı olup istek
+ *   yine 401 dönerse eski açılış yolunun karşılığı: oturum kapanır (zorunlu çıkış).
+ * - Ağ hatası / 5xx / 403 (ban → interceptor `/banned`'a yönlendirir): saklı
+ *   kullanıcıyla devam; profil sonraki `refreshUserData`'da tazelenir.
+ */
+async function validateSessionInBackground(token: string, generation: number): Promise<void> {
+  try {
+    const response = await userApi.getProfile();
+    await applyProfile(response.data, token, generation);
+  } catch (error) {
+    if (generation !== authGeneration || inFlightLogout) return;
+    const unauthorized = httpStatusOf(error) === 401;
+    logger.captureException(error, {
+      level: "warning",
+      tags: { flow: unauthorized ? "auth.loadToken" : "auth.validateSession" },
+    });
+    if (!unauthorized || !useAuthStore.getState().isAuthenticated) return;
+    // Token sunucuda geçersiz: sunucu çağrıları (push iptali / logout) yine 401 alırdı.
+    await useAuthStore.getState().logout({ reason: "forced", skipServer: true });
+  }
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: true,
@@ -433,6 +507,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   login: async (token: string, user: User, refreshToken?: string) => {
+    // Yeni oturum: açılışın uçuştaki arka plan doğrulaması bu oturuma yazmasın.
+    authGeneration += 1;
     await SecureStore.setItemAsync("accessToken", token);
     if (refreshToken) {
       await SecureStore.setItemAsync("refreshToken", refreshToken);
@@ -441,6 +517,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
     logger.debug("Auth stored", { tier: mappedUser.membershipTier });
     set({ isAuthenticated: true, token, user: mappedUser, limits });
+    // Sonraki soğuk açılış ağı beklemeden bu kullanıcıyla açılsın.
+    persistSnapshot(mappedUser);
     // Doğrulama/giriş akışının bellek içi e-postası işini bitirdi (her giriş yolu: parola, Google, Apple).
     usePendingAuthEmailStore.getState().setEmail(null);
     // Ödeme yetki belirteci kimliği bu hesap; başka hesabın belirteçleri (zorunlu
@@ -483,6 +561,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // uçuştaki refresh kendini geçersiz sayar ve SecureStore'a yazmaz —
       // yoksa bu arada giriş yapan kullanıcının token'ını ezerdi.
       advanceSessionEpoch();
+      // Store kuşağı da: açılışın arka plan profil doğrulaması kapanan oturuma yazmasın.
+      authGeneration += 1;
 
       if (!skipServer) {
         // Bu cihazın push token'ını sunucuda deaktive et (çıkış sonrası bu cihaza
@@ -549,26 +629,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Token yoksa Maestro kimliğine bir kez bak (kapı kapalıysa null).
       const maestroCredentials = token ? null : getMaestroAutoLoginCredentials();
       if (token) {
-        // Web ile aynı endpoint: GET /users/me
+        const generation = authGeneration;
+        const snapshot = await readUserSnapshot();
+        if (snapshot) {
+          // Açılış AĞI BEKLEMEZ: token + saklı kullanıcı görüntüsüyle oturum hemen
+          // açılır, splash kapanır; profil (`GET /users/me`, 401→refresh dahil) arka
+          // planda doğrulanır ve dönünce store'u günceller.
+          const cachedUser = mapApiUserToUser(snapshot);
+          set({
+            isAuthenticated: true,
+            token,
+            user: cachedUser,
+            limits: mergeLimits(cachedUser.membershipTier, get().serverLimits),
+            isLoading: false,
+          });
+          // Ödeme yetki belirteci kimliği bu hesap (açılışta yüklenen oturum).
+          void bindPaymentCapabilitiesToAccount(cachedUser.id);
+          void validateSessionInBackground(token, generation);
+          return;
+        }
+        // Görüntü yok (bu sürüme ilk geçiş ya da yazım hatası): eski yol — profil
+        // beklenir; hata aşağıdaki catch'e düşer (oturum kapanır). Sonraki açılış
+        // görüntüyle ağsız açılır. Web ile aynı endpoint: GET /users/me
         const response = await userApi.getProfile();
-        // Bu istek 401 alıp sessiz refresh tetiklemiş olabilir (soğuk açılışta
-        // süresi dolmuş access token tipik). O durumda SecureStore'daki token
-        // yenilendi ve yukarıda okunan `token` artık BAYAT — store'a taze olanı
-        // yaz, yoksa store'dan okuyan tüketiciler (bearer'lı görseller, socket)
-        // ölü token'la kalır.
-        const freshToken =
-          (await SecureStore.getItemAsync("accessToken")) || token;
-        const mappedUser = mapApiUserToUser(response.data);
-        const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
-        set({
-          isAuthenticated: true,
-          token: freshToken,
-          user: mappedUser,
-          limits,
-          isLoading: false,
-        });
-        // Ödeme yetki belirteci kimliği bu hesap (açılışta yüklenen oturum).
-        void bindPaymentCapabilitiesToAccount(mappedUser.id);
+        await applyProfile(response.data, token, generation);
+        // Yanıt beklenirken çıkış olduysa `applyProfile` yazmaz; yükleme yine biter.
+        if (get().isLoading) set({ isLoading: false });
       } else if (maestroCredentials) {
         // Maestro test bypass: auto-login with seeded credentials so that
         // e2e flows skip the login UI entirely. Yalnız EXPO_PUBLIC_MAESTRO=1
@@ -630,6 +716,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const updatedUser = { ...currentUser, ...userData };
       const limits = mergeLimits(updatedUser.membershipTier, get().serverLimits);
       set({ user: updatedUser, limits });
+      persistSnapshot(updatedUser);
     }
   },
 
@@ -640,6 +727,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const mappedUser = mapApiUserToUser(response.data);
       const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
       set({ user: mappedUser, limits });
+      persistSnapshot(mappedUser);
       return mappedUser;
     } catch (error) {
       logger.error("Failed to refresh user data", { err: safeError(error) });

@@ -4,6 +4,7 @@ import { useCartStore } from './cartStore';
 import { useMessagesStore } from './messagesStore';
 import { useDisputeDraftStore } from './disputeDraftStore';
 import { usePendingAuthEmailStore } from './pendingAuthEmailStore';
+import { clearUserSnapshot } from './userSnapshot';
 
 /**
  * Çıkışın kaynağı: `user` = kullanıcının kendi çıkışı (profil, ban/onay
@@ -41,6 +42,10 @@ export function resetUserStores(reason: LogoutReason = 'user'): void {
 
   // Bildirim + mesaj rozeti dahil tüm react-query önbelleği (örn. 'notifications-unread').
   queryClient.clear();
+
+  // Açılışın saklı kullanıcı görüntüsü (PII: e-posta, vergi no) — token'lar zaten silindi;
+  // ortak cihazda önceki hesabın bilgisi kalmasın. En iyi çaba, fırlatmaz.
+  void clearUserSnapshot();
 
   // Ödeme yetki belirteçleri (`payment-capability.*`) yalnız kullanıcının KENDİ
   // çıkışında silinir: ortak cihazda çıkan kullanıcının belirteci sonraki

@@ -88,7 +88,8 @@ function CartMergeBridge() {
 }
 
 export default function RootLayout() {
-  const { loadToken, isAuthenticated } = useAuthStore();
+  const loadToken = useAuthStore((s) => s.loadToken);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   // appReady: hazırlık bitti. splashDone: animasyonlu splash çıkışını tamamladı.
   // Native splash'i AnimatedSplash kapatır (onLayout) → beyaz parlama olmaz.
   const [appReady, setAppReady] = useState(false);
@@ -116,19 +117,12 @@ export default function RootLayout() {
   }, [fontError]);
 
   useEffect(() => {
+    // Açılış ağı BEKLEMEZ: `loadToken` yalnız SecureStore'u okur (token + saklı kullanıcı
+    // görüntüsü), oturumu hemen açar; profil doğrulaması arka planda sürer. Yalnız görüntüsü
+    // olmayan eski kurulumun İLK açılışı profili bekler (bkz. authStore.loadToken).
     async function prepare() {
       try {
         await loadToken();
-        // Only register for push notifications in development builds, not Expo Go
-        if (isAuthenticated && !isExpoGo) {
-          try {
-            await registerForPushNotifications();
-          } catch (e) {
-            logger.debug(
-              "Push notification registration skipped (normal in Expo Go)",
-            );
-          }
-        }
       } catch (e) {
         logger.warn('App bootstrap failed', { err: safeError(e) });
       } finally {
@@ -136,12 +130,12 @@ export default function RootLayout() {
       }
     }
     prepare();
-  }, []);
+    // `loadToken` store eylemi — referansı sabit, efekt yalnız mount'ta çalışır.
+  }, [loadToken]);
 
-  // Token kaydını isAuthenticated değişimine de bağla: kullanıcı uygulamayı
-  // çıkışlı açıp SONRA login olursa (isAuthenticated mount'tan sonra true olur),
-  // yukarıdaki []-bağımlı prepare() tekrar çalışmaz ve token hiç kaydolmazdı.
-  // registerToken upsert olduğu için açılışta + login'de çift çağrı zararsız.
+  // Push token kaydının TEK yeri: açılışta oturum açıksa da, çıkışlı açılıp sonra girişte de
+  // `isAuthenticated` true'ya döner. (Eski `prepare()` içindeki kayıt ölüydü: mount anındaki
+  // `isAuthenticated` kapanışı hep false'tu.) registerToken upsert — çift çağrı zararsız.
   useEffect(() => {
     if (isAuthenticated && !isExpoGo) {
       registerForPushNotifications().catch(() => {});
