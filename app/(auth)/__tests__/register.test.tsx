@@ -29,6 +29,7 @@ jest.mock('@/services/appleSignin', () => ({
 }));
 import RegisterScreen from '../register';
 import { usePendingAuthEmailStore } from '@/stores/pendingAuthEmailStore';
+import { useResendCooldownStore } from '@/stores/resendCooldownStore';
 
 const mockRegister = authApi.register as jest.Mock;
 
@@ -48,6 +49,8 @@ describe('J43 · aynı email ile kayıt reddi (register)', () => {
   beforeEach(() => {
     mockRegister.mockReset();
     resetRouterMocks();
+    useResendCooldownStore.getState().reset();
+    usePendingAuthEmailStore.setState({ email: null });
   });
 
   it('J43.2 backend "zaten kayıtlı" mesajını gösterir', async () => {
@@ -76,11 +79,8 @@ describe('J43 · aynı email ile kayıt reddi (register)', () => {
     expect(screen.queryByTestId('register-submit-button')).toBeNull();
 
     fireEvent.press(screen.getByTestId('register-go-login-button'));
-    expect(routerMock.router.dismissTo).toHaveBeenCalledWith({
-      pathname: '/(auth)/login',
-      params: { email: 'dupe@demo.com' },
-    });
-    // Doğrulama ekranı için e-posta bellekte taşınır.
+    expect(routerMock.router.dismissTo).toHaveBeenCalledWith('/(auth)/login');
+    // E-posta URL'de değil bellekte taşınır (login + doğrulama ekranı oradan okur).
     expect(usePendingAuthEmailStore.getState().email).toBe('dupe@demo.com');
     fireEvent.press(screen.getByTestId('register-verify-later-link'));
     expect(pushMock).toHaveBeenCalledWith('/(auth)/verify-email');
@@ -146,6 +146,8 @@ describe('bireysel kayıt — düzen ve alanlar', () => {
   beforeEach(() => {
     mockRegister.mockReset();
     resetRouterMocks();
+    useResendCooldownStore.getState().reset();
+    usePendingAuthEmailStore.setState({ email: null });
   });
 
   it('başlık üst barda; içerikte büyük başlık/logo yok; sekmeler en üstte (Bireysel seçili)', () => {

@@ -17,6 +17,7 @@ import {
   type ProductFilters,
 } from '@/utils/productFilters';
 import { buildActiveChips } from '@/utils/activeFilterChips';
+import { findManufacturerId } from '@/utils/manufacturerLookup';
 
 const PAGE_SIZE = 24;
 /** Üst arama kutusu yazmayı bırakınca `filters.search`'e yazılır (arama ekranıyla aynı süre). */
@@ -91,6 +92,26 @@ export function useListings() {
   }, [filters.manufacturerId, filters.manufacturer, baseOptions.manufacturers]);
   const options = useProductFilterOptions(manufacturerSlug);
 
+  // URL'de yalnız üretici ADI varsa (derin bağlantı, push, hero, reklam: `?manufacturer=Hot+Wheels`)
+  // yüklenen üretici listesinden kimliği çöz — API ad süzgeci yazım/önbellek farkına duyarlı,
+  // kimlik değil. Bulunamazsa / belirsizse ad ile devam. Liste yüklenirken ilk istek BEKLETİLİR
+  // (aşağıda `enabled`) ki önce ad, sonra kimlikle iki istek atılmasın.
+  const needsManufacturerId = !!filters.manufacturer && !filters.manufacturerId;
+  const resolvedManufacturerId = needsManufacturerId
+    ? findManufacturerId(filters.manufacturer, baseOptions.manufacturers)
+    : null;
+  useEffect(() => {
+    if (!resolvedManufacturerId) return;
+    setFilters((prev) =>
+      prev.manufacturer && !prev.manufacturerId
+        ? { ...prev, manufacturerId: resolvedManufacturerId }
+        : prev,
+    );
+  }, [resolvedManufacturerId]);
+  // Kimlik çözüldü ama effect henüz state'e yazmadıysa da bekle (ad-only istek atılmasın).
+  const waitingForManufacturers =
+    needsManufacturerId && (!!baseOptions.isLoading || !!resolvedManufacturerId);
+
   const applySearch = () =>
     setFilters((prev) => {
       const q = searchQuery.trim();
@@ -114,6 +135,7 @@ export function useListings() {
   } = useInfiniteQuery({
     queryKey: qk.products.listings(filters),
     placeholderData: keepPreviousData,
+    enabled: !waitingForManufacturers,
     initialPageParam: 1,
     queryFn: async ({ pageParam }) => {
       const listParams = buildListParams(filters, pageParam as number, PAGE_SIZE);
@@ -163,7 +185,8 @@ export function useListings() {
     activeChips,
     clearFilters,
     getSortLabel,
-    isLoading,
+    // Üretici listesi beklenirken de yükleniyor say (sorgu bekletilir; boş sonuç ekranı çıkmasın).
+    isLoading: isLoading || waitingForManufacturers,
     isFetching,
     isFetchingNextPage,
     isRefetching,

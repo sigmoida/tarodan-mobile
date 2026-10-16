@@ -1,16 +1,15 @@
 /**
- * Kayıt / e-posta doğrulama sonrası girişe `?email=` ile taşınan adres: e-posta alanı
- * önceden dolu gelir; param yoksa boş kalır.
+ * Kayıt / e-posta doğrulama sonrası girişe bellek içi store ile taşınan adres (URL'de e-posta yok):
+ * e-posta alanı önceden dolu gelir; store boşsa boş kalır.
  */
 import React from 'react';
-import { screen } from '@testing-library/react-native';
+import { act, screen } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
-let mockParams: Record<string, unknown> = {};
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: () => false },
-  Link: ({ children }: any) => children,
-  useLocalSearchParams: () => mockParams,
+  Link: ({ children }: { children: React.ReactNode }) => children,
+  useLocalSearchParams: () => ({}),
 }));
 
 jest.mock('@/lib/api', () => ({
@@ -30,25 +29,34 @@ jest.mock('@/services/appleSignin', () => ({
   isAppleAvailable: () => Promise.resolve(false),
 }));
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: (sel?: (state: any) => unknown) => {
-    const state: any = { login: jest.fn() };
+  useAuthStore: (sel?: (state: { login: () => void }) => unknown) => {
+    const state = { login: jest.fn() };
     return sel ? sel(state) : state;
   },
 }));
 
+import { usePendingAuthEmailStore } from '@/stores/pendingAuthEmailStore';
 import LoginScreen from '../index';
 
 beforeEach(() => {
-  mockParams = {};
+  usePendingAuthEmailStore.setState({ email: null });
 });
 
-it('`?email=` varsa e-posta alanı önceden dolu gelir', () => {
-  mockParams = { email: ' kayit@demo.com ' };
+it('store\'da e-posta varsa alan önceden dolu gelir', () => {
+  usePendingAuthEmailStore.setState({ email: 'kayit@demo.com' });
   renderWithProviders(<LoginScreen />);
   expect(screen.getByTestId('login-email-input').props.value).toBe('kayit@demo.com');
 });
 
-it('param yoksa e-posta alanı boştur', () => {
+it('store boşsa alan boştur', () => {
   renderWithProviders(<LoginScreen />);
   expect(screen.getByTestId('login-email-input').props.value).toBe('');
+});
+
+it('login zaten açıkken adres sonradan gelirse (dismissTo) alan dolar', async () => {
+  renderWithProviders(<LoginScreen />);
+  await act(async () => {
+    usePendingAuthEmailStore.getState().setEmail('gec@demo.com');
+  });
+  expect(screen.getByTestId('login-email-input').props.value).toBe('gec@demo.com');
 });

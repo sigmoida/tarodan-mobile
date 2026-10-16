@@ -22,9 +22,11 @@ export default function VerifyEmailScreen() {
   }>();
   const { isAuthenticated, user } = useAuthStore();
   const pendingEmail = usePendingAuthEmailStore((st) => st.email);
-  // API doğrulama yanıtında e-posta dönmez: oturum → `?email=` → kayıt anında saklanan adres.
-  const knownEmail =
-    user?.email || (typeof emailParam === 'string' && emailParam.trim()) || pendingEmail || null;
+  // API doğrulama yanıtında e-posta dönmez: güvenilir kaynaklar oturum ve kayıt anında saklanan adres.
+  // `?email=` bağlantı paramı DOĞRULANMAMIŞ girdidir: metinde gösterilmez, store'un önüne geçmez,
+  // yalnız misafir e-posta alanını ön doldurur.
+  const knownEmail = user?.email || pendingEmail || null;
+  const prefillEmail = typeof emailParam === 'string' ? emailParam.trim() || null : null;
   const [manualToken, setManualToken] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -32,6 +34,9 @@ export default function VerifyEmailScreen() {
   const verifyMutation = useMutation({
     mutationFn: (token: string) => authApi.verifyEmail(token),
     onSuccess: () => {
+      // Oturumlu kullanıcı girişe gitmeyecek: bellek içi e-posta işini bitirdi. Misafirde giriş
+      // ekranı ön dolduruyor; orada giriş başarısında / çıkışta temizlenir (authStore).
+      if (isAuthenticated) usePendingAuthEmailStore.getState().setEmail(null);
       setStatus('success');
       setErrorMsg(null);
     },
@@ -57,15 +62,16 @@ export default function VerifyEmailScreen() {
   const goHome = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
   // Oturumlu: e-posta sabit, yalnız düğme. Misafir: e-posta alanı + düğme.
   const resendBlock = (variant: 'primary' | 'outline') => (
-    <ResendVerification email={knownEmail} askEmail={!isAuthenticated} variant={variant} />
+    <ResendVerification
+      email={knownEmail}
+      prefill={prefillEmail}
+      askEmail={!isAuthenticated}
+      variant={variant}
+    />
   );
 
-  // E-posta girişe taşınır (alan önceden dolu); doğrulama bittiyse bellekteki kopya silinir.
-  const goToLogin = (done = false) => {
-    const email = knownEmail;
-    if (done) usePendingAuthEmailStore.getState().setEmail(null);
-    router.replace(email ? { pathname: '/(auth)/login', params: { email } } : '/(auth)/login');
-  };
+  // E-posta girişe URL'siz taşınır: login `pendingAuthEmailStore`'dan önceden doldurur.
+  const goToLogin = () => router.replace('/(auth)/login');
 
   if (status === 'verifying') {
     return (
@@ -83,7 +89,7 @@ export default function VerifyEmailScreen() {
           size="lg"
           fullWidth
           title={isAuthenticated ? t('common.continueAction') : t('common.login')}
-          onPress={() => (isAuthenticated ? router.replace('/(tabs)') : goToLogin(true))}
+          onPress={() => (isAuthenticated ? router.replace('/(tabs)') : goToLogin())}
         />
       </AuthShell>
     );

@@ -317,6 +317,7 @@
     "passwordComplexity": "Şifre en az bir büyük harf, bir küçük harf ve bir rakam içermelidir",
     "mustAcceptTerms": "Kullanım şartlarını kabul etmelisiniz",
     "verificationEmailResent": "Doğrulama e-postası tekrar gönderildi!",
+    "verifyResentNeutral": "Bu e-posta adresiyle bir hesap varsa doğrulama bağlantısı gönderildi. Spam kutunuzu da kontrol edin.",
     "couldNotResendEmail": "E-posta gönderilemedi",
     "emailPasswordRequired": "E-posta ve şifre gerekli",
     "verificationEmailSent": "Doğrulama e-postası gönderildi!",

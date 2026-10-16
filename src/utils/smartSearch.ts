@@ -9,7 +9,6 @@
  *   "1:18"    → { category: 'scale', value: '1:18' }    → /listings?scale=1:18
  *   "Hot Wheels" → { category: 'manufacturer', value: 'Hot Wheels' }
  */
-import { findManufacturerId, type ManufacturerRef } from './manufacturerLookup';
 
 export type SmartSearchCategory = 'brand' | 'manufacturer' | 'scale' | 'generic';
 
@@ -18,8 +17,6 @@ export interface SmartSearchRoute {
   value: string;
   /** `/listings?...` query string (lead karakteri olmadan). */
   query: string;
-  /** Yalnız `manufacturer` kategorisinde: ad listedeki üreticiyle eşleştiyse kimliği (sorguda da var). */
-  manufacturerId?: string;
 }
 
 // Bilinen markalar (araba üreticileri, web ile senkron)
@@ -55,11 +52,7 @@ const SCALE_REGEX = /^1[:/-](\d{1,3})$/i;
  * Bir arama metnini analiz eder ve mümkünse hedef rotayı döner.
  * Hiçbir desen eşleşmezse `generic` kategori + `search` query'si döner.
  */
-export function resolveSmartSearch(
-  raw: string,
-  /** Önbellekteki üretici listesi (`qk.catalog.manufacturers`); verilirse ad kimliğe çevrilip `manufacturerId` da gönderilir. */
-  manufacturers?: readonly ManufacturerRef[] | null,
-): SmartSearchRoute {
+export function resolveSmartSearch(raw: string): SmartSearchRoute {
   const input = (raw || '').trim();
   if (!input) return { category: 'generic', value: '', query: '' };
 
@@ -87,16 +80,10 @@ export function resolveSmartSearch(
       .split(' ')
       .map(w => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ');
-    // Ad listede bulunamazsa yalnız ad ile devam (API süzgeci adı da kabul eder).
-    const manufacturerId = findManufacturerId(canonical, manufacturers);
-    const nameQuery = `manufacturer=${encodeURIComponent(canonical)}`;
     return {
       category: 'manufacturer',
       value: canonical,
-      query: manufacturerId
-        ? `${nameQuery}&manufacturerId=${encodeURIComponent(manufacturerId)}`
-        : nameQuery,
-      ...(manufacturerId ? { manufacturerId } : {}),
+      query: `manufacturer=${encodeURIComponent(canonical)}`,
     };
   }
 
@@ -126,10 +113,7 @@ export function resolveSmartSearch(
  * Arama sonucuna göre `/listings` URL'si üretir.
  * Kullanım: router.push(buildSmartSearchUrl(q))
  */
-export function buildSmartSearchUrl(
-  raw: string,
-  manufacturers?: readonly ManufacturerRef[] | null,
-): string {
-  const result = resolveSmartSearch(raw, manufacturers);
+export function buildSmartSearchUrl(raw: string): string {
+  const result = resolveSmartSearch(raw);
   return result.query ? `/listings?${result.query}` : '/listings';
 }

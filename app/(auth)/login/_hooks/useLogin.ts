@@ -2,7 +2,7 @@ import { logger } from '@/services/logger';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { toast } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { CAN_BUY_DIGITAL, limitAlert } from '@/lib/purchases';
@@ -10,6 +10,7 @@ import { authApi } from '@/lib/api';
 import { useAppMutation } from '@/lib/query';
 import { useSocialSignIn } from '@/hooks/useSocialSignIn';
 import { useAuthStore } from '@/stores/authStore';
+import { usePendingAuthEmailStore } from '@/stores/pendingAuthEmailStore';
 import { buildLoginSchema, TWO_FACTOR_CODE_PATTERN, type LoginForm } from '../_lib/schema';
 import { IS_MAESTRO } from '@/config/maestro';
 
@@ -39,15 +40,15 @@ export function useLogin() {
 
   // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
   const schema = useMemo(() => buildLoginSchema(t), [t]);
-  // `?email=` — kayıt / e-posta doğrulama sonrası girişe taşınan adres (alan önceden dolu gelir).
-  const { email: emailParam } = useLocalSearchParams<{ email?: string }>();
-  const prefillEmail = typeof emailParam === 'string' ? emailParam.trim() : '';
+  // Kayıt / e-posta doğrulama sonrası girişe taşınan adres: bellek içi store (URL'de e-posta/PII yok).
+  // Giriş başarısında ve çıkışta store temizlenir (authStore).
+  const prefillEmail = usePendingAuthEmailStore((st) => st.email) ?? '';
   const form = useZodForm(schema, {
     defaultValues: { email: prefillEmail, password: '', twoFactorCode: '' },
   });
   const { handleSubmit, getValues, setError, setValue, trigger, clearErrors } = form;
 
-  // Ekran zaten açıkken (yığındaki login'e `dismissTo`) param sonradan gelebilir; kullanıcının
+  // Ekran zaten açıkken (yığındaki login'e `dismissTo`) adres sonradan gelebilir; kullanıcının
   // yazdığı e-postanın üzerine yazılmaz.
   useEffect(() => {
     if (prefillEmail && !getValues('email')) setValue('email', prefillEmail);
