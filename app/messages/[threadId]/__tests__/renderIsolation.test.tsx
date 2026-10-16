@@ -10,7 +10,7 @@ import { renderWithProviders } from '@/test-utils';
 import { resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => ({
-  ...require('@/test-utils/router-mock').routerMock,
+  ...jest.requireActual('@/test-utils/router-mock').routerMock,
   useFocusEffect: jest.fn(),
   useLocalSearchParams: () => ({ threadId: 't1' }),
 }));
@@ -26,20 +26,21 @@ jest.mock('@/lib/api', () => ({
 }));
 
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: (sel?: (state: any) => unknown) => {
-    const state: any = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 }, token: 't' };
+  useAuthStore: (sel?: (state: Record<string, unknown>) => unknown) => {
+    const state = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 }, token: 't' };
     return sel ? sel(state) : state;
   },
 }));
 
 const mockStore = {
-  getOtherParticipant: (t: any) => t.participant2,
+  getOtherParticipant: (t: { participant2: unknown }) => t.participant2,
   setCurrentThreadId: jest.fn(),
 };
-const useMessagesStoreMock: any = (sel?: any) => (sel ? sel(mockStore) : mockStore);
-useMessagesStoreMock.getState = () => mockStore;
 jest.mock('@/stores/messagesStore', () => ({
-  useMessagesStore: useMessagesStoreMock,
+  useMessagesStore: Object.assign(
+    (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore),
+    { getState: () => mockStore },
+  ),
 }));
 
 const mockParse = jest.fn();
