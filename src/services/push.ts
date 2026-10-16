@@ -5,7 +5,7 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { theme } from '@/ui';
 import { api } from '@/lib/api';
-import { queryClient, qk } from '@/lib/query';
+import { queryClient } from '@/lib/query';
 import { invalidateForNewNotification } from '@/hooks/useBadgePoll';
 import i18n from '@/i18n/config';
 import { notificationRoute } from '../utils/notificationRoute';
