@@ -27,6 +27,8 @@ import {
   salePayload,
   saleStartsLater,
 } from '../_lib/sale';
+import { priceFieldError, priceLimitHint, salePriceFieldError, type PriceBaseline } from '../_lib/priceRules';
+import { usePriceLimits } from '@/hooks/usePriceLimits';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import { useLatestRef } from '@/hooks/useLatestRef';
 
@@ -263,6 +265,16 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   // Komisyon önizlemesi — indirim BUGÜN geçerliyse indirimli fiyattan sorulur
   // (create + edit; web düzenleme ekranı hâlâ normal fiyatı kullanıyor).
   const saleFields = { price, salePrice, saleStartDate, saleEndDate };
+
+  // Admin fiyat sınırları (yüklenemezse / boşsa kural yok — form asla bloklanmaz). Düzenlemede
+  // yüklenen ilk fiyatlar taban altındaysa DEĞİŞTİRİLMEDİKÇE hata verilmez (eski kayıt muafiyeti).
+  const { minPrice, maxPrice } = usePriceLimits();
+  const priceLimits = { minPrice, maxPrice };
+  const [priceBaseline, setPriceBaseline] = useState<PriceBaseline | null>(null);
+  const priceError = priceFieldError(t, price, priceLimits, priceBaseline?.price) ?? undefined;
+  const salePriceError =
+    salePriceFieldError(t, saleFields, priceLimits, priceBaseline?.salePrice) ?? undefined;
+  const priceHint = priceLimitHint(t, priceLimits);
   const { commissionPreview, commissionLoading, commissionError, commissionEnabled } =
     useCommissionPreview(commissionPreviewAmount(saleFields), categoryId, shippingPackageTier);
   const saleStartsOn = saleStartsLater(saleFields);
@@ -326,6 +338,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     setReservedQty(mapped.reservedQty);
     replaceImages(imagesFromMapped(mapped.images));
     setSalePrice(mapped.sale.salePrice);
+    setPriceBaseline({ price: mapped.values.price, salePrice: mapped.sale.salePrice });
     setSaleStartDate(mapped.sale.saleStartDate);
     setSaleEndDate(mapped.sale.saleEndDate);
     // YALNIZ üretici-kapsamlı nitelikler: `scale`/`material` gibi
@@ -648,6 +661,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       isEdit,
       requiredGlobalGroups: requiredGlobalGroups(globalAttrGroups),
       attributeSelections: { ...customAttributes, ...globalAttributes },
+      priceLimits,
+      sale: { salePrice, saleStartDate, saleEndDate },
+      priceBaseline,
     });
     if (error) {
       toast.error(error);
@@ -917,6 +933,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     title, setTitle,
     description, setDescription,
     price, setPrice,
+    priceError, priceHint,
     quantity, setQuantity,
     reservedQty,
     categoryId, setCategoryId,
@@ -938,7 +955,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     isPreorder, setIsPreorder,
     shippingPackageTier, setShippingPackageTier,
     packageTiers, packageTiersLoading, packageTiersError,
-    salePrice, setSalePrice,
+    salePrice, setSalePrice, salePriceError,
     saleStartDate, setSaleStartDate,
     saleEndDate, setSaleEndDate,
     reactivateQuantity, setReactivateQuantity,

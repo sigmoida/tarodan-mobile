@@ -17,6 +17,12 @@ describe('offerPresets (hızlı teklif)', () => {
     for (const p of offerPresets(1234.5)) expect(p.amount).toBeGreaterThanOrEqual(1234.5 * MIN_OFFER_RATIO);
   });
 
+  it('admin fiyat tabanının altındaki çipler düşer', () => {
+    // 390: 371 / 351 / 332 → taban 340 ile yalnız 371 ve 351 kalır.
+    expect(offerPresets(390, 340).map((p) => p.amount)).toEqual([371, 351]);
+    expect(offerPresets(390, null).map((p) => p.amount)).toEqual([371, 351, 332]);
+  });
+
   it('geçersiz fiyat → boş', () => {
     expect(offerPresets(0)).toEqual([]);
     expect(offerPresets(NaN)).toEqual([]);

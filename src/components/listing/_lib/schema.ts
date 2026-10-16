@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
+import { NO_PRICE_LIMITS, type PriceLimits } from '@/lib/shared/priceLimits';
+import { priceFieldError } from './priceRules';
 
 /**
  * #81: ListingForm form alanlari icin zod schema (useZodForm). watch/setValue
@@ -24,7 +26,16 @@ export const MIN_IMAGES = 3;
 /** `MAX_PRODUCT_COLORS` (api `common/helpers/attribute-groups.ts`). */
 export const MAX_COLORS = 3;
 
-export const buildListingFormSchema = (t: TFunction, opts: { isEdit?: boolean } = {}) => {
+export interface ListingSchemaOptions {
+  isEdit?: boolean;
+  /** Admin fiyat sınırları (`min_product_price` / `max_product_price`); yoksa kural yok. */
+  priceLimits?: PriceLimits;
+  /** Düzenlemede yüklenen ilk fiyat — taban altı eski fiyat DEĞİŞMEDİKÇE hata vermez. */
+  initialPrice?: string | null;
+}
+
+export const buildListingFormSchema = (t: TFunction, opts: ListingSchemaOptions = {}) => {
+  const limits = opts.priceLimits ?? NO_PRICE_LIMITS;
   const descriptionMsg = t('listing.descriptionLengthMsg', { min: DESCRIPTION_MIN, max: DESCRIPTION_MAX });
   const inRange = (v: string) => v.length >= DESCRIPTION_MIN && v.length <= DESCRIPTION_MAX;
   return z.object({
@@ -45,7 +56,11 @@ export const buildListingFormSchema = (t: TFunction, opts: { isEdit?: boolean } 
     price: z
       .string()
       .min(1, t('common.invalidPrice'))
-      .refine((v) => !isNaN(Number(v)) && Number(v) >= 1, t('common.invalidPrice')),
+      .refine((v) => !isNaN(Number(v)) && Number(v) >= 1, t('common.invalidPrice'))
+      .superRefine((v, ctx) => {
+        const message = priceFieldError(t, v, limits, opts.initialPrice);
+        if (message) ctx.addIssue({ code: 'custom', message });
+      }),
     quantity: z.string(),
     bundleSize: z.string(),
     categoryId: z.string(),

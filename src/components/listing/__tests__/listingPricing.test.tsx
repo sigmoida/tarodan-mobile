@@ -53,6 +53,32 @@ function pricingF(over: Record<string, unknown> = {}) {
   });
 }
 
+describe('Fiyat sınırı (admin min_product_price)', () => {
+  it('fiyat alanının altında "En az 250,00 TL" yardımcı satırı', () => {
+    render(<ListingPricingSection f={pricingF({ priceHint: 'En az 250,00 TL' })} />);
+    expect(screen.getByText('En az 250,00 TL')).toBeTruthy();
+  });
+
+  it('fiyat ve indirimli fiyat satır içi hatası', () => {
+    render(
+      <ListingPricingSection
+        f={pricingF({
+          priceError: 'Ürün fiyatı minimum 250,00 TL olmalıdır.',
+          priceHint: 'En az 250,00 TL',
+          salePriceError: 'İndirimli fiyat en az 250,00 TL olmalıdır.',
+        })}
+      />,
+    );
+    expect(screen.getByText('Ürün fiyatı minimum 250,00 TL olmalıdır.')).toBeTruthy();
+    expect(screen.getByText('İndirimli fiyat en az 250,00 TL olmalıdır.')).toBeTruthy();
+  });
+
+  it('sınır yoksa ipucu / hata çizilmez', () => {
+    render(<ListingPricingSection f={pricingF()} />);
+    expect(screen.queryByText(/En az/)).toBeNull();
+  });
+});
+
 describe('Fiyatlandırma özeti (web PricingBreakdown)', () => {
   it('iki satır: Kargo ücreti ve Hak edişiniz', () => {
     render(<ListingPricingSection f={pricingF({ commissionPreview: PREVIEW })} />);

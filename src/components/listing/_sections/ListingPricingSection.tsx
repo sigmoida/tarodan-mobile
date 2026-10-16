@@ -82,6 +82,8 @@ export function ListingPricingSection({ f }: SectionProps) {
         onChangeText={f.setPrice}
         placeholder="0.00"
         keyboardType="decimal-pad"
+        error={f.priceError}
+        helperText={f.priceHint}
         style={fieldStyles.flush}
       />
 
@@ -117,6 +119,7 @@ export function ListingPricingSection({ f }: SectionProps) {
           onChangeText={f.setSalePrice}
           placeholder={t('listing.salePricePlaceholder')}
           keyboardType="decimal-pad"
+          error={f.salePriceError}
           style={fieldStyles.flush}
         />
         {f.discountPercent > 0 ? (
