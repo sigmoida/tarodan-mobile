@@ -271,9 +271,19 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const { minPrice, maxPrice } = usePriceLimits();
   const priceLimits = { minPrice, maxPrice };
   const [priceBaseline, setPriceBaseline] = useState<PriceBaseline | null>(null);
-  const priceError = priceFieldError(t, price, priceLimits, priceBaseline?.price) ?? undefined;
+  // Limit hatası yazarken kırmızı yanmaz: alan terk edilince (blur) ya da gönderim denenince görünür
+  // (ipucu satırı HEP görünür). Gönderim kapısı (`validate`) bundan bağımsız, her zaman çalışır.
+  const [priceBlurred, setPriceBlurred] = useState(false);
+  const [salePriceBlurred, setSalePriceBlurred] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const priceError =
+    priceBlurred || submitAttempted
+      ? priceFieldError(t, price, priceLimits, priceBaseline) ?? undefined
+      : undefined;
   const salePriceError =
-    salePriceFieldError(t, saleFields, priceLimits, priceBaseline?.salePrice) ?? undefined;
+    salePriceBlurred || submitAttempted
+      ? salePriceFieldError(t, saleFields, priceLimits, priceBaseline) ?? undefined
+      : undefined;
   const priceHint = priceLimitHint(t, priceLimits);
   const { commissionPreview, commissionLoading, commissionError, commissionEnabled } =
     useCommissionPreview(commissionPreviewAmount(saleFields), categoryId, shippingPackageTier);
@@ -338,7 +348,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     setReservedQty(mapped.reservedQty);
     replaceImages(imagesFromMapped(mapped.images));
     setSalePrice(mapped.sale.salePrice);
-    setPriceBaseline({ price: mapped.values.price, salePrice: mapped.sale.salePrice });
+    setPriceBaseline(mapped.storedPrices);
     setSaleStartDate(mapped.sale.saleStartDate);
     setSaleEndDate(mapped.sale.saleEndDate);
     // YALNIZ üretici-kapsamlı nitelikler: `scale`/`material` gibi
@@ -642,6 +652,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const buildSalePayload = (): Record<string, unknown> => ({ ...salePayload(saleFields) });
 
   const validate = (): boolean => {
+    setSubmitAttempted(true);
     // Görsel yüklemesi/çevirmesi sürerken ya da yüklenemeyen görsel varken kaydedilen ilan,
     // ekrandakinden farklı (eksik ya da çevrilmemiş) görselle giderdi — payload yalnız sunucu
     // anahtarlı kalemleri taşır (web `imageSubmitBlocker`). Güncel liste ref'ten okunur.
@@ -933,7 +944,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     title, setTitle,
     description, setDescription,
     price, setPrice,
-    priceError, priceHint,
+    priceError, priceHint, onPriceBlur: () => setPriceBlurred(true),
     quantity, setQuantity,
     reservedQty,
     categoryId, setCategoryId,
@@ -955,7 +966,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     isPreorder, setIsPreorder,
     shippingPackageTier, setShippingPackageTier,
     packageTiers, packageTiersLoading, packageTiersError,
-    salePrice, setSalePrice, salePriceError,
+    salePrice, setSalePrice, salePriceError, onSalePriceBlur: () => setSalePriceBlurred(true),
     saleStartDate, setSaleStartDate,
     saleEndDate, setSaleEndDate,
     reactivateQuantity, setReactivateQuantity,

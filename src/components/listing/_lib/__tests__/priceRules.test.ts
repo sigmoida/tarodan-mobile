@@ -39,10 +39,24 @@ describe('priceFieldError', () => {
     expect(priceFieldError(t, 'abc', MIN)).toBeNull();
   });
 
-  it('eski kayıt: değiştirilmediyse hata yok, değiştirilince var', () => {
-    expect(priceFieldError(t, '100', MIN, '100')).toBeNull();
-    expect(priceFieldError(t, '100.00', MIN, '100')).toBeNull();
-    expect(priceFieldError(t, '120', MIN, '100')).toContain('minimum');
+  it('eski kayıt: saklı değerlerden birine eşitse hata yok, değilse var', () => {
+    expect(priceFieldError(t, '100', MIN, ['100'])).toBeNull();
+    expect(priceFieldError(t, '100.00', MIN, ['100'])).toBeNull();
+    expect(priceFieldError(t, '120', MIN, ['100'])).toContain('minimum');
+  });
+
+  it('eski kayıt (sunucu ile aynı): fiyat / eski fiyat / indirimli fiyat kümesinin HERHANGİ biri muaf', () => {
+    // İndirimli ilan: fiyat 180 (indirimli), eski fiyat 300; taban 250.
+    const stored = ['180', '300'];
+    // Satıcı indirimi kaldırıp fiyatı 180'e çeker → saklı değere eşit, hata yok.
+    expect(priceFieldError(t, '180', MIN, stored)).toBeNull();
+    expect(salePriceFieldError(t, sale('300', ''), MIN, stored)).toBeNull();
+    expect(priceFieldError(t, '190', MIN, stored)).toContain('minimum');
+  });
+
+  it('max: saklı değer muaf, yenisi değil', () => {
+    expect(priceFieldError(t, '9000', BOTH, ['9000'])).toBeNull();
+    expect(priceFieldError(t, '9001', BOTH, ['9000'])).toContain('maksimum');
   });
 });
 
@@ -61,9 +75,17 @@ describe('salePriceFieldError', () => {
     expect(salePriceFieldError(t, sale('500', '10'), NONE)).toBeNull();
   });
 
-  it('eski kayıt: indirimli fiyat değiştirilmediyse muaf, değiştirilince hata', () => {
-    expect(salePriceFieldError(t, sale('500', '200'), MIN, '200')).toBeNull();
-    expect(salePriceFieldError(t, sale('500', '220'), MIN, '200')).not.toBeNull();
+  it('eski kayıt: saklı indirimli fiyat muaf, değiştirilince hata', () => {
+    expect(salePriceFieldError(t, sale('500', '200'), MIN, ['500', '200'])).toBeNull();
+    expect(salePriceFieldError(t, sale('500', '220'), MIN, ['500', '200'])).not.toBeNull();
+  });
+
+  it('max de denetlenir (sunucu min ve max kontrol eder)', () => {
+    // Fiyat saklı (muaf) ama yeni indirimli fiyat tavanı aşıyor.
+    expect(salePriceFieldError(t, sale('9000', '8000'), BOTH, ['9000'])).toBe(
+      'Ürün fiyatı maksimum 5.000,00 TL olabilir.',
+    );
+    expect(salePriceFieldError(t, sale('9000', '4000'), BOTH, ['9000'])).toBeNull();
   });
 });
 
@@ -109,8 +131,8 @@ describe('şema + gönderim kapısı', () => {
 
   it('şema: düzenlemede değişmemiş taban altı fiyat geçer', () => {
     const low = { ...values, price: '100' };
-    expect(buildListingFormSchema(t, { isEdit: true, priceLimits: MIN, initialPrice: '100' }).safeParse(low).success).toBe(true);
-    expect(buildListingFormSchema(t, { isEdit: true, priceLimits: MIN, initialPrice: '300' }).safeParse(low).success).toBe(false);
+    expect(buildListingFormSchema(t, { isEdit: true, priceLimits: MIN, storedPrices: ['100'] }).safeParse(low).success).toBe(true);
+    expect(buildListingFormSchema(t, { isEdit: true, priceLimits: MIN, storedPrices: ['300'] }).safeParse(low).success).toBe(false);
   });
 
   it('kapı: geçerli form geçer', () => {
@@ -136,7 +158,7 @@ describe('şema + gönderim kapısı', () => {
     const grand = {
       isEdit: true,
       values: { ...values, price: '240' },
-      priceBaseline: { price: '240', salePrice: '200' },
+      priceBaseline: ['240', '200'],
       sale: { salePrice: '200', saleStartDate: '2026-10-14', saleEndDate: '2026-10-21' },
     };
     expect(firstListingValidationError(t, input(grand))).toBeNull();

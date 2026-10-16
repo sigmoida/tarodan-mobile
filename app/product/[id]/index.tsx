@@ -28,6 +28,7 @@ import { ProductTitleBlock } from './_components/ProductTitleBlock';
 import { ProductDescription } from './_components/ProductDescription';
 import { ProductBuyBar, ProductOfferTradeRow, ProductSecondaryActions } from './_components/ProductActions';
 import { getOfferTradeAvailability } from './_lib/engagement';
+import { usePriceLimits } from '@/hooks/usePriceLimits';
 import { SellerCard } from './_components/SellerCard';
 import { ProductSpecs } from './_components/ProductSpecs';
 import { ProductReviewsPreview } from './_components/ProductReviewsPreview';
@@ -76,6 +77,7 @@ export default function ProductDetailScreen() {
   const images = product ? resolveProductImages(product) : [];
   const isOutOfStock = product ? isProductOutOfStock(product) : false;
 
+  const { minPrice } = usePriceLimits();
   const actions = useProductActions({ product, productId, images, isOutOfStock, isAuthenticated, user });
   const favorite = useProductFavorite({ product, productId, isAuthenticated });
 
@@ -97,7 +99,7 @@ export default function ProductDetailScreen() {
   const isOwner = Boolean(product && isAuthenticated && isOwnProduct(product, user?.id));
   const reportOnly = !sellerId;
   const availability = product
-    ? getOfferTradeAvailability(product, { isOwner, isOutOfStock })
+    ? getOfferTradeAvailability(product, { isOwner, isOutOfStock, minPrice })
     : { offer: false, trade: false, tradeBadge: false };
   const price = product ? getProductPriceInfo(product) : null;
   const openReviews = () => router.push(`/product/${productId}/reviews`);

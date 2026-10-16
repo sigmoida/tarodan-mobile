@@ -30,18 +30,23 @@ it('min ve max değerlerini okur ve merkezi anahtarla önbelleğe alır', async 
   settingsMock.mockResolvedValue({ data: { min_product_price: 250, max_product_price: 90000, max_message_length: 500 } });
   const { client, wrapper } = setup();
   const { result } = renderHook(() => usePriceLimits(), { wrapper });
-  expect(result.current).toMatchObject({ minPrice: null, maxPrice: null, isLoading: true });
+  expect(result.current).toEqual({ minPrice: null, maxPrice: null });
   await waitFor(() => expect(result.current.minPrice).toBe(250));
-  expect(result.current).toMatchObject({ maxPrice: 90000, isLoading: false });
-  expect(client.getQueryData(qk.publicSettings.all)).toEqual({ minPrice: 250, maxPrice: 90000 });
+  expect(result.current).toEqual({ minPrice: 250, maxPrice: 90000 });
+  // Ham gövde önbellekte (diğer herkese açık ayarlar aynı kaydı paylaşabilir); ayrıştırma select'te.
+  expect(client.getQueryData(qk.publicSettings.all)).toEqual({
+    min_product_price: 250,
+    max_product_price: 90000,
+    max_message_length: 500,
+  });
 });
 
 it('yanıtta olmayan ayar = sınır yok', async () => {
   settingsMock.mockResolvedValue({ data: { max_message_length: 500 } });
-  const { wrapper } = setup();
+  const { client, wrapper } = setup();
   const { result } = renderHook(() => usePriceLimits(), { wrapper });
-  await waitFor(() => expect(result.current.isLoading).toBe(false));
-  expect(result.current).toMatchObject({ minPrice: null, maxPrice: null });
+  await waitFor(() => expect(client.getQueryState(qk.publicSettings.all)?.status).toBe('success'));
+  expect(result.current).toEqual({ minPrice: null, maxPrice: null });
 });
 
 it('istek düşerse sınır null kalır (form bloklanmaz)', async () => {
@@ -49,5 +54,5 @@ it('istek düşerse sınır null kalır (form bloklanmaz)', async () => {
   const { client, wrapper } = setup();
   const { result } = renderHook(() => usePriceLimits(), { wrapper });
   await waitFor(() => expect(client.getQueryState(qk.publicSettings.all)?.status).toBe('error'), { timeout: 4000 });
-  expect(result.current).toMatchObject({ minPrice: null, maxPrice: null });
+  expect(result.current).toEqual({ minPrice: null, maxPrice: null });
 });

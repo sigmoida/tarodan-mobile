@@ -23,7 +23,7 @@ export interface ListingValidationInput {
   priceLimits?: PriceLimits;
   /** Şema dışı (useState): indirim alanları — taban denetimi için. */
   sale?: { salePrice: string; saleStartDate: string; saleEndDate: string };
-  /** Düzenlemede yüklenen ilk fiyatlar (eski kayıt muafiyeti); oluşturmada yok. */
+  /** Düzenlemede ilanda saklı fiyatlar (eski kayıt muafiyeti); oluşturmada yok. */
   priceBaseline?: PriceBaseline | null;
 }
 
@@ -42,7 +42,7 @@ export function firstListingValidationError(
   const result = buildListingFormSchema(t, {
     isEdit: input.isEdit,
     priceLimits: input.priceLimits,
-    initialPrice: input.priceBaseline?.price,
+    storedPrices: input.priceBaseline,
   }).safeParse(input.values);
   if (!result.success) {
     return result.error.issues[0]?.message || t('listing.checkFieldsFallback');
@@ -53,7 +53,7 @@ export function firstListingValidationError(
       t,
       { price: input.values.price, ...input.sale },
       input.priceLimits,
-      input.priceBaseline?.salePrice,
+      input.priceBaseline,
     );
     if (saleError) return saleError;
   }

@@ -5,7 +5,7 @@
  * ipucu ve gizli Set/Paket anahtarı.
  */
 import React from 'react';
-import { render, screen, within } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
@@ -71,6 +71,17 @@ describe('Fiyat sınırı (admin min_product_price)', () => {
     );
     expect(screen.getByText('Ürün fiyatı minimum 250,00 TL olmalıdır.')).toBeTruthy();
     expect(screen.getByText('İndirimli fiyat en az 250,00 TL olmalıdır.')).toBeTruthy();
+  });
+
+  it('alan terk edilince (blur) hook\'a bildirilir — limit hatası ancak o zaman / gönderimde görünür', () => {
+    const onPriceBlur = jest.fn();
+    const onSalePriceBlur = jest.fn();
+    render(<ListingPricingSection f={pricingF({ onPriceBlur, onSalePriceBlur })} />);
+    fireEvent(screen.getByDisplayValue('500'), 'blur');
+    expect(onPriceBlur).toHaveBeenCalledTimes(1);
+    expect(onSalePriceBlur).not.toHaveBeenCalled();
+    fireEvent(screen.getByPlaceholderText('İndirim yoksa boş bırakın'), 'blur');
+    expect(onSalePriceBlur).toHaveBeenCalledTimes(1);
   });
 
   it('sınır yoksa ipucu / hata çizilmez', () => {

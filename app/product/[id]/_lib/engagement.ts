@@ -1,9 +1,10 @@
 // Teklif / takas girişlerinin görünürlük kuralı — alt bardaki satır ve takas rozeti TEK kaynak.
 import { isProductTradeBadgeVisible } from '@/components/product/productCardBadges';
+import { offerPriceFloor } from '@/lib/shared/priceLimits';
 import type { Product } from './types';
 
 export interface OfferTradeAvailability {
-  /** "Teklif Ver": ilan satılabilir ve izleyen sahip değil. */
+  /** "Teklif Ver": ilan satılabilir, izleyen sahip değil ve geçerli bir teklif aralığı var (admin fiyat tabanı). */
   offer: boolean;
   /**
    * "Takas Teklifi": ilan takasa açık + satılabilir ve izleyen sahip değil. Üyelik/platform kapısı
@@ -30,9 +31,18 @@ export function isPurchasable(product: Product, isOutOfStock: boolean): boolean 
  */
 export function getOfferTradeAvailability(
   product: Product,
-  { isOwner, isOutOfStock }: { isOwner: boolean; isOutOfStock: boolean },
+  {
+    isOwner,
+    isOutOfStock,
+    minPrice = null,
+  }: { isOwner: boolean; isOutOfStock: boolean; minPrice?: number | null },
 ): OfferTradeAvailability {
   const purchasable = isPurchasable(product, isOutOfStock);
   const tradeBadge = purchasable && isProductTradeBadgeVisible(product);
-  return { offer: purchasable && !isOwner, trade: tradeBadge && !isOwner, tradeBadge };
+  // Etkin fiyat tam tabana eşitse teklif liste fiyatının ALTINDA ve tabanın ÜSTÜNDE olmak zorunda:
+  // geçerli teklif yok → giriş çizilmez (modal da açılamaz).
+  const listPrice = Number(product.price) || 0;
+  const floor = offerPriceFloor(minPrice, listPrice);
+  const offerRangeExists = floor == null || floor < listPrice;
+  return { offer: purchasable && !isOwner && offerRangeExists, trade: tradeBadge && !isOwner, tradeBadge };
 }

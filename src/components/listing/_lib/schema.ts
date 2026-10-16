@@ -30,8 +30,8 @@ export interface ListingSchemaOptions {
   isEdit?: boolean;
   /** Admin fiyat sınırları (`min_product_price` / `max_product_price`); yoksa kural yok. */
   priceLimits?: PriceLimits;
-  /** Düzenlemede yüklenen ilk fiyat — taban altı eski fiyat DEĞİŞMEDİKÇE hata vermez. */
-  initialPrice?: string | null;
+  /** Düzenlemede ilanda saklı fiyat değerleri — bunlardan birine eşit aday fiyat hata vermez. */
+  storedPrices?: readonly string[] | null;
 }
 
 export const buildListingFormSchema = (t: TFunction, opts: ListingSchemaOptions = {}) => {
@@ -58,7 +58,7 @@ export const buildListingFormSchema = (t: TFunction, opts: ListingSchemaOptions 
       .min(1, t('common.invalidPrice'))
       .refine((v) => !isNaN(Number(v)) && Number(v) >= 1, t('common.invalidPrice'))
       .superRefine((v, ctx) => {
-        const message = priceFieldError(t, v, limits, opts.initialPrice);
+        const message = priceFieldError(t, v, limits, opts.storedPrices);
         if (message) ctx.addIssue({ code: 'custom', message });
       }),
     quantity: z.string(),
