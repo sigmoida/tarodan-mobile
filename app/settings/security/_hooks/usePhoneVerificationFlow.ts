@@ -32,7 +32,9 @@ export function usePhoneVerificationFlow() {
 
   const [step, setStep] = useState<PhoneStep>('enter');
   const [sentTo, setSentTo] = useState('');
-  const [resendIn, setResendIn] = useState(0);
+  // Yeniden gönderme sınırı (ms). Saniyelik geri sayım yaprakta (`PhoneResendButton` →
+  // `useSecondsUntil`): her tik bu akış hook'unu ve ekranı yeniden çizmesin.
+  const [resendAt, setResendAt] = useState(0);
 
   // Kayıtlı numara saklı görüntüde YOK (`@/stores/userSnapshot`): parametre yoksa alan tam
   // profilden tohumlanır; profil gelene kadar ekran yükleniyor görünür (`useFullProfile`).
@@ -55,19 +57,13 @@ export function usePhoneVerificationFlow() {
   const send = useDoSendPhoneCode();
   const verify = useDoVerifyPhone();
 
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const id = setInterval(() => setResendIn((s) => s - 1), 1000);
-    return () => clearInterval(id);
-  }, [resendIn]);
-
   const sendTo = useCallback(
     (e164: string) =>
       send.mutate(e164, {
         onSuccess: () => {
           setSentTo(e164);
           setStep('verify');
-          setResendIn(RESEND_SECONDS);
+          setResendAt(Date.now() + RESEND_SECONDS * 1000);
           codeForm.reset({ code: '' });
         },
       }),
@@ -118,7 +114,8 @@ export function usePhoneVerificationFlow() {
     retryProfile: profile.retry,
     step,
     sentTo,
-    resendIn,
+    /** Yeniden gönderilebileceği an (ms); kalan saniye yaprakta `useSecondsUntil`. */
+    resendAt,
     phoneForm,
     codeForm,
     isSending: send.isPending,
@@ -130,7 +127,7 @@ export function usePhoneVerificationFlow() {
       verify.mutate(value, { onSuccess: () => goBackOrHome() }),
     ),
     resend: () => {
-      if (sentTo && resendIn <= 0 && !send.isPending) sendTo(sentTo);
+      if (sentTo && Date.now() >= resendAt && !send.isPending) sendTo(sentTo);
     },
     onBack: step === 'verify' ? backToEnter : goBackOrHome,
   };

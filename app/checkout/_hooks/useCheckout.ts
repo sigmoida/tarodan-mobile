@@ -24,6 +24,7 @@ import { indexQuoteLines } from '@/utils/quoteLines';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { DEFAULT_COUNTRY_CODE, parsePhoneForPayload, getPhoneInvalidMessage } from '@/utils/phone';
 import { STOCKOUT_KEYWORDS, generateUuidV4, EMPTY_ADDRESS } from '../_lib/constants';
+import { createAddressStore } from '../_lib/addressStore';
 import { toOrderLineItems } from '../_lib/lineItems';
 import {
   addressPhoneError,
@@ -34,7 +35,7 @@ import {
 import { useCoupon } from './useCoupon';
 import { useZodForm } from '@/ui/form';
 import { guestContactSchema, GUEST_CONTACT_DEFAULTS } from '../_lib/schema';
-import type { ShippingAddressInput, SavedAddress } from '../_lib/types';
+import type { SavedAddress } from '../_lib/types';
 
 /**
  * Modal kapanma animasyonu bitmeden `appAlert` çağırmak iOS'ta donuyor.
@@ -151,10 +152,14 @@ export function useCheckout() {
   };
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | 'new'>('new');
-  const [shippingAddress, setShippingAddress] = useState<ShippingAddressInput>(EMPTY_ADDRESS);
+  // Inline adresler controller state'i DEĞİL (tuş vuruşu controller'ı çalıştırmasın): yaprak
+  // `useAddressValue` ile abone olur, burada yalnız doğrulama/gönderim anında `get()` okunur.
+  const [shippingAddressStore] = useState(() => createAddressStore(EMPTY_ADDRESS));
+  const setShippingAddress = shippingAddressStore.set;
   const [billingDifferent, setBillingDifferent] = useState(false);
   const [selectedBillingAddressId, setSelectedBillingAddressId] = useState<string | 'new'>('new');
-  const [billingAddress, setBillingAddress] = useState<ShippingAddressInput>(EMPTY_ADDRESS);
+  const [billingAddressStore] = useState(() => createAddressStore(EMPTY_ADDRESS));
+  const setBillingAddress = billingAddressStore.set;
 
   const paymentProvider = 'paytr' as const;
 
@@ -504,6 +509,7 @@ export function useCheckout() {
    */
   const shippingPhoneSource = (): { phone: string; countryCode: string } => {
     const { guestPhone, guestPhoneCountryCode } = readGuest();
+    const shippingAddress = shippingAddressStore.get();
     return shippingAddress.phone.trim()
       ? {
           phone: shippingAddress.phone,
@@ -518,6 +524,8 @@ export function useCheckout() {
    * (`handleCheckout`) — kural AYNI, yalnız çağrıldığı yer değişti.
    */
   const validateAddressForm = (): string | null => {
+    const shippingAddress = shippingAddressStore.get();
+    const billingAddress = billingAddressStore.get();
     if (!isAuthenticated) {
       const { guestName, guestEmail, guestPhone, guestPhoneCountryCode } = readGuest();
       const guestErr = validateGuest(guestName, guestEmail, guestPhone, guestPhoneCountryCode);
@@ -557,6 +565,7 @@ export function useCheckout() {
    */
   const resolvePayloadPhones = (): { ok: true; phones: ResolvedPhones } | { ok: false; message: string } => {
     const phones: ResolvedPhones = { shipping: null, billing: null, guest: null };
+    const billingAddress = billingAddressStore.get();
 
     if (!(isAuthenticated && user)) {
       const { guestPhone, guestPhoneCountryCode } = readGuest();
@@ -601,6 +610,7 @@ export function useCheckout() {
     if (isAuthenticated && selectedAddressId !== 'new') {
       return { id: selectedAddressId };
     }
+    const shippingAddress = shippingAddressStore.get();
     return {
       inline: {
         fullName: shippingAddress.fullName.trim(),
@@ -618,6 +628,7 @@ export function useCheckout() {
     if (isAuthenticated && selectedBillingAddressId !== 'new') {
       return { id: selectedBillingAddressId };
     }
+    const billingAddress = billingAddressStore.get();
     return {
       inline: {
         fullName: billingAddress.fullName.trim(),
@@ -1023,10 +1034,10 @@ export function useCheckout() {
     guestForm,
     // address
     selectedAddressId, setSelectedAddressId,
-    shippingAddress, setShippingAddress,
+    shippingAddressStore, setShippingAddress,
     billingDifferent, setBillingDifferent,
     selectedBillingAddressId, setSelectedBillingAddressId,
-    billingAddress, setBillingAddress,
+    billingAddressStore, setBillingAddress,
     addresses,
     // shipping/pricing — hepsi `pricing.summary`'den AYNEN; sunucu değeri yoksa
     // `null` (yer tutucu basılır, yerel sayı uydurulmaz).

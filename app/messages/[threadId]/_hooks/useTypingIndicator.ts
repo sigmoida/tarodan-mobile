@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getSocket } from '@/services/socket';
+import { getSocket, onSocketInstanceChange } from '@/services/socket';
 import { useAuthStore } from '@/stores/authStore';
 import type { TypingEvent } from '@/types/websocket';
 
@@ -7,16 +7,6 @@ import type { TypingEvent } from '@/types/websocket';
 const STOP_AFTER_MS = 3000;
 /** Sunucu stop göndermezse göstergenin kendiliğinden kapanma süresi. */
 const PEER_TIMEOUT_MS = 5000;
-/**
- * `getSocket()` null dönerken veya `disconnectSocket`/`connectSocket` yeni bir
- * instance yarattığında (logout→login, reconnect) yeniden kaydolmak için
- * yoklama aralığı. `join:thread` bu tuzağa `useFocusEffect` ile kaçıyor, ama o
- * yalnız ekrana her dönüşte onarır — deep-link ile ekran, kök layout'un
- * `connectSocket()`'i henüz çalışmadan mount olursa (aynı commit'te çocuk
- * effect'leri ebeveynden önce çalışır) hiç iyileşmezdi. Yoklama, mount sırasına
- * bağlı olmadan hem bu geç-bağlanma yarışını hem de instance değişimini kapsar.
- */
-const SOCKET_POLL_MS = 500;
 
 /**
  * Mesaj thread'i için "yazıyor" köprüsü.
@@ -53,9 +43,9 @@ export function useTypingIndicator(threadId: string | undefined) {
   }, [threadId, emitStop]);
 
   // Karşı tarafın typing olaylarını dinle. Soket mount anında hazır olmayabilir
-  // (deep-link, kök layout'un connectSocket'i henüz çalışmadan) ya da sonradan
-  // logout/login ile yeni bir instance'a değişebilir — bu yüzden tek seferlik
-  // `getSocket()` yerine hazır olana / değişene kadar yoklanır.
+  // (deep-link: aynı commit'te çocuk effect'i kök layout'un `connectSocket()`'inden önce
+  // çalışır) ya da sonradan logout/login ile yeni bir örneğe değişebilir — zamanlayıcıyla
+  // yoklamak yerine örnek değişimine (`onSocketInstanceChange`) abone olunur.
   useEffect(() => {
     if (!threadId) return undefined;
 
@@ -89,8 +79,7 @@ export function useTypingIndicator(threadId: string | undefined) {
       subscribedSocket = null;
     };
 
-    const trySubscribe = () => {
-      const socket = getSocket();
+    const trySubscribe = (socket: ReturnType<typeof getSocket> = getSocket()) => {
       if (socket === subscribedSocket) return;
       unsubscribe();
       if (!socket) return;
@@ -100,10 +89,10 @@ export function useTypingIndicator(threadId: string | undefined) {
     };
 
     trySubscribe();
-    const pollId = setInterval(trySubscribe, SOCKET_POLL_MS);
+    const stopWatching = onSocketInstanceChange(trySubscribe);
 
     return () => {
-      clearInterval(pollId);
+      stopWatching();
       unsubscribe();
       if (peerTimer.current) clearTimeout(peerTimer.current);
       setIsPeerTyping(false);

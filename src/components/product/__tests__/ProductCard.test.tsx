@@ -3,12 +3,13 @@
  * meta satırı, liste varyantı, seçim ve tıklama kaydı.
  */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { ProductCard } from '../ProductCard';
 import { Text } from '@/ui';
 import { productsApi } from '@/lib/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { prefetchProductDetail } from '@/lib/product/detailQuery';
+import { PRESS_PREFETCH_DELAY_MS } from '@/hooks/usePressPrefetch';
 
 jest.mock('@/lib/api', () => ({
   productsApi: { recordClick: jest.fn(() => Promise.resolve({ data: {} })) },
@@ -311,38 +312,54 @@ describe('ProductCard — tıklama', () => {
   });
 });
 
-describe('ProductCard — detay prefetch (dokunuş başında)', () => {
-  beforeEach(() => jest.clearAllMocks());
+describe('ProductCard — detay prefetch (gerçek dokunuşta, kaydırırken değil)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+  });
+  afterEach(() => jest.useRealTimers());
   const qc = new QueryClient();
   const withClient = (ui: React.ReactElement) => render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
   const prefetch = prefetchProductDetail as jest.Mock;
+  const card = () => screen.getByText('Hot Wheels Supra');
 
-  it('kart ürünü kendisi açıyorsa pressIn detayı önceden çeker (aynı istemci + id)', () => {
+  it('dokunuşta (press) detayı önceden çeker (aynı istemci + id)', () => {
     withClient(<ProductCard product={base} />);
-    fireEvent(screen.getByText('Hot Wheels Supra'), 'pressIn');
+    fireEvent.press(card());
     expect(prefetch).toHaveBeenCalledWith(qc, 'p1');
   });
 
-  it('liste görünümünde de pressIn prefetch yapar', () => {
+  it('pressIn hemen çekmez; kaydırma başlayınca (pressOut, press yok) hiç çekmez', () => {
+    withClient(<ProductCard product={base} />);
+    fireEvent(card(), 'pressIn');
+    expect(prefetch).not.toHaveBeenCalled();
+    fireEvent(card(), 'pressOut');
+    act(() => { jest.advanceTimersByTime(PRESS_PREFETCH_DELAY_MS * 3); });
+    expect(prefetch).not.toHaveBeenCalled();
+  });
+
+  it('kaydırmadan basılı tutulursa gecikmeden sonra çeker (liste görünümü dahil)', () => {
     withClient(<ProductCard product={base} layout="list" />);
-    fireEvent(screen.getByText('Hot Wheels Supra'), 'pressIn');
+    fireEvent(card(), 'pressIn');
+    act(() => { jest.advanceTimersByTime(PRESS_PREFETCH_DELAY_MS); });
     expect(prefetch).toHaveBeenCalledWith(qc, 'p1');
   });
 
   it('onPress veren (seçim listesi) çağıranda prefetch yok; `prefetchDetail` ile açılır', () => {
     const { unmount } = withClient(<ProductCard product={base} onPress={jest.fn()} />);
-    fireEvent(screen.getByText('Hot Wheels Supra'), 'pressIn');
+    fireEvent.press(card());
     expect(prefetch).not.toHaveBeenCalled();
     unmount();
     withClient(<ProductCard product={base} onPress={jest.fn()} prefetchDetail />);
-    fireEvent(screen.getByText('Hot Wheels Supra'), 'pressIn');
+    fireEvent.press(card());
     expect(prefetch).toHaveBeenCalledWith(qc, 'p1');
   });
 
   it('QueryClient sağlayıcısı yoksa prefetch atlanır, kart çalışır', () => {
     render(<ProductCard product={base} />);
-    fireEvent(screen.getByText('Hot Wheels Supra'), 'pressIn');
-    fireEvent.press(screen.getByText('Hot Wheels Supra'));
+    fireEvent(card(), 'pressIn');
+    act(() => { jest.advanceTimersByTime(PRESS_PREFETCH_DELAY_MS); });
+    fireEvent.press(card());
     expect(prefetch).not.toHaveBeenCalled();
     expect(mockPush).toHaveBeenCalledWith('/product/p1');
   });

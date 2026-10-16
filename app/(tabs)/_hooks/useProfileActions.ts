@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSafeTimeout } from '@/hooks/useSafeTimeout';
 import { toast } from '@/ui';
 import { getRestrictionMessage, GuestAction } from '@/utils/guestRestrictions';
 
@@ -8,6 +9,7 @@ import { getRestrictionMessage, GuestAction } from '@/utils/guestRestrictions';
  */
 export function useProfileActions() {
   const [showPrompt, setShowPrompt] = useState(false);
+  const schedule = useSafeTimeout();
   const [promptType, setPromptType] = useState<
     'favorites' | 'message' | 'purchase' | 'trade' | 'collections'
   >('favorites');
@@ -21,7 +23,7 @@ export function useProfileActions() {
     else if (action === 'trade') setPromptType('trade');
     else if (action === 'collections') setPromptType('collections');
 
-    setTimeout(() => setShowPrompt(true), 500);
+    schedule(() => setShowPrompt(true), 500);
   };
 
   return {

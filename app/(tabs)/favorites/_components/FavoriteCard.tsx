@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Pressable } from 'react-native';
 import { Badge, Card, IconButton, Text, theme } from '@/ui';
 import { router } from 'expo-router';
@@ -7,7 +8,6 @@ import { ProductPrice } from '@/components/product';
 import { useCartStore } from '@/stores/cartStore';
 import type { WishlistItem } from '@/hooks/useFavorites';
 import { styles } from '../_lib/styles';
-import type { FavoritesScreenController } from '../_hooks/useFavoritesScreen';
 
 const { colors } = theme;
 
@@ -22,7 +22,16 @@ const { colors } = theme;
  * ekler, sepetteyse sepete gider (dolu ikon). Satışta olmayan üründe sepet yerine durum rozeti. Kalp ve
  * sepet navigasyon Pressable'ının DIŞINDA (kardeş) — iç içe dokunulabilirde ebeveyn dokunuşu yutabiliyor.
  */
-export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScreenController }) {
+export const FavoriteCard = React.memo(function FavoriteCard({
+  item,
+  onRemove,
+  onCartAction,
+}: {
+  item: WishlistItem;
+  /** Referans-kararlı olmalı (`useStableCallback`): kart `React.memo`, satırlar boşa çizilmesin. */
+  onRemove: (productId: string) => void;
+  onCartAction: (item: WishlistItem) => void;
+}) {
   const { t } = useTranslation();
   const { product } = item;
   const open = () => router.push(`/product/${item.productId}`);
@@ -64,7 +73,7 @@ export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScre
               size="sm"
               color={colors.danger[600]!}
               testID={`favorite-remove-${item.productId}`}
-              onPress={() => f.handleRemove(item.productId)}
+              onPress={() => onRemove(item.productId)}
             />
             {isActive ? (
               <IconButton
@@ -74,7 +83,7 @@ export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScre
                 size="sm"
                 color={colors.primary[600]!}
                 testID={`favorite-cart-${item.productId}`}
-                onPress={() => f.handleCartAction(item)}
+                onPress={() => onCartAction(item)}
               />
             ) : (
               <Badge variant="warning" size="xs" style={styles.statusBadge}>
@@ -86,4 +95,4 @@ export function FavoriteCard({ item, f }: { item: WishlistItem; f: FavoritesScre
       </View>
     </Card>
   );
-}
+});

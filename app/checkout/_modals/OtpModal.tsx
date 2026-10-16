@@ -1,27 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Modal, Button, Input, Text, theme } from '@/ui';
+import { useSecondsUntil } from '@/hooks/useSecondsUntil';
 
 const { colors } = theme;
-
-/** `resendAt`'e kalan saniye; yalnız modal açıkken ve süre dolmamışken saniyede bir tıklar. */
-function useSecondsUntil(resendAt: number, active: boolean): number {
-  const [now, setNow] = useState(() => Date.now());
-  // Yeni kod gönderildi (`resendAt` değişti): ilk karede bayat `now` ile şişkin süre görünmesin.
-  const [seenResendAt, setSeenResendAt] = useState(resendAt);
-  if (seenResendAt !== resendAt) {
-    setSeenResendAt(resendAt);
-    setNow(Date.now());
-  }
-  const ticking = active && resendAt > now;
-  useEffect(() => {
-    if (!ticking) return undefined;
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [ticking, resendAt]);
-  return Math.max(0, Math.ceil((resendAt - now) / 1000));
-}
 
 /**
  * Misafir e-posta doğrulama (OTP) modalı.

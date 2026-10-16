@@ -8,6 +8,7 @@ import { AppImage } from '@/components/AppImage';
 import { GLASS_ICON_BUTTON_SIZE_SM, GlassIconButton, ProductBadge, Text, theme, Icon } from '@/ui';
 import { productsApi } from '@/lib/api';
 import { prefetchProductDetail } from '@/lib/product/detailQuery';
+import { usePressPrefetch } from '@/hooks/usePressPrefetch';
 import {
   ProductPriceFields,
   getProductEffectivePrice,
@@ -65,8 +66,8 @@ export interface ProductCardProps {
   /** Sıralama sinyali (tıklama kaydı). Ürün açmayan kullanımlarda (seçim listesi) `false`. */
   trackClick?: boolean;
   /**
-   * Dokunuş başlar başlamaz (`onPressIn`) ürün detayını önceden çek — ekran açılırken istek yolda
-   * olur. Varsayılan: kart ürünü kendisi açıyorsa (`onPress` yok) açık; `onPress` ile ürünü açan
+   * Dokunuşta ürün detayını önceden çek — ekran açılırken istek yolda olur (kaydırırken çekilmez:
+   * `usePressPrefetch`). Varsayılan: kart ürünü kendisi açıyorsa (`onPress` yok) açık; `onPress` ile ürünü açan
    * çağıran (anasayfa rayı) `true` verir. Görüntülenme sayılmaz (`prefetchProductDetail`).
    */
   prefetchDetail?: boolean;
@@ -268,9 +269,13 @@ function ProductCardBase({
   // Sağlayıcı yoksa (izole bileşen testleri) prefetch atlanır — `useQueryClient` gibi fırlatmaz.
   const queryClient = useContext(QueryClientContext);
   const shouldPrefetch = prefetchDetail ?? !onPress;
-  const handlePressIn = shouldPrefetch && queryClient ? () => prefetchProductDetail(queryClient, product.id) : undefined;
+  // Kaydırırken değil, gerçek dokunuşta / kısa basılı tutmada çekilir (`usePressPrefetch`).
+  const pressPrefetch = usePressPrefetch(
+    shouldPrefetch && queryClient ? () => prefetchProductDetail(queryClient, product.id) : undefined,
+  );
 
   const handlePress = () => {
+    pressPrefetch.prefetchNow();
     // Sıralama sinyali: hata gezinmeyi engellemez (web `click` ping'i).
     if (trackClick) void productsApi.recordClick(product.id).catch(() => {});
     if (onPress) return onPress();
@@ -285,7 +290,8 @@ function ProductCardBase({
       <View style={style}>
         <Pressable
           onPress={handlePress}
-          onPressIn={handlePressIn}
+          onPressIn={pressPrefetch.onPressIn}
+          onPressOut={pressPrefetch.onPressOut}
           testID={testID}
           accessibilityRole="button"
           accessibilityLabel={cardLabel}
@@ -346,7 +352,8 @@ function ProductCardBase({
     <View style={[styles.gridWrap, style]}>
       <Pressable
         onPress={handlePress}
-        onPressIn={handlePressIn}
+        onPressIn={pressPrefetch.onPressIn}
+        onPressOut={pressPrefetch.onPressOut}
         testID={testID}
         accessibilityRole="button"
         accessibilityLabel={cardLabel}
