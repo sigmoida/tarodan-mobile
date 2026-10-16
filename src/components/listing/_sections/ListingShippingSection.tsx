@@ -8,6 +8,7 @@ import { formatPrice } from '@/utils/format';
 
 import { getPackageTierLabel } from '../_lib/constants';
 import type { ListingFormController } from '../_hooks/useListingForm';
+import { LISTING_PRICING_KEYS, useListingPricing, type ListingPricing } from '../_hooks/useListingPricing';
 import { memoSection, type ListingFormKey } from '../_lib/memoSection';
 import { fieldStyles } from './fields';
 
@@ -17,9 +18,7 @@ type SectionProps = { f: ListingFormController };
 
 /** Bu dosyadaki bölümün okuduğu controller alanları (memo karşılaştırması; bkz. `memoSection`). */
 const KEYS: readonly ListingFormKey[] = [
-  'commissionEnabled',
-  'commissionLoading',
-  'commissionPreview',
+  ...LISTING_PRICING_KEYS,
   'packageTiers',
   'packageTiersError',
   'packageTiersLoading',
@@ -169,12 +168,21 @@ const TierCard = memo(function TierCard({
  * ⚠️ BAĞLAYICI (doküman 14 §1): mobil arayüzde **desi hiç görünmez**.
  */
 export const ListingShippingSection = memoSection(function ListingShippingSection({ f }: SectionProps) {
+  // Paket ücreti komisyon önizlemesinden; fiyat kartıyla aynı sorgu (tek istek).
+  return <ListingShippingView f={f} d={useListingPricing(f)} />;
+}, KEYS);
+
+/** Saf görünüm (testler komisyon değerlerini doğrudan verir). */
+export function ListingShippingView({
+  f,
+  d,
+}: SectionProps & { d: Pick<ListingPricing, 'commissionPreview' | 'commissionLoading' | 'commissionEnabled'> }) {
   const { t } = useTranslation();
   const { width, fontScale } = useWindowDimensions();
   const stacked = tierColumns(width, fontScale, f.packageTiers.length || 3) === 1;
   const onSelect = useStableCallback(f.setShippingPackageTier);
   const amountByTier = new Map(
-    (f.commissionPreview?.packageTierShipping ?? []).map((s) => [s.code, s.sellerShippingAmount]),
+    (d.commissionPreview?.packageTierShipping ?? []).map((s) => [s.code, s.sellerShippingAmount]),
   );
 
   return (
@@ -196,7 +204,7 @@ export const ListingShippingSection = memoSection(function ListingShippingSectio
                 tier={tier}
                 label={getPackageTierLabel(tier.code, tier.label, t)}
                 amount={amountByTier.get(tier.code) ?? null}
-                amountLoading={f.commissionLoading}
+                amountLoading={d.commissionLoading}
                 selected={f.shippingPackageTier === tier.code}
                 stacked={stacked}
                 onSelect={onSelect}
@@ -205,7 +213,7 @@ export const ListingShippingSection = memoSection(function ListingShippingSectio
           </View>
           {/* Yalnız EKSİK GİRDİ: sunucu hatasında bu metin, alanları doldurmuş satıcıya
               doldurmadığını söylerdi — hata metnini fiyat kartının özeti veriyor. */}
-          {!f.commissionEnabled ? (
+          {!d.commissionEnabled ? (
             <Text variant="caption" tone="muted" testID="package-fee-missing">
               {t('product.packageFeeNeedsPriceAndCategory')}
             </Text>
@@ -217,7 +225,7 @@ export const ListingShippingSection = memoSection(function ListingShippingSectio
       )}
     </SectionCard>
   );
-}, KEYS);
+}
 
 const styles = StyleSheet.create({
   spinner: {

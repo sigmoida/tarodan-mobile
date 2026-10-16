@@ -2,8 +2,9 @@
  * İlan formu performans kilidi:
  *  - Başlık/açıklama tuş vuruşu `useListingForm` controller'ını yeniden çalıştırmaz (alanlar
  *    `FormTextField` ile RHF'ye doğrudan bağlı; değer gönderimde `getValues()`).
- *  - Fiyat yazmak controller'ı çalıştırır (komisyon önizlemesi) ama ilgisiz memo'lu bölümler
- *    (seçenekler kartı) yeniden çizilmez.
+ *  - Fiyat yazmak da controller'ı çalıştırmaz (fiyat/adet yaprakta `useListingPricing` ile
+ *    izlenir; komisyon önizlemesi orada) ve ilgisiz memo'lu bölümler (seçenekler kartı) yeniden
+ *    çizilmez.
  *  - Kota (`/products/my/stats`) açılışta TEK kez, `_t` önbellek kırıcısı olmadan sorulur.
  */
 import { appAlert, toast } from '@/ui';
@@ -129,7 +130,7 @@ describe('ilan formu — yazarken render yalıtımı', () => {
     expect(toastSpy).toHaveBeenCalledWith('En az 5 karakter olmalıdır');
   });
 
-  it('fiyat yazmak ilgisiz memo\'lu bölümleri yeniden çizmez', async () => {
+  it('fiyat yazmak controller\'ı ve ilgisiz memo\'lu bölümleri yeniden çalıştırmaz', async () => {
     renderWithProviders(<ListingForm mode="create" />);
     await screen.findByText('İlan Oluştur');
     await waitFor(() => expect(screen.queryByTestId('listing-limit-skeleton')).toBeNull());
@@ -138,8 +139,10 @@ describe('ilan formu — yazarken render yalıtımı', () => {
     const options = mockOptionsRenders;
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '1');
     fireEvent.changeText(screen.getByPlaceholderText('0.00'), '15');
-    expect(mockControllerRuns).toBeGreaterThan(runs);
+    expect(mockControllerRuns).toBe(runs);
     expect(mockOptionsRenders).toBe(options);
+    // Alan değeri yine güncellenir (yaprak izler).
+    expect(screen.getByDisplayValue('15')).toBeOnTheScreen();
   });
 
   it('kota açılışta tek kez ve önbellek kırıcısız sorulur', async () => {
