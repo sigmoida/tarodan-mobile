@@ -15,6 +15,8 @@ import type { User } from "./authStore";
  * bayrakları, kurumsal başvuru durumu (`BusinessMembershipGuard`), kullanıcı adı.
  * Uzun / nadir alanlar (bio, sosyal bağlantılar, doğum tarihi, telefon) yok —
  * SecureStore değer sınırı 2048 bayt; arka plan doğrulaması tam profili getirir.
+ * Bu alanlar BİLİNÇLİ olarak eklenmez (PII + boyut): formunu kullanıcıdan tohumlayan ekranlar
+ * (profil düzenleme, telefon doğrulama) `profileValidated`'ı bekler (`@/hooks/useFullProfile`).
  */
 export const USER_SNAPSHOT_KEY = "authUserSnapshot";
 

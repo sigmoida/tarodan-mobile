@@ -283,6 +283,11 @@ export const qk = {
     trust: ["me-trust"] as const,
     /** Sahibin kendi /users/me yanıtı — güven skoru + `showTrustScore` görünürlüğü. */
     meTrust: (userId?: string) => ["me-trust", userId] as const,
+    /**
+     * Tam profil doğrulaması (`useFullProfile` — `refreshUserData`'yı tetikler; veri store'da).
+     * `user` önekinin DIŞINDA: `qk.user.all` geçersizlemesi her hesap değişiminde yeniden çekmesin.
+     */
+    fullProfile: (userId?: string) => ["full-profile", userId] as const,
     bankAccount: ["bank-account"] as const,
     addresses: ["addresses"] as const,
     notificationSettings: ["notification-settings"] as const,
