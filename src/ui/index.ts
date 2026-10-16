@@ -127,6 +127,7 @@ export { EmptyState, EMPTY_STATE_TOP_OFFSET, type EmptyStateProps, type EmptySta
 export { ErrorState, type ErrorStateProps } from './components/ErrorState';
 export {
 	Chip,
+	CHIP_HEIGHT,
 	type ChipProps,
 	type ChipVariant,
 	type ChipSize,
