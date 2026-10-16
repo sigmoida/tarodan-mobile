@@ -12,6 +12,7 @@ export function ProductTopActions({
   isFavorite,
   favoriteLoading,
   reportOnly,
+  hideFavorite = false,
   onFavorite,
   onShare,
   onMenu,
@@ -20,6 +21,8 @@ export function ProductTopActions({
   favoriteLoading: boolean;
   /** Satıcı menüsü yoksa (sahip / satıcı bilinmiyor) yalnız ilan şikayeti: web'deki bayrak ikonu. */
   reportOnly: boolean;
+  /** Kendi ilanı: favori kalbi çizilmez (kart ve web ile tutarlı — kendi ürünü favorilenemez). */
+  hideFavorite?: boolean;
   onFavorite: () => void;
   onShare: () => void;
   onMenu: () => void;
@@ -28,15 +31,17 @@ export function ProductTopActions({
   return (
     <>
       <FloatingIconButton icon="share" accessibilityLabel={t('product.share')} onPress={onShare} />
-      <FloatingIconButton
-        testID="product-favorite-button"
-        icon="heart"
-        iconVariant={isFavorite ? 'solid' : 'outline'}
-        iconColor={isFavorite ? theme.colors.danger[500] : undefined}
-        accessibilityLabel={t(isFavorite ? 'product.removeFromFavorites' : 'product.addToFavorites')}
-        onPress={onFavorite}
-        disabled={favoriteLoading}
-      />
+      {hideFavorite ? null : (
+        <FloatingIconButton
+          testID="product-favorite-button"
+          icon="heart"
+          iconVariant={isFavorite ? 'solid' : 'outline'}
+          iconColor={isFavorite ? theme.colors.danger[500] : undefined}
+          accessibilityLabel={t(isFavorite ? 'product.removeFromFavorites' : 'product.addToFavorites')}
+          onPress={onFavorite}
+          disabled={favoriteLoading}
+        />
+      )}
       <FloatingIconButton
         testID="product-report-button"
         icon={reportOnly ? 'flag' : 'ellipsis-vertical'}

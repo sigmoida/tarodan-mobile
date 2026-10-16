@@ -152,6 +152,7 @@ export default function ProductDetailScreen() {
                 isFavorite={favorite.isFavorite}
                 favoriteLoading={favorite.favoriteLoading}
                 reportOnly={reportOnly}
+                hideFavorite={isOwner}
                 onFavorite={favorite.toggle}
                 onShare={actions.handleShare}
                 onMenu={reportOnly ? actions.handleReport : sellerActions.open}

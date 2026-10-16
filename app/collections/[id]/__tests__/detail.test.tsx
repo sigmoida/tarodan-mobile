@@ -135,6 +135,24 @@ describe('J106 · Sahiplik kontrolü (düzenle butonu)', () => {
     expect(screen.queryByText('Ürün Ekle')).toBeNull();
     expect(screen.queryByText('Düzenle')).toBeNull();
   });
+
+  it('başkasının koleksiyonundaki kendi ilanım için kart kalbi çizilmez; diğer kalemlerde durur', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'stranger-9', membershipTier: 'free' } };
+    const items = [
+      { id: 'i1', productId: 'p-mine', productTitle: 'Benim', productPrice: 10, sellerId: 'stranger-9' },
+      { id: 'i2', productId: 'p-nested', productTitle: 'İç içe', productPrice: 10, seller: { id: 'stranger-9' } },
+      { id: 'i3', productId: 'p-other', productTitle: 'Başkası', productPrice: 10, sellerId: 'someone-else' },
+    ];
+    getMock.mockImplementation(async (url: string) =>
+      String(url).includes('favorites')
+        ? { data: { data: [] } }
+        : { data: { data: collectionFixture({ userId: 'owner-1', items }) } },
+    );
+    renderWithProviders(<CollectionDetailScreen />);
+    await waitFor(() => expect(screen.getByTestId('product-card-favorite-p-other')).toBeOnTheScreen());
+    expect(screen.queryByTestId('product-card-favorite-p-mine')).toBeNull();
+    expect(screen.queryByTestId('product-card-favorite-p-nested')).toBeNull();
+  });
 });
 
 /**
