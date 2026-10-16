@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockGetSlides = jest.fn();
 jest.mock('@/lib/api', () => ({
+  HERO_CLIENT_PLATFORM: 'app',
   heroApi: { getSlides: (...a: unknown[]) => mockGetSlides(...a) },
 }));
 
@@ -89,7 +90,7 @@ describe('ortak hero sorgusu (useHeroSlides)', () => {
     await waitFor(() => expect(a.result.current.slides).toHaveLength(1));
     await waitFor(() => expect(b.result.current).not.toBeNull());
     expect(mockGetSlides).toHaveBeenCalledTimes(1); // tek istek, tek sorgu
-    const cached = client.getQueryData(qk.hero.slides('auth_default'));
+    const cached = client.getQueryData(qk.hero.slides('auth_default', 'app'));
     expect(Array.isArray(cached)).toBe(true); // zarf değil, düz liste
     expect(cached).toHaveLength(1);
   });

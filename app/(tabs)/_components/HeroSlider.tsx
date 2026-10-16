@@ -185,23 +185,18 @@ export function HeroSlider({
 }
 
 /**
- * Ana sayfa hero'su. Yalnız API'den görünür slayt varsa çizilir; yüklenirken, boş
- * listede (admin uygulama için hero'yu kapattı / canlı slayt yok / uç hatası /
- * hepsi `hideOnIos`, `platform: 'web'` ya da satın alma hedefli) `null` — yer
- * ayrılmaz, statik yedek yok. Önbellekte veri varsa `isLoading` false olur ve
- * doğrudan gösterilir.
+ * Ana sayfa hero'su. Çizim kararı (yükleniyor / yer tut / göster) ekranda
+ * (`app/(tabs)/index.tsx`) verilir; burada yalnız slayt yoksa `null` (güvenlik).
  */
 export function HeroSection({
   slides,
   locale,
-  isLoading,
   visible,
 }: {
   slides: HeroSlide[];
   locale: string;
-  isLoading?: boolean;
   visible?: boolean;
 }) {
-  if (isLoading || slides.length === 0) return null;
+  if (slides.length === 0) return null;
   return <HeroSlider slides={slides} locale={locale} visible={visible} />;
 }

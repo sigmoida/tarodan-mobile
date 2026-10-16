@@ -19,6 +19,7 @@ jest.mock('expo-router', () => ({
 
 const mockGetSlides = jest.fn();
 jest.mock('@/lib/api', () => ({
+  HERO_CLIENT_PLATFORM: 'app',
   heroApi: { getSlides: (...a: unknown[]) => mockGetSlides(...a) },
   authApi: {
     login: jest.fn(),

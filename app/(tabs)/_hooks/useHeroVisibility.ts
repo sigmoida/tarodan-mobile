@@ -44,5 +44,15 @@ export function useHeroVisibility() {
     [update],
   );
 
-  return { visible, onScroll, onScrollOffset, onViewportLayout, onHeroLayout };
+  /**
+   * Hero sarmalayıcısı kalktığında (slayt yok / yükleniyor) ölçümü sıfırlar: `visible`
+   * varsayılan `true`'ya döner, slaytlar geri gelince otomatik ilerleme/gösterim kapalı kalmaz.
+   */
+  const resetHero = useCallback(() => {
+    metrics.current.top = 0;
+    metrics.current.height = 0;
+    update();
+  }, [update]);
+
+  return { visible, onScroll, onScrollOffset, onViewportLayout, onHeroLayout, resetHero };
 }

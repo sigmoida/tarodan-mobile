@@ -1,10 +1,10 @@
 /**
- * D-4.3/4.4: ana sayfa hero'su API'den gelir. Yüklenirken ve görünür slayt yokken
- * hiçbir şey çizilmez; CTA'lar paylaşılan openAdLink ile açılır, tıklama
+ * D-4.3/4.4: ana sayfa hero'su API'den gelir. Görünür slayt yokken hiçbir
+ * şey çizilmez (yükleniyor/yer tutma kararı ekranda); CTA'lar paylaşılan openAdLink ile açılır, tıklama
  * `?cta=` ile TEK istek olarak sayılır, gösterim görünürlükte (mount'ta değil).
  */
 import React from 'react';
-import { AppState, ScrollView, StyleSheet } from 'react-native';
+import { AppState, Dimensions, ScrollView, StyleSheet } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 const mockRecordClick = jest.fn((..._a: unknown[]) => Promise.resolve());
@@ -35,6 +35,8 @@ jest.mock('expo-router', () => {
 });
 
 import { HeroSection } from '../HeroSlider';
+import { HeroReserved } from '../HeroReserved';
+import { heroReservedHeight } from '../../_lib/heroLayout';
 import * as heroView from '@/lib/hero/heroView';
 import { IMPRESSION_DWELL_MS } from '@/lib/ads/useAdImpression';
 import type { HeroSlide } from '@/lib/api/hero';
@@ -72,17 +74,10 @@ describe('HeroSection', () => {
   });
   afterEach(() => jest.useRealTimers());
 
-  it('yüklenirken hiçbir şey çizmez (yer ayırmaz, statik hero yok)', () => {
-    const api = render(<HeroSection slides={[]} locale="tr" isLoading />);
-    expect(api.toJSON()).toBeNull();
-    expect(api.queryByTestId('hero-reserved')).toBeNull();
-  });
-
-  it('yüklenirken bile elde slayt olsa çizilmez; önbellekten (isLoading false) doğrudan çizilir', () => {
-    const loading = render(<HeroSection slides={[slide()]} locale="tr" isLoading />);
-    expect(loading.toJSON()).toBeNull();
-    const cached = render(<HeroSection slides={[slide()]} locale="tr" isLoading={false} />);
-    expect(cached.getByTestId('hero-slider')).toBeTruthy();
+  it('HeroReserved: ekran genişliğinden hesaplanan yükseklikte boş yer tutar', () => {
+    const api = render(<HeroReserved />);
+    const style = StyleSheet.flatten(api.getByTestId('hero-reserved').props.style);
+    expect(style.height).toBeCloseTo(heroReservedHeight(Dimensions.get('window').width), 5);
   });
 
   it('görünür slayt yoksa hiçbir şey çizilmez (statik yedek hero yok)', () => {
