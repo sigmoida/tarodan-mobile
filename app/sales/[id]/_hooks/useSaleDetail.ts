@@ -1,4 +1,5 @@
 import { Linking } from 'react-native';
+import { openExternalUrlSafely } from '@/lib/security/openExternalUrl';
 import { useTranslation } from 'react-i18next';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -75,7 +76,7 @@ export function useSaleDetail() {
   // yok" veriyordu. `deriveShipmentView` yalnız gerçek koddan URL üretir.
   const handleTrack = () => {
     if (!shipmentView.trackingUrl) return;
-    Linking.openURL(shipmentView.trackingUrl);
+    void openExternalUrlSafely(shipmentView.trackingUrl);
   };
 
   return {

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Pressable, Linking, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
+import { openExternalUrlSafely } from '@/lib/security/openExternalUrl';
 import { SectionCard, Text, Button, theme, Icon } from '@/ui';
 import { buildTrackingUrl, deriveShipmentView } from '@/lib/shipping/tracking';
 import { ShipmentStatusChip } from './ShipmentStatusChip';
@@ -12,7 +13,7 @@ const { colors } = theme;
 /** Link ELLE BİRLEŞTİRİLMEZ — tek kaynak `buildTrackingUrl` (§ kargo takibi). */
 const openSuratTrack = (code: string) => {
   const url = buildTrackingUrl('surat', code);
-  if (url) Linking.openURL(url);
+  if (url) void openExternalUrlSafely(url);
 };
 
 // 'Sürat Kargo' bir taşıyıcı markası — özel ad, çevrilmez (CLAUDE.md kural 4).

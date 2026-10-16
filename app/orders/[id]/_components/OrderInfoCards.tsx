@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { View, Pressable, Linking, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
+import { openExternalUrlSafely } from '@/lib/security/openExternalUrl';
 import { SectionCard, Text, Button, StatusBadge, theme } from '@/ui';
 import type { Shipment } from '@/lib/api';
 import { CopyButton } from '@/components/common/CopyButton';
@@ -170,7 +171,7 @@ export function OrderTrackingCard({
             <CopyButton testID="order-tracking-copy" value={s.cargoCode} successMessage={t('trade.trackingCopied')} />
           </View>
           {s.trackingUrl ? (
-            <Pressable onPress={() => Linking.openURL(s.trackingUrl!)} accessibilityRole="link" hitSlop={8}>
+            <Pressable onPress={() => void openExternalUrlSafely(s.trackingUrl)} accessibilityRole="link" hitSlop={8}>
               <Text variant="bodySm" tone="primary">{t('order.trackShipment')}</Text>
             </Pressable>
           ) : null}

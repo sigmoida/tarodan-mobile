@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { View, Linking, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { openExternalUrlSafely } from '@/lib/security/openExternalUrl';
 import { SectionCard, Text, Button, StatusBadge, theme } from '@/ui';
 import { router } from 'expo-router';
 import { buildTrackingUrl } from '@/lib/shipping/tracking';
@@ -120,7 +121,7 @@ export function OrderRefundBanner({
             <Button
               variant="outline"
               title={t('order.trackOnSurat')}
-              onPress={() => Linking.openURL(returnTrackingUrl)}
+              onPress={() => void openExternalUrlSafely(returnTrackingUrl)}
             />
           ) : null}
         </View>
