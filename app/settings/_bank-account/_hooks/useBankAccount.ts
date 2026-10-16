@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { Keyboard } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { confirm, toast } from '@/ui';
@@ -7,6 +9,8 @@ import { bankAccountApi, errorText } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
+import { dismissLegalIdentitySavedNotice } from '@/stores/legalIdentityRequestStore';
+import { goBackOrHome } from '@/components/common/goBackOrHome';
 import { formatIbanDisplay } from '@/utils/iban';
 import { buildBankAccountSchema, EMPTY_BANK_ACCOUNT, type BankAccountForm } from '../_lib/schema';
 import { sameBankAccountPayload, toBankAccountPayload } from '../_lib/payload';
@@ -22,11 +26,18 @@ import { sameBankAccountPayload, toBankAccountPayload } from '../_lib/payload';
  * değilse kayıt gitmez; form bu arada değiştiyse (ör. hesap sorgusu yenilenip
  * formu sıfırladı) eski değerler GÖNDERİLMEZ, üyeden Kaydet'e yeniden basması
  * istenir — IBAN paranın gideceği yer, gördüğü değerden başkası kaydedilmemeli.
+ *
+ * Geri bildirim: başarıda klavye kapanır, toast çıkar ve ekran kayıtlı özet kartını
+ * gösterir. İlan formunun IBAN kapısından (`?from=listing`) gelindiyse kayıttan sonra
+ * kendiliğinden geri dönülür (kapı aynı sorgu anahtarını okuduğu için açılır); Ayarlar'dan
+ * gelindiyse ekranda kalınır.
  */
 export function useBankAccount() {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const queryClient = useQueryClient();
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const returnToListing = from === 'listing';
   const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
   // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
   const schema = useMemo(() => buildBankAccountSchema(t), [t]);
@@ -61,7 +72,12 @@ export function useBankAccount() {
     mutationFn: async (data: BankAccountForm) => bankAccountApi.upsert(toBankAccountPayload(data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.user.bankAccount });
+      Keyboard.dismiss();
+      // Kimlik bu kayıtla yeni tamamlandıysa "kimlik kaydedildi" bildirimi bekliyor olabilir;
+      // tek toast gösterilir — son görünen banka "kaydedildi" olsun.
+      dismissLegalIdentitySavedNotice();
       toast.success(t('bankAccount.saved'));
+      if (returnToListing) goBackOrHome();
     },
     onError: (error) =>
       toast.error(errorText(error, t('bankAccount.saveFailed')).split('\n')[0]!),
@@ -80,7 +96,11 @@ export function useBankAccount() {
   const save = async (data: BankAccountForm) => {
     // Kimlik kontrolü sürerken buton "kaydediliyor" (`checkingIdentity`).
     const proceed = await requireIdentity();
-    if (!proceed || !mounted.current) return;
+    if (!mounted.current) return;
+    if (!proceed) {
+      toast(t('bankAccount.identityRequired'));
+      return;
+    }
     if (!sameBankAccountPayload(data, getValues())) {
       toast(t('bankAccount.resubmitAfterIdentity'));
       return;
@@ -103,6 +123,12 @@ export function useBankAccount() {
     isAuthenticated,
     form,
     existing: !!accountQuery.data,
+    account: accountQuery.data ?? null,
+    /** Yalnız ilk yükleme: yenilemede (refetch) form sökülmez. */
+    isLoading: accountQuery.isPending,
+    /** Okuma hatası (önceden alınmış veri varsa form korunur). */
+    loadError: accountQuery.isError && !accountQuery.data ? accountQuery.error : null,
+    refetch: accountQuery.refetch,
     onSubmit: form.handleSubmit(save),
     isSaving: checkingIdentity || upsertMutation.isPending,
     confirmDelete,

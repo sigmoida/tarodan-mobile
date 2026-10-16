@@ -35,3 +35,14 @@ export function formatIbanDisplay(raw: string): string {
   const normalized = normalizeIban(raw);
   return normalized.replace(/(.{4})/g, '$1 ').trim();
 }
+
+/**
+ * Kayıtlı IBAN'ın maskeli gösterimi: ilk 4 ve son 4 karakter açık, ortası `*`,
+ * 4'erli bloklara bölünmüş (`TR33 **** **** **** **** **13 26`). Saf fonksiyon;
+ * 8 karakterden kısa ya da boş girdi maskelenemez, olduğu gibi (biçimli) döner.
+ */
+export function maskIban(raw: string): string {
+  const n = normalizeIban(raw);
+  if (n.length <= 8) return formatIbanDisplay(n);
+  return formatIbanDisplay(n.slice(0, 4) + '*'.repeat(n.length - 8) + n.slice(-4));
+}

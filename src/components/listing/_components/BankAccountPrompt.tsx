@@ -2,9 +2,10 @@ import React from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
+import { BANK_ACCOUNT_FROM_LISTING_HREF } from '../_lib/gates';
 import { RequirementPrompt } from './RequirementPrompt';
 
-const goBankAccount = () => router.push('/settings/bank-account');
+const goBankAccount = () => router.push(BANK_ACCOUNT_FROM_LISTING_HREF);
 
 /**
  * "Banka hesabı ekleyin" istemi (web `BankGate`): yalnız BİLİNEN eksikte gösterilir.

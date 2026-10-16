@@ -69,7 +69,7 @@ it('hesap yok: IBAN istemi görünür, form (gönder düğmesi) görünmez', asy
   expect(await screen.findByText('İlan vermeden önce banka hesabı ekleyin')).toBeOnTheScreen();
   expect(screen.queryByText('İlan Oluştur')).toBeNull();
   fireEvent.press(screen.getByText('IBAN Ekle'));
-  expect(router.push).toHaveBeenCalledWith('/settings/bank-account');
+  expect(router.push).toHaveBeenCalledWith('/settings/bank-account?from=listing');
 });
 
 it('okuma hatası: "IBAN ekle" yok, Tekrar Dene var; deneyince hesap gelir ve form açılır', async () => {

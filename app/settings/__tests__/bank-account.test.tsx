@@ -8,10 +8,16 @@
  * - IBAN doğrulaması kaldırıldı (0487eaee4): "Doğrulanmadı durumuna döner" notu yanlıştı.
  */
 import React from 'react';
+import { Keyboard } from 'react-native';
 import { act, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
-jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
+let mockParams: Record<string, string> = {};
+jest.mock('expo-router', () => ({
+  ...jest.requireActual('@/test-utils/router-mock').routerMock,
+  useLocalSearchParams: () => mockParams,
+}));
+import { backMock, canGoBackMock, replaceMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k }),
@@ -47,6 +53,8 @@ import BankAccountScreen from '../bank-account';
 const IBAN = 'TR330006100519786457841326';
 
 beforeEach(() => {
+  mockParams = {};
+  resetRouterMocks();
   get.mockReset();
   upsert.mockClear();
   mockRequireIdentity.mockReset().mockResolvedValue(true);
@@ -103,6 +111,20 @@ describe('B-1.8 · banka hesabı formu', () => {
 
     await waitFor(() => expect(mockRequireIdentity).toHaveBeenCalledTimes(1));
     expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('kimlik adımından vazgeçilirse kullanıcıya kısa bilgi (toast) verilir', async () => {
+    get.mockResolvedValue({ data: null });
+    mockRequireIdentity.mockResolvedValue(false);
+    const toastSpy = jest.spyOn(jest.requireMock('@/ui'), 'toast').mockImplementation(() => 1);
+    renderWithProviders(<BankAccountScreen />);
+
+    fireEvent.changeText(await screen.findByTestId('bank-account-holder-input'), 'Mehmet Kaya');
+    fireEvent.changeText(screen.getByTestId('bank-account-iban-input'), IBAN);
+    fireEvent.press(screen.getByTestId('bank-account-submit-button'));
+
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('bankAccount.identityRequired'));
+    toastSpy.mockRestore();
   });
 
   /** Kimlik adımı açık kalırken bekleyen `requireIdentity` — testte elle çözülür. */
@@ -168,5 +190,102 @@ describe('B-1.8 · banka hesabı formu', () => {
     fireEvent.press(await screen.findByTestId('bank-account-submit-button'));
     expect(await screen.findByText('bankAccount.ibanInvalid')).toBeTruthy();
     expect(mockRequireIdentity).not.toHaveBeenCalled();
+  });
+
+  describe('kayıt geri bildirimi', () => {
+    it('ilk yüklemede form yerine yükleniyor durumu (boş form "kayıtlı değil" gibi görünmez)', async () => {
+      get.mockReturnValue(new Promise(() => undefined));
+      renderWithProviders(<BankAccountScreen />);
+
+      await waitFor(() => expect(get).toHaveBeenCalled());
+      expect(screen.queryByTestId('bank-account-holder-input')).toBeNull();
+      expect(screen.queryByTestId('bank-account-summary')).toBeNull();
+    });
+
+    it('okuma hatasında ErrorState + yeniden dene', async () => {
+      get.mockRejectedValueOnce(new Error('boom'));
+      renderWithProviders(<BankAccountScreen />);
+
+      expect(await screen.findByTestId('error-state')).toBeTruthy();
+      expect(screen.queryByTestId('bank-account-holder-input')).toBeNull();
+
+      get.mockResolvedValue({ data: { accountHolder: 'Ayşe Yılmaz', iban: IBAN } });
+      fireEvent.press(screen.getByText('mobile.errorRetry'));
+      expect(await screen.findByDisplayValue('Ayşe Yılmaz')).toBeTruthy();
+    });
+
+    it('kayıtlı hesapta özet kart: maskeli IBAN, hesap sahibi, "Kayıtlı" rozeti, son güncelleme', async () => {
+      get.mockResolvedValue({
+        data: { accountHolder: 'Ayşe Yılmaz', iban: IBAN, updatedAt: '2026-10-12T09:30:00.000Z' },
+      });
+      renderWithProviders(<BankAccountScreen />);
+
+      const card = await screen.findByTestId('bank-account-summary');
+      expect(card).toBeTruthy();
+      expect(screen.getByText('TR33 **** **** **** **** **13 26')).toBeTruthy();
+      expect(screen.getByText('bankAccount.savedBadge')).toBeTruthy();
+      expect(screen.getAllByText('Ayşe Yılmaz').length).toBeGreaterThan(0);
+      // Test çevirisi anahtarı döndürür; satırın çizilmesi yeterli.
+      expect(screen.getByText('bankAccount.lastUpdated')).toBeTruthy();
+    });
+
+    it('updatedAt yoksa son güncelleme satırı çizilmez; hesap yoksa özet kart görünmez', async () => {
+      get.mockResolvedValue({ data: { accountHolder: 'Ayşe Yılmaz', iban: IBAN } });
+      const view = renderWithProviders(<BankAccountScreen />);
+      await screen.findByTestId('bank-account-summary');
+      expect(screen.queryByText('bankAccount.lastUpdated')).toBeNull();
+      view.unmount();
+
+      get.mockResolvedValue({ data: null });
+      renderWithProviders(<BankAccountScreen />);
+      await screen.findByTestId('bank-account-holder-input');
+      expect(screen.queryByTestId('bank-account-summary')).toBeNull();
+    });
+
+    it('başarılı kayıtta klavye kapanır; Ayarlar\'dan gelindiyse ekranda kalınır', async () => {
+      get.mockResolvedValue({ data: null });
+      canGoBackMock.mockReturnValue(true);
+      const dismiss = jest.spyOn(Keyboard, 'dismiss');
+      renderWithProviders(<BankAccountScreen />);
+
+      fireEvent.changeText(await screen.findByTestId('bank-account-holder-input'), 'Mehmet Kaya');
+      fireEvent.changeText(screen.getByTestId('bank-account-iban-input'), IBAN);
+      fireEvent.press(screen.getByTestId('bank-account-submit-button'));
+
+      await waitFor(() => expect(dismiss).toHaveBeenCalled());
+      expect(backMock).not.toHaveBeenCalled();
+      expect(replaceMock).not.toHaveBeenCalled();
+      dismiss.mockRestore();
+    });
+
+    it('from=listing: kayıttan sonra ilan formuna geri dönülür', async () => {
+      mockParams = { from: 'listing' };
+      get.mockResolvedValue({ data: null });
+      canGoBackMock.mockReturnValue(true);
+      renderWithProviders(<BankAccountScreen />);
+
+      fireEvent.changeText(await screen.findByTestId('bank-account-holder-input'), 'Mehmet Kaya');
+      fireEvent.changeText(screen.getByTestId('bank-account-iban-input'), IBAN);
+      fireEvent.press(screen.getByTestId('bank-account-submit-button'));
+
+      await waitFor(() => expect(backMock).toHaveBeenCalledTimes(1));
+    });
+
+    it('from=listing, geçmiş yoksa ana sekmeye düşer; kayıt başarısızsa geri dönülmez', async () => {
+      mockParams = { from: 'listing' };
+      get.mockResolvedValue({ data: null });
+      upsert.mockRejectedValueOnce(new Error('fail'));
+      renderWithProviders(<BankAccountScreen />);
+
+      fireEvent.changeText(await screen.findByTestId('bank-account-holder-input'), 'Mehmet Kaya');
+      fireEvent.changeText(screen.getByTestId('bank-account-iban-input'), IBAN);
+      fireEvent.press(screen.getByTestId('bank-account-submit-button'));
+      await waitFor(() => expect(upsert).toHaveBeenCalledTimes(1));
+      expect(backMock).not.toHaveBeenCalled();
+      expect(replaceMock).not.toHaveBeenCalled();
+
+      fireEvent.press(screen.getByTestId('bank-account-submit-button'));
+      await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/(tabs)'));
+    });
   });
 });

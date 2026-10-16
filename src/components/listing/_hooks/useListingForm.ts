@@ -11,7 +11,7 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useZodForm } from '@/ui/form';
 import { buildListingFormSchema, emptyListingFormValues } from '../_lib/schema';
 import { firstListingValidationError } from '../_lib/validate';
-import { listingGateView } from '../_lib/gates';
+import { BANK_ACCOUNT_FROM_LISTING_HREF, listingGateView } from '../_lib/gates';
 import { buildColorAndBoxPayload, serverErrorMessage } from '../_lib/payload';
 import { MAX_COLORS } from '../_lib/schema';
 import { globalCustomGroups, requiredGlobalGroups } from '../_lib/attributeGroups';
@@ -873,7 +873,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
         t('listing.bankAccountRequiredBody'),
         [
           { text: t('listing.dismiss'), style: 'cancel' },
-          { text: t('listing.addIban'), onPress: () => router.push('/settings/bank-account') },
+          { text: t('listing.addIban'), onPress: () => router.push(BANK_ACCOUNT_FROM_LISTING_HREF) },
         ],
       );
       return;

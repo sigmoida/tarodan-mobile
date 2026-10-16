@@ -10,6 +10,13 @@ import type { ListingFormController } from '../_hooks/useListingForm';
  *  - `error`   : okunamadı -> "ekle" denmez, yeniden dene
  *  - `missing` : bilinen eksik -> ekleme istemi
  */
+/**
+ * İlan formunun IBAN kapısından banka hesabı ekranına giden adres. `from=listing`: kayıttan
+ * sonra ekran ilan formuna geri döner (`useBankAccount`). Her iki giriş noktası (kapı istemi,
+ * gönderim uyarısı) bunu kullanır.
+ */
+export const BANK_ACCOUNT_FROM_LISTING_HREF = '/settings/bank-account?from=listing';
+
 export type GateState = 'open' | 'loading' | 'error' | 'missing';
 
 type BankSlice = Pick<
