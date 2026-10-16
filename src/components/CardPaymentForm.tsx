@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, ScrollView, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
-import { Button, Input, Checkbox, Text, theme, appAlert, Icon, RadioIndicator } from '@/ui';
+import { Button, Input, Checkbox, Text, theme, appAlert, Icon, RadioIndicator, LoadingIndicator } from '@/ui';
 import { paymentsApi } from '@/lib/api';
 import type { PaymentPurpose } from '@/lib/payment/capabilities';
 import { buildDirectFormBody, type DirectFormBody, type DirectFormTarget } from '@/lib/payment/directFormBody';
@@ -336,7 +336,7 @@ export default function CardPaymentForm({
 
       {loadingCards ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.primary[500]} />
+          <LoadingIndicator />
         </View>
       ) : (
         <View style={styles.list}>

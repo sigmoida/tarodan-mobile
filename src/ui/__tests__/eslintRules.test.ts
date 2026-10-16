@@ -267,3 +267,71 @@ describe('tarodan/no-inline-query-key', () => {
     expect(reports).toHaveLength(0);
   });
 });
+
+describe('tarodan/no-raw-activity-indicator', () => {
+  const spec = (name: string, extra: any = {}) => ({
+    type: 'ImportSpecifier',
+    imported: { type: 'Identifier', name },
+    local: { type: 'Identifier', name },
+    ...extra,
+  });
+  const imp = (source: string, specifiers: any[], extra: any = {}) => ({
+    type: 'ImportDeclaration',
+    source: { type: 'Literal', value: source },
+    specifiers,
+    ...extra,
+  });
+  const run = (filename: string, drive: (v: any) => void) => {
+    const reports: unknown[] = [];
+    const v = plugin.rules['no-raw-activity-indicator'].create({
+      filename,
+      report: (r: unknown) => reports.push(r),
+    });
+    drive(v);
+    return reports.length;
+  };
+  const SCREEN = '/repo/app/foo/index.tsx';
+
+  it("react-native'den ActivityIndicator import'u uyarı; başka adlar / paketler serbest", () => {
+    expect(run(SCREEN, (v) => v.ImportDeclaration(imp('react-native', [spec('ActivityIndicator'), spec('View')])))).toBe(1);
+    expect(run(SCREEN, (v) => v.ImportDeclaration(imp('react-native', [spec('View')])))).toBe(0);
+    expect(run(SCREEN, (v) => v.ImportDeclaration(imp('@/ui', [spec('ActivityIndicator')])))).toBe(0);
+    // Yalnız tip import'u serbest.
+    expect(run(SCREEN, (v) => v.ImportDeclaration(imp('react-native', [spec('ActivityIndicator')], { importKind: 'type' })))).toBe(0);
+    expect(run(SCREEN, (v) => v.ImportDeclaration(imp('react-native', [spec('ActivityIndicator', { importKind: 'type' })])))).toBe(0);
+  });
+
+  it('namespace import + RN.ActivityIndicator (ifade ve JSX) uyarı', () => {
+    const ns = imp('react-native', [{ type: 'ImportNamespaceSpecifier', local: { type: 'Identifier', name: 'RN' } }]);
+    expect(
+      run(SCREEN, (v) => {
+        v.ImportDeclaration(ns);
+        v.MemberExpression({
+          type: 'MemberExpression',
+          computed: false,
+          object: { type: 'Identifier', name: 'RN' },
+          property: { type: 'Identifier', name: 'ActivityIndicator' },
+        });
+        v.JSXMemberExpression({
+          type: 'JSXMemberExpression',
+          object: { type: 'JSXIdentifier', name: 'RN' },
+          property: { type: 'JSXIdentifier', name: 'ActivityIndicator' },
+        });
+        v.MemberExpression({
+          type: 'MemberExpression',
+          computed: false,
+          object: { type: 'Identifier', name: 'RN' },
+          property: { type: 'Identifier', name: 'View' },
+        });
+      }),
+    ).toBe(2);
+  });
+
+  it('src/ui/loading/ muaf (tek gösterge orada)', () => {
+    expect(
+      run('/repo/src/ui/loading/LoadingIndicator.tsx', (v) =>
+        v.ImportDeclaration?.(imp('react-native', [spec('ActivityIndicator')])),
+      ),
+    ).toBe(0);
+  });
+});

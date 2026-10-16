@@ -154,6 +154,13 @@ module.exports = {
       rules: DESIGN_WARNINGS,
     },
     {
+      // Yükleme göstergesi tek yerde (src/ui/loading/LoadingIndicator) — ham ActivityIndicator uyarı.
+      // İzinli klasör kuralın içinde; testler muaf.
+      files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+      excludedFiles: DESIGN_TEST_FILES,
+      rules: { 'tarodan/no-raw-activity-indicator': 'warn' },
+    },
+    {
       // Query anahtarları yalnız `qk`'dan (CLAUDE.md §6) — kayıt defteri dosyası ve testler muaf.
       files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
       excludedFiles: [...DESIGN_TEST_FILES, 'src/lib/query/keys.ts'],
