@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useMemo, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,8 +9,7 @@ import { api } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { useAuthStore } from '@/stores/authStore';
 import { buildCollectionEditSchema, type CollectionForm, type Collection } from '../_lib/collectionEditSchema';
-import { coverFileFor, pickCollectionCover, uploadCollectionCover } from '../../_lib/cover';
-import type { LocalImageFile } from '@/lib/media';
+import { useCollectionCover } from '../../_hooks/useCollectionCover';
 
 /**
  * Collection edit controller — owns the collection query, RHF form (zod), the
@@ -23,9 +22,7 @@ export function useCollectionEdit() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
-  const [coverImage, setCoverImage] = useState<string | null>(null);
-  /** Seçilen kapağın dosya bilgisi (tür/boyut) — hazırlama için; önizleme `coverImage`. */
-  const pickedCoverRef = useRef<LocalImageFile | null>(null);
+  const { coverImage, setCoverImage, pickCoverImage, uploadCover } = useCollectionCover();
 
   // Fetch collection
   const { data: collection, isLoading } = useQuery<Collection>({
@@ -59,7 +56,7 @@ export function useCollectionEdit() {
       });
       setCoverImage(collection.coverImageUrl);
     }
-  }, [collection, reset]);
+  }, [collection, reset, setCoverImage]);
 
   // Update mutation
   const updateMutation = useMutation({
@@ -73,7 +70,7 @@ export function useCollectionEdit() {
 
       // Kapak değiştiyse ayrı multipart uca yükle (PATCH /collections/:id/cover, alan 'cover')
       if (coverImage && coverImage !== collection?.coverImageUrl) {
-        await uploadCollectionCover(String(id), coverFileFor(coverImage, pickedCoverRef.current));
+        await uploadCover(String(id), coverImage);
       }
     },
     onSuccess: () => {
@@ -112,14 +109,6 @@ export function useCollectionEdit() {
       toast.error(apiErrorMessage(error, t('collection.removeFailed')));
     },
   });
-
-  const pickCoverImage = async () => {
-    const picked = await pickCollectionCover();
-    if (picked) {
-      pickedCoverRef.current = picked;
-      setCoverImage(picked.uri);
-    }
-  };
 
   const handleDelete = () => {
     appAlert(

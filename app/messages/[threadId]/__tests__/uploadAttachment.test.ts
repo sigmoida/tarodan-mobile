@@ -1,6 +1,6 @@
 /**
  * Mesaj eki — yüklemeden önce ortak hazırlamadan (`@/lib/media`) geçer; yüklenen dosya
- * hazırlanmış (küçültülmüş) dosyadır, iOS FormData biçiminde (`file://` önekisiz).
+ * hazırlanmış (küçültülmüş) dosyadır (iOS URI biçimi API katmanında, `appendRNFile`).
  */
 const mockWithPrepared = jest.fn(
   async (_file: unknown, fn: (f: unknown) => Promise<unknown>, _opts?: unknown) =>
@@ -29,11 +29,9 @@ it('seçilen fotoğraf hazırlanır, hazırlanmış dosya yüklenir; URL döner'
   mockUploadMessageImage.mockResolvedValue({ data: { url: 'https://x/m.jpg' } });
   await expect(uploadMessageAttachment(picked)).resolves.toBe('https://x/m.jpg');
   expect(mockWithPrepared).toHaveBeenCalledWith(picked, expect.any(Function), undefined);
-  expect(mockUploadMessageImage).toHaveBeenCalledWith({
-    uri: '/cache/ImageManipulator/p.jpg',
-    name: 'p.jpg',
-    type: 'image/jpeg',
-  });
+  expect(mockUploadMessageImage).toHaveBeenCalledWith(
+    expect.objectContaining({ uri: 'file:///cache/ImageManipulator/p.jpg', name: 'p.jpg', type: 'image/jpeg' }),
+  );
 });
 
 it('iç içe `data.url` biçimi de okunur; URL yoksa undefined', async () => {

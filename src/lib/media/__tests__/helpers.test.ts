@@ -2,19 +2,22 @@ import { requireOptionalNativeModule } from 'expo';
 
 jest.mock('expo', () => ({ requireOptionalNativeModule: jest.fn(() => null) }));
 const mockDelete = jest.fn(async (_uri: string, _opts?: unknown) => undefined);
+const mockGetInfo = jest.fn(async (_uri: string): Promise<{ exists: boolean }> => ({ exists: true }));
 jest.mock('expo-file-system/legacy', () => ({
   cacheDirectory: 'file:///cache/',
   deleteAsync: (uri: string, opts?: unknown) => mockDelete(uri, opts),
+  getInfoAsync: (uri: string) => mockGetInfo(uri),
 }));
 
 import {
-  PICKER_QUALITY_FALLBACK,
-  PICKER_QUALITY_WITH_MANIPULATOR,
+  PICKER_QUALITY,
   abortError,
+  canReusePreparedFile,
   fromPickerAsset,
   isAbortError,
   isDisposablePreparedFile,
   pickerQuality,
+  preparedFileExists,
   releasePreparedFile,
   untilAborted,
   withPreparedImage,
@@ -33,22 +36,39 @@ beforeEach(() => {
 });
 
 describe('pickerQuality (tek karar noktası)', () => {
-  it('manipulator varsa 1 — picker yeniden kodlamaz, tek sıkıştırma hazırlamada', () => {
-    mockRequire.mockReturnValue({ manipulate: jest.fn() });
-    expect(pickerQuality()).toBe(PICKER_QUALITY_WITH_MANIPULATOR);
-    expect(PICKER_QUALITY_WITH_MANIPULATOR).toBe(1);
-  });
-
-  it('manipulator yoksa (yeniden derlenmemiş dev-client) 0.8 kalır', () => {
-    expect(pickerQuality()).toBe(PICKER_QUALITY_FALLBACK);
-    expect(PICKER_QUALITY_FALLBACK).toBe(0.8);
-  });
-
-  it('modül çözümü fırlatsa da 0.8 (fırlatmaz)', () => {
-    mockRequire.mockImplementation(() => {
-      throw new Error('boom');
-    });
+  it('manipulator olsa da olmasa da 0.8 — hazırlama atlanırsa güvenlik ağı (JPEG, EXIF/GPS yok)', () => {
+    expect(PICKER_QUALITY).toBe(0.8);
     expect(pickerQuality()).toBe(0.8);
+    mockRequire.mockReturnValue({ manipulate: jest.fn() });
+    expect(pickerQuality()).toBe(0.8);
+  });
+});
+
+describe('canReusePreparedFile (yeniden deneme kuralı)', () => {
+  it('geçici hata: ağ / yanıt yok, 5xx, 408, 429 → yeniden kullan', () => {
+    expect(canReusePreparedFile(new Error('Network Error'))).toBe(true);
+    expect(canReusePreparedFile(undefined)).toBe(true);
+    expect(canReusePreparedFile({ response: { status: 500 } })).toBe(true);
+    expect(canReusePreparedFile({ response: { status: 503 } })).toBe(true);
+    expect(canReusePreparedFile({ response: { status: 408 } })).toBe(true);
+    expect(canReusePreparedFile({ response: { status: 429 } })).toBe(true);
+  });
+
+  it('diğer 4xx → bırak, orijinalden yeniden hazırla', () => {
+    expect(canReusePreparedFile({ response: { status: 400 } })).toBe(false);
+    expect(canReusePreparedFile({ response: { status: 413 } })).toBe(false);
+    expect(canReusePreparedFile({ response: { status: 422 } })).toBe(false);
+  });
+});
+
+describe('preparedFileExists', () => {
+  const f: LocalImageFile = { uri: 'file:///cache/ImageManipulator/a.jpg', name: 'a.jpg', type: 'image/jpeg' };
+  it('diskte varsa true, yoksa / kontrol hata verirse false', async () => {
+    await expect(preparedFileExists(f)).resolves.toBe(true);
+    mockGetInfo.mockResolvedValueOnce({ exists: false });
+    await expect(preparedFileExists(f)).resolves.toBe(false);
+    mockGetInfo.mockRejectedValueOnce(new Error('io'));
+    await expect(preparedFileExists(f)).resolves.toBe(false);
   });
 });
 
@@ -125,6 +145,15 @@ describe('withPreparedImage', () => {
     await expect(withPreparedImage(original, async () => Promise.reject(new Error('net')))).rejects.toThrow('net');
     await flush();
     expect(mockDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('yeniden kodlanmayacak dosya (PDF) hazırlama kuyruğuna girmez, olduğu gibi yüklenir', async () => {
+    const manipulator = fakeManipulator();
+    mockRequire.mockReturnValue(manipulator);
+    const pdf: LocalImageFile = { uri: 'file:///cache/DocumentPicker/a.pdf', name: 'a.pdf', type: 'application/pdf' };
+    const upload = jest.fn(async (f: LocalImageFile) => f);
+    await expect(withPreparedImage(pdf, upload)).resolves.toBe(pdf);
+    expect(manipulator.manipulate).not.toHaveBeenCalled();
   });
 
   it("manipulator yoksa orijinal yüklenir, hiçbir dosya silinmez", async () => {

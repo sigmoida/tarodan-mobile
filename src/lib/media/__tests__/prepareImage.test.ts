@@ -12,6 +12,7 @@ import {
   MAX_UPLOAD_EDGE,
   UPLOAD_JPEG_QUALITY,
   PREPARE_TIMEOUT_MS,
+  SMALL_JPEG_BYTES,
   createPreparer,
   isReencodableImage,
   jpegName,
@@ -172,6 +173,18 @@ describe('prepareImageForUpload', () => {
     await prepareImageForUpload(file(), doc.manipulator, IMAGE_PROFILES.document);
     expect(doc.calls[0]!.resize).toEqual([{ width: 2400 }]);
     expect(doc.saves).toEqual([{ format: 'jpeg', compress: 0.85 }]);
+  });
+
+  it('boyutları bilinmeyen küçük JPEG (≤ 1.5 MB) yeniden kodlanmaz; büyüğü işlenir', async () => {
+    const { manipulator, calls } = fakeManipulator();
+    const noDims = { uri: 'file:///d.jpg', name: 'd.jpg', type: 'image/jpeg', width: undefined, height: undefined };
+    const small = file({ ...noDims, size: SMALL_JPEG_BYTES });
+    expect(await prepareImageForUpload(small, manipulator)).toBe(small);
+    expect(calls).toHaveLength(0);
+    const unknownSize = file(noDims);
+    expect((await prepareImageForUpload(unknownSize, manipulator)).temporary).toBe(true);
+    const big = file({ ...noDims, size: SMALL_JPEG_BYTES + 1 });
+    expect((await prepareImageForUpload(big, manipulator)).temporary).toBe(true);
   });
 
   it('görsel olmayan dosya (PDF) olduğu gibi gider', async () => {
@@ -342,6 +355,22 @@ describe('createPreparer (seri + süre sınırı + iptal)', () => {
     ctrl.abort();
     await expect(run(file(), { signal: ctrl.signal })).rejects.toMatchObject({ name: 'AbortError' });
     expect(prepare).not.toHaveBeenCalled();
+  });
+
+  it('yeniden kodlanmayacak dosya (PDF/PNG) seri kapıya girmez: takılı bir hazırlamayı beklemez', async () => {
+    const prepare = jest.fn((f: LocalImageFile) =>
+      f.name === 'stuck.jpg' ? never() : Promise.resolve(done(f)),
+    );
+    const run = createPreparer({ prepare });
+    const ctrl = new AbortController();
+    const stuck = run(file({ uri: 'file:///stuck.jpg', name: 'stuck.jpg', type: 'image/jpeg' }), { signal: ctrl.signal });
+    const pdf = file({ uri: 'file:///a.pdf', name: 'a.pdf', type: 'application/pdf' });
+    const png = file({ uri: 'file:///a.png', name: 'a.png', type: 'image/png' });
+    await expect(run(pdf)).resolves.toBe(pdf);
+    await expect(run(png)).resolves.toBe(png);
+    expect(prepare).toHaveBeenCalledTimes(1);
+    ctrl.abort(); // süre zamanlayıcısı temizlensin
+    await expect(stuck).rejects.toMatchObject({ name: 'AbortError' });
   });
 
   it('profil seçenekleri hazırlamaya iletilir; sinyalsiz çağrı da çalışır', async () => {

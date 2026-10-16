@@ -1838,6 +1838,7 @@
     "attachImage": "Resim ekle",
     "moreCount": "Daha fazla ({count})",
     "selectImageFile": "Lütfen bir resim dosyası seçin",
+    "imageUploadFailed": "Resim yüklenemedi",
     "sentForReview": "Mesajınız incelenmek üzere gönderildi",
     "sendFailed": "Mesaj gönderilemedi",
     "prefilledInquiry": "Merhaba, \"{title}\" ilanı hakkında bilgi almak istiyorum.\n\n",

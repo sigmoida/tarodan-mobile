@@ -1,7 +1,6 @@
 /**
  * İade kanıtı — seçici `pickerQuality()` ile açılır ve yerel URI'yi (önekli) + boyutları
- * korur; her fotoğraf yüklemeden önce ortak hazırlamadan geçer, hazırlanmış dosya iOS
- * FormData biçiminde yüklenir.
+ * korur; her fotoğraf yüklemeden önce ortak hazırlamadan geçer, hazırlanmış dosya yüklenir.
  */
 import React from 'react';
 import { act, renderHook } from '@testing-library/react-native';
@@ -40,7 +39,7 @@ it('seçici pickerQuality ile açılır; dosyalar önekli URI + boyutla döner',
     assets: [{ uri: 'file:///tmp/a.heic', fileName: 'a.heic', mimeType: 'image/heic', width: 4032, height: 3024 }],
   });
   await expect(pickEvidencePhotos(3)).resolves.toEqual([
-    { uri: 'file:///tmp/a.heic', name: 'a.heic', type: 'image/heic', width: 4032, height: 3024 },
+    expect.objectContaining({ uri: 'file:///tmp/a.heic', name: 'a.heic', type: 'image/heic', width: 4032, height: 3024 }),
   ]);
   expect(launch).toHaveBeenCalledWith(expect.objectContaining({ selectionLimit: 3, quality: pickerQuality() }));
 });
@@ -61,10 +60,8 @@ it('her kanıt fotoğrafı hazırlanıp yüklenir; URL\'ler sırayla döner', as
   });
   expect(urls).toEqual(['https://x/a.jpg', 'https://x/b.jpg']);
   expect(mockWithPrepared.mock.calls.map(([f]) => f)).toEqual(files);
-  // Hazırlanmış (cache) dosya, iOS FormData biçiminde (önek yok).
-  expect(mockUpload).toHaveBeenCalledWith({
-    uri: '/cache/ImageManipulator/a.jpg',
-    name: 'a.jpg',
-    type: 'image/jpeg',
-  });
+  // Hazırlanmış (cache) dosya yüklenir (iOS URI biçimi API katmanında).
+  expect(mockUpload).toHaveBeenCalledWith(
+    expect.objectContaining({ uri: 'file:///cache/ImageManipulator/a.jpg', name: 'a.jpg', type: 'image/jpeg' }),
+  );
 });

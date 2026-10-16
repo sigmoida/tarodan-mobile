@@ -50,7 +50,7 @@ it('seçilen fotoğraf avatar profiliyle hazırlanır, hazırlanmış dosya yük
   );
   await waitFor(() => expect(mockUpdateProfile).toHaveBeenCalledWith({ avatarUrl: 'avatars/u1.jpg' }));
   expect(mockWithPrepared).toHaveBeenCalledWith(
-    { uri: 'file:///tmp/me.heic', name: 'me.heic', type: 'image/heic', width: 3000, height: 3000 },
+    expect.objectContaining({ uri: 'file:///tmp/me.heic', name: 'me.heic', type: 'image/heic', width: 3000, height: 3000 }),
     expect.any(Function),
     IMAGE_PROFILES.avatar,
   );

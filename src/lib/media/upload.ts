@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import { prepareUploadImage, type LocalImageFile, type PrepareRunOptions } from './prepareImage';
 import { releasePreparedFile } from './tempFiles';
 
@@ -19,9 +18,4 @@ export async function withPreparedImage<T>(
   } finally {
     releasePreparedFile(prepared);
   }
-}
-
-/** iOS FormData `file://` önekisiz yolu bekliyor (ilan/mesaj/kanıt yüklemelerinin mevcut biçimi). */
-export function formDataUri(uri: string): string {
-  return Platform.OS === 'android' ? uri : uri.replace('file://', '');
 }

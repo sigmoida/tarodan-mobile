@@ -1,5 +1,5 @@
 import { mediaApi } from '@/lib/api';
-import { formDataUri, withPreparedImage, type LocalImageFile } from '@/lib/media';
+import { withPreparedImage, type LocalImageFile } from '@/lib/media';
 
 /**
  * Mesaj eki fotoğrafını yükler, gömülecek URL'yi döner (yoksa `undefined`).
@@ -7,7 +7,7 @@ import { formDataUri, withPreparedImage, type LocalImageFile } from '@/lib/media
  */
 export async function uploadMessageAttachment(file: LocalImageFile): Promise<string | undefined> {
   const response = await withPreparedImage(file, (prepared) =>
-    mediaApi.uploadMessageImage({ uri: formDataUri(prepared.uri), name: prepared.name, type: prepared.type }),
+    mediaApi.uploadMessageImage(prepared),
   );
   const data = response.data as { url?: string; data?: { url?: string } } | undefined;
   return data?.url ?? data?.data?.url;

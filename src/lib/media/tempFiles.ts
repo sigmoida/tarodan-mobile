@@ -9,7 +9,7 @@
  * yeniden derlenmemiş dev-client'ta ve testte de import güvenli; silme hatası yutulur
  * (cache dizinini işletim sistemi zaten temizler, yükleme akışı asla kırılmaz).
  */
-import { cacheDirectory, deleteAsync } from 'expo-file-system/legacy';
+import { cacheDirectory, deleteAsync, getInfoAsync } from 'expo-file-system/legacy';
 import type { LocalImageFile } from './prepareImage';
 
 /** Bu dosya hazırlayıcının ürettiği, silinebilir bir cache dosyası mı? */
@@ -18,6 +18,19 @@ export function isDisposablePreparedFile(file: LocalImageFile | null | undefined
   // Cache dizini bilinmiyorsa (shim) yerini doğrulayamayız → silme.
   if (!cacheDirectory) return false;
   return file.uri.startsWith(cacheDirectory);
+}
+
+/**
+ * Hazırlanmış dosya hâlâ diskte mi? iOS Caches'i ve Android cache'i sistem boşaltabilir;
+ * yoksa (ya da kontrol edilemiyorsa) yeniden deneme orijinalden yeniden hazırlar.
+ */
+export async function preparedFileExists(file: LocalImageFile): Promise<boolean> {
+  try {
+    const info = await getInfoAsync(file.uri);
+    return !!info?.exists;
+  } catch {
+    return false;
+  }
 }
 
 /** Hazırlanmış geçici dosyayı sil (fire-and-forget; asla fırlatmaz). */

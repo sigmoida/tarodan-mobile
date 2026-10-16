@@ -1,17 +1,11 @@
 import { api } from './client';
+import { appendRNFile, type RNFile } from './formData';
 
 /**
- * Medya yükleme. React Native için dosyalar şu formatta iletilir:
- *   { uri: string; name: string; type: string }
- * (Web'deki File ile eşdeğer davranır.)
+ * Medya yükleme. Dosyalar `{ uri, name, type }` (önekli yerel URI) olarak verilir; multipart
+ * parçası ve iOS URI biçimi tek yerde: `appendRNFile` (`./formData`).
  */
-export type RNFile = { uri: string; name: string; type: string };
-
-const appendRNFile = (formData: FormData, field: string, file: RNFile) => {
-  // RN'in kendine özel FormData implementasyonu dosya objesini aşağıdaki şekilde kabul eder.
-  // as any cast'i TS'in React Native FormData tiplerinin olmadığı durumlar için gerekli.
-  formData.append(field, file as any);
-};
+export type { RNFile } from './formData';
 
 /**
  * Tek ürün görselinin istek süresi. Global 30 sn (`client.ts`) mobil veride büyük bir

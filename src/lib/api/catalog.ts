@@ -1,5 +1,6 @@
 import { api, guestApi } from './client';
 import { MEDIA_UPLOAD_TIMEOUT_MS } from './media';
+import { appendRNFile } from './formData';
 
 // Categories API - Web ile aynı endpoint'ler
 export const categoriesApi = {
@@ -33,7 +34,7 @@ export const collectionsApi = {
   /** Kapak görseli yükle/değiştir — multipart, alan adı `cover` */
   updateCover: (id: string, file: { uri: string; name: string; type: string }) => {
     const formData = new FormData();
-    formData.append('cover', file as any);
+    appendRNFile(formData, 'cover', file);
     return api.patch(`/collections/${id}/cover`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: MEDIA_UPLOAD_TIMEOUT_MS,

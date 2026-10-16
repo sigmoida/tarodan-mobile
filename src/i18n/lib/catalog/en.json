@@ -1838,6 +1838,7 @@
     "attachImage": "Attach image",
     "moreCount": "More ({count})",
     "selectImageFile": "Please select an image file",
+    "imageUploadFailed": "Failed to upload image",
     "sentForReview": "Your message has been sent for review",
     "sendFailed": "Failed to send message",
     "prefilledInquiry": "Hi, I'd like to ask about the \"{title}\" listing.\n\n",

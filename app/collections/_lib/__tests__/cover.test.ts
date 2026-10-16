@@ -37,7 +37,7 @@ it('seçici 16:9 kırpma + pickerQuality ile açılır; dosya bilgisi (tür/boyu
     canceled: false,
     assets: [{ uri: 'file:///tmp/c.jpg', fileName: 'c.jpg', mimeType: 'image/jpeg', width: 3200, height: 1800 }],
   });
-  await expect(pickCollectionCover()).resolves.toEqual({
+  await expect(pickCollectionCover()).resolves.toMatchObject({
     uri: 'file:///tmp/c.jpg',
     name: 'c.jpg',
     type: 'image/jpeg',

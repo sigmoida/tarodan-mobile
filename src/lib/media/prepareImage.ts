@@ -36,6 +36,11 @@ export const UPLOAD_JPEG_QUALITY = 0.75;
  * sıradaki görseller sonsuza dek beklemesin: süre dolunca orijinal dosyayla devam edilir.
  */
 export const PREPARE_TIMEOUT_MS = 20_000;
+/**
+ * Boyutu bilinmeyen (belge seçiciden gelen) JPEG bu baytın altındaysa yeniden kodlanmaz: küçük
+ * JPEG'i tekrar sıkıştırmak boyutu büyütebilir/kaliteyi düşürür, çözme maliyeti de boşa gider.
+ */
+export const SMALL_JPEG_BYTES = 1.5 * 1024 * 1024;
 
 /** Hedefe göre küçültme ayarı. */
 export interface PrepareOptions {
@@ -80,6 +85,8 @@ export interface LocalImageFile {
   type: string;
   width?: number;
   height?: number;
+  /** Bayt boyutu (biliniyorsa) — boyutları bilinmeyen küçük JPEG'i atlamak için. */
+  size?: number;
   /**
    * `true` YALNIZ hazırlayıcının cache'e yazdığı dosyada — işi bitince silinebilir
    * (`releasePreparedFile`). Picker'ın orijinalinde hiçbir zaman yoktur.
@@ -147,7 +154,8 @@ const release = (obj: { release?: () => void } | null | undefined) => {
  * - Görsel olmayan dosya (PDF vb.) olduğu gibi gider.
  * - PNG/WebP/GIF olduğu gibi gider (saydamlık/animasyon korunur; web ile aynı).
  * - Uzun kenarı sınırın altındaki JPEG yeniden kodlanmaz (küçük JPEG'i tekrar
- *   sıkıştırmak boyutu büyütebilir).
+ *   sıkıştırmak boyutu büyütebilir). Boyutları bilinmeyen JPEG `SMALL_JPEG_BYTES`
+ *   altındaysa da yeniden kodlanmaz (belge seçici boyut vermez).
  * - Aksi halde (büyük JPEG, her HEIC/HEIF): gerekiyorsa küçült + JPEG `quality`.
  * - Boyut picker'dan biliniyorsa tek geçişte; EXIF yönü yüzünden işlenmiş
  *   görsel hâlâ sınırı aşıyorsa (ya da boyut bilinmiyorsa) ikinci geçişte
@@ -161,7 +169,8 @@ export async function prepareImageForUpload(
   if (!manipulator || !isReencodableImage(file.type)) return file;
   const type = file.type.toLowerCase();
   const firstResize = resizeFor(file.width, file.height, maxEdge);
-  const knownSmall = !!file.width && !!file.height && !firstResize;
+  const knownDims = !!file.width && !!file.height;
+  const knownSmall = knownDims ? !firstResize : typeof file.size === 'number' && file.size <= SMALL_JPEG_BYTES;
   if (knownSmall && JPEG_TYPES.includes(type)) return file;
 
   const owned: Array<{ release?: () => void } | null | undefined> = [];
@@ -217,6 +226,7 @@ export type ImagePreparer = (file: LocalImageFile, options?: PrepareRunOptions) 
  *   kalem hiç hazırlanmaz.
  * Yarışı kaybeden (süre doldu / iptal) native adım sonradan dosya üretirse o geçici
  * dosya kimseye verilmeden silinir — cache'te sahipsiz dosya kalmaz.
+ * Yeniden kodlanmayacak dosya (PDF, PNG/WebP/GIF) seri kapıya hiç girmez — hemen döner.
  */
 export function createPreparer({
   prepare = (file: LocalImageFile, options?: PrepareOptions) => prepareImageForUpload(file, undefined, options),
@@ -228,6 +238,9 @@ export function createPreparer({
   const runSerial = createSerialRunner();
   return (file, { signal, ...options } = {}) => {
     const guard = signal ?? new AbortController().signal;
+    if (!isReencodableImage(file.type)) {
+      return guard.aborted ? Promise.reject(abortError()) : Promise.resolve(file);
+    }
     return untilAborted(
       runSerial(() => {
         if (guard.aborted) return Promise.reject(abortError());

@@ -38,6 +38,8 @@ export function useDocumentUpload() {
       uri: asset.uri,
       name: asset.name ?? 'belge',
       type: asset.mimeType ?? 'application/octet-stream',
+      // Belge seçici en/boy vermez: küçük JPEG'in yeniden kodlanmaması boyuta göre (`SMALL_JPEG_BYTES`).
+      size: typeof asset.size === 'number' ? asset.size : undefined,
     };
     const oversize = typeof asset.size === 'number' && asset.size > MAX_DOCUMENT_BYTES;
     const alertTooLarge = () =>
@@ -56,7 +58,7 @@ export function useDocumentUpload() {
           if (oversize && !prepared.temporary) throw FILE_TOO_LARGE;
           await sellerDocumentsApi.upload(
             documentType,
-            { uri: prepared.uri, name: prepared.name, type: prepared.type },
+            prepared,
             stakeholderId,
           );
         },

@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { mediaApi } from '@/lib/api';
-import { formDataUri, withPreparedImage, type LocalImageFile } from '@/lib/media';
+import { withPreparedImage, type LocalImageFile } from '@/lib/media';
 import { captureException } from '@/services/sentry';
 
 /**
@@ -19,9 +19,7 @@ export function useUploadRefundEvidence(orderId: string) {
     mutationFn: async (files: LocalImageFile[]): Promise<string[]> => {
       const results = await Promise.all(
         files.map((file) =>
-          withPreparedImage(file, (prepared) =>
-            mediaApi.uploadRefundEvidence({ uri: formDataUri(prepared.uri), name: prepared.name, type: prepared.type }),
-          ),
+          withPreparedImage(file, (prepared) => mediaApi.uploadRefundEvidence(prepared)),
         ),
       );
       const urls = results.map((r) => r?.data?.url);

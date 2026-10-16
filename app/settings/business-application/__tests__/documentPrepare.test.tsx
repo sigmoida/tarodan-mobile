@@ -58,13 +58,13 @@ it('belge fotoğrafı document profiliyle hazırlanır; hazırlanmış dosya yü
     await result.current.pickAndUpload('tax_plate');
   });
   expect(mockWithPrepared).toHaveBeenCalledWith(
-    { uri: 'file:///cache/DocumentPicker/levha.jpg', name: 'levha.jpg', type: 'image/jpeg' },
+    { uri: 'file:///cache/DocumentPicker/levha.jpg', name: 'levha.jpg', type: 'image/jpeg', size: 12 * MB },
     expect.any(Function),
     IMAGE_PROFILES.document,
   );
   expect(mockUpload).toHaveBeenCalledWith(
     'tax_plate',
-    { uri: 'file:///cache/ImageManipulator/p.jpg', name: 'p.jpg', type: 'image/jpeg' },
+    expect.objectContaining({ uri: 'file:///cache/ImageManipulator/p.jpg', name: 'p.jpg', type: 'image/jpeg' }),
     undefined,
   );
   expect(mockAlert).not.toHaveBeenCalled();
@@ -78,7 +78,7 @@ it('PDF olduğu gibi yüklenir', async () => {
   });
   expect(mockUpload).toHaveBeenCalledWith(
     'contract',
-    { uri: 'file:///cache/DocumentPicker/s.pdf', name: 's.pdf', type: 'application/pdf' },
+    expect.objectContaining({ uri: 'file:///cache/DocumentPicker/s.pdf', name: 's.pdf', type: 'application/pdf' }),
     undefined,
   );
 });

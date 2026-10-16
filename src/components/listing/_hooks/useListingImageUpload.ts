@@ -7,9 +7,10 @@ import { apiErrorLines } from '@/lib/api/errorText';
 import { useLatestRef } from '@/hooks/useLatestRef';
 import {
   abortError,
-  formDataUri,
+  canReusePreparedFile,
   fromPickerAsset,
   pickerQuality,
+  preparedFileExists,
   prepareUploadImage,
   releasePreparedFile,
   type ImagePreparer,
@@ -41,10 +42,7 @@ const DEFAULT_MAX_IMAGES = 5;
  * iptal + 120 sn). Sunucu dizi döndürür; tek dosyada ilk eleman sonuçtur.
  */
 const defaultUpload: UploadPort = async (file, { signal, onProgress }) => {
-  const res = await mediaApi.uploadProductImage(
-    { uri: formDataUri(file.uri), name: file.name, type: file.type },
-    { signal, onProgress },
-  );
+  const res = await mediaApi.uploadProductImage(file, { signal, onProgress });
   const [result] = Array.isArray(res.data) ? res.data : [res.data];
   if (!result?.cardKey || !result?.detailKey) throw new Error('NO_SERVER_RESULT');
   return {
@@ -118,6 +116,11 @@ export function useListingImageUpload({ maxImages: maxImagesParam, upload, prepa
       upload: async (file, options) => {
         const { clientId, signal } = options;
         let prepared = imagesRef.current.find((item) => item.id === clientId)?.preparedFile;
+        // Sistem cache'i boşalttıysa saklanan dosya yok: düşür, orijinalden yeniden hazırla.
+        if (prepared && !(await preparedFileExists(prepared))) {
+          update((prev) => patchImage(prev, clientId, { preparedFile: undefined }));
+          prepared = undefined;
+        }
         if (!prepared) {
           prepared = await prepareRef.current(file, { signal });
           // Hazırlama sürerken kalem kaldırıldı / liste yeniden kuruldu: dosya sahipsiz kalmasın.
@@ -138,6 +141,15 @@ export function useListingImageUpload({ maxImages: maxImagesParam, upload, prepa
         // Yüklendi: hazırlanmış geçici dosyanın işi bitti (kalemden de düşer — applyUploadEvent).
         if (event.status === 'ready') {
           releasePreparedFile(imagesRef.current.find((item) => item.id === event.clientId)?.preparedFile);
+        }
+        // Dosyaya bağlı olabilecek hata (4xx; 408/429 hariç): hazırlanmış dosya bırakılır, yeniden
+        // deneme orijinalden yeniden hazırlar. Geçici hatada (ağ/5xx/408/429) aynı dosya kullanılır.
+        if (event.status === 'failed' && !canReusePreparedFile(event.error)) {
+          const stale = imagesRef.current.find((item) => item.id === event.clientId)?.preparedFile;
+          if (stale) {
+            releasePreparedFile(stale);
+            update((prev) => patchImage(prev, event.clientId, { preparedFile: undefined }));
+          }
         }
         const tr = tRef.current;
         const errorText =
@@ -196,8 +208,8 @@ export function useListingImageUpload({ maxImages: maxImagesParam, upload, prepa
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
         selectionLimit: remaining,
-        // Asıl küçültme/kodlama hazırlamada (`@/lib/media`); manipulator varsa picker yeniden
-        // kodlamaz (çift sıkıştırma yok), yoksa 0.8 ile tek sıkıştırmayı picker yapar.
+        // Çözünürlüğü düşürmez; asıl küçültme hazırlamada (`@/lib/media`). 0.8 güvenlik ağıdır:
+        // hazırlama atlanırsa da JPEG gider, EXIF/GPS taşınmaz (bkz. `pickerQuality`).
         quality: pickerQuality(),
       });
       if (result.canceled || result.assets.length === 0) return;
@@ -231,7 +243,10 @@ export function useListingImageUpload({ maxImages: maxImagesParam, upload, prepa
     queue.enqueue(added.map((item) => ({ clientId: item.id, file: item.file as LocalImageFile })));
   };
 
-  /** Hata alan kalemi yeniden kuyruğa al (diğer kalemler etkilenmez); hazırlanmış dosya yeniden kullanılır. */
+  /**
+   * Hata alan kalemi yeniden kuyruğa al (diğer kalemler etkilenmez). Hazırlanmış dosya geçici
+   * hatada yeniden kullanılır; 4xx sonrası ya da dosya silinmişse orijinalden yeniden hazırlanır.
+   */
   const retryImage = (id: string) => {
     const target = imagesRef.current.find((item) => item.id === id);
     if (!target?.file || target.status !== 'failed') return;

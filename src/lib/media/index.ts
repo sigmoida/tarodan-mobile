@@ -8,6 +8,7 @@ export {
   IMAGE_PROFILES,
   MAX_UPLOAD_EDGE,
   PREPARE_TIMEOUT_MS,
+  SMALL_JPEG_BYTES,
   UPLOAD_JPEG_QUALITY,
   createPreparer,
   isReencodableImage,
@@ -23,6 +24,7 @@ export {
   type PrepareRunOptions,
 } from './prepareImage';
 export { fromPickerAsset } from './pickerAsset';
-export { PICKER_QUALITY_FALLBACK, PICKER_QUALITY_WITH_MANIPULATOR, pickerQuality } from './pickerQuality';
-export { isDisposablePreparedFile, releasePreparedFile } from './tempFiles';
-export { formDataUri, withPreparedImage } from './upload';
+export { PICKER_QUALITY, pickerQuality } from './pickerQuality';
+export { isDisposablePreparedFile, preparedFileExists, releasePreparedFile } from './tempFiles';
+export { canReusePreparedFile } from './retry';
+export { withPreparedImage } from './upload';

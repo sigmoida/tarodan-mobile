@@ -38,8 +38,9 @@ export interface ListingImage extends Partial<ImageKey> {
   /** Picker'ın verdiği yerel dosya — yalnız YENİ seçilen kalemde (orijinal; silinmez). */
   file?: LocalImageFile;
   /**
-   * Yüklemeye hazırlanmış (küçültülmüş) dosya — ilk denemede bir kez üretilir; yeniden deneme
-   * bunu kullanır (tekrar küçültme yok). Geçici cache dosyasıdır: yükleme bitince ya da kalem
+   * Yüklemeye hazırlanmış (küçültülmüş) dosya — ilk denemede bir kez üretilir; geçici hatadan
+   * (ağ/5xx/408/429) sonra yeniden deneme bunu kullanır (tekrar küçültme yok). 4xx sonrası ya da
+   * dosya diskte yoksa düşürülür. Geçici cache dosyasıdır: yükleme bitince ya da kalem
    * kaldırılınca silinir.
    */
   preparedFile?: LocalImageFile;

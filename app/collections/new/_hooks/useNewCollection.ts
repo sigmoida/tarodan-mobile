@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,8 +11,7 @@ import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { buildCollectionSchema, type CollectionForm } from '../_lib/schema';
 import { buildCollectionTemplates, type CollectionTemplate } from '../_lib/templates';
-import { coverFileFor, pickCollectionCover, uploadCollectionCover } from '../../_lib/cover';
-import type { LocalImageFile } from '@/lib/media';
+import { useCollectionCover } from '../../_hooks/useCollectionCover';
 
 /**
  * New-collection controller — owns the RHF+zod form, cover-image pick, template
@@ -28,9 +27,7 @@ export function useNewCollection() {
   const { addProductId } = useLocalSearchParams<{ addProductId?: string }>();
   const queryClient = useQueryClient();
 
-  const [coverImage, setCoverImage] = useState<string | null>(null);
-  /** Seçilen kapağın dosya bilgisi (tür/boyut) — hazırlama için; önizleme `coverImage`. */
-  const pickedCoverRef = useRef<LocalImageFile | null>(null);
+  const { coverImage, setCoverImage, pickCoverImage, uploadCover } = useCollectionCover();
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   const canCreateCollections = limits?.canCreateCollections || false;
@@ -64,7 +61,7 @@ export function useNewCollection() {
 
       // Kapak görseli varsa dönen id ile ayrı multipart uca yükle (PATCH /collections/:id/cover, alan 'cover')
       if (coverImage) {
-        await uploadCollectionCover(res.data.id, coverFileFor(coverImage, pickedCoverRef.current));
+        await uploadCover(res.data.id, coverImage);
       }
 
       // "Koleksiyona ekle" akışı: ürün yeni koleksiyona eklenir. Başarısızlık koleksiyonu geri
@@ -103,14 +100,6 @@ export function useNewCollection() {
       toast.error(apiErrorMessage(error, t('collection.createCollectionFailed')));
     },
   });
-
-  const pickCoverImage = async () => {
-    const picked = await pickCollectionCover();
-    if (picked) {
-      pickedCoverRef.current = picked;
-      setCoverImage(picked.uri);
-    }
-  };
 
   const selectTemplate = (template: CollectionTemplate) => {
     setSelectedTemplate(template.id);
