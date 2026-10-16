@@ -12,26 +12,6 @@ config.resolver.extraNodeModules = {
   assert: path.resolve(__dirname, 'assert-stub.js'),
 };
 
-// app/ altındaki colocated testler (`app/**/__tests__/**`) asla bundle'a ve
-// expo-router route taramasına girmesin. Metro'nun varsayılan blockList'i de
-// `/__tests__/` engelliyor ama o upstream bir varsayılan; burada açıkça sabitliyoruz
-// (mevcut liste korunur, üstüne eklenir). Jest bu config'i kullanmaz. `_` önekli
-// klasörlerin route sayılmaması ise patches/expo-router@6.0.24.patch'te.
-// Koruma testi: __tests__/routerPrivateFolders.test.ts.
-const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const appTestsBlock = new RegExp(
-  `^${escapeRegExp(path.join(__dirname, 'app'))}[\\\\/](?:.*[\\\\/])?__tests__[\\\\/].*$`,
-);
-const existingBlockList = config.resolver.blockList;
-config.resolver.blockList = [
-  ...(Array.isArray(existingBlockList)
-    ? existingBlockList
-    : existingBlockList
-      ? [existingBlockList]
-      : []),
-  appTestsBlock,
-];
-
 // RN tek bir React instance ister; farklı paketlerin nested kopyaları bundle'a
 // iki React sokup "dispatcher null" hatası verir (Cannot read property 'useId'
 // of null vb.). Her react/react-dom import'unu (bare + alt-path: react/jsx-runtime,
