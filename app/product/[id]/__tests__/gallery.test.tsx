@@ -43,6 +43,24 @@ describe('ProductGallery', () => {
     expect(first.props.source).toEqual({ uri: 'https://x/a-detail.jpg' });
   });
 
+  it('komşu sayfaların detay görselleri önceden indirilir (sonraki, önceki); aynı komşular tekrar istenmez', () => {
+    const prefetch = jest.spyOn(Image, 'prefetch').mockResolvedValue(true);
+    try {
+      const { rerender } = renderWithProviders(
+        <ProductGallery images={images} currentImage={1} onPageChange={jest.fn()} onOpenViewer={jest.fn()} />,
+      );
+      expect(prefetch).toHaveBeenCalledTimes(1);
+      expect(prefetch).toHaveBeenCalledWith(['https://x/c.jpg', 'https://x/a-detail.jpg'], 'memory-disk');
+      // Ekran yeni dizi kimliğiyle yeniden çizse de komşular aynı → yeni istek yok.
+      rerender(<ProductGallery images={[...images]} currentImage={1} onPageChange={jest.fn()} onOpenViewer={jest.fn()} />);
+      expect(prefetch).toHaveBeenCalledTimes(1);
+      rerender(<ProductGallery images={images} currentImage={0} onPageChange={jest.fn()} onOpenViewer={jest.fn()} />);
+      expect(prefetch).toHaveBeenLastCalledWith(['https://x/b.jpg'], 'memory-disk');
+    } finally {
+      prefetch.mockRestore();
+    }
+  });
+
   it('kaydırınca sayfa değişimi bildirilir; dokununca görüntüleyici açılır', () => {
     const { onPageChange, onOpenViewer } = setup({ currentImage: 0 });
     const { width } = Dimensions.get('window');
