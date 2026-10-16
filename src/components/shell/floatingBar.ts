@@ -38,11 +38,19 @@ export function floatingBarScrollProps(inset: number, os: string = Platform.OS):
 }
 
 /**
- * Arama alanının daralma stili (`progress`: 0 görünür, 1 gizli) — SAF worklet: yukarı + sola kayarak
- * solar. Cam butonlar bunun dışındadır (yerinde kalır, opacity almaz).
+ * Arama alanının daralma stili (`progress`: 0 görünür, 1 gizli) — SAF worklet. Arama alanı cam
+ * yüzey (`GlassSurface`) olduğundan iki yol (alt menü hapıyla aynı kural, bkz. `pillHideStyle`):
+ * - Fallback (cam yok): yukarı + sola kayarak solar.
+ * - Cam: native cam, ata `opacity < 1` iken efektini kaybeder — opacity YOK; yüzey yukarı + sola
+ *   kayıp ekranın üstünden çıkar (`glassHideY`, negatif), içerik `searchContentOpacity` ile solar.
  */
-export function searchHideStyle(progress: number) {
+export function searchHideStyle(glass: boolean, progress: number, glassHideY: number) {
   'worklet';
+  if (glass) {
+    return {
+      transform: [{ translateY: progress * glassHideY }, { translateX: progress * SEARCH_HIDE_TRANSLATE_X }],
+    };
+  }
   return {
     opacity: 1 - progress,
     transform: [
@@ -52,8 +60,8 @@ export function searchHideStyle(progress: number) {
   };
 }
 
-/** Bar zemininin (beyaz + alt çizgi) opaklığı: liste başında dolu, daralınca kaybolur — SAF worklet. */
-export function barBackgroundOpacity(progress: number): number {
+/** Camda arama içeriğinin (ikon + metin) opaklığı; fallback'te sarmalayıcı solduğu için 1 — SAF worklet. */
+export function searchContentOpacity(glass: boolean, progress: number): number {
   'worklet';
-  return 1 - progress;
+  return glass ? 1 - progress : 1;
 }

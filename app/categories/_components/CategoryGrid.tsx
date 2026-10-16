@@ -1,12 +1,14 @@
-import React, { useCallback, useMemo } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import React, { useCallback, useLayoutEffect, useMemo } from 'react';
+import { RefreshControl, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { ErrorState, PageHeader, SectionCardAction, theme } from '@/ui';
+import { ErrorState, SectionCardAction, theme } from '@/ui';
 import { CATEGORY_GRID_COLUMNS } from '../_lib/layout';
 import type { CategoryGroup, CategoryTileData } from '../_lib/groups';
 import { GridSkeleton } from './CategoriesSkeleton';
 import { CategoryTile } from './CategoryTile';
 import { ParentCrumb } from './ParentCrumb';
+import type { CategoriesScroll } from '../_hooks/useCategoriesScroll';
 
 const { colors, spacing } = theme;
 
@@ -25,13 +27,12 @@ function withSpacers(tiles: CategoryTileData[]): Cell[] {
 const keyExtractor = (cell: Cell) => cell.id;
 
 interface CategoryGridProps {
-  title: string;
   tiles: CategoryTileData[];
   /** Grubun veri durumu: `loading` iskelet, `error` "yüklenemedi" + tekrar dene (kutu yokken). */
   status: CategoryGroup['status'];
   onRetry: () => void;
   footer?: CategoryGroup['footer'];
-  /** Alt kategori düzeyindeyken başlığın üstünde "‹ Üst kategori" kırıntısı. */
+  /** Alt kategori düzeyindeyken ızgaranın üstünde "‹ Üst kategori" kırıntısı. */
   canGoBack: boolean;
   parentTitle: string;
   onBack: () => void;
@@ -40,15 +41,16 @@ interface CategoryGridProps {
   refreshing: boolean;
   onRefresh: () => void;
   bottomInset: number;
+  /** Üst barın kaydırma sinyali: ızgara bar ALTINDAN kayar (iOS inset / Android üst dolgu). */
+  scroll: CategoriesScroll;
 }
 
 /**
- * Sağ alan: seçili grubun (ya da inilen kategorinin) `PageHeader` başlığı + 2 sütunlu ızgara (+ altta
- * `SectionCardAction` bağlantısı, ör. "Tüm Üreticiler"). Kaydırılabilir, çekip yenilenir; başlık
- * listenin başlığıdır (birlikte kayar).
+ * Sağ alan: 2 sütunlu ızgara (+ altta `SectionCardAction` bağlantısı, ör. "Tüm Üreticiler"); başlık
+ * bandı yok (seçili grup rayda vurgulu). Alt kategori düzeyinde ızgaranın başında "‹ Üst kategori"
+ * kırıntısı (birlikte kayar). Kaydırılabilir, çekip yenilenir.
  */
 export function CategoryGrid({
-  title,
   tiles,
   status,
   onRetry,
@@ -61,8 +63,14 @@ export function CategoryGrid({
   refreshing,
   onRefresh,
   bottomInset,
+  scroll,
 }: CategoryGridProps) {
   const { t } = useTranslation();
+  // Izgara her grup/düzey değişiminde yeniden kurulur (en başta): bayat ofset kenarı açık bırakmasın.
+  const { resetGrid } = scroll;
+  useLayoutEffect(() => {
+    resetGrid();
+  }, [resetGrid]);
   const data = useMemo(() => withSpacers(tiles), [tiles]);
 
   const renderItem = useCallback(
@@ -74,15 +82,16 @@ export function CategoryGrid({
     [onPressTile],
   );
 
+  // Başlık bandı YOK: seçili grup rayda zaten vurgulu. Alt kategori düzeyinde yalnız "‹ Üst kategori"
+  // kırıntısı (geri dönüş yolu) kalır.
   const header = useMemo(
-    () => (
-      <PageHeader
-        testID="categories-header"
-        title={title}
-        breadcrumb={canGoBack ? <ParentCrumb parentTitle={parentTitle} onPress={onBack} /> : undefined}
-      />
-    ),
-    [title, canGoBack, parentTitle, onBack],
+    () =>
+      canGoBack ? (
+        <View style={styles.crumb} testID="categories-crumb-row">
+          <ParentCrumb parentTitle={parentTitle} onPress={onBack} />
+        </View>
+      ) : null,
+    [canGoBack, parentTitle, onBack],
   );
 
   const empty =
@@ -105,20 +114,24 @@ export function CategoryGrid({
     ) : null;
 
   return (
-    <FlatList
+    <Animated.FlatList
       style={styles.grid}
+      {...scroll.page.scrollProps}
+      onScroll={scroll.onGridScroll}
+      scrollEventThrottle={16}
       testID="categories-grid"
       data={data}
       numColumns={CATEGORY_GRID_COLUMNS}
       keyExtractor={keyExtractor}
       renderItem={renderItem}
       columnWrapperStyle={styles.row}
-      contentContainerStyle={[styles.content, { paddingBottom: spacing[4] + bottomInset }]}
+      contentContainerStyle={scroll.page.contentStyle([styles.content, { paddingBottom: spacing[4] + bottomInset }])}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
+          progressViewOffset={scroll.page.topInset}
           colors={[colors.primary[600]!]}
           tintColor={colors.primary[600]!}
         />
@@ -137,4 +150,5 @@ const styles = StyleSheet.create({
   row: { gap: spacing[2], marginBottom: spacing[2] },
   cell: { flex: 1 },
   footer: { alignItems: 'center', marginTop: spacing[3] },
+  crumb: { marginBottom: spacing[2] },
 });

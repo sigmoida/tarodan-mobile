@@ -144,7 +144,7 @@ export default function ProductDetailScreen() {
       }
       overlay={
         <>
-          <ProductTopBar scrollY={scroll.scrollY} solid={!ready} onBack={goBack}>
+          <ProductTopBar scrollY={scroll.scrollY} onBack={goBack}>
             {ready ? (
               <ProductTopActions
                 isFavorite={favorite.isFavorite}

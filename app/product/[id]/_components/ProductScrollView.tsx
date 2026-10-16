@@ -1,11 +1,12 @@
 import React from 'react';
-import { Animated, RefreshControl, StyleSheet } from 'react-native';
+import { RefreshControl, StyleSheet } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { theme, useHeaderTopInset } from '@/ui';
 
 /**
  * Ürün detayının kaydırma gövdesi. PageShell'in kendi ScrollView'u yerine kullanılır: galeri
  * durum çubuğunun altına kadar uzanır (üst bar yok, yüzen adalar var) ve kaydırma konumu
- * `ProductTopBar` zemini için dışarı verilir.
+ * `ProductTopBar`'ın kaydırma kenarı için dışarı verilir (`useProductScroll`).
  */
 export function ProductScrollView({
   onScroll,

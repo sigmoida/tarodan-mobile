@@ -58,7 +58,6 @@ const selectGroup = (key: string) => fireEvent.press(screen.getByTestId(`categor
 /** Çift dokunuş kilidini (800ms) bırak: aynı testte art arda itmeler için. */
 const unlock = () => act(() => void jest.advanceTimersByTime(900));
 const tab = (key: string) => screen.getByTestId(`categories-rail-${key}`);
-const headerText = () => within(screen.getByTestId('categories-header'));
 
 describe('Kategoriler ekranı — düzen', () => {
   it('PageShell başlığı "Kategoriler"; rayda 4 grup, ilk dolu grup (Keşfet) seçili', () => {
@@ -73,7 +72,8 @@ describe('Kategoriler ekranı — düzen', () => {
     ]);
     expect(tab('explore').props.accessibilityState).toEqual({ selected: true });
     expect(tab('scales').props.accessibilityState).toEqual({ selected: false });
-    expect(headerText().getByText('Keşfet')).toBeTruthy();
+    // Sağ alanda başlık bandı yok (seçili grup rayda vurgulu).
+    expect(screen.queryByTestId('categories-header')).toBeNull();
     expect(CATEGORY_GRID_COLUMNS).toBe(2);
   });
 
@@ -107,18 +107,16 @@ describe('Kategoriler ekranı — hedefler', () => {
   it('Kategoriler: HEPSİ gösterilir (0 ilanlı da, web gibi); yaprak kutu /listings?categoryId&category açar', () => {
     render(<CategoriesScreen />);
     selectGroup('categories');
-    expect(headerText().getByText('Kategoriler')).toBeTruthy();
     expect(screen.getByTestId('categories-tile-category:c3')).toBeTruthy();
     fireEvent.press(screen.getByTestId('categories-tile-category:c1'));
     expect(pushMock).toHaveBeenCalledWith('/listings?categoryId=c1&category=Otomobil');
   });
 
-  it('alt kategorisi olan kutu alt düzeye iner: başlık kategori adı, kırıntı "‹ Kategoriler", "Tümü" + tüm alt kutular; kırıntı ile döner', () => {
+  it('alt kategorisi olan kutu alt düzeye iner: kırıntı "‹ Kategoriler", "Tümü" + tüm alt kutular; kırıntı ile döner', () => {
     render(<CategoriesScreen />);
     selectGroup('categories');
     fireEvent.press(screen.getByTestId('categories-tile-category:c2'));
     expect(pushMock).not.toHaveBeenCalled();
-    expect(headerText().getByText('Ticari')).toBeTruthy();
     expect(screen.queryByTestId('categories-tile-category:c1')).toBeNull();
     expect(screen.getByTestId('categories-tile-category:c2b')).toBeTruthy();
     const crumb = screen.getByTestId('categories-parent-crumb');
@@ -130,7 +128,6 @@ describe('Kategoriler ekranı — hedefler', () => {
     expect(pushMock).toHaveBeenLastCalledWith('/listings?categoryId=c2a&category=Kamyon');
 
     fireEvent.press(crumb);
-    expect(headerText().getByText('Kategoriler')).toBeTruthy();
     expect(screen.getByTestId('categories-tile-category:c1')).toBeTruthy();
     expect(screen.queryByTestId('categories-parent-crumb')).toBeNull();
   });
@@ -141,7 +138,6 @@ describe('Kategoriler ekranı — hedefler', () => {
     fireEvent.press(screen.getByTestId('categories-tile-category:c2'));
     selectGroup('scales');
     selectGroup('categories');
-    expect(headerText().getByText('Kategoriler')).toBeTruthy();
     expect(screen.queryByTestId('categories-parent-crumb')).toBeNull();
   });
 

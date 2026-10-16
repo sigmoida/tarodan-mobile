@@ -2,7 +2,7 @@ import { logger, safeError } from '@/services/logger';
 import { View, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useState, useCallback, useEffect } from 'react';
-import { theme } from '@/ui';
+import { theme, usePageScrollValue } from '@/ui';
 import { router } from 'expo-router';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -47,8 +47,10 @@ export default function HomeScreen() {
   useEffect(() => {
     if (!showHero) resetHero();
   }, [showHero, resetHero]);
-  // Tab bar daralma sinyali + hero görünürlüğü (ofset UI thread'inden seyrek köprülenir).
-  const tabScroll = useTabBarScrollHandler(heroView.onScrollOffset);
+  // Tab bar daralma sinyali + hero görünürlüğü (ofset UI thread'inden seyrek köprülenir) + üst barın
+  // kaydırma kenarı (`page.scrollY`) — TEK handler.
+  const page = usePageScrollValue();
+  const tabScroll = useTabBarScrollHandler(heroView.onScrollOffset, page.scrollY);
   const { onLayout: onTabScrollLayout } = tabScroll;
   const guest = useHomeGuestPrompt(isAuthenticated);
   // Yuvalar (topbar/header/footer) aynı tohumu ve gösterim kümesini paylaşır.
@@ -86,7 +88,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <AppShell>
+    <AppShell scroll={page}>
       <Animated.ScrollView
         style={styles.scroll}
         {...floatingBarScrollProps(barInset)}

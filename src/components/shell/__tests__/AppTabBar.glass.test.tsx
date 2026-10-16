@@ -59,19 +59,22 @@ describe('AppTabBar — Liquid Glass', () => {
     expect(flat('tab-home').backgroundColor).toBeUndefined();
   });
 
-  it('interaktif cam: yalnız "+" isInteractive; hap yüzeyi değil (içindeki sekme dokunuşları çakışmasın)', () => {
+  it('interaktif cam: yalnız "+" isInteractive (nötr açık ton); hap yüzeyi değil (içindeki sekme dokunuşları çakışmasın)', () => {
     setup();
     const glasses = screen.getAllByTestId('glass-view');
     const interactive = glasses.filter((g) => g.props.isInteractive === true);
     expect(interactive).toHaveLength(1);
-    expect(interactive[0]!.props.tintColor).toBeUndefined();
+    // Vurgu (turuncu) tint yok; yalnız tüm camların ortak nötr açık tonu.
+    expect(interactive[0]!.props.tintColor).toBe(theme.colors.overlay.white70);
   });
 
-  it('Favoriler: daralmış sekme dairesi de cam (tint yok, interaktif); hap yüzeyi interaktif değil', () => {
+  it('Favoriler: daralmış sekme dairesi de cam (vurgu tint yok, nötr açık ton; interaktif); hap yüzeyi interaktif değil', () => {
     setup(2);
     const glasses = screen.getAllByTestId('glass-view', { includeHiddenElements: true });
     expect(glasses).toHaveLength(3);
-    const circle = glasses.find((g) => g.props.isInteractive === true && g.props.tintColor === undefined);
+    const circle = glasses.find(
+      (g) => g.props.isInteractive === true && g.props.tintColor === theme.colors.overlay.white70,
+    );
     expect(circle).toBeTruthy();
     // Cam atasına opacity verilmez (native cam efekti kaybolur): daire kapsayıcısında opacity anahtarı yok.
     expect(flat('tab-collapsed-wrap')).not.toHaveProperty('opacity');
