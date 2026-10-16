@@ -48,6 +48,21 @@ export interface PrepareOptions {
   maxEdge?: number;
   /** JPEG kalitesi (0–1). */
   quality?: number;
+  /**
+   * `true`: yeniden kodlanması gereken görsel hazırlanamazsa (modül yok, çözülemedi, süre
+   * doldu) ORİJİNAL YÜKLENMEZ — `ImagePrepareError` fırlatılır, çağıran kendi hata akışını
+   * gösterir. Karşı tarafa giden görseller (mesaj eki, iade kanıtı) için: ham orijinal
+   * EXIF/konum taşıyabilir ve "image/jpeg" etiketli HEIC olabilir (sunucu reddeder).
+   */
+  strict?: boolean;
+}
+
+/** `strict` hazırlamada görsel güvenle yeniden kodlanamadı — orijinal yüklenmez. */
+export class ImagePrepareError extends Error {
+  constructor(reason: 'unavailable' | 'failed' | 'timeout') {
+    super(`Image could not be prepared for upload (${reason})`);
+    this.name = 'ImagePrepareError';
+  }
 }
 
 /**
@@ -62,7 +77,7 @@ export const IMAGE_PROFILES = {
   photo: { maxEdge: MAX_UPLOAD_EDGE, quality: UPLOAD_JPEG_QUALITY },
   avatar: { maxEdge: 600, quality: 0.8 },
   document: { maxEdge: 2400, quality: 0.85 },
-} as const satisfies Record<string, Required<PrepareOptions>>;
+} as const satisfies Record<string, Required<Pick<PrepareOptions, 'maxEdge' | 'quality'>>>;
 
 /** Zaten sunucuya uygun JPEG: küçültme gerekmiyorsa yeniden kodlanmaz. */
 const JPEG_TYPES = ['image/jpeg', 'image/jpg'];
@@ -87,6 +102,12 @@ export interface LocalImageFile {
   height?: number;
   /** Bayt boyutu (biliniyorsa) — boyutları bilinmeyen küçük JPEG'i atlamak için. */
   size?: number;
+  /**
+   * Galeri seçicisinden geldi (`fromPickerAsset`). Seçici dosyası HER ZAMAN yeniden kodlanır:
+   * küçük JPEG atlaması yalnız belge seçici dosyaları içindir. Seçicinin "JPEG" dediği dosya
+   * EXIF/konum taşıyabilir ya da gerçekte HEIC olabilir; yeniden kodlama ikisini de temizler.
+   */
+  fromPicker?: boolean;
   /**
    * `true` YALNIZ hazırlayıcının cache'e yazdığı dosyada — işi bitince silinebilir
    * (`releasePreparedFile`). Picker'ın orijinalinde hiçbir zaman yoktur.
@@ -153,9 +174,12 @@ const release = (obj: { release?: () => void } | null | undefined) => {
  *
  * - Görsel olmayan dosya (PDF vb.) olduğu gibi gider.
  * - PNG/WebP/GIF olduğu gibi gider (saydamlık/animasyon korunur; web ile aynı).
- * - Uzun kenarı sınırın altındaki JPEG yeniden kodlanmaz (küçük JPEG'i tekrar
- *   sıkıştırmak boyutu büyütebilir). Boyutları bilinmeyen JPEG `SMALL_JPEG_BYTES`
- *   altındaysa da yeniden kodlanmaz (belge seçici boyut vermez).
+ * - Galeri seçicisinden gelen (`fromPicker`) fotoğraf HER ZAMAN yeniden kodlanır (meta
+ *   veri temizliği + gerçek JPEG garantisi).
+ * - Seçici dışı (belge seçici) küçük JPEG yeniden kodlanmaz (tekrar sıkıştırmak boyutu
+ *   büyütebilir): uzun kenarı sınırın altındaysa ya da boyutu bilinmiyor ve
+ *   `SMALL_JPEG_BYTES` altındaysa.
+ * - `strict`: hazırlama başarısızsa orijinal DÖNMEZ, `ImagePrepareError` fırlatılır.
  * - Aksi halde (büyük JPEG, her HEIC/HEIF): gerekiyorsa küçült + JPEG `quality`.
  * - Boyut picker'dan biliniyorsa tek geçişte; EXIF yönü yüzünden işlenmiş
  *   görsel hâlâ sınırı aşıyorsa (ya da boyut bilinmiyorsa) ikinci geçişte
@@ -164,14 +188,18 @@ const release = (obj: { release?: () => void } | null | undefined) => {
 export async function prepareImageForUpload(
   file: LocalImageFile,
   manipulator: ImageManipulatorLike | null = loadImageManipulator(),
-  { maxEdge = MAX_UPLOAD_EDGE, quality = UPLOAD_JPEG_QUALITY }: PrepareOptions = {},
+  { maxEdge = MAX_UPLOAD_EDGE, quality = UPLOAD_JPEG_QUALITY, strict = false }: PrepareOptions = {},
 ): Promise<LocalImageFile> {
-  if (!manipulator || !isReencodableImage(file.type)) return file;
+  if (!isReencodableImage(file.type)) return file;
+  if (!manipulator) {
+    if (strict) throw new ImagePrepareError('unavailable');
+    return file;
+  }
   const type = file.type.toLowerCase();
   const firstResize = resizeFor(file.width, file.height, maxEdge);
   const knownDims = !!file.width && !!file.height;
   const knownSmall = knownDims ? !firstResize : typeof file.size === 'number' && file.size <= SMALL_JPEG_BYTES;
-  if (knownSmall && JPEG_TYPES.includes(type)) return file;
+  if (knownSmall && JPEG_TYPES.includes(type) && !file.fromPicker) return file;
 
   const owned: Array<{ release?: () => void } | null | undefined> = [];
   try {
@@ -191,7 +219,10 @@ export async function prepareImageForUpload(
     }
 
     const saved = await ref.saveAsync({ format: 'jpeg', compress: quality });
-    if (!saved?.uri) return file;
+    if (!saved?.uri) {
+      if (strict) throw new ImagePrepareError('failed');
+      return file;
+    }
     return {
       uri: saved.uri,
       name: jpegName(file.name),
@@ -200,8 +231,10 @@ export async function prepareImageForUpload(
       height: ref.height,
       temporary: true,
     };
-  } catch {
-    // Modül eski/eksik ya da görsel çözülemedi: orijinalle devam (yükleme kırılmaz).
+  } catch (error) {
+    // Modül eski/eksik ya da görsel çözülemedi: orijinalle devam (yükleme kırılmaz) —
+    // `strict` hedeflerde orijinal yüklenmez.
+    if (strict) throw error instanceof ImagePrepareError ? error : new ImagePrepareError('failed');
     return file;
   } finally {
     owned.forEach(release);
@@ -246,12 +279,20 @@ export function createPreparer({
         if (guard.aborted) return Promise.reject(abortError());
         let timer: ReturnType<typeof setTimeout> | undefined;
         let handedOver = false;
-        const timeout = new Promise<LocalImageFile>((resolve) => {
-          timer = setTimeout(() => resolve(file), timeoutMs);
+        const strict = options.strict === true;
+        // Süre dolunca orijinalle devam — `strict`te orijinal yüklenmez, hata döner.
+        const timeout = new Promise<LocalImageFile>((resolve, reject) => {
+          timer = setTimeout(
+            () => (strict ? reject(new ImagePrepareError('timeout')) : resolve(file)),
+            timeoutMs,
+          );
         });
         const work = Promise.resolve()
           .then(() => prepare(file, options))
-          .catch(() => file);
+          .catch((error: unknown) => {
+            if (strict) throw error;
+            return file;
+          });
         const raced = untilAborted(Promise.race([work, timeout]), guard).then((result) => {
           // Süre dolduysa sonuç orijinaldir: geç gelecek hazırlanmış dosya sahipsiz kalır.
           if (result !== file) handedOver = true;
@@ -259,8 +300,9 @@ export function createPreparer({
         });
         // Yarışı kaybeden sonuç (süre doldu / iptal) çağırana ulaşmaz: ikisi de bitince
         // teslim edilmemiş hazırlanmış dosya silinir.
-        void Promise.allSettled([raced, work]).then(async () => {
-          const result = await work;
+        void Promise.allSettled([raced, work]).then(([, settledWork]) => {
+          if (settledWork.status !== 'fulfilled') return;
+          const result = settledWork.value;
           if (!handedOver && result !== file) releasePreparedFile(result);
         });
         return raced.finally(() => clearTimeout(timer));

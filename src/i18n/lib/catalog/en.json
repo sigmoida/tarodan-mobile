@@ -2282,7 +2282,28 @@
     "emailSmsSection": "Email & SMS",
     "emailEnableLabel": "Enable Email Notifications",
     "smsLabel": "SMS Notifications",
-    "preferencesInfo": "You can change your notification preferences anytime. Important security and account notifications are always sent."
+    "preferencesInfo": "You can change your notification preferences anytime. Important security and account notifications are always sent.",
+    "permission": {
+      "sectionTitle": "Device permission",
+      "statusLabel": "Notifications on this device",
+      "granted": "On",
+      "denied": "Off",
+      "undetermined": "Not allowed",
+      "deniedHint": "Notifications are turned off in your device settings. Turn them on in Settings to hear about orders, offers and messages.",
+      "undeterminedHint": "Allow notifications to hear about orders, offers and messages right away.",
+      "openSettings": "Open Settings",
+      "allow": "Allow Notifications",
+      "unavailableHint": "Push notifications are not available on this device."
+    },
+    "prePrompt": {
+      "title": "Turn on notifications?",
+      "reasonMessage": "Know right away when you get a reply.",
+      "reasonOffer": "Know right away when your offer is accepted or countered.",
+      "reasonOrder": "Know when your order ships and is delivered.",
+      "detail": "You can change notification types anytime in Settings → Notifications.",
+      "allow": "Turn On Notifications",
+      "later": "Not Now"
+    }
   },
   "profile": {
     "profile": "Profile",

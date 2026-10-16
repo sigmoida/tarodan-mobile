@@ -88,6 +88,14 @@ describe('wipeSessionIfReinstalled', () => {
     expect(getSessionEpoch()).toBe(epoch + 1);
   });
 
+  it('yeniden kurulumda push kurulum kimliği de silinir (iOS anahtar zinciri silmeden sağ çıkar)', async () => {
+    seedSession();
+    vault.set('tarodan.installId.v1', 'old-install');
+    await expect(wipeSessionIfReinstalled(markerStorage)).resolves.toBe('wiped');
+    expect(secure.deleteItemAsync).toHaveBeenCalledWith('tarodan.installId.v1');
+    expect(vault.has('tarodan.installId.v1')).toBe(false);
+  });
+
   it('güncellenen kurulum (işaret yok ama AsyncStorage dolu): oturum KORUNUR', async () => {
     seedSession();
     storage.set('tarodan-cart', '{}');

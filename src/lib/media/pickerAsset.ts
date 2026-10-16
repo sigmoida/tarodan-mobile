@@ -27,5 +27,7 @@ export function fromPickerAsset(asset: ImagePickerAsset, fallbackName: string): 
     width: asset.width || undefined,
     height: asset.height || undefined,
     size: typeof asset.fileSize === 'number' ? asset.fileSize : undefined,
+    // Seçici dosyası her zaman yeniden kodlanır (EXIF/konum temizliği, gerçek JPEG).
+    fromPicker: true,
   };
 }

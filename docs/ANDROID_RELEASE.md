@@ -439,11 +439,10 @@ APK'lara (`preview`) OTA olarak iner.
   Play sayfasına gider; internal track'te anlamlı bir mağaza bağlantısı yoktur.
   Staging API'de minimum sürüm yükseltilmedikçe tetiklenmez.
 - `releaseStatus: completed` taslak uygulamada reddedilir (Bölüm 2).
-- Manifestte kütüphanelerden gelen `READ_EXTERNAL_STORAGE` / `WRITE_EXTERNAL_STORAGE`
-  var (staging APK'sında doğrulandı, 2026-10-13); Android 13+ hedefinde etkisizler
-  ve Play'in fotoğraf/video izin politikası kapsamında değiller. Yine de
-  `app.json` → `android.blockedPermissions` ile engellenmeleri önerilir. Bu bir
-  native değişikliktir: Android açıkken yapılırsa yeni AAB'yle gider; kapalıyken
-  yapılırsa mevcut APK'lar OTA almayı bırakır, yeni APK gerekir.
+- `READ_EXTERNAL_STORAGE` / `WRITE_EXTERNAL_STORAGE`, `SYSTEM_ALERT_WINDOW` ve
+  `RECEIVE_BOOT_COMPLETED` 2026-10-17'den beri `app.json` →
+  `android.blockedPermissions` ile manifestten çıkarılıyor (galeri seçimi izinsiz;
+  zamanlanmış yerel bildirim yok). Native değişikliktir: yeni AAB/APK gerekir, eski
+  APK'lar OTA almayı bırakır (fingerprint değişir).
 - `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` kapalıyken Android'de Google giriş seçeneği
   hiç sunulmaz (`src/services/googleSignin.ts`); bayrak Bölüm 9'daki koşullarla açılır.

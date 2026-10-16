@@ -13,6 +13,7 @@ import { formatPrice } from '@/utils/format';
 import { PageShell } from '@/components/common/PageShell';
 import { useHardwareBackToHome } from '@/hooks/useBlockHardwareBack';
 import { PaymentResultCard, PaymentResultRow } from '@/components/payment/PaymentResultCard';
+import { offerNotificationPrompt } from '@/lib/notifications/prePrompt';
 
 // Web'deki OrderStatusLabels ile uyumlu durum etiketleri
 const buildStatusLabels = (t: TFunction): Record<string, string> => ({
@@ -161,6 +162,14 @@ export default function PaymentSuccessScreen() {
   // Başarı UI'ı yalnız ödeme GERÇEKTEN tamamlandıysa (verify/durum-sorgu) gösterilir;
   // aksi halde "doğrulanıyor" — sahte başarı basmayız (PayTR henüz kesinleştirmemiş olabilir).
   const isCompleted = isPaidPaymentStatus(info?.status);
+
+  // Değer anı: sipariş ödendi → kargo/teslim bildirimleri için izin (üye; uygunsa, bir kez).
+  // `offerNotificationPrompt` oturum yoksa (misafir) hiçbir şey yapmaz.
+  useEffect(() => {
+    if (!loading && isCompleted && guest !== '1' && !isTrade) {
+      void offerNotificationPrompt('order');
+    }
+  }, [loading, isCompleted, guest, isTrade]);
 
   return (
     <PageShell title={t('checkout.title')} showBack={false}>

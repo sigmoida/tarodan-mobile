@@ -2,15 +2,14 @@ import * as ImagePicker from 'expo-image-picker';
 import { fromPickerAsset, pickerQuality, type LocalImageFile } from '@/lib/media';
 
 /**
- * Galeriden en fazla `remaining` kanıt fotoğrafı seçer. İzin yoksa `'denied'`
- * döner — çağıran (iade ekranı) mesajı satır içi gösterir. Dosyalar yerel URI'yle
- * döner (önizleme); küçültme ve iOS FormData biçimi yükleme anında
- * (`useUploadRefundEvidence`).
+ * Galeriden en fazla `remaining` kanıt fotoğrafı seçer. Dosyalar yerel URI'yle döner
+ * (önizleme); küçültme ve iOS FormData biçimi yükleme anında (`useUploadRefundEvidence`).
+ *
+ * Galeri izni İSTENMEZ: iOS PHPicker ve Android Photo Picker izin gerektirmez. Eski istek
+ * reddedildiğinde seçici hiç açılmıyor, kullanıcı "izin gerekli" çıkmazında kalıyordu.
  */
-export async function pickEvidencePhotos(remaining: number): Promise<LocalImageFile[] | 'denied'> {
+export async function pickEvidencePhotos(remaining: number): Promise<LocalImageFile[]> {
   if (remaining <= 0) return [];
-  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!perm.granted) return 'denied';
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     allowsMultipleSelection: true,

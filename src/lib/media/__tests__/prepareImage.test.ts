@@ -13,6 +13,7 @@ jest.mock('expo-file-system/legacy', () => ({
 
 import {
   IMAGE_PROFILES,
+  ImagePrepareError,
   MAX_UPLOAD_EDGE,
   UPLOAD_JPEG_QUALITY,
   PREPARE_TIMEOUT_MS,
@@ -415,5 +416,51 @@ describe('createPreparer (seri + süre sınırı + iptal)', () => {
     await expect(ok(file())).resolves.toMatchObject({ uri: 'file:///cache/ImageManipulator/ok.jpg' });
     await new Promise((r) => setTimeout(r, 0));
     expect(mockDelete).not.toHaveBeenCalled();
+  });
+});
+
+describe('seçici dosyası + strict (P3)', () => {
+  afterEach(() => jest.useRealTimers());
+
+  it('seçiciden gelen küçük JPEG de yeniden kodlanır (EXIF/konum temizliği, gerçek JPEG)', async () => {
+    const { manipulator, calls } = fakeManipulator({ rendered: { width: 1200, height: 900 } });
+    const picked = file({
+      uri: 'file:///a.jpg',
+      name: 'a.jpg',
+      type: 'image/jpeg',
+      width: 1200,
+      height: 900,
+      fromPicker: true,
+    });
+    const out = await prepareImageForUpload(picked, manipulator);
+    expect(calls).toHaveLength(1);
+    expect(out).toMatchObject({ type: 'image/jpeg', temporary: true });
+    expect(out).not.toBe(picked);
+  });
+
+  it('strict: modül yoksa / çözülemezse orijinal DÖNMEZ, ImagePrepareError fırlar', async () => {
+    await expect(prepareImageForUpload(file(), null, { strict: true })).rejects.toBeInstanceOf(
+      ImagePrepareError,
+    );
+    const { manipulator } = fakeManipulator({ fail: true });
+    await expect(prepareImageForUpload(file(), manipulator, { strict: true })).rejects.toBeInstanceOf(
+      ImagePrepareError,
+    );
+    // strict olmayan yol eskisi gibi orijinalle devam eder.
+    await expect(prepareImageForUpload(file(), manipulator)).resolves.toMatchObject({ uri: file().uri });
+  });
+
+  it('strict: süre dolarsa orijinal yerine hata döner', async () => {
+    jest.useFakeTimers();
+    const run = createPreparer({ prepare: () => new Promise<LocalImageFile>(() => undefined) });
+    const pending = run(file(), { strict: true });
+    const assertion = expect(pending).rejects.toBeInstanceOf(ImagePrepareError);
+    await jest.advanceTimersByTimeAsync(PREPARE_TIMEOUT_MS);
+    await assertion;
+  });
+
+  it('strict: hazırlama hatası orijinale düşmez', async () => {
+    const run = createPreparer({ prepare: () => Promise.reject(new ImagePrepareError('failed')) });
+    await expect(run(file(), { strict: true })).rejects.toBeInstanceOf(ImagePrepareError);
   });
 });

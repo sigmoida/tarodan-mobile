@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Divider, SectionCard, Text } from '@/ui';
 import { styles } from '../_lib/styles';
 import { SettingItem } from './SettingItem';
+import { DevicePermissionCard } from './DevicePermissionCard';
 import type { NotificationSettingsController } from '../_hooks/useNotificationSettings';
 
 /** Anlık bildirim + bildirim türleri + e-posta/SMS bölümleri (SectionCard) + bilgi notu. */
@@ -11,6 +12,9 @@ export function NotificationCards({ f }: { f: NotificationSettingsController }) 
 
   return (
     <>
+      {/* Cihaz (işletim sistemi) bildirim izni — kapalıysa aşağıdaki tercihler push üretmez. */}
+      <DevicePermissionCard />
+
       {/* Push Notifications */}
       <SectionCard title={t('notification.pushSection')}>
         <SettingItem

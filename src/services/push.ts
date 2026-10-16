@@ -2,6 +2,7 @@ import { logger, safeError } from '@/services/logger';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { readStoredValue, writeStoredValue } from '@/lib/storage/lazyAsyncStorage';
 import { router } from 'expo-router';
 import { theme } from '@/ui';
 import { api, guestApi } from '@/lib/api';
@@ -11,9 +12,24 @@ import i18n from '@/i18n/config';
 import { notificationRoute } from '../utils/notificationRoute';
 import { navigateTo } from '@/lib/navigation/goTo';
 import { withTimeout } from '@/utils/withTimeout';
+import { captureMessage } from '@/services/sentry';
+import { getInstallId } from '@/lib/device/installId';
+import {
+  readNotificationPermission,
+  requestNotificationPermission,
+} from '@/lib/permissions';
+import { settlePendingPushRevoke } from './pushRevocation';
+// Doğrudan modülden: oturum kuşağı tek kaynak (çıkış / hesap değişimi ilerletir).
+import { getSessionEpoch } from '@/lib/api/sessionState';
 
 /** Push token alımı için üst sınır — çıkış akışı bundan uzun bekleyemez. */
 const PUSH_TOKEN_TIMEOUT_MS = 5000;
+/**
+ * Kayıt akışında token alımının üst sınırı. `getExpoPushTokenAsync` APNs/FCM kaydını ve Expo'ya
+ * ağ isteğini bekler; kendi zaman aşımı YOKTUR. Süre dolarsa kayıt "başarısız" sayılır ve
+ * yeniden denenir (`usePushRegistration`).
+ */
+const REGISTER_TOKEN_TIMEOUT_MS = 15000;
 
 const { colors } = theme;
 
@@ -24,8 +40,12 @@ const isExpoGo = Constants.executionEnvironment === 'storeClient';
 if (!isExpoGo) {
   try {
     Notifications = require('expo-notifications');
-    // Uygulama ön planda (açık) iken gelen bildirimin nasıl sunulacağı.
+    // Uygulama ön planda (açık) iken gelen bildirimin nasıl sunulacağı — TEK tanım
+    // (eski `app/_layout.tsx` kopyası, kullanımdan kalkmış `shouldShowAlert` ile, kaldırıldı).
     // Bu olmadan Expo, foreground bildirimini varsayılan olarak göstermez.
+    // Rozet: sunucu push'a okunmamış zil sayısını (`badge`) koyar; ön planda da o uygulanır.
+    // Uygulama içindeyken rozet ayrıca okunmamış sayısı sorgusundan senkronlanır
+    // (`useAppBadgeSync`) — iki kaynak da aynı sayıyı (okunmamış zil bildirimi) yazar.
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowBanner: true,
@@ -54,111 +74,291 @@ function resolveProjectId(): string | null {
   return id;
 }
 
-export async function registerForPushNotifications(): Promise<string | null> {
-  // Skip in Expo Go - push notifications not supported
-  if (isExpoGo || !Notifications) {
-    console.log('⚠️ Push notifications not available in Expo Go');
-    return null;
+/** Push bu ortamda mümkün mü (Expo Go değil, modül var, gerçek cihaz)? */
+function pushAvailable(): boolean {
+  return !isExpoGo && !!Notifications && Device.isDevice === true;
+}
+
+// ── Android bildirim kanalları ───────────────────────────────────────────────────────────────
+
+/**
+ * Kanal kimlikleri — sunucunun `channelId` değerleriyle BİREBİR aynı (tarodan-app
+ * `apps/api/src/modules/notification/helpers/push-delivery.ts` → `pushChannelFor`).
+ */
+export const PUSH_CHANNEL_IDS = ['default', 'trades', 'messages', 'orders'] as const;
+
+let channelsLocale: string | null = null;
+
+/**
+ * Android kanallarını oluşturur (iOS'ta no-op). İzin İSTENMEDEN ve token ALINMADAN ÖNCE
+ * çağrılmalı: Android 13+ kanal yokken bildirim izni diyaloğunu göstermez, gelen push da
+ * tanımsız kanala düşer. `setNotificationChannelAsync` idempotent; dil değişince adlar
+ * yeniden yazılır.
+ *
+ * Kanal adları Android sistem ayarlarında kullanıcıya gösterilir — React dışı bir modülüz,
+ * `paytrDirectForm.ts` ile aynı desen: global `i18n`'den ÇAĞRI ANINDA okunur.
+ */
+export async function ensureNotificationChannels(): Promise<void> {
+  if (Platform.OS !== 'android' || isExpoGo || !Notifications) return;
+  const locale = i18n.language || 'tr';
+  if (channelsLocale === locale) return;
+  try {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: i18n.t('common.default'),
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: colors.danger[500],
+    });
+
+    await Notifications.setNotificationChannelAsync('trades', {
+      name: i18n.t('nav.trades'),
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: colors.success[500],
+    });
+
+    await Notifications.setNotificationChannelAsync('messages', {
+      name: i18n.t('message.messages'),
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: colors.info[500],
+    });
+
+    await Notifications.setNotificationChannelAsync('orders', {
+      name: i18n.t('notification.filterOrders'),
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: colors.warning[500],
+    });
+    channelsLocale = locale;
+  } catch (e) {
+    logger.warn('Notification channel setup failed', { err: safeError(e) });
   }
+}
+
+// ── Kayıt ────────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Kayıt sonucu:
+ * - `registered`: token sunucuya yazıldı;
+ * - `failed`: token alınamadı ya da sunucu reddetti → yeniden denenir;
+ * - `no-permission`: izin yok (sorulmadı / reddedildi) — sessizce geçilir;
+ * - `unavailable`: Expo Go / simülatör / projectId yok;
+ * - `cancelled`: kayıt sürerken oturum değişti/kapandı — token YAZILMADI (yeniden denenmez).
+ */
+export type PushRegistrationResult =
+  | 'registered'
+  | 'failed'
+  | 'no-permission'
+  | 'unavailable'
+  | 'cancelled';
+
+/** Kayıt seçenekleri. */
+export interface PushRegistrationOptions {
+  /**
+   * `true`: izin yoksa ve sorulabiliyorsa sistem diyaloğu gösterilir. Varsayılan `false` —
+   * açılışta/girişte SORULMAZ; yalnız kullanıcı "Bildirimleri aç" dediğinde (ön-izin sheet'i,
+   * Ayarlar → Bildirimler) istenir.
+   */
+  prompt?: boolean;
+  /**
+   * `true`: alınan Expo token'ı son başarıyla yazılanla AYNIYSA sunucuya yazılmaz (token
+   * yenilenme olayı — bizim kendi token alımımız da bu olayı tetikler).
+   */
+  onlyIfChanged?: boolean;
+  /**
+   * Kayıt hâlâ geçerli mi? Yazımdan hemen önce sorulur; `false` ise (çıkış yapıldı / hesap
+   * değişti) token YAZILMAZ. Oturum kuşağı ve oturum durumu ayrıca her zaman denetlenir.
+   */
+  isCurrent?: () => boolean;
+}
+
+/** Son başarıyla sunucuya yazılan Expo token'ı (bu JS oturumunda). */
+let lastPostedToken: string | null = null;
+/** Bizim tetiklediğimiz token alımı sürüyor mu (kayıt ya da çıkış iptali)? */
+let ownTokenFetches = 0;
+/** Son görülen cihaz (APNs/FCM) token'ı — aynı değerle gelen olay yenilenme değildir. */
+let lastDeviceToken: string | null = null;
+/**
+ * Kendi alımımızın sonunda native olay biraz gecikebilir; sayaç bu kadar sonra düşer ki o olay
+ * "yenilenme" sanılmasın.
+ */
+const OWN_FETCH_GRACE_MS = 1500;
+
+/**
+ * `getExpoPushTokenAsync` içeride cihaz token'ını da alır ve `addPushTokenListener` olayını
+ * TETİKLER. Bu sarmal kendi alımlarımızı işaretler; dinleyici o sırada gelen olayları yok sayar
+ * (yoksa kayıt → olay → kayıt sonsuz döngüye girerdi; çıkış iptalinin alımı da yeniden kayıt
+ * başlatırdı).
+ */
+export async function trackOwnTokenFetch<T>(work: () => Promise<T>): Promise<T> {
+  ownTokenFetches += 1;
+  try {
+    return await work();
+  } finally {
+    setTimeout(() => {
+      ownTokenFetches = Math.max(0, ownTokenFetches - 1);
+    }, OWN_FETCH_GRACE_MS);
+  }
+}
+
+async function fetchExpoPushToken(): Promise<string | null> {
+  const projectId = resolveProjectId();
+  if (!projectId || !Notifications) return null;
+  const response = await trackOwnTokenFetch(() =>
+    withTimeout<{ data: string }>(
+      Notifications.getExpoPushTokenAsync({ projectId }),
+      REGISTER_TOKEN_TIMEOUT_MS,
+    ),
+  );
+  return response?.data ?? null;
+}
+
+/** Oturum hâlâ açık mı? (authStore gevşek yüklenir: push ↔ authStore içe aktarma döngüsü olmasın.) */
+function sessionStillAuthenticated(): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires -- döngüsel içe aktarmayı önler
+    const { useAuthStore } = require('@/stores/authStore');
+    return useAuthStore.getState().isAuthenticated === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Hata durumunu (yalnız HTTP kodu) özetler — gövde/başlık günlüğe girmez. */
+function failureStatus(error: unknown): string {
+  const status = (error as { response?: { status?: number } })?.response?.status;
+  return typeof status === 'number' ? String(status) : 'network';
+}
+
+/**
+ * Token'ı sunucuya yazar (`POST /notifications/push-token`). Başarısızlıkta FIRLATIR.
+ * `deviceId` kurulum başına sabit kimlik; `deviceModel` ayrı alan (eski sürümler `deviceId`'ye
+ * model adını yazıyordu).
+ */
+export async function postPushToken(token: string): Promise<void> {
+  await api.post('/notifications/push-token', {
+    token,
+    platform: Platform.OS,
+    deviceId: await getInstallId(),
+    deviceModel: Device.modelName ?? undefined,
+  });
+}
+
+async function runRegistration(
+  options: PushRegistrationOptions,
+): Promise<{ result: PushRegistrationResult; token: string | null }> {
+  if (!pushAvailable() || !resolveProjectId()) {
+    return { result: 'unavailable', token: null };
+  }
+  // Kaydın başladığı oturum kuşağı: çıkış / hesap değişimi kuşağı ilerletir.
+  const epoch = getSessionEpoch();
+  const stillCurrent = () =>
+    getSessionEpoch() === epoch &&
+    sessionStillAuthenticated() &&
+    (options.isCurrent ? options.isCurrent() : true);
+
+  // Kanallar izin diyaloğundan ve token'dan ÖNCE (Android 13 diyaloğu kanal ister).
+  await ensureNotificationChannels();
+
+  let permission = await readNotificationPermission();
+  if (permission.status !== 'granted' && options.prompt) {
+    permission = await requestNotificationPermission();
+  }
+  if (permission.status === 'unavailable') return { result: 'unavailable', token: null };
+  if (permission.status !== 'granted') return { result: 'no-permission', token: null };
 
   let token: string | null = null;
+  try {
+    token = await fetchExpoPushToken();
+  } catch (error) {
+    logger.warn('Expo push token unavailable', { err: safeError(error) });
+  }
+  if (!token) {
+    captureMessage('push.register: Expo push token could not be obtained', 'warning');
+    return { result: 'failed', token: null };
+  }
 
-  if (!Device.isDevice) {
-    console.log('Push notifications require a physical device');
-    return null;
+  // Önceki çıkışın push iptali uçuştaysa önce o sonuçlansın (≤ 5 sn): sunucu iptali cihaz
+  // token'ının TÜM kayıtlarını kapatır; yeni kaydın ardından ulaşırsa onu da kapatırdı.
+  // Her kayıt yolu (giriş, yeniden deneme, ön plan, token yenilenmesi) buradan geçer.
+  await settlePendingPushRevoke();
+
+  // Bu arada çıkış yapıldıysa (ya da başka hesap girdiyse) YAZMA: eski oturumla 401 alır ya da
+  // token'ı sonraki hesabın adına kaydederdi.
+  if (!stillCurrent()) return { result: 'cancelled', token: null };
+  if (options.onlyIfChanged && token === lastPostedToken) {
+    return { result: 'registered', token };
   }
 
   try {
-    // Check existing permissions
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    // Request permissions if not granted
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-
-    if (finalStatus !== 'granted') {
-      console.log('Push notification permission not granted');
-      return null;
-    }
-  } catch (e) {
-    console.log('⚠️ Push notification permissions unavailable');
-    return null;
+    await postPushToken(token);
+    lastPostedToken = token;
+  } catch (error) {
+    // Eskiden `.catch(debug)` ile yutuluyordu: kayıt başarısız olsa da kimse bilmiyordu.
+    const status = failureStatus(error);
+    logger.warn('Push token registration failed', { status });
+    captureMessage(`push.register: backend rejected push token (${status})`, 'warning');
+    return { result: 'failed', token };
   }
 
-  // Get Expo push token
-  try {
-    // Skip push token in Expo Go (development) - it requires projectId
-    // Push notifications will work in production builds with EAS
-    const projectId = resolveProjectId();
+  // Push token'ı kullanıcıya bağlı bir tanımlayıcıdır: release cihaz günlüğüne yazılmaz.
+  logger.debug('Push token registered', { token });
+  return { result: 'registered', token };
+}
 
-    if (!projectId) {
-      console.log('⚠️ Push notifications skipped (no projectId - normal in Expo Go)');
-      return null;
-    }
-    
-    const tokenResponse = await Notifications.getExpoPushTokenAsync({
-      projectId,
-    });
-    token = tokenResponse.data;
+/**
+ * Bu cihazı push için kaydeder. Varsayılan olarak izin İSTEMEZ (yalnız verilmişse kaydeder);
+ * `prompt: true` yalnız kullanıcı eylemiyle (ön-izin sheet'i / Ayarlar) kullanılır.
+ */
+export async function syncPushRegistration(
+  options: PushRegistrationOptions = {},
+): Promise<PushRegistrationResult> {
+  return (await runRegistration(options)).result;
+}
 
-    // Register token with backend (POST /notifications/push-token)
-    await api.post('/notifications/push-token', {
-      token,
-      platform: Platform.OS,
-      deviceId: Device.modelName ?? 'unknown',
-    }).catch((err: any) => {
-      logger.debug('Failed to register push token with backend', { err: safeError(err) });
-    });
+/**
+ * Geriye dönük uyumlu sarmal: kaydı yapar (izin İSTEMEZ), kayıtlı token'ı döner.
+ * (Eskiden her açılışta izin istiyordu — artık ön-izin akışı istiyor.)
+ */
+export async function registerForPushNotifications(): Promise<string | null> {
+  const { result, token } = await runRegistration({});
+  return result === 'registered' ? token : null;
+}
 
-    // Push token'ı kullanıcıya bağlı bir tanımlayıcıdır: release cihaz günlüğüne yazılmaz.
-    logger.debug('Push token registered', { token });
-  } catch (error: any) {
-    // Don't show error in development - this is expected in Expo Go
-    logger.debug('Push notifications unavailable', { err: safeError(error) });
-  }
-
-  // Configure notification channel for Android
-  // Kanal adları Android sistem ayarlarında kullanıcıya gösterilir — React
-  // dışı bir modülüz, `paytrDirectForm.ts` ile aynı desen: global `i18n`'den
-  // ÇAĞRI ANINDA (registerForPushNotifications her çalıştığında) okunur.
-  if (Platform.OS === 'android' && Notifications) {
+/**
+ * Cihaz push token'ı değişince (APNs/FCM yenilemesi) çağrılır. Dinleyici yeni Expo token'ını
+ * yeniden alıp sunucuya yazmalıdır (`usePushRegistration`). Abonelik kaldırıcı döner.
+ */
+export function addPushTokenChangeListener(callback: () => void): () => void {
+  if (isExpoGo || !Notifications?.addPushTokenListener) return () => {};
+  const sub = Notifications.addPushTokenListener((event: { data?: unknown }) => {
+    const deviceToken = typeof event?.data === 'string' ? event.data : JSON.stringify(event?.data ?? null);
+    const previous = lastDeviceToken;
+    lastDeviceToken = deviceToken;
+    // Kendi token alımımızın tetiklediği olay (kayıt ya da çıkış iptali) yenilenme DEĞİLDİR.
+    if (ownTokenFetches > 0) return;
+    // Aynı cihaz token'ı tekrar bildirildi: değişiklik yok.
+    if (previous !== null && previous === deviceToken) return;
+    callback();
+  });
+  return () => {
     try {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: i18n.t('common.default'),
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: colors.danger[500],
-      });
-
-      await Notifications.setNotificationChannelAsync('trades', {
-        name: i18n.t('nav.trades'),
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: colors.success[500],
-      });
-
-      await Notifications.setNotificationChannelAsync('messages', {
-        name: i18n.t('message.messages'),
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: colors.info[500],
-      });
-
-      await Notifications.setNotificationChannelAsync('orders', {
-        name: i18n.t('notification.filterOrders'),
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: colors.warning[500],
-      });
-    } catch (e) {
-      console.log('⚠️ Notification channel setup failed');
+      sub?.remove?.();
+    } catch {
+      /* noop */
     }
-  }
+  };
+}
 
-  return token;
+/** Uygulama simgesi rozeti (okunmamış zil sayısı). En iyi çaba, fırlatmaz. */
+export async function setAppBadgeCount(count: number): Promise<void> {
+  if (isExpoGo || !Notifications?.setBadgeCountAsync) return;
+  try {
+    await Notifications.setBadgeCountAsync(Math.max(0, Math.floor(count)));
+  } catch {
+    /* en iyi çaba */
+  }
 }
 
 /**
@@ -213,10 +413,13 @@ export async function unregisterPushNotifications(
       if (signal?.aborted) resolve(undefined);
       signal?.addEventListener('abort', () => resolve(undefined));
     });
+    // `trackOwnTokenFetch`: bu alımın tetiklediği token olayı yeniden kayıt başlatmasın.
     const tokenResponse = await Promise.race([
-      withTimeout<{ data: string }>(
-        Notifications.getExpoPushTokenAsync({ projectId }),
-        PUSH_TOKEN_TIMEOUT_MS,
+      trackOwnTokenFetch(() =>
+        withTimeout<{ data: string }>(
+          Notifications.getExpoPushTokenAsync({ projectId }),
+          PUSH_TOKEN_TIMEOUT_MS,
+        ),
       ),
       aborted,
     ]);
@@ -280,6 +483,53 @@ export function routeFromNotification(data: any): void {
   }
 }
 
+// ── Dokunuş yönlendirmesi: tekilleştirme ────────────────────────────────────────────────────
+
+/**
+ * Son yönlendirilen bildirimin kimliği — OTA `reloadAsync` / JS yeniden başlatmadan sağ çıkar.
+ * Yeniden yüklemede `getLastNotificationResponseAsync` AYNI yanıtı tekrar döndürür; kimlik
+ * saklanmazsa kullanıcı (güncelleme sonrası) eski bildirimin ekranına yeniden atılırdı.
+ */
+const LAST_ROUTED_NOTIFICATION_KEY = 'push.lastRoutedNotificationId';
+
+/** Bu JS oturumunda yönlendirilmiş yanıtlar (canlı dinleyici + soğuk açılış çakışması). */
+const routedIds = new Set<string>();
+
+function responseIdentifier(response: any): string | null {
+  const id = response?.notification?.request?.identifier;
+  return typeof id === 'string' && id ? id : null;
+}
+
+/** Sistemdeki "son yanıt"ı temizler: bir sonraki soğuk açılış/yeniden yükleme onu görmesin. */
+function clearLastResponse(): void {
+  try {
+    if (typeof Notifications?.clearLastNotificationResponse === 'function') {
+      Notifications.clearLastNotificationResponse();
+    } else {
+      void Notifications?.clearLastNotificationResponseAsync?.()?.catch?.(() => undefined);
+    }
+  } catch {
+    /* en iyi çaba */
+  }
+}
+
+/**
+ * Yanıtı EN FAZLA BİR KEZ yönlendirir. `persisted`: soğuk açılış yolunda önceki JS
+ * oturumunun (OTA yeniden yükleme öncesi) yönlendirdiği kimlik.
+ */
+function routeResponseOnce(response: any, persisted?: string | null): void {
+  const data = response?.notification?.request?.content?.data;
+  if (!data) return;
+  const id = responseIdentifier(response);
+  if (id) {
+    if (routedIds.has(id) || id === persisted) return;
+    routedIds.add(id);
+    void writeStoredValue(LAST_ROUTED_NOTIFICATION_KEY, id);
+  }
+  routeFromNotification(data);
+  clearLastResponse();
+}
+
 /**
  * Wires Expo notification listeners (tap + foreground-received) to the
  * deep-link router above. Returns a teardown that removes both listeners.
@@ -290,11 +540,14 @@ export function setupPushNotificationRouting(): () => void {
     return () => {};
   }
 
+  // Android kanalları açılışta (izin istenmeden önce) hazır olsun: Android 13 izin diyaloğu
+  // kanal ister, sunucunun gönderdiği `channelId` de var olan bir kanala düşmeli.
+  void ensureNotificationChannels();
+
   // 1) User taps an OS-level notification
   const responseSub = Notifications.addNotificationResponseReceivedListener(
     (response: any) => {
-      const data = response?.notification?.request?.content?.data;
-      routeFromNotification(data);
+      routeResponseOnce(response);
     },
   );
 
@@ -315,13 +568,20 @@ export function setupPushNotificationRouting(): () => void {
   );
 
   // 3) Cold-start: uygulama KAPALIYKEN bildirime basılıp açıldıysa, yanıt live
-  // listener'a düşmez → son yanıtı bir kez oku ve yönlendir.
-  Notifications.getLastNotificationResponseAsync()
-    .then((response: any) => {
-      const data = response?.notification?.request?.content?.data;
-      if (data) routeFromNotification(data);
-    })
-    .catch(() => { /* sessiz */ });
+  // listener'a düşmeyebilir → son yanıtı bir kez oku ve yönlendir. Canlı dinleyici de aynı
+  // yanıtı verdiyse kimlik tekilleştirmesi ikinci gezinmeyi engeller; OTA yeniden yüklemesinden
+  // sonra aynı yanıt saklı kimlikle elenir.
+  void (async () => {
+    try {
+      const [response, persisted] = await Promise.all([
+        Notifications.getLastNotificationResponseAsync(),
+        readStoredValue(LAST_ROUTED_NOTIFICATION_KEY),
+      ]);
+      if (response) routeResponseOnce(response, persisted);
+    } catch {
+      /* sessiz */
+    }
+  })();
 
   return () => {
     try {
@@ -331,4 +591,13 @@ export function setupPushNotificationRouting(): () => void {
       /* noop */
     }
   };
+}
+
+/** YALNIZ TEST: modül durumunu sıfırlar. */
+export function resetPushModuleStateForTests(): void {
+  routedIds.clear();
+  channelsLocale = null;
+  lastPostedToken = null;
+  lastDeviceToken = null;
+  ownTokenFetches = 0;
 }

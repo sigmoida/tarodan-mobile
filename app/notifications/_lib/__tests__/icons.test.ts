@@ -11,6 +11,10 @@ const NEW_TYPES = [
   'order_cancelled_by_platform',
   'order_cancelled_by_platform_seller',
   'trade_cancelled_by_platform',
+  // Takas iptali (karşı taraf) ve itiraz açıldı / sonuçlandı (API 2026-10-17).
+  'trade_cancelled',
+  'trade_dispute_opened',
+  'trade_dispute_resolved',
 ];
 
 describe('getIconForType — yeni bildirim tipleri', () => {

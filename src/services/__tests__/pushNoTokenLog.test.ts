@@ -40,6 +40,10 @@ async function register(dev: boolean) {
     }));
     jest.doMock('@/lib/api', () => ({ api: { post: jest.fn(async () => ({})) } }));
     jest.doMock('expo-router', () => ({ router: { push: jest.fn() } }));
+    // Kayıt yalnız oturum açıkken yazılır.
+    jest.doMock('@/stores/authStore', () => ({
+      useAuthStore: { getState: () => ({ isAuthenticated: true }) },
+    }));
     const { registerForPushNotifications } = require('../push');
     result = await registerForPushNotifications();
   });
