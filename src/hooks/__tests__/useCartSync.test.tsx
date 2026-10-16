@@ -67,9 +67,23 @@ describe('useCartSync · sunucu eklemeyi reddederse', () => {
     (cartApi.addItem as jest.Mock).mockReset();
     (appAlert as jest.Mock).mockClear();
     toastError = jest.spyOn(toast, 'error').mockImplementation(() => 1);
-    useCartStore.setState({ items: [], deselectedIds: [] });
+    useCartStore.setState({ items: [], deselectedIds: [], mergePendingFor: null });
   });
   afterEach(() => toastError.mockRestore());
+
+  it.each([401, 403, 408, 429])(
+    '%i GEÇİCİDİR (oturum / hız sınırı): satır KORUNUR, uyarı yok, birleştirme bekliyor işaretlenir',
+    async (status) => {
+      rejectWith(status, 'Çok fazla istek');
+      const { result } = renderHook(() => useCartSync(), { wrapper });
+
+      act(() => result.current.add(ITEM));
+
+      await waitFor(() => expect(useCartStore.getState().mergePendingFor).toBe('u1'));
+      expect(useCartStore.getState().items).toHaveLength(1);
+      expect(toastError).not.toHaveBeenCalled();
+    },
+  );
 
   it('4xx: iyimser satır GERİ ALINIR', async () => {
     rejectWith(409, 'Bu satıcı şu an satış yapamıyor');
@@ -144,25 +158,109 @@ describe('useCartMergeOnLogin · sunucu satırı reddederse', () => {
     (cartApi.addItem as jest.Mock).mockReset();
     (cartApi.get as jest.Mock).mockReset().mockResolvedValue({ data: { calculation: { items: [] } } });
     (appAlert as jest.Mock).mockClear();
-    useCartStore.setState({ items: [], deselectedIds: [] });
+    // Giriş geçişi: misafir satırları bu kullanıcı için birleştirme bekliyor.
+    useCartStore.setState({ items: [], deselectedIds: [], mergePendingFor: null });
     useCartStore.getState().addItem(ITEM);
+    useCartStore.getState().markMergePending('u1');
   });
 
-  it('4xx: hayalet satır yerelden DÜŞER', async () => {
+  it('4xx: hayalet satır yerelden DÜŞER, birleştirme biter', async () => {
     (cartApi.addItem as jest.Mock).mockRejectedValue({ response: { status: 400 } });
 
     renderHook(() => useCartMergeOnLogin(), { wrapper });
 
     await waitFor(() => expect(useCartStore.getState().items).toHaveLength(0));
+    await waitFor(() => expect(useCartStore.getState().mergePendingFor).toBeNull());
     expect(appAlert).not.toHaveBeenCalled();
   });
 
-  it('5xx: satır KORUNUR (geçici hata sepeti boşaltmaz)', async () => {
-    (cartApi.addItem as jest.Mock).mockRejectedValue({ response: { status: 503 } });
+  it.each([503, 401, 403, 408, 429])(
+    '%i: satır KORUNUR ve birleştirme bekliyor kalır (geçici hata sepeti boşaltmaz)',
+    async (status) => {
+      (cartApi.addItem as jest.Mock).mockRejectedValue({ response: { status } });
+
+      renderHook(() => useCartMergeOnLogin(), { wrapper });
+
+      await waitFor(() => expect(cartApi.addItem).toHaveBeenCalled());
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(useCartStore.getState().items).toHaveLength(1);
+      expect(useCartStore.getState().mergePendingFor).toBe('u1');
+    },
+  );
+
+  it('sunucu sepeti okunamazsa (429) satırlar korunur, birleştirme bekliyor kalır', async () => {
+    (cartApi.get as jest.Mock).mockReset().mockRejectedValue({ response: { status: 429 } });
 
     renderHook(() => useCartMergeOnLogin(), { wrapper });
 
-    await waitFor(() => expect(cartApi.addItem).toHaveBeenCalled());
+    await waitFor(() => expect(cartApi.get).toHaveBeenCalled());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(cartApi.addItem).not.toHaveBeenCalled();
+    expect(useCartStore.getState().items).toHaveLength(1);
+    expect(useCartStore.getState().mergePendingFor).toBe('u1');
+  });
+
+  it('hesap düzeyinde kesin 403 (EMAIL_NOT_VERIFIED): birleştirme durur, satırlar KALIR, yeniden deneme yok', async () => {
+    (cartApi.addItem as jest.Mock).mockRejectedValue({
+      response: { status: 403, data: { errorCode: 'EMAIL_NOT_VERIFIED' } },
+    });
+
+    renderHook(() => useCartMergeOnLogin(), { wrapper });
+
+    await waitFor(() => expect(useCartStore.getState().mergePendingFor).toBeNull());
+    expect(useCartStore.getState().items).toHaveLength(1);
+    expect(cartApi.addItem).toHaveBeenCalledTimes(1);
+  });
+
+  it('IP engeli (server.security.accessBlocked) da hesap düzeyinde kesindir', async () => {
+    (cartApi.get as jest.Mock).mockReset().mockRejectedValue({
+      response: { status: 403, data: { i18nKey: 'server.security.accessBlocked' } },
+    });
+
+    renderHook(() => useCartMergeOnLogin(), { wrapper });
+
+    await waitFor(() => expect(useCartStore.getState().mergePendingFor).toBeNull());
+    expect(useCartStore.getState().items).toHaveLength(1);
+  });
+
+  it('satıra özgü 403: o satır atlanır (yerelde kalır), kalan satırlarla devam edilir', async () => {
+    useCartStore.getState().addItem({ ...ITEM, productId: 'p2', title: 'İkinci' });
+    (cartApi.addItem as jest.Mock).mockImplementation((productId: string) =>
+      productId === 'p1'
+        ? Promise.reject({ response: { status: 403, data: { code: 'SELLER_SALES_SUSPENDED', productId } } })
+        : Promise.resolve({ data: {} }),
+    );
+
+    renderHook(() => useCartMergeOnLogin(), { wrapper });
+
+    await waitFor(() => expect(useCartStore.getState().mergePendingFor).toBeNull());
+    expect(cartApi.addItem).toHaveBeenCalledWith('p2', 1);
+    expect(useCartStore.getState().items.map((i) => i.productId)).toEqual(['p1', 'p2']);
+  });
+
+  it('soğuk açılış (işaret yok): birleştirme ÇALIŞMAZ', async () => {
+    useCartStore.setState({ mergePendingFor: null });
+
+    renderHook(() => useCartMergeOnLogin(), { wrapper });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(cartApi.get).not.toHaveBeenCalled();
+    expect(cartApi.addItem).not.toHaveBeenCalled();
+  });
+
+  it('başarı: işaret kalkar', async () => {
+    (cartApi.addItem as jest.Mock).mockResolvedValue({ data: {} });
+
+    renderHook(() => useCartMergeOnLogin(), { wrapper });
+
+    await waitFor(() => expect(useCartStore.getState().mergePendingFor).toBeNull());
+    expect(cartApi.addItem).toHaveBeenCalledWith('p1', 1);
     expect(useCartStore.getState().items).toHaveLength(1);
   });
 });

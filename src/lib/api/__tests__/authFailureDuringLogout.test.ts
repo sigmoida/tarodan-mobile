@@ -46,7 +46,7 @@ const mockLogout = jest.fn(() => Promise.resolve());
 jest.mock('@/stores/authStore', () => {
   const { create } = require('zustand');
   return {
-    useAuthStore: create(() => ({ token: 'a-token', logout: mockLogout })),
+    useAuthStore: create(() => ({ isAuthenticated: true, token: 'a-token', logout: mockLogout })),
     isLogoutInProgress: () => mockLogoutInProgress,
   };
 });

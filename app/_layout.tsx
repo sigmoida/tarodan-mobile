@@ -18,6 +18,7 @@ import { NotoSans_600SemiBold } from "@expo-google-fonts/noto-sans/600SemiBold";
 import { NotoSans_700Bold } from "@expo-google-fonts/noto-sans/700Bold";
 import { AlertDialogHost, BrandFontProvider, ToastHost } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
+import { prepareSecureSession } from "@/stores/secureSessionSetup";
 import { useCartMergeOnLogin } from '@/hooks/useServerCart';
 import { useMembershipLimits } from '@/hooks/useMembershipLimits';
 import { useMessagingSocket } from "@/hooks/messaging";
@@ -28,6 +29,7 @@ import {
   registerForPushNotifications,
   setupPushNotificationRouting,
 } from "@/services/push";
+import { settlePendingPushRevoke } from "@/services/pushRevocation";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { initSentry } from "@/services/sentry";
 import AnimatedSplash from "@/components/AnimatedSplash";
@@ -44,6 +46,11 @@ import { NetworkMonitor } from "@/lib/network";
 // EXPO_PUBLIC_SENTRY_DSN is unset (see services/sentry.ts guard); real
 // reporting requires a dev/production build with a DSN configured.
 initSentry();
+
+// Güvenli depo hazırlığı (yeniden kurulumda bayat anahtar zinciri oturumunu silme + iOS
+// erişilebilirlik göçü) modül yüklenirken, HİÇBİR ekran AsyncStorage'a yazmadan önce başlar:
+// yeniden kurulum "boş AsyncStorage" ile saptanıyor. `loadToken` bunu bekler. Fırlatmaz.
+const secureSessionReady = prepareSecureSession();
 
 // Conditionally import notifications - only in development builds, not Expo Go
 let Notifications: any = null;
@@ -123,6 +130,7 @@ export default function RootLayout() {
     // olmayan eski kurulumun İLK açılışı profili bekler (bkz. authStore.loadToken).
     async function prepare() {
       try {
+        await secureSessionReady;
         await loadToken();
       } catch (e) {
         logger.warn('App bootstrap failed', { err: safeError(e) });
@@ -139,7 +147,11 @@ export default function RootLayout() {
   // `isAuthenticated` kapanışı hep false'tu.) registerToken upsert — çift çağrı zararsız.
   useEffect(() => {
     if (isAuthenticated && !isExpoGo) {
-      registerForPushNotifications().catch(() => {});
+      // Önceki çıkışın push iptali uçuştaysa önce o sonuçlansın (≤ 5 sn): sunucu iptali cihaz
+      // token'ının TÜM kayıtlarını kapatır, yeni kaydın ardından ulaşırsa onu da kapatırdı.
+      settlePendingPushRevoke()
+        .then(() => registerForPushNotifications())
+        .catch(() => {});
     }
   }, [isAuthenticated]);
 

@@ -54,7 +54,7 @@ const mockDiscard = jest.fn(() => Promise.resolve());
 jest.mock('@/stores/authStore', () => {
   const { create } = jest.requireActual("zustand");
   return {
-    useAuthStore: create(() => ({ token: 'a-token', logout: mockLogout })),
+    useAuthStore: create(() => ({ isAuthenticated: true, token: 'a-token', logout: mockLogout })),
     isLogoutInProgress: () => false,
     // Fabrika import sırasında çalışır (mockDiscard henüz atanmamış) — geç bağla.
     discardStoredSession: () => mockDiscard(),

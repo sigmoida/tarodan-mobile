@@ -4,6 +4,8 @@ import { useCartStore } from './cartStore';
 import { useMessagesStore } from './messagesStore';
 import { useDisputeDraftStore } from './disputeDraftStore';
 import { usePendingAuthEmailStore } from './pendingAuthEmailStore';
+import { useRecentSearchesStore } from './recentSearchesStore';
+import { clearSavedSearches } from './savedSearchesStorage';
 import { clearUserSnapshot } from './userSnapshot';
 import { clearPersistedQueryCache } from '@/lib/query/persist';
 
@@ -40,6 +42,12 @@ export function resetUserStores(reason: LogoutReason = 'user'): void {
 
   // Doğrulama akışından kalan bellek içi e-posta (PII) sonraki oturuma kalmasın.
   usePendingAuthEmailStore.getState().setEmail(null);
+
+  // Cihazda kalıcı tutulan kullanıcıya özel aramalar: son aramalar (persist'li store —
+  // AsyncStorage'a da boş yazar) ve kayıtlı aramalar (AsyncStorage). Ortak cihazda önceki
+  // hesabın arama geçmişi görünmesin.
+  useRecentSearchesStore.getState().clearSearches();
+  void clearSavedSearches();
 
   // Bildirim + mesaj rozeti dahil tüm react-query önbelleği (örn. 'notifications-unread').
   queryClient.clear();

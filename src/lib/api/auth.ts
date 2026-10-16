@@ -82,7 +82,14 @@ export const authApi = {
       '/auth/register/business',
       data,
     ),
-  logout: () => api.post('/auth/logout'),
+  /**
+   * Çıkış — public uç. Sunucu refresh token'ı web'de çerezden, mobilde BODY'den okuyup DB'de
+   * iptal eder (eskiden body boş gidiyordu: çıkıştan sonra refresh token süresi dolana dek
+   * geçerli kalıyordu). `guestApi` ile gider: çağrı yerel temizlikten SONRA, token'lar silinmişken
+   * yapılır; 401'i refresh / zorunlu çıkış tetiklememeli.
+   */
+  logout: (refreshToken?: string | null) =>
+    guestApi.post('/auth/logout', refreshToken ? { refreshToken } : {}),
   getProfile: () => api.get('/users/me'),
   refresh: (refreshToken: string) => api.post('/auth/refresh', { refreshToken }),
   // Geriye uyumluluk için eski ad korunur

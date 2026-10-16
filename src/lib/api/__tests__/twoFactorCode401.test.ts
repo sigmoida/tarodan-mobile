@@ -17,6 +17,7 @@ jest.mock("@/stores/authStore", () => {
   const { create } = jest.requireActual<typeof import("zustand")>("zustand");
   return {
     useAuthStore: create(() => ({
+      isAuthenticated: true,
       token: "a1",
       logout: jest.fn(async () => undefined),
     })),

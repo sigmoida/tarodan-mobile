@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import * as SecureStore from 'expo-secure-store';
 import { userApi } from '@/lib/api';
+import { readAccessToken } from '@/lib/api/tokenStorage';
 import { SESSION_PROBE } from '@/lib/api/sessionState';
 import { qk } from '@/lib/query';
 
@@ -36,7 +36,8 @@ export function useBanStatus() {
     queryFn: async (): Promise<BanStatus | null> => {
       let token: string | null = null;
       try {
-        token = await SecureStore.getItemAsync('accessToken');
+        // Token okumasının tek kaynağı (açılış hazırlığı kapısı + yeniden kurulum bastırması dahil).
+        token = await readAccessToken();
       } catch {
         return null;
       }

@@ -358,6 +358,8 @@
     "googleIdTokenMissing": "Couldn't get a Google idToken",
     "appleSignInFailedTitle": "Apple sign-in failed",
     "appleIdentityTokenMissing": "Couldn't get an Apple identityToken",
+    "socialTwoFactorTitle": "Sign in with your password",
+    "socialTwoFactorBody": "Two-step verification is enabled on this account. Please sign in with your e-mail address and password; you will then be asked for your verification code.",
     "emailInvalidShort": "Enter a valid e-mail address",
     "passwordRequired": "Password cannot be empty",
     "backToHome": "Back to home",

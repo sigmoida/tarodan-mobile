@@ -358,6 +358,8 @@
     "googleIdTokenMissing": "Google idToken alınamadı",
     "appleSignInFailedTitle": "Apple ile giriş başarısız",
     "appleIdentityTokenMissing": "Apple identityToken alınamadı",
+    "socialTwoFactorTitle": "Şifrenizle giriş yapın",
+    "socialTwoFactorBody": "Bu hesapta iki adımlı doğrulama açık. Lütfen e-posta adresiniz ve şifrenizle giriş yapın; ardından doğrulama kodunuz istenecek.",
     "emailInvalidShort": "Geçerli e-posta girin",
     "passwordRequired": "Şifre boş olamaz",
     "backToHome": "Ana sayfaya dön",

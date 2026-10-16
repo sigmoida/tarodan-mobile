@@ -27,7 +27,7 @@ jest.mock('@/lib/api-client', () => {
 jest.mock('@/stores/authStore', () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { create } = require('zustand');
-  return { useAuthStore: create(() => ({ token: 'stale-access', logout: jest.fn(() => Promise.resolve()) })) };
+  return { useAuthStore: create(() => ({ isAuthenticated: true, token: 'stale-access', logout: jest.fn(() => Promise.resolve()) })) };
 });
 
 jest.mock('@react-native-async-storage/async-storage', () =>

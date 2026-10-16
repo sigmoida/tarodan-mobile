@@ -26,7 +26,10 @@ export default function BannedScreen() {
   const notBanned = status?.banned === false;
 
   useEffect(() => {
-    if (notBanned) navigateTo('/');
+    if (!notBanned) return;
+    // Hesap banlı değil: ban yönlendirme bayrağı bırakılır — sonraki gerçek ban yine yönlendirir.
+    resetBannedRedirect();
+    navigateTo('/');
   }, [notBanned]);
 
   const handleLogout = async () => {

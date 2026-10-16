@@ -48,7 +48,7 @@ jest.mock('@/lib/api-client', () => {
 
 jest.mock('@/stores/authStore', () => {
   const { create } = jest.requireActual('zustand');
-  return { useAuthStore: create(() => ({ token: null, logout: jest.fn() })) };
+  return { useAuthStore: create(() => ({ isAuthenticated: true, token: null, logout: jest.fn() })) };
 });
 
 jest.mock('@/services/sentry', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn(), setUser: jest.fn() }));

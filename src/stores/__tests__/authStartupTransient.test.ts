@@ -178,7 +178,9 @@ describe('loadToken · görüntü yok, geçici hata (H3)', () => {
     await useAuthStore.getState().login('token-b', user({ id: 'b' }));
     await goOnline();
 
-    expect(getProfile).toHaveBeenCalledTimes(1);
+    // Ertelenmiş oturum denemesi (SESSION_PROBE) yeniden çalışmadı; girişin kendi tam profil
+    // çekimi (argümansız) ayrı bir istektir.
+    expect(getProfile.mock.calls.filter((call) => call[0] === SESSION_PROBE)).toHaveLength(1);
     expect(useAuthStore.getState().user?.id).toBe('b');
   });
 });

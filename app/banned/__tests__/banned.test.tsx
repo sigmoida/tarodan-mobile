@@ -69,10 +69,12 @@ describe('BannedScreen', () => {
     expect(screen.queryByText(PHISH)).toBeNull();
   });
 
-  it('hesap banlı değilse (istek başarılı) ana sayfaya döner', async () => {
+  it('hesap banlı değilse (istek başarılı) ban bayrağı bırakılır ve ana sayfaya döner', async () => {
     mockGetProfile.mockResolvedValue({ data: { id: 'u1' } });
     renderWithProviders(<BannedScreen />);
     await waitFor(() => expect(dismissToMock).toHaveBeenCalled());
+    // Sonraki gerçek ban yine yönlendirebilsin.
+    expect(jest.requireMock('@/lib/api').resetBannedRedirect).toHaveBeenCalled();
   });
 
   it('saklı token yoksa istek atılmaz, yönlendirme yok, parametre metni yine gösterilmez', async () => {

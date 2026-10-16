@@ -69,6 +69,8 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 beforeEach(async () => {
   jest.restoreAllMocks();
+  // Girişin arka plan profil çekimi de getProfile'ı çağırır: önceki testin yanıtı (başka hesap) sızmasın.
+  (userApi.getProfile as jest.Mock).mockReset();
   __resetPaymentCapabilities();
   await AsyncStorage.clear();
 });
@@ -134,7 +136,7 @@ describe('zorunlu çıkış (401): süren ödemenin belirteci kalır, yalnız A\
     (SecureStore.getItemAsync as jest.Mock).mockImplementation((key: string) =>
       Promise.resolve(key === 'accessToken' ? 'token-a' : null),
     );
-    (userApi.getProfile as jest.Mock).mockResolvedValue({ data: user('a') });
+    (userApi.getProfile as jest.Mock).mockResolvedValueOnce({ data: user('a') });
     try {
       await useAuthStore.getState().loadToken();
     } finally {
