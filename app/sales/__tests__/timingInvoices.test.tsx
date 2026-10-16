@@ -127,7 +127,7 @@ describe('A-3.4 · satıcıya e-Arşiv belgeleri', () => {
         { id: 'inv-2', invoiceNumber: 'TRD2', label: 'Kargo payı' },
       ],
     });
-    pdfMock.mockResolvedValueOnce({ data: { url: 'https://s3/inv-1.pdf' } }).mockRejectedValueOnce(new Error('500'));
+    pdfMock.mockResolvedValueOnce({ data: { url: 'https://amzn-tarodan.s3.eu-west-1.amazonaws.com/documents/inv-1.pdf' } }).mockRejectedValueOnce(new Error('500'));
     serve({ status: 'delivered' });
     renderWithProviders(<SaleDetailScreen />);
 
@@ -136,7 +136,7 @@ describe('A-3.4 · satıcıya e-Arşiv belgeleri', () => {
     expect(invoicesMock).toHaveBeenCalledWith('sale-1');
 
     fireEvent.press(screen.getByTestId('order-invoice-open-inv-1'));
-    await waitFor(() => expect(openURL).toHaveBeenCalledWith('https://s3/inv-1.pdf'));
+    await waitFor(() => expect(openURL).toHaveBeenCalledWith('https://amzn-tarodan.s3.eu-west-1.amazonaws.com/documents/inv-1.pdf'));
 
     fireEvent.press(screen.getByTestId('order-invoice-open-inv-2'));
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Fatura açılamadı'));

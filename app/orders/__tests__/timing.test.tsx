@@ -252,12 +252,28 @@ describe('A-3.4 · e-Arşiv belgeleri listelenir', () => {
   it('dokunulan belge kendi PDF adresiyle açılır', async () => {
     const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
     invoicesMock.mockResolvedValue({ data: INVOICES });
-    pdfMock.mockResolvedValue({ data: { url: 'https://s3/inv-2.pdf' } });
+    pdfMock.mockResolvedValue({ data: { url: 'https://amzn-tarodan.s3.eu-west-1.amazonaws.com/documents/inv-2.pdf' } });
     serveOrder();
     renderWithProviders(<OrderDetailScreen />);
     fireEvent.press(await screen.findByTestId('order-invoice-open-inv-2'));
-    await waitFor(() => expect(openURL).toHaveBeenCalledWith('https://s3/inv-2.pdf'));
+    await waitFor(() => expect(openURL).toHaveBeenCalledWith('https://amzn-tarodan.s3.eu-west-1.amazonaws.com/documents/inv-2.pdf'));
     expect(pdfMock).toHaveBeenCalledWith('inv-2');
+    openURL.mockRestore();
+  });
+
+  it('sunucu güvenilmez bir adres verirse (http / yabancı host) belge AÇILMAZ', async () => {
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    invoicesMock.mockResolvedValue({ data: INVOICES });
+    pdfMock
+      .mockResolvedValueOnce({ data: { url: 'https://evil.example/inv-2.pdf' } })
+      .mockResolvedValueOnce({ data: { url: 'http://amzn-tarodan.s3.eu-west-1.amazonaws.com/documents/inv-2.pdf' } });
+    serveOrder();
+    renderWithProviders(<OrderDetailScreen />);
+    fireEvent.press(await screen.findByTestId('order-invoice-open-inv-2'));
+    await waitFor(() => expect(pdfMock).toHaveBeenCalledTimes(1));
+    fireEvent.press(await screen.findByTestId('order-invoice-open-inv-2'));
+    await waitFor(() => expect(pdfMock).toHaveBeenCalledTimes(2));
+    expect(openURL).not.toHaveBeenCalled();
     openURL.mockRestore();
   });
 

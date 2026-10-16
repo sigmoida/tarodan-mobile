@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { elogoInvoicesApi, type ElogoInvoice } from '@/lib/api';
 import { qk } from '@/lib/query';
+import { isTrustedDocumentUrl } from '@/lib/security/trustedDocumentUrl';
 
 const NOT_READY = 'not-ready';
 
@@ -47,6 +48,9 @@ export function useOrderElogoInvoices(
       const res = await elogoInvoicesApi.pdf(invoiceId);
       const url = res.data?.url;
       if (!url) throw new Error(NOT_READY);
+      // Sunucunun verdiği adres yalnız https + izinli host ise açılır (`trustedDocumentUrl`);
+      // değilse genel "açılamadı" hatası.
+      if (!isTrustedDocumentUrl(url)) throw new Error('untrusted-document-url');
       await Linking.openURL(url);
     },
     onError: (err: unknown) => {
