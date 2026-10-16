@@ -20,6 +20,8 @@ jest.mock('@/ui', () => ({
 const mockState = {
   isAuthenticated: true,
   items: [] as any[],
+  // Sepet store'undaki satırlar (favori listesinden ayrı); kart `inCart` bunu okur.
+  cartItems: [] as any[],
   fetchFavorites: jest.fn(),
   removeFromFavorites: jest.fn().mockResolvedValue(true),
   addItem: jest.fn(),
@@ -47,17 +49,18 @@ jest.mock('@/hooks/useFavorites', () => ({
 }));
 
 jest.mock('@/stores/cartStore', () => {
-  const useCartStore: any = () => ({
+  const cartState = () => ({
     // `useCartSync.add` reddedilen eklemeyi geri alabilmek için ÖNCEKİ satırı
     // okur; sahte store da o alanı taşımalı.
-    items: mockState.items,
+    items: mockState.cartItems,
     addItem: mockState.addItem,
     removeByProductId: mockState.removeByProductId,
     updateQuantity: mockState.updateQuantity,
     isInCart: mockState.isInCart,
   });
-  // `useCartSync.add` eklenen farkı `getState()` ile okur.
-  useCartStore.getState = () => ({ items: mockState.items });
+  // Selector'lü abonelik (`useCartStore((s) => ...)`) ve `useCartSync` aksiyonları (`getState()`).
+  const useCartStore: any = (sel?: (s: any) => unknown) => (sel ? sel(cartState()) : cartState());
+  useCartStore.getState = cartState;
   return { useCartStore };
 });
 
@@ -87,6 +90,7 @@ beforeEach(() => {
   mockState.isInCart.mockClear().mockReturnValue(false);
   mockState.isAuthenticated = true;
   mockState.items = [];
+  mockState.cartItems = [];
 });
 
 describe('J57 · favoriler ekranı — misafir', () => {
@@ -133,6 +137,7 @@ describe('J57 · favoriler ekranı — dolu liste', () => {
     first.unmount();
 
     mockState.isInCart.mockReturnValue(true);
+    mockState.cartItems = [{ id: 'c1', productId: 'p1', quantity: 1 }];
     renderWithProviders(<FavoritesScreen />);
     expect(screen.queryByLabelText('Sepete Ekle')).toBeNull();
     fireEvent.press(screen.getByLabelText('Sepete Git'));

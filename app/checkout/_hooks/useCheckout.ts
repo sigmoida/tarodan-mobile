@@ -97,14 +97,13 @@ export function useCheckout() {
   const { t } = useTranslation();
   const { buyNow } = useLocalSearchParams<{ buyNow?: string }>();
   const isBuyNow = buyNow === '1';
-  const {
-    items: cartItems,
-    deselectedIds,
-    onPurchaseComplete,
-    buyNowItem,
-    clearBuyNow,
-  } = useCartStore();
-  const { isAuthenticated, user } = useAuthStore();
+  const cartItems = useCartStore((s) => s.items);
+  const deselectedIds = useCartStore((s) => s.deselectedIds);
+  const onPurchaseComplete = useCartStore((s) => s.onPurchaseComplete);
+  const buyNowItem = useCartStore((s) => s.buyNowItem);
+  const clearBuyNow = useCartStore((s) => s.clearBuyNow);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
 
   /**
    * Ödenecek satırlar. Sepet yolunda kullanıcının SEÇTİKLERİ — uç zaten yalnız

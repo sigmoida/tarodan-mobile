@@ -29,7 +29,6 @@ type NewCartItem = Omit<CartItem, 'id' | 'quantity' | 'addedAt'>;
 export function useCartSync() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const queryClient = useQueryClient();
-  const store = useCartStore();
 
   /**
    * @param onReject 4xx'te çağrılır — iyimser yazmayı geri almak için.
@@ -59,8 +58,8 @@ export function useCartSync() {
       // reddedilince satırı silmek değil eski adede dönmek doğru olan.
       const before = useCartStore.getState().items.find((i) => i.productId === item.productId);
       // Tek adette eski çağrı biçimi korunur (varsayılan 1); yalnız adet seçici >1 verir.
-      if (quantity > 1) store.addItem(item, quantity);
-      else store.addItem(item);
+      if (quantity > 1) useCartStore.getState().addItem(item, quantity);
+      else useCartStore.getState().addItem(item);
       // Sunucuya istenen değil, store'un GERÇEKTEN eklediği fark gider: store stok/sipariş
       // tavanında sessizce kırpıyor; ham `quantity` gönderilirse yerel ve sunucu sepeti ayrışır.
       const after = useCartStore.getState().items.find((i) => i.productId === item.productId);
@@ -69,26 +68,26 @@ export function useCartSync() {
       // Aksiyonlar zustand'da kararlı referans; geri alma bayat closure'dan da
       // güvenle çağrılır (state'i çağrı anında okurlar).
       mirror(() => cartApi.addItem(item.productId, added), 'cart.add', (message) => {
-        if (before) store.updateQuantity(before.id, before.quantity);
-        else store.removeByProductId(item.productId);
+        if (before) useCartStore.getState().updateQuantity(before.id, before.quantity);
+        else useCartStore.getState().removeByProductId(item.productId);
         toast.error(message);
       });
     },
 
     removeByProductId: (productId: string) => {
-      store.removeByProductId(productId);
+      useCartStore.getState().removeByProductId(productId);
       mirror(() => cartApi.removeItem(productId), 'cart.remove');
     },
 
     removeItem: (itemId: string) => {
       const line = useCartStore.getState().items.find((i) => i.id === itemId);
-      store.removeItem(itemId);
+      useCartStore.getState().removeItem(itemId);
       if (line) mirror(() => cartApi.removeItem(line.productId), 'cart.remove');
     },
 
     setQuantity: (itemId: string, quantity: number) => {
       const line = useCartStore.getState().items.find((i) => i.id === itemId);
-      store.updateQuantity(itemId, quantity);
+      useCartStore.getState().updateQuantity(itemId, quantity);
       if (!line) return;
       // Sunucuya istenen değil, store'un GERÇEKTEN yazdığı adet gider (`add` ile aynı kural):
       // store stok/sipariş tavanında kırpıyor; ham değer gitseydi sunucu 4xx ile reddeder,
@@ -99,7 +98,7 @@ export function useCartSync() {
       mirror(() => cartApi.updateItem(line.productId, applied), 'cart.update', (message) => {
         // Sunucu reddetti: yerel adedi sunucudakine (önceki hâl) geri al, taze sepeti çek.
         if (useCartStore.getState().items.some((i) => i.id === itemId)) {
-          store.updateQuantity(itemId, line.quantity);
+          useCartStore.getState().updateQuantity(itemId, line.quantity);
         }
         queryClient.invalidateQueries({ queryKey: qk.cart.mine });
         toast.error(message);
@@ -107,7 +106,7 @@ export function useCartSync() {
     },
 
     clear: () => {
-      store.clearCart();
+      useCartStore.getState().clearCart();
       mirror(() => cartApi.clear(), 'cart.clear');
     },
   };

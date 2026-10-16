@@ -39,17 +39,22 @@ jest.mock('@/stores/authStore', () => ({ useAuthStore: (sel?: (state: any) => un
     const state: any = mockAuth ;
     return sel ? sel(state) : state;
   }}));
-jest.mock('@/stores/cartStore', () => ({
-  useCartStore: () => ({ addItem: jest.fn(), isInCart: () => false, setBuyNow: jest.fn() }),
-}));
-jest.mock('@/stores/guestStore', () => ({
-  useGuestStore: () => ({
+jest.mock('@/stores/cartStore', () => {
+  const state = { items: [] as any[], addItem: jest.fn(), isInCart: () => false, setBuyNow: jest.fn() };
+  // Selector'lü abonelik + `getState()` (useProductActions / useCartSync).
+  const useCartStore: any = (sel?: (s: typeof state) => unknown) => (sel ? sel(state) : state);
+  useCartStore.getState = () => state;
+  return { useCartStore };
+});
+jest.mock('@/stores/guestStore', () => {
+  const state = {
     incrementProductView: jest.fn(),
     getPromptType: () => null,
     setLastPromptShown: jest.fn(),
     canShowPrompt: () => false,
-  }),
-}));
+  };
+  return { useGuestStore: (sel?: (s: typeof state) => unknown) => (sel ? sel(state) : state) };
+});
 jest.mock('@/hooks/useFavorites', () => ({
   useFavorites: () => ({
     items: [],

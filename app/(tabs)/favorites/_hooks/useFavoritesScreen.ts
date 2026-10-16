@@ -19,9 +19,8 @@ import { formatPrice } from '@/utils/format';
  */
 export function useFavoritesScreen() {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { items, isLoading, error, fetchFavorites, removeFromFavorites, getFavoriteCount } = useFavorites();
-  const { isInCart } = useCartStore();
   // Sepet yazmaları üyede sunucuya da aynalanır.
   const cart = useCartSync();
   const [refreshing, setRefreshing] = useState(false);
@@ -48,7 +47,7 @@ export function useFavoritesScreen() {
    * basmak adet artırmaz, sepetten de çıkarmaz (çıkarma sepet ekranında).
    */
   const handleCartAction = (item: WishlistItem) => {
-    if (isInCart(item.productId)) {
+    if (useCartStore.getState().isInCart(item.productId)) {
       router.push('/cart');
       return;
     }
@@ -70,7 +69,6 @@ export function useFavoritesScreen() {
     error,
     fetchFavorites,
     getFavoriteCount,
-    isInCart,
     refreshing,
     onRefresh,
     handleRemove,
