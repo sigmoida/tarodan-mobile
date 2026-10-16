@@ -3,6 +3,7 @@ import { Button, SectionCard, Text } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { PageShell } from '@/components/common/PageShell';
+import { useScreenCaptureProtection } from '@/lib/security/screenCapture';
 import { formatIbanDisplay, normalizeIban } from '@/utils/iban';
 import { BankAccountSummary } from './_components/BankAccountSummary';
 import { BankAccountSkeleton } from './_components/BankAccountSkeleton';
@@ -16,6 +17,8 @@ import { styles } from './_lib/styles';
 export default function BankAccountScreen() {
   const { t } = useTranslation();
   const f = useBankAccount();
+  // IBAN / hesap sahibi ekran görüntüsüne ve uygulama değiştiriciye düşmez.
+  useScreenCaptureProtection();
   const title = t('mobile.settingsBankAccount');
 
   if (!f.isAuthenticated) {

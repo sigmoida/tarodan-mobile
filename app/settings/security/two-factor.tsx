@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/common/PageShell';
+import { useScreenCaptureProtection } from '@/lib/security/screenCapture';
 
 import { useSecurityAuthGate } from './_hooks/useSecurityAuthGate';
 import { useTwoFactorFlow } from './_hooks/useTwoFactorFlow';
@@ -23,6 +24,8 @@ export default function TwoFactorScreen() {
   const { t } = useTranslation();
   const isAuthenticated = useSecurityAuthGate();
   const f = useTwoFactorFlow();
+  // Gizli anahtar, QR ve yedek kodlar ekran görüntüsüne / uygulama değiştiriciye düşmez.
+  useScreenCaptureProtection();
   if (!isAuthenticated) return null;
 
   return (

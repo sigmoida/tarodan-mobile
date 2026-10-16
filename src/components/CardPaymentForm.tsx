@@ -19,6 +19,7 @@ import {
 import { PAYMENT_POLL_DURATION_MS, PAYMENT_STATUS_POLL_MS, startVerifyLoop } from '@/lib/payment/verifyPacer';
 import { isPaidPaymentStatus } from '@/lib/payment/status';
 import { formatPriceNumber } from '@/utils/format';
+import { useScreenCaptureProtection } from '@/lib/security/screenCapture';
 
 /**
  * ⚠️ 3DS SONRASI DURUM YOKLAMASI BİLEREK React Query'de DEĞİL (CLAUDE.md §6'nın
@@ -82,6 +83,8 @@ export default function CardPaymentForm({
   paymentId: initialPaymentId,
 }: Props) {
   const { t } = useTranslation();
+  // Kart numarası / CVV ve 3DS sayfası ekran görüntüsüne, kayda ve uygulama değiştiriciye düşmez.
+  useScreenCaptureProtection();
   // Kayıtlı kart listesi yalnız bu amaçta kart saklama açıkken alınır.
   const cardsQuery = useSavedCards({ purpose, enabled: cardStorageEnabled });
   const cards = useMemo(() => (cardStorageEnabled ? cardsQuery.data ?? [] : []), [cardStorageEnabled, cardsQuery.data]);
