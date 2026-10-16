@@ -13,6 +13,7 @@ import {
   formatCountdown,
 } from '../_lib/status';
 import { TradeProgressStepper } from './TradeProgressStepper';
+import { useCountdown } from '../_hooks/useCountdown';
 import type { Trade, TFn } from '../_lib/types';
 
 const { colors } = theme;
@@ -21,13 +22,11 @@ const { colors } = theme;
 export function TradeStatusHeader({
   trade,
   t,
-  now,
   hasPaymentStep,
   viewerRole,
 }: {
   trade: Trade;
   t: TFn;
-  now: number;
   /**
    * `view.hasPaymentStep` (tek kaynak `_lib/derive.ts`). v2'de eşit takasta bile
    * ödeme aşaması vardır; buradaki eski `cashAmount > 0` türetmesi
@@ -49,7 +48,6 @@ export function TradeStatusHeader({
   // Rozet de aynı tek kaynaktan — banner ile rozet farklı kelime göstermesin.
   const badgeConfig = useTradeStatusConfig(viewerRole);
   const hasBadge = !!badgeConfig[trade.status];
-  const countdown = formatCountdown(deadlineForStatus(trade), now);
   const statusDescriptions = buildStatusDescriptions(t);
   const statusDescription = statusDescriptions[trade.status];
 
@@ -77,13 +75,8 @@ export function TradeStatusHeader({
           </Alert>
         )}
 
-      {/* Countdown */}
-      {countdown && (
-        <View style={styles.countdownCard}>
-          <Text variant="h3" weight="bold" style={styles.countdownText}>{countdown}</Text>
-          <Text variant="caption" tone="muted">{t('trade.countdownHint')}</Text>
-        </View>
-      )}
+      {/* Countdown — saniyelik tik yalnız bu kartı render eder */}
+      <TradeCountdownCard deadline={deadlineForStatus(trade)} t={t} />
 
       {/* Progress Stepper (depo-escrow akışı) */}
       {STEP_FLOW_STATUSES.has(trade.status) && (
@@ -138,6 +131,28 @@ export function TradeStatusHeader({
     </>
   );
 }
+
+/**
+ * Kalan süre kartı. Saniyelik `now` BURADA tutulur (ekranın tepesinde değil): tik yalnız bu küçük
+ * kartı yeniden çizer; son tarih yoksa / dolduysa / ekran odakta değilse hiç tıklamaz.
+ */
+const TradeCountdownCard = React.memo(function TradeCountdownCard({
+  deadline,
+  t,
+}: {
+  deadline: string | null;
+  t: TFn;
+}) {
+  const now = useCountdown(deadline);
+  const countdown = formatCountdown(deadline, now);
+  if (!countdown) return null;
+  return (
+    <View style={styles.countdownCard}>
+      <Text variant="h3" weight="bold" style={styles.countdownText}>{countdown}</Text>
+      <Text variant="caption" tone="muted">{t('trade.countdownHint')}</Text>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   statusBanner: {
