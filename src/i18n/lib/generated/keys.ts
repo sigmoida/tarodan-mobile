@@ -3463,7 +3463,6 @@ export type MessageKey =
   | "home.companyCollections"
   | "home.companyFallback"
   | "home.companyOfWeek"
-  | "home.deals"
   | "home.easyReturns"
   | "home.easyReturnsDesc"
   | "home.fastShipping"
