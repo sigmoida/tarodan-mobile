@@ -30,10 +30,12 @@ export function EntityProductsScreen({ kind }: { kind: CatalogEntityKind }) {
       <ProductGrid
         items={f.products}
         loading={f.loading}
-        refreshing={f.isRefetching}
+        refreshing={f.refreshing}
         onRefresh={f.refetch}
         onEndReached={f.loadMore}
         loadingMore={f.loadingMore}
+        loadMoreFailed={f.loadMoreFailed}
+        onRetryLoadMore={f.retryLoadMore}
         errorMessage={f.error ? t('collection.productsLoadFailed') : null}
         onRetry={f.refetch}
         emptyTitle={isBrand ? t('brands.emptyProductsTitle') : t('product.noManufacturerProducts')}

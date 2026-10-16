@@ -48,6 +48,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
+    // Web `AuthCard` footer `text-center`: satır (sarınca da) ortalı.
+    justifyContent: 'center',
     columnGap: theme.spacing[1],
   },
 });

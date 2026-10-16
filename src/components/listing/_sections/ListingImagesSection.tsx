@@ -15,11 +15,28 @@ import {
 import { useStableCallback } from '@/hooks/useStableCallback';
 
 import type { ListingFormController } from '../_hooks/useListingForm';
+import { memoSection, type ListingFormKey } from '../_lib/memoSection';
 import { ListingImageGrid } from '../_components/ListingImageGrid';
 
 const { colors, spacing, radiusRole } = theme;
 
 type SectionProps = { f: ListingFormController };
+
+/** Bu dosyadaki bölümün okuduğu controller alanları (memo karşılaştırması; bkz. `memoSection`). */
+const KEYS: readonly ListingFormKey[] = [
+  'imageKeys',
+  'imageSubmitBlocker',
+  'images',
+  'makeCoverImage',
+  'maxImages',
+  'moveImage',
+  'pickImages',
+  'removeImage',
+  'retryImage',
+  'rotateImage',
+  'setImageDragActive',
+  'shiftImage',
+];
 
 /**
  * Fotoğraflar: ekleme kutusu (kontenjan doluysa bilgi kutusu) + web gibi ızgara (kapak 2×2).
@@ -28,7 +45,7 @@ type SectionProps = { f: ListingFormController };
  * görsel eklenebilir. İlk görsel kapak; karoda ✕ kaldır, ↻ 90° çevir, ☆ kapak yap. Basılı
  * tut + sürükle sıralar; karoya dokunmak aynı eylemleri menüde (ActionSheet) açar.
  */
-export function ListingImagesSection({ f }: SectionProps) {
+export const ListingImagesSection = memoSection(function ListingImagesSection({ f }: SectionProps) {
   const { t } = useTranslation();
   const maxImages = f.maxImages;
   const onPick = useStableCallback(f.pickImages);
@@ -162,7 +179,7 @@ export function ListingImagesSection({ f }: SectionProps) {
       />
     </SectionCard>
   );
-}
+}, KEYS);
 
 const styles = StyleSheet.create({
   addBox: {

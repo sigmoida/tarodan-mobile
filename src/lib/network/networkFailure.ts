@@ -10,13 +10,14 @@ let lastFailureAt = 0;
 
 /**
  * Axios'ta SUNUCUDAN YANIT GELMEDEN düşen istek (`ERR_NETWORK`, bağlantı kesik, DNS, zaman aşımı).
- * Kullanıcının kendi iptali (`ERR_CANCELED`) ağ hatası sayılmaz.
+ * Kullanıcının kendi iptali (`ERR_CANCELED`) ve oturum değişimiyle reddedilen istek
+ * (`SESSION_STALE`, `@/lib/api/client`) ağ hatası sayılmaz.
  */
 export function isNoResponseNetworkError(e: unknown): boolean {
   const ax = e as { isAxiosError?: unknown; response?: unknown; code?: unknown } | null | undefined;
   if (!ax || ax.isAxiosError !== true) return false;
   if (ax.response) return false;
-  return ax.code !== 'ERR_CANCELED';
+  return ax.code !== 'ERR_CANCELED' && ax.code !== 'SESSION_STALE';
 }
 
 /** Axios yanıt interceptor'ı çağırır: ağ hatasıysa zamanını kaydeder (hatayı değiştirmez). */

@@ -3,7 +3,8 @@ import { theme } from '@/ui';
 
 const { colors } = theme;
 
-// Takas oluşturma sihirbazının route-local stylesheet'i (monolitten birebir taşındı).
+// Takas oluşturma sihirbazının route-local stylesheet'i. Adım kartları ortak `SectionCard`
+// (beyaz) + `Stepper` + `TradePickCard`; burada yalnız kart içi düzen ve kapı ekranı stilleri.
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -20,171 +21,45 @@ export const styles = StyleSheet.create({
     marginVertical: theme.spacing[4],
     color: colors.text.muted,
   },
-  stepsContainer: {
+  spinner: {
+    marginVertical: theme.spacing[6],
+  },
+  chipsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: theme.spacing[4],
-    paddingHorizontal: theme.spacing[5],
-    backgroundColor: colors.surface.DEFAULT,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-  },
-  stepWrapper: {
-    alignItems: 'center',
-  },
-  stepCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: theme.radius['3xl'],
-    backgroundColor: colors.border.DEFAULT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepCircleActive: {
-    backgroundColor: colors.primary[600]!,
-  },
-  stepNumber: {
-    fontWeight: 'bold',
-    color: colors.text.muted,
-  },
-  stepNumberActive: {
-    color: colors.white,
-  },
-  stepLabel: {
-    marginTop: theme.spacing[1],
-    fontSize: theme.typography.fontSize.xs,
-    color: colors.text.muted,
-  },
-  stepLabelActive: {
-    color: colors.primary[600]!,
-    fontWeight: '500',
-  },
-  content: {
-    flex: 1,
-    padding: theme.spacing[4],
-  },
-  sectionTitle: {
-    marginBottom: theme.spacing[4],
-    color: colors.text.heading,
-  },
-  productCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.DEFAULT,
-    borderRadius: 12,
-    padding: theme.spacing[3],
-    marginBottom: theme.spacing[3],
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  productCardSelected: {
-    borderColor: colors.primary[600]!,
-    backgroundColor: colors.primary[50]!,
-  },
-  productImage: {
-    width: 60,
-    height: 60,
-    borderRadius: theme.radius.xl,
-    backgroundColor: colors.border.DEFAULT,
-  },
-  productInfo: {
-    flex: 1,
-    marginLeft: theme.spacing[3],
-  },
-  productTitle: {
-    color: colors.text.heading,
-  },
-  productPrice: {
-    color: colors.primary[600]!,
-    fontWeight: '600',
-    marginTop: theme.spacing[1],
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.border.DEFAULT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxSelected: {
-    backgroundColor: colors.primary[600]!,
-    borderColor: colors.primary[600]!,
-  },
-  cashCard: {
-    marginTop: theme.spacing[4],
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  cashTitle: {
-    marginBottom: theme.spacing[3],
-  },
-  cashDirectionRow: {
-    flexDirection: 'row',
-    marginBottom: theme.spacing[3],
     gap: theme.spacing[2],
   },
-  cashChip: {
+  chip: {
     flex: 1,
   },
   cashInput: {
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  stepActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: theme.spacing[6],
-  },
-  summaryCard: {
-    marginBottom: theme.spacing[3],
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  summaryTitle: {
-    marginBottom: theme.spacing[3],
-    color: colors.text.heading,
+    marginTop: theme.spacing[3],
   },
   summaryItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: theme.spacing[3],
     paddingVertical: theme.spacing[2],
   },
   summaryImage: {
     width: 40,
     height: 40,
-    borderRadius: theme.radius.md,
+    borderRadius: theme.radiusRole.productCard,
     backgroundColor: colors.border.DEFAULT,
   },
   summaryItemTitle: {
     flex: 1,
-    marginLeft: theme.spacing[3],
-    color: colors.text.heading,
   },
-  summaryItemPrice: {
-    color: colors.primary[600]!,
-    fontWeight: '500',
+  price: {
+    color: theme.priceColor.card,
   },
   summaryDivider: {
-    marginVertical: theme.spacing[3],
+    marginVertical: theme.spacing[2],
   },
-  summaryTotal: {
+  summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  totalPrice: {
-    color: colors.primary[600]!,
-    fontWeight: 'bold',
-  },
-  messageInput: {
-    marginBottom: theme.spacing[1],
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  charCount: {
-    textAlign: 'right',
-    marginBottom: theme.spacing[4],
-  },
-  protectionCard: {
-    marginBottom: theme.spacing[4],
+    paddingVertical: theme.spacing[1],
   },
   premiumRequired: {
     flex: 1,

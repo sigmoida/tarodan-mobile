@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Image, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Text, theme } from '@/ui';
-import { resolveImageUrl } from '@/utils/imageUrl';
+import { AppImage } from '@/components/AppImage';
 import { formatPrice } from '@/utils/format';
 import type { TradeItem } from '../_lib/types';
 
@@ -13,8 +13,9 @@ export function CompareItemRow({ item, onPress }: { item: TradeItem; onPress: ()
   const qty = Number(item.quantity) || 1;
   return (
     <Pressable style={styles.row} onPress={onPress} accessibilityRole="link">
-      <Image
-        source={{ uri: resolveImageUrl(item.productImages?.[0] ?? item.productImage ?? item.product?.images) }}
+      <AppImage
+        source={item.productImages?.[0] ?? item.productImage ?? item.product?.images}
+        variant="card"
         style={styles.thumb}
       />
       <View style={styles.info}>

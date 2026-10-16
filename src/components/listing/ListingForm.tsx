@@ -22,7 +22,6 @@ import {
   ListingPricingSection,
   ListingShippingSection,
   ListingSubmitBar,
-  ListingDeleteButton,
   ListingRemovalOverlay,
 } from './_components/ListingSections';
 import { ListingPickers } from './_components/ListingPickers';
@@ -85,7 +84,8 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
           <ListingOptionsSection f={f} />
           <ListingPricingSection f={f} />
           <ListingShippingSection f={f} />
-          {f.isEdit ? <ListingDeleteButton f={f} /> : <ListingSubmitBar f={f} />}
+          {/* Düzenlemede düğmeler (kaydet + sil/iptal) sabit alt barda; oluşturmada formun sonunda. */}
+          {f.isEdit ? null : <ListingSubmitBar f={f} />}
         </>
       )}
     </Animated.ScrollView>

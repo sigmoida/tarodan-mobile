@@ -4,7 +4,7 @@ import { theme } from '@/ui';
 const { colors, spacing } = theme;
 
 /** Sabit kart yüksekliği = kare görsel kenarı (pt): 96 + 16 = 112. */
-const THUMB = spacing[24] + spacing[4];
+export const THUMB = spacing[24] + spacing[4];
 
 // Route-local stylesheet (§12) — satır kartı web Card (bordered), token'lı.
 export const styles = StyleSheet.create({
@@ -12,8 +12,9 @@ export const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: spacing[2],
   },
+  // Kartlar arası boşluk yalnız liste `gap`'inden (`pageListContentStyle`, 16 = ana sayfa
+  // `HOME_SECTION_GAP`); kartın kendi alt marjı yok (16 + 12 = 28'lik çift aralık vardı).
   card: {
-    marginBottom: spacing[3],
     overflow: 'hidden',
   },
   // Sabit boy: her kart aynı yükseklikte, görsel sabit kare.

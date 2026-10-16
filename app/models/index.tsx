@@ -1,10 +1,11 @@
 import { View, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Chip, EmptyState, Input, SkeletonText } from '@/ui';
+import { Chip, EmptyState, Input } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { useModels } from './_hooks/useModels';
 import { styles } from './_lib/styles';
 import { ModelsBrandSection } from './_components/ModelsBrandSection';
+import { ModelsSkeleton } from './_components/ModelsSkeleton';
 
 /** Modeller — PageShell + arama, marka çipleri ve marka başına SectionCard model ızgarası. */
 export default function ModelsScreen() {
@@ -17,7 +18,9 @@ export default function ModelsScreen() {
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
       loading={f.isLoading}
-      loadingFallback={<SkeletonText lines={8} />}
+      loadingFallback={<ModelsSkeleton />}
+      error={f.loadFailed || undefined}
+      onRetry={f.retry}
     >
       <View style={styles.filters}>
         <Input

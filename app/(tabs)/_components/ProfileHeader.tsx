@@ -53,18 +53,16 @@ export function ProfileHeader({ name, source, layout = 'centered', footer, trail
 }
 
 const styles = StyleSheet.create({
+  // Misafir karşılama bandı `SectionCard` içinde: yatay boşluğu kart verir.
   header: {
     alignItems: 'center',
     gap: spacing[3],
-    paddingTop: spacing[6],
-    paddingBottom: spacing[4],
-    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    paddingBottom: spacing[1],
   },
+  // Üye kimlik bandı `SectionCard` içinde: iç boşluğu kart verir.
   rowHeader: {
     gap: spacing[3],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
-    paddingHorizontal: spacing[4],
   },
   identityRow: {
     flexDirection: 'row',

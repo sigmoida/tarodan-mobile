@@ -1,7 +1,7 @@
-import { View, Pressable, Image } from "react-native";
+import { View, Pressable } from "react-native";
 import { Alert, Badge, EmptyState, FAB, SectionCard, Text, useFabContentInset } from "@/ui";
 import { router } from "expo-router";
-import { resolveImageUrl } from "@/utils/imageUrl";
+import { AppImage } from "@/components/AppImage";
 import { AuthGatePage } from "@/components/common/AuthGatePage";
 import { PageShell } from "@/components/common/PageShell";
 import { RowListSkeleton } from "@/components/common/RowListSkeleton";
@@ -30,6 +30,8 @@ export default function CollectionsScreen() {
       onBack={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)"))}
       loading={f.isLoading}
       loadingFallback={<RowListSkeleton rows={4} />}
+      error={f.loadFailed || undefined}
+      onRetry={f.retry}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
       overlay={
@@ -76,8 +78,10 @@ export default function CollectionsScreen() {
               style={styles.collectionCard}
               onPress={() => router.push(`/collections/${collection.id}`)}
             >
-              <Image
-                source={{ uri: resolveImageUrl(collection.coverImageUrl ?? collection.coverImage) }}
+              <AppImage
+                source={collection.coverImageUrl ?? collection.coverImage}
+                variant="card"
+                recyclingKey={String(collection.id)}
                 style={styles.collectionImage}
               />
               <View style={styles.collectionInfo}>

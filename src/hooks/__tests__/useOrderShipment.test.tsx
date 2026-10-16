@@ -68,7 +68,7 @@ it('404 DIŞI hatalar yutulmaz', async () => {
   });
   const { result } = renderHook(() => useOrderShipment('o1'), { wrapper });
   // `retryUnlessClientError` 5xx'i 2 kez gerçek zamanlayıcıyla dener (1s, 2s
-  // exponential backoff — client.ts'teki proje-genel `retry: 2` ile aynı
+  // exponential backoff — client.ts'teki proje-genel varsayılanla aynı
   // davranış); varsayılan `waitFor` 1000ms'i aşar, bu yüzden burada uzatılıyor.
   await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 5000 });
   // 500'de de shipment null'dır ama bu "kargo yok" DEĞİL — sorgu hata

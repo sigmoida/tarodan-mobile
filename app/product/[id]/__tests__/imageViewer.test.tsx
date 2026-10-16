@@ -47,8 +47,13 @@ describe('ImageViewerModal', () => {
   it('büyük fotoğraf kaydırılınca seçili küçük resim senkron döner', () => {
     open();
     const { width } = Dimensions.get('window');
+    // Sayfalayıcı sanal liste (FlatList): olay ölçüleri de taşır.
     fireEvent.scroll(screen.getByTestId('image-viewer-pager'), {
-      nativeEvent: { contentOffset: { x: width, y: 0 } },
+      nativeEvent: {
+        contentOffset: { x: width, y: 0 },
+        layoutMeasurement: { width, height: 600 },
+        contentSize: { width: width * images.length, height: 600 },
+      },
     });
     expect(screen.getByTestId('image-viewer-counter')).toHaveTextContent('2 / 3');
     expect(selected(1)).toBe(true);
@@ -64,6 +69,14 @@ describe('ImageViewerModal', () => {
     open({ images: [images[0]] });
     expect(screen.queryByTestId('image-viewer-thumbs')).toBeNull();
     expect(screen.queryByTestId('image-viewer-counter')).toBeNull();
+  });
+
+  it('sayfalar sanal: çok fotoğrafta hepsi birden bağlanmaz, açılan sayfa bağlı', () => {
+    const many = Array.from({ length: 12 }, (_, i) => `https://x/${i}.jpg`);
+    open({ images: many, initialIndex: 6 });
+    expect(screen.getByTestId('zoom-https://x/6.jpg')).toBeTruthy();
+    expect(screen.queryAllByTestId(/^zoom-/).length).toBeLessThan(many.length);
+    expect(screen.queryByTestId('zoom-https://x/0.jpg')).toBeNull();
   });
 
   it('kapalıyken içerik bağlanmaz', () => {

@@ -4,16 +4,18 @@ import { AppImage } from '@/components/AppImage';
 import { Button, SectionCard, Text, StatusBadge, appAlert, theme } from '@/ui';
 import { refundReasonLabel } from '@/lib/shared/status-configs';
 import { useState, useCallback } from 'react';
-import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { refundsApi } from '@/lib/api';
-import { useAppMutation } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import { formatPrice } from '@/utils/format';
 import { useAuthStore } from '@/stores/authStore';
+import { FOCUS_LIST_STALE_MS, useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { captureException } from '@/services/sentry';
 import { PageShell } from '@/components/common/PageShell';
 import { refundHistoryActionLabel } from './_lib/history';
+import { RefundDetailSkeleton } from './_components/RefundDetailSkeleton';
 import { styles } from './_lib/styles';
 
 function formatDate(value?: string): string {
@@ -30,20 +32,25 @@ export default function RefundDetailScreen() {
   const { t } = useTranslation();
   const refundStatusConfig = useRefundStatusConfig();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Anahtar sorgu ile odak tazelemesi arasında tek yerde.
+  const detailKey = qk.refunds.detail(String(id ?? ''));
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['refund-requests', 'detail', id],
+    queryKey: detailKey,
     queryFn: async () => {
       const res: any = await refundsApi.getById(id as string);
       return (res?.data?.data ?? res?.data ?? res) as any;
     },
     enabled: isAuthenticated && !!id,
+    // Durum satıcıdan değişir: dönüşte bundan eskiyse tazelenir.
+    staleTime: FOCUS_LIST_STALE_MS,
   });
 
   const cancelMutation = useAppMutation(() => refundsApi.cancel(id as string), {
-    invalidates: [['refund-requests']],
+    invalidates: [qk.refunds.all],
     success: t('refund.cancel.successMessage'),
     error: t('common.genericError'),
     onSuccess: () => {
@@ -58,11 +65,8 @@ export default function RefundDetailScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  useFocusEffect(
-    useCallback(() => {
-      refetch();
-    }, [refetch]),
-  );
+  // Ekrana dönüşte yalnız bayatsa tazele (her odakta değil; ilk açılışta ikinci istek yok).
+  useRefetchStaleOnFocus([detailKey], isAuthenticated && !!id);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
@@ -72,6 +76,7 @@ export default function RefundDetailScreen() {
         title={t('refund.detail.title')}
         onBack={back}
         loading={isLoading && !data}
+        loadingFallback={<RefundDetailSkeleton />}
         empty={!isLoading && !data}
         emptyState={{ icon: 'receipt-percent', title: t('refund.detail.notFound'), subtitle: t('emptyState.notFoundHint') }}
       />

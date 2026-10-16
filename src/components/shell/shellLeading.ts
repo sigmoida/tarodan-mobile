@@ -1,14 +1,20 @@
 /**
  * Sekme köklerinin üst barındaki SOL düğmenin türü — kabuğun KENDİ prop'u (`AppShell`/`TitleShell`
- * `leading`), global rotadan türetilmez (yığında altta kalan Profil barı, üstte başka ekran varken
- * ikon değiştirmesin).
+ * `leading`), global rotadan türetilmez.
  *
  * - `categories` (varsayılan): `squares-2x2` → `/categories` yığın rotası (Ana Sayfa, Favoriler,
  *   Sepet, İlan Ver).
- * - `menu`: ☰ yan menüyü açar — YALNIZ Profil sekme kökleri (`profile.tsx`, `ProfileGuestView`);
- *   yan menünün soldan kaydırarak açılması da yalnız bu kabuk odaktayken etkin
- *   (`useEdgeSwipeWhenFocused`).
+ * - `none`: sol slot BOŞ — yalnız Profil sekme kökleri (`profile.tsx`, `ProfileGuestView`).
  */
-export type ShellLeading = 'menu' | 'categories';
+export type ShellLeading = 'categories' | 'none';
 
 export const DEFAULT_SHELL_LEADING: ShellLeading = 'categories';
+
+/**
+ * Sekme köklerinin üst barındaki SAĞ grup:
+ * - `inbox` (varsayılan): Mesajlar + Bildirimler (sayaçlı) — tüm sekme kökleri.
+ * - `settings`: tek ⚙️ Ayarlar düğmesi (`/settings`) — yalnız Profil sekme kökleri.
+ */
+export type ShellActions = 'inbox' | 'settings';
+
+export const DEFAULT_SHELL_ACTIONS: ShellActions = 'inbox';

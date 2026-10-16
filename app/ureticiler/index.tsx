@@ -3,16 +3,32 @@ import { RefreshControl, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, ErrorState, Input, SkeletonAvatar, SkeletonText, Text, pageListContentStyle, theme, ListRowCard, usePageScrollHandler } from '@/ui';
+import {
+  EmptyState,
+  ErrorState,
+  Input,
+  SkeletonBlock,
+  SkeletonLine,
+  Text,
+  pageListContentStyle,
+  theme,
+  ListRowCard,
+  useDelayedLoading,
+  usePageScrollHandler,
+} from '@/ui';
+import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
 import { EntityLogo } from '@/components/catalog/EntityLogo';
 import { listingCount } from '@/utils/catalogListings';
 import { useManufacturers, type Manufacturer } from './_hooks/useManufacturers';
 
-const { colors, spacing } = theme;
+const { colors, radiusRole, spacing } = theme;
 const SKELETON_ROWS = [0, 1, 2, 3, 4, 5];
 
-function ManufacturerRow({ item }: { item: Manufacturer }) {
+const renderManufacturer = ({ item }: { item: Manufacturer }) => <ManufacturerRow item={item} />;
+const manufacturerKey = (item: Manufacturer) => item.id;
+
+const ManufacturerRow = React.memo(function ManufacturerRow({ item }: { item: Manufacturer }) {
   const { t } = useTranslation();
   const count = listingCount(item);
   return (
@@ -28,7 +44,7 @@ function ManufacturerRow({ item }: { item: Manufacturer }) {
       </View>
     </ListRowCard>
   );
-}
+});
 
 /**
  * Üreticiler (web `/manufacturers`): arama + üretici satırları. Eski "Markalar" listesi
@@ -38,20 +54,23 @@ export default function ManufacturersScreen() {
   const { t } = useTranslation();
   const f = useManufacturers();
   const page = usePageScrollHandler();
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const showSkeleton = useDelayedLoading(f.isLoading);
 
   return (
     <PageShell title={t('nav.manufacturers')} mode="list" scroll={page}>
       <Animated.FlatList
         {...page.listProps}
         data={f.isLoading || f.error ? [] : f.items}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ManufacturerRow item={item} />}
+        keyExtractor={manufacturerKey}
+        renderItem={renderManufacturer}
+        {...listWindowing}
         contentContainerStyle={page.contentStyle(styles.content)}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
-            refreshing={f.isRefetching}
-            onRefresh={f.refetch}
+            refreshing={f.refreshing}
+            onRefresh={f.onRefresh}
             progressViewOffset={page.topInset}
             colors={[colors.primary[600]!]}
             tintColor={colors.primary[600]!}
@@ -66,17 +85,21 @@ export default function ManufacturersScreen() {
           />
         }
         ListEmptyComponent={
-          f.isLoading ? (
-            <View style={styles.skeleton} testID="manufacturers-skeleton">
-              {SKELETON_ROWS.map((i) => (
-                <ListRowCard key={i}>
-                  <SkeletonAvatar />
-                  <View style={styles.body}>
-                    <SkeletonText lines={2} />
-                  </View>
-                </ListRowCard>
-              ))}
-            </View>
+          f.isLoading || showSkeleton ? (
+            showSkeleton ? (
+              <View style={styles.skeleton} testID="manufacturers-skeleton">
+                {SKELETON_ROWS.map((i) => (
+                  <ListRowCard key={i}>
+                    {/* EntityLogo md kutusu (48pt) + ad / ilan sayısı satırları */}
+                    <SkeletonBlock width={spacing[12]} height={spacing[12]} borderRadius={radiusRole.card} />
+                    <View style={styles.body}>
+                      <SkeletonLine variant="body" width="55%" />
+                      <SkeletonLine variant="caption" width="30%" />
+                    </View>
+                  </ListRowCard>
+                ))}
+              </View>
+            ) : null
           ) : f.error ? (
             <ErrorState onRetry={() => f.refetch()} />
           ) : (

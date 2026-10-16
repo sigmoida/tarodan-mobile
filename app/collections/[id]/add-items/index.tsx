@@ -1,19 +1,37 @@
+import { useCallback } from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { Button, EmptyState, Input, SkeletonText, pageListContentStyle, usePageScrollHandler } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
 import { useAddItems } from './_hooks/useAddItems';
 import { styles } from './_lib/styles';
+import type { Listing } from './_lib/types';
 import { ListingPickerRow } from './_components/ListingPickerRow';
 import { navigateTo } from '@/lib/navigation/goTo';
+
+const listingKey = (listing: { id: string }) => listing.id;
 
 /** Koleksiyona ürün ekle — PageShell + arama ve ilan satırları (Ekle/Çıkar). `useAddItems` optimistic mantığın sahibi. */
 export default function AddCollectionItemsScreen() {
   const { t } = useTranslation();
   const f = useAddItems();
   const page = usePageScrollHandler();
+  const { effectiveItemId, pending, toggle } = f;
+  const renderListing = useCallback(
+    ({ item }: { item: Listing }) => (
+      <ListingPickerRow
+        listing={item}
+        added={!!effectiveItemId(item.id)}
+        busy={!!pending[item.id]}
+        onToggle={toggle}
+      />
+    ),
+    // `effectiveItemId` overlay/sunucu haritası değişince yenilenir → satırlar yeni `added` alır.
+    [effectiveItemId, pending, toggle],
+  );
 
   return (
     <PageShell
@@ -25,8 +43,9 @@ export default function AddCollectionItemsScreen() {
       <Animated.FlatList
         {...page.listProps}
         data={f.isLoading ? [] : f.filtered}
-        keyExtractor={(listing) => listing.id}
-        renderItem={({ item }) => <ListingPickerRow listing={item} f={f} />}
+        keyExtractor={listingKey}
+        renderItem={renderListing}
+        {...listWindowing}
         contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={

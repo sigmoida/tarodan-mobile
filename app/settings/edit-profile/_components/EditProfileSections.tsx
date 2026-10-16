@@ -1,9 +1,9 @@
-import { View, Pressable, Image } from "react-native";
+import { View, Pressable } from "react-native";
 import { Alert, Avatar, Badge, DateField, Input, SectionCard, Spinner, theme, Icon } from "@/ui";
 import { Controller } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/stores/authStore";
-import { resolveImageUrl } from "@/utils/imageUrl";
+import { AppImage } from "@/components/AppImage";
 import { PhoneInput } from "@/components/common";
 import { styles } from "../_lib/styles";
 import { MAX_BIO_LENGTH, minBirthDate } from "../_lib/schema";
@@ -18,7 +18,7 @@ const { colors, iconSize } = theme;
  */
 export function AvatarSection({ avatar }: { avatar: AvatarUploadController }) {
   const { t } = useTranslation();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   return (
     <View style={styles.avatarSection}>
       <Pressable
@@ -30,7 +30,7 @@ export function AvatarSection({ avatar }: { avatar: AvatarUploadController }) {
         testID="edit-profile-avatar"
       >
         {avatar.avatar ? (
-          <Image source={{ uri: resolveImageUrl(avatar.avatar, 'detail', { allowDeviceUris: avatar.isLocalPreview }) }} style={styles.avatar} />
+          <AppImage source={avatar.avatar} variant="detail" allowDeviceUris={avatar.isLocalPreview} style={styles.avatar} />
         ) : (
           <Avatar size="xl" name={user?.displayName || "U"} />
         )}

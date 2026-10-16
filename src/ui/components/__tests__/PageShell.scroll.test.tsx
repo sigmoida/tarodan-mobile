@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { render, screen } from '@testing-library/react-native';
+import { act, render, screen } from '@testing-library/react-native';
 import { PageShell, RawText, ScreenHeader, theme, usePageScrollValue } from '@/ui';
 
 let mockTop = 0;
@@ -62,18 +62,24 @@ describe('PageShell scroll modu — otomatik bağlama', () => {
     jest.restoreAllMocks();
   });
 
-  it('loading / error / empty: gövde bar kadar aşağıdan başlar ve kenar şeridi sabit', () => {
+  it('loading / error / empty: gövde bar kadar aşağıdan başlar ve kenar şeridi yok', () => {
+    jest.useFakeTimers();
     render(
       <PageShell title="X" loading>
         <RawText>içerik</RawText>
       </PageShell>,
     );
+    // İskelet `theme.loading.delayMs` sonra çizilir (useDelayedLoading).
+    act(() => {
+      jest.advanceTimersByTime(theme.loading.delayMs);
+    });
     expect(screen.queryByText('içerik')).toBeNull();
-    expect(flat('screen-header-edge').backgroundColor).toBe(theme.colors.overlay.white95);
+    expect(screen.queryByTestId('screen-header-edge')).toBeNull();
     const skeleton = screen.getByTestId('page-shell-skeleton', { includeHiddenElements: true });
     let node = skeleton.parent;
     while (node && StyleSheet.flatten(node.props.style)?.paddingTop !== BAR(47)) node = node.parent;
     expect(node).toBeTruthy();
+    jest.useRealTimers();
   });
 
   it('header={false}: bar da şerit de yok, gövde dolgusuz', () => {
@@ -122,7 +128,7 @@ describe('PageShell — topInset değişince çocuklar yeniden mount OLMAZ (form
 });
 
 describe('PageShell list/static — ekranın kendi listesi', () => {
-  it('bağlanmamış: gövde bar altında başlar, şerit sabit hafif beyaz (hiçbir ekran okunamaz kalmaz)', () => {
+  it('bağlanmamış: gövde bar altında başlar, kenar şeridi yok (bar dinlenmede her ekranda aynı)', () => {
     render(
       <PageShell title="Favoriler" mode="list">
         <View testID="list-body" />
@@ -131,7 +137,7 @@ describe('PageShell list/static — ekranın kendi listesi', () => {
     let node = screen.getByTestId('list-body').parent;
     while (node && StyleSheet.flatten(node.props.style)?.paddingTop !== BAR(47)) node = node.parent;
     expect(node).toBeTruthy();
-    expect(flat('screen-header-edge').backgroundColor).toBe(theme.colors.overlay.white95);
+    expect(screen.queryByTestId('screen-header-edge')).toBeNull();
   });
 
   it('`scroll` (usePageScrollValue) verilince gövde tepeden başlar ve şerit kaydırmaya bağlanır', () => {
@@ -164,6 +170,6 @@ describe('PageShell list/static — ekranın kendi listesi', () => {
       );
     }
     render(<Screen />);
-    expect(flat('screen-header-edge').backgroundColor).toBe(theme.colors.overlay.white95);
+    expect(screen.queryByTestId('screen-header-edge')).toBeNull();
   });
 });

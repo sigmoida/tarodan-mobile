@@ -1,7 +1,6 @@
-import { useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useRefresh } from '@/hooks/useRefresh';
+import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { resolveMaxAddresses } from '@/lib/addressLimit';
 import { api } from '@/lib/api';
 import { qk } from '@/lib/query';
@@ -27,20 +26,19 @@ export function useAddressesQuery() {
 }
 
 /**
- * Liste ekranının sorgu hook'u: adresler + limit + çekip yenileme; ekran her
- * odaklandığında (ör. form ekranından dönüşte) tazeler.
+ * Liste ekranının sorgu hook'u: adresler + limit + çekip yenileme; ekrana dönüşte
+ * (ör. form ekranından) veri bayatsa tazeler.
  */
 export function useAddresses() {
-  const { isAuthenticated, limits } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const limits = useAuthStore((s) => s.limits);
   const query = useAddressesQuery();
   const { refetch } = query;
   const { refreshing, onRefresh } = useRefresh(refetch);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (isAuthenticated) refetch();
-    }, [isAuthenticated, refetch]),
-  );
+  // Ekrana dönüşte yalnız bayatsa tazele: form ekranındaki kaydet/sil `qk.user.addresses`'i
+  // invalidate ettiği için dönüşte liste yine tazelenir; her odakta istek gereksizdi.
+  useRefetchStaleOnFocus([qk.user.addresses], isAuthenticated);
 
   return {
     isAuthenticated,
@@ -48,6 +46,11 @@ export function useAddresses() {
     // Sunucu limiti (3) tek kaynaktan; bilinmeyen/sınırsız → Infinity (sayaç gizli).
     maxAddresses: resolveMaxAddresses(limits?.maxAddresses),
     isLoading: query.isLoading,
+    /** Liste alınamadı (önbellekte de yok) — "kayıtlı adres yok" değil, ErrorState. */
+    loadFailed: query.isError && !query.data,
+    retry: () => {
+      void refetch();
+    },
     refreshing,
     onRefresh,
   };

@@ -6,6 +6,7 @@ import { styles } from './_lib/styles';
 import { useAddresses } from './_hooks/useAddresses';
 import { useAddressActions } from './_hooks/useAddressActions';
 import { AddressCard } from './_components/AddressCard';
+import { AddressesSkeleton } from './_components/AddressesSkeleton';
 
 /**
  * Kayıtlı adresler — D1b REFERANS EKRANI (liste): PageShell (beyaz üst bar, Skeleton,
@@ -45,6 +46,9 @@ export default function AddressesScreen() {
       title={title}
       onBack={onBack}
       loading={f.isLoading}
+      loadingFallback={<AddressesSkeleton />}
+      error={f.loadFailed || undefined}
+      onRetry={f.retry}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
       right={

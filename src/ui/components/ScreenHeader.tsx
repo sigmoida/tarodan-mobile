@@ -32,6 +32,11 @@ export interface ScreenHeaderProps {
   /** Başlık + alt başlık yerine özel içerik (ör. sohbet: avatar + ad + ürün). Ortada, tek satır sığmalı. */
   titleSlot?: React.ReactNode;
   /**
+   * `titleSlot` kalan genişliği DOLDURSUN (ör. arama ekranı: geri oku + header'da arama alanı). Yan
+   * slotlar eşit ayrılmaz (ortalama yok): sol slot içeriği kadar, sağ slot yalnız `right` varsa.
+   */
+  titleFill?: boolean;
+  /**
    * Sağ aksiyon(lar): `TopBarAction` (ikon = cam daire, metin = cam hap). Birden çok aksiyon
    * fragment olarak verilir; aralarındaki boşluğu bar koyar.
    */
@@ -65,6 +70,11 @@ export const TOP_BAR_HEIGHT = headerHeight;
 const SIDE_MIN = GLASS_ICON_BUTTON_SIZE;
 /** Bir yan slotun azami genişliği (pencere genişliğinin oranı): uzun metin aksiyonu başlığı ezmesin. */
 const SIDE_MAX_RATIO = 0.36;
+/**
+ * Başlıksız barda (ezilecek başlık yok) yan slotun azami oranı: ürün/koleksiyon detayı gibi üç cam
+ * düğmeli sağ grup (3 × 44 + 2 × 8 = 148pt) dar ekranda da sığar.
+ */
+const SIDE_MAX_RATIO_NO_TITLE = 0.5;
 /** Metin aksiyonu hapının yüksekliği; 44pt dokunma alanı `hitSlop` ile tamamlanır. */
 const PILL_HEIGHT = theme.controlHeight.md;
 const PILL_HIT_SLOP = (theme.minTouchTarget - PILL_HEIGHT) / 2;
@@ -84,6 +94,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   showBack = true,
   leading,
   titleSlot,
+  titleFill = false,
   right,
   transparent = false,
   floating = true,
@@ -97,7 +108,9 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   const [leftW, setLeftW] = useState(0);
   const [rightW, setRightW] = useState(0);
   const isFloating = floating && !transparent;
-  const sideW = Math.min(Math.max(leftW, rightW, SIDE_MIN), Math.max(SIDE_MIN, windowWidth * SIDE_MAX_RATIO));
+  const noTitle = !title && !subtitle && !titleSlot;
+  const sideRatio = noTitle ? SIDE_MAX_RATIO_NO_TITLE : SIDE_MAX_RATIO;
+  const sideW = Math.min(Math.max(leftW, rightW, SIDE_MIN), Math.max(SIDE_MIN, windowWidth * sideRatio));
   const onLeftLayout = (e: LayoutChangeEvent) => setLeftW(Math.ceil(e.nativeEvent.layout.width));
   const onRightLayout = (e: LayoutChangeEvent) => setRightW(Math.ceil(e.nativeEvent.layout.width));
 
@@ -118,7 +131,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
       ) : null}
       <View style={styles.row} testID={`${testID}-row`} pointerEvents="box-none">
         {/* Boş yan slotlar dokunuşu yutmasın (alttaki listenin sürüklenmesi): box-none. */}
-        <View style={[styles.side, { width: sideW }]} testID={`${testID}-left`} pointerEvents="box-none">
+        <View style={[styles.side, !titleFill && { width: sideW }]} testID={`${testID}-left`} pointerEvents="box-none">
           <View style={styles.sideInner} onLayout={onLeftLayout} pointerEvents="box-none">
             {leading ? (
               <View style={styles.leadingBox} pointerEvents="box-none">{leading}</View>
@@ -134,7 +147,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
           </View>
         </View>
 
-        <View style={styles.titleWrap} pointerEvents="box-none">
+        <View style={[styles.titleWrap, titleFill && styles.titleFill]} pointerEvents="box-none">
           {titleSlot ?? (
             <>
               <Text variant="h3" weight="bold" align="center" numberOfLines={1} accessibilityRole="header">
@@ -153,11 +166,17 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
           )}
         </View>
 
-        <View style={[styles.side, styles.sideRight, { width: sideW }]} testID={`${testID}-right`} pointerEvents="box-none">
-          <View style={[styles.sideInner, styles.rightInner]} onLayout={onRightLayout} pointerEvents="box-none">
-            {right}
+        {titleFill && !right ? null : (
+          <View
+            style={[styles.side, styles.sideRight, !titleFill && { width: sideW }]}
+            testID={`${testID}-right`}
+            pointerEvents="box-none"
+          >
+            <View style={[styles.sideInner, styles.rightInner]} onLayout={onRightLayout} pointerEvents="box-none">
+              {right}
+            </View>
           </View>
-        </View>
+        )}
       </View>
     </View>
   );
@@ -289,6 +308,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Doldur modu: özel içerik satırın kalan genişliğine yayılır; geri okuyla arası ana sayfa barıyla
+  // aynı (row gap 4 + 4 = 8).
+  titleFill: {
+    alignItems: 'stretch',
+    marginLeft: spacing[1],
   },
   subtitle: {
     marginTop: spacing[0.5],

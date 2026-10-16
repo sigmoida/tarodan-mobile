@@ -60,7 +60,7 @@ describe('useEntityProducts · sayfalama', () => {
     expect(getAll).toHaveBeenCalledTimes(2);
   });
 
-  it('sonraki sayfa hatası yüklü ızgarayı silmez; tekrar kaydırınca yeniden dener', async () => {
+  it('sonraki sayfa hatası yüklü ızgarayı silmez; kaydırma değil "Tekrar dene" satırı yeniden dener', async () => {
     getAll
       .mockResolvedValueOnce(page(['p1', 'p2'], 1, 2))
       .mockRejectedValueOnce(new Error('boom'))
@@ -71,11 +71,18 @@ describe('useEntityProducts · sayfalama', () => {
 
     act(() => result.current.loadMore());
     await waitFor(() => expect(getAll).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(result.current.loadingMore).toBe(false));
+    // Hata durumunu doğrudan bekle: `loadingMore=false` istek "yükleniyor"a geçmeden önceki
+    // render'da da sağlanır (yarış) — o anda hata henüz yoktu.
+    await waitFor(() => expect(result.current.loadMoreFailed).toBe(true));
+    expect(result.current.loadingMore).toBe(false);
     expect(result.current.products).toHaveLength(2);
     expect(result.current.error).toBeNull();
 
+    // Sayfa hatasında kaydırma otomatik yeniden denemez (liste altında "Tekrar dene" satırı var).
     act(() => result.current.loadMore());
+    expect(getAll).toHaveBeenCalledTimes(2);
+
+    act(() => result.current.retryLoadMore());
     await waitFor(() => expect(result.current.products.map((p) => p.id)).toEqual(['p1', 'p2', 'p3']));
   });
 

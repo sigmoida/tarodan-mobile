@@ -18,7 +18,8 @@ import { useRefreshAccount } from './useRefreshAccount';
  */
 export function useClaimUsername({ onClaimed }: { onClaimed?: () => void } = {}) {
   const { t } = useTranslation();
-  const { user, updateUser } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const updateUser = useAuthStore((s) => s.updateUser);
   const refreshAccount = useRefreshAccount();
 
   // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.

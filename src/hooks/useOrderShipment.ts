@@ -1,9 +1,8 @@
-import { useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { shippingApi, type Shipment } from '@/lib/api';
 import { qk, retryUnlessClientError } from '@/lib/query';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
+import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 
 /**
  * Siparişin kargo kaydı. Hem alıcı sipariş detayı hem satıcı kargo ekranı
@@ -37,16 +36,10 @@ export function useOrderShipment(orderId: string | undefined) {
     staleTime: 30_000,
     retry: retryUnlessClientError,
   });
-  // Ekran odağa geldiğinde tazele. `isCodePending` NORMAL bir ara durum ve kod
-  // birkaç dakika içinde geliyor — zamanlayıcıyla poll etmek pil yakar ve
-  // hiçbir şeyi hızlandırmaz. Kalıp `app/orders/_hooks/useOrders.ts:105`.
-  useFocusEffect(
-    useCallback(() => {
-      if (orderId) void query.refetch();
-      // `query.refetch` referansı sorgu başına stabil; bağımlılığa orderId yeter.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [orderId]),
-  );
+  // Ekrana geri dönüldüğünde, veri `staleTime`'dan (30 sn) eskiyse tazele. `isCodePending`
+  // NORMAL bir ara durum ve kod birkaç dakika içinde geliyor — zamanlayıcıyla poll etmek pil
+  // yakar ve hiçbir şeyi hızlandırmaz. İlk açılışta sorgunun kendi yüklemesine ikinci istek yok.
+  useRefetchStaleOnFocus([qk.shipping.byOrder(orderId ?? '')], Boolean(orderId));
 
   return {
     shipment: query.data ?? null,

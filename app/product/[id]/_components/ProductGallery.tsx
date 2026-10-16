@@ -1,7 +1,9 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { FlatList, Pressable, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Image } from 'expo-image';
 import { AppImage } from '@/components/AppImage';
+import { IMAGE_PLACEHOLDER, resolveImageUrl } from '@/utils/imageUrl';
 import { GlassSurface, Text, theme } from '@/ui';
 
 const { spacing } = theme;
@@ -10,12 +12,23 @@ const { spacing } = theme;
 const COUNTER_HEIGHT = 28;
 
 /**
+ * Komşu sayfaların (sonraki, önceki) detay görsel URL'leri — galeri ve tam ekran görüntüleyici aynı
+ * detay varyantını yükler, önceden indirilen kare ikisinde de önbellekten gelir.
+ */
+function neighborImageUrls(images: unknown[], current: number): string[] {
+  return [current + 1, current - 1]
+    .filter((i) => i >= 0 && i < images.length)
+    .map((i) => resolveImageUrl(images[i], 'detail'))
+    .filter((uri) => uri !== IMAGE_PLACEHOLDER);
+}
+
+/**
  * Yatay sayfalı görsel galerisi — kenardan kenara KARE (pencere genişliği), durum çubuğunun altına kadar
  * uzanır (üstte kabuk/üst bar yok; yüzen adalar fotoğrafın üstünde durur ki Liquid Glass fotoğrafı
  * göstersin). `cover`: web galerisi gibi kareyi doldurur, yanlarda boşluk kalmaz; tam fotoğraf
  * dokununca açılan görüntüleyicide. Sayfa göstergesi fotoğrafın alt kenarında küçük cam hap içinde
  * "2 / 5" (koyu metin; opacity animasyonu YOK — iOS 26 cam opacity < 1'de efekti kaybeder).
- * Sayfalar sanal: yalnız görünen ve komşu kareler bağlanır. Rozet yok: takas/indirim/satıldı bilgisi
+ * Sayfalar sanal: yalnız görünen ve komşu kareler bağlanır; komşu görseller önceden indirilir. Rozet yok: takas/indirim/satıldı bilgisi
  * fiyatın altındaki rozet satırında (`ProductBadgeRow`).
  */
 export function ProductGallery({
@@ -32,6 +45,19 @@ export function ProductGallery({
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const total = images.length;
+
+  // Kaydırınca sonraki/önceki kare boş görünmesin: komşuları önceden indir (expo-image disk+bellek
+  // önbelleği; AppImage aynı `memory-disk` politikasını kullanır). Anahtar URL kümesi: ekran her
+  // render'da yeni `images` dizisi üretse de aynı komşular yeniden istenmez.
+  const neighborKey = neighborImageUrls(images, currentImage).join('\n');
+  useEffect(() => {
+    if (!neighborKey || typeof Image.prefetch !== 'function') return;
+    try {
+      void Image.prefetch(neighborKey.split('\n'), 'memory-disk')?.catch(() => undefined);
+    } catch {
+      // önceden indirme yalnız hız içindir — hata görüntülemeyi etkilemez
+    }
+  }, [neighborKey]);
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<any>) => (

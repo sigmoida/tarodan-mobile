@@ -9,7 +9,7 @@ import { CheckboxIndicator } from './Checkbox';
 import { EmptyState } from './EmptyState';
 import { Input } from './Input';
 import { RadioIndicator } from './Radio';
-import { Spinner } from './Spinner';
+import { Spinner } from '../loading/Spinner';
 import { Text } from './Text';
 
 export interface SelectSheetOption<V extends string = string> {

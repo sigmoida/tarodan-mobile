@@ -1,11 +1,11 @@
-import { useCallback } from 'react';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
 import { confirm } from '@/ui';
 import { qk, useAppMutation } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
+import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { STORAGE_KEY, type SavedSearch } from '../_lib/types';
 import { buildSearchParams } from '../_lib/helpers';
 
@@ -16,20 +16,22 @@ import { buildSearchParams } from '../_lib/helpers';
  */
 export function useSavedSearches() {
   const { t } = useTranslation();
-  const { isAuthenticated, limits } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const limits = useAuthStore((s) => s.limits);
   const queryClient = useQueryClient();
 
   const maxSavedSearches = limits?.maxSavedSearches || 5;
 
-  const { data: searchesData, isLoading, refetch } = useQuery({
-    queryKey: ['saved-searches'],
+  const { data: searchesData, isLoading, isError, refetch } = useQuery({
+    queryKey: qk.user.savedSearches,
     queryFn: async (): Promise<SavedSearch[]> => {
+      // Depolama okuma hatası FIRLATILIR (isError → ErrorState); yalnız bozuk JSON boş liste sayılır.
+      const stored = await AsyncStorage.getItem(STORAGE_KEY);
       try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
         const parsed = stored ? JSON.parse(stored) : [];
         return Array.isArray(parsed) ? parsed : [];
-      } catch (error) {
-        console.log('Failed to fetch saved searches');
+      } catch {
+        console.log('Failed to parse saved searches');
         return [];
       }
     },
@@ -38,13 +40,8 @@ export function useSavedSearches() {
 
   const searches: SavedSearch[] = searchesData || [];
 
-  useFocusEffect(
-    useCallback(() => {
-      if (isAuthenticated) {
-        refetch();
-      }
-    }, [isAuthenticated]),
-  );
+  // Ekrana dönüşte yalnız bayatsa tazele (silme/bildirim yazımları zaten invalidate ediyor).
+  useRefetchStaleOnFocus([qk.user.savedSearches], isAuthenticated);
 
   const deleteMutation = useAppMutation(
     async (searchId: string) => {
@@ -68,7 +65,7 @@ export function useSavedSearches() {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['saved-searches'] });
+      queryClient.invalidateQueries({ queryKey: qk.user.savedSearches });
     },
   });
 
@@ -92,6 +89,11 @@ export function useSavedSearches() {
     maxSavedSearches,
     searches,
     isLoading,
+    /** Liste okunamadı (önbellekte de yok) — "kayıtlı arama yok" değil, ErrorState. */
+    loadFailed: isError && !searchesData,
+    retry: () => {
+      void refetch();
+    },
     toggleNotificationMutation,
     runSearch,
     handleDelete,

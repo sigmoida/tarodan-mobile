@@ -1,8 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, ScrollView, Pressable, useWindowDimensions } from 'react-native';
+import { View, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Text, theme, Icon, useHeaderBarInset } from '@/ui';
+import { Text, theme, Icon } from '@/ui';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 
 import { styles } from '../_lib/searchStyles';
@@ -10,27 +10,12 @@ import type { SearchController } from '../_hooks/useSearch';
 import type { ProductFilters } from '@/utils/productFilters';
 import { formatPrice } from '@/utils/format';
 
-const { colors, spacing, controlHeight } = theme;
-
-/** Öneri panelinin üst sınırı (pt) — büyük ekranda bile bu kadarı geçmez. */
-export const SUGGESTIONS_MAX_HEIGHT = 360;
-/** Çok küçük alanda bile en az bu kadar görünür (≈ 2-3 satır). */
-const SUGGESTIONS_MIN_HEIGHT = spacing[24] + spacing[8];
+const { colors, spacing } = theme;
 
 /**
- * Klavye açıkken panel klavyenin ÜSTÜNDE kalsın: pencere yüksekliği - klavye - (üst bar + arama kutusu +
- * kenar boşlukları). SAF; ekran ve klavye yüksekliği dışarıdan gelir.
- */
-export function suggestionsMaxHeight(windowHeight: number, keyboardHeight: number, barInset: number): number {
-  const above = barInset + controlHeight.lg + spacing[4] * 2;
-  const available = windowHeight - keyboardHeight - above;
-  return Math.round(Math.min(SUGGESTIONS_MAX_HEIGHT, Math.max(SUGGESTIONS_MIN_HEIGHT, available)));
-}
-
-/**
- * Dropdown shown under the search input: recent searches when the box is empty,
- * or the rich autocomplete (suggestions/products/sellers/brands/manufacturers/
- * categories) once ≥2 chars are typed.
+ * Öneri SAYFASI: üst barın altındaki tüm alanı kaplar (sonuçların ve çubukların yerine), kart değil.
+ * Kutu boşken son aramalar, ≥2 karakterden sonra zengin öneri (öneriler/ürünler/satıcılar/markalar/
+ * üreticiler/kategoriler). Tek kaydırma; alt dolgu klavye kadar (son satır klavyenin altında kalmaz).
  */
 export interface SearchSuggestionsProps {
   showRecentSearches: boolean;
@@ -69,15 +54,20 @@ function SearchSuggestionsBase({
   onApplyFacet,
 }: SearchSuggestionsProps) {
   const { t } = useTranslation();
-  const { height: windowHeight } = useWindowDimensions();
   const keyboardHeight = useKeyboardHeight();
-  const barInset = useHeaderBarInset();
-  const maxHeight = suggestionsMaxHeight(windowHeight, keyboardHeight, barInset);
   return (
-    <>
+    <ScrollView
+      style={styles.suggestionsScroll}
+      contentContainerStyle={{ paddingBottom: keyboardHeight + spacing[4] }}
+      keyboardShouldPersistTaps="handled"
+      // Kaydırma klavyeyi KAPATMAZ: kapanış input'u blur eder, blur 200 ms sonra paneli kapatır →
+      // sayfa kaydırılırken kaybolurdu (alt satırlar erişilmez). Alt dolgu klavye kadar.
+      keyboardDismissMode="none"
+      testID="search-suggestions-page"
+    >
       {/* Recent Searches */}
       {showRecentSearches && recentSearchQueries.length > 0 && inputEmpty && (
-        <View style={styles.recentSearchesDropdown}>
+        <View>
           <View style={styles.recentSearchesHeader}>
             <Text style={styles.recentSearchesTitle}>{t('search.recentSearches')}</Text>
             <Pressable onPress={onClearRecent}>
@@ -104,8 +94,7 @@ function SearchSuggestionsBase({
 
       {/* Autocomplete Rich */}
       {autocompleteOpen && autocompleteQuery.length >= 2 && autocomplete && (
-        <View style={styles.recentSearchesDropdown}>
-          <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight }}>
+        <View>
             {autocomplete.suggestions && autocomplete.suggestions.length > 0 ? (
               <View style={styles.acSection}>
                 <Text style={styles.acSectionTitle}>{t('search.suggestions')}</Text>
@@ -218,10 +207,9 @@ function SearchSuggestionsBase({
                 ))}
               </View>
             ) : null}
-          </ScrollView>
         </View>
       )}
-    </>
+    </ScrollView>
   );
 }
 

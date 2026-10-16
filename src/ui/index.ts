@@ -10,12 +10,14 @@ export {
 	useResetScrollOnBind,
 	ShellScrollProvider,
 	scrollEdgeOpacity,
+	pageScrollOffset,
 	SCROLL_EDGE_FULL_AT,
 	withTopInset,
 	type PageScroll,
 	type PageScrollValue,
 } from './lib/pageScroll';
 export { ScrollEdge, type ScrollEdgeProps } from './components/ScrollEdge';
+export { useScreenFocused } from './lib/screenFocus';
 
 export {
 	Button,
@@ -124,11 +126,8 @@ export { PageHeader, type PageHeaderProps } from './components/PageHeader';
 export { EmptyState, EMPTY_STATE_TOP_OFFSET, type EmptyStateProps, type EmptyStatePlacement } from './components/EmptyState';
 export { ErrorState, type ErrorStateProps } from './components/ErrorState';
 export {
-	ScreenLoader,
-	type ScreenLoaderProps,
-} from './components/ScreenLoader';
-export {
 	Chip,
+	CHIP_HEIGHT,
 	type ChipProps,
 	type ChipVariant,
 	type ChipSize,
@@ -209,6 +208,7 @@ export { ListRowCard, type ListRowCardProps } from './components/ListRowCard';
 export {
 	SectionCard,
 	SectionCardAction,
+	SECTION_CARD_METRICS,
 	type SectionCardProps,
 	type SectionCardActionProps,
 } from './components/SectionCard';
@@ -266,7 +266,9 @@ export {
 	MODAL_CLOSE_DELAY_MS,
 	type ModalMessageState,
 } from './ModalMessage';
-export { Spinner, type SpinnerProps } from './components/Spinner';
+// Yükleme sistemi: tek gösterge (LoadingIndicator = değiştirme noktası), tek iskelet sürücüsü,
+// yerleşime sadık iskelet yapı taşları, gecikmeli gösterim (bkz. src/ui/loading/index.ts).
+export * from './loading';
 export {
 	Stepper,
 	useStepper,
@@ -277,14 +279,7 @@ export {
 	QuantityStepper,
 	type QuantityStepperProps,
 } from './components/QuantityStepper';
-export {
-	Skeleton,
-	SkeletonText,
-	SkeletonCard,
-	SkeletonAvatar,
-	type SkeletonProps,
-} from './components/Skeleton';
-export { Avatar, avatarPlaceholderColors, type AvatarProps } from './components/Avatar';
+export { Avatar, AVATAR_SIZES, avatarPlaceholderColors, type AvatarProps } from './components/Avatar';
 export { StatusBadge, type StatusBadgeProps } from './components/StatusBadge';
 
 // Durum haritaları `@/lib/shared/status-configs`'ten (web status-configs'in tek kaynağı)

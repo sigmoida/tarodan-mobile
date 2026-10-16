@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 
 /**
@@ -10,11 +11,11 @@ import { useAuthStore } from '@/stores/authStore';
  * Taze kullanıcıyı (ya da `null`) döndürür.
  */
 export function useRefreshAccount() {
-  const { refreshUserData } = useAuthStore();
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
   const queryClient = useQueryClient();
   return useCallback(async () => {
     const fresh = await refreshUserData();
-    queryClient.invalidateQueries({ queryKey: ['user'] });
+    queryClient.invalidateQueries({ queryKey: qk.user.all });
     return fresh;
   }, [refreshUserData, queryClient]);
 }

@@ -20,6 +20,7 @@ import { Image, type ImageContentFit } from 'expo-image';
 import { theme } from '@/ui';
 import { resolveImageUrl, IMAGE_PLACEHOLDER, type ImageVariant } from '@/utils/imageUrl';
 import { useAuthStore } from '@/stores/authStore';
+import { isApiMessageAttachmentUrl } from '@/lib/api/messageAttachment';
 
 export interface AppImageProps {
   /** Entity / görsel objesi / dizi / string — `getImageUrl` ile aynı çözümleme. */
@@ -46,7 +47,9 @@ export interface AppImageProps {
    *
    * ⚠️ Varsayılan `false` — SADECE API'nin JWT istediği bilinen uçlar için aç
    * (örn. mesaj eki `/api/media/message-attachment/{id}`, bkz.
-   * `app/messages/[threadId]/_components/MessageList.tsx`). Ürün görselleri
+   * `app/messages/[threadId]/_components/MessageList.tsx`). Açık olsa bile header
+   * yalnız çözülen URL API origin'inde ve mesaj eki yolundaysa eklenir
+   * (`@/lib/api/messageAttachment`); diğer her URL header'sız yüklenir. Ürün görselleri
    * public S3/CDN'den geliyor: gereksiz bir `Authorization` header'ı hem
    * işe yaramaz hem de presigned S3 URL'ine 302 redirect edildiğinde imzayı
    * bozma riski taşır.
@@ -96,7 +99,14 @@ export const AppImage = React.memo(function AppImage({
   // değilken sabit `null` döndürür: public görseller token değişimine ABONE
   // OLMAZ, yoksa her sessiz refresh uygulamadaki BÜTÜN görselleri yeniden
   // render ederdi. Token sızıntısı sözleşmesi de aynı seçicide korunuyor.
-  const token = useAuthStore((s) => (authenticated ? s.token : null));
+  //
+  // ⚠️ Bearer YALNIZ kendi mesaj eki ucumuza gider (API origin'i +
+  // `/media/message-attachment/<id>`, `isApiMessageAttachmentUrl`). `authenticated`
+  // açık olsa bile URL mesaj gövdesinden (güvenilmez girdi) gelebilir; başka her
+  // hedef header'SIZ yüklenir — aksi hâlde `[IMG:https://saldirgan/x]` alıcının
+  // access token'ını saldırganın sunucusuna gönderirdi.
+  const sendBearer = authenticated && isApiMessageAttachmentUrl(uri);
+  const token = useAuthStore((s) => (sendBearer ? s.token : null));
   // Hata durumu (uri + token çiftine bağlı): kaynak/token değişince yeniden denenir. Hatalıyken
   // sade gri yer tutucu gösterilir (kırık/boş kutu yerine).
   const attemptKey = `${uri}|${token ?? ''}`;

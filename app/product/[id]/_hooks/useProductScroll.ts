@@ -1,15 +1,15 @@
-import { useMemo, useRef } from 'react';
-import { Animated } from 'react-native';
+import { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 
 /**
- * Ürün detayının dikey kaydırma konumu — üst barın (adaların arkasındaki beyaz zemin) galeri
- * bitince belirmesi için. Native driver: kaydırma JS thread'ine uğramadan opaklığı sürer.
+ * Ürün detayının dikey kaydırma konumu — üst barın kaydırma kenarı (`ScrollEdge`) galeri bitince
+ * belirsin diye. Reanimated handler: kaydırma JS thread'ine uğramadan UI thread'inde sürülür.
  */
 export function useProductScroll() {
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const onScroll = useMemo(
-    () => Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true }),
-    [scrollY],
-  );
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollY.value = e.contentOffset.y;
+    },
+  });
   return { scrollY, onScroll };
 }

@@ -99,6 +99,17 @@ describe('üretici şeridi', () => {
   });
 });
 
+describe('üretici şeridi — yükleniyor', () => {
+  it('yüklenirken aynı yükseklikte iskelet kutular (null değil); veri gelince şerit', () => {
+    const { rerender } = render(<BrandsStrip items={[]} isLoading />);
+    expect(screen.getByTestId('home-brands-skeleton')).toBeTruthy();
+    expect(screen.queryByTestId('home-brands')).toBeNull();
+    rerender(<BrandsStrip items={[{ id: 'm1', name: 'Hot Wheels' }]} isLoading={false} />);
+    expect(screen.queryByTestId('home-brands-skeleton')).toBeNull();
+    expect(screen.getByTestId('home-brands')).toBeTruthy();
+  });
+});
+
 describe('koleksiyonlar ve öne çıkanlar', () => {
   const collection = {
     id: 'c1',
@@ -121,6 +132,14 @@ describe('koleksiyonlar ve öne çıkanlar', () => {
   it('boş koleksiyon listesi çizilmez', () => {
     render(<TopCollections items={[]} />);
     expect(screen.queryByTestId('home-top-collections')).toBeNull();
+  });
+
+  it('Haftanın Koleksiyoneri / Şirketi yüklenirken iskelet; yükleme bitip ikisi de yoksa hiçbir şey', () => {
+    const { rerender } = render(<Spotlights collector={null} business={null} isLoading />);
+    expect(screen.getByTestId('home-spotlights-skeleton')).toBeTruthy();
+    rerender(<Spotlights collector={null} business={null} isLoading={false} />);
+    expect(screen.queryByTestId('home-spotlights-skeleton')).toBeNull();
+    expect(screen.queryByTestId('home-collector')).toBeNull();
   });
 
   it('Haftanın Koleksiyoneri ve Şirketi; ikisi de yoksa hiçbir şey', () => {

@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { PageShell } from "@/components/common/PageShell";
 import { useRefresh } from "@/hooks/useRefresh";
+import { isNotFoundError } from "@/lib/query";
 import { useAuthStore } from "@/stores/authStore";
 import { tradeViewerRole } from "@/lib/shared/tradeStatus";
 import { useTranslation } from "react-i18next";
@@ -8,7 +9,6 @@ import { toast } from "@/ui";
 import { copyToClipboard } from "@/lib/clipboard";
 import { deriveTradeView } from "./_lib/derive";
 import { useTrade } from "./_hooks/useTrade";
-import { useCountdown } from "./_hooks/useCountdown";
 import { useTradeActions } from "./_hooks/useTradeActions";
 import { useTradePaymentQuote } from "./_hooks/useTradePaymentQuote";
 import { TradeStatusHeader } from "./_components/TradeStatusHeader";
@@ -21,6 +21,7 @@ import { TradeMessages } from "./_components/TradeMessages";
 import { TradeShippingSection } from "./_components/TradeShippingSection";
 import { TradeProtectionCard } from "./_components/TradeProtectionCard";
 import { TradeActions } from "./_components/TradeActions";
+import { TradeDetailSkeleton } from "./_components/TradeDetailSkeleton";
 import { RejectTradeModal } from "./_modals/RejectTradeModal";
 
 /**
@@ -31,16 +32,16 @@ import { RejectTradeModal } from "./_modals/RejectTradeModal";
 export default function TradeDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const tradeId = String(id);
 
   const {
     data: trade,
     isLoading,
+    error,
     refetch,
   } = useTrade(id as string | undefined);
   const { refreshing, onRefresh } = useRefresh(refetch);
-  const now = useCountdown();
   const actions = useTradeActions(tradeId);
   const { quote: paymentQuote } = useTradePaymentQuote(tradeId);
 
@@ -50,14 +51,19 @@ export default function TradeDetailScreen() {
   };
 
   if (isLoading) {
-    return <PageShell title={t('trade.detailTitle')} onBack={handleBack} loading />;
+    return (
+      <PageShell title={t('trade.detailTitle')} onBack={handleBack} loading loadingFallback={<TradeDetailSkeleton />} />
+    );
   }
 
   if (!trade) {
+    // Gerçek 404 → "bulunamadı"; diğer hatalar (ağ/5xx) → ErrorState + yeniden dene.
     return (
       <PageShell
         title={t('trade.detailTitle')}
         onBack={handleBack}
+        error={(!!error && !isNotFoundError(error)) || undefined}
+        onRetry={() => refetch()}
         empty
         emptyState={{
           icon: "arrows-right-left",
@@ -95,7 +101,6 @@ export default function TradeDetailScreen() {
       <TradeStatusHeader
         trade={trade}
         t={t}
-        now={now}
         hasPaymentStep={view.hasPaymentStep}
         viewerRole={tradeViewerRole(trade, user?.id)}
       />

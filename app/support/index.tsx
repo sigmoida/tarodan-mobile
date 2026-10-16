@@ -1,14 +1,14 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, SectionCard, SkeletonText, StatusBadge, Text, theme, Icon } from '@/ui';
+import { Button, EmptyState, ErrorState, SectionCard, StatusBadge, Text, theme, Icon, useDelayedLoading } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { buildTicketStatusConfig } from './_lib/status';
 import { buildCategoryLabels, formatTicketDate, type TicketSummary } from './_lib/types';
 import { useSupportTickets } from './_hooks/useSupportTickets';
+import { SupportTicketsSkeleton } from './_components/SupportTicketsSkeleton';
 
 const { colors, spacing } = theme;
-const SKELETON_ROWS = [0, 1, 2];
 
 /** Talep satırı: #numara + durum rozeti, konu, kategori · tarih, sağda ok. */
 function TicketRow({
@@ -55,6 +55,9 @@ export default function SupportTicketsScreen() {
   const { t } = useTranslation();
   const f = useSupportTickets();
   const title = t('support.supportTickets');
+  const initialLoading = f.isLoading && f.tickets.length === 0;
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const showSkeleton = useDelayedLoading(initialLoading);
 
   if (!f.isAuthenticated) {
     return (
@@ -74,7 +77,6 @@ export default function SupportTicketsScreen() {
 
   const statusConfig = buildTicketStatusConfig(t);
   const categoryLabels = buildCategoryLabels(t);
-  const initialLoading = f.isLoading && f.tickets.length === 0;
 
   return (
     <PageShell
@@ -91,36 +93,36 @@ export default function SupportTicketsScreen() {
         />
       }
     >
-      <SectionCard>
-        {initialLoading ? (
-          <View testID="support-skeleton" style={styles.skeleton}>
-            {SKELETON_ROWS.map((i) => (
-              <SkeletonText key={i} lines={3} />
-            ))}
-          </View>
-        ) : f.tickets.length === 0 ? (
-          <EmptyState
-            icon="chat-bubble-left-right"
-            title={t('support.emptyTitle')}
-            subtitle={t('support.emptySubtitle')}
-          />
-        ) : (
-          f.tickets.map((ticket) => (
-            <TicketRow
-              key={ticket.id}
-              ticket={ticket}
-              categoryLabel={categoryLabels[ticket.category] ?? ticket.category}
-              statusConfig={statusConfig}
+      {/* Gecikme penceresinde (iskelet henüz yok) boş kart çizilmez. */}
+      {initialLoading && !showSkeleton ? null : (
+        <SectionCard>
+          {initialLoading ? (
+            <SupportTicketsSkeleton />
+          ) : f.loadFailed ? (
+            <ErrorState placement="inline" onRetry={f.retry} />
+          ) : f.tickets.length === 0 ? (
+            <EmptyState
+              icon="chat-bubble-left-right"
+              title={t('support.emptyTitle')}
+              subtitle={t('support.emptySubtitle')}
             />
-          ))
-        )}
-      </SectionCard>
+          ) : (
+            f.tickets.map((ticket) => (
+              <TicketRow
+                key={ticket.id}
+                ticket={ticket}
+                categoryLabel={categoryLabels[ticket.category] ?? ticket.category}
+                statusConfig={statusConfig}
+              />
+            ))
+          )}
+        </SectionCard>
+      )}
     </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  skeleton: { gap: spacing[6] },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

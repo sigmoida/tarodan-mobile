@@ -5,7 +5,7 @@ import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
-import { theme, usePageScrollValue } from '@/ui';
+import { pageListContentStyle, theme, usePageScrollValue } from '@/ui';
 
 import { useProfile } from './_hooks/useProfile';
 import { ProfileGuestView } from './_components/ProfileGuestView';
@@ -14,9 +14,10 @@ import { ProfileCard, ProfileMenuSections } from './_components/ProfileSections'
 const { colors } = theme;
 
 /**
- * Profil sekmesi — sekme kökü (AppShell, başlıklı bar; "Profili düzenle" kalemi kimlik satırında). Düz
- * (kartsız) düzen: yatay kompakt kimlik başlığı + Hesap satırları (ikon + chevron) + çıkış (hesabı sil Güvenlik ekranında). Alışveriş / Finans / Koleksiyon / Analiz /
- * Destek / Bilgi Ana Sayfa yan menüsündedir (`DrawerMenu`).
+ * Profil sekmesi — sekme kökü (AppShell, başlıklı bar: solu BOŞ, sağda tek ⚙️ Ayarlar düğmesi;
+ * "Profili düzenle" kalemi kimlik satırında). Düz (kartsız) düzen: yatay kompakt kimlik başlığı +
+ * kullanıcının işlemleri (Alışveriş · Finans · Koleksiyon · Analiz, gruplu satırlar). Hesap / ödeme
+ * ayarları / üyelik / tercihler / destek / yasal ve çıkış Ayarlar ekranında (`/settings`).
  * `useProfile` tüm sorgu ve eylemlerin sahibi; ekran yalnız misafir/üye dallanması ve kompozisyon.
  */
 function ProfileScreen() {
@@ -31,12 +32,13 @@ function ProfileScreen() {
   if (!f.isAuthenticated) return <ProfileGuestView f={f} />;
 
   return (
-    <AppShell variant="title" title={t('profile.profile')} scroll={page} leading="menu">
+    <AppShell variant="title" title={t('profile.profile')} scroll={page} leading="none" actions="settings">
       <Animated.ScrollView
         {...tabScroll}
         {...page.scrollProps}
         scrollEventThrottle={16}
-        contentContainerStyle={page.contentStyle({ paddingBottom: tabInset })}
+        // Sayfa kenarı + kartlar arası boşluk (kimlik kartı + grup kartları).
+        contentContainerStyle={page.contentStyle([pageListContentStyle, { paddingBottom: tabInset }])}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -49,7 +51,7 @@ function ProfileScreen() {
         }
       >
         <ProfileCard f={f} />
-        <ProfileMenuSections f={f} isBusiness={!!(f.user?.companyName && f.user?.taxId)} />
+        <ProfileMenuSections />
       </Animated.ScrollView>
     </AppShell>
   );

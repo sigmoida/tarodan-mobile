@@ -3,9 +3,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { useTranslation } from 'react-i18next';
 import { appAlert, toast } from '@/ui';
 import { api } from '@/lib/api';
+import { apiPath } from '@/lib/api/path';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { useAuthStore } from '@/stores/authStore';
 import { buildCollectionEditSchema, type CollectionForm, type Collection } from '../_lib/collectionEditSchema';
@@ -18,18 +20,19 @@ import { useCollectionCover } from '../../_hooks/useCollectionCover';
  */
 export function useCollectionEdit() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams();
-  const { user } = useAuthStore();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
 
   const { coverImage, setCoverImage, pickCoverImage, uploadCover } = useCollectionCover();
 
   // Fetch collection
   const { data: collection, isLoading } = useQuery<Collection>({
-    queryKey: ['collection', id],
+    queryKey: qk.collections.detail(String(id)),
     queryFn: async () => {
-      const response = await api.get(`/collections/${id}`);
-      return response.data;
+      const response = await api.get(apiPath`/collections/${id}`);
+      // Detay ekranıyla AYNI anahtar (`qk.collections.detail`) → aynı şekil: zarf varsa aç.
+      return response.data?.data ?? response.data;
     },
     enabled: !!id,
   });
@@ -62,7 +65,7 @@ export function useCollectionEdit() {
   const updateMutation = useMutation({
     mutationFn: async (data: CollectionForm) => {
       // Metin alanları JSON ile (API @Body() UpdateCollectionDto bekler, FileInterceptor yok)
-      await api.patch(`/collections/${id}`, {
+      await api.patch(apiPath`/collections/${id}`, {
         name: data.name,
         description: data.description || undefined,
         isPublic: data.isPublic,
@@ -74,9 +77,9 @@ export function useCollectionEdit() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collection', id] });
-      queryClient.invalidateQueries({ queryKey: ['collections'] });
-      queryClient.invalidateQueries({ queryKey: ['my-collections'] });
+      queryClient.invalidateQueries({ queryKey: qk.collections.detail(String(id)) });
+      queryClient.invalidateQueries({ queryKey: qk.collections.all });
+      queryClient.invalidateQueries({ queryKey: qk.collections.mine });
       toast.success(t('collection.collectionUpdated'));
     },
     onError: (error: any) => {
@@ -86,10 +89,10 @@ export function useCollectionEdit() {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: () => api.delete(`/collections/${id}`),
+    mutationFn: () => api.delete(apiPath`/collections/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collections'] });
-      queryClient.invalidateQueries({ queryKey: ['my-collections'] });
+      queryClient.invalidateQueries({ queryKey: qk.collections.all });
+      queryClient.invalidateQueries({ queryKey: qk.collections.mine });
       toast.success(t('collection.collectionDeleted'));
       setTimeout(() => router.replace('/collections'), 1500);
     },
@@ -100,9 +103,9 @@ export function useCollectionEdit() {
 
   // Remove item mutation
   const removeItemMutation = useMutation({
-    mutationFn: (itemId: string) => api.delete(`/collections/${id}/items/${itemId}`),
+    mutationFn: (itemId: string) => api.delete(apiPath`/collections/${id}/items/${itemId}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collection', id] });
+      queryClient.invalidateQueries({ queryKey: qk.collections.detail(String(id)) });
       toast.success(t('collection.productRemoved'));
     },
     onError: (error: any) => {

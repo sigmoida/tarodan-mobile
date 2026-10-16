@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import i18n from '@/i18n/config';
 import { refundsApi } from '@/lib/api';
-import { useAppMutation } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import { captureException } from '@/services/sentry';
 import { useAuthStore } from '@/stores/authStore';
+import { FOCUS_LIST_STALE_MS, useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { readList } from '@/utils/apiEnvelope';
 import type { RefundRequestRow, RefundTab } from '../_lib/types';
 
@@ -25,17 +25,21 @@ export function useRefundRequests() {
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<RefundTab>('buyer');
 
+  // Anahtar sorgu ile odak tazelemesi arasında tek yerde.
+  const listKey = qk.refunds.list(tab);
   const query = useQuery({
-    queryKey: ['refund-requests', tab],
+    queryKey: listKey,
     queryFn: async () => {
       const res = await (tab === 'seller' ? refundsApi.getSeller() : refundsApi.getMine());
       return readList<RefundRequestRow>(res);
     },
     enabled: isAuthenticated,
+    // Talep durumu karşı taraftan değişir: dönüşte bundan eskiyse tazelenir.
+    staleTime: FOCUS_LIST_STALE_MS,
   });
 
   const cancelMutation = useAppMutation((id: string) => refundsApi.cancel(id), {
-    invalidates: [['refund-requests']],
+    invalidates: [qk.refunds.all],
     success: i18n.t('refund.cancelSuccessBody'),
     error: i18n.t('refund.cancelFailed'),
     onError: (e) => captureException(e, { level: 'error', tags: { flow: 'refund.buyer.cancel' } }),
@@ -47,13 +51,8 @@ export function useRefundRequests() {
     setRefreshing(false);
   }, [query]);
 
-  useFocusEffect(
-    useCallback(() => {
-      query.refetch();
-      // Yalnız odaklanmada tazele; `query` her render'da yeni referans.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tab]),
-  );
+  // Ekrana dönüşte yalnız bayatsa tazele (her odakta değil; ilk açılışta ikinci istek yok).
+  useRefetchStaleOnFocus([listKey], isAuthenticated);
 
   return {
     isAuthenticated,

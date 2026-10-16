@@ -119,7 +119,7 @@ describe('üye — tek sayfa düzeni', () => {
     expect(await screen.findByText('Fatura adresini girin')).toBeOnTheScreen();
   });
 
-  it('özet kartı kupon + web etiketleri + sözleşme taşır; ödeme yöntemi PayTR bilgisi verir', async () => {
+  it('özet kartı kupon + web etiketleri + sözleşme taşır; ödeme yöntemi kartı yok', async () => {
     renderWithProviders(<CheckoutScreen />);
     await waitFor(() => expect(screen.getByText('165,00 TL')).toBeOnTheScreen());
     expect(screen.getByTestId('coupon-input')).toBeOnTheScreen();
@@ -127,7 +127,7 @@ describe('üye — tek sayfa düzeni', () => {
     expect(screen.getByText('Kargo ücreti')).toBeOnTheScreen();
     expect(screen.getByText('Hizmet Bedeli')).toBeOnTheScreen();
     expect(screen.getByTestId('checkout-distance-sales-checkbox')).toBeOnTheScreen();
-    expect(screen.getByText(/PayTR güvenli altyapısı/)).toBeOnTheScreen();
+    expect(screen.queryByTestId('checkout-payment')).toBeNull();
     // Kart alanı yok: kart bilgisi uygulamada girilmez.
     expect(screen.queryByText('Kart Bilgileri')).toBeNull();
   });

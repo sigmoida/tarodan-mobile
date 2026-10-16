@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { View } from 'react-native';
-import { fireEvent, screen } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 // Kartlardaki favori kalbi (`useProductCardFavorites`) React Query ister: provider'lı render.
 import { renderWithProviders as render } from '@/test-utils';
 import { ProductGrid } from '../ProductGrid';
@@ -34,10 +34,19 @@ describe('ProductGrid', () => {
     expect(screen.getByText('Ürün C')).toBeTruthy();
   });
 
-  it('yükleniyor: iskelet (spinner değil), ürün yok', () => {
+  it('yükleniyor: gecikmeden sonra iskelet (spinner değil), ürün yok', async () => {
     render(<ProductGrid items={items} loading />);
-    expect(screen.getByTestId('product-grid-skeleton')).toBeTruthy();
+    // <150 ms süren yüklemede iskelet hiç çizilmez (useDelayedLoading).
+    expect(screen.queryByTestId('product-grid-skeleton')).toBeNull();
+    await waitFor(() => expect(screen.getByTestId('product-grid-skeleton')).toBeTruthy());
     expect(screen.queryByText('Ürün A')).toBeNull();
+  });
+
+  it('sonraki sayfa hatası: "Tekrar dene" satırı, basınca yeniden ister', () => {
+    const onRetry = jest.fn();
+    render(<ProductGrid items={items} loadMoreFailed onRetryLoadMore={onRetry} />);
+    fireEvent.press(screen.getByText(i18n.t('common.tryAgain')));
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
   it('boş: tek boş durum metni; filtre varsa temizle düğmesi', () => {

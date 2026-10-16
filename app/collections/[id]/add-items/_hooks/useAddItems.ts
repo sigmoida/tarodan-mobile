@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -30,7 +30,7 @@ export function useAddItems() {
 
   // Kullanıcının kendi ilanları — yalnız active/sold (backend görünür item filtresiyle birebir).
   const { data: listings = [], isLoading: listingsLoading } = useQuery<Listing[]>({
-    queryKey: ['my-listings', 'all'],
+    queryKey: qk.products.myListingsForCollection,
     queryFn: async () => {
       const res = await productsApi.getMyListings({ limit: 100 });
       const all: Listing[] = res.data?.data || res.data || [];
@@ -40,7 +40,7 @@ export function useAddItems() {
 
   // Koleksiyondaki ürünler → productId -> collectionItemId haritası (tek gerçek kaynak sunucu).
   const { data: serverMap = {}, isLoading: collectionLoading } = useQuery<Record<string, string>>({
-    queryKey: ['collection-picker', collectionId],
+    queryKey: qk.collections.picker(collectionId),
     staleTime: 0,
     queryFn: async () => {
       const res = await collectionsApi.getOne(collectionId);
@@ -68,7 +68,7 @@ export function useAddItems() {
     setOverlay((o) => ({ ...o, [productId]: itemId }));
   };
 
-  const toggle = async (listing: Listing) => {
+  const toggleImpl = async (listing: Listing) => {
     if (pending[listing.id]) return;
     const itemId = effectiveItemId(listing.id);
     // Gerçek itemId henüz gelmediyse çıkarma isteği atılamaz; senkron tamamlanana dek bekle.
@@ -100,8 +100,8 @@ export function useAddItems() {
         }
       }
       // Detay/liste ekranlarını tazele (sahip olduğu için viewCount artmaz).
-      queryClient.invalidateQueries({ queryKey: ['collection', collectionId] });
-      queryClient.invalidateQueries({ queryKey: ['collections'] });
+      queryClient.invalidateQueries({ queryKey: qk.collections.detail(collectionId) });
+      queryClient.invalidateQueries({ queryKey: qk.collections.all });
       queryClient.invalidateQueries({ queryKey: qk.collections.mine });
     } catch (e: any) {
       // Başarısız mutasyonu geri al: katmandan düş, sunucu haritası geçerli olsun.
@@ -116,12 +116,18 @@ export function useAddItems() {
       setPending((p) => ({ ...p, [listing.id]: false }));
       // Picker'ı yalnızca uçuşta başka işlem KALMADIYSA sunucudan doğrula.
       if (inFlight.current === 0) {
-        await queryClient.invalidateQueries({ queryKey: ['collection-picker', collectionId] });
+        await queryClient.invalidateQueries({ queryKey: qk.collections.picker(collectionId) });
         // Refetch beklenirken yeni işlem başladıysa katmana dokunma.
         if (inFlight.current === 0) setOverlay({});
       }
     }
   };
+
+  // Kararlı referans: `toggleImpl` her render'da güncel `pending`/`overlay`'i kapatır; memo'lu
+  // satırlar yeniden çizilmesin diye ref üzerinden çağrılır (verbatim iyimser mantık değişmedi).
+  const toggleRef = useRef(toggleImpl);
+  toggleRef.current = toggleImpl;
+  const toggle = useCallback((listing: Listing) => toggleRef.current(listing), []);
 
   return {
     search,

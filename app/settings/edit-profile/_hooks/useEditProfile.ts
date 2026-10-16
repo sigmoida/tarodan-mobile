@@ -3,12 +3,14 @@ import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { router } from 'expo-router';
 import { appAlert, toast } from '@/ui';
 import { userApi } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, type User } from '@/stores/authStore';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { useFullProfile, useOnProfileReady } from '@/hooks/useFullProfile';
 import { getPhoneInvalidMessage, splitPhone } from '@/utils/phone';
 import { buildProfileSchema, type ProfileForm } from '../_lib/schema';
 import { phoneToSend, resolvePhoneOutcome } from '../_lib/phoneOutcome';
@@ -18,6 +20,21 @@ type UpdateVars = {
   /** `phoneToSend` sonucu: `undefined` → numaraya dokunulmaz, `''` → sil. */
   phone: string | undefined;
 };
+
+/** Formun kayıtlı temeli (store kullanıcısından). */
+function profileFormDefaults(user: User | null): ProfileForm {
+  return {
+    displayName: user?.displayName || '',
+    bio: user?.bio || '',
+    phone: splitPhone(user?.phone || '').phone,
+    // İlk 10 karakteri al ("1990-01-31T00:00:00Z" -> "1990-01-31"); toISOString
+    // saat dilimi kaymasından kaçınmak için Date round-trip'i yapma.
+    birthDate: user?.birthDate ? String(user.birthDate).slice(0, 10) : '',
+    companyName: user?.companyName || '',
+    taxId: user?.taxId || '',
+    taxOffice: user?.taxOffice || '',
+  };
+}
 
 /**
  * Edit-profile controller — kişisel (+ işletme) bilgiler formu: RHF+zod, telefon ülke kodu,
@@ -30,8 +47,13 @@ type UpdateVars = {
  */
 export function useEditProfile() {
   const { t } = useTranslation();
-  const { user, isAuthenticated, refreshUserData } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
   const queryClient = useQueryClient();
+  // Saklı görüntü / giriş yanıtı tam profil değil (telefon, doğum tarihi, bio, vergi dairesi
+  // yok): form yalnız TAM profil geldikten sonra gösterilir (`useFullProfile`).
+  const profile = useFullProfile();
 
   const isBusinessTier = (user as any)?.membershipTier === 'business';
 
@@ -57,17 +79,17 @@ export function useEditProfile() {
     watch,
   } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      displayName: user?.displayName || '',
-      bio: user?.bio || '',
-      phone: splitPhone((user as any)?.phone || '').phone,
-      // İlk 10 karakteri al ("1990-01-31T00:00:00Z" -> "1990-01-31"); toISOString
-      // saat dilimi kaymasından kaçınmak için Date round-trip'i yapma.
-      birthDate: (user as any)?.birthDate ? String((user as any).birthDate).slice(0, 10) : '',
-      companyName: (user as any)?.companyName || '',
-      taxId: (user as any)?.taxId || '',
-      taxOffice: (user as any)?.taxOffice || '',
-    },
+    defaultValues: profileFormDefaults(user),
+  });
+
+  // Tam profil açılıştan SONRA geldiyse (varsayılanlar eksik görüntüdendi) temel bir kez
+  // ondan kurulur. Bu sırada form yükleniyor görünümünde — kullanıcı girdisi ezilmez.
+  useOnProfileReady(profile.ready, () => {
+    const fresh = useAuthStore.getState().user;
+    const countryCode = splitPhone(fresh?.phone || '').countryCode;
+    reset(profileFormDefaults(fresh));
+    setSavedCountryCode(countryCode);
+    setPhoneCountryCode(countryCode);
   });
 
   const isDirty = isFormDirty || phoneCountryCode !== savedCountryCode;
@@ -106,7 +128,7 @@ export function useEditProfile() {
       // Store'u taze /users/me ile güncelle (web refreshUser() paritesi). Numara değiştiyse
       // `isPhoneVerified` da burada false'a döner ("doğrulanmış üye" kriteri).
       const fresh = await refreshUserData();
-      queryClient.invalidateQueries({ queryKey: ['user'] });
+      queryClient.invalidateQueries({ queryKey: qk.user.all });
       // Kayıt sonucu TAZE kullanıcıyla doğrulanır; tazeleme düştüyse PATCH
       // yanıtındaki (zarfsız kullanıcı nesnesi) telefona geri çekilinir.
       const savedPhone = fresh ? fresh.phone : responsePhone;
@@ -178,6 +200,10 @@ export function useEditProfile() {
   return {
     user,
     isAuthenticated,
+    /** Tam profil bekleniyor (form henüz gösterilmez). */
+    profileLoading: !profile.ready && !profile.error,
+    profileError: profile.error,
+    retryProfile: profile.retry,
     control,
     errors,
     handleSubmit,

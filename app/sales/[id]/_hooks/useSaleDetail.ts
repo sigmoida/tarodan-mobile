@@ -2,6 +2,7 @@ import { Linking } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { ordersApi } from '@/lib/api';
 import { useRefresh } from '@/hooks/useRefresh';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
@@ -24,7 +25,7 @@ export function useSaleDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { data: order, isLoading, error, refetch } = useQuery<Order | null>({
-    queryKey: ['sale-order', id],
+    queryKey: qk.orders.saleDetail(String(id ?? '')),
     queryFn: async () => {
       if (!id) return null;
       const response = await ordersApi.getOne(id);

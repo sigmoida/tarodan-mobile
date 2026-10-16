@@ -23,7 +23,7 @@ export default function NewsletterUnsubscribeScreen() {
     async (data: { email?: string; token?: string }) => {
       // Web ile birebir: token akışı GET ?token=..., e-posta akışı POST { email }.
       if (data.token) {
-        return guestApi.get(`/newsletter/unsubscribe?token=${encodeURIComponent(data.token)}`);
+        return guestApi.get('/newsletter/unsubscribe', { params: { token: data.token } });
       }
       return guestApi.post('/newsletter/unsubscribe', { email: data.email });
     },

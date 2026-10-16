@@ -4,7 +4,6 @@ import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@te
 import { GLASS_ICON_BUTTON_SIZE, ScreenHeader, theme, usePageScrollValue } from '@/ui';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 import { AppShell, APP_SHELL_BAR_HEIGHT } from '../AppShell';
-import { SideMenuProvider, useSideMenu } from '../SideMenuContext';
 import { TabBarCollapseProvider, useTabBarCollapsed, useTabBarScrollHandler } from '../TabBarCollapse';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
@@ -31,17 +30,14 @@ beforeEach(() => {
 });
 
 describe('AppShell — tek satır beyaz bar', () => {
-  it('beyaz bar (ScreenHeader ile aynı zemin + alt çizgi), logo yok; kategoriler düğmesi + arama alanı + mesajlar + bildirimler (sayaçlı), sepet yok', () => {
+  it('zeminsiz bar (kaydırma sinyali yokken kenar da yok), logo yok; kategoriler düğmesi + beyaz arama alanı + mesajlar + bildirimler (sayaçlı), sepet yok', () => {
     render(
       <AppShell>
         <Text>içerik</Text>
       </AppShell>,
     );
-    expect(StyleSheet.flatten(screen.getByTestId('app-shell-bar-bg').props.style)).toMatchObject({
-      backgroundColor: theme.colors.surface.elevated,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.DEFAULT,
-    });
+    expect(screen.queryByTestId('app-shell-bar-bg')).toBeNull();
+    expect(screen.queryByTestId('app-shell-bar-edge')).toBeNull();
     expect(screen.queryByLabelText('Tarodan')).toBeNull();
     expect(screen.getByTestId('home-categories-button')).toBeTruthy();
     expect(screen.getByTestId('home-search-input')).toBeTruthy();
@@ -58,6 +54,20 @@ describe('AppShell — tek satır beyaz bar', () => {
     expect(pushMock).toHaveBeenCalledWith('/notifications');
   });
 
+  it('ana sayfa `scroll` verince bar altında diğer barlarla aynı kaydırma kenarı çizilir (zemin yok)', () => {
+    function HomeBound() {
+      const page = usePageScrollValue();
+      return (
+        <AppShell scroll={page}>
+          <Text>içerik</Text>
+        </AppShell>
+      );
+    }
+    render(<HomeBound />);
+    expect(screen.getByTestId('app-shell-bar-edge')).toBeTruthy();
+    expect(StyleSheet.flatten(screen.getByTestId('app-shell-bar-edge').props.style).backgroundColor).toBeUndefined();
+  });
+
   it('mesaj/bildirim düğmesine çift dokunuş tek ekran açar', () => {
     render(<AppShell />);
     fireEvent.press(screen.getByTestId('app-shell-messages'));
@@ -65,17 +75,8 @@ describe('AppShell — tek satır beyaz bar', () => {
     expect(pushMock.mock.calls.filter((c) => c[0] === '/messages')).toHaveLength(1);
   });
 
-  it('Ana Sayfa: sol düğme (ilk öğe) "Kategoriler" etiketli; dokununca /categories yığın rotasını açar, yan menü açılmaz', () => {
-    function State() {
-      const { isOpen } = useSideMenu();
-      return <Text testID="menu-state">{isOpen ? 'open' : 'closed'}</Text>;
-    }
-    render(
-      <SideMenuProvider>
-        <State />
-        <AppShell />
-      </SideMenuProvider>,
-    );
+  it('Ana Sayfa: sol düğme (ilk öğe) "Kategoriler" etiketli; dokununca /categories yığın rotasını açar', () => {
+    render(<AppShell />);
     const btn = screen.getByTestId('home-categories-button');
     expect(btn.props.accessibilityLabel).toBe('Kategoriler');
     expect(screen.queryByTestId('home-menu-button')).toBeNull();
@@ -86,7 +87,6 @@ describe('AppShell — tek satır beyaz bar', () => {
     expect(order).toEqual(['ShellLeadingButton', 'home-search-wrap', 'ShellHeaderActions']);
     fireEvent.press(btn);
     expect(pushMock).toHaveBeenCalledWith('/categories');
-    expect(screen.getByTestId('menu-state').children.join('')).toBe('closed');
   });
 
   it('kategoriler düğmesine çift dokunuş tek /categories açar', () => {
@@ -106,10 +106,7 @@ describe('AppShell — tek satır beyaz bar', () => {
     mockTop = 47;
     const { unmount } = render(<AppShell />);
     expect(APP_SHELL_BAR_HEIGHT).toBe(theme.headerHeight);
-    const shellBar = {
-      ...StyleSheet.flatten(screen.getByTestId('app-shell-bar').props.style),
-      ...StyleSheet.flatten(screen.getByTestId('app-shell-bar-bg').props.style),
-    };
+    const shellBar = StyleSheet.flatten(screen.getByTestId('app-shell-bar').props.style);
     expect(shellBar.paddingTop).toBe(47);
     unmount();
 
@@ -135,19 +132,16 @@ describe('AppShell — tek satır beyaz bar', () => {
     expect(screen.queryByTestId('status-bar')).toBeNull();
   });
 
-  it('Ana Sayfa arama alanı eski görünümünde: çerçevesiz gri (gray-100) tam yuvarlak hap', () => {
+  it('Ana Sayfa arama alanı cam düğmelerle AYNI yüzey (GlassSurface hap; jest = iOS fallback yarı saydam beyaz)', () => {
     render(<AppShell />);
-    const field = StyleSheet.flatten(screen.getByTestId('home-search-input').props.style);
-    expect(field.backgroundColor).toBe(theme.colors.gray[100]);
-    expect(field.borderWidth).toBeUndefined();
-    expect(field.borderColor).toBeUndefined();
-    expect(field.borderRadius).toBe(theme.radius.full);
+    const surface = StyleSheet.flatten(screen.getByTestId('home-search-input-surface').props.style);
+    expect(surface.backgroundColor).toBe(theme.colors.overlay.white90);
+    expect(surface.height).toBe(GLASS_ICON_BUTTON_SIZE);
+    expect(surface.borderRadius).toBe(GLASS_ICON_BUTTON_SIZE / 2);
   });
 
-  it('arama alanı asgari yüksekliği = cam düğme çapı; sarmalayıcı aynı yükseklikte', () => {
+  it('arama alanı yüksekliği = cam düğme çapı; sarmalayıcı aynı yükseklikte', () => {
     render(<AppShell />);
-    const field = StyleSheet.flatten(screen.getByTestId('home-search-input').props.style);
-    expect(field.minHeight).toBe(GLASS_ICON_BUTTON_SIZE);
     expect(StyleSheet.flatten(screen.getByTestId('home-search-wrap').props.style).height).toBe(GLASS_ICON_BUTTON_SIZE);
     expect(GLASS_ICON_BUTTON_SIZE).toBeLessThanOrEqual(APP_SHELL_BAR_HEIGHT);
   });
@@ -234,68 +228,27 @@ describe('AppShell variant="title" — Ana Sayfa dışındaki sekme kökleri', (
     expect(screen.queryByLabelText('Geri')).toBeNull();
   });
 
-  it('Profil kökü: sol düğme ☰ ("Menü") yan menüyü açar, /categories açılmaz; mesaj/bildirim yığın rotalarını açar', () => {
-    function State() {
-      const { isOpen } = useSideMenu();
-      return <Text testID="menu-state">{isOpen ? 'open' : 'closed'}</Text>;
-    }
-    render(
-      <SideMenuProvider>
-        <State />
-        <AppShell variant="title" title="Profil" subtitle="alt satır" leading="menu" />
-      </SideMenuProvider>,
-    );
+  it('Profil kökü (leading="none", actions="settings"): sol slot boş; sağda yalnız ⚙️ Ayarlar → /settings', () => {
+    render(<AppShell variant="title" title="Profil" subtitle="alt satır" leading="none" actions="settings" />);
     expect(screen.getByText('alt satır')).toBeTruthy();
     expect(screen.queryByTestId('app-shell-categories')).toBeNull();
-    expect(screen.getByTestId('app-shell-menu').props.accessibilityLabel).toBe('Menü');
-    expect(within(screen.getByTestId('app-shell-bar-left')).getByTestId('app-shell-menu')).toBeTruthy();
-    fireEvent.press(screen.getByTestId('app-shell-menu'));
-    expect(screen.getByTestId('menu-state').children.join('')).toBe('open');
-    expect(pushMock).not.toHaveBeenCalledWith('/categories');
-    fireEvent.press(screen.getByTestId('app-shell-messages'));
-    expect(pushMock).toHaveBeenCalledWith('/messages');
+    expect(screen.queryByTestId('app-shell-menu')).toBeNull();
+    expect(screen.queryByTestId('app-shell-messages')).toBeNull();
+    expect(screen.queryByTestId('app-shell-notifications')).toBeNull();
+    const settings = screen.getByTestId('app-shell-settings');
+    expect(settings.props.accessibilityLabel).toBe('Ayarlar');
+    expect(within(screen.getByTestId('app-shell-bar-right')).getByTestId('app-shell-settings')).toBeTruthy();
+    fireEvent.press(settings);
+    expect(pushMock).toHaveBeenCalledWith('/settings');
   });
 
-  it('soldan kaydırarak açma yalnız ☰\'lı (leading="menu") kabuk odaktayken etkin; kategorili kabuk etkinleştirmez; sökülünce kapanır', () => {
-    function Edge() {
-      const { edgeSwipeEnabled } = useSideMenu();
-      return <Text testID="edge-state">{edgeSwipeEnabled ? 'on' : 'off'}</Text>;
-    }
-    const edge = () => screen.getByTestId('edge-state').children.join('');
-    const cart = render(
-      <SideMenuProvider>
-        <Edge />
-        <AppShell variant="title" title="Sepetim" />
-      </SideMenuProvider>,
-    );
-    expect(edge()).toBe('off');
-    cart.unmount();
-
-    const profile = render(
-      <SideMenuProvider>
-        <Edge />
-        <AppShell variant="title" title="Profil" leading="menu" />
-      </SideMenuProvider>,
-    );
-    expect(edge()).toBe('on');
-    profile.unmount();
-  });
-
-  it('Sepet kökü: kategoriler düğmesi /categories açar (yan menü açılmaz)', () => {
-    function State() {
-      const { isOpen } = useSideMenu();
-      return <Text testID="menu-state">{isOpen ? 'open' : 'closed'}</Text>;
-    }
-    render(
-      <SideMenuProvider>
-        <State />
-        <AppShell variant="title" title="Sepetim" subtitle="2 ürün" />
-      </SideMenuProvider>,
-    );
+  it('Sepet kökü: kategoriler düğmesi /categories açar; sağda Mesajlar + Bildirimler, Ayarlar yok', () => {
+    render(<AppShell variant="title" title="Sepetim" subtitle="2 ürün" />);
     expect(screen.getByText('2 ürün')).toBeTruthy();
+    expect(screen.getByTestId('app-shell-messages')).toBeTruthy();
+    expect(screen.queryByTestId('app-shell-settings')).toBeNull();
     fireEvent.press(screen.getByTestId('app-shell-categories'));
     expect(pushMock).toHaveBeenCalledWith('/categories');
-    expect(screen.getByTestId('menu-state').children.join('')).toBe('closed');
   });
 
   it('ScreenHeader ile aynı bar kuralı: zemin, alt çizgi, üst boşluk ve satır yüksekliği', () => {
@@ -332,15 +285,13 @@ describe('AppShell variant="title" — yüzen ortalı bar + kaydırma kenarı', 
     expect(screen.queryByLabelText('Geri')).toBeNull();
   });
 
-  it('kaydırma sinyali bağlı değilse gövde bar altında başlar (inset + headerHeight) ve şerit sabit', () => {
+  it('kaydırma sinyali bağlı değilse gövde bar altında başlar (inset + headerHeight) ve kenar çizilmez', () => {
     mockTop = 47;
     render(<AppShell variant="title" title="Mesajlar" />);
     expect(StyleSheet.flatten(screen.getByTestId('app-shell-content').props.style).paddingTop).toBe(
       47 + theme.headerHeight + theme.headerBottomPad,
     );
-    expect(StyleSheet.flatten(screen.getByTestId('app-shell-bar-edge').props.style).backgroundColor).toBe(
-      theme.colors.overlay.white95,
-    );
+    expect(screen.queryByTestId('app-shell-bar-edge')).toBeNull();
   });
 
   it('`scroll` verilince gövde tepeden başlar (liste inset verir) ve şerit kaydırmaya bağlı', () => {

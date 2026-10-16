@@ -37,6 +37,8 @@ jest.mock('expo-image-picker', () => ({
 jest.mock('@/lib/api', () => ({
   mediaApi: { uploadMessageImage: jest.fn() },
 }));
+// API kökü sabit: `[IMG:]` mutlak hedefi + bearer yalnız bu origin'deki mesaj eki ucu.
+jest.mock('@/lib/api/baseUrl', () => ({ resolveApiBaseUrl: () => 'https://api.tarodan.com/api' }));
 
 // Selector-aware: `useMessageThread` hook'u selector'süz çağırıyor, `AppImage`
 // ise `useAuthStore((s) => s.token)` ile abone oluyor (bearer'lı mesaj eki).
@@ -266,6 +268,35 @@ describe('mesaj eki görselleri — bearer + şema beyaz listesi', () => {
     renderWithProviders(<MessageThreadScreen />);
 
     expect(attachmentImages()[0].props.source.headers).toBeUndefined();
+  });
+
+  it('yabancı host işaretli ek görünür ama token hiçbir yabancı görsele gitmez', () => {
+    mockMessagesQuery = makeMessagesQuery([
+      message({ content: 'bak [IMG:https://evil.example/api/media/message-attachment/a1]' }),
+    ]);
+    renderWithProviders(<MessageThreadScreen />);
+
+    const foreign = screen
+      .UNSAFE_queryAllByType(ExpoImage)
+      .filter((n: any) => String(n.props.source?.uri || '').includes('evil.example'));
+    expect(foreign.length).toBeGreaterThan(0);
+    foreign.forEach((n: any) => expect(n.props.source.headers).toBeUndefined());
+    expect(JSON.stringify(foreign.map((n: any) => n.props.source))).not.toContain('test-token');
+    expect(screen.queryByText(/\[IMG:/)).toBeNull();
+  });
+
+  it('eski mesajdaki S3/CDN https görseli bearer OLMADAN görünür', () => {
+    mockMessagesQuery = makeMessagesQuery([
+      message({ content: 'eski [IMG:https://cdn.tarodan.com/dev/messages/old.jpg]' }),
+    ]);
+    renderWithProviders(<MessageThreadScreen />);
+
+    const legacy = screen
+      .UNSAFE_queryAllByType(ExpoImage)
+      .filter((n: any) => String(n.props.source?.uri || '').includes('cdn.tarodan.com'));
+    expect(legacy.length).toBeGreaterThan(0);
+    legacy.forEach((n: any) => expect(n.props.source.headers).toBeUndefined());
+    expect(screen.queryByText(/\[IMG:/)).toBeNull();
   });
 
   it('karşı tarafın elle yazdığı `file:` eki HİÇ render edilmez (I1)', () => {

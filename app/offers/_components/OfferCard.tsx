@@ -1,10 +1,11 @@
 import React from "react";
-import { View, Pressable, Image, StyleSheet } from "react-native";
+import { View, Pressable, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import type { TFunction } from "i18next";
 import { theme, Avatar, Badge, Button, ButtonRow, SectionCard, StatusBadge, Text } from "@/ui";
 import { useOfferStatusConfig } from "@/lib/shared/offerStatus";
 import { transformImageUrl } from "@/utils/imageUrl";
+import { AppImage } from "@/components/AppImage";
 import type { Offer, TabType } from "../_lib/types";
 import type { TimingMessageValues } from "@/lib/shared/timingPolicy";
 import { isOfferAwaitingPayment, type AcceptAs } from "../_lib/accept";
@@ -76,7 +77,7 @@ function OfferCardBase({
       {/* 1 · Ürün + durum */}
       <View style={styles.topRow}>
         <Pressable onPress={openProduct} accessibilityRole="link">
-          <Image source={{ uri: getProductImage(offer.product) }} style={styles.productImage} />
+          <AppImage source={getProductImage(offer.product)} variant="card" style={styles.productImage} />
         </Pressable>
         <View style={styles.titleCol}>
           <Pressable onPress={openProduct} accessibilityRole="link">

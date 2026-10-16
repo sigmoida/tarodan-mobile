@@ -31,7 +31,11 @@ describe('Intl.PluralRules olmayan ortam (Hermes)', () => {
   beforeAll(() => {
     (Intl as { PluralRules?: unknown }).PluralRules = undefined;
     jest.isolateModules(() => {
-      i18n = require('@/i18n/config').default;
+      const cfg = require('@/i18n/config');
+      i18n = cfg.default;
+      // Dil paketleri lazy yüklenir; test iki dili de kullanıyor.
+      cfg.ensureLocaleLoaded('tr');
+      cfg.ensureLocaleLoaded('en');
     });
   });
 

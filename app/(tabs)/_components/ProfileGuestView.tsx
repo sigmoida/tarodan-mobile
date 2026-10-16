@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
-import { Button, Card, Text, theme, usePageScrollValue, type IconName } from '@/ui';
+import { Button, Card, SectionCard, Text, pageListContentStyle, theme, usePageScrollValue, type IconName } from '@/ui';
 
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
@@ -13,35 +13,38 @@ import UpgradeCta from '@/components/UpgradeCta';
 import { formatPrice } from '@/utils/format';
 import type { ProfileController } from '../_hooks/useProfile';
 import { ProfileHeader } from './ProfileHeader';
-import { ProfileRow } from './ProfileRow';
+import { ProfileRow } from '@/components/menu/ProfileRow';
 
 const { colors, spacing } = theme;
 
-/** Misafir profil: ortalı boş avatar, giriş/kayıt düğmeleri, düz bağlantı satırları (ikon + chevron). */
+/**
+ * Misafir profil: ortalı boş avatar, giriş/kayıt düğmeleri, düz bağlantı satırları (ikon + chevron).
+ * Üst bar üye profiliyle aynı: solu boş, sağda ⚙️ Ayarlar (misafirde dil, yardım, bilgi/yasal).
+ */
 export function ProfileGuestView({ f }: { f: ProfileController }) {
   const { t } = useTranslation();
   const tabInset = useTabBarInset();
   const page = usePageScrollValue();
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
 
-  const quickLinks: { label: string; to: string; icon: IconName; testID?: string }[] = [
+  const quickLinks: { label: string; to: string; icon: IconName }[] = [
     { label: t('mobile.guestBrowseListings'), to: '/search', icon: 'magnifying-glass' },
     { label: t('collection.exploreCollections'), to: '/collections', icon: 'rectangle-stack' },
     { label: t('cart.myCart'), to: '/cart', icon: 'shopping-cart' },
     { label: t('mobile.guestOrderTrack'), to: '/order-track', icon: 'truck' },
-    { label: t('help.title'), to: '/help', icon: 'question-mark-circle' },
-    { label: t('mobile.settingsLanguage'), to: '/settings/language', icon: 'flag', testID: 'profile-language-link' },
   ];
 
   return (
-    <AppShell variant="title" title={t('profile.profile')} scroll={page} leading="menu">
+    <AppShell variant="title" title={t('profile.profile')} scroll={page} leading="none" actions="settings">
       <Animated.ScrollView
         {...tabScroll}
         {...page.scrollProps}
         scrollEventThrottle={16}
-        contentContainerStyle={page.contentStyle({ paddingBottom: tabInset })}
+        // Sayfa kenarı + kartlar arası boşluk (üye profiliyle aynı kart düzeni).
+        contentContainerStyle={page.contentStyle([pageListContentStyle, { paddingBottom: tabInset }])}
         showsVerticalScrollIndicator={false}
       >
+        <SectionCard testID="profile-guest-card">
         <ProfileHeader>
           <View style={styles.welcome}>
             <Text variant="h2" align="center">
@@ -70,18 +73,19 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
             />
           </View>
         </ProfileHeader>
+        </SectionCard>
 
-        <View style={styles.list}>
+        <SectionCard testID="profile-guest-links">
           {quickLinks.map((q) => (
             <ProfileRow
               key={q.label}
-              testID={q.testID}
+              variant="card"
               icon={q.icon}
               label={q.label}
               onPress={() => router.push(q.to as never)}
             />
           ))}
-        </View>
+        </SectionCard>
 
         <UpgradeCta>
           <Card variant="bordered" style={styles.promo}>
@@ -118,6 +122,5 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
 const styles = StyleSheet.create({
   welcome: { alignItems: 'center', gap: spacing[1] },
   actions: { alignSelf: 'stretch', gap: spacing[3] },
-  list: { paddingBottom: spacing[2] },
-  promo: { gap: spacing[2], marginHorizontal: spacing[4], marginBottom: spacing[4] },
+  promo: { gap: spacing[2] },
 });

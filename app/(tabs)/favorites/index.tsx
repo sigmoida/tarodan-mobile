@@ -4,27 +4,40 @@
  * ErrorState + yeniden dene, boş = EmptyState. Kaldırma / sepet geri bildirimi eylemsiz `toast`
  * (hook'ta; web ile aynı). Kaydırma alt menüyü daraltır. URL `/favorites`.
  */
+import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, ErrorState, pageListContentStyle, usePageScrollValue } from '@/ui';
+import { Button, EmptyState, ErrorState, pageListContentStyle, useDelayedLoading, usePageScrollValue } from '@/ui';
+import { listWindowing } from '@/lib/list/windowing';
+import type { WishlistItem } from '@/hooks/useFavorites';
 import { tabDiag } from '@/components/_tabDiag';
-import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { useFavoritesScreen } from './_hooks/useFavoritesScreen';
 import { styles } from './_lib/styles';
 import { FavoriteCard } from './_components/FavoriteCard';
+import { FavoritesSkeleton } from './_components/FavoriteCardSkeleton';
+
+const favoriteKey = (item: WishlistItem) => item.id;
 
 function FavoritesScreen() {
   const { t } = useTranslation();
   const f = useFavoritesScreen();
   // Hook sırası sabit kalsın diye erken return'den ÖNCE (CLAUDE.md §12).
   const tabInset = useTabBarInset();
+  const initialLoading = f.isLoading && f.items.length === 0;
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const showSkeleton = useDelayedLoading(initialLoading);
   const page = usePageScrollValue();
   // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
+  // Kararlı renderItem — `f` (sepet durumu dahil) değişince yeniden kurulur, satırlar güncel kalır.
+  const renderFavorite = useCallback(
+    ({ item }: { item: WishlistItem }) => <FavoriteCard item={item} f={f} />,
+    [f],
+  );
 
   if (!f.isAuthenticated) {
     return (
@@ -35,14 +48,11 @@ function FavoritesScreen() {
           subtitle={t('favorites.loginRequired')}
           actionLabel={t('common.login')}
           onAction={() => router.push('/(auth)/login')}
-          secondaryLabel={t('auth.createAccount')}
-          onSecondary={() => router.push('/(auth)/register')}
         />
       </AppShell>
     );
   }
 
-  const initialLoading = f.isLoading && f.items.length === 0;
   const loadFailed = !!f.error && f.items.length === 0;
 
   return (
@@ -57,14 +67,15 @@ function FavoritesScreen() {
         scrollEventThrottle={16}
         testID="favorites-list"
         data={initialLoading || loadFailed ? [] : f.items}
-        keyExtractor={(item) => item.id}
+        keyExtractor={favoriteKey}
+        {...listWindowing}
         contentContainerStyle={page.contentStyle([pageListContentStyle, { paddingBottom: tabInset }])}
         progressViewOffset={page.topInset}
         refreshing={f.refreshing}
         onRefresh={f.onRefresh}
         ListEmptyComponent={
-          initialLoading ? (
-            <RowListSkeleton rows={4} />
+          initialLoading || showSkeleton ? (
+            showSkeleton ? <FavoritesSkeleton /> : null
           ) : loadFailed ? (
             <ErrorState
               title={t('favorites.loadFailedTitle')}
@@ -91,7 +102,7 @@ function FavoritesScreen() {
             />
           ) : null
         }
-        renderItem={({ item }) => <FavoriteCard item={item} f={f} />}
+        renderItem={renderFavorite}
       />
     </AppShell>
   );

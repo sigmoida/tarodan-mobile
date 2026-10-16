@@ -1,12 +1,12 @@
 /**
  * Ana sayfa yüzen üst bar yardımcıları: liste üst boşluğu (iOS contentInset / Android padding),
- * animasyon stilleri (arama yukarı + sola kayıp solar; bar zemini solar) ve inset normalizasyonu.
+ * animasyon stilleri (arama yukarı + sola kayıp solar) ve inset normalizasyonu.
  */
 import {
   SEARCH_HIDE_TRANSLATE_X,
   SEARCH_HIDE_TRANSLATE_Y,
-  barBackgroundOpacity,
   floatingBarScrollProps,
+  searchContentOpacity,
   searchHideStyle,
 } from '../floatingBar';
 import { APP_SHELL_BAR_HEIGHT } from '../tabBarLayout';
@@ -30,28 +30,38 @@ describe('floatingBarScrollProps', () => {
   });
 });
 
-describe('searchHideStyle / barBackgroundOpacity', () => {
-  it('açık (0): tam görünür, kayma yok; bar zemini dolu', () => {
-    const s = searchHideStyle(0);
+describe('searchHideStyle', () => {
+  it('açık (0): tam görünür, kayma yok', () => {
+    const s = searchHideStyle(false, 0, -120);
     expect(s.opacity).toBe(1);
     // `0 * negatif` -0 üretir; sayısal olarak 0.
     expect(s.transform.map((t) => Math.abs(Object.values(t)[0] as number))).toEqual([0, 0]);
-    expect(barBackgroundOpacity(0)).toBe(1);
   });
 
-  it('gizli (1): saydam, YUKARI (negatif Y) ve SOLA (negatif X) kaymış; bar zemini kaybolur', () => {
-    const s = searchHideStyle(1);
+  it('gizli (1): saydam, YUKARI (negatif Y) ve SOLA (negatif X) kaymış', () => {
+    const s = searchHideStyle(false, 1, -120);
     expect(s.opacity).toBe(0);
     expect(s.transform).toEqual([{ translateY: SEARCH_HIDE_TRANSLATE_Y }, { translateX: SEARCH_HIDE_TRANSLATE_X }]);
     expect(SEARCH_HIDE_TRANSLATE_Y).toBeLessThan(0);
     expect(SEARCH_HIDE_TRANSLATE_X).toBeLessThan(0);
     expect(Math.abs(SEARCH_HIDE_TRANSLATE_Y)).toBeLessThanOrEqual(APP_SHELL_BAR_HEIGHT);
-    expect(barBackgroundOpacity(1)).toBe(0);
   });
 
   it('ara değerler doğrusal', () => {
-    expect(searchHideStyle(0.5).opacity).toBe(0.5);
-    expect(barBackgroundOpacity(0.25)).toBe(0.75);
+    expect(searchHideStyle(false, 0.5, -120).opacity).toBe(0.5);
+  });
+});
+
+describe('searchHideStyle — cam (native cam opacity < 1 iken efektini kaybeder)', () => {
+  it('camda yüzeye opacity verilmez; ekranın üstünden (glassHideY) ve sola kayar', () => {
+    const s = searchHideStyle(true, 1, -120);
+    expect('opacity' in s).toBe(false);
+    expect(s.transform).toEqual([{ translateY: -120 }, { translateX: SEARCH_HIDE_TRANSLATE_X }]);
+  });
+
+  it('içerik camda yüzeyin içinde solar; fallback\'te sarmalayıcı soluyor (içerik 1)', () => {
+    expect(searchContentOpacity(true, 0.25)).toBe(0.75);
+    expect(searchContentOpacity(false, 0.25)).toBe(1);
   });
 });
 

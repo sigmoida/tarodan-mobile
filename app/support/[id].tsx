@@ -11,6 +11,7 @@ import {
   type TicketMessage,
 } from './_lib/types';
 import { useSupportTicket } from './_hooks/useSupportTicket';
+import { SupportTicketSkeleton } from './_components/SupportTicketSkeleton';
 
 const { colors, spacing, radius } = theme;
 
@@ -54,6 +55,9 @@ export default function SupportTicketDetailScreen() {
         title={title}
         onBack={onBack}
         loading={f.isLoading}
+        loadingFallback={<SupportTicketSkeleton />}
+        error={f.loadFailed || undefined}
+        onRetry={f.retry}
         empty={!f.isLoading}
         emptyState={{ icon: 'exclamation-circle', title: t('support.notFound'), subtitle: t('emptyState.notFoundHint') }}
       />

@@ -2,7 +2,7 @@
 # Pre-req: kullanıcı login + en az bir sipariş seed'li.
 appId: ${APP_ID}
 ---
-- runFlow: open-side-menu.yaml
+- runFlow: open-profile-menu.yaml
 - extendedWaitUntil:
     visible:
       id: "profile-orders-link"

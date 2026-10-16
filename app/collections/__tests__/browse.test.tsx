@@ -112,6 +112,30 @@ describe('Koleksiyon tarama', () => {
     await waitFor(() => expect(lastBrowseParams()).toMatchObject({ page: 2, pageSize: 20 }));
   });
 
+  it('sonraki sayfa yüklenemezse liste altında "Tekrar dene" satırı; basınca yeniden ister', async () => {
+    const page1 = Array.from({ length: 20 }, (_, i) => col(`p${i}`, `Koleksiyon ${i}`));
+    let failSecond = true;
+    browseMock.mockImplementation(({ page }: { page: number }) => {
+      if (page === 1) return Promise.resolve({ data: { collections: page1, total: 21, page: 1, pageSize: 20 } });
+      if (failSecond) return Promise.reject(new Error('500'));
+      return Promise.resolve({
+        data: { collections: [col('p20', 'Son Koleksiyon')], total: 21, page: 2, pageSize: 20 },
+      });
+    });
+    renderWithProviders(<CollectionsScreen />);
+    await screen.findByText('Koleksiyon 0');
+    fireEvent(screen.getByTestId('collections-list'), 'onEndReached');
+    expect(await screen.findByTestId('collections-next-page-retry')).toBeOnTheScreen();
+    // Hata durumunda kaydırma otomatik yeniden denemez (yalnız düğme).
+    const callsAfterFail = browseMock.mock.calls.length;
+    fireEvent(screen.getByTestId('collections-list'), 'onEndReached');
+    expect(browseMock.mock.calls.length).toBe(callsAfterFail);
+    failSecond = false;
+    fireEvent.press(screen.getByText('Tekrar Dene'));
+    await waitFor(() => expect(lastBrowseParams()).toMatchObject({ page: 2 }));
+    await waitFor(() => expect(screen.queryByTestId('collections-next-page-retry')).toBeNull());
+  });
+
   it('girişli: "Koleksiyonlarım" sekmesi /collections/me listeler; kategori filtresi gizli', async () => {
     mockAuth = { isAuthenticated: true, user: { id: 'u1', membershipTier: 'free' } };
     renderWithProviders(<CollectionsScreen />);

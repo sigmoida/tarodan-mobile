@@ -2,10 +2,11 @@ import React, { useEffect, useState, useCallback } from "react";
 import { View, StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
-import { ErrorState, SkeletonCard, pageListContentStyle, theme, usePageScrollHandler } from "@/ui";
+import { ErrorState, pageListContentStyle, theme, useDelayedLoading, usePageScrollHandler } from "@/ui";
 import { PageShell } from "@/components/common/PageShell";
 import { useAuthStore } from "@/stores/authStore";
 import { useTimingValues } from "@/hooks/useTimingPolicy";
+import { useRefresh } from "@/hooks/useRefresh";
 import { useTranslation } from "react-i18next";
 import type { Offer, TabType } from "./_lib/types";
 import { useOffers } from "./_hooks/useOffers";
@@ -14,6 +15,7 @@ import { useOfferActions } from "./_hooks/useOfferActions";
 import { OffersTabs } from "./_components/OffersTabs";
 import { OffersEmpty } from "./_components/OffersEmpty";
 import { OfferCard } from "./_components/OfferCard";
+import { OfferCardSkeleton } from "./_components/OfferCardSkeleton";
 import { CounterOfferModal } from "./_modals/CounterOfferModal";
 import { BuyerCounterModal } from "./_modals/BuyerCounterModal";
 
@@ -28,7 +30,8 @@ export default function OffersScreen() {
     Array.isArray(params.tab) ? params.tab[0] : params.tab
   )?.toLowerCase();
 
-  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const authLoading = useAuthStore((s) => s.isLoading);
   const page = usePageScrollHandler();
   const [activeTab, setActiveTab] = useState<TabType>(
     tabFromUrl === "sent" ? "sent" : "received",
@@ -58,9 +61,12 @@ export default function OffersScreen() {
     data: offers = [],
     isLoading,
     isError,
-    isRefetching,
     refetch,
   } = useOffers(activeTab, isAuthenticated);
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const showSkeleton = useDelayedLoading(isLoading);
+  // Gösterge yalnız kullanıcı çektiğinde (`isRefetching` sekme değişimi / invalidate'te de döner).
+  const { refreshing, onRefresh } = useRefresh(refetch);
   const estimatedNetByOfferId = useCommissionPreview(offers, activeTab);
   const { requestAccept, requestReject, requestCancel, pendingOfferIds } = useOfferActions();
   const timing = useTimingValues();
@@ -119,8 +125,6 @@ export default function OffersScreen() {
           subtitle: t("offer.authGateSubtitle"),
           actionLabel: t("common.login"),
           onAction: () => router.push("/(auth)/login"),
-          secondaryLabel: t("auth.createAccount"),
-          onSecondary: () => router.push("/(auth)/register"),
         }}
       />
     );
@@ -151,11 +155,13 @@ export default function OffersScreen() {
         removeClippedSubviews
         ListHeaderComponent={<OffersTabs activeTab={activeTab} onChange={setTab} />}
         ListEmptyComponent={
-          isLoading ? (
-            <View style={styles.skeletons}>
-              <SkeletonCard />
-              <SkeletonCard />
-            </View>
+          isLoading || showSkeleton ? (
+            showSkeleton ? (
+              <View style={styles.skeletons} testID="offers-skeleton">
+                <OfferCardSkeleton />
+                <OfferCardSkeleton />
+              </View>
+            ) : null
           ) : isError ? (
             // Hatayı boş durumdan ayır: "Henüz teklif yok" bir yükleme hatasını maskelememeli.
             <ErrorState message={t("offer.loadOffersFailed")} onRetry={() => refetch()} />
@@ -164,8 +170,8 @@ export default function OffersScreen() {
           )
         }
         contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
-        refreshing={isRefetching}
-        onRefresh={refetch}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
       />
     </PageShell>
   );

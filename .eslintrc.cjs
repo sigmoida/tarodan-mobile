@@ -154,6 +154,33 @@ module.exports = {
       rules: DESIGN_WARNINGS,
     },
     {
+      // Yükleme göstergesi tek yerde (src/ui/loading/LoadingIndicator) — ham ActivityIndicator uyarı.
+      // İzinli klasör kuralın içinde; testler muaf.
+      files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+      excludedFiles: DESIGN_TEST_FILES,
+      rules: { 'tarodan/no-raw-activity-indicator': 'warn' },
+    },
+    {
+      // Query anahtarları yalnız `qk`'dan (CLAUDE.md §6) — kayıt defteri dosyası ve testler muaf.
+      files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+      excludedFiles: [...DESIGN_TEST_FILES, 'src/lib/query/keys.ts'],
+      rules: { 'tarodan/no-inline-query-key': 'warn' },
+    },
+    {
+      // Argümansız use*Store() = tüm store aboneliği (her yazımda render) → selector (CLAUDE.md §8).
+      // Store dosyalarının kendisi ve testler muaf.
+      files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+      excludedFiles: [...DESIGN_TEST_FILES, 'src/stores/**'],
+      rules: { 'tarodan/no-whole-store-subscription': 'warn' },
+    },
+    {
+      // Güvenlik: API yolundaki değişkenler `apiPath` ile kodlanır (src/lib/api/path.ts) —
+      // derin bağlantı parametresi isteği başka bir uca yönlendiremesin.
+      files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+      excludedFiles: DESIGN_TEST_FILES,
+      rules: { 'tarodan/encoded-api-path': 'warn' },
+    },
+    {
       // Renk kaynağı dosyaları raw-color / paper kurallarından muaf.
       files: MIGRATION_OVERRIDES,
       rules: {

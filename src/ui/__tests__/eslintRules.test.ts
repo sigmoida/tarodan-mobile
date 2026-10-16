@@ -230,3 +230,148 @@ describe('tarodan/restrict-button-icon', () => {
     expect(visit('Input', [attr('rightIcon', null)])).toBe(0);
   });
 });
+
+describe('tarodan/no-inline-query-key', () => {
+  const rule = () => {
+    const { reports, context } = makeContext();
+    return { reports, visitor: plugin.rules['no-inline-query-key'].create(context) };
+  };
+  const arr = (...elements: any[]) => ({ type: 'ArrayExpression', elements });
+  const lit = (value: string) => ({ type: 'Literal', value });
+  const ident = (name: string) => ({ type: 'Identifier', name });
+  const member = (name: string) => ({ type: 'MemberExpression', object: ident(name), property: ident('all') });
+  const prop = (key: string, value: any) => ({ type: 'Property', key: ident(key), value });
+  const call = (method: string, args: any[]) => ({
+    type: 'CallExpression',
+    callee: { type: 'MemberExpression', object: ident('queryClient'), property: ident(method) },
+    arguments: args,
+  });
+
+  it('queryKey / invalidates / setQueryData içindeki satır içi dizi uyarı verir', () => {
+    const { reports, visitor } = rule();
+    visitor.Property(prop('queryKey', arr(lit('sale-order'), ident('id'))));
+    visitor.Property(prop('queryKey', arr({ type: 'SpreadElement', argument: member('qk') }, lit('x'))));
+    visitor.Property(prop('invalidates', arr(member('qk'), arr(lit('refund-requests')))));
+    visitor.CallExpression(call('setQueryData', [arr(lit('collection')), ident('fn')]));
+    expect(reports).toHaveLength(4);
+  });
+
+  it('qk ifadeleri, değişkenler ve ilgisiz diziler serbest', () => {
+    const { reports, visitor } = rule();
+    visitor.Property(prop('queryKey', member('qk')));
+    visitor.Property(prop('queryKey', ident('searchKey')));
+    visitor.Property(prop('invalidates', arr(member('qk'))));
+    visitor.Property(prop('items', arr(lit('a'))));
+    visitor.CallExpression(call('setQueryData', [member('qk'), ident('fn')]));
+    visitor.CallExpression(call('includes', [arr(lit('a'))]));
+    expect(reports).toHaveLength(0);
+  });
+});
+
+describe('tarodan/no-raw-activity-indicator', () => {
+  const spec = (name: string, extra: any = {}) => ({
+    type: 'ImportSpecifier',
+    imported: { type: 'Identifier', name },
+    local: { type: 'Identifier', name },
+    ...extra,
+  });
+  const imp = (source: string, specifiers: any[], extra: any = {}) => ({
+    type: 'ImportDeclaration',
+    source: { type: 'Literal', value: source },
+    specifiers,
+    ...extra,
+  });
+  const run = (filename: string, drive: (v: any) => void) => {
+    const reports: unknown[] = [];
+    const v = plugin.rules['no-raw-activity-indicator'].create({
+      filename,
+      report: (r: unknown) => reports.push(r),
+    });
+    drive(v);
+    return reports.length;
+  };
+  const SCREEN = '/repo/app/foo/index.tsx';
+
+  it("react-native'den ActivityIndicator import'u uyarı; başka adlar / paketler serbest", () => {
+    expect(run(SCREEN, (v) => v.ImportDeclaration(imp('react-native', [spec('ActivityIndicator'), spec('View')])))).toBe(1);
+    expect(run(SCREEN, (v) => v.ImportDeclaration(imp('react-native', [spec('View')])))).toBe(0);
+    expect(run(SCREEN, (v) => v.ImportDeclaration(imp('@/ui', [spec('ActivityIndicator')])))).toBe(0);
+    // Yalnız tip import'u serbest.
+    expect(run(SCREEN, (v) => v.ImportDeclaration(imp('react-native', [spec('ActivityIndicator')], { importKind: 'type' })))).toBe(0);
+    expect(run(SCREEN, (v) => v.ImportDeclaration(imp('react-native', [spec('ActivityIndicator', { importKind: 'type' })])))).toBe(0);
+  });
+
+  it('namespace import + RN.ActivityIndicator (ifade ve JSX) uyarı', () => {
+    const ns = imp('react-native', [{ type: 'ImportNamespaceSpecifier', local: { type: 'Identifier', name: 'RN' } }]);
+    expect(
+      run(SCREEN, (v) => {
+        v.ImportDeclaration(ns);
+        v.MemberExpression({
+          type: 'MemberExpression',
+          computed: false,
+          object: { type: 'Identifier', name: 'RN' },
+          property: { type: 'Identifier', name: 'ActivityIndicator' },
+        });
+        v.JSXMemberExpression({
+          type: 'JSXMemberExpression',
+          object: { type: 'JSXIdentifier', name: 'RN' },
+          property: { type: 'JSXIdentifier', name: 'ActivityIndicator' },
+        });
+        v.MemberExpression({
+          type: 'MemberExpression',
+          computed: false,
+          object: { type: 'Identifier', name: 'RN' },
+          property: { type: 'Identifier', name: 'View' },
+        });
+      }),
+    ).toBe(2);
+  });
+
+  it('src/ui/loading/ muaf (tek gösterge orada)', () => {
+    expect(
+      run('/repo/src/ui/loading/LoadingIndicator.tsx', (v) =>
+        v.ImportDeclaration?.(imp('react-native', [spec('ActivityIndicator')])),
+      ),
+    ).toBe(0);
+  });
+});
+
+describe('tarodan/encoded-api-path', () => {
+  const ident = (name: string) => ({ type: 'Identifier', name });
+  const lit = (value: string) => ({ type: 'Literal', value });
+  const tpl = (exprCount: number) => ({
+    type: 'TemplateLiteral',
+    quasis: [],
+    expressions: Array.from({ length: exprCount }, (_, i) => ident(`v${i}`)),
+  });
+  const tagged = (tag: string) => ({ type: 'TaggedTemplateExpression', tag: ident(tag), quasi: tpl(1) });
+  const plus = (left: any, right: any) => ({ type: 'BinaryExpression', operator: '+', left, right });
+  const call = (object: any, method: string, url: any) => ({
+    type: 'CallExpression',
+    callee: { type: 'MemberExpression', computed: false, object, property: ident(method) },
+    arguments: [url],
+  });
+  const visit = (node: any) => {
+    const { reports, context } = makeContext();
+    plugin.rules['encoded-api-path'].create(context).CallExpression(node);
+    return reports.length;
+  };
+
+  it('api/guestApi/…Http() çağrısında interpolasyonlu şablon ya da dinamik birleştirme uyarı verir', () => {
+    expect(visit(call(ident('api'), 'post', tpl(1)))).toBe(1);
+    expect(visit(call(ident('guestApi'), 'get', tpl(2)))).toBe(1);
+    expect(visit(call(ident('api'), 'delete', plus(lit('/trades/'), ident('id'))))).toBe(1);
+    expect(visit(call(ident('api'), 'patch', plus(plus(lit('/a/'), ident('id')), lit('/b'))))).toBe(1);
+    const paymentHttp = { type: 'CallExpression', callee: ident('paymentHttp'), arguments: [ident('id')] };
+    expect(visit(call(paymentHttp, 'post', tpl(1)))).toBe(1);
+  });
+
+  it('apiPath etiketli şablon, sabit yol, interpolasyonsuz şablon ve ilgisiz çağrılar serbest', () => {
+    expect(visit(call(ident('api'), 'post', tagged('apiPath')))).toBe(0);
+    expect(visit(call(ident('api'), 'get', lit('/trades')))).toBe(0);
+    expect(visit(call(ident('api'), 'get', tpl(0)))).toBe(0);
+    expect(visit(call(ident('api'), 'get', plus(lit('/a'), lit('/b'))))).toBe(0);
+    expect(visit(call(ident('map'), 'get', tpl(1)))).toBe(0);
+    expect(visit(call(ident('api'), 'getUri', tpl(1)))).toBe(0);
+  });
+});

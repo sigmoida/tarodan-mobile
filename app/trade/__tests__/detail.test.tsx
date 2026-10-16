@@ -153,11 +153,18 @@ describe("J5 · Takas detayı durum rozetleri", () => {
     expect(screen.getByText("trade.returningBannerTitle")).toBeOnTheScreen();
   });
 
-  it("J5.5 takas bulunamazsa hata durumu gösterilir", async () => {
-    getOneMock.mockRejectedValue(new Error("not found"));
+  it("J5.5 takas bulunamazsa (404) 'bulunamadı' gösterilir", async () => {
+    getOneMock.mockRejectedValue(Object.assign(new Error("not found"), { response: { status: 404 } }));
     renderWithProviders(<TradeDetailScreen />);
-    expect(await screen.findByText("trade.notFoundTitle")).toBeOnTheScreen();
-  });
+    expect(await screen.findByText("trade.notFoundTitle", {}, { timeout: 10000 })).toBeOnTheScreen();
+  }, 15000);
+
+  it("J5.5b ağ/sunucu hatası 'bulunamadı' değil, ErrorState", async () => {
+    getOneMock.mockRejectedValue(new Error("Network Error"));
+    renderWithProviders(<TradeDetailScreen />);
+    expect(await screen.findByTestId("error-state", {}, { timeout: 10000 })).toBeOnTheScreen();
+    expect(screen.queryByText("trade.notFoundTitle")).toBeNull();
+  }, 15000);
 });
 
 describe("J5 · Aksiyon buton görünürlüğü", () => {

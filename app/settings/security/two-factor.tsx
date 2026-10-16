@@ -9,6 +9,7 @@ import {
   SetupFlow,
   TwoFactorFooter,
 } from './_components/TwoFactorSections';
+import { TwoFactorSkeleton } from './_components/TwoFactorSkeleton';
 import { DisableTwoFactorModal } from './_modals/DisableTwoFactorModal';
 import { RegenerateBackupCodesModal } from './_modals/RegenerateBackupCodesModal';
 
@@ -28,6 +29,7 @@ export default function TwoFactorScreen() {
     <PageShell
       title={t('profile.security.twoFactor')}
       loading={f.isLoading}
+      loadingFallback={<TwoFactorSkeleton />}
       error={f.startError}
       errorMessage={f.startError ?? undefined}
       onRetry={f.retrySetup}

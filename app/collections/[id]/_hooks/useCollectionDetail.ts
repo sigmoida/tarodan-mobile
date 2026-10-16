@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api, collectionsApi } from '@/lib/api';
+import { apiPath } from '@/lib/api/path';
 import { qk } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
@@ -18,9 +19,10 @@ import { toast } from '@/ui';
  */
 export function useCollectionDetail() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   // Premium/business üyeler zaten koleksiyon oluşturabildiği için upsell'i gizle.
   const isPremiumMember =
     user?.membershipTier === 'premium' || user?.membershipTier === 'business';
@@ -28,10 +30,10 @@ export function useCollectionDetail() {
   const [likeCount, setLikeCount] = useState(0);
 
   const { data: apiCollection, isLoading, refetch } = useQuery({
-    queryKey: ['collection', id],
+    queryKey: qk.collections.detail(String(id)),
     queryFn: async () => {
       try {
-        const response = await api.get(`/collections/${id}`);
+        const response = await api.get(apiPath`/collections/${id}`);
         return response.data.data || response.data;
       } catch {
         return null;
@@ -98,13 +100,13 @@ export function useCollectionDetail() {
         setIsLiked(serverLiked);
         setLikeCount(serverCount);
       }
-      queryClient.invalidateQueries({ queryKey: ['collections'] });
-      queryClient.invalidateQueries({ queryKey: ['liked-collections'] });
+      queryClient.invalidateQueries({ queryKey: qk.collections.all });
+      queryClient.invalidateQueries({ queryKey: qk.collections.liked });
       queryClient.invalidateQueries({ queryKey: qk.collections.mine });
       // ['collection', id] cache'ini taze tut ki tekrar girince stale (eski isLiked/likeCount)
       // gelmesin. Cache'i elle güncelliyoruz (viewCount backend'de tekilleştirildiği için
       // refetch de güvenli olurdu; yine de gereksiz istekten kaçınıyoruz).
-      queryClient.setQueryData(['collection', id], (old: any) =>
+      queryClient.setQueryData(qk.collections.detail(String(id)), (old: any) =>
         old ? { ...old, isLiked: serverLiked, likeCount: serverCount ?? old.likeCount } : old
       );
     } catch {

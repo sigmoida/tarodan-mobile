@@ -22,12 +22,6 @@ export const styles = StyleSheet.create({
   pairItem: {
     flex: 1,
   },
-  /** Alan altındaki açıklama satırı — Input'un kendi alt boşluğunu yukarı çeker.
-   *  Negatif marj için token yok; `-theme.spacing[1]` (=-4pt) token türevi. */
-  fieldHint: {
-    marginTop: -spacing[1],
-    marginBottom: spacing[2],
-  },
   submit: {
     marginTop: spacing[4],
   },

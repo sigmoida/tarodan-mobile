@@ -23,6 +23,14 @@ export interface GlassSurfaceProps extends Omit<ViewProps, 'style'> {
    */
   tint?: string;
   /**
+   * Açık ton (VARSAYILAN `true`; yalnız iOS 26 camında etkili): cama yarı saydam beyaz `tintColor` +
+   * hafif beyaz dolgu. Liquid Glass arkasındaki içeriğin rengini alır — koyu ürün fotoğrafında cam
+   * koyulaşıp başlık renkli ikonla "siyah üstünde siyah" oluyor, çok açık zeminde ise neredeyse
+   * görünmüyordu. Açık ton cam efektini korur, ikonun kontrastını her zeminde garanti eder. `tint`
+   * verilirse o geçerli. Fallback'te etkisiz (zaten beyaz). `false` = saf (renksiz) cam.
+   */
+  light?: boolean;
+  /**
    * Fallback yüzey opak beyaz + 1px kenarlık + `shadow.medium` olsun (alt menü hapı). Varsayılan:
    * iOS < 26'da yarı saydam beyaz + ince kenarlık + `shadow.soft`; Android'de beyaz + `shadow.medium`.
    */
@@ -40,6 +48,10 @@ export interface GlassSurfaceProps extends Omit<ViewProps, 'style'> {
 /** Cam üstündeki `tint` dolgusunun opaklığı: cam kenar/yansıması görünür, beyaz ikon yine okunur. */
 export const TINT_FILL_OPACITY = 0.82;
 
+/** `light` cam: tint rengi ve üstündeki dolgu (kenar/yansıma görünür kalır, koyu ikon okunur). */
+const LIGHT_TINT = colors.overlay.white70;
+const LIGHT_FILL = colors.overlay.white50;
+
 /**
  * Ortak "cam" yüzey — TEK kaynak (ürün detayı adaları, alt menü, ana sayfa üst barı).
  * - iOS 26+: gerçek Liquid Glass (`GlassView`, arkadaki içerik görünür; kendi gölgesi/kenarı var).
@@ -54,6 +66,7 @@ export function GlassSurface({
   size,
   radius,
   tint,
+  light = true,
   opaque,
   interactive,
   style,
@@ -69,7 +82,7 @@ export function GlassSurface({
       <Glass
         glassEffectStyle="regular"
         colorScheme="light"
-        tintColor={tint}
+        tintColor={tint ?? (light ? LIGHT_TINT : undefined)}
         isInteractive={interactive}
         style={[box, styles.glass, style]}
         {...rest}
@@ -79,6 +92,8 @@ export function GlassSurface({
             pointerEvents="none"
             style={[StyleSheet.absoluteFill, { backgroundColor: tint, opacity: TINT_FILL_OPACITY, borderRadius: r }]}
           />
+        ) : light ? (
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: LIGHT_FILL, borderRadius: r }]} />
         ) : null}
         {children}
       </Glass>

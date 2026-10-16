@@ -161,7 +161,6 @@ export function HeroSlider({
         // Momentum olmadan biten sürüklemede `onMomentumScrollEnd` gelmeyebilir: burada da devam et.
         onScrollEndDrag={() => setDragging(false)}
         onMomentumScrollEnd={onMomentumEnd}
-        scrollEventThrottle={16}
       >
         {width > 0 &&
           slides.map((slide, i) => (

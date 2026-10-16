@@ -389,13 +389,205 @@ const emptyStateStandard = {
   },
 };
 
+/**
+ * Query anahtarlarının TEK kaynağı `qk` (`src/lib/query/keys.ts`, CLAUDE.md §6). Satır içi dizi
+ * (`queryKey: ['x', id]`, `invalidates: [['x']]`, `setQueryData(['x'], …)`) sessiz drift'in
+ * kaynağıydı (`['sale-order', id]` hiçbir mutasyonun tazelemediği anahtardı). Kayıt defteri
+ * dosyası ve testler `.eslintrc.cjs` override'ında muaf.
+ */
+const KEY_FIRST_ARG_METHODS = new Set([
+  'setQueryData',
+  'getQueryData',
+  'getQueryState',
+  'ensureQueryData',
+  'fetchQuery',
+  'prefetchQuery',
+]);
+
+const propName = (node) =>
+  node.key.type === 'Identifier' ? node.key.name : node.key.type === 'Literal' ? String(node.key.value) : null;
+
+/** @type {import('eslint').Rule.RuleModule} */
+const noInlineQueryKey = {
+  meta: {
+    type: 'suggestion',
+    docs: { description: 'queryKey satır içi dizi olamaz — qk (@/lib/query) kullan' },
+    schema: [],
+    messages: {
+      inline: "Satır içi query anahtarı — `qk.<domain>.*` (@/lib/query) kullan; yoksa src/lib/query/keys.ts'e ekle. Bkz. CLAUDE.md §6.",
+    },
+  },
+  create(context) {
+    return {
+      Property(node) {
+        const key = propName(node);
+        if (key === 'queryKey' && node.value.type === 'ArrayExpression') {
+          context.report({ node: node.value, messageId: 'inline' });
+        } else if (key === 'invalidates' && node.value.type === 'ArrayExpression') {
+          for (const el of node.value.elements) {
+            if (el && el.type === 'ArrayExpression') context.report({ node: el, messageId: 'inline' });
+          }
+        }
+      },
+      CallExpression(node) {
+        const c = node.callee;
+        if (c.type !== 'MemberExpression' || c.property.type !== 'Identifier') return;
+        if (!KEY_FIRST_ARG_METHODS.has(c.property.name)) return;
+        const first = node.arguments[0];
+        if (first && first.type === 'ArrayExpression') context.report({ node: first, messageId: 'inline' });
+      },
+    };
+  },
+};
+
+/**
+ * Yükleme göstergesi TEK yerde: `src/ui/loading/LoadingIndicator.tsx` (değiştirme noktası — özel
+ * animasyona geçişte yalnız orası değişir). Başka yerde RN `ActivityIndicator` import'u (adlı ya da
+ * `import * as RN` + `RN.ActivityIndicator`) uyarı verir; `LoadingIndicator` / `Spinner` /
+ * `ScreenLoader` / `Button isLoading` (@/ui) kullanılır. Çekip yenileme (`RefreshControl`) native kalır.
+ */
+const ACTIVITY_INDICATOR_ALLOWED = ['/src/ui/loading/'];
+
+/** @type {import('eslint').Rule.RuleModule} */
+const noRawActivityIndicator = {
+  meta: {
+    type: 'suggestion',
+    docs: { description: 'RN ActivityIndicator yalnız src/ui/loading/ içinde — LoadingIndicator (@/ui) kullan' },
+    schema: [],
+    messages: {
+      raw: "Ham 'ActivityIndicator' — tek gösterge LoadingIndicator / Spinner / ScreenLoader ya da Button isLoading (@/ui) kullan. Bkz. CLAUDE.md §14 Loading.",
+    },
+  },
+  create(context) {
+    const filename = String(context.filename || (context.getFilename && context.getFilename()) || '').replace(/\\/g, '/');
+    if (ACTIVITY_INDICATOR_ALLOWED.some((a) => filename.includes(a))) return {};
+    const namespaces = new Set();
+    const isNs = (o) => o && (o.type === 'Identifier' || o.type === 'JSXIdentifier') && namespaces.has(o.name);
+    return {
+      ImportDeclaration(node) {
+        if (!node.source || node.source.value !== 'react-native' || node.importKind === 'type') return;
+        for (const sp of node.specifiers || []) {
+          if (sp.type === 'ImportNamespaceSpecifier') namespaces.add(sp.local.name);
+          else if (
+            sp.type === 'ImportSpecifier' &&
+            sp.importKind !== 'type' &&
+            sp.imported &&
+            (sp.imported.name || sp.imported.value) === 'ActivityIndicator'
+          ) {
+            context.report({ node: sp, messageId: 'raw' });
+          }
+        }
+      },
+      MemberExpression(node) {
+        if (!node.computed && isNs(node.object) && node.property.name === 'ActivityIndicator') {
+          context.report({ node, messageId: 'raw' });
+        }
+      },
+      JSXMemberExpression(node) {
+        if (isNs(node.object) && node.property.name === 'ActivityIndicator') {
+          context.report({ node, messageId: 'raw' });
+        }
+      },
+    };
+  },
+};
+
+/**
+ * API yolu kodlanmadan interpolasyon yasak (güvenlik). expo-router parametreleri (derin
+ * bağlantı/push) çözülmüş gelir; `api.post(`/trades/${id}/accept`)` içinde `id =
+ * "x/../../offers/<id>/accept?"` isteği başka bir uca yönlendirebiliyordu. Yol değişkeni
+ * `apiPath` etiketli şablonla yazılır (her interpolasyon `seg()` → doğrula + encode),
+ * bkz. `src/lib/api/path.ts`. Sorgu parametreleri axios `params` ile gider.
+ */
+const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options']);
+const API_CLIENTS = new Set(['api', 'guestApi']);
+
+/** `api.get(...)`, `guestApi.post(...)`, `paymentHttp(id).post(...)` gibi bir HTTP çağrısı mı? */
+function isApiClientCall(callee) {
+  if (!callee || callee.type !== 'MemberExpression' || callee.computed) return false;
+  if (callee.property.type !== 'Identifier' || !HTTP_METHODS.has(callee.property.name)) return false;
+  const obj = callee.object;
+  if (obj.type === 'Identifier') return API_CLIENTS.has(obj.name);
+  // `paymentHttp(paymentId).post(...)` — axios instance döndüren fabrika.
+  return obj.type === 'CallExpression' && obj.callee.type === 'Identifier' && /Http$/.test(obj.callee.name);
+}
+
+/** Kodlanmamış dinamik yol mu? Şablon (interpolasyonlu) ya da sabit olmayan `+` birleştirme. */
+function isUnencodedDynamicPath(node) {
+  if (!node) return false;
+  if (node.type === 'TemplateLiteral') return node.expressions.length > 0;
+  if (node.type === 'BinaryExpression' && node.operator === '+') {
+    const isStatic = (n) => n.type === 'Literal' || (n.type === 'TemplateLiteral' && n.expressions.length === 0);
+    if (!isStatic(node.left) && node.left.type !== 'BinaryExpression') return true;
+    if (!isStatic(node.right)) return true;
+    return isUnencodedDynamicPath(node.left);
+  }
+  return false;
+}
+
+/** @type {import('eslint').Rule.RuleModule} */
+const encodedApiPath = {
+  meta: {
+    type: 'problem',
+    docs: { description: 'API yolundaki değişkenler apiPath`…` ile kodlanmalı (yol enjeksiyonu)' },
+    schema: [],
+    messages: {
+      unencoded:
+        "API yolunda kodlanmamış değişken — apiPath`/x/${id}` kullan (`@/lib/api/path`); sorgu değerleri axios `params` ile. Bkz. CLAUDE.md §6.",
+    },
+  },
+  create(context) {
+    return {
+      CallExpression(node) {
+        if (!isApiClientCall(node.callee)) return;
+        const url = node.arguments[0];
+        if (isUnencodedDynamicPath(url)) context.report({ node: url, messageId: 'unencoded' });
+      },
+    };
+  },
+};
+
+/**
+ * `useXxxStore()` — argümansız (tüm store'a abone) çağrı. Store'daki HER yazım bileşeni yeniden
+ * render eder; selector (`useAuthStore((s) => s.user)`) ya da çok alanda `useShallow` kullan,
+ * callback içinde okuma için `useXxxStore.getState()`. Bkz. CLAUDE.md §8.
+ * Not: `useSyncExternalStore` her zaman argümanlı olduğundan eşleşmez.
+ *
+ * @type {import('eslint').Rule.RuleModule}
+ */
+const noWholeStoreSubscription = {
+  meta: {
+    type: 'suggestion',
+    docs: { description: "Argümansız use*Store() (tüm store aboneliği) yerine selector kullan" },
+    schema: [],
+    messages: {
+      whole:
+        "'{{name}}()' tüm store'a abone olur (her yazımda render). Selector kullan: {{name}}((s) => s.alan); çok alanda useShallow; callback'te {{name}}.getState(). Bkz. CLAUDE.md §8.",
+    },
+  },
+  create(context) {
+    return {
+      CallExpression(node) {
+        const callee = node.callee;
+        if (callee.type !== 'Identifier' || !/^use[A-Z]\w*Store$/.test(callee.name)) return;
+        if (node.arguments.length > 0) return;
+        context.report({ node, messageId: 'whole', data: { name: callee.name } });
+      },
+    };
+  },
+};
+
 module.exports = {
   rules: {
+    'encoded-api-path': encodedApiPath,
+    'no-raw-activity-indicator': noRawActivityIndicator,
+    'no-inline-query-key': noInlineQueryKey,
     'empty-state-standard': emptyStateStandard,
     'restrict-button-icon': restrictButtonIcon,
     'no-raw-style-values': noRawStyleValues,
     'no-lira-symbol': noLiraSymbol,
     'no-custom-screen-header': noCustomScreenHeader,
     'no-native-header': noNativeHeader,
+    'no-whole-store-subscription': noWholeStoreSubscription,
   },
 };

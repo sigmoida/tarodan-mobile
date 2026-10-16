@@ -121,13 +121,14 @@ describe('düzenleme formu · yeniden aktivasyon mesajı yanıt statüsüne gör
     expect(productsApi.update).toHaveBeenCalledWith('p1', { status: 'active', quantity: 3 });
   });
 
-  it('düzenlemede Kaydet PageShell alt çubuğunda (klavyeyle yükselir), Sil gövdede', async () => {
+  it('düzenlemede alt çubuk (klavyeyle yükselir): üstte Kaydet, altında yan yana İlanı Sil + İptal; gövdede sil yok', async () => {
     renderWithProviders(<ListingForm mode="edit" productId="p1" />);
     await screen.findByPlaceholderText('Stok Miktarı');
     const footer = screen.getByTestId('page-shell-footer');
     expect(within(footer).getByTestId('listing-submit-button')).toBeTruthy();
-    expect(within(footer).queryByText('İlanı Sil')).toBeNull();
-    expect(screen.getByText('İlanı Sil')).toBeTruthy();
+    expect(within(footer).getByTestId('listing-delete-button')).toBeTruthy();
+    expect(within(footer).getByText('İptal')).toBeTruthy();
+    expect(screen.getAllByText('İlanı Sil')).toHaveLength(1);
   });
 
   it('API pending döndürürse "incelemeye gönderildi" gösterir', async () => {

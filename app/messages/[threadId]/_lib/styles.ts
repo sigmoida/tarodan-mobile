@@ -1,12 +1,14 @@
 import { StyleSheet } from "react-native";
-import { theme } from "@/ui";
+import { CHAT_BUBBLE_METRICS as CB, theme } from "@/ui";
 
-const { colors, spacing, radius, radiusRole, typography } = theme;
+const { colors, spacing, radiusRole, typography } = theme;
 
 /** Sohbet görsel ölçüleri (pt). */
 const MESSAGE_IMAGE = 160;
 const PENDING_THUMB = 56;
-const AVATAR_COLUMN = 36;
+const AVATAR_COLUMN = CB.avatarColumn;
+/** Mesaj kutusunun büyüyebileceği azami yükseklik: ~5 satır gövde metni; sonrası kutu içinde kayar. */
+const MESSAGE_INPUT_MAX_HEIGHT = Math.round(typography.fontSize.base * typography.lineHeight.normal * 5);
 
 // Mesaj sohbeti ekranının route-local stylesheet'i — web MessageBubble/ChatHeader dili, token'lı.
 export const styles = StyleSheet.create({
@@ -72,7 +74,7 @@ export const styles = StyleSheet.create({
   },
   messageRow: {
     flexDirection: "row",
-    marginBottom: spacing[2],
+    marginBottom: CB.rowGap,
   },
   messageRowOwn: {
     justifyContent: "flex-end",
@@ -82,25 +84,26 @@ export const styles = StyleSheet.create({
   },
   avatarPlaceholder: {
     width: AVATAR_COLUMN,
-    marginRight: spacing[2],
+    marginRight: CB.avatarGap,
   },
   // Web: px-4 py-2.5 rounded-2xl, kendi balonu primary-500 + sağ alt köşe md; karşı taraf
   // surface-elevated + çerçeve + sol alt köşe md.
+  // Ölçüler `CHAT_BUBBLE_METRICS`'ten (iskelet balonla tek kaynak).
   messageBubble: {
-    maxWidth: "85%",
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2.5],
-    borderRadius: radius["2xl"],
+    maxWidth: CB.maxWidth,
+    paddingHorizontal: CB.paddingHorizontal,
+    paddingVertical: CB.paddingVertical,
+    borderRadius: CB.radius,
   },
   messageBubbleOwn: {
     backgroundColor: colors.primary[500]!,
-    borderBottomRightRadius: radius.md,
+    borderBottomRightRadius: CB.tailRadius,
   },
   messageBubbleOther: {
     backgroundColor: colors.surface.elevated,
     borderWidth: 1,
     borderColor: colors.border.DEFAULT,
-    borderBottomLeftRadius: radius.md,
+    borderBottomLeftRadius: CB.tailRadius,
   },
   messageImagesWrap: {
     flexDirection: "row",
@@ -117,7 +120,7 @@ export const styles = StyleSheet.create({
   messageFooter: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: spacing[1],
+    marginTop: CB.footerGap,
     justifyContent: "flex-end",
     gap: spacing[1.5],
   },
@@ -129,6 +132,19 @@ export const styles = StyleSheet.create({
   },
   inputWrapper: {
     flex: 1,
+  },
+  messageInputContainer: {
+    marginBottom: spacing[0],
+  },
+  // Input'un çok satırlı varsayılanı (80pt) yerine tek satır: düğme boyu (`controlHeight.md`).
+  messageInputField: {
+    minHeight: theme.controlHeight.md,
+    paddingVertical: spacing[2],
+    alignItems: "center",
+  },
+  messageInputText: {
+    maxHeight: MESSAGE_INPUT_MAX_HEIGHT,
+    textAlignVertical: "center",
   },
   pendingImageBar: {
     flexDirection: "row",

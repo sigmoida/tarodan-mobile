@@ -17,7 +17,7 @@ import { useServerCart } from '@/hooks/useServerCart';
  * verbatim from the monolithic screen (§12).
  */
 export function useCart() {
-  const { items, getItemCount } = useCartStore();
+  const items = useCartStore((s) => s.items);
   const syncStock = useCartStore((s) => s.syncStock);
   // Seçim store'da: checkout ayrı bir rota ve aynı kaynaktan okuyor. Ekranda
   // `useState` olsaydı ödeme adımı seçimi göremezdi.
@@ -40,7 +40,7 @@ export function useCart() {
   const { byProductId } = useServerCart();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  const itemCount = getItemCount();
+  const itemCount = useCartStore((s) => s.getItemCount());
 
   // Fiyat kırılımı checkout ile AYNI uçtan ve AYNI anahtardan gelir — sepet ile
   // ödeme ekranı arasında tek bir doğru vardır.

@@ -1,7 +1,17 @@
 import React, { useCallback } from 'react';
 import { RefreshControl, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { EmptyState, ErrorState, Spinner, pageListContentStyle, theme, useShellPageScroll, type PageScroll } from '@/ui';
+import {
+  EmptyState,
+  ErrorState,
+  Spinner,
+  pageListContentStyle,
+  theme,
+  useDelayedLoading,
+  useShellPageScroll,
+  type PageScroll,
+} from '@/ui';
+import { ListFooterRetry } from '@/components/common/ListFooterRetry';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { ProductCard, type ProductCardLayout, type ProductCardProduct } from './ProductCard';
 import { PRODUCT_GRID_GAP, ProductGridSkeleton, ProductListEmpty, useProductCellWidth } from './ProductListStates';
@@ -23,6 +33,10 @@ interface ProductGridBaseProps {
   onEndReached?: () => void;
   /** Sonraki sayfa yükleniyor (liste altında küçük gösterge). */
   loadingMore?: boolean;
+  /** Sonraki sayfa yüklenemedi: liste altında "Tekrar dene" satırı (`isFetchNextPageError`). */
+  loadMoreFailed?: boolean;
+  /** "Tekrar dene" satırının eylemi (genelde `fetchNextPage`). */
+  onRetryLoadMore?: () => void;
   errorMessage?: string | null;
   onRetry?: () => void;
   ListHeaderComponent?: React.ComponentType<unknown> | React.ReactElement | null;
@@ -96,6 +110,8 @@ export function ProductGrid({
   onRefresh,
   onEndReached,
   loadingMore = false,
+  loadMoreFailed = false,
+  onRetryLoadMore,
   errorMessage,
   onRetry,
   ListHeaderComponent,
@@ -141,10 +157,12 @@ export function ProductGrid({
   const page = scroll ?? shellPage;
   const content = bottomInset == null ? styles.content : [styles.content, { paddingBottom: bottomInset }];
 
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const showSkeleton = useDelayedLoading(loading);
   const empty = errorMessage ? (
     <ErrorState message={errorMessage} onRetry={onRetry} />
-  ) : loading ? (
-    <ProductGridSkeleton layout={layout} />
+  ) : loading || showSkeleton ? (
+    showSkeleton ? <ProductGridSkeleton layout={layout} /> : null
   ) : emptyTitle ? (
     <EmptyState icon="magnifying-glass" title={emptyTitle} subtitle={emptySubtitle} />
   ) : (
@@ -167,7 +185,9 @@ export function ProductGrid({
       ListHeaderComponent={ListHeaderComponent}
       ListEmptyComponent={empty}
       ListFooterComponent={
-        loadingMore ? (
+        loadMoreFailed && onRetryLoadMore ? (
+          <ListFooterRetry onRetry={onRetryLoadMore} />
+        ) : loadingMore ? (
           <View style={styles.more}>
             <Spinner size="md" color={colors.primary[600]!} />
           </View>

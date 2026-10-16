@@ -14,10 +14,13 @@ import { CategoriesSkeleton } from './_components/CategoriesSkeleton';
 import { CategoryGrid } from './_components/CategoryGrid';
 import { CategoryRail } from './_components/CategoryRail';
 import { useCategoriesScreen } from './_hooks/useCategoriesScreen';
+import { useCategoriesScroll } from './_hooks/useCategoriesScroll';
 
 export default function CategoriesScreen() {
   const { t } = useTranslation();
   const c = useCategoriesScreen();
+  // İki liste (ray + ızgara) tek üst bar kenarını sürer.
+  const scroll = useCategoriesScroll();
   const { bottom } = useSafeAreaInsets();
 
   return (
@@ -25,6 +28,7 @@ export default function CategoriesScreen() {
       title={t('nav.categories')}
       mode="static"
       padding={false}
+      scroll={scroll.page}
       loading={c.isLoading}
       loadingFallback={<CategoriesSkeleton />}
       empty={c.groups.length === 0}
@@ -36,11 +40,10 @@ export default function CategoriesScreen() {
       testID="categories-screen"
     >
       <View style={styles.row}>
-        <CategoryRail groups={c.groups} selectedKey={c.group?.key} onSelect={c.selectGroup} bottomInset={bottom} />
+        <CategoryRail groups={c.groups} selectedKey={c.group?.key} onSelect={c.selectGroup} bottomInset={bottom} scroll={scroll} />
         <CategoryGrid
           // Grup/düzey değişince kaydırma başa döner.
           key={`${c.group?.key}:${c.title}`}
-          title={c.title}
           tiles={c.tiles}
           status={c.group?.status ?? 'ready'}
           onRetry={c.retryGroup}
@@ -50,9 +53,10 @@ export default function CategoriesScreen() {
           onBack={c.back}
           onPressTile={c.pressTile}
           onPressFooter={c.openHref}
-          refreshing={c.isRefetching}
+          refreshing={c.refreshing}
           onRefresh={c.refetchAll}
           bottomInset={bottom}
+          scroll={scroll}
         />
       </View>
     </PageShell>

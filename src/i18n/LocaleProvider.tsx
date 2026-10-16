@@ -14,7 +14,7 @@ import { useCallback, useEffect, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { I18nextProvider, useTranslation } from "react-i18next";
 import { type Locale } from "@/i18n/lib";
-import i18n from "./config";
+import i18n, { ensureLocaleLoaded } from "./config";
 
 const LOCALE_STORAGE_KEY = "locale";
 
@@ -25,6 +25,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     AsyncStorage.getItem(LOCALE_STORAGE_KEY)
       .then((saved) => {
         if ((saved === "tr" || saved === "en") && saved !== i18n.language) {
+          ensureLocaleLoaded(saved);
           i18n.changeLanguage(saved);
         }
       })
@@ -45,6 +46,7 @@ export function useLocale() {
 
   const setLocale = useCallback(
     async (next: Locale) => {
+      ensureLocaleLoaded(next);
       await instance.changeLanguage(next);
       try {
         await AsyncStorage.setItem(LOCALE_STORAGE_KEY, next);

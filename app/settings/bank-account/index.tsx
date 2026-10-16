@@ -5,6 +5,7 @@ import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { PageShell } from '@/components/common/PageShell';
 import { formatIbanDisplay, normalizeIban } from '@/utils/iban';
 import { BankAccountSummary } from './_components/BankAccountSummary';
+import { BankAccountSkeleton } from './_components/BankAccountSkeleton';
 import { useBankAccount } from './_hooks/useBankAccount';
 import { styles } from './_lib/styles';
 
@@ -28,6 +29,7 @@ export default function BankAccountScreen() {
     <PageShell
       title={title}
       loading={f.isLoading}
+      loadingFallback={<BankAccountSkeleton />}
       error={f.loadError}
       onRetry={() => f.refetch()}
       footer={

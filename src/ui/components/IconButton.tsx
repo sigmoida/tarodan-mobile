@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   type PressableProps,
@@ -9,6 +8,7 @@ import {
 import { theme } from '../lib/theme';
 import { RefIcon, type IconRef, type IconVariant } from '../icons';
 import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFeedback';
+import { LoadingIndicator } from '../loading/LoadingIndicator';
 
 /**
  * Web `@tarodan/ui` IconButton varyantları: primary, secondary, outline, ghost (varsayılan),
@@ -34,6 +34,8 @@ export interface IconButtonProps extends Omit<PressableProps, 'style'> {
   iconVariant?: IconVariant;
   variant?: IconButtonVariant;
   size?: IconButtonSize;
+  /** `square` (varsayılan: `radiusRole.button` köşe) ya da `round` (tam daire; ör. sohbet ekle/gönder). */
+  shape?: 'square' | 'round';
   /** Override icon color (otherwise derived from variant). */
   color?: string;
   isLoading?: boolean;
@@ -73,6 +75,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
   iconVariant,
   variant = 'ghost',
   size = 'md',
+  shape = 'square',
   color,
   isLoading,
   disabled,
@@ -106,6 +109,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
           backgroundColor: vs.bg,
           borderColor: vs.border ?? 'transparent',
           borderWidth: vs.border ? 1 : 0,
+          borderRadius: shape === 'round' ? ss.box / 2 : radiusRole.button,
           opacity: disabled || isLoading ? 0.5 : showPressedStyle(pressed) ? 0.7 : 1,
         },
         style,
@@ -116,7 +120,8 @@ export const IconButton: React.FC<IconButtonProps> = ({
       {...rest}
     >
       {isLoading ? (
-        <ActivityIndicator size="small" color={fg} />
+        // İkonun yerinde, ikon boyunda (xs 16 · sm/md/lg 20) ve ikon renginde.
+        <LoadingIndicator size={ss.icon > iconSize.sm ? 'md' : 'sm'} color={fg} testID="icon-button-loading" />
       ) : (
         <RefIcon icon={icon} variant={iconVariant} size={ss.icon} color={fg} />
       )}

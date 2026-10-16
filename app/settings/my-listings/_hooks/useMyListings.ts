@@ -1,11 +1,13 @@
-import { useState, useCallback, useMemo } from "react";
-import { router, useFocusEffect } from "expo-router";
+import { useState, useMemo, useCallback } from "react";
+import { router } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { theme } from "@/ui";
 import { CAN_BUY_DIGITAL, limitAlert } from "@/lib/purchases";
 import { productsApi, type ListingRemovalPayload } from "@/lib/api";
 import { qk } from "@/lib/query";
+import { trimInfiniteToFirstPage } from "@/lib/query/infinite";
 import { useAuthStore } from "@/stores/authStore";
+import { useRefetchStaleOnFocus } from "@/hooks/useRefetchStaleOnFocus";
 import { useTranslation } from "react-i18next";
 import type { SellerRemovalAction } from "@/components/listing/_lib/removal";
 import {
@@ -32,7 +34,7 @@ export interface RemovalTarget {
 }
 
 /**
- * My-listings controller — owns the listings + stats queries, focus refresh,
+ * My-listings controller — owns the listings + stats queries, stale-only focus refresh,
  * filter/modal state, quota derivation, and the action-menu dispatcher.
  * Durum mutasyonları `useListingMutations`, yenileme `useRenewListings`
  * içindedir; invalidation seti `useInvalidateMyListings`te TEK yerdedir.
@@ -40,7 +42,9 @@ export interface RemovalTarget {
 export function useMyListings() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { user, limits, refreshUserData } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const limits = useAuthStore((s) => s.limits);
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
   const [filter, setFilter] = useState<FilterType>("all");
   const [refreshing, setRefreshing] = useState(false);
   // Eylem menüsü (ActionSheet): ilan menü KAPANIRKEN de durur (satırlar kaybolmasın); yalnız
@@ -49,10 +53,11 @@ export function useMyListings() {
     null,
   );
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
-  const openActionMenu = (listing: Listing) => {
+  // Kararlı referans: memo'lu liste satırlarına satır başına closure verilmez.
+  const openActionMenu = useCallback((listing: Listing) => {
     setActionMenuListing(listing);
     setActionMenuOpen(true);
-  };
+  }, []);
   // Hedef (ilan + eylem) pencere KAPANDIKTAN sonra da durur; yalnız `removalOpen`
   // düşer. Aksi halde kapanış animasyonunda pencere varsayılan "Sil" kipine dönüp
   // pasife alma ekranı kapanırken kırmızı "Evet, Sil" gösterirdi. Sonraki açılış üzerine yazar.
@@ -69,12 +74,18 @@ export function useMyListings() {
       (user as any)?.membership_type !== "free"),
   );
 
-  const { data: listingsData, isLoading, isError, refetch } = useMyListingsQuery(filter);
+  const {
+    listings,
+    isLoading,
+    isError,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useMyListingsQuery(filter);
   // Süresi dolan sayısı HER sekmede banner'ı ve chip sayacını besler: `limit=1` +
   // `meta.total` (tüm listeyi çekmez, 100'de tavanlanmaz). Sekmenin kendi listesinden ayrı anahtar.
   const { data: expiredCount = 0, refetch: refetchExpired } = useExpiredCount();
-
-  const listings: Listing[] = useMemo(() => listingsData || [], [listingsData]);
 
   // Chip sayaçları — AKTİF FİLTREDEN BAĞIMSIZ stabil kaynak (GET /products/my/stats).
   // Önceden sayaçlar o an çekili (filtrelenmiş + sayfalı) listeden hesaplanıyordu →
@@ -104,23 +115,25 @@ export function useMyListings() {
   const { deactivate, remove, reactivate } = useListingMutations();
   const { renewOne, renewMany } = useRenewListings();
 
-  // Odaklanma ve çek-yenile AYNI yoldan geçer. `cancelRefetch:false`: uçuştaki bir
-  // istek varsa (ilk açılış, hızlı art arda tetik) onu iptal edip yeniden başlatmak
-  // yerine ona katılır → anahtar başına tek istek.
-  const refreshLists = () =>
-    Promise.all([
+  // Çek-yenile. `cancelRefetch:false`: uçuştaki bir istek varsa (ilk açılış, hızlı art
+  // arda tetik) onu iptal edip yeniden başlatmak yerine ona katılır → anahtar başına tek istek.
+  // Yüklü sayfalar önce ilk sayfaya kırpılır (refetch hepsini sırayla çekerdi).
+  const refreshLists = () => {
+    trimInfiniteToFirstPage(queryClient, qk.products.myListings(filter));
+    return Promise.all([
       refetch({ cancelRefetch: false }),
       refetchExpired({ cancelRefetch: false }),
     ]);
+  };
 
-  // Refresh on focus
-  useFocusEffect(
-    useCallback(() => {
-      refreshLists();
-      queryClient.invalidateQueries({ queryKey: qk.products.myListingsStats });
-      refreshUserData();
-    }, []),
-  );
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Ekrana dönüşte yalnız BAYATSA tazele (liste + süresi dolan sayacı `my-listings` önekinde,
+  // sayaçlar ayrı). Eskiden her odakta üç istek + `/users/me` gidiyordu; ilan yazımları
+  // (`useInvalidateMyListings`, ilan formu) zaten hepsini invalidate edip kullanıcıyı tazeliyor.
+  useRefetchStaleOnFocus([qk.products.myListingsAll, qk.products.myListingsStats]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -235,6 +248,8 @@ export function useMyListings() {
     isLoading,
     isError,
     refetch,
+    loadMore,
+    isFetchingNextPage,
     filteredListings,
     counts,
     // modals / selection

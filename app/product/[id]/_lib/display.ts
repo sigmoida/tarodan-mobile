@@ -33,7 +33,7 @@ export function getProductPriceInfo(product: Product): PriceInfo {
 export function resolveProductImages(product: Product): any[] {
   return product?.images && product.images.length > 0
     ? product.images.map((img: any) => {
-        const uri = transformImageUrl(img);
+        const uri = transformImageUrl(img, 'detail'); // galeri: tam çözünürlük (varsayılan card)
         return typeof img === 'string' ? uri : { ...img, url: uri };
       })
     : [PLACEHOLDER];

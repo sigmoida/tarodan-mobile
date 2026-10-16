@@ -16,6 +16,8 @@ export const styles = StyleSheet.create({
   },
   forgotLink: {
     alignSelf: 'flex-end',
+    // Form `gap`'ini (8) geri al: bağlantı şifre alanına yalnız Input'un kendi alt boşluğuyla (8) bitişir.
+    marginTop: -spacing[2],
   },
   dividerRow: {
     flexDirection: 'row',

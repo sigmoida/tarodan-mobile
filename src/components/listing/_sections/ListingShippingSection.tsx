@@ -8,11 +8,24 @@ import { formatPrice } from '@/utils/format';
 
 import { getPackageTierLabel } from '../_lib/constants';
 import type { ListingFormController } from '../_hooks/useListingForm';
+import { memoSection, type ListingFormKey } from '../_lib/memoSection';
 import { fieldStyles } from './fields';
 
 const { colors, spacing, radiusRole } = theme;
 
 type SectionProps = { f: ListingFormController };
+
+/** Bu dosyadaki bölümün okuduğu controller alanları (memo karşılaştırması; bkz. `memoSection`). */
+const KEYS: readonly ListingFormKey[] = [
+  'commissionEnabled',
+  'commissionLoading',
+  'commissionPreview',
+  'packageTiers',
+  'packageTiersError',
+  'packageTiersLoading',
+  'setShippingPackageTier',
+  'shippingPackageTier',
+];
 
 const TIER_GAP = spacing[2];
 /**
@@ -155,7 +168,7 @@ const TierCard = memo(function TierCard({
  *
  * ⚠️ BAĞLAYICI (doküman 14 §1): mobil arayüzde **desi hiç görünmez**.
  */
-export function ListingShippingSection({ f }: SectionProps) {
+export const ListingShippingSection = memoSection(function ListingShippingSection({ f }: SectionProps) {
   const { t } = useTranslation();
   const { width, fontScale } = useWindowDimensions();
   const stacked = tierColumns(width, fontScale, f.packageTiers.length || 3) === 1;
@@ -204,7 +217,7 @@ export function ListingShippingSection({ f }: SectionProps) {
       )}
     </SectionCard>
   );
-}
+}, KEYS);
 
 const styles = StyleSheet.create({
   spinner: {

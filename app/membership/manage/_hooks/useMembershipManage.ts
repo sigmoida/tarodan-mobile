@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { appAlert, toast } from '@/ui';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { useRefresh } from '@/hooks/useRefresh';
@@ -17,7 +18,7 @@ export function useMembershipManage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data, isLoading, refetch } = useQuery<MembershipMe | null>({
-    queryKey: ['membership', 'me'],
+    queryKey: qk.membership.current,
     queryFn: async () => {
       const response = await membershipApi.getCurrentMembership();
       return response.data?.data ?? response.data ?? null;
@@ -53,7 +54,7 @@ export function useMembershipManage() {
     mutationFn: () => membershipApi.cancel(),
     onSuccess: () => {
       toast.success(t('membership.manageCancelSuccess'));
-      queryClient.invalidateQueries({ queryKey: ['membership'] });
+      queryClient.invalidateQueries({ queryKey: qk.membership.all });
       refetch();
     },
     onError: (error: any) => {
@@ -66,7 +67,7 @@ export function useMembershipManage() {
     mutationFn: (next: boolean) => membershipApi.setAutoRenew(next),
     onSuccess: (_res, next) => {
       toast.success(next ? t('membership.autoRenewOn') : t('membership.autoRenewOff'));
-      queryClient.invalidateQueries({ queryKey: ['membership'] });
+      queryClient.invalidateQueries({ queryKey: qk.membership.all });
       refetch();
     },
     onError: (error: any) => {
@@ -79,7 +80,7 @@ export function useMembershipManage() {
     mutationFn: () => membershipApi.cancelScheduledChange(),
     onSuccess: () => {
       toast.success(t('membership.manageScheduledCancelSuccess'));
-      queryClient.invalidateQueries({ queryKey: ['membership'] });
+      queryClient.invalidateQueries({ queryKey: qk.membership.all });
       refetch();
     },
     onError: (error: any) => {

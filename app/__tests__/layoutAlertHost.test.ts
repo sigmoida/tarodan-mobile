@@ -19,17 +19,8 @@ describe('app/_layout AlertDialogHost', () => {
   });
 });
 
-describe('app/_layout yan menü (push çekmece)', () => {
-  it('Stack SideMenuHost içinde; Toast/AlertDialog host\'ları kayan sarmalayıcının DIŞINDA', () => {
-    const open = source.indexOf('<SideMenuHost');
-    const close = source.indexOf('</SideMenuHost>');
-    expect(open).toBeGreaterThan(-1);
-    expect(close).toBeGreaterThan(open);
-    const inside = source.slice(open, close);
-    expect(inside).toMatch(/<Stack\b/);
-    expect(inside).not.toMatch(/<ToastHost/);
-    expect(inside).not.toMatch(/<AlertDialogHost/);
-    expect(source.indexOf('<ToastHost')).toBeGreaterThan(close);
-    expect(source.indexOf('<AlertDialogHost')).toBeGreaterThan(close);
+describe('app/_layout yan menü yok', () => {
+  it('yan menü (SideMenuHost/DrawerMenu) kaldırıldı: gruplar Profil + Ayarlar ekranında', () => {
+    expect(source).not.toMatch(/SideMenuHost|SideMenuProvider|DrawerMenu/);
   });
 });

@@ -20,7 +20,7 @@ import {
  * Tek sipariş kartı (web `OrderGroupCard` satırı): sipariş no + durum rozeti, ürün satırı
  * (görsel · başlık · satıcı · tarih · fiyat), alt şeritte takip / ayrıntı. Grup içinde `compact`.
  */
-export function OrderCard({
+export const OrderCard = React.memo(function OrderCard({
   order,
   compact = false,
   onRate,
@@ -102,4 +102,4 @@ export function OrderCard({
       ) : null}
     </SectionCard>
   );
-}
+});

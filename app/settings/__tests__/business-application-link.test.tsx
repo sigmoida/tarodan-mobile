@@ -4,8 +4,8 @@
  * Brief'teki orijinal test `../index` (app/settings/index.tsx) ve
  * `../../business-pending` import ediyordu — bu dosyalar repoda yok
  * (bkz. repo-notes.md). Gerçek konumlar:
- *   - Menü girişi: app/(tabs)/_lib/profileMenu.ts → buildProfileMenuGroups (Hesap grubu)
- *     (app/(tabs)/_components/ProfileSections.tsx içinde render edilir)
+ *   - Menü girişi: src/lib/menu/profileMenu.ts → buildProfileMenuGroups (Ayarlar · Üyelik grubu)
+ *     (app/settings/index.tsx içinde render edilir)
  *   - Durum ekranı: app/business-pending.tsx
  *   - Kilit: src/components/BusinessMembershipGuard.tsx
  *
@@ -23,7 +23,7 @@
 import React from 'react';
 import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
-import { buildProfileMenuGroups } from '../../(tabs)/_lib/profileMenu';
+import { buildProfileMenuGroups } from '@/lib/menu/profileMenu';
 import { schemaT } from '@/test-utils';
 
 // Menü bir FABRİKA (etiketler çeviriden gelir). Bu test dilden bağımsız alanları

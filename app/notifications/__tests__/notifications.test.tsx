@@ -110,6 +110,19 @@ describe('J38 · bildirim listesi ve okunmamış sayaç', () => {
     expect(await screen.findByText('Henüz bildirim yok')).toBeOnTheScreen();
   });
 
+  it('J38.3b liste alınamazsa "bildirim yok" değil, ErrorState + yeniden dene', async () => {
+    getAll.mockRejectedValueOnce(new Error('Network Error'));
+    getUnreadCount.mockResolvedValue({ data: { count: 0 } });
+    renderWithProviders(<NotificationsScreen />);
+
+    expect(await screen.findByTestId('error-state')).toBeOnTheScreen();
+    expect(screen.queryByText('Henüz bildirim yok')).toBeNull();
+
+    getAll.mockResolvedValue({ data: { notifications: [] } });
+    fireEvent.press(screen.getByText('Tekrar Dene'));
+    expect(await screen.findByText('Henüz bildirim yok')).toBeOnTheScreen();
+  });
+
   it('J38.4 giriş yapılmadıysa giriş yap boş durumu gösterilir', async () => {
     mockAuthed = false;
     renderWithProviders(<NotificationsScreen />);
@@ -290,6 +303,24 @@ describe('P2 #17 · bildirim sayfalaması', () => {
     fireEvent.press(screen.getByText('Mesaj b1'));
 
     await waitFor(() => expect(markAsRead).toHaveBeenCalledWith('b1'));
+  });
+});
+
+describe('Bildirimler · tek satır okundu işaretleme', () => {
+  it('liste yeniden çekilmez (önbellek iyimser düzeltilir), yalnız rozet sorgusu tazelenir', async () => {
+    getAll.mockResolvedValue({ data: { notifications: sample, pagination: { page: 1, pages: 1 } } });
+    renderWithProviders(<NotificationsScreen />);
+    await screen.findByText('Yeni Sipariş');
+    const before = getAll.mock.calls.length;
+
+    fireEvent.press(screen.getByText('Yeni Sipariş'));
+    await waitFor(() => expect(markAsRead).toHaveBeenCalledWith('n1'));
+    // onSettled mikro görevleri otursun.
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(getAll.mock.calls.length).toBe(before);
   });
 });
 

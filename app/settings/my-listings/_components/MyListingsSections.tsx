@@ -135,15 +135,20 @@ export function MyListingsFilters({ f }: { f: MyListingsController }) {
 // ---------------------------------------------------------------------------
 // Single listing card
 // ---------------------------------------------------------------------------
-export function MyListingCard({
+export const MyListingCard = React.memo(function MyListingCard({
   listing,
   onMenu,
-  selection,
+  selectable = false,
+  checked = false,
+  onToggleSelect,
 }: {
   listing: Listing;
-  onMenu: () => void;
+  /** Kararlı referans (ilanı argüman alır) — memo'lu satır her render'da yeniden çizilmesin. */
+  onMenu: (listing: Listing) => void;
   /** Yalnız "Süresi dolan" sekmesinde: toplu yenileme için işaret kutusu. */
-  selection?: { checked: boolean; onToggle: () => void };
+  selectable?: boolean;
+  checked?: boolean;
+  onToggleSelect?: (id: string) => void;
 }) {
   const { t } = useTranslation();
   const status = effectiveStatus(listing);
@@ -151,12 +156,12 @@ export function MyListingCard({
 
   return (
     <ListRowCard gap={0} style={styles.listingCard} onPress={() => router.push(`/product/${listing.id}`)}>
-      {selection && (
+      {selectable && (
         <View style={styles.selectCheck} testID={`select-wrap-${listing.id}`}>
           <Checkbox
             size="sm"
-            checked={selection.checked}
-            onChange={selection.onToggle}
+            checked={checked}
+            onChange={() => onToggleSelect?.(listing.id)}
             testID={`select-${listing.id}`}
           />
         </View>
@@ -169,7 +174,7 @@ export function MyListingCard({
             icon="ellipsis-vertical"
             size="sm"
             accessibilityLabel={t('listing.menuAccessibility')}
-            onPress={onMenu}
+            onPress={() => onMenu(listing)}
           />
         </View>
         <ListingPrice listing={listing} />
@@ -218,7 +223,7 @@ export function MyListingCard({
       </View>
     </ListRowCard>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // Empty state

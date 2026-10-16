@@ -6,11 +6,24 @@ import { useStableCallback } from '@/hooks/useStableCallback';
 
 import type { AttrGroup } from '../_lib/types';
 import type { ListingFormController } from '../_hooks/useListingForm';
+import { memoSection, type ListingFormKey } from '../_lib/memoSection';
 import { ChoiceChips, FieldGroup, PickerField, fieldStyles, type ChoiceOption } from './fields';
 
 const { spacing } = theme;
 
 type SectionProps = { f: ListingFormController };
+
+/** Bu dosyadaki bölümlerin okuduğu controller alanları (memo karşılaştırması; bkz. `memoSection`). */
+const KEYS: readonly ListingFormKey[] = [
+  'customAttributes',
+  'globalAttrGroups',
+  'globalAttrGroupsFailed',
+  'globalAttributes',
+  'manufacturerAttrGroups',
+  'selectedManufacturer',
+  'setGlobalAttribute',
+  'setShowAttrGroupPicker',
+];
 
 interface GlobalGroupProps {
   group: AttrGroup;
@@ -43,7 +56,9 @@ const GlobalAttrGroup = memo(function GlobalAttrGroup({ group, selected, onSelec
  * boşken çizilmez; istek düştüyse sebep yazılır (satıcı zorunlu alanın neden yok olduğunu
  * sunucu 400'ünden öğrenmemeli).
  */
-export function ListingGlobalAttributesSection({ f }: SectionProps) {
+export const ListingGlobalAttributesSection = memoSection(function ListingGlobalAttributesSection({
+  f,
+}: SectionProps) {
   const { t } = useTranslation();
   const onSelect = useStableCallback(f.setGlobalAttribute);
 
@@ -73,13 +88,15 @@ export function ListingGlobalAttributesSection({ f }: SectionProps) {
       ))}
     </SectionCard>
   );
-}
+}, KEYS);
 
 /**
  * Üreticiye özel nitelik grupları (web `ManufacturerAttributesCard`): çoklu seçim, seçici
  * modalda (`ListingPickers`). Grup yoksa çizilmez.
  */
-export function ListingManufacturerAttributesSection({ f }: SectionProps) {
+export const ListingManufacturerAttributesSection = memoSection(function ListingManufacturerAttributesSection({
+  f,
+}: SectionProps) {
   const { t } = useTranslation();
   const openGroup = useStableCallback(f.setShowAttrGroupPicker);
 
@@ -112,7 +129,7 @@ export function ListingManufacturerAttributesSection({ f }: SectionProps) {
       })}
     </SectionCard>
   );
-}
+}, KEYS);
 
 const styles = StyleSheet.create({
   // Web: `text-xs text-muted -mt-2` — başlığa yakın, alanlardan gövde boşluğuyla ayrık.

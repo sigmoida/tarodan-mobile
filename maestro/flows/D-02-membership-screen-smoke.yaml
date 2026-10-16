@@ -17,8 +17,7 @@ env:
         id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
-- tapOn:
-    id: "tab-profile"
+- runFlow: ../subflows/open-settings.yaml
 - scrollUntilVisible:
     element:
       id: "profile-membership-link"

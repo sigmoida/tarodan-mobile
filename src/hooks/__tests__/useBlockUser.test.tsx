@@ -133,7 +133,6 @@ describe('invalidasyon — engellenen anında akıştan düşer', () => {
       ['brand-products'],
       ['manufacturer-products'],
       ['model-products'],
-      ['product-unavailable-similar'],
       ['autocomplete-rich'],
       ['autocomplete-sellers'],
       ['liked-collections'],
@@ -141,6 +140,8 @@ describe('invalidasyon — engellenen anında akıştan düşer', () => {
       ['product-reviews-all'],
       ['product-rating-stats'],
       ['seller-ratings'],
+      // "Satışta değil" ekranının benzerleri `qk.products.similar` → `product` kökü.
+      qk.products.detailAll,
       qk.offers.all,
       qk.trades.all,
       qk.notifications.list,

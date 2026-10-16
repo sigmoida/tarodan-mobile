@@ -28,7 +28,7 @@ function makeController(overrides: Partial<SellerDashboardController> = {}): Sel
     isAuthenticated: true,
     isBusiness: false,
     isLoading: false,
-    isRefetching: false,
+    refreshing: false,
     stats: {},
     activeListings: 0,
     pendingOrders: 0,

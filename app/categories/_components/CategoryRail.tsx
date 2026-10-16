@@ -1,10 +1,12 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { Text, androidRipple, rippleClip, theme } from '@/ui';
 import { CATEGORY_RAIL_WIDTH } from '../_lib/layout';
 import type { CategoryGroup, CategoryGroupKey } from '../_lib/groups';
 import { pressedStyle } from '../_lib/press';
+import type { CategoriesScroll } from '../_hooks/useCategoriesScroll';
 
 const { colors, spacing } = theme;
 
@@ -14,6 +16,8 @@ interface CategoryRailProps {
   onSelect: (key: CategoryGroupKey) => void;
   /** Alt boşluk (güvenli alan) — son grup ekran dibinde kalmasın. */
   bottomInset: number;
+  /** Üst barın kaydırma sinyali: ray bar ALTINDAN kayar (iOS inset / Android üst dolgu). */
+  scroll: CategoriesScroll;
 }
 
 /**
@@ -21,12 +25,15 @@ interface CategoryRailProps {
  * yüzey + sol vurgu çubuğu + kalın birincil renkli metinle öne çıkar; kaydırılabilir. Kaynağı düşen
  * grup rayda kalır ve altında "Yüklenemedi" der (sessizce kaybolmaz).
  */
-export function CategoryRail({ groups, selectedKey, onSelect, bottomInset }: CategoryRailProps) {
+export function CategoryRail({ groups, selectedKey, onSelect, bottomInset, scroll }: CategoryRailProps) {
   const { t } = useTranslation();
   return (
-    <ScrollView
+    <Animated.ScrollView
       style={styles.rail}
-      contentContainerStyle={{ paddingBottom: bottomInset }}
+      {...scroll.page.scrollProps}
+      onScroll={scroll.onRailScroll}
+      scrollEventThrottle={16}
+      contentContainerStyle={scroll.page.contentStyle({ paddingBottom: bottomInset })}
       showsVerticalScrollIndicator={false}
       accessibilityRole="tablist"
       testID="categories-rail"
@@ -69,7 +76,7 @@ export function CategoryRail({ groups, selectedKey, onSelect, bottomInset }: Cat
           </Pressable>
         );
       })}
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 

@@ -5,7 +5,7 @@
  * standart loader, giriş kapısı EmptyState.
  */
 import React from 'react';
-import { ActivityIndicator, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { theme } from '@/ui';
@@ -443,8 +443,8 @@ describe('Kapılar (create, sekme kökü)', () => {
   }
 
   it('yüklenirken tek standart loader (ScreenLoader)', () => {
-    const { UNSAFE_getAllByType } = render(<Gate f={{ authLoading: true, isEdit: false }} />);
-    expect(UNSAFE_getAllByType(ActivityIndicator)).toHaveLength(1);
+    render(<Gate f={{ authLoading: true, isEdit: false }} />);
+    expect(screen.getAllByTestId('loading-indicator')).toHaveLength(1);
   });
 
   it('giriş yoksa EmptyState + Giriş Yap', () => {

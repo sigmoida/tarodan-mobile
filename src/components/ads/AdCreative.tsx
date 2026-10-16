@@ -130,6 +130,9 @@ export function AdCreative({
             style={styles.image}
             contentFit="contain"
             transition={200}
+            // Reklam kreatifi: remount'ta yeniden indirilmesin; üstte görünür → yüksek öncelik.
+            cachePolicy="memory-disk"
+            priority="high"
             accessibilityLabel={ad.altText || ad.title}
             onLoad={(e) => {
               setNaturalRatio(naturalRatioOf(e?.source));

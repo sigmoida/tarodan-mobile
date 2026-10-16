@@ -158,13 +158,13 @@ describe('bireysel kayıt — düzen ve alanlar', () => {
     expect(screen.getByTestId('register-tab-individual').props.accessibilityState.selected).toBe(true);
   });
 
-  it('web sırası: Ad Soyad, kullanıcı adı (+ değiştirilemez ipucu), e-posta, telefon (+90) ve doğum tarihi, şifreler', () => {
+  it('web sırası: Ad Soyad, kullanıcı adı (ipucu satırı yok), e-posta, telefon (+90) ve doğum tarihi, şifreler', () => {
     renderWithProviders(<RegisterScreen />);
     expect(screen.getByText(/^Ad Soyad/)).toBeOnTheScreen();
     expect(screen.queryByText(/Görünen Ad/)).toBeNull();
     expect(screen.getByPlaceholderText('Adınız Soyadınız')).toBeOnTheScreen();
     expect(screen.getByText(/Profil Kullanıcı Adı/)).toBeOnTheScreen();
-    expect(screen.getByText('Profil adresinizde kullanılır ve daha sonra değiştirilemez.')).toBeOnTheScreen();
+    expect(screen.queryByText('Profil adresinizde kullanılır ve daha sonra değiştirilemez.')).toBeNull();
     expect(screen.getByTestId('register-phone-input')).toBeOnTheScreen();
     expect(screen.getByText('+90')).toBeOnTheScreen();
     expect(screen.getByTestId('register-birthDate-input')).toBeOnTheScreen();

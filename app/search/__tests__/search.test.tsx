@@ -4,7 +4,7 @@
  * Backend arama/sıralama mantığı backend-only.
  */
 import React from 'react';
-import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { screen, fireEvent, waitFor, act, within } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { resetRouterMocks, pushMock, replaceMock } from '@/test-utils/router-mock';
 
@@ -65,6 +65,16 @@ describe('catalog-search · arama ekranı (J52/J53)', () => {
     mockGetAll.mockResolvedValue(mockListResponse([]));
     renderWithProviders(<SearchScreen />);
     expect(screen.getByTestId('search-input')).toBeOnTheScreen();
+  });
+
+  it('arama kutusu üst barda (titleSlot): solda geri oku, "Ara" başlığı yok, sağ slot yok', async () => {
+    mockGetAll.mockResolvedValue(mockListResponse([]));
+    renderWithProviders(<SearchScreen />);
+    const header = screen.getByTestId('screen-header');
+    expect(within(header).getByTestId('search-input')).toBeOnTheScreen();
+    expect(within(header).getByTestId('screen-header-back')).toBeOnTheScreen();
+    expect(within(header).queryByTestId('screen-header-right')).toBeNull();
+    expect(within(header).queryByText('Ara')).toBeNull();
   });
 
   it('J52 · sonuçlar gelince ürün kartları ve sonuç sayısı görünür', async () => {

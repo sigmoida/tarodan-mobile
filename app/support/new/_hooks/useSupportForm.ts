@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { supportApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { UUID_RE } from '../_lib/constants';
 
 /**
@@ -12,7 +14,9 @@ import { UUID_RE } from '../_lib/constants';
  */
 export function useSupportForm() {
   const { t } = useTranslation();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
+  const queryClient = useQueryClient();
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState('medium');
   const [subject, setSubject] = useState('');
@@ -55,6 +59,8 @@ export function useSupportForm() {
         ...(isUuid && category !== 'trade' ? { orderId: refId } : {}),
       });
 
+      // Talep listesi artık her odakta değil yalnız bayatsa tazeleniyor → yeni talep görünsün.
+      void queryClient.invalidateQueries({ queryKey: qk.support.tickets });
       toast.success(t('support.new.ticketCreated'));
 
       // Reset form

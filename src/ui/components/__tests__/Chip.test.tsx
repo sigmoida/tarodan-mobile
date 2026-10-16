@@ -45,7 +45,8 @@ describe('Chip (web @tarodan/ui)', () => {
     render(<Chip testID="chip" label="İlanlar" count={20} selected onPress={jest.fn()} />);
     expect(screen.getByText('İlanlar')).toBeTruthy();
     const badge = StyleSheet.flatten(screen.getByTestId('chip-count').props.style);
-    expect(badge).toMatchObject({ borderRadius: theme.radiusRole.badge, backgroundColor: colors.primary[600] });
+    // Sayaç köşesi çiple aynı (tam yuvarlak).
+    expect(badge).toMatchObject({ borderRadius: theme.radiusRole.chip, backgroundColor: colors.primary[600] });
     expect(screen.getByText('20')).toBeTruthy();
     expect(screen.getByLabelText('İlanlar (20)')).toBeTruthy();
   });

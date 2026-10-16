@@ -1,5 +1,6 @@
 import type { AxiosRequestConfig } from 'axios';
 import { api, guestApi } from './client';
+import { apiPath } from './path';
 import type { DirectFormResponse } from '@/lib/payment/paytrDirectForm';
 import type { PaymentConfig } from '@/lib/payment/capabilities';
 import type { DirectFormBody } from '@/lib/payment/directFormBody';
@@ -52,9 +53,9 @@ export const addressesApi = {
     address?: string;
     zipCode?: string;
     isDefault?: boolean;
-  }) => api.patch(`/users/me/addresses/${id}`, data),
-  delete: (id: string) => api.delete(`/users/me/addresses/${id}`),
-  setDefault: (id: string) => api.patch(`/users/me/addresses/${id}`, { isDefault: true }),
+  }) => api.patch(apiPath`/users/me/addresses/${id}`, data),
+  delete: (id: string) => api.delete(apiPath`/users/me/addresses/${id}`),
+  setDefault: (id: string) => api.patch(apiPath`/users/me/addresses/${id}`, { isDefault: true }),
 };
 
 /**
@@ -93,21 +94,21 @@ export const paymentsApi = {
   initiateTradeCash: (tradeId: string) =>
     api.post('/payments/initiate-trade-cash', { tradeId }),
   getStatus: (paymentId: string) =>
-    api.get(`/payments/${paymentId}`),
+    api.get(apiPath`/payments/${paymentId}`),
   /**
    * POST /payments/:id/verify — PayTR ödemesini aktif doğrula (web ile parite).
    * Sunucu dakikada 10 istekle sınırlı: yoklamada doğrudan değil
    * `@/lib/payment/verifyPacer` üzerinden çağırın (tempo + bütçe + zaman aşımı).
    */
   verify: (paymentId: string, config?: Pick<AxiosRequestConfig, 'timeout'>) =>
-    paymentHttp(paymentId).post(`/payments/${paymentId}/verify`, {}, config),
+    paymentHttp(paymentId).post(apiPath`/payments/${paymentId}/verify`, {}, config),
   /** Misafir verify: `guestApi` + yetki belirteci. */
   verifyGuest: (paymentId: string, config?: Pick<AxiosRequestConfig, 'timeout'>) =>
-    guestPaymentHttp(paymentId).post(`/payments/${paymentId}/verify`, {}, config),
+    guestPaymentHttp(paymentId).post(apiPath`/payments/${paymentId}/verify`, {}, config),
   getStatusLight: (paymentId: string) =>
-    paymentHttp(paymentId).get(`/payments/${paymentId}/status`),
+    paymentHttp(paymentId).get(apiPath`/payments/${paymentId}/status`),
   getStatusLightGuest: (paymentId: string) =>
-    guestPaymentHttp(paymentId).get(`/payments/${paymentId}/status-guest`),
+    guestPaymentHttp(paymentId).get(apiPath`/payments/${paymentId}/status-guest`),
   getMyPayments: (params?: {
     status?: string;
     provider?: string;
@@ -118,24 +119,24 @@ export const paymentsApi = {
   }) => api.get('/payments/me', { params }),
   /** İptal (sunucu ödemeyi `failed` yapar): başarılıysa yetki belirteci kaydı silinir. */
   cancel: async (paymentId: string) => {
-    const response = await api.post(`/payments/${paymentId}/cancel`);
+    const response = await api.post(apiPath`/payments/${paymentId}/cancel`);
     void forgetPaymentCapability(paymentId);
     return response;
   },
   /** Fail sayfasında; hâlâ pending ise rezervasyonu serbest bırakır */
   confirmFailed: (paymentId: string) =>
-    paymentHttp(paymentId).post(`/payments/${paymentId}/confirm-failed`, {}),
+    paymentHttp(paymentId).post(apiPath`/payments/${paymentId}/confirm-failed`, {}),
   /** Misafir confirm-failed: `guestApi` + yetki belirteci. */
   confirmFailedGuest: (paymentId: string) =>
-    guestPaymentHttp(paymentId).post(`/payments/${paymentId}/confirm-failed`, {}),
+    guestPaymentHttp(paymentId).post(apiPath`/payments/${paymentId}/confirm-failed`, {}),
   /** Test bypass: PAYMENT_BYPASS=true iken tek kart başarılı */
   bypassComplete: (paymentId: string, cardNumber?: string) =>
     api.post(
-      `/payments/${paymentId}/bypass-complete`,
+      apiPath`/payments/${paymentId}/bypass-complete`,
       cardNumber ? { cardNumber } : {},
     ),
   retry: (paymentId: string) =>
-    api.post(`/payments/${paymentId}/retry`),
+    api.post(apiPath`/payments/${paymentId}/retry`),
   /**
    * Direct API (TEK ödeme yolu; misafir + üye). Sunucu İMZALI form alanlarını döner;
    * kart alanlarını İSTEMCİ ekler ve WebView doğrudan PayTR'ye POST eder.

@@ -16,13 +16,13 @@ env:
         id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
-- runFlow: ../subflows/open-side-menu.yaml
+- runFlow: ../subflows/open-profile-menu.yaml
 - extendedWaitUntil:
     visible:
-      id: "side-menu-item-listings"
+      id: "menu-item-listings"
     timeout: 15000
 - tapOn:
-    id: "side-menu-item-listings"
+    id: "menu-item-listings"
 - extendedWaitUntil:
     visible:
       text: ".*İlan.*"

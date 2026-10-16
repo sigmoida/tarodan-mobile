@@ -3,14 +3,18 @@
  * bağlantısından açılır): PageShell (geri oklu yüzen bar) + sohbet listesi; yükleniyor = Skeleton,
  * boş/misafir = EmptyState, çekip yenileme. Mantık `_hooks/useMessagesTab`'de; ekran yalnız kompozisyon.
  */
+import { useCallback } from "react";
 import { RefreshControl, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { listWindowing } from "@/lib/list/windowing";
+import type { MessageThread } from "@/stores/messagesStore";
 import { PageShell } from "@/components/common/PageShell";
 import {
   Alert,
   EmptyState,
+  ErrorState,
   SkeletonAvatar,
   SkeletonText,
   theme,
@@ -23,11 +27,18 @@ import { ThreadRow } from "./_components/ThreadRow";
 const { colors } = theme;
 const SKELETON_ROWS = [0, 1, 2, 3, 4];
 
+const threadKey = (thread: MessageThread) => thread.id;
+
 export default function MessagesScreen() {
   const { t } = useTranslation();
   const f = useMessagesTab();
   const page = usePageScrollHandler();
   const title = t("mobile.messagesTitle");
+  // Kararlı renderItem (erken return'den ÖNCE — hook sırası sabit).
+  const renderThread = useCallback(
+    ({ item }: { item: MessageThread }) => <ThreadRow thread={item} f={f} />,
+    [f],
+  );
 
   if (!f.isAuthenticated) {
     return (
@@ -64,7 +75,8 @@ export default function MessagesScreen() {
         {...page.listProps}
         testID="messages-list"
         data={initialLoading ? [] : f.threads}
-        keyExtractor={(thread) => thread.id}
+        keyExtractor={threadKey}
+        {...listWindowing}
         ListHeaderComponent={header}
         ListEmptyComponent={
           initialLoading ? (
@@ -78,6 +90,9 @@ export default function MessagesScreen() {
                 </View>
               ))}
             </View>
+          ) : f.isError ? (
+            // Hata "henüz mesaj yok" gibi görünmesin — yeniden dene.
+            <ErrorState onRetry={() => f.refetch()} />
           ) : (
             <EmptyState
               icon="chat-bubble-left-ellipsis"
@@ -97,7 +112,7 @@ export default function MessagesScreen() {
             progressViewOffset={page.topInset}
           />
         }
-        renderItem={({ item }) => <ThreadRow thread={item} f={f} />}
+        renderItem={renderThread}
       />
     </PageShell>
   );

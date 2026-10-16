@@ -49,15 +49,79 @@ describe('PageShell', () => {
     resetToastForTests();
   });
 
-  it('loading → Skeleton, içerik ve alt bar yok', () => {
-    render(
-      <PageShell title="X" loading footer={<RawText>Kaydet</RawText>}>
-        <RawText>içerik</RawText>
-      </PageShell>,
-    );
-    expect(screen.getByTestId('page-shell-skeleton', { includeHiddenElements: true })).toBeTruthy();
-    expect(screen.queryByText('içerik')).toBeNull();
-    expect(screen.queryByTestId('page-shell-footer')).toBeNull();
+  describe('gecikmeli yükleniyor (useDelayedLoading)', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+    const skeleton = () => screen.queryByTestId('page-shell-skeleton', { includeHiddenElements: true });
+
+    it('loading → gecikme penceresinde boş gövde, sonra Skeleton; içerik ve alt bar yok', () => {
+      render(
+        <PageShell title="X" loading footer={<RawText>Kaydet</RawText>}>
+          <RawText>içerik</RawText>
+        </PageShell>,
+      );
+      // Gecikme penceresi: iskelet henüz yok, eski içerik de çizilmez.
+      expect(skeleton()).toBeNull();
+      expect(screen.getByTestId('page-shell-loading-pending')).toBeTruthy();
+      expect(screen.queryByText('içerik')).toBeNull();
+      expect(screen.queryByTestId('page-shell-footer')).toBeNull();
+      act(() => {
+        jest.advanceTimersByTime(theme.loading.delayMs);
+      });
+      expect(skeleton()).toBeTruthy();
+      expect(screen.queryByText('içerik')).toBeNull();
+      expect(screen.queryByTestId('page-shell-footer')).toBeNull();
+    });
+
+    it('gecikmeden kısa yükleme: iskelet hiç çizilmez, içerik hemen gelir', () => {
+      const view = render(
+        <PageShell title="X" loading>
+          <RawText>içerik</RawText>
+        </PageShell>,
+      );
+      act(() => {
+        jest.advanceTimersByTime(theme.loading.delayMs - 50);
+      });
+      view.rerender(
+        <PageShell title="X">
+          <RawText>içerik</RawText>
+        </PageShell>,
+      );
+      expect(skeleton()).toBeNull();
+      expect(screen.getByText('içerik')).toBeTruthy();
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+      expect(skeleton()).toBeNull();
+    });
+
+    it('iskelet çıktıysa en az minVisibleMs kalır, sonra içerik', () => {
+      const view = render(
+        <PageShell title="X" loading>
+          <RawText>içerik</RawText>
+        </PageShell>,
+      );
+      act(() => {
+        jest.advanceTimersByTime(theme.loading.delayMs);
+      });
+      expect(skeleton()).toBeTruthy();
+      act(() => {
+        jest.advanceTimersByTime(50);
+      });
+      view.rerender(
+        <PageShell title="X">
+          <RawText>içerik</RawText>
+        </PageShell>,
+      );
+      // Veri geldi ama iskelet asgari süreyi doldurmadı → hâlâ iskelet.
+      expect(skeleton()).toBeTruthy();
+      expect(screen.queryByText('içerik')).toBeNull();
+      act(() => {
+        jest.advanceTimersByTime(theme.loading.minVisibleMs - 50);
+      });
+      expect(skeleton()).toBeNull();
+      expect(screen.getByText('içerik')).toBeTruthy();
+    });
   });
 
   it('error → ErrorState + onRetry; empty → EmptyState', () => {

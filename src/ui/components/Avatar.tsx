@@ -1,10 +1,7 @@
 import React from 'react';
-import {
-  Image,
-  StyleSheet,
-  View,
-  type ImageSourcePropType,
-} from 'react-native';
+import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
+import { Image, type ImageSource } from 'expo-image';
 import { theme } from '../lib/theme';
 import { Icon } from '../icons';
 import { RawText } from './Text';
@@ -14,6 +11,11 @@ export interface AvatarProps {
   name?: string;
   /** `header` = kompakt kimlik başlığı (profil sekmesi; web `UserAvatar size="lg"` h-16). */
   size?: 'sm' | 'md' | 'lg' | 'header' | 'xl' | '2xl';
+  /**
+   * Geri dönüşümlü hücrelerde (FlashList) hücre başka öğeye geçince eski görsel çapraz
+   * geçişle görünmesin: öğenin kararlı kimliği (ör. kullanıcı id).
+   */
+  recyclingKey?: string;
   /** `icon` = fotoğraf yoksa baş harf yerine `user` ikonu (misafir / adsız). */
   placeholder?: 'initials' | 'icon';
 }
@@ -29,15 +31,19 @@ export const avatarPlaceholderColors = {
   foreground: colors.primary[700] as string,
 } as const;
 
-const sizeMap = { sm: 28, md: 40, lg: 56, header: 64, xl: 80, '2xl': 120 } as const;
+/** Avatar çapları (pt) — `SkeletonAvatar` da buradan türer (iskelet → avatar geçişinde zıplama yok). */
+export const AVATAR_SIZES = { sm: 28, md: 40, lg: 56, header: 64, xl: 80, '2xl': 120 } as const;
+const sizeMap = AVATAR_SIZES;
 
 export const Avatar: React.FC<AvatarProps> = ({
   source,
   name,
   size = 'md',
   placeholder = 'initials',
+  recyclingKey,
 }) => {
   const s = sizeMap[size];
+  const reduceMotion = useReducedMotion();
   const [failed, setFailed] = React.useState(false);
 
   // Boş/whitespace string'i "kaynak yok" say — yoksa <Image> baş harf yerine
@@ -48,6 +54,8 @@ export const Avatar: React.FC<AvatarProps> = ({
         ? { uri: source.trim() }
         : undefined
       : (source as ImageSourcePropType | undefined);
+  // expo-image: `{ uri }` / require() numarası aynen kabul edilir (RN tipinden dar bir tipe köprü).
+  const imageSource = src as ImageSource | number | undefined;
 
   // Kaynak değişince hata bayrağını sıfırla ki yeni URL tekrar denensin.
   const srcKey = typeof source === 'string' ? source : JSON.stringify(source ?? null);
@@ -74,8 +82,14 @@ export const Avatar: React.FC<AvatarProps> = ({
     >
       {showImage ? (
         <Image
-          source={src}
+          source={imageSource}
+          recyclingKey={recyclingKey}
           style={{ width: s, height: s, borderRadius: s / 2 }}
+          contentFit="cover"
+          // Disk cache: liste/mesaj/yorum avatarları remount'ta yeniden indirilmez (RN Image'ın
+          // disk cache'i yok). Ayarlar `AppImage` ile aynı (vendored ui app kodunu import etmez).
+          cachePolicy="memory-disk"
+          transition={reduceMotion ? 0 : 150}
           onError={() => setFailed(true)}
         />
       ) : placeholder === 'icon' ? (

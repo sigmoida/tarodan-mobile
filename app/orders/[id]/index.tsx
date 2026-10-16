@@ -13,6 +13,7 @@ import { useOrder } from './_hooks/useOrder';
 import { useOrderInvoices } from './_hooks/useOrderInvoices';
 import { useOrderActions } from './_hooks/useOrderActions';
 import { OrderStatusCard } from './_components/OrderStatusCard';
+import { OrderDetailSkeleton } from './_components/OrderDetailSkeleton';
 import { OrderEscrowCard, OrderCancelledInfo, OrderPayPendingCard, OrderTrackingCard } from './_components/OrderInfoCards';
 import { OrderProductCard, OrderSellerCard } from './_components/OrderProductSeller';
 import { OrderAddressCard, OrderPriceSummary } from './_components/OrderAddressPrice';
@@ -36,7 +37,7 @@ export default function OrderDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { data: order, isLoading, refetch } = useOrder(id);
+  const { data: order, isLoading, isError, refetch } = useOrder(id);
   const actions = useOrderActions(String(id), order ?? undefined);
   const invoices = useOrderInvoices(String(id), order?.status, actions.notify);
   // Pull-to-refresh siparişle birlikte e-Arşiv listesini de yeniler.
@@ -48,10 +49,13 @@ export default function OrderDetailScreen() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
   if (!isLoading && !order) {
+    // 404 → `useOrder` null döner ("bulunamadı"); diğer hatalar → ErrorState + yeniden dene.
     return (
       <PageShell
         title={t('order.orderDetails')}
         onBack={back}
+        error={isError || undefined}
+        onRetry={() => refetch()}
         empty
         emptyState={{
           icon: 'receipt-percent',
@@ -63,7 +67,16 @@ export default function OrderDetailScreen() {
       />
     );
   }
-  if (!order) return <PageShell title={t('order.orderDetails')} onBack={back} loading />;
+  if (!order) {
+    return (
+      <PageShell
+        title={t('order.orderDetails')}
+        onBack={back}
+        loading
+        loadingFallback={<OrderDetailSkeleton />}
+      />
+    );
+  }
 
   // Taraf siparişin kendi `isSeller` bayrağından (web; `user.id` karşılaştırması
   // değil). Bayrak yoksa alıcı varsayılır: alıcıya satıcı cümlesi çıkmaz.

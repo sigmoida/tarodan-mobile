@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { View, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
-import { ErrorState, FAB, FAB_SIZE_SM, Spinner, theme, useFabContentInset } from '@/ui';
+import { ErrorState, FAB, FAB_SIZE_SM, Spinner, theme, useDelayedLoading, useFabContentInset } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
+import { ListFooterRetry } from '@/components/common/ListFooterRetry';
 import {
   ProductCard,
   ProductGridSkeleton,
@@ -15,8 +16,10 @@ import ProductFilterSheet from '@/components/ProductFilterSheet';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { styles } from './_lib/searchStyles';
 import { SEARCH_DRAW_DISTANCE, SEARCH_NUM_COLUMNS } from './_lib/searchConstants';
+import { useTransitionReady } from '@/hooks/useTransitionReady';
 import { useSearch } from './_hooks/useSearch';
 import { SearchBars } from './_components/SearchBars';
+import { SearchHeaderField, SearchSuggestionsLayer } from './_components/SearchHeader';
 
 const { colors } = theme;
 
@@ -26,15 +29,24 @@ const AnimatedFlashList = Animated.createAnimatedComponent(FlashList<any>);
 
 // Kararlı anahtar: yalnız `id` (index YOK) — sayfa kayması/yeniden sıralamada hücreler sökülmesin.
 const keyExtractor = (item: any) => String(item.id);
+// Geçiş bitene kadar listeye verilen sabit boş dizi (kimliği değişmesin).
+const NO_ITEMS: any[] = [];
 
 /**
  * Arama — yığın ekranı (`/search`), THIN screen. The `useSearch` controller owns filters, debounced
  * search, autocomplete, the infinite product query, and scroll/collapse state;
  * this file composes the PageShell, collapsible bars, results list, and modals.
+ *
+ * Üst bar: solda geri oku, kalan genişlikte arama alanı (`titleSlot` + `titleFill`; ana sayfadaki
+ * cam hapla aynı yükseklik/konum). Açılış performansı: native stack yeni ekranın ilk karesini
+ * bekleyip kaydırır; geçiş sürerken klavye açmak ve 24 kartı çizmek animasyonu takılır gösteriyordu.
+ * İkisi de `useTransitionReady`'ye bağlı: odak ve sonuç kartları geçiş bitince (o ana dek iskelet;
+ * sorgu arka planda zaten koşar).
  */
 export default function SearchScreen() {
   const { t } = useTranslation();
   const f = useSearch();
+  const ready = useTransitionReady();
 
   // Stable renderItem (#75) — memoized ProductCard bails out on unchanged rows.
   const isList = f.layout === 'list';
@@ -74,25 +86,34 @@ export default function SearchScreen() {
     ),
     [f.refreshing, f.refreshFirstPage],
   );
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = f;
+  const { hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } = f;
   const onEndReached = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+    // Sayfa hatasında kaydırdıkça otomatik yeniden denemez; kullanıcı "Tekrar dene" satırına basar.
+    if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage]);
+  const retryNextPage = useCallback(() => {
+    void fetchNextPage();
+  }, [fetchNextPage]);
   const listFooter = useMemo(
     () =>
-      isFetchingNextPage ? (
+      isFetchNextPageError ? (
+        <ListFooterRetry onRetry={retryNextPage} />
+      ) : isFetchingNextPage ? (
         <View style={styles.listFooter}>
           <Spinner size="md" color={colors.primary[600]!} />
         </View>
       ) : null,
-    [isFetchingNextPage],
+    [isFetchingNextPage, isFetchNextPageError, retryNextPage],
   );
   const { isLoading, isError, refetch, activeFiltersCount, clearAllFilters } = f;
   const hasSearch = !!f.filters.search;
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const loadingFirst = isLoading || !ready;
+  const showSkeleton = useDelayedLoading(loadingFirst);
   const listEmpty = useMemo(
     () =>
-      isLoading ? (
-        <ProductGridSkeleton />
+      loadingFirst || showSkeleton ? (
+        showSkeleton ? <ProductGridSkeleton /> : null
       ) : isError ? (
         <ErrorState title={t('utility.error500.title')} onRetry={refetch} />
       ) : (
@@ -102,7 +123,7 @@ export default function SearchScreen() {
           onClearFilters={activeFiltersCount > 0 ? clearAllFilters : undefined}
         />
       ),
-    [isLoading, isError, refetch, activeFiltersCount, hasSearch, clearAllFilters, t],
+    [loadingFirst, showSkeleton, isError, refetch, activeFiltersCount, hasSearch, clearAllFilters, t],
   );
 
   const { setSortModalVisible, setFilterModalVisible, setSortBy } = f;
@@ -119,23 +140,21 @@ export default function SearchScreen() {
   );
 
   return (
-    <PageShell title={t('common.search')} mode="list" keyboardAware={false}>
+    <PageShell
+      title={t('common.search')}
+      mode="list"
+      keyboardAware={false}
+      titleFill
+      titleSlot={
+        <SearchHeaderField f={f} ready={ready} />
+      }
+    >
       <View style={styles.container}>
         {/* Üst çubuklar absolute katmanda; kaydırınca translateY ile yukarı kayar (liste reflow olmaz) */}
         <View style={styles.resultsArea}>
           <SearchBars
             translateY={f.barsTranslateY}
             onBarsLayout={f.onBarsLayout}
-            initialQuery={f.initialQuery}
-            inputCommand={f.inputCommand}
-            onInputEmptyChange={f.setInputEmpty}
-            autoFocus={f.autoFocusSearch}
-            suggestionsOpen={f.suggestionsOpen}
-            onCommit={f.commitQuery}
-            onSubmit={f.saveRecentSearch}
-            onClose={f.closeSuggestions}
-            onFocus={f.onInputFocus}
-            onBlur={f.onInputBlur}
             sortBy={f.filters.sortBy}
             onSort={openSort}
             onFilter={openFilter}
@@ -146,21 +165,10 @@ export default function SearchScreen() {
             total={f.total}
             chips={f.activeChips}
             onClearFilters={f.clearAllFilters}
-            showRecentSearches={f.showRecentSearches}
-            recentSearchQueries={f.recentSearchQueries}
-            inputEmpty={f.inputEmpty}
-            onClearRecent={f.clearSearches}
-            onSelectRecent={f.handleRecentSearchSelect}
-            onRemoveRecent={f.removeSearch}
-            autocompleteOpen={f.autocompleteOpen}
-            autocompleteQuery={f.autocompleteQuery}
-            autocomplete={f.autocomplete}
-            sellerResults={f.sellerResults}
-            onPickSuggestion={f.pickSuggestion}
-            onCloseAutocomplete={f.closeAutocomplete}
-            onNavigateSuggestion={f.confirmQuery}
-            onApplyFacet={f.applyFacet}
           />
+
+          {/* Öneri / son aramalar: üst barın hemen altında, çubukların ve sonuçların üstünde. */}
+          <SearchSuggestionsLayer f={f} />
 
           {/* Results — liste yükleme/boş durumda da MONTE kalır (sökülüp yeniden
               yerleşmesin diye); üst çubuklar ölçülene kadar yalnızca görünmez. */}
@@ -170,7 +178,8 @@ export default function SearchScreen() {
             <AnimatedFlashList
             testID="search-results-list"
             ref={f.listRef}
-            data={f.products}
+            // Kartlar geçiş bitince çizilir (o ana dek boş-durum yuvasında iskelet).
+            data={ready ? f.products : NO_ITEMS}
             key={`search-${columns}`}
             numColumns={columns}
             contentContainerStyle={contentContainerStyle}

@@ -143,6 +143,14 @@ Stores hold **only client/UI state** (auth token, cart, filters, drafts). A stor
 must **never fetch** — server data belongs in React Query. (Migrating
 `favoritesStore`/`messagesStore` fetches to query hooks is Faz 1.)
 
+**Subscribe per field, never to the whole store.** `useAuthStore()` / `useCartStore()` with no
+argument re-renders the component on EVERY store write. Use a selector
+(`useAuthStore((s) => s.user)`), `useShallow` (`zustand/react/shallow`) for a multi-field pick, and
+`useXxxStore.getState()` inside callbacks. Per-item derived state is a selector too
+(`useCartStore((s) => s.items.some((i) => i.productId === id))`). Guarded by the
+`tarodan/no-whole-store-subscription` lint rule (warning). Test mocks must accept a selector:
+`(sel) => (sel ? sel(state) : state)` (+ `getState` if the code calls it).
+
 ## 9. Folder shape per route (mirror web)
 
 **expo-router does NOT hide `_` folders by itself** — it treats every `.ts/.tsx`
@@ -204,8 +212,9 @@ resolves tsconfig `paths` at runtime; jest maps `@/` in `jest.config.js`. Prefer
 
 ## 11. Loading / empty / error states
 
-Use the shared `Spinner`/`ScreenLoader`, `EmptyState`, and `ErrorState` primitives
-consistently — don't hand-roll per-screen loaders or empty views.
+Use the shared loading module (`src/ui/loading/`, exported from `@/ui` — see §14
+"Loading"), `EmptyState`, and `ErrorState` primitives consistently — don't hand-roll
+per-screen loaders, skeleton colours/animations or empty views.
 
 ## 12. Canonical example — `app/offers/`
 
@@ -325,12 +334,16 @@ local rules in `eslint-plugin-tarodan/`) — today as **warnings**; wave 2 clear
 and turns them into **errors**, so write new code warning-free.
 
 - **Shells are mandatory.** Tab roots use `AppShell` (`@/components/shell/AppShell` — the same
-  bar on EVERY tab root: [left button: ☰ side menu on the Profile root only, `squares-2x2` → `/categories` on every other tab root (`leading` prop of `AppShell`)][search field or title][messages][notifications] — exactly two
-  right-side icons with unread badges, no cart, no logo). The bottom menu is a floating pill
+  bar on EVERY tab root: [left button: `squares-2x2` → `/categories`; EMPTY on the Profile root (`leading="none"`)][search field or title][messages][notifications] — exactly two
+  right-side icons with unread badges, no cart, no logo; the Profile root alone has ONE ⚙️ Settings button instead
+  (`actions="settings"` → `/settings`)). There is NO side menu: the Profile tab lists the user's activity
+  (Shopping · Finance · Collection · Analytics) and `/settings` the account/app settings (Account · Payments & Bank ·
+  Membership · Preferences · Help & Support · Info & Legal + logout) — one menu model, `src/lib/menu/profileMenu.ts`
+  (`surface: 'profile' | 'settings'`), each group a white `SectionCard` (`MenuGroupList`). The bottom menu is a floating pill
   (`AppTabBar`; Home, Favorites, Cart, Profile + the separate "+" sell button); tab-root
   lists/ScrollViews add `useTabBarInset()` as bottom padding so content never hides under it.
   Messages and Notifications are stack routes (`/messages`, `/notifications`) opened from the header.
-  The side menu also opens with a left-edge swipe on the Profile tab root only (while it is focused and is the base tab root). Navigating to a tab
+  Navigating to a tab
   root from a stack screen / push / ad / deep link goes through `navigateTo()`
   (`@/lib/navigation/goTo`, `router.dismissTo`) — never `router.push('/(tabs)/…')`, which stacks a
   second `(tabs)`. Search is a stack route (`/search`). Stack screens use
@@ -362,8 +375,10 @@ and turns them into **errors**, so write new code warning-free.
   `progressViewOffset`). Tab roots feed the same signal from the tab-bar handler — ONE handler,
   never two `onScroll`s: `const page = usePageScrollValue(); const tabScroll =
   useTabBarScrollHandler(undefined, page.scrollY);` → `<AppShell variant="title" scroll={page}>`.
-  An unbound screen is still readable: the body simply starts below the bar and the edge is a fixed
-  light white strip. Don't add manual top padding for the bar — the shell/`contentStyle` already
+  An unbound screen (and every screen while `loading` / `empty` / `error`) draws NO edge: the body
+  starts below the bar, so at rest every bar looks the same (no background). Home binds the same
+  edge (`<AppShell scroll={page}>`); product detail uses the same `ScrollEdge` + bar metrics, timed
+  to complete when the gallery's end reaches the bar. Don't add manual top padding for the bar — the shell/`contentStyle` already
   adds `inset + headerHeight` (no double gap). `floating={false}` (opaque, in-flow) exists only for
   custom shells (chat header with banner, payment, WebView, gates).
 - **One top bar, one inset formula.** Bar height, title position and back arrow are identical on
@@ -447,8 +462,35 @@ and turns them into **errors**, so write new code warning-free.
   bottom, 48pt circle) — `ErrorState` takes the same prop. Give each `EmptyState` a unique
   `testID` when several can render on one screen (default `empty-state` / `error-state`); never wrap it in extra padding/margin or hand-draw View + icon + Text
   (`tarodan/empty-state-standard` warns on hand-drawn `ListEmptyComponent`s).
-- **Loading:** list and card screens use `Skeleton*` (web-like); a full-screen
-  spinner only for the very first load.
+- **Loading: one replaceable system** (`src/ui/loading/`, all exported from `@/ui`). List and card
+  screens use skeletons (web-like); a full-screen spinner (`ScreenLoader`) only for the very first
+  load / layout-less flows (payment, gates).
+  - **One indicator:** `LoadingIndicator` (`size` sm 16 · md 20 · lg 36, `tone` primary | inverted |
+    muted, `accessibilityLabel`) is the ONLY spinner. `Spinner` (alias), `ScreenLoader`,
+    `Button`/`IconButton` `isLoading` all draw it. Raw RN `ActivityIndicator` outside
+    `src/ui/loading/` is lint-warned (`tarodan/no-raw-activity-indicator`). **To swap the animation**
+    (Lottie/Reanimated) edit only the inside of `LoadingIndicator.tsx`: keep the box size
+    (`theme.loading.indicator.size`), colour (`theme.loading.indicator.color[tone]`), the
+    `progressbar` role and a static frame under reduce-motion. `RefreshControl` stays native (tint
+    from tokens only).
+  - **One skeleton driver:** every skeleton is `SkeletonBlock` (alias `Skeleton`) animated by ONE
+    shared loop (`useSkeletonAnimation`, reduce-motion aware). Look/animation = one token,
+    `theme.loading.skeleton.{animation: 'pulse' | 'shimmer' | 'none', duration, pulseMinOpacity,
+    baseColor, highlightColor}` — never a local skeleton colour or `Animated` loop.
+  - **Layout-faithful blocks** read the real component's geometry constants so nothing jumps when
+    data arrives: `SkeletonLine` (a `Text` variant's line box), `SkeletonText`, `SkeletonAvatar`
+    (`AVATAR_SIZES`), `SkeletonSectionCard` (`SECTION_CARD_METRICS`), `SkeletonListRow`,
+    `SkeletonChatBubble` (`CHAT_BUBBLE_METRICS`), and next to their components
+    `SkeletonProductCard` (`@/components/product`, `PRODUCT_CARD_METRICS`; `ProductGridSkeleton`
+    uses the real cell width) and `SkeletonMenuRow` (`@/components/menu`, `PROFILE_ROW_METRICS`).
+    A new screen skeleton composes these; a new component that needs one exports its metrics and
+    gets a sibling `Skeleton<Name>`.
+  - **Delayed loading:** `useDelayedLoading(isLoading, { delay, minDuration })` shows nothing for
+    loads shorter than `theme.loading.delayMs` (150) and, once shown, keeps the loader at least
+    `theme.loading.minVisibleMs` (300). `PageShell` `loading` uses it automatically (empty body during
+    the delay — never the old content); use it for a list's `ListEmptyComponent` skeleton too. Tests
+    advance jest fake timers (`theme.loading.delayMs`) instead of expecting an immediate skeleton.
+  - Showcase: `/tasarim` → "Yükleme".
 - **Copy:** same i18n key, same value as web. New keys go into both `tr` and `en`
   (prefer the web's key name and text), then `node scripts/gen-keys.mjs`; don't
   rewrite existing catalog values as a side effect of a UI change.

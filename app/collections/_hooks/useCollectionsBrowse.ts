@@ -31,7 +31,8 @@ import {
  */
 export function useCollectionsBrowse() {
   const { t } = useTranslation();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   // Premium/business üyeler zaten koleksiyon oluşturabildiği için upsell'i gizle.
   const isPremiumMember = user?.membershipTier === 'premium' || user?.membershipTier === 'business';
 
@@ -97,13 +98,15 @@ export function useCollectionsBrowse() {
   const active = isPublic ? publicQuery : myQuery;
   const collections = isPublic ? publicCollections : myCollections;
 
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = publicQuery;
+  const { hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } = publicQuery;
   // Yalnız kullanıcının çektiği yenileme döner: keepPreviousData ile arama/sıralama/kategori
   // değişimi de `isRefetching` sayılıyor, RefreshControl dönüp iOS listesi zıplıyordu.
   const { refreshing, onRefresh } = useRefresh(active.refetch);
   const loadMore = useCallback(() => {
-    if (isPublic && hasNextPage && !isFetchingNextPage) void fetchNextPage();
-  }, [isPublic, hasNextPage, isFetchingNextPage, fetchNextPage]);
+    // Sayfa hatasında kaydırdıkça otomatik yeniden denemez; kullanıcı "Tekrar dene" satırına basar.
+    if (isPublic && hasNextPage && !isFetchingNextPage && !isFetchNextPageError) void fetchNextPage();
+  }, [isPublic, hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage]);
+  const retryLoadMore = useCallback(() => void fetchNextPage(), [fetchNextPage]);
 
   const sortOptions = useMemo(
     () => SORT_OPTIONS.map((o) => ({ value: o.value, label: o.labelKey ? t(o.labelKey) : (o.label ?? o.value) })),
@@ -150,6 +153,9 @@ export function useCollectionsBrowse() {
     refetch: active.refetch,
     loadMore,
     isFetchingNextPage: isPublic && isFetchingNextPage,
+    /** Sonraki sayfa yüklenemedi → liste altında "Tekrar dene" satırı. */
+    loadMoreFailed: isPublic && isFetchNextPageError,
+    retryLoadMore,
     hasSearch: searchQuery.trim().length > 0,
   };
 }

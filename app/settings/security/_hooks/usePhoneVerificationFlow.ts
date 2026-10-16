@@ -4,6 +4,7 @@ import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useZodForm } from '@/ui/form';
 import { useAuthStore } from '@/stores/authStore';
+import { useFullProfile, useOnProfileReady } from '@/hooks/useFullProfile';
 import { goBackOrHome } from '@/components/common/goBackOrHome';
 import { getPhoneInvalidMessage, parsePhoneForPayload, splitPhone } from '@/utils/phone';
 import { phoneSchema, sixDigitCodeSchema } from '../_lib/schema';
@@ -33,10 +34,19 @@ export function usePhoneVerificationFlow() {
   const [sentTo, setSentTo] = useState('');
   const [resendIn, setResendIn] = useState(0);
 
+  // Kayıtlı numara saklı görüntüde YOK (`@/stores/userSnapshot`): parametre yoksa alan tam
+  // profilden tohumlanır; profil gelene kadar ekran yükleniyor görünür (`useFullProfile`).
+  const profile = useFullProfile({ enabled: !verifyPhone });
+
   // Kayıtlı numara E.164 saklanıyor; alan lokal parçayı istiyor ("+90" tekrar yazılmasın).
   const seed = useMemo(() => splitPhone(verifyPhone ?? user?.phone ?? ''), [verifyPhone, user?.phone]);
   const phoneForm = useZodForm(useMemo(() => phoneSchema(), []), {
     defaultValues: { phone: seed.phone },
+  });
+  // Tam profil açılıştan sonra geldiyse alanın temeli bir kez ondan kurulur.
+  useOnProfileReady(profile.ready, () => {
+    if (verifyPhone) return;
+    phoneForm.reset({ phone: splitPhone(useAuthStore.getState().user?.phone ?? '').phone });
   });
   const codeForm = useZodForm(
     useMemo(() => sixDigitCodeSchema(t), [t]),
@@ -102,6 +112,10 @@ export function usePhoneVerificationFlow() {
   const code = codeForm.watch('code') ?? '';
 
   return {
+    /** Kayıtlı numara (tam profil) bekleniyor. */
+    profileLoading: !profile.ready && !profile.error,
+    profileError: profile.error,
+    retryProfile: profile.retry,
     step,
     sentTo,
     resendIn,

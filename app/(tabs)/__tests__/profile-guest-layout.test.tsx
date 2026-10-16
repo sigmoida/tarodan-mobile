@@ -1,6 +1,7 @@
 /**
  * Misafir Profil sekmesi düzeni (Storytel "Profilim" gibi): ortalı boş avatar, birincil "Giriş Yap" +
- * outline "Ücretsiz Üye Ol", altında ikonlu + chevron'lu düz satırlar (dil dahil).
+ * outline "Ücretsiz Üye Ol" (beyaz kartta), altında ikonlu + chevron'lu satırlar (beyaz kartta). Dil, yardım
+ * ve bilgi/yasal Ayarlar'da (üst barın sağındaki ⚙️).
  */
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
@@ -27,10 +28,13 @@ describe('misafir profil düzeni', () => {
     expect(router.push).toHaveBeenCalledWith('/(auth)/register');
   });
 
-  it('Profil kökü: sol düğme ☰ (yan menü), kategoriler düğmesi değil', () => {
+  it('Profil kökü: sol slot boş; sağda yalnız ⚙️ Ayarlar (mesaj/bildirim yok)', () => {
     render(<ProfileGuestView f={f} />);
-    expect(screen.getByTestId('app-shell-menu')).toBeTruthy();
+    expect(screen.queryByTestId('app-shell-menu')).toBeNull();
     expect(screen.queryByTestId('app-shell-categories')).toBeNull();
+    expect(screen.queryByTestId('app-shell-messages')).toBeNull();
+    fireEvent.press(screen.getByTestId('app-shell-settings'));
+    expect(router.push).toHaveBeenCalledWith('/settings');
   });
 
   it('boş avatar dairesi 120pt ve baş harf metni yok', () => {
@@ -41,10 +45,10 @@ describe('misafir profil düzeni', () => {
     expect(json).toContain('"borderRadius":60');
   });
 
-  it('satırlar ikon + chevron taşır; dil satırı ayarlara gider', () => {
+  it('karşılama ve bağlantılar beyaz kartlarda; dil satırı profilde değil (Ayarlar\'da)', () => {
     render(<ProfileGuestView f={f} />);
-    expect(screen.getByTestId('profile-language-link-chevron')).toBeTruthy();
-    fireEvent.press(screen.getByTestId('profile-language-link'));
-    expect(router.push).toHaveBeenCalledWith('/settings/language');
+    expect(screen.getByTestId('profile-guest-card')).toBeTruthy();
+    expect(screen.getByTestId('profile-guest-links')).toBeTruthy();
+    expect(screen.queryByTestId('profile-language-link')).toBeNull();
   });
 });

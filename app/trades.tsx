@@ -1,18 +1,30 @@
 import { useState, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { useQuery, useQueries } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueries } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ChipTabs, EmptyState, ErrorState, SkeletonCard, pageListContentStyle, theme, usePageScrollHandler } from '@/ui';
+import {
+  ChipTabs,
+  EmptyState,
+  ErrorState,
+  pageListContentStyle,
+  theme,
+  useDelayedLoading,
+  usePageScrollHandler,
+} from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { tradesApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
+import { listWindowing } from '@/lib/list/windowing';
 import { TradeCard, type TradeCardTrade } from '@/components/trade/TradeCard';
+import { SkeletonTradeCard } from '@/components/trade/SkeletonTradeCard';
 import type { TFn } from './trade/[id]/_lib/types';
 
 const { spacing } = theme;
+
+const tradeKey = (item: TradeCardTrade) => String(item.id);
 
 // "Kargoda" filtresi artık sunucu tarafında (statusGroup=shipping) yapılıyor;
 // istemci tarafı statü listesine gerek kalmadı.
@@ -42,13 +54,14 @@ function buildFilters(t: TFn): {
 export default function TradesScreen() {
   const { t } = useTranslation();
   const FILTERS = buildFilters(t);
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const [filter, setFilter] = useState<TradesTabFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
   const page = usePageScrollHandler();
 
   const { data: tradesPayload, isLoading, isError, refetch } = useQuery({
-    queryKey: ['trades', filter],
+    queryKey: qk.trades.list({ filter }),
     queryFn: async () => {
       // pageSize:100 → liste tek sayfada (çoğu kullanıcı için tamamı). 'Kargoda' artık
       // istemci tarafında değil, sunucuda (statusGroup) filtreleniyor → sayfaya takılmıyor.
@@ -65,14 +78,18 @@ export default function TradesScreen() {
       return { trades: list };
     },
     enabled: isAuthenticated,
+    // Filtre (chip) değişince önceki liste yerinde kalır, yeni filtre arkada yüklenir — iskelete düşmez.
+    placeholderData: keepPreviousData,
   });
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const showSkeleton = useDelayedLoading(isLoading);
 
   const tradesList: TradeCardTrade[] = tradesPayload?.trades ?? [];
 
   // Segment sayaçları — filtreden/sayfalamadan bağımsız tek sunucu agregatı.
   // tc.all = profil "Takaslar" tile'ı ile birebir.
   const { data: countsResp, refetch: refetchCounts } = useQuery({
-    queryKey: ['trades-status-counts'],
+    queryKey: qk.trades.statusCounts,
     queryFn: () => tradesApi.getStatusCounts(),
     enabled: isAuthenticated,
   });
@@ -80,7 +97,7 @@ export default function TradesScreen() {
   // Anahtar `statusCounts` önekini paylaşır → takas oluşunca/ödemede aynı invalidate tazeler.
   const extraCounts = useQueries({
     queries: (['cancelled', 'rejected'] as const).map((status) => ({
-      queryKey: [...qk.trades.statusCounts, status],
+      queryKey: qk.trades.statusCountBy(status),
       queryFn: async () => {
         const res = await tradesApi.getAll({ status, pageSize: '1' });
         const total = (res.data as { total?: number } | undefined)?.total;
@@ -147,8 +164,9 @@ export default function TradesScreen() {
         contentContainerStyle={page.contentStyle(pageListContentStyle)}
         refreshing={refreshing}
         onRefresh={onRefresh}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={tradeKey}
         renderItem={renderTrade}
+        {...listWindowing}
         ListHeaderComponent={
           // Durum filtreleri — tek satır, yatay kaydırılan sekmeler (sayaçlar hepsinde ya da hiçbirinde)
           <ChipTabs
@@ -165,11 +183,13 @@ export default function TradesScreen() {
         ListEmptyComponent={
           isError ? (
             <ErrorState message={t('trade.listLoadFailedHint')} onRetry={() => refetch()} />
-          ) : isLoading ? (
-            <View style={styles.skeletons}>
-              <SkeletonCard />
-              <SkeletonCard />
-            </View>
+          ) : isLoading || showSkeleton ? (
+            showSkeleton ? (
+              <View style={styles.skeletons} testID="trades-skeleton">
+                <SkeletonTradeCard />
+                <SkeletonTradeCard />
+              </View>
+            ) : null
           ) : (
             <EmptyState
               icon="arrows-right-left"

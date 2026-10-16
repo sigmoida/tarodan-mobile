@@ -78,21 +78,22 @@ describe('J30 · Koleksiyon detayı render + paylaş/beğeni', () => {
     expect(screen.getByText('42 görüntüleme')).toBeOnTheScreen();
   });
 
-  it('J30.2 başlık kartında sayaçlar + paylaş/beğen/şikayet (web gibi sayfa içinde); üst barda yalnız geri', async () => {
+  it('J30.2 paylaş/beğen/şikayet üst barın sağında (ürün detayı gibi); sahip çipi başlık kartında, adın altında', async () => {
     mockAuth = { isAuthenticated: true, user: { id: 'viewer-9', membershipTier: 'free' } };
     getMock.mockResolvedValue({ data: { data: collectionFixture({ likeCount: 5 }) } });
     renderWithProviders(<CollectionDetailScreen />);
     await waitFor(() => expect(screen.getByText('5 beğeni')).toBeOnTheScreen());
-    const header = screen.getByTestId('collection-header');
+    const bar = screen.getByTestId('screen-header-right');
     const actions = screen.getByTestId('collection-actions');
-    expect(within(header).getByTestId('collection-actions')).toBe(actions);
+    expect(within(bar).getByTestId('collection-actions')).toBe(actions);
     expect(within(actions).getByLabelText('Paylaş')).toBeOnTheScreen();
     expect(within(actions).getByLabelText('beğeni')).toBeOnTheScreen();
     expect(within(actions).getByLabelText('Koleksiyonu Şikayet Et')).toBeOnTheScreen();
-    // Üst bar: aksiyon yok, koleksiyon adı da yok.
-    const bar = screen.getByTestId('screen-header');
-    expect(within(bar).queryByLabelText('Paylaş')).toBeNull();
-    expect(within(bar).queryByText('Ferrari Koleksiyonum')).toBeNull();
+    const header = screen.getByTestId('collection-header');
+    expect(within(header).queryByTestId('collection-actions')).toBeNull();
+    expect(within(header).getByTestId('collection-owner-chip')).toBeOnTheScreen();
+    // Üst barda koleksiyon adı yok.
+    expect(within(screen.getByTestId('screen-header')).queryByText('Ferrari Koleksiyonum')).toBeNull();
   });
 
   it('J30.3 sahip yalnız paylaş görür (beğen/şikayet yok)', async () => {

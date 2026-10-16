@@ -29,7 +29,7 @@ export type LoginStep = 'email' | 'password' | 'googleOnly';
  */
 export function useLogin() {
   const { t } = useTranslation();
-  const { login } = useAuthStore();
+  const login = useAuthStore((s) => s.login);
   const [step, setStep] = useState<LoginStep>('email');
   const [notRegistered, setNotRegistered] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);

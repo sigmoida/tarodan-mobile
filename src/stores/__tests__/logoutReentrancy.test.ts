@@ -10,7 +10,6 @@
 jest.mock('@/lib/api', () => ({
   authApi: { logout: jest.fn(() => Promise.resolve()) },
   userApi: { getProfile: jest.fn() },
-  advanceSessionEpoch: jest.fn(),
 }));
 jest.mock('../../services/push', () => ({
   unregisterPushNotifications: jest.fn(() => Promise.resolve()),
@@ -21,7 +20,8 @@ jest.mock('../resetUserStores', () => ({
 }));
 
 import * as SecureStore from 'expo-secure-store';
-import { advanceSessionEpoch, authApi } from '@/lib/api';
+import { authApi } from '@/lib/api';
+import { getSessionEpoch } from '@/lib/api/sessionState';
 import { unregisterPushNotifications } from '../../services/push';
 import { resetUserStores } from '../resetUserStores';
 import * as paymentCapability from '@/lib/payment/paymentCapability';
@@ -61,11 +61,12 @@ beforeEach(async () => {
 
 describe('logout — hesap silindi (yalnız yerel)', () => {
   it('sunucu çağrısı yok; token, store ve kullanıcı state\'i temizlenir', async () => {
+    const epoch = getSessionEpoch();
     await useAuthStore.getState().logout({ reason: 'accountDeleted' });
 
     expect(mockUnregister).not.toHaveBeenCalled();
     expect(mockAuthLogout).not.toHaveBeenCalled();
-    expect(advanceSessionEpoch).toHaveBeenCalledTimes(1);
+    expect(getSessionEpoch()).toBe(epoch + 1);
     expect(mockDeleteItem).toHaveBeenCalledWith('accessToken');
     expect(mockDeleteItem).toHaveBeenCalledWith('refreshToken');
     expect(mockReset).toHaveBeenCalledWith('accountDeleted');
@@ -112,6 +113,7 @@ describe('logout — normal ve zorunlu çıkış değişmedi', () => {
 describe('logout — yeniden giriş koruması', () => {
   it('eşzamanlı çağrılar tek çıkışı paylaşır; ikinci çağrının sunucu/temizlik etkisi yok', async () => {
     let releasePush: () => void = () => {};
+    const epoch = getSessionEpoch();
     mockUnregister.mockImplementation(
       () => new Promise<void>((r) => (releasePush = r)),
     );
@@ -127,7 +129,7 @@ describe('logout — yeniden giriş koruması', () => {
 
     expect(mockUnregister).toHaveBeenCalledTimes(1);
     expect(mockAuthLogout).toHaveBeenCalledTimes(1);
-    expect(advanceSessionEpoch).toHaveBeenCalledTimes(1);
+    expect(getSessionEpoch()).toBe(epoch + 1);
     expect(mockReset).toHaveBeenCalledTimes(1);
     expect(mockReset).toHaveBeenCalledWith('user');
     expect(isLogoutInProgress()).toBe(false);

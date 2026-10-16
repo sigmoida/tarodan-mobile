@@ -81,7 +81,6 @@ jest.mock('expo-router', () => {
 import { PopupAd } from '../PopupAd';
 import { POPUP_AD_DELAY_MS, POPUP_LINK_RETURN_WINDOW_MS } from '@/lib/ads/usePopupAd';
 import { POPUP_AD_STORAGE_KEY, resetPopupFrequencyMemoryForTests } from '@/lib/ads/popupFrequency';
-import { SideMenuProvider, useSideMenu, type SideMenuApi } from '@/components/shell/SideMenuContext';
 import { NAVIGATE_AFTER_CLOSE_MS } from '../AdCreative';
 
 const popupAd = {
@@ -375,43 +374,6 @@ describe('PopupAd — açıkken engel (iOS: iki sunum aynı anda yok)', () => {
     await flush(POPUP_AD_DELAY_MS * 2);
     expect(queryByTestId('popup-ad')).toBeNull();
     expect(dismissedKeys()).toEqual([]);
-  });
-
-  describe('yan menü', () => {
-    let menu: SideMenuApi;
-    function Probe() {
-      menu = useSideMenu();
-      return null;
-    }
-    const renderWithMenu = () =>
-      render(
-        <SideMenuProvider>
-          <Probe />
-          <PopupAd />
-        </SideMenuProvider>,
-      );
-
-    it('yan menü açıkken popup açılmaz; kapanınca sayaç yeniden başlar', async () => {
-      setAds([popupAd]);
-      const { queryByTestId } = renderWithMenu();
-      act(() => menu.open());
-      await flush(POPUP_AD_DELAY_MS * 2);
-      expect(queryByTestId('popup-ad')).toBeNull();
-      act(() => menu.close());
-      await flush(POPUP_AD_DELAY_MS + 100);
-      expect(queryByTestId('popup-ad')).toBeTruthy();
-    });
-
-    it('popup açıkken yan menü açılırsa popup kapanır ("kapatıldı" yazılmaz)', async () => {
-      setAds([popupAd]);
-      const { queryByTestId } = renderWithMenu();
-      await flush(POPUP_AD_DELAY_MS + 100);
-      expect(queryByTestId('popup-ad')).toBeTruthy();
-      act(() => menu.open());
-      expect(queryByTestId('popup-ad')).toBeNull();
-      await flush(10);
-      expect(dismissedKeys()).toEqual([]);
-    });
   });
 });
 

@@ -1,24 +1,16 @@
 import { useState } from 'react';
-import { router } from 'expo-router';
 import { toast } from '@/ui';
-import { useAuthStore } from '@/stores/authStore';
 import { getRestrictionMessage, GuestAction } from '@/utils/guestRestrictions';
 
 /**
- * Profile actions controller — logout and the guest restriction toast/prompt state.
- * (Hesabı sil girişi Güvenlik ekranında: `settings/security`.) Lifted verbatim from ProfileScreen.
+ * Profile actions controller — the guest restriction toast/prompt state. Çıkış Ayarlar ekranında
+ * (`app/settings/_hooks/useSettingsScreen.ts`, tek kopya); hesabı sil Güvenlik ekranında.
  */
 export function useProfileActions() {
-  const { logout } = useAuthStore();
   const [showPrompt, setShowPrompt] = useState(false);
   const [promptType, setPromptType] = useState<
     'favorites' | 'message' | 'purchase' | 'trade' | 'collections'
   >('favorites');
-
-  const handleLogout = async () => {
-    await logout();
-    router.replace('/(auth)/login');
-  };
 
   const handleGuestAction = (action: GuestAction) => {
     const config = getRestrictionMessage(action);
@@ -36,7 +28,6 @@ export function useProfileActions() {
     showPrompt,
     setShowPrompt,
     promptType,
-    handleLogout,
     handleGuestAction,
   };
 }

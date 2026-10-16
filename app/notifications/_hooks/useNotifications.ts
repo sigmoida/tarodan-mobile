@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import type { Notification } from '../_lib/types';
 import { routeForNotification } from '../_lib/route';
 import { navigateTo } from '@/lib/navigation/goTo';
+import { trimInfiniteToFirstPage } from '@/lib/query/infinite';
 
 /**
  * Liste bu süreden taze sayılır: sekmeye dönüşte sessiz tazeleme yalnız bayatsa çalışır.
@@ -76,7 +77,10 @@ export function useNotifications() {
     queryKey: qk.notifications.list,
     queryFn: ({ pageParam }) => fetchNotifications(pageParam as number),
     initialPageParam: 1,
-    getNextPageParam: (last, all) => (last.hasMore ? all.length + 1 : undefined),
+    getNextPageParam: (last, _all, lastPageParam) =>
+      last.hasMore ? (lastPageParam as number) + 1 : undefined,
+    // NOT: `maxPages` bilerek YOK (`useSearch` ile aynı gerekçe): `getPreviousPageParam` olmadan
+    // ~100 bildirimden sonra 1. sayfa düşer, liste sıçrar ve sayaç (yalnız 1. sayfada) kaybolur.
     enabled: isAuthenticated,
     staleTime: LIST_STALE_MS,
   });
@@ -120,10 +124,17 @@ export function useNotifications() {
         list: prev.list.map((n) => (n.id === id ? { ...n, read: true, isRead: true } : n)),
         unreadCount: Math.max(0, prev.unreadCount - 1),
       }));
+      // Anasayfa rozeti ayrı sorgu — iyimser düşür (sunucu sayısı onSettled'da doğrulanır).
+      queryClient.setQueryData<number>(qk.notifications.unread, (n) =>
+        typeof n === 'number' ? Math.max(0, n - 1) : n,
+      );
+    },
+    onError: () => {
+      // Tek satır yazımı başarısız: iyimser düzenlemeyi geri almak için YALNIZ hatada liste tazelenir.
+      queryClient.invalidateQueries({ queryKey: qk.notifications.list });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: qk.notifications.list });
-      // Anasayfa rozeti ayrı sorgu — o da tazelensin.
+      // Önbellek iyimser olarak zaten düzeltildi → listeyi (yüklü TÜM sayfaları) yeniden çekme.
       queryClient.invalidateQueries({ queryKey: qk.notifications.unread });
     },
   });
@@ -160,11 +171,13 @@ export function useNotifications() {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
+      // Yüklü TÜM sayfaları sırayla çekmek yerine ilk sayfaya kırp (tek istek).
+      trimInfiniteToFirstPage(queryClient, qk.notifications.list);
       await refetch();
     } finally {
       setRefreshing(false);
     }
-  }, [refetch]);
+  }, [refetch, queryClient]);
 
   const handlePress = useCallback(
     (notification: Notification) => {
@@ -184,6 +197,11 @@ export function useNotifications() {
     isAuthenticated,
     notifications: data.list,
     loading: query.isLoading,
+    /** İlk sayfa alınamadı (liste boş) — "henüz bildirim yok" değil, ErrorState + yeniden dene. */
+    loadFailed: query.isError && data.list.length === 0,
+    retry: () => {
+      void refetch();
+    },
     refreshing,
     unreadCount: data.unreadCount,
     handleRefresh,

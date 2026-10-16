@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Badge, Button, SectionCard, Spinner, theme } from '@/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { paymentsApi } from '@/lib/api';
@@ -142,9 +143,9 @@ export default function PaymentSuccessScreen() {
       // Takas nakit farkı ödemesi: takasa dön + ilgili query'leri tazele (web ile parite).
       const paidTradeId = tradeId || last?.tradeId;
       if (paidTradeId) {
-        queryClient.invalidateQueries({ queryKey: ['trade'] });
-        queryClient.invalidateQueries({ queryKey: ['trades'] });
-        queryClient.invalidateQueries({ queryKey: ['trades-status-counts'] });
+        // `trades.all` Takaslarım segment sayaçlarını da kapsar (status-counts onun altında).
+        queryClient.invalidateQueries({ queryKey: qk.trades.detailAll });
+        queryClient.invalidateQueries({ queryKey: qk.trades.all });
         router.replace(`/trade/${paidTradeId}` as any);
         return;
       }

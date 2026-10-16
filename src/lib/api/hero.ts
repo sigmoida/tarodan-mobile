@@ -1,4 +1,5 @@
 import { guestApi } from "./client";
+import { apiPath } from "./path";
 
 /**
  * Vitrin hero'su ve güven rozetleri — admin'den yönetilir, web ile aynı içerik.
@@ -57,7 +58,7 @@ export const heroApi = {
 
   /** Gösterim sayacı — slayt ilk göründüğünde; ateşle-unut, 204. */
   recordImpression: (id: string) =>
-    guestApi.post(`/hero-slides/${encodeURIComponent(id)}/impression`),
+    guestApi.post(apiPath`/hero-slides/${id}/impression`),
 
   /**
    * Tık sayacı. `cta` verilmezse slayt görseline dokunuş, 1|2 ise butona
@@ -65,7 +66,7 @@ export const heroApi = {
    * istek atılmaz).
    */
   recordClick: (id: string, cta?: 1 | 2) =>
-    guestApi.post(`/hero-slides/${encodeURIComponent(id)}/click`, undefined, {
+    guestApi.post(apiPath`/hero-slides/${id}/click`, undefined, {
       params: cta ? { cta } : undefined,
     }),
 };

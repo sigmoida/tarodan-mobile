@@ -38,7 +38,12 @@ const mockRefreshUserData = jest.fn(() => Promise.resolve(null));
 let mockUser: Record<string, unknown> | null;
 jest.mock('@/stores/authStore', () => ({
   useAuthStore: (sel?: (state: Record<string, unknown>) => unknown) => {
-    const state: Record<string, unknown> = { isAuthenticated: true, user: mockUser, refreshUserData: mockRefreshUserData };
+    const state: Record<string, unknown> = {
+      isAuthenticated: true,
+      profileValidated: true,
+      user: mockUser,
+      refreshUserData: mockRefreshUserData,
+    };
     return sel ? sel(state) : state;
   },
 }));

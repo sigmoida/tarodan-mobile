@@ -68,7 +68,7 @@ env:
       text: ".*başarı.*|Sipariş.*tamamland.*|Tamamlandı"
     timeout: 30000
 # Yan menü → Siparişlerim → yeni sipariş görünür
-- runFlow: ../subflows/open-side-menu.yaml
+- runFlow: ../subflows/open-profile-menu.yaml
 - tapOn:
     id: "profile-orders-link"
 - assertVisible: "ORD-"

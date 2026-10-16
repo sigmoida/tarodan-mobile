@@ -4,7 +4,7 @@ import { theme } from '@/ui';
 const { colors, spacing, radius, radiusRole } = theme;
 
 /** 2FA QR görseli kenarı (pt) — web `width={200}`. */
-const QR_SIZE = 200;
+export const QR_SIZE = 200;
 /** Adım numarası dairesi (web `h-6 w-6`). */
 const STEP_DOT = spacing[6];
 

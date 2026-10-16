@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, SectionCard, SkeletonCard, Text } from '@/ui';
+import { EmptyState, ErrorState, SectionCard, SkeletonCard, Text } from '@/ui';
 import { ProductCard } from '@/components/product';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { styles } from '../_lib/styles';
@@ -65,6 +65,8 @@ export function ModelProductsGrid({ f }: { f: ModelDetailController }) {
             <SkeletonCard />
           </View>
         </View>
+      ) : productsQuery.isError && products.length === 0 ? (
+        <ErrorState placement="inline" onRetry={() => productsQuery.refetch()} testID="model-products-error" />
       ) : products.length === 0 ? (
         <EmptyState icon="cube" title={t('home.noProductsYet')} subtitle={t('models.noProductsForModel')} />
       ) : (

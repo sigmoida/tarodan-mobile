@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
-import { CountBadge, ScreenHeader, TopBarAction, TopBarLabel, theme } from '@/ui';
+import { CountBadge, RawText, ScreenHeader, TopBarAction, TopBarLabel, theme } from '@/ui';
 
 const { colors } = theme;
 const flat = (id: string) => StyleSheet.flatten(screen.getByTestId(id).props.style);
@@ -92,13 +92,20 @@ describe('ScreenHeader — yüzen cam butonlu, ortalı başlıklı bar', () => {
     expect(screen.getByText('3/5')).toBeTruthy();
   });
 
-  it('varsayılan YÜZEN: absolute, zeminsiz, kenar şeridi var (bağlı değilse sabit)', () => {
+  it('varsayılan YÜZEN: absolute, zeminsiz; kaydırma sinyali yoksa kenar şeridi de yok', () => {
     render(<ScreenHeader title="X" />);
     const bar = flat('screen-header');
     expect(bar).toMatchObject({ position: 'absolute', top: 0, left: 0, right: 0 });
     expect(bar.backgroundColor).toBeUndefined();
-    expect(screen.getByTestId('screen-header-edge')).toBeTruthy();
-    expect(flat('screen-header-edge').backgroundColor).toBe(colors.overlay.white95);
+    expect(screen.queryByTestId('screen-header-edge')).toBeNull();
+  });
+
+  it('titleFill: özel içerik kalan genişliği doldurur; sol slot sabit genişlik almaz, sağ slot yoksa çizilmez', () => {
+    render(<ScreenHeader title="Ara" titleFill titleSlot={<RawText>arama</RawText>} onBack={() => undefined} />);
+    expect(flat('screen-header-left').width).toBeUndefined();
+    expect(screen.queryByTestId('screen-header-right')).toBeNull();
+    expect(screen.queryByText('Ara')).toBeNull();
+    expect(screen.getByText('arama')).toBeTruthy();
   });
 
   it('floating={false}: akışta, opak surface-elevated zemin, kenar şeridi yok', () => {

@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -8,13 +9,26 @@ import { styles } from '../_lib/styles';
 import { useSalesStatusConfig, saleBadgeStatus, formatDate } from '../_lib/status';
 import { formatPrice, PRICE_PLACEHOLDER } from '@/utils/format';
 import type { Sale } from '../_lib/types';
-import type { SaleActionsController } from '../_hooks/useSaleActions';
+
+interface SaleCardProps {
+  sale: Sale;
+  /** "Hazırlanıyor olarak işaretle" (onay diyaloğunu açar). Kararlı referans — memo bozulmasın. */
+  onPrepare: (sale: Sale) => void;
+  /** "Kargoya ver" (gönderim diyaloğunu açar). Kararlı referans. */
+  onShip: (sale: Sale) => void;
+  /** Bu satış için durum mutasyonu sürüyor mu (yalnız kendi satırı yeniden çizilsin diye boolean). */
+  isUpdating?: boolean;
+}
 
 /** Tek bir satış kartı — durum rozeti, ürün/alıcı, tutar ve durum-bazlı aksiyonlar. */
-export function SaleCard({ sale, actions }: { sale: Sale; actions: SaleActionsController }) {
+export const SaleCard = React.memo(function SaleCard({
+  sale,
+  onPrepare,
+  onShip,
+  isUpdating = false,
+}: SaleCardProps) {
   const { t } = useTranslation();
   const salesStatusConfig = useSalesStatusConfig();
-  const { updateStatusMutation, handleMarkAsProcessing, setShipDialog } = actions;
 
   return (
     <SectionCard bodyStyle={styles.saleCard}>
@@ -59,11 +73,8 @@ export function SaleCard({ sale, actions }: { sale: Sale; actions: SaleActionsCo
           <Button
             variant="primary"
             title={t('order.markAsPreparing')}
-            onPress={() => handleMarkAsProcessing(sale)}
-            isLoading={
-              updateStatusMutation.isPending &&
-              updateStatusMutation.variables?.orderId === sale.id
-            }
+            onPress={() => onPrepare(sale)}
+            isLoading={isUpdating}
           />
         </View>
       )}
@@ -73,10 +84,10 @@ export function SaleCard({ sale, actions }: { sale: Sale; actions: SaleActionsCo
           <Button
             variant="primary"
             title={t('sale.shipCta')}
-            onPress={() => setShipDialog({ visible: true, order: sale })}
+            onPress={() => onShip(sale)}
           />
         </View>
       )}
     </SectionCard>
   );
-}
+});

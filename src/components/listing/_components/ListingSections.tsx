@@ -15,6 +15,5 @@ export { ListingPricingSection } from '../_sections/ListingPricingSection';
 export { ListingShippingSection } from '../_sections/ListingShippingSection';
 export {
   ListingSubmitBar,
-  ListingDeleteButton,
   ListingRemovalOverlay,
 } from '../_sections/ListingSubmitBar';

@@ -73,7 +73,7 @@ env:
 - assertNotVisible: ".*Network Error.*"
 - assertNotVisible: ".*hata oluştu.*"
 # Yan menü → Siparişlerim — yeni sipariş listede
-- runFlow: ../subflows/open-side-menu.yaml
+- runFlow: ../subflows/open-profile-menu.yaml
 - scrollUntilVisible:
     element:
       id: "profile-orders-link"

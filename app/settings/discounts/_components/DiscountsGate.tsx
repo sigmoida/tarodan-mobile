@@ -12,7 +12,8 @@ import { useAuthStore } from '@/stores/authStore';
  */
 export function DiscountsGate({ title }: { title?: string } = {}) {
   const { t } = useTranslation();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const barTitle = title ?? t('discount.myDiscountsTitle');
 
   if (!isAuthenticated) {

@@ -4,6 +4,7 @@ import {
   StyleSheet,
   View,
   type StyleProp,
+  type TextInput,
   type TextInputProps,
   type TextStyle,
   type ViewStyle,
@@ -39,6 +40,8 @@ export interface InputProps extends TextInputProps {
   /** Style merged into the bordered field wrapper (e.g. to square corners). */
   fieldStyle?: StyleProp<ViewStyle>;
   inputStyle?: TextStyle;
+  /** İçteki TextInput'un ref'i (programatik odak: ör. geçiş animasyonu bitince `focus()`). */
+  inputRef?: React.Ref<TextInput>;
 }
 
 const { colors, spacing, iconSize } = theme;
@@ -63,6 +66,7 @@ export const Input: React.FC<InputProps> = ({
   onFocus,
   onBlur,
   editable,
+  inputRef,
   ...rest
 }) => {
   const { t } = useTranslation();
@@ -111,6 +115,7 @@ export const Input: React.FC<InputProps> = ({
       >
         {resolvedLeftIcon && <View style={styles.iconLeft}>{resolvedLeftIcon}</View>}
         <RawTextInput
+          ref={inputRef}
           style={[
             styles.input,
             { fontSize: ss.font, color: colors.text.body },

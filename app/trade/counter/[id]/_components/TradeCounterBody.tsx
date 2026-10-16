@@ -1,8 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
-import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Chip, Input, SectionCard, Text, Textarea, theme, Icon } from '@/ui';
+import { Alert, Button, ButtonRow, Chip, Input, SectionCard, Text, Textarea, theme, Icon } from '@/ui';
 
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
@@ -11,7 +10,7 @@ import type { TradeCounterController } from '../_hooks/useTradeCounter';
 
 const { colors } = theme;
 
-/** Notice, product pickers, cash, message, summary, and submit/cancel buttons (SectionCard dizisi). */
+/** Notice, product pickers, cash, message, summary (SectionCard dizisi). Düğmeler alt barda (`TradeCounterFooter`). */
 export function TradeCounterBody({ f }: { f: TradeCounterController }) {
   const { t } = useTranslation();
   const { trade } = f;
@@ -73,7 +72,6 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
           onChangeText={(v: string) => f.setMessage(v.slice(0, 500))}
           rows={3}
           placeholder={t('trade.counterMessagePlaceholderLong')}
-          containerStyle={styles.messageInput}
         />
         <Text variant="caption" tone="subtle" align="right">{f.message.length}/500</Text>
       </SectionCard>
@@ -102,18 +100,29 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
           {t('trade.counterSummaryHint', { myCount: f.selectedMine.length, theirCount: f.selectedTheirs.length })}
         </Text>
       </SectionCard>
+    </>
+  );
+}
 
+/**
+ * Sabit alt bar (PageShell `footer`): [Vazgeç][Karşı Teklif Gönder] — diğer akış ekranlarıyla aynı
+ * yerleşim. API iki tarafta da en az 1 ürün ister: biri boşsa gönder pasif.
+ */
+export function TradeCounterFooter({ f }: { f: TradeCounterController }) {
+  const { t } = useTranslation();
+  return (
+    <ButtonRow>
+      {/* Üst bardaki geri okuyla aynı işleyici: geçmiş yoksa (bildirim / derin bağlantı) /trades'e döner. */}
+      <Button variant="outline" size="lg" title={t('trade.dispute.cancelCta')} onPress={f.handleBack} />
       <Button
         variant="primary"
-        fullWidth
+        size="lg"
         title={t('trade.sendCounterOffer')}
         onPress={f.handleSubmit}
         testID="trade-counter-submit"
         isLoading={f.submitPending}
-        disabled={f.submitPending || (f.selectedMine.length === 0 && f.selectedTheirs.length === 0)}
+        disabled={f.submitPending || f.selectedMine.length === 0 || f.selectedTheirs.length === 0}
       />
-
-      <Button variant="ghost" title={t('trade.dispute.cancelCta')} onPress={() => router.back()} />
-    </>
+    </ButtonRow>
   );
 }

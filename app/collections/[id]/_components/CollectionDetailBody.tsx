@@ -3,7 +3,7 @@ import { View, Pressable } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Alert, Avatar, Button, EmptyState, IconButton, SectionCard, Text, theme, Icon } from '@/ui';
+import { Alert, Avatar, Button, EmptyState, GlassIconButton, SectionCard, Text, theme, Icon } from '@/ui';
 import { ProductCard } from '@/components/product';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import UpgradeCta from '@/components/UpgradeCta';
@@ -30,15 +30,14 @@ function toCardProduct(item: any, fallbackTitle: string) {
 }
 
 /**
- * Başlık kartının aksiyonları (web `CollectionHeaderCard` sağ grubu): paylaş herkese; beğen ve
- * şikayet yalnız sahibi olmayana. Üst bar yerine adın altında akışta durur — dar ekranda ve büyük
- * yazıda (360pt, ölçek 1.3) kapağın yanındaki sütuna sığar, her düğme ≥ 44pt dokunma alanlı.
+ * Üst barın sağ grubu (PageShell `right`) — ürün detayıyla aynı düzen ve sıra (cam daireler, 44pt):
+ * paylaş herkese; beğen (dolu = danger) ve şikayet bayrağı yalnız sahibi olmayana.
  */
-function CollectionHeaderActions({ f, onReport }: { f: CollectionDetailController; onReport: () => void }) {
+export function CollectionTopActions({ f, onReport }: { f: CollectionDetailController; onReport: () => void }) {
   const { t } = useTranslation();
   return (
-    <View style={styles.headActions} testID="collection-actions">
-      <IconButton
+    <View style={styles.topActions} testID="collection-actions">
+      <GlassIconButton
         testID="collection-share-button"
         icon="share"
         accessibilityLabel={t('collection.share')}
@@ -46,16 +45,16 @@ function CollectionHeaderActions({ f, onReport }: { f: CollectionDetailControlle
       />
       {!f.isOwner ? (
         <>
-          <IconButton
+          <GlassIconButton
             testID="collection-like-button"
             icon="heart"
             iconVariant={f.isLiked ? 'solid' : 'outline'}
-            variant={f.isLiked ? 'danger' : 'ghost'}
+            iconColor={f.isLiked ? colors.danger[500] : undefined}
             accessibilityLabel={t('collection.likes')}
-            accessibilityState={{ selected: f.isLiked }}
+            selected={f.isLiked}
             onPress={f.handleLike}
           />
-          <IconButton
+          <GlassIconButton
             testID="collection-report-button"
             icon="flag"
             accessibilityLabel={t('collection.report')}
@@ -68,7 +67,7 @@ function CollectionHeaderActions({ f, onReport }: { f: CollectionDetailControlle
 }
 
 /** Başlık kartı (web `CollectionHeaderCard`), içerik kartı (öğeler) ve misafir bilgilendirmesi. */
-export function CollectionDetailBody({ f, onReport }: { f: CollectionDetailController; onReport: () => void }) {
+export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
   const { t } = useTranslation();
   const { collection, items, id } = f;
   // Kalp yalnız pazaryeri ürünü olan kalemde ve koleksiyon sahibi olmayana (sahibin kalemleri kendi ilanı).
@@ -93,21 +92,21 @@ export function CollectionDetailBody({ f, onReport }: { f: CollectionDetailContr
                 {collection.description}
               </Text>
             ) : null}
-            <CollectionHeaderActions f={f} onReport={onReport} />
+            {/* Sahibi (profiline gider) — paylaş/beğen/şikayet üst barda; çip onların eski yerinde. */}
+            <Pressable
+              style={styles.ownerChip}
+              disabled={!collection.userId}
+              onPress={() => collection.userId && router.push(`/seller/${collection.userId}`)}
+              accessibilityRole="button"
+              testID="collection-owner-chip"
+            >
+              <Avatar size="sm" name={collection.userName || t('collection.anonymous')} />
+              <Text variant="bodySm" weight="medium" numberOfLines={1} style={styles.ownerName}>
+                {collection.userName}
+              </Text>
+            </Pressable>
           </View>
         </View>
-
-        <Pressable
-          style={styles.ownerChip}
-          disabled={!collection.userId}
-          onPress={() => collection.userId && router.push(`/seller/${collection.userId}`)}
-          accessibilityRole="button"
-        >
-          <Avatar size="sm" name={collection.userName || t('collection.anonymous')} />
-          <Text variant="bodySm" weight="medium">
-            {collection.userName}
-          </Text>
-        </Pressable>
 
         <View style={styles.counters}>
           <View style={styles.counter}>

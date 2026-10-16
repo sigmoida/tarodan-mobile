@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
 import { api } from '@/lib/api';
+import { apiPath } from '@/lib/api/path';
 // Doğrudan modül yolu: testler `@/lib/api` barrel'ını mock'luyor.
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { qk, useAppMutation } from '@/lib/query';
@@ -52,7 +53,7 @@ export function useSaveAddress({
         zipCode: postalCode.trim(),
       };
       return addressId
-        ? api.patch(`/users/me/addresses/${addressId}`, payload)
+        ? api.patch(apiPath`/users/me/addresses/${addressId}`, payload)
         : api.post('/users/me/addresses', payload);
     },
     {

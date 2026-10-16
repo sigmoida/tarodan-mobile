@@ -9,7 +9,7 @@ import { unavailableReason } from '../_lib/status';
  * Ödemeye dahil EDİLMEYEN satırlar. Bu kart yalnız bilgilendirir — tutarların
  * hiçbiri buradan türetilmez, toplam `pricing.summary.total`'dır.
  */
-export function CheckoutUnavailableItems({
+export const CheckoutUnavailableItems = React.memo(function CheckoutUnavailableItems({
   items,
   titleFor,
 }: {
@@ -42,4 +42,4 @@ export function CheckoutUnavailableItems({
       </View>
     </Alert>
   );
-}
+});

@@ -26,7 +26,8 @@ export const styles = StyleSheet.create({
     borderColor: colors.border.DEFAULT,
     backgroundColor: colors.surface.alt,
   },
-  itemInfo: { flex: 1, minWidth: 0, alignSelf: 'stretch', gap: spacing[1] },
+  // Başlık · stok rozeti · adet/fiyat satırı arasında nefes payı (8); kart bu yüzden biraz uzar.
+  itemInfo: { flex: 1, minWidth: 0, alignSelf: 'stretch', gap: spacing[2] },
   // Başlık + sağ üstte kaldır.
   itemHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing[1] },
   itemTitle: { flex: 1, minWidth: 0 },

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
+import { apiPath } from '@/lib/api/path';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { toast } from '@/ui';
 import { useCreateThread, useDailyMessageLimit } from '@/hooks/messaging';
@@ -48,11 +50,11 @@ export function useNewMessage() {
 
   // Fetch recipient profile if a recipient id is provided (seller, product, or trade context)
   const { data: preselectedUser } = useQuery({
-    queryKey: ['user', recipientId],
+    queryKey: qk.user.detail(recipientId ?? ''),
     queryFn: async () => {
       if (!recipientId) return null;
       try {
-        const response = await api.get(`/users/${recipientId}/profile`);
+        const response = await api.get(apiPath`/users/${recipientId}/profile`);
         const profile = response.data?.data || response.data;
         if (!profile?.id) return null;
         return {
@@ -76,11 +78,11 @@ export function useNewMessage() {
 
   // Fetch product details if productId is provided
   const { data: product } = useQuery({
-    queryKey: ['product', productId],
+    queryKey: qk.products.composeSummary(productId ?? ''),
     queryFn: async () => {
       if (!productId) return null;
       try {
-        const response = await api.get(`/products/${productId}`);
+        const response = await api.get(apiPath`/products/${productId}`);
         return response.data;
       } catch (error) {
         return null;

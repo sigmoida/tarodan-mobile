@@ -22,8 +22,8 @@ const mockCheck = authApi.checkUsernameAvailability as jest.Mock;
 //
 // ⚠️ Burada BİLEREK `retry: false` verilmiyor: hook'un kendi `retry: false`
 // ayarını (429'da sessizce yeniden denememesi) gerçekten test edebilmek için
-// wrapper prod varsayılanlarını (`src/lib/query/client.ts` → `retry: 2`) taklit
-// etmeli. Wrapper retry'ı kapatırsa 429 testi hook'tan bağımsız yeşil kalırdı.
+// wrapper prod gibi retry'ı AÇIK bırakmalı (`src/lib/query/client.ts` ağ/5xx hatasını
+// yeniden dener). Wrapper retry'ı kapatırsa 429 testi hook'tan bağımsız yeşil kalırdı.
 const Wrapper = ({ children }: { children: React.ReactNode }) => {
   const [client] = useState(() => new QueryClient());
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
