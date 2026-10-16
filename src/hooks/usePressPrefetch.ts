@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-/** Basılı tutma bu süreyi kaydırma olmadan aşarsa önceden çekilir (ms). */
-export const PRESS_PREFETCH_DELAY_MS = 100;
+/**
+ * Basılı tutma bu süreyi kaydırma olmadan aşarsa önceden çekilir (ms). Pressable'ın varsayılan
+ * `minPressDuration`'ından (~130 ms) GÜVENLE uzun olmalı: kaydırmaya dönen dokunuşun `onPressOut`'u
+ * o süre kadar gecikebilir; daha kısa bir gecikmede zamanlayıcı pressOut'tan önce ateşlenip
+ * kaydırırken yine çekiyordu. Gerçek dokunuş `onPress`'te zaten hemen çeker.
+ */
+export const PRESS_PREFETCH_DELAY_MS = 200;
 
 /**
  * Kart dokunuşunda önceden çekme — kaydırırken TETİKLENMEZ (mobil veri).
  *
  * Eski davranış `onPressIn`'de hemen çekiyordu: listeyi kaydırmak için parmağı bir karta koymak
  * bile istek atıyordu. Şimdi:
- * - `onPressIn` → `PRESS_PREFETCH_DELAY_MS` sonra çekmeyi zamanla;
+ * - `onPressIn` → `PRESS_PREFETCH_DELAY_MS` (200 ms) sonra çekmeyi zamanla;
  * - `onPressOut` → bekleyen zamanlamayı iptal et (kaydırma başlayınca Pressable yanıtlayıcıyı
  *   bırakır → `onPressOut` gelir, `onPress` GELMEZ);
  * - `onPress` (gerçek dokunuş) → hemen çek. Basılı tutmada zaten çekildiyse `prefetchQuery`
