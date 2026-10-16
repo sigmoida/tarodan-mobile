@@ -22,6 +22,10 @@ const EXPECTED = [
   'NSPrivacyCollectedDataTypeDeviceID',
   'NSPrivacyCollectedDataTypeCrashData',
   'NSPrivacyCollectedDataTypePerformanceData',
+  // IBAN / banka hesabı (ödeme alma), uygulama içi mesajlaşma, sunucuda saklanan kayıtlı aramalar.
+  'NSPrivacyCollectedDataTypeOtherFinancialInfo',
+  'NSPrivacyCollectedDataTypeEmailsOrTextMessages',
+  'NSPrivacyCollectedDataTypeSearchHistory',
 ];
 
 it('beklenen veri türleri birer kez listelenir', () => {
