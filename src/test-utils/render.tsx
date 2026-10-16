@@ -2,12 +2,15 @@ import React from 'react';
 import { render, type RenderOptions } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-/** Test için react-query client (retry kapalı, gcTime 0). */
+/**
+ * Test için react-query client (retry kapalı, gcTime 0). `networkMode: 'always'` üretimle aynı
+ * (`@/lib/query/client`): onlineManager çevrimdışıyken testte sorgu/mutasyon duraklamasın.
+ */
 export function makeTestQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-      mutations: { retry: false },
+      queries: { retry: false, gcTime: 0, networkMode: 'always' },
+      mutations: { retry: false, networkMode: 'always' },
     },
   });
 }

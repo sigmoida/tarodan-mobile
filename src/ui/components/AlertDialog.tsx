@@ -392,9 +392,11 @@ export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = fa
    * düğmesine (yoksa tek düğmeye) basmak sayılır; ardından `options.onDismiss` de çalışır.
    */
   const close = (button?: AlertDialogButton, dismissed = false) => {
-    if (!current || closingRef.current) return; // çift basış: ikinci kapanış yok
+    // `current` state'i değil ref: `showRequest` ile yeniden çizim arasındaki pencerede
+    // (`dismissAlert` erken gelirse) state hâlâ eski/null olurdu ve kapanış düşerdi.
+    const request = currentRef.current;
+    if (!request || closingRef.current) return; // çift basış: ikinci kapanış yok
     closingRef.current = true;
-    const request = current;
     try {
       button?.onSelect?.();
     } finally {

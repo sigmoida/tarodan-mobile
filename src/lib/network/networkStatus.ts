@@ -1,33 +1,45 @@
-import { useSyncExternalStore } from 'react';
 import { logger, safeError } from '@/services/logger';
 import { getNetInfo, type NetInfoStateLike } from './netinfo';
 
 /**
- * Bağlantı durumu — modül düzeyinde TEK kaynak (React dışında; `useSyncExternalStore` ile okunur).
- * Yalnız istemci durumu: sunucu verisi değil, fetch yok (CLAUDE.md §8).
+ * Bağlantı durumu — modül düzeyinde TEK karar noktası (React dışında; sunucu verisi değil, fetch
+ * yok: CLAUDE.md §8). Hem çevrimdışı diyaloğu hem TanStack `onlineManager` AYNI kararı dinler
+ * (`subscribeOnline`), ham NetInfo olayını değil: kısa titreşimler hiçbirini tetiklemez
+ * (diyalog çıkmaz, `refetchOnReconnect` fırtınası olmaz).
  *
- * Çevrimdışı = cihaz ağa bağlı DEĞİL (`isConnected === false`) YA DA ağa bağlı ama internete
- * ulaşılamıyor (`isInternetReachable === false`; ör. veri bitmiş, sınırsız Wi-Fi). `null` (henüz
- * bilinmiyor: iOS'ta ilk olay, modül yok) ÇEVRİMİÇİ sayılır — yanlış alarm vermektense susar.
+ * Karar kuralı:
+ * - `isConnected === false` (ağ yok): `OFFLINE_CONFIRM_MS` boyunca kesintisiz sürerse çevrimdışı.
+ * - yalnız `isInternetReachable === false` (ağ var, probe başarısız): `REACHABILITY_PERSISTENCE_MS`
+ *   sürerse VE o anda yapılan ikinci bir sınama (`refresh`) da başarısızsa çevrimdışı. Tek bir
+ *   yavaş/engelli probe (yavaş hücresel, arka plandan dönüş) çevrimdışı demek değildir.
+ * - çevrimiçine dönüş ANINDA yayınlanır (`null` = bilinmiyor çevrimiçi sayılır; olay akışında).
+ * - `refresh` sonucu `isInternetReachable == null` ise "bilinmiyor": önceki karar korunur, yalnız
+ *   kesin `true` çevrimiçi yapar (iOS'ta refresh sonrası reachability geçici `null` olur).
  */
-export function deriveOnline(state: NetInfoStateLike): boolean {
-  return !(state.isConnected === false || state.isInternetReachable === false);
-}
+export const OFFLINE_CONFIRM_MS = 1800;
+export const REACHABILITY_PERSISTENCE_MS = 4000;
 
 let online = true;
-let known = false; // en az bir gerçek ölçüm geldi mi
 let stopNative: (() => void) | null = null;
 let startCount = 0;
+let confirmTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingNoNetwork = false;
+/** Doğrulama sayacı: iptal edilen/eskiyen zamanlayıcı ve `refresh` sonuçları yok sayılır. */
+let epoch = 0;
 const listeners = new Set<(online: boolean) => void>();
 
-function apply(state: NetInfoStateLike): boolean {
-  const next = deriveOnline(state);
-  known = true;
-  if (next !== online) {
-    online = next;
-    for (const l of [...listeners]) l(next);
+function publish(next: boolean): void {
+  if (next === online) return;
+  online = next;
+  for (const l of [...listeners]) l(next);
+}
+
+function cancelConfirm(): void {
+  epoch += 1;
+  if (confirmTimer !== null) {
+    clearTimeout(confirmTimer);
+    confirmTimer = null;
   }
-  return next;
 }
 
 /** Şu an çevrimiçi mi (ölçüm yoksa / modül yoksa `true`). */
@@ -35,12 +47,12 @@ export function isOnline(): boolean {
   return online;
 }
 
-/** En az bir gerçek ölçüm geldi mi (`false`: izleme kapalı ya da modül yok). */
-export function isNetworkStatusKnown(): boolean {
-  return known;
+/** Çevrimdışı şüphesi var ama karar henüz verilmedi (doğrulama bekliyor). */
+export function isOfflinePending(): boolean {
+  return confirmTimer !== null;
 }
 
-/** Durum DEĞİŞTİĞİNDE çağrılır (abonelikte anlık çağrı yok). Dönen fonksiyon aboneliği bırakır. */
+/** Karar DEĞİŞTİĞİNDE çağrılır (abonelikte anlık çağrı yok). Dönen fonksiyon aboneliği bırakır. */
 export function subscribeOnline(listener: (online: boolean) => void): () => void {
   listeners.add(listener);
   return () => {
@@ -48,11 +60,73 @@ export function subscribeOnline(listener: (online: boolean) => void): () => void
   };
 }
 
+/** Kesin çevrimdışı mı (bir olay ya da `refresh` sonucu). */
+function isOfflineState(state: NetInfoStateLike): boolean {
+  return state.isConnected === false || state.isInternetReachable === false;
+}
+
+/** Çevrimdışı şüphesinde (henüz kesin değil) doğrulama başlatır; zaten bekliyorsa dokunmaz. */
+function armConfirm(state: NetInfoStateLike): void {
+  if (!online) return;
+  const noNetwork = state.isConnected === false;
+  if (confirmTimer !== null) {
+    // Aynı türde şüphe zaten doğrulanıyor; yalnız "ağ yok"a yükselme kısa süreyi yeniden kurar.
+    if (pendingNoNetwork || !noNetwork) return;
+    cancelConfirm();
+  }
+  pendingNoNetwork = noNetwork;
+  const myEpoch = epoch;
+  confirmTimer = setTimeout(
+    () => {
+      confirmTimer = null;
+      if (myEpoch !== epoch) return;
+      if (noNetwork) {
+        publish(false);
+        return;
+      }
+      // Ağ var ama probe başarısız: ikinci bir sınama yap, o da başarısızsa çevrimdışı.
+      const netInfo = getNetInfo();
+      if (!netInfo) return;
+      void netInfo
+        .refresh()
+        .then((fresh) => {
+          if (myEpoch !== epoch) return;
+          applyDefinitive(fresh);
+        })
+        .catch((err) => logger.warn('NetInfo confirm refresh failed', { err: safeError(err) }));
+    },
+    noNetwork ? OFFLINE_CONFIRM_MS : REACHABILITY_PERSISTENCE_MS,
+  );
+}
+
+/** Olay akışı: çevrimdışı şüphe → doğrulama; aksi halde (null dahil) hemen çevrimiçi. */
+function applyEvent(state: NetInfoStateLike): void {
+  if (isOfflineState(state)) {
+    armConfirm(state);
+    return;
+  }
+  cancelConfirm();
+  publish(true);
+}
+
+/**
+ * Kesin sonuç (kullanıcı "Tekrar dene" / doğrulama `refresh`'i): çevrimdışı hemen yayınlanır; `null`
+ * (bilinmiyor) önceki kararı korur, yalnız kesin `true` çevrimiçi yapar.
+ */
+function applyDefinitive(state: NetInfoStateLike): boolean {
+  cancelConfirm();
+  if (isOfflineState(state)) {
+    publish(false);
+  } else if (state.isConnected === true && state.isInternetReachable === true) {
+    publish(true);
+  }
+  return online;
+}
+
 /**
  * Native izlemeyi başlatır (sayaçlı: her başlatan kendi `stop`'unu çağırır, son çıkış izlemeyi
- * keser). Durum `addEventListener` ile gelir (açılış durumu da: başlangıç `true` varsayımından
- * farklıysa, yani çevrimdışı açılışta, ilk ölçüm bir geçiş olarak yayınlanır), ek olarak `fetch`
- * ile. Modül yoksa no-op.
+ * keser). NetInfo abonelikte güncel durumu hemen yollar: çevrimdışı açılış da aynı kuraldan geçer.
+ * Modül yoksa no-op.
  */
 export function startNetworkTracking(): () => void {
   startCount += 1;
@@ -60,15 +134,7 @@ export function startNetworkTracking(): () => void {
     const netInfo = getNetInfo();
     if (netInfo) {
       try {
-        stopNative = netInfo.addEventListener((state) => {
-          apply(state);
-        });
-        netInfo
-          .fetch()
-          .then((state) => {
-            apply(state);
-          })
-          .catch((err) => logger.warn('NetInfo fetch failed', { err: safeError(err) }));
+        stopNative = netInfo.addEventListener(applyEvent);
       } catch (err) {
         stopNative = null;
         logger.warn('NetInfo tracking unavailable', { err: safeError(err) });
@@ -87,36 +153,30 @@ export function startNetworkTracking(): () => void {
         /* en iyi çaba */
       }
       stopNative = null;
+      cancelConfirm();
     }
   };
 }
 
 /**
- * "Tekrar dene": erişilebilirlik sınamasını yeniden yapar, güncel durumu döner. Modül yoksa ya da
- * sınama başarısızsa mevcut durumu döner (fırlatmaz).
+ * "Tekrar dene": erişilebilirlik sınamasını yeniden yapar, güncel kararı döner. Modül yoksa ya da
+ * sınama başarısızsa mevcut kararı döner (fırlatmaz).
  */
 export async function recheckNetwork(): Promise<boolean> {
   const netInfo = getNetInfo();
   if (!netInfo) return online;
   try {
-    return apply(await netInfo.refresh());
+    return applyDefinitive(await netInfo.refresh());
   } catch (err) {
     logger.warn('NetInfo refresh failed', { err: safeError(err) });
     return online;
   }
 }
 
-/** Bileşen hook'u: bağlantı durumu değişince yeniden çizer. */
-export function useNetworkStatus(): { isOnline: boolean } {
-  const isOnlineNow = useSyncExternalStore(
-    (onChange) => subscribeOnline(onChange),
-    isOnline,
-    isOnline,
-  );
-  return { isOnline: isOnlineNow };
-}
-
-/** YALNIZ TEST: durumu ve abonelikleri sıfırlar. */
+/**
+ * YALNIZ TEST: durumu sıfırlar (karar çevrimiçi; abonelere — ör. `onlineManager` — bildirilir) ve
+ * zamanlayıcıları temizler. Aboneliklere DOKUNMAZ: `onlineManager` bağlantısı kalır.
+ */
 export function resetNetworkStatusForTests(): void {
   try {
     stopNative?.();
@@ -125,7 +185,6 @@ export function resetNetworkStatusForTests(): void {
   }
   stopNative = null;
   startCount = 0;
-  online = true;
-  known = false;
-  listeners.clear();
+  cancelConfirm();
+  publish(true);
 }

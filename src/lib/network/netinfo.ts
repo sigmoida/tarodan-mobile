@@ -14,10 +14,47 @@ export interface NetInfoStateLike {
 }
 
 export interface NetInfoLike {
+  /** Abonelikte güncel durumu hemen yollar. */
   addEventListener(listener: (state: NetInfoStateLike) => void): () => void;
   /** Önbelleği atlayıp güncel durumu sorar (erişilebilirlik sınamasını yeniden yapar). */
   refresh(): Promise<NetInfoStateLike>;
-  fetch(): Promise<NetInfoStateLike>;
+  configure?(config: Record<string, unknown>): void;
+}
+
+/** Sınama zaman aşımları (ms): başarısızken sık (5 sn), başarılıyken seyrek (60 sn). */
+export const REACHABILITY_SHORT_TIMEOUT_MS = 5_000;
+export const REACHABILITY_LONG_TIMEOUT_MS = 60_000;
+export const REACHABILITY_REQUEST_TIMEOUT_MS = 10_000;
+
+/**
+ * Erişilebilirlik sınaması KENDİ API'mizin herkese açık canlılık ucuna gider (Google'ın
+ * `generate_204`'ü değil): Google'ı engelleyen ağlarda yanlış "internet yok" çıkmasın, sınama
+ * gerçekten uygulamanın konuştuğu sunucuyu ölçsün. `/health/live` DB'ye dokunmaz, kimlik istemez.
+ * Herhangi bir HTTP yanıtı (5xx dahil) internetin VAR olduğunu kanıtlar: API'nin kendi arızası
+ * "internet bağlantınızı kontrol ediniz" demek değildir.
+ */
+export function buildReachabilityConfig(apiBaseUrl: string): Record<string, unknown> {
+  return {
+    reachabilityUrl: `${apiBaseUrl.replace(/\/$/, '')}/health/live`,
+    reachabilityMethod: 'GET',
+    reachabilityTest: (response: { status: number }): Promise<boolean> =>
+      Promise.resolve(response.status > 0 && response.status < 500),
+    reachabilityShortTimeout: REACHABILITY_SHORT_TIMEOUT_MS,
+    reachabilityLongTimeout: REACHABILITY_LONG_TIMEOUT_MS,
+    reachabilityRequestTimeout: REACHABILITY_REQUEST_TIMEOUT_MS,
+  };
+}
+
+/** `configure` dinleyicileri durdurur: tek sefer, ilk `addEventListener`'dan ÖNCE çağrılır. */
+function configureReachability(impl: NetInfoLike): void {
+  try {
+    // Tembel: `@/lib/api/client` ağır bir modül zinciri; yalnız izleme gerçekten başlarken yüklenir.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires -- döngüsel import / yükleme sırası
+    const { getApiBaseUrl } = require('@/lib/api/client') as { getApiBaseUrl: () => string };
+    impl.configure?.(buildReachabilityConfig(getApiBaseUrl()));
+  } catch {
+    /* varsayılan yapılandırma ile devam: izleme yine çalışır */
+  }
 }
 
 let cached: NetInfoLike | null | undefined;
@@ -29,9 +66,10 @@ export function getNetInfo(): NetInfoLike | null {
     const mod = require('@react-native-community/netinfo');
     const impl = (mod?.default ?? mod) as NetInfoLike | undefined;
     cached =
-      impl && typeof impl.addEventListener === 'function' && typeof impl.fetch === 'function'
+      impl && typeof impl.addEventListener === 'function' && typeof impl.refresh === 'function'
         ? impl
         : null;
+    if (cached) configureReachability(cached);
   } catch {
     cached = null;
   }

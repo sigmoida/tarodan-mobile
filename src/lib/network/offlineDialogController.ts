@@ -1,61 +1,57 @@
 /**
- * Çevrimdışı diyaloğunun geçiş kuralı — SAF mantık (React / RN / zamanlayıcı enjekte edilebilir).
+ * Çevrimdışı diyaloğunun gösterim kuralı — SAF mantık (React / RN enjekte edilir).
  *
- * Kurallar:
- * - Çevrimiçi → çevrimdışı geçişinde `debounceMs` beklenir; bu sürede bağlantı dönerse hiçbir şey
- *   gösterilmez (anlık titreşim).
+ * Girdi `onStatus` zaten karardır (debounce / doğrulama `networkStatus`'ta yapıldı); burada yalnız
+ * NE ZAMAN gösterileceği var:
  * - Bir çevrimdışı SÜREÇTE (kesintisiz çevrimdışı dönem) en çok BİR KEZ gösterilir; kullanıcı
- *   kapatsa da aynı süreçte tekrar çıkmaz.
- * - Bağlantı dönünce süreç biter: açık diyalog kapatılır ve sayaç sıfırlanır (yeniden kopunca
- *   yine gösterilir).
- * - Açılışta çevrimdışıysa ilk ölçüm de bir geçiş sayılır (`onStatus(false)`).
- * - `present()` kullanıcı isteğiyle (Tekrar dene → hâlâ çevrimdışı) kuralı atlayıp yeniden gösterir.
+ *   kapatsa da aynı süreçte tekrar çıkmaz. Bağlantı dönünce süreç biter: açık diyalog kapatılır,
+ *   sayaç sıfırlanır (yeniden kopunca yine gösterilir).
+ * - `isBlocked()` doğruyken (açık `@/ui` Modal / sheet ya da kapanış animasyonu, splash, tam ekran
+ *   kapı) gösterilmez, ERTELENİR: `reevaluate()` engel kalkınca çağrılır. Ertelenen diyalog bu
+ *   sırada bağlantı dönerse hiç gösterilmez. Diyalog `appAlert` kuyruğuna ancak gösterilebilirken
+ *   girer, yani başka alert'leri bloklamaz (iOS: modal üstüne modal donması, CLAUDE.md §14).
+ * - `present()` kullanıcı isteğiyle (Tekrar dene → hâlâ çevrimdışı) süreç kuralını atlar; yine de
+ *   engel varsa ertelenir.
  */
 export interface OfflineDialogControllerOptions {
   /** Diyaloğu aç (çağıran `markClosed`'u kapanışta çağırmakla yükümlü). */
   show: () => void;
-  /** Açık/bekleyen diyaloğu programatik kapat (bağlantı döndü). */
+  /** Açık diyaloğu programatik kapat (bağlantı döndü). */
   hide: () => void;
-  debounceMs?: number;
-  setTimer?: (fn: () => void, ms: number) => unknown;
-  clearTimer?: (id: unknown) => void;
+  /** Şu an diyalog açmak güvensiz mi (açık modal, splash, kapı…). */
+  isBlocked: () => boolean;
 }
 
-export const OFFLINE_DIALOG_DEBOUNCE_MS = 1800;
-
 export interface OfflineDialogController {
-  /** Bağlantı durumu bildirimi (`false` = çevrimdışı). Aynı değerin tekrarı zararsız. */
+  /** Bağlantı kararı (`false` = çevrimdışı). Aynı değerin tekrarı zararsız. */
   onStatus: (online: boolean) => void;
+  /** Engel durumu değişti (modal kapandı, splash bitti…): bekleyen gösterimi yeniden dene. */
+  reevaluate: () => void;
   /** Kullanıcı diyaloğu kapattı (düğme / geri / arka plan). Süreç bitmez: tekrar çıkmaz. */
   markClosed: () => void;
-  /** Kuralı atlayıp göster (kullanıcının "Tekrar dene"si hâlâ çevrimdışı çıktı). */
+  /** Kullanıcı isteğiyle yeniden göster (hâlâ çevrimdışıysa; engel varsa ertelenir). */
   present: () => void;
-  /** Gösterim bekliyor (debounce) ya da diyalog ekranda mı. */
-  isActive: () => boolean;
+  /** Diyalog ekranda mı. */
+  isVisible: () => boolean;
+  /** Çevrimdışıyız, diyalog gösterilecek ama engel yüzünden bekliyor mu. */
+  isDeferred: () => boolean;
+  /** Başlangıç durumuna dön (izleyici söküldü). */
   dispose: () => void;
 }
 
 export function createOfflineDialogController({
   show,
   hide,
-  debounceMs = OFFLINE_DIALOG_DEBOUNCE_MS,
-  setTimer = (fn, ms) => setTimeout(fn, ms),
-  clearTimer = (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
+  isBlocked,
 }: OfflineDialogControllerOptions): OfflineDialogController {
   let online = true;
-  let timer: unknown = null;
+  let wanted = false; // bu çevrimdışı süreçte gösterilmesi gereken diyalog henüz gösterilmedi
   let shownThisEpisode = false;
   let visible = false;
 
-  const cancelTimer = () => {
-    if (timer !== null) {
-      clearTimer(timer);
-      timer = null;
-    }
-  };
-
-  const display = () => {
-    if (visible) return;
+  const tryDisplay = () => {
+    if (online || !wanted || visible || isBlocked()) return;
+    wanted = false;
     visible = true;
     shownThisEpisode = true;
     show();
@@ -66,32 +62,31 @@ export function createOfflineDialogController({
       if (next === online) return;
       online = next;
       if (!next) {
-        if (shownThisEpisode || timer !== null) return;
-        timer = setTimer(() => {
-          timer = null;
-          if (!online) display();
-        }, debounceMs);
+        if (!shownThisEpisode) wanted = true;
+        tryDisplay();
         return;
       }
-      cancelTimer();
+      wanted = false;
       shownThisEpisode = false;
       if (visible) {
         visible = false;
         hide();
       }
     },
+    reevaluate: tryDisplay,
     markClosed() {
       visible = false;
     },
     present() {
-      display();
+      if (online) return;
+      wanted = true;
+      tryDisplay();
     },
-    isActive: () => visible || timer !== null,
+    isVisible: () => visible,
+    isDeferred: () => wanted && !visible,
     dispose() {
-      // Başlangıç durumuna dön: izleyici yeniden bağlanırsa (dev yeniden bağlama) ilk ölçüm yine
-      // bir geçiş sayılsın.
-      cancelTimer();
       online = true;
+      wanted = false;
       shownThisEpisode = false;
       visible = false;
     },

@@ -9,6 +9,7 @@ import { errorFingerprint } from "./requestId";
 import { authFailureKind } from "./authFailureKind";
 import { acceptLanguageHeader } from "./acceptLanguage";
 import { neutralizeUpsellError } from "./iosNeutralErrors";
+import { noteNetworkFailure } from "@/lib/network/networkFailure";
 import { isInvalidTwoFactorCode, isTwoFactorCodeRequest } from "./twoFactorCodeError";
 
 // API URL çözümleme sırası:
@@ -420,3 +421,17 @@ export default api;
 // önce çalışır, nötrleştirme yalnız ekrana ulaşacak son hataya uygulanır.
 attachUpsellNeutralizer(api);
 attachUpsellNeutralizer(guestApi);
+
+/**
+ * Sunucudan yanıt gelmeden düşen istekleri (ağ hatası) kaydeder: global çevrimdışı diyaloğu açıkken
+ * aynı olayın istek bazlı hata toast'ı ikinci kez çıkmasın (`@/lib/network`, toast süzgeci).
+ * Hatayı değiştirmez / yutmaz.
+ */
+const attachNetworkFailureNote = (instance: typeof api) => {
+  instance.interceptors.response.use(undefined, (error) => {
+    noteNetworkFailure(error);
+    return Promise.reject(error);
+  });
+};
+attachNetworkFailureNote(api);
+attachNetworkFailureNote(guestApi);

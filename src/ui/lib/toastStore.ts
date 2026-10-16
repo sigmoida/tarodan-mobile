@@ -142,9 +142,21 @@ function announce(message: string): void {
   AccessibilityInfo.announceForAccessibility?.(message);
 }
 
+type ToastErrorFilter = (message: string) => boolean;
+let errorFilter: ToastErrorFilter | null = null;
+
+/**
+ * Hata toast'ı süzgeci (TEK merkez): `true` dönerse `toast.error` gösterilmez. Başka bir bildirim
+ * zaten aynı olayı anlatıyorsa (çevrimdışı diyaloğu) çift bildirim olmasın diye. `null` kaldırır.
+ */
+export function setToastErrorFilter(filter: ToastErrorFilter | null): void {
+  errorFilter = filter;
+}
+
 export function showToast(kind: ToastKind, input: unknown, options?: ToastOptions): ToastId {
   const message = normalizeToastMessage(input);
   if (!message) return '';
+  if (kind === 'error' && errorFilter?.(message)) return '';
   const duration = options?.duration ?? TOAST_DEFAULT_DURATION[kind];
   const sameContent = !!current && current.kind === kind && current.message === message;
   const id = options?.id != null ? String(options.id) : sameContent ? current!.id : `toast-${++seq}`;
@@ -225,6 +237,7 @@ export function unregisterToastInset(key: number): void {
 /** YALNIZ TEST: modül durumunu sıfırlar. */
 export function resetToastStoreForTests(): void {
   clearTimer();
+  errorFilter = null;
   current = null;
   layers = [];
   insets = [];

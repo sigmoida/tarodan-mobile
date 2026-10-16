@@ -205,7 +205,7 @@ export default function RootLayout() {
           {/* Global toast (web react-hot-toast karşılığı): toast.success / toast.error / toast(). */}
           <ToastHost />
           {/* İnternet yoksa tek diyalog ("Lütfen internet bağlantınızı kontrol ediniz.") + onlineManager. */}
-          <NetworkMonitor />
+          <NetworkMonitor ready={splashDone && !gateShown} />
           {/* Zorunlu adımlar (bekleyen sözleşme onayı): girişte + ön plana gelişte kapatılamaz ekran. */}
           {/* Kapılar native Modal: soğuk açılışta splash bitmeden gösterilmez (ready). */}
           <RequiredStepsGate ready={splashDone} />

@@ -1,16 +1,16 @@
 /**
  * Entegrasyon: NetworkMonitor + gerçek AlertDialogHost + offlineDialog bağlaması.
- * Metin, düğmeler, "Tekrar dene", bağlantı dönünce kapanış, modal açıkken (iOS) erteleme,
- * ağ-hatası toast bastırma.
+ * Metin, düğmeler, "Tekrar dene", bağlantı dönünce kapanış, açık modal / splash kapısı altında
+ * erteleme, çift bildirim (toast süzgeci).
  */
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, Text as RNText } from 'react-native';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 
 const mockNetInfo = {
   addEventListener: jest.fn(),
-  fetch: jest.fn(),
   refresh: jest.fn(),
+  configure: jest.fn(),
 };
 jest.mock('@react-native-community/netinfo', () => mockNetInfo);
 
@@ -21,18 +21,19 @@ jest.mock('@/ui', () => {
   return { ...actual, appAlert: jest.fn() };
 });
 
-import { AlertDialogHost, appAlert } from '@/ui';
+import { AlertDialogHost, appAlert, Modal, toast } from '@/ui';
 import {
   appAlert as realAppAlert,
   resetAlertQueueForTests,
 } from '@/ui/components/AlertDialog';
 import { MODAL_CLOSE_DELAY_MS } from '@/ui/lib/modal-timing';
+import { resetModalPresenceForTests } from '@/ui/lib/modalPresence';
+import { getToastSnapshot, resetToastStoreForTests } from '@/ui/lib/toastStore';
 import { resetNetInfoForTests } from '../netinfo';
-import { isOnline, resetNetworkStatusForTests } from '../networkStatus';
+import { isOnline, OFFLINE_CONFIRM_MS, resetNetworkStatusForTests } from '../networkStatus';
+import { hadRecentNetworkFailure, noteNetworkFailure, resetNetworkFailureForTests } from '../networkFailure';
 import { NetworkMonitor } from '../NetworkMonitor';
-import { OFFLINE_DIALOG_DEBOUNCE_MS } from '../offlineDialogController';
-import { isOfflineDialogActive } from '../offlineDialog';
-import { shouldSuppressNetworkErrorToast } from '../networkError';
+import { offlineDialog, setOfflineDialogExternallyBlocked } from '../offlineDialog';
 
 const MESSAGE = 'Lütfen internet bağlantınızı kontrol ediniz.';
 type S = { isConnected: boolean | null; isInternetReachable?: boolean | null };
@@ -47,12 +48,16 @@ beforeEach(() => {
   (appAlert as jest.Mock).mockImplementation(realAppAlert);
   resetNetworkStatusForTests();
   resetNetInfoForTests();
+  resetNetworkFailureForTests();
+  resetModalPresenceForTests();
+  resetToastStoreForTests();
+  setOfflineDialogExternallyBlocked(true);
   mockNetInfo.addEventListener.mockReset().mockImplementation((cb) => {
     emit = cb;
     return jest.fn();
   });
-  mockNetInfo.fetch.mockReset().mockResolvedValue(ONLINE);
   mockNetInfo.refresh.mockReset().mockResolvedValue(ONLINE);
+  mockNetInfo.configure.mockReset();
 });
 afterEach(() => {
   cleanup();
@@ -61,40 +66,52 @@ afterEach(() => {
   Object.defineProperty(Platform, 'OS', { configurable: true, get: () => originalOS });
 });
 
-function mount() {
-  return render(
+function Tree({ ready = true, modalOpen = false }: { ready?: boolean; modalOpen?: boolean }) {
+  return (
     <>
       <AlertDialogHost />
-      <NetworkMonitor />
-    </>,
+      <NetworkMonitor ready={ready} />
+      <Modal isOpen={modalOpen} onClose={() => undefined} title="Form">
+        <RNText>modal-icerik</RNText>
+      </Modal>
+    </>
   );
 }
+const mount = (props?: React.ComponentProps<typeof Tree>) => render(<Tree {...props} />);
 const flush = () =>
   act(async () => {
     for (let i = 0; i < 6; i++) await Promise.resolve();
   });
 const goOffline = () => {
   act(() => emit(OFFLINE));
-  act(() => jest.advanceTimersByTime(OFFLINE_DIALOG_DEBOUNCE_MS));
+  act(() => jest.advanceTimersByTime(OFFLINE_CONFIRM_MS));
 };
+const networkError = { isAxiosError: true, code: 'ERR_NETWORK', message: 'Network Error' };
 
 describe('NetworkMonitor + offline diyaloğu', () => {
-  it('çevrimdışı geçişinde debounce sonrası başlık + mesaj + düğmelerle bir kez çıkar', () => {
+  it('çevrimdışı kararında başlık + mesaj + düğmelerle bir kez çıkar; titreşimde çıkmaz', () => {
     mount();
     act(() => emit(OFFLINE));
-    expect(screen.queryByText(MESSAGE)).toBeNull(); // debounce
-    act(() => jest.advanceTimersByTime(OFFLINE_DIALOG_DEBOUNCE_MS));
+    act(() => jest.advanceTimersByTime(500));
+    act(() => emit(ONLINE)); // titreşim
+    act(() => jest.advanceTimersByTime(30_000));
+    expect(screen.queryByText(MESSAGE)).toBeNull();
+
+    goOffline();
     expect(screen.getByText('Bağlantı Hatası')).toBeTruthy();
     expect(screen.getByText(MESSAGE)).toBeTruthy();
     expect(screen.getByText('Tamam')).toBeTruthy();
     expect(screen.getByText('Tekrar Dene')).toBeTruthy();
   });
 
-  it('çevrimdışı AÇILIŞ: ilk ölçüm çevrimdışıysa gösterilir', async () => {
-    mockNetInfo.fetch.mockResolvedValue(OFFLINE);
+  it('çevrimdışı AÇILIŞ: abonelikte hemen çevrimdışı gelirse gösterilir', () => {
+    mockNetInfo.addEventListener.mockImplementation((cb) => {
+      emit = cb;
+      cb(OFFLINE);
+      return jest.fn();
+    });
     mount();
-    await flush();
-    act(() => jest.advanceTimersByTime(OFFLINE_DIALOG_DEBOUNCE_MS));
+    act(() => jest.advanceTimersByTime(OFFLINE_CONFIRM_MS));
     expect(screen.getByText(MESSAGE)).toBeTruthy();
   });
 
@@ -125,12 +142,24 @@ describe('NetworkMonitor + offline diyaloğu', () => {
   it('Tekrar dene: hâlâ çevrimdışıysa diyalog (kapanış sonrası) yeniden çıkar', async () => {
     mount();
     goOffline();
-    mockNetInfo.refresh.mockResolvedValue(OFFLINE);
+    mockNetInfo.refresh.mockResolvedValue({ isConnected: true, isInternetReachable: false });
     fireEvent.press(screen.getByText('Tekrar Dene'));
     act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS)); // kapanış bitti -> onPress
     await flush();
     act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS));
     expect(mockNetInfo.refresh).toHaveBeenCalled();
+    expect(screen.getByText(MESSAGE)).toBeTruthy();
+  });
+
+  it('Tekrar dene: refresh sonrası reachability null → önceki durum korunur, diyalog yeniden çıkar', async () => {
+    mount();
+    goOffline();
+    mockNetInfo.refresh.mockResolvedValue({ isConnected: true, isInternetReachable: null });
+    fireEvent.press(screen.getByText('Tekrar Dene'));
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS));
+    await flush();
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS));
+    expect(isOnline()).toBe(false);
     expect(screen.getByText(MESSAGE)).toBeTruthy();
   });
 
@@ -146,42 +175,148 @@ describe('NetworkMonitor + offline diyaloğu', () => {
   });
 
   it('modül yoksa (izleme kapalı) hiçbir şey göstermez', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
     mockNetInfo.addEventListener.mockImplementation(() => {
       throw new Error('native yok');
     });
     mount();
     act(() => jest.advanceTimersByTime(60_000));
     expect(screen.queryByText(MESSAGE)).toBeNull();
+    warn.mockRestore();
   });
 });
 
-describe('ağ-hatası bildirimi bastırma', () => {
-  const networkError = { isAxiosError: true, code: 'ERR_NETWORK', message: 'Network Error' };
-  const serverError = { isAxiosError: true, response: { status: 500 } };
+describe('engeller altında erteleme', () => {
+  it('açık @/ui Modal varken AÇILMAZ (appAlert\'e hiç verilmez); modal kapanınca (kapanış penceresi sonrası) açılır', () => {
+    const view = mount({ modalOpen: true });
+    expect(screen.getByText('modal-icerik')).toBeTruthy();
+    goOffline();
+    expect(screen.queryByText(MESSAGE)).toBeNull();
+    expect(appAlert).not.toHaveBeenCalled(); // kuyruğa girip diğer alert'leri bloklamaz
 
-  it('çevrimiçiyken bastırmaz', () => {
-    mount();
-    expect(shouldSuppressNetworkErrorToast(networkError)).toBe(false);
+    view.rerender(<Tree modalOpen={false} />);
+    // kapanış animasyonu / iOS oturma penceresi bitmeden hâlâ yok
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS - 1));
+    expect(appAlert).not.toHaveBeenCalled();
+    act(() => jest.advanceTimersByTime(1));
+    expect(screen.getByText(MESSAGE)).toBeTruthy();
+    expect(appAlert).toHaveBeenCalledTimes(1);
   });
 
-  it('çevrimdışı + diyalog bekliyor/ekranda: ağ hatasını bastırır, sunucu hatasını bastırmaz', () => {
+  it('ertelenmişken bağlantı dönerse diyalog HİÇ gösterilmez', () => {
+    const view = mount({ modalOpen: true });
+    goOffline();
+    act(() => emit(ONLINE));
+    view.rerender(<Tree modalOpen={false} />);
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS * 3));
+    expect(appAlert).not.toHaveBeenCalled();
+    expect(screen.queryByText(MESSAGE)).toBeNull();
+  });
+
+  it('ertelenmiş offline diyaloğu başka appAlert\'leri bloklamaz', () => {
+    mount({ modalOpen: true });
+    goOffline();
+    act(() => appAlert('Başka', 'x', [{ text: 'Peki' }]));
+    expect(screen.getByText('Başka')).toBeTruthy();
+  });
+
+  it('splash / kapı (ready=false) bitene dek ertelenir; sonra gösterilir', () => {
+    const view = mount({ ready: false });
+    goOffline();
+    expect(screen.queryByText(MESSAGE)).toBeNull();
+    expect(appAlert).not.toHaveBeenCalled();
+    view.rerender(<Tree ready />);
+    expect(screen.getByText(MESSAGE)).toBeTruthy();
+  });
+
+  it('splash bitmeden bağlantı dönerse hiç gösterilmez', () => {
+    const view = mount({ ready: false });
+    goOffline();
+    act(() => emit(ONLINE));
+    view.rerender(<Tree ready />);
+    expect(appAlert).not.toHaveBeenCalled();
+  });
+});
+
+describe('çift bildirim: hata toast\'ı süzgeci (merkezî, toast.error)', () => {
+  it('diyalog açıkken, az önce ağ hatası olduysa toast.error gösterilmez', () => {
+    mount();
+    goOffline();
+    act(() => noteNetworkFailure(networkError));
+    expect(hadRecentNetworkFailure()).toBe(true);
+    act(() => {
+      toast.error('İşlem başarısız');
+    });
+    expect(getToastSnapshot().current).toBeNull();
+  });
+
+  it('ağ hatası yoksa (ör. sunucu hatası) toast gösterilir', () => {
+    mount();
+    goOffline();
+    act(() => noteNetworkFailure({ isAxiosError: true, response: { status: 500 } }));
+    act(() => {
+      toast.error('Sunucu hatası');
+    });
+    expect(getToastSnapshot().current?.message).toBe('Sunucu hatası');
+  });
+
+  it('çevrimdışı karar bekleniyorken (doğrulama penceresi) de bastırılır', () => {
     mount();
     act(() => emit(OFFLINE));
-    expect(isOfflineDialogActive()).toBe(true); // debounce penceresi
-    expect(shouldSuppressNetworkErrorToast(networkError)).toBe(true);
-    expect(shouldSuppressNetworkErrorToast(serverError)).toBe(false);
-    expect(shouldSuppressNetworkErrorToast({ isAxiosError: true, code: 'ERR_CANCELED' })).toBe(
-      false,
-    );
-    expect(shouldSuppressNetworkErrorToast(new Error('x'))).toBe(false);
+    act(() => noteNetworkFailure(networkError));
+    act(() => {
+      toast.error('İşlem başarısız');
+    });
+    expect(getToastSnapshot().current).toBeNull();
   });
 
-  it('kullanıcı diyaloğu kapattıktan sonra bastırmaz (sessiz kalınmaz)', () => {
+  it('engel yüzünden ertelenmiş diyalogda da bastırılır (kullanıcı henüz diyalog görmedi)', () => {
+    mount({ modalOpen: true });
+    goOffline();
+    act(() => noteNetworkFailure(networkError));
+    act(() => {
+      toast.error('İşlem başarısız');
+    });
+    expect(getToastSnapshot().current).toBeNull();
+  });
+
+  it('kullanıcı diyaloğu kapattıktan sonra bastırılmaz (sessiz kalınmaz)', () => {
     mount();
     goOffline();
     fireEvent.press(screen.getByText('Tamam'));
     act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS));
-    expect(isOnline()).toBe(false);
-    expect(shouldSuppressNetworkErrorToast(networkError)).toBe(false);
+    act(() => noteNetworkFailure(networkError));
+    act(() => {
+      toast.error('İşlem başarısız');
+    });
+    expect(getToastSnapshot().current?.message).toBe('İşlem başarısız');
+  });
+
+  it('çevrimiçiyken bastırılmaz; başarı/bilgi toast\'ları hiç süzülmez', () => {
+    mount();
+    act(() => noteNetworkFailure(networkError));
+    act(() => {
+      toast.error('Hata');
+    });
+    expect(getToastSnapshot().current?.message).toBe('Hata');
+
+    goOffline();
+    act(() => noteNetworkFailure(networkError));
+    act(() => {
+      toast.success('Kaydedildi');
+    });
+    expect(getToastSnapshot().current?.message).toBe('Kaydedildi');
+  });
+
+  it('izleyici sökülünce süzgeç kalkar', () => {
+    const view = mount();
+    goOffline();
+    view.unmount();
+    act(() => noteNetworkFailure(networkError));
+    act(() => {
+      toast.error('Hata');
+    });
+    expect(getToastSnapshot().current?.message).toBe('Hata');
+    expect(offlineDialog.isVisible()).toBe(false);
   });
 });

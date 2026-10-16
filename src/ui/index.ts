@@ -89,6 +89,8 @@ export {
 	type RippleOptions,
 	type RippleTone,
 } from './lib/pressableFeedback';
+export { isModalPresent, subscribeModalPresence, useModalPresence } from './lib/modalPresence';
+export { setToastErrorFilter } from './lib/toastStore';
 export { useKeyboardAvoid, type KeyboardAvoid } from './lib/keyboard';
 export { getGlassView, resetGlassCache, type GlassViewComponent } from './lib/glass';
 export { BadgeAnchor, type BadgeAnchorProps } from './components/BadgeAnchor';

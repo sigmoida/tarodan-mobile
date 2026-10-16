@@ -38,6 +38,18 @@ describe('dismissAlert', () => {
     expect(onPress).not.toHaveBeenCalled();
   });
 
+  it('yarış: appAlert ile dismissAlert AYNI güncellemede (yeniden çizimden önce) gelirse kapanış düşmez', () => {
+    const onPress = jest.fn();
+    render(<AlertDialogHost />);
+    act(() => {
+      appAlert('Durum', 'msg', [{ text: 'Tamam', onPress }], { key: 'k' });
+      dismissAlert('k');
+    });
+    act(() => jest.advanceTimersByTime(MODAL_CLOSE_DELAY_MS * 4));
+    expect(screen.queryByText('Durum')).toBeNull();
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
   it('aynı anahtarlı ikinci alert eklenmez (gösterilirken ve sıradayken)', () => {
     render(<AlertDialogHost />);
     act(() => {

@@ -1,5 +1,5 @@
 import i18n from '@/i18n/config';
-import { appAlert, dismissAlert } from '@/ui';
+import { appAlert, dismissAlert, isModalPresent } from '@/ui';
 import { createOfflineDialogController } from './offlineDialogController';
 import { recheckNetwork } from './networkStatus';
 
@@ -7,14 +7,22 @@ import { recheckNetwork } from './networkStatus';
 export const OFFLINE_ALERT_KEY = 'network-offline';
 
 /**
- * Uygulama çapındaki TEK çevrimdışı diyaloğu (geçiş kuralı: `offlineDialogController`).
+ * Diyaloğu şimdi açmak güvensiz olan DIŞ engeller (splash, tam ekran kapı): `NetworkMonitor`
+ * `ready` prop'undan besler. Açık `@/ui` Modal / sheet ayrıca `isModalPresent()` ile denetlenir.
+ */
+let externallyBlocked = true;
+export function setOfflineDialogExternallyBlocked(blocked: boolean): void {
+  externallyBlocked = blocked;
+}
+
+/**
+ * Uygulama çapındaki TEK çevrimdışı diyaloğu (gösterim kuralı: `offlineDialogController`).
  *
- * Standart `appAlert` kullanılır: bu bir `@/ui` JS katmanı + RN `Modal`; iOS'ta açık başka bir
- * `@/ui` Modal / BottomSheet varken sunum UIKit'ce reddedilebilir. `AlertDialogHost` bunu zaten
- * karşılar (sunum watchdog'u: `onShow` gelmezse yeniden bağlanıp dener), yani diyalog engelleyen
- * modal kapanınca görünür ve donma olmaz; ayrıca kapı (zorunlu güncelleme vb.) açıkken host
- * askıdadır, uyarı kuyrukta bekler. "Tekrar dene" `onPress`'i diyalog TAM kapandıktan sonra çalışır
- * (aynı tick'te yeni sunum yok).
+ * Standart `appAlert` kullanılır: JS katmanı + RN `Modal`. iOS'ta başka bir modal sunuluyor ya da
+ * kapanıyorken sunum reddedilir; bu yüzden diyalog ancak `isModalPresent()` yanlışken (açık/kapanan
+ * `@/ui` Modal / BottomSheet / SelectSheet / ActionSheet yok) `appAlert`'e verilir, aksi halde
+ * ertelenir — `appAlert` kuyruğunda bekleyip diğer alert'leri bloklamaz, bağlantı bu sırada dönerse
+ * hiç gösterilmez. "Tekrar dene" `onPress`'i diyalog TAM kapandıktan sonra çalışır.
  */
 function showOfflineAlert(): void {
   appAlert(
@@ -42,9 +50,5 @@ function showOfflineAlert(): void {
 export const offlineDialog = createOfflineDialogController({
   show: showOfflineAlert,
   hide: () => dismissAlert(OFFLINE_ALERT_KEY),
+  isBlocked: () => externallyBlocked || isModalPresent(),
 });
-
-/** Çevrimdışı diyaloğu bekliyor ya da ekranda mı (istek bazlı ağ-hatası bildirimlerini bastırmak için). */
-export function isOfflineDialogActive(): boolean {
-  return offlineDialog.isActive();
-}
