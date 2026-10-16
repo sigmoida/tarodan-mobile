@@ -21,8 +21,6 @@ import {
 
 /** Sayfa boyutu (sunucu `groups` ucu en çok 50, `orders` ucu en çok 100 verir). */
 const PAGE_SIZE = 20;
-/** Bellekte tutulan en çok sayfa (≈ eski tek seferlik 100 kayıt tavanı). */
-const MAX_PAGES = 5;
 /** "Hazırlanıyor" sunucuda süzülemez (istemci süzer) → sayfalama yerine tek sefer çekilir. */
 const CLIENT_FILTER_LIMIT = 100;
 
@@ -129,7 +127,8 @@ export function useOrders() {
       };
     },
     getNextPageParam: nextPageFromInfo,
-    maxPages: MAX_PAGES,
+    // NOT: `maxPages` bilerek YOK (arama ekranıyla aynı gerekçe, `useSearch`): `getPreviousPageParam` olmadan
+    // ~100 satırdan sonra 1. sayfa düşer ve liste sıçrar; kart başına yük hafif, tüm sayfaları tutmak sorun değil.
     enabled: isAuthenticated,
     // Durumu satıcı/kargo değiştirir: dönüşte bundan eskiyse tazelenir (odak etkisi aşağıda).
     staleTime: FOCUS_LIST_STALE_MS,

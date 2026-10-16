@@ -14,9 +14,8 @@ import { FOCUS_LIST_STALE_MS, useRefetchStaleOnFocus } from '@/hooks/useRefetchS
 import type { Sale, FilterType } from '../_lib/types';
 import { saleBadgeStatus } from '../_lib/status';
 
-/** Sayfa boyutu ve bellekte tutulan en çok sayfa (≈ eski tek seferlik 100 kayıt tavanı). */
+/** Sayfa boyutu. */
 const PAGE_SIZE = 20;
-const MAX_PAGES = 5;
 
 type SalesPage = PageInfo & { sales: Sale[] };
 
@@ -64,7 +63,8 @@ export function useSales() {
       return { sales, ...readPageInfo(response.data, page) };
     },
     getNextPageParam: nextPageFromInfo,
-    maxPages: MAX_PAGES,
+    // NOT: `maxPages` bilerek YOK (arama ekranıyla aynı gerekçe, `useSearch`): `getPreviousPageParam` olmadan
+    // ~100 satırdan sonra 1. sayfa düşer ve liste sıçrar; kart başına yük hafif, tüm sayfaları tutmak sorun değil.
     enabled: isAuthenticated,
     // Yeni satış / durum değişimi alıcıdan gelir: dönüşte bundan eskiyse tazelenir.
     staleTime: FOCUS_LIST_STALE_MS,
