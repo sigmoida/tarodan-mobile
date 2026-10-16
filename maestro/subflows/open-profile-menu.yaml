@@ -1,0 +1,16 @@
+# Profil menüsünü aç: alt menüden Profil. Yan menü (hamburger) KALDIRILDI; Alışveriş / Finans /
+# Koleksiyon / Analiz satırları Profil ekranında beyaz kartlarda (satır testID'leri değişmedi:
+# profile-orders-link, profile-trades-link, ...; testID'siz satırlar `menu-item-<key>`).
+# Hesap / ödeme ayarları / üyelik / tercihler / destek / yasal ve çıkış Ayarlar ekranında:
+# subflows/open-settings.yaml.
+# Kullanım: runFlow bu dosya -> tapOn id: "profile-orders-link" (alt satırlar için önce
+# scrollUntilVisible). Ön koşul: kullanıcı login.
+appId: ${APP_ID}
+---
+- tapOn:
+    id: "tab-profile"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "profile-edit-button"
+    timeout: 30000

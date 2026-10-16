@@ -325,12 +325,16 @@ local rules in `eslint-plugin-tarodan/`) — today as **warnings**; wave 2 clear
 and turns them into **errors**, so write new code warning-free.
 
 - **Shells are mandatory.** Tab roots use `AppShell` (`@/components/shell/AppShell` — the same
-  bar on EVERY tab root: [left button: ☰ side menu on the Profile root only, `squares-2x2` → `/categories` on every other tab root (`leading` prop of `AppShell`)][search field or title][messages][notifications] — exactly two
-  right-side icons with unread badges, no cart, no logo). The bottom menu is a floating pill
+  bar on EVERY tab root: [left button: `squares-2x2` → `/categories`; EMPTY on the Profile root (`leading="none"`)][search field or title][messages][notifications] — exactly two
+  right-side icons with unread badges, no cart, no logo; the Profile root alone has ONE ⚙️ Settings button instead
+  (`actions="settings"` → `/settings`)). There is NO side menu: the Profile tab lists the user's activity
+  (Shopping · Finance · Collection · Analytics) and `/settings` the account/app settings (Account · Payments & Bank ·
+  Membership · Preferences · Help & Support · Info & Legal + logout) — one menu model, `src/lib/menu/profileMenu.ts`
+  (`surface: 'profile' | 'settings'`), each group a white `SectionCard` (`MenuGroupList`). The bottom menu is a floating pill
   (`AppTabBar`; Home, Favorites, Cart, Profile + the separate "+" sell button); tab-root
   lists/ScrollViews add `useTabBarInset()` as bottom padding so content never hides under it.
   Messages and Notifications are stack routes (`/messages`, `/notifications`) opened from the header.
-  The side menu also opens with a left-edge swipe on the Profile tab root only (while it is focused and is the base tab root). Navigating to a tab
+  Navigating to a tab
   root from a stack screen / push / ad / deep link goes through `navigateTo()`
   (`@/lib/navigation/goTo`, `router.dismissTo`) — never `router.push('/(tabs)/…')`, which stacks a
   second `(tabs)`. Search is a stack route (`/search`). Stack screens use
@@ -362,8 +366,10 @@ and turns them into **errors**, so write new code warning-free.
   `progressViewOffset`). Tab roots feed the same signal from the tab-bar handler — ONE handler,
   never two `onScroll`s: `const page = usePageScrollValue(); const tabScroll =
   useTabBarScrollHandler(undefined, page.scrollY);` → `<AppShell variant="title" scroll={page}>`.
-  An unbound screen is still readable: the body simply starts below the bar and the edge is a fixed
-  light white strip. Don't add manual top padding for the bar — the shell/`contentStyle` already
+  An unbound screen (and every screen while `loading` / `empty` / `error`) draws NO edge: the body
+  starts below the bar, so at rest every bar looks the same (no background). Home binds the same
+  edge (`<AppShell scroll={page}>`); product detail uses the same `ScrollEdge` + bar metrics, timed
+  to complete when the gallery's end reaches the bar. Don't add manual top padding for the bar — the shell/`contentStyle` already
   adds `inset + headerHeight` (no double gap). `floating={false}` (opaque, in-flow) exists only for
   custom shells (chat header with banner, payment, WebView, gates).
 - **One top bar, one inset formula.** Bar height, title position and back arrow are identical on

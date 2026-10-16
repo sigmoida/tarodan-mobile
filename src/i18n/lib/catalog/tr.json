@@ -3596,7 +3596,9 @@
     "trustScoreVisibilityHint": "Kapalıyken skorunuz profilinizde başkalarına görünmez.",
     "webPageLoadFailedTitle": "Sayfa yüklenemedi",
     "webPageLoadFailedDescription": "İnternet bağlantınızı kontrol edip tekrar deneyin ya da sayfayı tarayıcıda açın.",
-    "openInBrowser": "Tarayıcıda aç"
+    "openInBrowser": "Tarayıcıda aç",
+    "settingsGroupPayment": "Ödeme ve Banka",
+    "settingsGroupPreferences": "Tercihler"
   },
   "refund": {
     "cancel": {

@@ -9,8 +9,7 @@ import {
   type PageScrollValue,
 } from '@/ui';
 import { ShellHeaderActions, ShellLeadingButton } from './ShellHeaderActions';
-import { useEdgeSwipeWhenFocused } from './SideMenuContext';
-import { DEFAULT_SHELL_LEADING, type ShellLeading } from './shellLeading';
+import { DEFAULT_SHELL_ACTIONS, DEFAULT_SHELL_LEADING, type ShellActions, type ShellLeading } from './shellLeading';
 
 const { colors } = theme;
 
@@ -25,8 +24,10 @@ export interface TitleShellProps {
    * Verilmezse gövde bar altında başlar ve kenar efekti SABİT şerittir.
    */
   scroll?: PageScrollValue;
-  /** Sol düğme: `categories` (varsayılan) ya da `menu` (☰, yalnız Profil kökleri). */
+  /** Sol düğme: `categories` (varsayılan) ya da `none` (boş; yalnız Profil kökleri). */
   leading?: ShellLeading;
+  /** Sağ grup: `inbox` (varsayılan: Mesajlar + Bildirimler) ya da `settings` (tek ⚙️; yalnız Profil). */
+  actions?: ShellActions;
   children?: React.ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
   testID?: string;
@@ -34,21 +35,21 @@ export interface TitleShellProps {
 
 /**
  * Sekme köklerinin başlıklı kabuğu (`AppShell variant="title"`): `ScreenHeader` ile AYNI yüzen bar
- * (ortalı başlık, cam butonlar) + kaydırma kenarı. Geri oku yerine solda `ShellLeadingButton` (Profil: ☰ yan menü; diğerleri: kategoriler), sağda TAM iki
- * düğme: Mesajlar + Bildirimler (`ShellHeaderActions`) — Ana Sayfa'nın yüzen barıyla aynı düzen.
- * Ekrana özel üst bar aksiyonu yok (sağ grup sabit). İçerik tam yükseklikte; bar üstünde yüzer.
+ * (ortalı başlık, cam butonlar) + kaydırma kenarı. Geri oku yerine solda `ShellLeadingButton`
+ * (kategoriler; Profil: boş), sağda `ShellHeaderActions` (Mesajlar + Bildirimler; Profil: tek ⚙️
+ * Ayarlar) — Ana Sayfa'nın yüzen barıyla aynı düzen. Başka ekrana özel üst bar aksiyonu yok. İçerik
+ * tam yükseklikte; bar üstünde yüzer.
  */
 export const TitleShell: React.FC<TitleShellProps> = ({
   title,
   subtitle,
   scroll,
   leading: leadingKind = DEFAULT_SHELL_LEADING,
+  actions = DEFAULT_SHELL_ACTIONS,
   children,
   contentStyle,
   testID,
 }) => {
-  // Yan menü soldan kaydırma yalnız ☰'lı (Profil) kabuk odaktayken etkin.
-  useEdgeSwipeWhenFocused(leadingKind === 'menu');
   const shell = useShellScrollState(scroll, false);
   useResetScrollOnBind(shell.page.scrollY, shell.bound);
   return (
@@ -65,7 +66,7 @@ export const TitleShell: React.FC<TitleShellProps> = ({
         title={title ?? ''}
         subtitle={subtitle}
         leading={<ShellLeadingButton leading={leadingKind} categoriesTestID="app-shell-categories" />}
-        right={<ShellHeaderActions />}
+        right={<ShellHeaderActions actions={actions} />}
         testID="app-shell-bar"
         scrollY={shell.bound ? shell.page.scrollY : undefined}
       />

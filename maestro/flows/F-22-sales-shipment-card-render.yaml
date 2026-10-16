@@ -5,7 +5,7 @@ tags:
   - regression
 ---
 - runFlow: ../subflows/open-tarodan.yaml
-- runFlow: ../subflows/open-side-menu.yaml
+- runFlow: ../subflows/open-profile-menu.yaml
 - tapOn:
     id: "profile-sales-link"
 - extendedWaitUntil:

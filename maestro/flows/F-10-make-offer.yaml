@@ -96,7 +96,7 @@ env:
     text: ".*gönderildi.*"
 - assertNotVisible: ".*Hata.*"
 # Yan menü → Tekliflerim → Verdiğim Teklifler
-- runFlow: ../subflows/open-side-menu.yaml
+- runFlow: ../subflows/open-profile-menu.yaml
 - scrollUntilVisible:
     element:
       id: "profile-offers-link"

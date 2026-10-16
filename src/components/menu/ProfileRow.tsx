@@ -17,14 +17,21 @@ interface ProfileRowProps {
   tone?: 'default' | 'primary' | 'danger';
   /** Etiketin sağında metin rozeti (ör. üyelik katmanı). */
   rightBadge?: string;
+  /** Bekleyen iş sayacı (takas/teklif); 0 ise çizilmez. Rozet testID `${testID}-badge`. */
+  count?: number;
   /** Sağdaki chevron (varsayılan açık); gerekirse kapatılabilir. */
   chevron?: boolean;
   role?: 'link' | 'button';
+  /**
+   * `card`: `SectionCard` içinde — satır kartın iç boşluğuna (12) taşar (basılı zemin kenardan kenara),
+   * içerik kart başlığıyla hizalı; boy `controlHeight.lg` (48). `flat` (varsayılan): kartsız liste (56).
+   */
+  variant?: 'flat' | 'card';
 }
 
 /**
  * Profil listesi satırı — düz (kartsız): sol ikon + etiket + (rozet) + sağ chevron.
- * Üye ve misafir profil ekranları ortak kullanır.
+ * Profil, misafir profil ve Ayarlar ekranları ortak kullanır.
  */
 export function ProfileRow({
   label,
@@ -33,8 +40,10 @@ export function ProfileRow({
   testID,
   tone = 'default',
   rightBadge,
+  count = 0,
   chevron = true,
   role = 'link',
+  variant = 'flat',
 }: ProfileRowProps) {
   const labelTone = tone === 'default' ? 'heading' : tone;
   return (
@@ -42,7 +51,7 @@ export function ProfileRow({
       testID={testID}
       accessibilityRole={role}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.row, variant === 'card' && styles.cardRow, pressed && styles.pressed]}
     >
       {icon ? (
         <Icon
@@ -65,6 +74,11 @@ export function ProfileRow({
           {rightBadge}
         </Badge>
       ) : null}
+      {count > 0 ? (
+        <Badge variant="danger" appearance="solid" size="sm" testID={testID ? `${testID}-badge` : undefined}>
+          {count > 99 ? '99+' : String(count)}
+        </Badge>
+      ) : null}
       {chevron ? (
         <Icon
           testID={testID ? `${testID}-chevron` : undefined}
@@ -84,6 +98,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[4],
     paddingHorizontal: spacing[4],
+  },
+  // SectionCard `padding: spacing[3]`: negatif marjla kart kenarına taşar, aynı dolguyla içerik hizalı.
+  cardRow: {
+    minHeight: theme.controlHeight.lg,
+    marginHorizontal: -spacing[3],
+    paddingHorizontal: spacing[3],
   },
   pressed: { backgroundColor: colors.surface.alt },
   label: { flex: 1 },

@@ -6,7 +6,6 @@ import { Modal } from '@/ui';
 import { usePopupAd } from '@/lib/ads/usePopupAd';
 import { POPUP_MODAL_SIZE, popupMediaLimits } from '@/lib/ads/popupLayout';
 import { hasAdImage } from '@/lib/ads/creative';
-import { useSideMenu } from '@/components/shell/SideMenuContext';
 import { AdCreative } from './AdCreative';
 
 /**
@@ -26,13 +25,12 @@ import { AdCreative } from './AdCreative';
  * kısa bir gecikmeyle sonra açılır (`AdCreative.onNavigate`). Modal açıkken
  * gezinme/uyarı ekranı dondurabilir.
  *
- * `blocked`: başka bir Modal/istem açıkken popup çıkmaz; açıkken engel gelirse kapanır. Yan menü
- * açıkken de aynı kural (iki sunum üst üste binmez).
+ * `blocked`: başka bir Modal/istem açıkken popup çıkmaz; açıkken engel gelirse kapanır (iki sunum
+ * üst üste binmez).
  */
 export function PopupAd({ blocked = false }: { blocked?: boolean }) {
   const { t } = useTranslation();
-  const sideMenu = useSideMenu();
-  const { ad, close, closeForLink } = usePopupAd(blocked || sideMenu.isOpen);
+  const { ad, close, closeForLink } = usePopupAd(blocked);
   const window = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const limits = popupMediaLimits(window, insets);

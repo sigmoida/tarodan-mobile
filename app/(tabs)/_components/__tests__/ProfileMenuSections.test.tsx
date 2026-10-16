@@ -1,19 +1,22 @@
 /**
- * Profil menüsü — yalnız profille ilgili grup (Hesap) + çıkış:
- *  - I2 regresyonu: "Kurumsal Başvuru" yalnızca kurumsal hesaplarda (companyName + taxId) görünür.
- *    Bireysel kullanıcıda tıklayınca useBusinessApplication 400/404 alıyor ve üç boş sekme gösteriyordu.
- *  - Diğer gruplar (Alışveriş, Finans, …) Ana Sayfa yan menüsünde: DrawerMenu.test.tsx.
+ * Profil menüsü — kullanıcının işlemleri (Alışveriş · Finans · Koleksiyon · Analiz), gruplu, hep açık.
+ * Hesap / ödeme ayarları / üyelik / tercihler / destek / yasal ve çıkış Ayarlar ekranında:
+ * app/settings/__tests__/settings-screen.test.tsx.
  */
 import React from 'react';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import i18n from '@/i18n/config';
-import { avatarPlaceholderColors, theme } from '@/ui';
+import { avatarPlaceholderColors } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
 import { router } from 'expo-router';
+import { useAuthStore } from '@/stores/authStore';
 import { ProfileCard, ProfileMenuSections } from '../ProfileSections';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+
+let mockTier = { effectiveTier: 'free', isPaidTier: false };
+jest.mock('@/hooks/useMembershipTier', () => ({ useMembershipTier: () => mockTier }));
 
 const f: any = {
   user: { id: 'u1', displayName: 'Ayşe Yılmaz', email: 'ayse@example.com' },
@@ -22,84 +25,49 @@ const f: any = {
   handleLogout: jest.fn(),
 };
 
-it('bireysel hesapta "Kurumsal Başvuru" öğesini göstermez', () => {
-  renderWithProviders(<ProfileMenuSections f={f} isBusiness={false} />);
-  expect(screen.queryByTestId('settings-business-application')).toBeNull();
+beforeEach(() => {
+  mockTier = { effectiveTier: 'free', isPaidTier: false };
+  useAuthStore.setState({ isAuthenticated: false, user: { id: 'u1' } as any });
 });
 
-it('kurumsal hesapta "Kurumsal Başvuru" öğesini gösterir', () => {
-  renderWithProviders(<ProfileMenuSections f={f} isBusiness />);
-  expect(screen.getByTestId('settings-business-application')).toBeTruthy();
-});
-
-it('yalnız Hesap grubunu başlıksız gösterir; yan menü grupları profilde yok', () => {
-  renderWithProviders(<ProfileMenuSections f={f} />);
-  // Küçük "Hesap" grup başlığı kaldırıldı (kullanıcı geri bildirimi); satırlar yine görünür.
-  expect(screen.queryByText('Hesap')).toBeNull();
-  expect(screen.getByTestId('profile-language-link')).toBeTruthy();
-  for (const title of ['Alışveriş', 'Finans', 'Koleksiyon', 'Analiz', 'İletişim', 'Bilgi ve Yasal']) {
-    expect(screen.queryByText(title)).toBeNull();
+it('işlem grupları başlıklarıyla görünür (hep açık): Alışveriş, Finans, Koleksiyon, Analiz', () => {
+  renderWithProviders(<ProfileMenuSections />);
+  for (const title of ['Alışveriş', 'Finans', 'Koleksiyon', 'Analiz']) {
+    expect(screen.getByText(title)).toBeTruthy();
   }
-  for (const id of ['profile-orders-link', 'profile-offers-link', 'profile-payments-link', 'profile-legal-terms-link']) {
+  for (const id of ['profile-orders-link', 'profile-offers-link', 'profile-trades-link', 'profile-payments-link', 'profile-refunds-link']) {
+    expect(screen.getByTestId(id)).toBeTruthy();
+  }
+});
+
+it('ayar satırları ve çıkış profilde YOK (Ayarlar ekranında)', () => {
+  renderWithProviders(<ProfileMenuSections />);
+  for (const id of [
+    'profile-language-link',
+    'profile-blocked-users-link',
+    'profile-account-newsletter-link',
+    'profile-payment-methods-link',
+    'profile-legal-terms-link',
+    'profile-logout-button',
+  ]) {
     expect(screen.queryByTestId(id)).toBeNull();
   }
+  expect(screen.queryByText(i18n.t('mobile.settingsBankAccount'))).toBeNull();
 });
 
-it('hesap ayarları satırları profilde kalır (adresler, banka hesabı, güvenlik, bildirim, dil, engellenenler)', () => {
-  renderWithProviders(<ProfileMenuSections f={f} />);
-  for (const key of [
-    'mobile.settingsAddresses',
-    'mobile.settingsBankAccount',
-    'profile.sidebar.guvenlik',
-    'mobile.settingsNotifications',
-    'mobile.settingsLanguage',
-    'profile.sidebar.engellenenler',
-  ] as const) {
-    expect(screen.getByText(i18n.t(key))).toBeTruthy();
-  }
-  expect(screen.getByTestId('profile-language-link')).toBeTruthy();
-  expect(screen.getByTestId('profile-blocked-users-link')).toBeTruthy();
-  expect(screen.getByTestId('profile-account-newsletter-link')).toBeTruthy();
+it('satıra basınca rotası açılır; her satırda chevron var', () => {
+  renderWithProviders(<ProfileMenuSections />);
+  expect(screen.getByTestId('profile-orders-link-chevron')).toBeTruthy();
+  fireEvent.press(screen.getByTestId('profile-orders-link'));
+  expect(router.push).toHaveBeenCalledWith('/orders');
 });
 
-it('çıkış satırı kalır', () => {
-  renderWithProviders(<ProfileMenuSections f={f} />);
-  expect(screen.getByTestId('profile-logout-button')).toBeTruthy();
-});
-
-it('çıkış diğer satırlarla aynı satır (ikon + chevron), yalnız metin ve ikon danger; hesabı sil profilde yok', () => {
-  renderWithProviders(<ProfileMenuSections f={f} />);
-  expect(screen.getByTestId('profile-logout-button-chevron')).toBeTruthy();
-  const label = screen.getByText(i18n.t('common.logout'));
-  expect(StyleSheet.flatten(label.props.style).color).toBe(theme.colors.danger[700]);
-  expect(screen.queryByTestId('profile-delete-account-button')).toBeNull();
-  expect(screen.queryByText(i18n.t('settings.deleteAccount'))).toBeNull();
-  fireEvent.press(screen.getByTestId('profile-logout-button'));
-  expect(f.handleLogout).toHaveBeenCalled();
-});
-
-it('her menü satırında sağ chevron var ve satır rotaya gider', () => {
-  renderWithProviders(<ProfileMenuSections f={f} />);
-  expect(screen.getByTestId('profile-language-link-chevron')).toBeTruthy();
-  expect(screen.getByTestId('profile-blocked-users-link-chevron')).toBeTruthy();
-  fireEvent.press(screen.getByTestId('profile-language-link'));
-  expect(router.push).toHaveBeenCalledWith('/settings/language');
-});
-
-it('ücretli üyede tek üyelik satırı (plan + abonelik birleşik); satırda katman rozeti yok', () => {
-  renderWithProviders(<ProfileMenuSections f={{ ...f, isPaidTier: true }} />);
-  expect(screen.getByTestId('profile-membership-link')).toBeTruthy();
-  expect(screen.queryByTestId('profile-subscription-link')).toBeNull();
-  expect(screen.queryByText('Premium')).toBeNull();
-});
-
-it('işletme paneli yalnız business katmanında görünür', () => {
-  renderWithProviders(<ProfileMenuSections f={f} />);
+it('işletme paneli yalnız business katmanında, Alışveriş grubunda', () => {
+  renderWithProviders(<ProfileMenuSections />);
   expect(screen.queryByText(i18n.t('mobile.settingsBusinessPanel'))).toBeNull();
   screen.unmount();
-  renderWithProviders(
-    <ProfileMenuSections f={{ ...f, isPaidTier: true, effectiveTier: 'business' }} />,
-  );
+  mockTier = { effectiveTier: 'business', isPaidTier: true };
+  renderWithProviders(<ProfileMenuSections />);
   expect(screen.getByText(i18n.t('mobile.settingsBusinessPanel'))).toBeTruthy();
 });
 

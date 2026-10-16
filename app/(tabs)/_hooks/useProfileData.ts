@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { membershipApi } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { useMembershipTier } from '@/hooks/useMembershipTier';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -14,25 +14,8 @@ export function useProfileData() {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
-  // BUG-008: Efektif üyelik tier'ı — backend /membership/me past_due'yu free'ye
-  // indirir (web ile parite). user.membershipTier bayat kalabilir; rozet/ikon
-  // bunun yerine API'nin döndürdüğü efektif tier'ı kullanmalı.
-  const { data: membershipData } = useQuery({
-    queryKey: qk.membership.me,
-    queryFn: async () => {
-      try {
-        const response = await membershipApi.getCurrentMembership();
-        const body = response.data?.data ?? response.data ?? {};
-        return (body?.tier?.type ?? body?.tierType ?? null) as string | null;
-      } catch {
-        return null;
-      }
-    },
-    enabled: isAuthenticated,
-    retry: 1,
-  });
-  const effectiveTier: string = membershipData ?? user?.membershipTier ?? 'free';
-  const isPaidTier = effectiveTier === 'premium' || effectiveTier === 'business';
+  // Efektif üyelik katmanı tek kaynaktan (Ayarlar ekranı da aynı hook'u kullanır).
+  const { effectiveTier, isPaidTier } = useMembershipTier();
 
   // Aşağı çekince üyelik tier'ını tazele.
   const onRefresh = async () => {

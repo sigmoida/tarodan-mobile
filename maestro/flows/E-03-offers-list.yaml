@@ -16,7 +16,7 @@ env:
         id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
-- runFlow: ../subflows/open-side-menu.yaml
+- runFlow: ../subflows/open-profile-menu.yaml
 - scrollUntilVisible:
     element:
       id: "profile-offers-link"

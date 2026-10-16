@@ -61,8 +61,7 @@ env:
     text: ".*Engelleme başarısız.*"
 
 # 4) Profil → Engellenen Kullanıcılar
-- tapOn:
-    id: "tab-profile"
+- runFlow: ../subflows/open-settings.yaml
 - scrollUntilVisible:
     element:
       id: "profile-blocked-users-link"

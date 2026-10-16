@@ -1,5 +1,5 @@
 /**
- * Yan menünün "Bilgi & Yasal" grubu yalnız uygulamada kalan altı yasal belgeyi
+ * Ayarlar ekranının "Bilgi & Yasal" grubu yalnız uygulamada kalan altı yasal belgeyi
  * gösterir; her kaydın gerçek bir ekranı var ve kaldırılan bilgi sayfalarına
  * (hakkımızda, rehberler, alıcı koruması …) giden satır kalmadı.
  */
@@ -7,9 +7,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import i18n from '@/i18n/config';
 import { LEGAL_WEB_DOCS } from '@/lib/legal/webDocs';
-import { buildLegalPages } from '../_lib/legalPages';
-import { buildAccountPages } from '../_lib/accountPages';
-import { buildProfileMenuGroups } from '../_lib/profileMenu';
+import { buildLegalPages } from '@/lib/menu/legalPages';
+import { buildAccountPages } from '@/lib/menu/accountPages';
+import { buildProfileMenuGroups } from '@/lib/menu/profileMenu';
 
 const ROOT = path.resolve(__dirname, '../../..');
 const LEGAL_PAGES = buildLegalPages(i18n.t);

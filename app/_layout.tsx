@@ -36,10 +36,7 @@ import RequiredStepsGate from "@/components/required-steps/RequiredStepsGate";
 import { useFullScreenGateShown } from "@/components/common/FullScreenGate";
 import { ErrorBoundary, RouteTracker } from "@/components/ErrorBoundary";
 import { stackScreenOptions } from "@/lib/navigation/screenOptions";
-import { SideMenuProvider } from "@/components/shell/SideMenuContext";
-import { SideMenuHost } from "@/components/shell/SideMenuHost";
 import { NetworkMonitor } from "@/lib/network";
-import { DrawerMenu } from "./(tabs)/_components/DrawerMenu";
 
 
 // Initialize Sentry as early as possible. No-ops in Expo Go or when
@@ -180,18 +177,10 @@ export default function RootLayout() {
           {/* Native header HİÇ açılmaz (üst bar JS'te, tek bileşen); geçiş animasyonu tüm Stack'lerde
               aynı (`stackScreenOptions`). Ölü headerStyle/headerTintColor seçenekleri kaldırıldı:
               biri native header'ı açarsa sessizce turuncu/beyaz native başlık çıkarıyordu. */}
-          <SideMenuProvider>
-            {/* Ana Sayfa yan menüsü (hamburger) "push" çekmece: tüm navigasyon görünümü (Stack, tab bar
-                dahil) menü genişliği kadar sağa kayar, panel soldan onunla gelir. Menü içeriği
-                (DrawerMenu) yalnız açıkken bağlanır. Toast/AlertDialog host'ları aşağıda, bu sarmalayıcının
-                DIŞINDA → kaymazlar. */}
-            <SideMenuHost menu={<DrawerMenu />}>
-              <Stack screenOptions={stackScreenOptions}>
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="(auth)" />
-              </Stack>
-            </SideMenuHost>
-          </SideMenuProvider>
+          <Stack screenOptions={stackScreenOptions}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(auth)" />
+          </Stack>
           {/* Global mesaj socket köprüsü (#77) — provider altında setQueryData için. */}
           <MessagingSocketBridge />
           <CartMergeBridge />
