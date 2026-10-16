@@ -28,6 +28,18 @@ it('beklenen veri türleri birer kez listelenir', () => {
   expect(collected.map((c) => c.NSPrivacyCollectedDataType).sort()).toEqual([...EXPECTED].sort());
 });
 
+/**
+ * `aps-environment`: cihaz build'lerinin HEPSİ (EAS preview = ad hoc, staging/production =
+ * App Store/TestFlight) üretim APNs ortamını kullanır; `development` profili yalnız simülatör
+ * (push yok). Varsayılan `development` imzalı entitlement üretim profiliyle çelişirdi.
+ */
+it('expo-notifications aps-environment = production', () => {
+  const entry = (appJson.expo.plugins as Array<string | [string, Record<string, unknown>]>).find(
+    (p) => Array.isArray(p) && p[0] === 'expo-notifications',
+  ) as [string, Record<string, unknown>];
+  expect(entry[1].mode).toBe('production');
+});
+
 it('hepsi kullanıcıya bağlı, izleme yok, amaç belirtilmiş', () => {
   expect(manifest.NSPrivacyTracking).toBe(false);
   for (const c of collected) {
