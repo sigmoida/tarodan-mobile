@@ -4,9 +4,9 @@ import { Form, FormInput } from '@/ui/form';
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { PageShell } from '@/components/common/PageShell';
 import { formatIbanDisplay, normalizeIban } from '@/utils/iban';
-import { BankAccountSummary } from './_bank-account/_components/BankAccountSummary';
-import { useBankAccount } from './_bank-account/_hooks/useBankAccount';
-import { styles } from './_bank-account/_lib/styles';
+import { BankAccountSummary } from './_components/BankAccountSummary';
+import { useBankAccount } from './_hooks/useBankAccount';
+import { styles } from './_lib/styles';
 
 /**
  * Banka hesabı (satıcı ödemeleri) — ince ekran: PageShell + tek SectionCard, sabit alt barda
