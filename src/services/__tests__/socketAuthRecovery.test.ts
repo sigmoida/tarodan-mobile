@@ -101,6 +101,35 @@ it('art arda denemeler sınırlıdır; sunucu kabul edince (`connected`) sayaç 
   expect(mockRefresh).toHaveBeenCalledTimes(4);
 });
 
+it('sınır dolduktan sonra: bekleme süresi geçince ya da token değişince kurtarma yeniden çalışır', async () => {
+  mockRefresh.mockResolvedValue(null);
+  const s: any = connectSocket('t');
+  for (let i = 0; i < 4; i += 1) {
+    serverRejects(s);
+    await jest.advanceTimersByTimeAsync(1000);
+  }
+  expect(mockRefresh).toHaveBeenCalledTimes(3);
+
+  // 60 sn bekleme: sonraki gerçek süre dolması yine kurtarılır.
+  await jest.advanceTimersByTimeAsync(60_000);
+  serverRejects(s);
+  await jest.advanceTimersByTimeAsync(1000);
+  expect(mockRefresh).toHaveBeenCalledTimes(4);
+
+  // Sınırı yeniden doldur; token değişince (HTTP tarafında yenilendi) sayaç baştan.
+  serverRejects(s);
+  await jest.advanceTimersByTimeAsync(1000);
+  serverRejects(s);
+  await jest.advanceTimersByTimeAsync(1000);
+  serverRejects(s);
+  await jest.advanceTimersByTimeAsync(1000);
+  expect(mockRefresh).toHaveBeenCalledTimes(6);
+  connectSocket('t-new');
+  serverRejects(s);
+  await jest.advanceTimersByTimeAsync(1000);
+  expect(mockRefresh).toHaveBeenCalledTimes(7);
+});
+
 it('çıkış (disconnectSocket): socket kapanır, sonraki bağlantı yeni socket', () => {
   const s = connectSocket('t');
   disconnectSocket();
