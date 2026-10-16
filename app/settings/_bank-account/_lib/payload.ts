@@ -1,7 +1,7 @@
 import { normalizeIban } from '@/utils/iban';
 import type { BankAccountForm } from './schema';
 
-/** Form → `PUT /users/me/bank-account` gövdesi (tek kaynak). */
+/** Form → `PATCH /users/me/bank-account` gövdesi (tek kaynak). */
 export function toBankAccountPayload(data: BankAccountForm) {
   return {
     accountHolder: data.accountHolder.trim(),

@@ -121,7 +121,7 @@ describe('ListingRequirementGate', () => {
     expect(screen.getByText(BANK_PROMPT)).toBeTruthy();
     expect(screen.queryByText(ADDR_PROMPT)).toBeNull();
     fireEvent.press(screen.getByText('IBAN Ekle'));
-    expect(router.push).toHaveBeenCalledWith('/settings/bank-account');
+    expect(router.push).toHaveBeenCalledWith('/settings/bank-account?from=listing');
   });
 
   it('adres yok: adres istemi, Adreslerim e götürür', () => {

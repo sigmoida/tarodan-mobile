@@ -1,10 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { router } from 'expo-router';
 import { Button, SectionCard, Text } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { PageShell } from '@/components/common/PageShell';
 import { formatIbanDisplay, normalizeIban } from '@/utils/iban';
+import { BankAccountSummary } from './_bank-account/_components/BankAccountSummary';
 import { useBankAccount } from './_bank-account/_hooks/useBankAccount';
 import { styles } from './_bank-account/_lib/styles';
 
@@ -24,7 +24,9 @@ export default function BankAccountScreen() {
   return (
     <PageShell
       title={title}
-      onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+      loading={f.isLoading}
+      error={f.loadError}
+      onRetry={() => f.refetch()}
       footer={
         <Button
           testID="bank-account-submit-button"
@@ -38,6 +40,13 @@ export default function BankAccountScreen() {
         />
       }
     >
+      {f.account ? (
+        <BankAccountSummary
+          iban={f.account.iban}
+          accountHolder={f.account.accountHolder}
+          updatedAt={f.account.updatedAt}
+        />
+      ) : null}
       <SectionCard>
         <Text variant="bodySm" tone="muted" style={styles.hint}>
           {t('bankAccount.payoutHint')}

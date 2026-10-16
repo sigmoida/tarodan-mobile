@@ -8270,7 +8270,10 @@
     "reverifyNotice": "Bilgileri güncellerseniz hesabınız yeniden doğrulanana kadar \"Doğrulanmadı\" durumuna döner.",
     "tcknInvalid": "TC Kimlik No 11 rakam olmalı",
     "payoutHint": "Satışlarınızdan elde ettiğiniz tutar bu IBAN'a aktarılır.",
-    "tcknOptionalLabel": "TC Kimlik No (opsiyonel)"
+    "tcknOptionalLabel": "TC Kimlik No (opsiyonel)",
+    "savedBadge": "Kayıtlı",
+    "lastUpdated": "Son güncelleme: {date}",
+    "identityRequired": "Banka hesabını kaydetmek için kimlik bilgilerinizi tamamlamanız gerekiyor."
   },
   "shipping": {
     "codePending": "Kargo kodu hazırlanıyor"

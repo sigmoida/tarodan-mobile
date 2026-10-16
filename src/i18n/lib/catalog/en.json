@@ -8270,7 +8270,10 @@
     "reverifyNotice": "If you update these details, your account returns to \"Not verified\" until it is checked again.",
     "tcknInvalid": "The national ID must be 11 digits",
     "payoutHint": "Your sales earnings are paid out to this IBAN.",
-    "tcknOptionalLabel": "Turkish ID No. (optional)"
+    "tcknOptionalLabel": "Turkish ID No. (optional)",
+    "savedBadge": "Saved",
+    "lastUpdated": "Last updated: {date}",
+    "identityRequired": "You need to complete your identity details to save your bank account."
   },
   "shipping": {
     "codePending": "Carrier code is being prepared"

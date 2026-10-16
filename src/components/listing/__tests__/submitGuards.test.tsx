@@ -141,7 +141,7 @@ describe('gönderim guard\'ları: IBAN ve adres aynı semantik', () => {
     expect(productsApi.create).not.toHaveBeenCalled();
     expect(titles()).toEqual(['Banka Hesabı Gerekli']);
     alertCalls()[0][2].find((b: any) => b.text === 'IBAN Ekle').onPress();
-    expect(router.push).toHaveBeenCalledWith('/settings/bank-account');
+    expect(router.push).toHaveBeenCalledWith('/settings/bank-account?from=listing');
   });
 
   it('adres kesin eksik: ekleme istemi', async () => {
