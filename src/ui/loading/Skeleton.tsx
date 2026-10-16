@@ -12,10 +12,14 @@ export const Skeleton = SkeletonBlock;
 
 /** `Text` varyantlarının satır kutusu (pt): yazı boyu × satır aralığı — `Text.tsx` ile aynı formül. */
 const LINE = {
+  displaySm: { font: typography.fontSize['3xl'], line: typography.fontSize['3xl'] * typography.lineHeight.tight },
+  h1: { font: typography.fontSize['2xl'], line: typography.fontSize['2xl'] * typography.lineHeight.tight },
+  h2: { font: typography.fontSize.xl, line: typography.fontSize.xl * typography.lineHeight.snug },
   h3: { font: typography.fontSize.lg, line: typography.fontSize.lg * typography.lineHeight.snug },
   body: { font: typography.fontSize.base, line: typography.fontSize.base * typography.lineHeight.normal },
   bodySm: { font: typography.fontSize.sm, line: typography.fontSize.sm * typography.lineHeight.normal },
   caption: { font: typography.fontSize.xs, line: typography.fontSize.xs * typography.lineHeight.normal },
+  label: { font: typography.fontSize.sm, line: typography.fontSize.sm * typography.lineHeight.snug },
 } as const;
 
 export type SkeletonLineVariant = keyof typeof LINE;

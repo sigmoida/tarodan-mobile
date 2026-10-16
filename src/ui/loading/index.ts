@@ -7,6 +7,10 @@
  *   - Yerleşime sadık yapı taşları: `SkeletonLine`, `SkeletonText`, `SkeletonCard`, `SkeletonAvatar`,
  *     `SkeletonSectionCard`, `SkeletonListRow`, `SkeletonChatBubble` (+ `@/components/product`
  *     `SkeletonProductCard`, `@/components/menu` `SkeletonMenuRow`).
+ *   - Ekran iskeleti parçaları (`SkeletonScreenParts`): `SkeletonPage`, `SkeletonButton(Row)`,
+ *     `SkeletonChipTabs`, `SkeletonField`, `SkeletonKeyValueRow`, `SkeletonMediaRow`,
+ *     `SkeletonMetricGrid`, `SkeletonPageHeader`, `SkeletonTimeline`, `SkeletonSwitchRow` — ekranlara
+ *     özel iskeletler (`_components/<Ekran>Skeleton.tsx`) bunları dizer.
  *   - `useDelayedLoading`: kısa yüklemede göstergeyi hiç göstermez, gösterdiyse asgari süre tutar.
  */
 export {
@@ -44,4 +48,18 @@ export {
   type SkeletonListRowProps,
   type SkeletonChatBubbleProps,
 } from './SkeletonLayouts';
+export {
+  SkeletonPage,
+  SkeletonButton,
+  SkeletonButtonRow,
+  SkeletonChipTabs,
+  SkeletonField,
+  SkeletonKeyValueRow,
+  SkeletonMediaRow,
+  SkeletonMetricTile,
+  SkeletonMetricGrid,
+  SkeletonPageHeader,
+  SkeletonTimeline,
+  SkeletonSwitchRow,
+} from './SkeletonScreenParts';
 export { useDelayedLoading, type DelayedLoadingOptions } from './useDelayedLoading';

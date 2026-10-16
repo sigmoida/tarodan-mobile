@@ -134,6 +134,7 @@ export function useListings() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isFetchNextPageError,
     refetch,
   } = useInfiniteQuery({
     queryKey: listingsKey,
@@ -210,6 +211,8 @@ export function useListings() {
     isError: isError && listings.length === 0,
     isFetching,
     isFetchingNextPage,
+    /** Sonraki sayfa yüklenemedi → liste altında "Tekrar dene" satırı. */
+    isFetchNextPageError,
     refreshing,
     refreshFirstPage,
     hasNextPage,

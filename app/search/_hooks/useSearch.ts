@@ -218,6 +218,7 @@ export function useSearch() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isFetchNextPageError,
     refetch,
   } = useInfiniteQuery({
     queryKey: searchKey,
@@ -428,6 +429,8 @@ export function useSearch() {
     refreshFirstPage,
     hasNextPage,
     isFetchingNextPage,
+    /** Sonraki sayfa yüklenemedi → liste altında "Tekrar dene" satırı. */
+    isFetchNextPageError,
     fetchNextPage,
     // collapsible bars + scroll
     listRef,

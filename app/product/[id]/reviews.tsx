@@ -3,10 +3,22 @@ import { View, StyleSheet, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useState, useCallback } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { EmptyState, SectionCard, SkeletonText, Spinner, Text, pageListContentStyle, theme, Icon, usePageScrollHandler } from '@/ui';
+import {
+  EmptyState,
+  SectionCard,
+  Spinner,
+  Text,
+  pageListContentStyle,
+  theme,
+  Icon,
+  useDelayedLoading,
+  usePageScrollHandler,
+} from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
+import { ListFooterRetry } from '@/components/common/ListFooterRetry';
 import { useAllProductReviews } from './_hooks/useAllProductReviews';
 import { ReviewRow } from './_components/ReviewRow';
+import { ReviewListSkeleton } from './_components/ReviewListSkeleton';
 
 const { colors, spacing, iconSize } = theme;
 
@@ -21,6 +33,8 @@ export default function ProductReviewsScreen() {
   const f = useAllProductReviews(productId, !!id);
   const [refreshing, setRefreshing] = useState(false);
   const page = usePageScrollHandler();
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const showSkeleton = useDelayedLoading(f.isLoading);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -55,20 +69,21 @@ export default function ProductReviewsScreen() {
           ) : null
         }
         ListEmptyComponent={
-          f.isLoading ? (
-            <View testID="reviews-skeleton">
-              <SkeletonText lines={5} />
-            </View>
+          f.isLoading || showSkeleton ? (
+            showSkeleton ? <ReviewListSkeleton /> : null
           ) : (
             <EmptyState icon="star" title={t('review.noReviews')} subtitle={t('emptyState.reviewsHint')} />
           )
         }
         onEndReached={() => {
-          if (f.hasNextPage && !f.isFetchingNextPage) f.fetchNextPage();
+          // Sayfa hatasında kaydırdıkça otomatik yeniden denemez; kullanıcı "Tekrar dene" satırına basar.
+          if (f.hasNextPage && !f.isFetchingNextPage && !f.isFetchNextPageError) f.fetchNextPage();
         }}
         onEndReachedThreshold={0.4}
         ListFooterComponent={
-          f.isFetchingNextPage ? (
+          f.isFetchNextPageError ? (
+            <ListFooterRetry onRetry={() => void f.fetchNextPage()} />
+          ) : f.isFetchingNextPage ? (
             <View style={styles.footer}>
               <Spinner />
             </View>

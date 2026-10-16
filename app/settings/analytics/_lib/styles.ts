@@ -4,8 +4,8 @@ import { theme } from '@/ui';
 const { colors, spacing, radius, radiusRole } = theme;
 
 /** Basit çubuk grafiğin yüksekliği ve çubuk genişliği (pt). */
-const CHART_HEIGHT = 120;
-const BAR_WIDTH = 24;
+export const CHART_HEIGHT = 120;
+export const BAR_WIDTH = 24;
 const BAR_MIN_HEIGHT = 4;
 
 // Analitik ekranının route-local stylesheet'i — SectionCard/Card dili, token'lı.

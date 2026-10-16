@@ -86,6 +86,9 @@ const sizeMap: Record<ChipSize, { height: number; pill: PillSize }> = {
   md: { height: 32, pill: 'lg' },
 };
 
+/** Çip asgari yükseklikleri — `SkeletonChipTabs` gibi yer tutucular buradan okur. */
+export const CHIP_HEIGHT = { sm: sizeMap.sm.height, md: sizeMap.md.height } as const;
+
 export const Chip: React.FC<ChipProps> = ({
   label,
   count,

@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { View, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
-import { ErrorState, FAB, FAB_SIZE_SM, Spinner, theme, useFabContentInset } from '@/ui';
+import { ErrorState, FAB, FAB_SIZE_SM, Spinner, theme, useDelayedLoading, useFabContentInset } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
+import { ListFooterRetry } from '@/components/common/ListFooterRetry';
 import {
   ProductCard,
   ProductGridSkeleton,
@@ -85,25 +86,34 @@ export default function SearchScreen() {
     ),
     [f.refreshing, f.refreshFirstPage],
   );
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = f;
+  const { hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } = f;
   const onEndReached = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+    // Sayfa hatasında kaydırdıkça otomatik yeniden denemez; kullanıcı "Tekrar dene" satırına basar.
+    if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage]);
+  const retryNextPage = useCallback(() => {
+    void fetchNextPage();
+  }, [fetchNextPage]);
   const listFooter = useMemo(
     () =>
-      isFetchingNextPage ? (
+      isFetchNextPageError ? (
+        <ListFooterRetry onRetry={retryNextPage} />
+      ) : isFetchingNextPage ? (
         <View style={styles.listFooter}>
           <Spinner size="md" color={colors.primary[600]!} />
         </View>
       ) : null,
-    [isFetchingNextPage],
+    [isFetchingNextPage, isFetchNextPageError, retryNextPage],
   );
   const { isLoading, isError, refetch, activeFiltersCount, clearAllFilters } = f;
   const hasSearch = !!f.filters.search;
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const loadingFirst = isLoading || !ready;
+  const showSkeleton = useDelayedLoading(loadingFirst);
   const listEmpty = useMemo(
     () =>
-      isLoading || !ready ? (
-        <ProductGridSkeleton />
+      loadingFirst || showSkeleton ? (
+        showSkeleton ? <ProductGridSkeleton /> : null
       ) : isError ? (
         <ErrorState title={t('utility.error500.title')} onRetry={refetch} />
       ) : (
@@ -113,7 +123,7 @@ export default function SearchScreen() {
           onClearFilters={activeFiltersCount > 0 ? clearAllFilters : undefined}
         />
       ),
-    [isLoading, ready, isError, refetch, activeFiltersCount, hasSearch, clearAllFilters, t],
+    [loadingFirst, showSkeleton, isError, refetch, activeFiltersCount, hasSearch, clearAllFilters, t],
   );
 
   const { setSortModalVisible, setFilterModalVisible, setSortBy } = f;

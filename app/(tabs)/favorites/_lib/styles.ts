@@ -4,7 +4,7 @@ import { theme } from '@/ui';
 const { colors, spacing } = theme;
 
 /** Sabit kart yüksekliği = kare görsel kenarı (pt): 96 + 16 = 112. */
-const THUMB = spacing[24] + spacing[4];
+export const THUMB = spacing[24] + spacing[4];
 
 // Route-local stylesheet (§12) — satır kartı web Card (bordered), token'lı.
 export const styles = StyleSheet.create({

@@ -13,6 +13,7 @@ import { useOrder } from './_hooks/useOrder';
 import { useOrderInvoices } from './_hooks/useOrderInvoices';
 import { useOrderActions } from './_hooks/useOrderActions';
 import { OrderStatusCard } from './_components/OrderStatusCard';
+import { OrderDetailSkeleton } from './_components/OrderDetailSkeleton';
 import { OrderEscrowCard, OrderCancelledInfo, OrderPayPendingCard, OrderTrackingCard } from './_components/OrderInfoCards';
 import { OrderProductCard, OrderSellerCard } from './_components/OrderProductSeller';
 import { OrderAddressCard, OrderPriceSummary } from './_components/OrderAddressPrice';
@@ -66,7 +67,16 @@ export default function OrderDetailScreen() {
       />
     );
   }
-  if (!order) return <PageShell title={t('order.orderDetails')} onBack={back} loading />;
+  if (!order) {
+    return (
+      <PageShell
+        title={t('order.orderDetails')}
+        onBack={back}
+        loading
+        loadingFallback={<OrderDetailSkeleton />}
+      />
+    );
+  }
 
   // Taraf siparişin kendi `isSeller` bayrağından (web; `user.id` karşılaştırması
   // değil). Bayrak yoksa alıcı varsayılır: alıcıya satıcı cümlesi çıkmaz.

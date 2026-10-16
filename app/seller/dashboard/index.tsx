@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/common/PageShell';
 import { useSellerDashboard } from './_hooks/useSellerDashboard';
+import { SellerDashboardSkeleton } from './_components/SellerDashboardSkeleton';
 import {
   WelcomeCard,
   StatsGrid,
@@ -36,6 +37,7 @@ export default function SellerDashboardScreen() {
       title={title}
       subtitle={f.user?.displayName}
       loading={f.isLoading}
+      loadingFallback={<SellerDashboardSkeleton />}
       refreshing={f.refreshing}
       onRefresh={f.refresh}
     >

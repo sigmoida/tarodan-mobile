@@ -4,6 +4,7 @@ import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { PageShell } from '@/components/common/PageShell';
 import { useAuthStore } from '@/stores/authStore';
 import { AddressForm } from '../_components/AddressForm';
+import { AddressFormSkeleton } from '../_components/AddressesSkeleton';
 import { useAddress } from '../_hooks/useAddresses';
 
 /**
@@ -26,6 +27,7 @@ export default function EditAddressScreen() {
       <PageShell
         title={title}
         loading={isLoading}
+        loadingFallback={<AddressFormSkeleton />}
         error={isError || undefined}
         onRetry={refetch}
         empty

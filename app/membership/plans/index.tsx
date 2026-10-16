@@ -5,6 +5,7 @@ import { PageShell } from '@/components/common/PageShell';
 
 import { useMembership } from '../_hooks/useMembership';
 import { PlanCard } from './_components/PlanCard';
+import { MembershipPlansSkeleton } from '../_components/MembershipSkeletons';
 
 /**
  * Üyelik Planları — salt görüntüleme: görünür her plan bir kart (ad + özellikler), kullanıcının
@@ -20,6 +21,7 @@ export default function MembershipPlansScreen() {
     <PageShell
       title={f.t('membership.title')}
       loading={f.loading}
+      loadingFallback={<MembershipPlansSkeleton />}
       error={f.error}
       errorMessage={f.error ?? undefined}
       onRetry={f.fetchData}

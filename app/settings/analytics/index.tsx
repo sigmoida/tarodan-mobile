@@ -3,6 +3,7 @@ import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { PageShell } from '@/components/common/PageShell';
 import { useAnalytics } from './_hooks/useAnalytics';
 import { AnalyticsContent } from './_components/AnalyticsContent';
+import { AnalyticsSkeleton } from './_components/AnalyticsSkeleton';
 
 /**
  * Seller analytics — THIN screen. The `useAnalytics` controller owns the query,
@@ -29,6 +30,7 @@ export default function AnalyticsScreen() {
       title={title}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       loading={f.isLoading}
+      loadingFallback={<AnalyticsSkeleton />}
       empty={!f.isLoading && !f.analytics}
       emptyState={{ icon: 'chart-bar', title: f.t('analytics.dataLoadFailed'), subtitle: f.t('emptyState.loadFailedHint') }}
       refreshing={f.refreshing}

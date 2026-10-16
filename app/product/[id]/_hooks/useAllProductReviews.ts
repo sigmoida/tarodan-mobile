@@ -51,6 +51,8 @@ export function useAllProductReviews(productId: string, enabled: boolean) {
     isLoading: list.isLoading,
     hasNextPage: list.hasNextPage,
     isFetchingNextPage: list.isFetchingNextPage,
+    /** Sonraki sayfa yüklenemedi → liste altında "Tekrar dene" satırı. */
+    isFetchNextPageError: list.isFetchNextPageError,
     fetchNextPage: list.fetchNextPage,
     refetch: list.refetch,
   };

@@ -34,6 +34,8 @@ export function EntityProductsScreen({ kind }: { kind: CatalogEntityKind }) {
         onRefresh={f.refetch}
         onEndReached={f.loadMore}
         loadingMore={f.loadingMore}
+        loadMoreFailed={f.loadMoreFailed}
+        onRetryLoadMore={f.retryLoadMore}
         errorMessage={f.error ? t('collection.productsLoadFailed') : null}
         onRetry={f.refetch}
         emptyTitle={isBrand ? t('brands.emptyProductsTitle') : t('product.noManufacturerProducts')}

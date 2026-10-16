@@ -106,6 +106,8 @@ export interface SkeletonChatBubbleProps {
   lines?: number;
   /** `left` için avatar çizilsin mi (grubun ilk mesajı); sütun her zaman yer kaplar. */
   showAvatar?: boolean;
+  /** `left` için avatar sütunu hiç ayrılmasın (avatarsız balonlar: destek talebi mesajları). */
+  avatarColumn?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -118,12 +120,13 @@ export const SkeletonChatBubble: React.FC<SkeletonChatBubbleProps> = ({
   width = '60%',
   lines = 1,
   showAvatar = true,
+  avatarColumn = true,
   style,
 }) => {
   const own = side === 'right';
   return (
     <View style={[styles.chatRow, own ? styles.chatRowOwn : null, style]}>
-      {!own ? (
+      {!own && avatarColumn ? (
         <View style={styles.chatAvatar}>{showAvatar ? <SkeletonAvatar size="sm" /> : null}</View>
       ) : null}
       <View
