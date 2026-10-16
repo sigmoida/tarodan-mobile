@@ -4,7 +4,7 @@ import { useSocketAppLifecycle } from '../useSocketAppLifecycle';
 
 const mockSocket = {
   connected: true,
-  disconnect: jest.fn(function (this: any) { mockSocket.connected = false; }),
+  disconnect: jest.fn(() => { mockSocket.connected = false; }),
   once: jest.fn(),
   off: jest.fn(),
 };
@@ -16,10 +16,13 @@ jest.mock('@/services/socket', () => ({
 
 const mockAuth = { token: 'tok-1' as string | null };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: Object.assign((sel: any) => sel(mockAuth), { getState: () => mockAuth }),
+  useAuthStore: Object.assign((sel: (s: typeof mockAuth) => unknown) => sel(mockAuth), {
+    getState: () => mockAuth,
+  }),
 }));
 
-let appStateHandler: (s: string) => void = () => {};
+type AppStateListener = (s: string) => void;
+let appStateHandler: AppStateListener = () => undefined;
 const remove = jest.fn();
 
 describe('useSocketAppLifecycle', () => {
@@ -27,9 +30,9 @@ describe('useSocketAppLifecycle', () => {
     jest.clearAllMocks();
     mockSocket.connected = true;
     mockAuth.token = 'tok-1';
-    jest.spyOn(AppState, 'addEventListener').mockImplementation((_e: any, h: any) => {
-      appStateHandler = h;
-      return { remove } as any;
+    jest.spyOn(AppState, 'addEventListener').mockImplementation((_e, h) => {
+      appStateHandler = h as AppStateListener;
+      return { remove } as unknown as ReturnType<typeof AppState.addEventListener>;
     });
   });
 

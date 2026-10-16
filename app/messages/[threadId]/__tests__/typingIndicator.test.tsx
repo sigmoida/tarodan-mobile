@@ -12,10 +12,10 @@ const mockSocket = {
 // bu yüzden getSocket'in dönüş değeri doğrudan mockGetSocket'in kendisi üzerinden kontrol edilir.
 const mockGetSocket = jest.fn(() => mockSocket as any);
 
-const mockInstanceListeners = new Set<(s: any) => void>();
+const mockInstanceListeners = new Set<(s: unknown) => void>();
 jest.mock('@/services/socket', () => ({
   getSocket: () => mockGetSocket(),
-  onSocketInstanceChange: (l: (s: any) => void) => {
+  onSocketInstanceChange: (l: (s: unknown) => void) => {
     mockInstanceListeners.add(l);
     return () => mockInstanceListeners.delete(l);
   },

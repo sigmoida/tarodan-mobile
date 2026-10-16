@@ -86,7 +86,7 @@ export function useProductActions({
   const requireAuth = (message: string) => {
     if (isAuthenticated) return true;
     toast.error(message);
-    schedule(() => router.push('/(auth)/login' as any), 1500);
+    schedule(() => router.push('/(auth)/login'), 1500);
     return false;
   };
 
