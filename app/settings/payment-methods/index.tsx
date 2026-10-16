@@ -8,6 +8,7 @@ import { AuthGatePage } from "@/components/common/AuthGatePage";
 import { PageShell } from "@/components/common/PageShell";
 import { RowListSkeleton } from "@/components/common/RowListSkeleton";
 import { useAuthStore } from "@/stores/authStore";
+import { useRefresh } from "@/hooks/useRefresh";
 import { membershipApi, type SavedCard } from "@/lib/api";
 import { apiErrorMessage } from "@/lib/api/errorText";
 import { useSavedCards } from "@/lib/payment/useSavedCards";
@@ -38,6 +39,9 @@ export default function PaymentMethodsScreen() {
 
   // Amaçsız: iki mağazanın kartları birlikte (web gibi).
   const cardsQuery = useSavedCards({ enabled: isAuthenticated });
+  // Çekip-yenile göstergesi yalnız kullanıcı çektiğinde (`isFetching` kart silme sonrası
+  // invalidate'te de dönüyordu).
+  const { refreshing, onRefresh } = useRefresh(cardsQuery.refetch);
 
   const handleDelete = (card: SavedCard) => {
     appAlert(
@@ -73,8 +77,8 @@ export default function PaymentMethodsScreen() {
   return (
     <PageShell
       title={title}
-      refreshing={cardsQuery.isFetching && !cardsQuery.isLoading}
-      onRefresh={() => cardsQuery.refetch()}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
       loading={cardsQuery.isLoading}
       loadingFallback={<RowListSkeleton rows={3} />}
     >

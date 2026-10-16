@@ -77,7 +77,7 @@ export function useCategoriesScreen() {
     /** Alt düzeyde geri düğmesinin gösterdiği üst başlık: üst kategori adı, yoksa grup adı. */
     parentTitle: parent?.label ?? group?.title ?? '',
     isLoading: catalog.isLoading,
-    isRefetching: catalog.isRefetching,
+    refreshing: catalog.refreshing,
     refetchAll: catalog.retryAll,
     /** Seçili grubun kendi kaynağını yeniden dener (hata durumundaki "tekrar dene"). */
     retryGroup,

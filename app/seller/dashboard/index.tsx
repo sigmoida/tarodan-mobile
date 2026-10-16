@@ -36,7 +36,7 @@ export default function SellerDashboardScreen() {
       title={title}
       subtitle={f.user?.displayName}
       loading={f.isLoading}
-      refreshing={f.isRefetching}
+      refreshing={f.refreshing}
       onRefresh={f.refresh}
     >
       <WelcomeCard f={f} />

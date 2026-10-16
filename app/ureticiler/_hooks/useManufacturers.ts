@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { manufacturersApi } from '@/lib/api';
 import { qk } from '@/lib/query';
+import { useRefresh } from '@/hooks/useRefresh';
 import { selectWithListings } from '@/utils/catalogListings';
 
 export interface Manufacturer {
@@ -30,6 +31,9 @@ export function useManufacturers() {
     select: selectWithListings,
   });
 
+  // Çekip-yenile göstergesi yalnız kullanıcı çektiğinde (`isRefetching` arka planda da döner).
+  const { refreshing, onRefresh } = useRefresh(query.refetch);
+
   const items = useMemo(() => {
     const all = query.data ?? [];
     const q = search.trim().toLowerCase();
@@ -44,6 +48,7 @@ export function useManufacturers() {
     isLoading: query.isLoading,
     error: query.error,
     refetch: query.refetch,
-    isRefetching: query.isRefetching,
+    refreshing,
+    onRefresh,
   };
 }

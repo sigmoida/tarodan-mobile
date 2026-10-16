@@ -32,8 +32,8 @@ export default function PaymentsScreen() {
       title={title}
       loading={f.paymentsQuery.isLoading}
       loadingFallback={<RowListSkeleton rows={4} />}
-      refreshing={f.paymentsQuery.isFetching && !f.paymentsQuery.isLoading}
-      onRefresh={() => f.paymentsQuery.refetch()}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
     >
       {/* Status filtresi */}
       <ChipTabs

@@ -4,6 +4,7 @@ import { categoriesApi, manufacturersApi } from '@/lib/api';
 import { unwrapList } from '@/lib/api/unwrap';
 import { qk } from '@/lib/query';
 import { useProductFilterOptions } from '@/hooks/useProductFilterOptions';
+import { useRefresh } from '@/hooks/useRefresh';
 import { selectWithListings } from '@/utils/catalogListings';
 import type { CategoryGroupKey, CategoryNode, GroupStatus, ManufacturerNode } from '../_lib/groups';
 
@@ -59,11 +60,13 @@ export function useCategoriesCatalog() {
   const retryCategories = useCallback(() => void refetchCategories(), [refetchCategories]);
   const retryManufacturers = useCallback(() => void refetchManufacturers(), [refetchManufacturers]);
   const retryScales = useCallback(() => refetchFilters?.(), [refetchFilters]);
-  const retryAll = useCallback(() => {
-    retryCategories();
-    retryManufacturers();
-    retryScales();
-  }, [retryCategories, retryManufacturers, retryScales]);
+  // Çekip-yenile: gösterge yalnız kullanıcı çektiğinde ve üç kaynak bitene dek döner
+  // (eskiden `isRefetching` — arka plan tazelemesinde de dönüyordu).
+  const { refreshing, onRefresh: retryAll } = useRefresh(
+    refetchCategories,
+    refetchManufacturers,
+    retryScales,
+  );
 
   const categoriesStatus = statusOf(categories.length > 0, categoriesQuery.isLoading, categoriesQuery.isError);
   const manufacturersStatus = statusOf(
@@ -89,6 +92,6 @@ export function useCategoriesCatalog() {
     retry,
     retryAll,
     isLoading: categoriesQuery.isLoading && manufacturersQuery.isLoading,
-    isRefetching: categoriesQuery.isRefetching || manufacturersQuery.isRefetching,
+    refreshing,
   };
 }
