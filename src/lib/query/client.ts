@@ -1,4 +1,9 @@
 import { createPlatformQueryClient } from "@/lib/api-client/query";
+import { installOnlineManager } from "@/lib/network/onlineManager";
+
+// TanStack `onlineManager` cihaz bağlantısına bağlanır (ilk sorgudan önce): çevrimiçi olunca
+// eskimiş / hatalı sorgular tazelenir.
+installOnlineManager();
 
 // Tek paylaşılan QueryClient — _layout'taki provider ve logout temizliği
 // (resetUserStores) aynı örneği kullansın diye modül seviyesinde.
@@ -7,6 +12,16 @@ export const queryClient = createPlatformQueryClient({
     queries: {
       staleTime: 1000 * 60 * 5,
       retry: 2,
+      // 'always': çevrimdışıyken sorgular DURAKLATILMAZ (varsayılan 'online' duraklatır: ekran
+      // yükleme/hata durumuna hiç girmeden boş kalır). Davranış bağlantı izlemesinden ÖNCEKİYLE
+      // aynı kalır — istek denenir, ağ hatasıyla düşerse mevcut hata durumu görünür; yeniden
+      // bağlanınca `refetchOnReconnect` (onlineManager) yine tazeler.
+      networkMode: 'always',
+    },
+    mutations: {
+      // Yazmalar (ödeme, teklif…) çevrimdışıyken sessizce kuyruğa alınıp bağlantı dönünce
+      // KENDİLİĞİNDEN çalışmasın; kullanıcı hatayı görür ve bilerek yeniden dener.
+      networkMode: 'always',
     },
   },
 });

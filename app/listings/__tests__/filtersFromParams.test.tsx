@@ -35,6 +35,29 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 };
 
+describe('ilanlar filtreleri — Kategoriler ekranı parametreleri', () => {
+  it('manufacturer + manufacturerId, categoryId + category, sortBy, discountOnly URL parametrelerinden okunur', () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({
+      manufacturer: 'Hot Wheels',
+      manufacturerId: 'm-1',
+      categoryId: 'c-1',
+      category: 'Otomobil',
+      sortBy: 'created_desc',
+      discountOnly: 'true',
+    });
+    const { result, unmount } = renderHook(() => useListings(), { wrapper });
+    expect(result.current.filters).toMatchObject({
+      manufacturer: 'Hot Wheels',
+      manufacturerId: 'm-1',
+      categoryId: 'c-1',
+      category: 'Otomobil',
+      sortBy: 'created_desc',
+      discountOnly: true,
+    });
+    unmount();
+  });
+});
+
 describe('ilanlar filtreleri — gezinmeler arası kalıcı değil', () => {
   it('ölçek parametresiyle açılan sayfadan sonra parametresiz açılış ölçeksiz başlar', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ scale: '1:64' });

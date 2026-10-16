@@ -177,7 +177,18 @@
     "loginForTrades": "Takas İşlemleri İçin Giriş Yapın",
     "vehicleTypes": "Araç Türleri",
     "manufacturers": "Üreticiler",
-    "allManufacturers": "Tüm Üreticiler"
+    "allManufacturers": "Tüm Üreticiler",
+    "allListings": "Tüm İlanlar",
+    "newArrivals": "Yeni Gelenler",
+    "bestSellers": "Çok Satanlar",
+    "onSale": "İndirimler",
+    "categories": "Kategoriler",
+    "scale": "Ölçek",
+    "explore": "Keşfet",
+    "categoriesEmptyTitle": "Kategori bulunamadı",
+    "categoriesEmptySubtitle": "Şu an gösterilecek kategori yok. Daha sonra tekrar deneyin.",
+    "backToParentCategory": "Üst kategoriye dön: {name}",
+    "categoriesLoadFailed": "Yüklenemedi"
   },
   "auth": {
     "loginTitle": "Giriş Yap",
@@ -2650,7 +2661,8 @@
     "serverError": "Sunucu Hatası",
     "serverErrorDesc": "Sunucuda bir sorun oluştu. Lütfen daha sonra tekrar deneyin.",
     "networkError": "Bağlantı Hatası",
-    "networkErrorDesc": "İnternet bağlantınızı kontrol edin."
+    "networkErrorDesc": "İnternet bağlantınızı kontrol edin.",
+    "offlineMessage": "Lütfen internet bağlantınızı kontrol ediniz."
   },
   "validation": {
     "required": "Bu alan zorunludur",

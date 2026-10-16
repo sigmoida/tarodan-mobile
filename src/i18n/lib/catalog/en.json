@@ -177,7 +177,18 @@
     "loginForTrades": "Sign In for Trade Operations",
     "vehicleTypes": "Vehicle Types",
     "manufacturers": "Manufacturers",
-    "allManufacturers": "All Manufacturers"
+    "allManufacturers": "All Manufacturers",
+    "allListings": "All Listings",
+    "newArrivals": "New Arrivals",
+    "bestSellers": "Best Sellers",
+    "onSale": "On Sale",
+    "categories": "Categories",
+    "scale": "Scale",
+    "explore": "Explore",
+    "categoriesEmptyTitle": "No categories found",
+    "categoriesEmptySubtitle": "There is nothing to show right now. Please try again later.",
+    "backToParentCategory": "Back to parent category: {name}",
+    "categoriesLoadFailed": "Failed to load"
   },
   "auth": {
     "loginTitle": "Login",
@@ -2650,7 +2661,8 @@
     "serverError": "Server Error",
     "serverErrorDesc": "A server error occurred. Please try again later.",
     "networkError": "Connection Error",
-    "networkErrorDesc": "Please check your internet connection."
+    "networkErrorDesc": "Please check your internet connection.",
+    "offlineMessage": "Please check your internet connection."
   },
   "validation": {
     "required": "This field is required",

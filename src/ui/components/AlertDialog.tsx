@@ -60,6 +60,12 @@ export interface AlertDialogOptions {
    */
   cancelable?: boolean;
   onDismiss?: () => void;
+  /**
+   * Tekilleştirme / programatik kapatma anahtarı. Aynı anahtarlı bir alert zaten gösteriliyor ya da
+   * kuyruktaysa yenisi eklenmez; `dismissAlert(key)` onu (kuyrukta ya da ekranda) düğmesiz kapatır.
+   * Durum alert'leri için (ör. "internet yok": bağlantı dönünce kendiliğinden kalkar).
+   */
+  key?: string;
 }
 
 interface AlertDialogRequest {
@@ -72,6 +78,7 @@ interface AlertDialogRequest {
 type Listener = (request: AlertDialogRequest) => void;
 
 let listener: Listener | null = null;
+let dismisser: ((key: string) => void) | null = null;
 const queue: AlertDialogRequest[] = [];
 
 /**
@@ -90,11 +97,25 @@ export function appAlert(
     buttons: buttons?.length ? buttons : [{ text: defaultOkLabel() }],
     options,
   };
+  // Anahtarlı alert tekilleştirilir: host'a girmemiş kuyrukta aynı anahtar varsa yenisi atılır
+  // (host'un kendi bekleyen/gösterilen alert'ini `listener` içinde kontrol eder).
+  if (options?.key && queue.some((r) => r.options?.key === options.key)) return;
   if (listener) {
     listener(request);
   } else {
     queue.push(request);
   }
+}
+
+/**
+ * `options.key`'li alert'i düğmesiz kapatır: kuyruktaysa çıkarır, ekrandaysa kapanış animasyonuyla
+ * kaldırır (düğmelerin `onPress`'i ÇALIŞMAZ). Anahtar yoksa no-op.
+ */
+export function dismissAlert(key: string): void {
+  for (let i = queue.length - 1; i >= 0; i--) {
+    if (queue[i]!.options?.key === key) queue.splice(i, 1);
+  }
+  dismisser?.(key);
 }
 
 /**
@@ -252,20 +273,39 @@ export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = fa
     setCurrentRequest(request);
   };
 
+  // En güncel `close` (kapanış `current` state'ini okur; `dismisser` bir kez kurulur).
+  const closeRef = useRef<((button?: AlertDialogButton, dismissed?: boolean) => void) | null>(null);
+
   useEffect(() => {
     listener = (request) => {
+      const key = request.options?.key;
+      if (
+        key &&
+        ((currentRef.current?.options?.key === key && !closingRef.current) ||
+          pendingRef.current.some((r) => r.options?.key === key))
+      ) {
+        return; // aynı anahtarlı alert zaten gösteriliyor / sırada
+      }
       if (busyRef.current || suspendedRef.current) {
         pendingRef.current.push(request);
         return;
       }
       showRequest(request);
     };
+    const ownDismisser = (key: string) => {
+      pendingRef.current = pendingRef.current.filter((r) => r.options?.key !== key);
+      if (currentRef.current?.options?.key === key && !closingRef.current) {
+        closeRef.current?.(undefined, false);
+      }
+    };
+    dismisser = ownDismisser;
     // Flush alerts fired before the host mounted
     while (queue.length) {
       listener(queue.shift()!);
     }
     return () => {
       listener = null;
+      if (dismisser === ownDismisser) dismisser = null;
       if (timerRef.current) clearTimeout(timerRef.current);
       if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
       timerRef.current = null;
@@ -352,9 +392,11 @@ export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = fa
    * düğmesine (yoksa tek düğmeye) basmak sayılır; ardından `options.onDismiss` de çalışır.
    */
   const close = (button?: AlertDialogButton, dismissed = false) => {
-    if (!current || closingRef.current) return; // çift basış: ikinci kapanış yok
+    // `current` state'i değil ref: `showRequest` ile yeniden çizim arasındaki pencerede
+    // (`dismissAlert` erken gelirse) state hâlâ eski/null olurdu ve kapanış düşerdi.
+    const request = currentRef.current;
+    if (!request || closingRef.current) return; // çift basış: ikinci kapanış yok
     closingRef.current = true;
-    const request = current;
     try {
       button?.onSelect?.();
     } finally {
@@ -381,6 +423,8 @@ export const AlertDialogHost: React.FC<AlertDialogHostProps> = ({ suspended = fa
       );
     }
   };
+
+  closeRef.current = close;
 
   // Yeni diyalog: sunum henüz doğrulanmadı.
   useEffect(() => {

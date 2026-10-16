@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../lib/theme';
 import { useKeyboardOverlap } from '../lib/keyboard';
+import { useModalPresence } from '../lib/modalPresence';
 import { GlassIconButton } from './GlassIconButton';
 import { IconButton, iconButtonBoxSize, type IconButtonSize } from './IconButton';
 import { SheetHeader } from './SheetHeader';
@@ -100,6 +101,7 @@ export const Modal: React.FC<ModalProps> = ({
   scrollable = !fitContent,
   accessibilityLabel,
 }) => {
+  useModalPresence(isOpen);
   const media = variant === 'media';
   const hasHeader = !media && (!!title || showCloseButton);
   const flush = media || flushBody;
