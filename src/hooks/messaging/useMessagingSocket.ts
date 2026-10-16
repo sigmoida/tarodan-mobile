@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { connectSocket, disconnectSocket } from '@/services/socket';
+import { connectSocket, disconnectSocket, getSocket } from '@/services/socket';
 import { useAuthStore } from '@/stores/authStore';
 import { useMessagesStore } from '@/stores/messagesStore';
 import { qk } from '@/lib/query';
@@ -8,6 +8,7 @@ import {
   applyIncomingToCache,
   applyMessagesReadToCache,
 } from '@/lib/messaging/cache';
+import { useSocketAppLifecycle } from './useSocketAppLifecycle';
 
 /**
  * #77: global mesaj socket dinleyicileri — eski _layout store-action'ları yerine
@@ -20,6 +21,21 @@ import {
 export function useMessagingSocket() {
   const qc = useQueryClient();
   const token = useAuthStore((s) => s.token);
+
+  // Kopukluk sonrası (otomatik yeniden bağlanma VEYA arka plandan dönüş) kaçırılanları topla:
+  // açık thread odasına yeniden gir, mesaj/thread/okunmamış sorgularını tazele.
+  const resync = useCallback(() => {
+    const tid = useMessagesStore.getState().currentThreadId;
+    if (tid) {
+      getSocket()?.emit('join:thread', { threadId: tid });
+      qc.invalidateQueries({ queryKey: qk.messaging.messages(tid) });
+    }
+    qc.invalidateQueries({ queryKey: qk.messaging.threads });
+    qc.invalidateQueries({ queryKey: qk.messaging.unreadCount });
+  }, [qc]);
+
+  // Arka planda soket kapanır, ön plana dönüşte yeniden bağlanıp `resync` çalışır.
+  useSocketAppLifecycle(resync);
 
   useEffect(() => {
     if (!token) {
@@ -39,15 +55,7 @@ export function useMessagingSocket() {
     const onMessageRead = (p: { threadId: string; messageIds: string[] }) => {
       applyMessagesReadToCache(qc, p.threadId, p.messageIds || []);
     };
-    const onReconnect = () => {
-      const tid = useMessagesStore.getState().currentThreadId;
-      if (tid) {
-        socket.emit('join:thread', { threadId: tid });
-        qc.invalidateQueries({ queryKey: qk.messaging.messages(tid) });
-      }
-      qc.invalidateQueries({ queryKey: qk.messaging.threads });
-      qc.invalidateQueries({ queryKey: qk.messaging.unreadCount });
-    };
+    const onReconnect = resync;
 
     socket.on('message:new', onMessageNew);
     socket.on('thread:updated', onThreadUpdated);
@@ -59,5 +67,5 @@ export function useMessagingSocket() {
       socket.off('message:read', onMessageRead);
       socket.io.off('reconnect', onReconnect);
     };
-  }, [token, qc]);
+  }, [token, qc, resync]);
 }
