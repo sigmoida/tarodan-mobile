@@ -3,7 +3,8 @@
  * boş = çizilmez (Popüler hariç: web gibi ilan daveti), dolu = tek ProductCard rayı.
  */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
+import { renderWithProviders as render } from '@/test-utils';
 import { router } from 'expo-router';
 import { FeaturedRail, OnSaleRail, PopularRail, TradeRail } from '../HomeRails';
 import { BrandsStrip } from '../HomeBrands';
