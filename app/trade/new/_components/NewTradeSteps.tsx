@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Image } from 'react-native';
+import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Card, Chip, EmptyState, Divider, Spinner, Text, Input, Textarea, theme, Icon, ButtonRow, RadioIndicator } from '@/ui';
 
 import { TradeAddressPicker } from '@/components/common';
 import { ProductCard } from '@/components/product';
-import { getImageUrl } from '@/utils/imageUrl';
+import { AppImage } from '@/components/AppImage';
 import { getProductEffectivePrice } from '@/utils/productPrice';
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
@@ -194,7 +194,7 @@ export function Step3Review({ f }: StepProps) {
         </Text>
         {f.selectedMyItems.map((product) => (
           <View key={product.id} style={styles.summaryItem}>
-            <Image source={{ uri: getImageUrl(product.images) }} style={styles.summaryImage} />
+            <AppImage source={product.images} variant="card" style={styles.summaryImage} />
             <Text variant="caption" style={styles.summaryItemTitle} numberOfLines={1}>
               {product.title}
             </Text>
@@ -219,7 +219,7 @@ export function Step3Review({ f }: StepProps) {
         </Text>
         {f.selectedTheirItems.map((product) => (
           <View key={product.id} style={styles.summaryItem}>
-            <Image source={{ uri: getImageUrl(product.images) }} style={styles.summaryImage} />
+            <AppImage source={product.images} variant="card" style={styles.summaryImage} />
             <Text variant="caption" style={styles.summaryItemTitle} numberOfLines={1}>
               {product.title}
             </Text>

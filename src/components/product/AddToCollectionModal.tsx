@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { FlatList, Image, Platform, Pressable, StyleSheet, View, type ListRenderItem } from 'react-native';
+import { FlatList, Platform, Pressable, StyleSheet, View, type ListRenderItem } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +17,7 @@ import {
 import { collectionsApi, errorText } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
-import { transformImageUrl } from '../../utils/imageUrl';
+import { AppImage } from '../AppImage';
 
 const { colors, spacing } = theme;
 
@@ -171,7 +171,7 @@ function CollectionRowInner({
     >
       <View style={styles.cover}>
         {c.coverImageUrl ? (
-          <Image source={{ uri: transformImageUrl(c.coverImageUrl) }} style={styles.coverImage} />
+          <AppImage source={c.coverImageUrl} variant="card" style={styles.coverImage} />
         ) : (
           <Text variant="body" weight="bold" tone="primary">
             {c.name.charAt(0).toUpperCase()}

@@ -1,17 +1,16 @@
 import { useTradeStatusConfig, tradeViewerRole } from '@/lib/shared/tradeStatus';
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { AppImage } from '../AppImage';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { theme, Text, StatusBadge, Avatar, Icon, ListRowCard } from '@/ui';
 import { formatPrice } from '../../utils/format';
-import { transformImageUrl, IMAGE_PLACEHOLDER } from '../../utils/imageUrl';
 
 const { colors, spacing, radius } = theme;
 
-const FALLBACK_IMG = IMAGE_PLACEHOLDER;
 
 
 export interface TradeCardItem {
@@ -40,12 +39,12 @@ export interface TradeCardTrade {
   receiverItems?: TradeCardItem[];
 }
 
-function itemImageUrl(item: TradeCardItem): string {
-  const raw =
+function itemImageSource(item: TradeCardItem): string | undefined {
+  return (
     item.productImages?.[0]?.cardUrl ??
     item.productImages?.[0]?.detailUrl ??
-    item.productImage;
-  return raw ? transformImageUrl(raw) : FALLBACK_IMG;
+    item.productImage
+  );
 }
 
 function sideTotal(items: TradeCardItem[]): number {
@@ -60,7 +59,6 @@ function sideTotal(items: TradeCardItem[]): number {
  * başlık satırındaki toplamda görünüyor. */
 function ItemRow({ item, showPrice }: { item: TradeCardItem; showPrice: boolean }) {
   const { t } = useTranslation();
-  const [src, setSrc] = useState<string>(() => itemImageUrl(item));
   const qty = Number(item.quantity) || 1;
   const subtitle = showPrice
     ? `${qty > 1 ? `${qty}x · ` : ''}${formatPrice(item.valueAtTrade)}`
@@ -69,11 +67,8 @@ function ItemRow({ item, showPrice }: { item: TradeCardItem; showPrice: boolean 
       : null;
   return (
     <View style={styles.itemRow}>
-      <Image
-        source={{ uri: src }}
-        style={styles.thumb}
-        onError={() => setSrc(FALLBACK_IMG)}
-      />
+      {/* Yüklenemezse AppImage kendi gri yer tutucusuna düşer. */}
+      <AppImage source={itemImageSource(item)} variant="card" style={styles.thumb} />
       <View style={styles.itemBody}>
         <Text variant="bodySm" weight="medium" numberOfLines={subtitle ? 1 : 2}>
           {item.productTitle || t('order.product')}

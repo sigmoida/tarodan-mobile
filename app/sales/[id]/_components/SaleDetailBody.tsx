@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { View, Image, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { Button, SectionCard, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import {
@@ -9,7 +9,7 @@ import {
   formatOrderStatus,
   formatRelativeDate,
 } from '@/utils/format';
-import { transformImageUrl } from '@/utils/imageUrl';
+import { AppImage } from '@/components/AppImage';
 import { shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
 import { PreparingDeadlineNotice } from '@/components/orders/PreparingDeadlineNotice';
 import { ElogoInvoiceList } from '@/components/orders/ElogoInvoiceList';
@@ -106,7 +106,7 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
             onPress={() => router.push(`/product/${item.product?.id}`)}
             accessibilityRole="button"
           >
-            <Image source={{ uri: transformImageUrl(item.product?.imageUrl) }} style={styles.itemImg} />
+            <AppImage source={item.product?.imageUrl} variant="card" style={styles.itemImg} />
             <View style={styles.itemInfo}>
               <Text variant="body" weight="medium" tone="heading" numberOfLines={2}>{item.product?.title}</Text>
               <Text variant="bodySm" tone="muted">{t('sale.quantityLabel', { count: item.quantity })}</Text>

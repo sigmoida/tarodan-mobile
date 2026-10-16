@@ -1,9 +1,9 @@
-import { View, Image, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { SectionCard, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatPrice, formatOfferStatus, formatRelativeDate } from '@/utils/format';
-import { transformImageUrl } from '@/utils/imageUrl';
+import { AppImage } from '@/components/AppImage';
 import { styles } from '../_lib/styles';
 import type { OfferDetailController } from '../_hooks/useOfferDetail';
 
@@ -22,7 +22,7 @@ export function OfferDetailCards({ f }: { f: OfferDetailController }) {
           onPress={() => offer.product?.id && router.push(`/product/${offer.product.id}`)}
           accessibilityRole="button"
         >
-          <Image source={{ uri: transformImageUrl(firstImg) }} style={styles.productImage} />
+          <AppImage source={firstImg} variant="card" style={styles.productImage} />
           <View style={styles.productBody}>
             <Text variant="body" weight="semibold" tone="heading" numberOfLines={2}>
               {offer.product?.title || t('order.product')}

@@ -51,6 +51,9 @@ function AuthHeroBannerContent({ placement, style }: AuthHeroBannerProps) {
         style={StyleSheet.absoluteFill}
         contentFit="cover"
         transition={200}
+        // Giriş ekranının ilk görseli: disk cache + yüksek öncelik (LCP).
+        cachePolicy="memory-disk"
+        priority="high"
         accessibilityLabel={hero.alt}
         testID="auth-hero-image"
         onLoad={() => {
