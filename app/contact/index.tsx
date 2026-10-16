@@ -1,11 +1,11 @@
 import { ContentPage } from "@/components/content/ContentPage";
-import { useContactForm } from "./_contact/_hooks/useContactForm";
+import { useContactForm } from "./_hooks/useContactForm";
 import {
   ContactFaqLink,
   ContactFormCard,
   ContactHoursCard,
   ContactInfoCard,
-} from "./_contact/_components/ContactSections";
+} from "./_components/ContactSections";
 
 /**
  * İletişim — web `(corporate)/contact` düzeni: sayfa açıklaması + iletişim bilgileri kartı +
