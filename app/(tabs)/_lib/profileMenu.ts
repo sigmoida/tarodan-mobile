@@ -269,10 +269,10 @@ export function buildProfileMenuGroups(
       guest: true,
       items: [
         ...buildLegalPages(t).map((p) => ({
-          key: `legal-${p.slug}`,
+          key: `legal-${p.doc}`,
           label: p.label,
           to: p.route as string,
-          testID: `profile-legal-${p.slug}-link`,
+          testID: `profile-legal-${p.doc}-link`,
         })),
       ],
     },

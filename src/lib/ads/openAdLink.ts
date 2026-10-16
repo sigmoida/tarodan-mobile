@@ -5,11 +5,12 @@ import { toMobileRoute } from '@/utils/notificationRoute';
 import { navigateTo } from '@/lib/navigation/goTo';
 import { ownWebPageUrl } from '@/lib/web';
 import { LEGAL_WEB_DOCS } from '@/lib/legal/webDocs';
+import { IN_APP_WEB_ROUTE, inAppWebHref, resolveRemovedPage } from '@/lib/navigation/removedPages';
 import { isPurchasePath } from './purchasePath';
 import { safeAdHref } from './safeAdHref';
 
 /** Uygulama içi web ekranı (`app/in-app-web.tsx`) — mobil karşılığı olmayan site yolları için. */
-export const IN_APP_WEB_ROUTE = '/in-app-web';
+export { IN_APP_WEB_ROUTE };
 
 function hostOf(url: string | undefined): string | null {
   const m = url?.match(/^https?:\/\/([^/?#]+)/i);
@@ -56,9 +57,6 @@ function renamedRoute(seg: string[]): string | null {
       return id ? `/seller/${id}` : null;
     case 'wishlist':
       return '/favorites';
-    // Web SSS'si → native Yardım Merkezi (SSS + iletişim; ayrı SSS ekranı yok).
-    case 'faq':
-      return '/help';
     case 'sell':
       return '/(tabs)/sell';
     default:
@@ -67,10 +65,9 @@ function renamedRoute(seg: string[]): string | null {
 }
 
 /**
- * Web ile mobilde AYNI adı taşıyan, tek segmentli sayfalar. Bilgi sayfaları
- * (hakkımızda, rehberler, alıcı koruması, güvenli takas …) mobilde YOK: onlara
- * giden linkler uygulama içi web ekranına düşer. Yasal belgeler native rotadır
- * (web'in uygulama modu sayfasını gösterir — `@/lib/legal/webDocs`).
+ * Web ile mobilde AYNI adı taşıyan, tek segmentli sayfalar. Yasal belgeler
+ * native rotadır (web'in uygulama modu sayfasını gösterir — `@/lib/legal/webDocs`).
+ * Mobilden kaldırılan sayfalar `resolveRemovedPage`'den geçer.
  */
 export const SAME_NAME_PAGES = new Set<string>([
   'cart',
@@ -120,6 +117,10 @@ export function resolveAdLink(linkUrl: string | null | undefined): AdLinkTarget 
 
   if (isPurchasePath(barePath)) return { kind: 'blocked', reason: 'purchase' };
 
+  // Mobilden kaldırılan sayfalar (SSS → Yardım; bilgi/CMS → web görünümü) — tek kaynak.
+  const removed = resolveRemovedPage(path);
+  if (removed) return removed.kind === 'route' ? { kind: 'route', route: removed.route } : removed;
+
   // İlan listesi eşleyiciye VERİLMEZ: `toMobileRoute` `/listings`'i sorgusuz
   // arama sekmesine çeviriyor, reklamın filtresi (`?manufacturer=…`) düşerdi.
   // Mobil `app/listings` web ile aynı sorgu parametrelerini okuyor.
@@ -168,7 +169,7 @@ export function openAdLink(linkUrl: string | null | undefined): boolean {
       Linking.openURL(target.url).catch(() => {});
       return true;
     case 'web':
-      router.push(`${IN_APP_WEB_ROUTE}?url=${encodeURIComponent(target.url)}` as any);
+      router.push(inAppWebHref(target.url) as any);
       return true;
     default:
       return false;

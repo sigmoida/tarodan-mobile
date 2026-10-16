@@ -20,8 +20,8 @@ function routeExists(route: string): boolean {
 }
 
 describe('LEGAL_PAGES kataloğu', () => {
-  it('altı yasal belgenin hepsi, yalnız onlar', () => {
-    expect(LEGAL_PAGES.map((p) => p.route).sort()).toEqual(LEGAL_WEB_DOCS.map((d) => `/${d}`).sort());
+  it('altı yasal belgenin hepsi, yalnız onlar — tek listeden, aynı sırayla', () => {
+    expect(LEGAL_PAGES.map((p) => p.route)).toEqual(LEGAL_WEB_DOCS.map((d) => `/${d}`));
   });
 
   it('her kaydın etiketi ve gerçek bir ekranı var', () => {
