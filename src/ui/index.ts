@@ -249,6 +249,7 @@ export {
 export { ActionSheet, type ActionSheetProps, type ActionSheetAction } from './components/ActionSheet';
 export {
 	appAlert,
+	dismissAlert,
 	confirm,
 	AlertDialogHost,
 	type AlertDialogButton,

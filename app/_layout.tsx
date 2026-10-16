@@ -38,6 +38,7 @@ import { ErrorBoundary, RouteTracker } from "@/components/ErrorBoundary";
 import { stackScreenOptions } from "@/lib/navigation/screenOptions";
 import { SideMenuProvider } from "@/components/shell/SideMenuContext";
 import { SideMenuHost } from "@/components/shell/SideMenuHost";
+import { NetworkMonitor } from "@/lib/network";
 import { DrawerMenu } from "./(tabs)/_components/DrawerMenu";
 
 
@@ -203,6 +204,8 @@ export default function RootLayout() {
           <AlertDialogHost suspended={gateShown} />
           {/* Global toast (web react-hot-toast karşılığı): toast.success / toast.error / toast(). */}
           <ToastHost />
+          {/* İnternet yoksa tek diyalog ("Lütfen internet bağlantınızı kontrol ediniz.") + onlineManager. */}
+          <NetworkMonitor />
           {/* Zorunlu adımlar (bekleyen sözleşme onayı): girişte + ön plana gelişte kapatılamaz ekran. */}
           {/* Kapılar native Modal: soğuk açılışta splash bitmeden gösterilmez (ready). */}
           <RequiredStepsGate ready={splashDone} />

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/
 import i18n from '@/i18n/config';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { toast } from '@/ui';
+import { shouldSuppressNetworkErrorToast } from '@/lib/network/networkError';
 
 export interface UseAppMutationOptions<TData, TVars> {
   /**
@@ -16,7 +17,10 @@ export interface UseAppMutationOptions<TData, TVars> {
    * (sunucu mesajı varsa o). Verilmezse `common.operationFailed`.
    */
   error?: string | ((e: unknown) => string);
-  /** Hata toast'ını bastırır (çağıran hatayı satır içi gösterecekse). */
+  /**
+   * Hata toast'ını bastırır (çağıran hatayı satır içi gösterecekse). Ağ hatası + global
+   * çevrimdışı diyaloğu aktifken toast zaten otomatik bastırılır.
+   */
   silentError?: boolean;
   onSuccess?: (data: TData, vars: TVars) => void;
   /** Hook'a özel hata dalları (captureException, kod bazlı yönlendirme...). `silentError` bunu bastırmaz. */
@@ -63,7 +67,9 @@ export function useAppMutation<TData, TVars = void>(
       onSuccess?.(data, vars);
     },
     onError: (e, vars) => {
-      if (!silentError) {
+      // Global çevrimdışı diyaloğu zaten bildiriyorsa (ağ hatası + diyalog bekliyor/ekranda) çift
+      // bildirim olmasın; `onError` dalı yine çalışır.
+      if (!silentError && !shouldSuppressNetworkErrorToast(e)) {
         const fallback =
           (typeof error === 'function' ? error(e) : error) || i18n.t('common.operationFailed');
         toast.error(apiErrorMessage(e, fallback));

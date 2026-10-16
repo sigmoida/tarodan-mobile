@@ -9,6 +9,10 @@ jest.mock('@/ui', () => {
   return { toast: t, appAlert: jest.fn() };
 });
 
+jest.mock('@/lib/network/networkError', () => ({ shouldSuppressNetworkErrorToast: jest.fn(() => false) }));
+
+const suppressMock = jest.requireMock('@/lib/network/networkError')
+  .shouldSuppressNetworkErrorToast as jest.Mock;
 const successMock = toast.success as jest.Mock;
 const errorMock = toast.error as jest.Mock;
 
@@ -128,5 +132,19 @@ describe('useAppMutation', () => {
     expect(onMutate).toHaveBeenCalled();
     expect(onMutate.mock.calls[0][0]).toBe('v');
     expect(onSettled.mock.calls[0][2]).toBe('v');
+  });
+
+  it('global çevrimdışı diyaloğu bildiriyorsa (ağ hatası) hata toast\'ı basılmaz; onError yine çalışır', async () => {
+    suppressMock.mockReturnValueOnce(true);
+    const onError = jest.fn();
+    const err = { isAxiosError: true, code: 'ERR_NETWORK' };
+    const { result } = setup({ error: 'Kaydedilemedi', onError }, async () => {
+      throw err;
+    });
+    await act(async () => {
+      await result.current.mutateAsync('x').catch(() => undefined);
+    });
+    expect(errorMock).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(err, 'x');
   });
 });
