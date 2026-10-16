@@ -1,24 +1,31 @@
-import { View, Pressable, StyleSheet } from 'react-native';
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { theme, Text, Card, Avatar, Button, Icon } from '@/ui';
+import Animated from 'react-native-reanimated';
+import { pageListContentStyle, usePageScrollHandler } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
+import { FollowingSellerRow } from '@/components/following/FollowingSellerRow';
 import { useFollowing, FollowedSeller } from '@/hooks/useFollowing';
 import { useAuthStore } from '@/stores/authStore';
 import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
+import { listWindowing } from '@/lib/list/windowing';
 import { qk } from '@/lib/query';
 
-const { colors, spacing, iconSize } = theme;
+const sellerKey = (seller: FollowedSeller) => seller.id;
 
-/** Takip ettiklerim — PageShell (Skeleton / boş durum / misafir) + web Card satıcı satırları. */
+/**
+ * Takip ettiklerim — PageShell (list modu: Skeleton / boş durum / misafir) + sanallaştırılmış web
+ * Card satıcı satırları. Takip listesi tek uçtan gelir (sayfalama yok) ve uygulama genelinde
+ * `isFollowing` için tam liste olarak paylaşılır; bu yüzden tek sorgu, yalnız çizim sanallaştırılır.
+ */
 export default function FollowingScreen() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const { following, isLoading, isError, fetchFollowing, unfollowSeller, getFollowingCount } = useFollowing();
   const [refreshing, setRefreshing] = useState(false);
+  const page = usePageScrollHandler();
 
   // Ekrana dönüşte yalnız bayatsa tazele (takip/bırakma zaten önbelleği güncelliyor).
   useRefetchStaleOnFocus([qk.follow.following], isAuthenticated);
@@ -29,17 +36,16 @@ export default function FollowingScreen() {
     setRefreshing(false);
   };
 
-  const handleUnfollow = async (seller: FollowedSeller) => {
-    await unfollowSeller(seller.id);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('tr-TR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
+  // `unfollowSeller` her render'da yeni referans: ref üzerinden çağrılır ki satır callback'i kararlı kalsın.
+  const unfollowRef = useRef(unfollowSeller);
+  unfollowRef.current = unfollowSeller;
+  const handleUnfollow = useCallback((seller: FollowedSeller) => {
+    void unfollowRef.current(seller.id);
+  }, []);
+  const renderSeller = useCallback(
+    ({ item }: { item: FollowedSeller }) => <FollowingSellerRow seller={item} onUnfollow={handleUnfollow} />,
+    [handleUnfollow],
+  );
 
   // Not authenticated
   if (!isAuthenticated) {
@@ -56,6 +62,8 @@ export default function FollowingScreen() {
     <PageShell
       title={t('following.titleWithCount', { count: getFollowingCount() })}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+      mode="list"
+      scroll={page}
       loading={isLoading && following.length === 0}
       loadingFallback={<RowListSkeleton rows={4} />}
       error={isError && following.length === 0 ? true : undefined}
@@ -70,65 +78,18 @@ export default function FollowingScreen() {
         actionLabel: t('following.exploreSellers'),
         onAction: () => router.push('/search'),
       }}
-      refreshing={refreshing}
-      onRefresh={onRefresh}
     >
-      {following.map((seller) => (
-        <Card key={seller.id} variant="bordered" padding={0}>
-          <Pressable testID={`following-seller-${seller.id}`} onPress={() => router.push(`/seller/${seller.id}`)}>
-            <View style={styles.sellerContent}>
-              <Avatar size="lg" source={seller.avatarUrl} name={seller.displayName} />
-              <View style={styles.sellerInfo}>
-                <Text variant="label" numberOfLines={1}>{seller.displayName}</Text>
-                {seller.bio ? (
-                  <Text variant="caption" tone="muted" numberOfLines={1}>{seller.bio}</Text>
-                ) : null}
-                <View style={styles.sellerStats}>
-                  <Text variant="caption">{t('following.listingCountSuffix', { count: seller.listingCount })}</Text>
-                  {seller.rating ? (
-                    <>
-                      <Icon name="star" variant="solid" size={iconSize.sm} color={colors.warning[500]!} style={styles.ratingIcon} />
-                      <Text variant="caption">{seller.rating.toFixed(1)}</Text>
-                    </>
-                  ) : null}
-                </View>
-                {seller.followedAt ? (
-                  <Text variant="caption" tone="subtle">
-                    {t('following.followedSince', { date: formatDate(seller.followedAt) })}
-                  </Text>
-                ) : null}
-              </View>
-              <Button
-                variant="outline"
-                size="sm"
-                title={t('following.unfollow')}
-                onPress={() => handleUnfollow(seller)}
-              />
-            </View>
-          </Pressable>
-        </Card>
-      ))}
+      <Animated.FlatList
+        {...page.listProps}
+        testID="following-list"
+        data={following}
+        keyExtractor={sellerKey}
+        renderItem={renderSeller}
+        {...listWindowing}
+        contentContainerStyle={page.contentStyle(pageListContentStyle)}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+      />
     </PageShell>
   );
 }
-
-const styles = StyleSheet.create({
-  sellerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing[3],
-    gap: spacing[3],
-  },
-  sellerInfo: {
-    flex: 1,
-    gap: spacing[0.5],
-  },
-  sellerStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-  },
-  ratingIcon: {
-    marginLeft: spacing[2],
-  },
-});
