@@ -141,17 +141,26 @@ const SENTRY_RULES: ScrubRules = {
  * `null`/`undefined` aynen döner (SDK olayı düşürmek için `null` bekler).
  *
  * Kullanıcı bağlamı (`user`) yalnız `id`'ye indirilir: e-posta, kullanıcı adı ve IP gitmez.
- * Olaya iliştirilen breadcrumb'lar `scrubBreadcrumb` kuralıyla temizlenir.
+ * Olaya iliştirilen breadcrumb'lar `scrubBreadcrumb` kuralıyla temizlenir. İşlem
+ * (transaction) olayında `spans[].data` ve `contexts.trace.data` yapılandırılmış teşhis
+ * verisidir: axios gövdesi gibi `[scrubbed]` metnine ÇEVRİLMEZ, yapısı korunup içi temizlenir.
  */
 export function scrubEvent<T>(event: T): T {
   if (!event || typeof event !== 'object') return event;
-  const { breadcrumbs, ...rest } = event as T & { breadcrumbs?: unknown };
+  const { breadcrumbs, spans, ...rest } = event as T & { breadcrumbs?: unknown; spans?: unknown };
   const cleaned = scrubValue(rest, 0, new WeakSet(), SENTRY_RULES) as Record<string, unknown>;
   if (cleaned.user && typeof cleaned.user === 'object') {
     cleaned.user = sentryUser(cleaned.user as { id?: unknown });
   }
   if (Array.isArray(breadcrumbs)) cleaned.breadcrumbs = breadcrumbs.map((b) => scrubBreadcrumb(b));
   else if (breadcrumbs !== undefined) cleaned.breadcrumbs = PLACEHOLDER;
+  if (Array.isArray(spans)) cleaned.spans = spans.map((s) => scrubSpan(s));
+  else if (spans !== undefined) cleaned.spans = PLACEHOLDER;
+  const traceData = (rest as { contexts?: { trace?: { data?: unknown } } }).contexts?.trace?.data;
+  const cleanedTrace = (cleaned.contexts as { trace?: Record<string, unknown> } | undefined)?.trace;
+  if (traceData !== undefined && cleanedTrace && typeof cleanedTrace === 'object') {
+    cleanedTrace.data = scrubStructuredData(traceData);
+  }
   return cleaned as T;
 }
 
@@ -171,11 +180,37 @@ export function scrubBreadcrumb<T>(crumb: T): T {
   if (data === undefined) return cleaned as T;
   const structured =
     typeof rest.category === 'string' && STRUCTURED_BREADCRUMB_CATEGORIES.has(rest.category);
-  cleaned.data =
-    structured && typeof data === 'object' && data !== null && !Array.isArray(data)
-      ? scrubValue(data, 1, new WeakSet(), SENTRY_RULES)
-      : PLACEHOLDER;
+  cleaned.data = structured ? scrubStructuredData(data) : PLACEHOLDER;
   return cleaned as T;
+}
+
+/** Ayrı sorgu dizesi taşıyan span/breadcrumb alanları (`?` öneksiz gelir). */
+const QUERY_STRING_KEYS = new Set(['http.query', 'query', 'http.fragment']);
+
+/**
+ * Yapılandırılmış teşhis verisi (`breadcrumb.data`, `span.data`, `contexts.trace.data`):
+ * nesne YAPISI korunur, içi temizlenir (anahtar kuralları, metinlerdeki Bearer / JWT /
+ * e-posta / adres sorgusu sırları; `http.query` gibi öneksiz sorgu dizeleri de). Nesne
+ * değilse tümüyle atılır.
+ */
+function scrubStructuredData(data: unknown): unknown {
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) return PLACEHOLDER;
+  const cleaned = scrubValue(data, 1, new WeakSet(), SENTRY_RULES) as Record<string, unknown>;
+  for (const [key, value] of Object.entries(cleaned)) {
+    if (QUERY_STRING_KEYS.has(key) && typeof value === 'string' && value && !value.startsWith('?')) {
+      cleaned[key] = scrubUrlSecrets(`?${value}`).slice(1);
+    }
+  }
+  return cleaned;
+}
+
+/** İşlem span'ı: `data` yapılandırılmış teşhis verisidir (url, http.method, durum kodu). */
+function scrubSpan(span: unknown): unknown {
+  if (!span || typeof span !== 'object' || Array.isArray(span)) return scrubValue(span, 1, new WeakSet(), SENTRY_RULES);
+  const { data, ...rest } = span as { data?: unknown };
+  const cleaned = scrubValue(rest, 1, new WeakSet(), SENTRY_RULES) as Record<string, unknown>;
+  if (data !== undefined) cleaned.data = scrubStructuredData(data);
+  return cleaned;
 }
 
 /** Sentry'ye giden kullanıcı: yalnız kimlik (e-posta / kullanıcı adı / IP asla). */

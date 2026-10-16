@@ -244,6 +244,53 @@ describe('scrubEvent — adres sorgusundaki sırlar (http / navigasyon breadcrum
   });
 });
 
+describe('scrubEvent — işlem (transaction) span/trace verisi yapısı korunur', () => {
+  const tx = {
+    type: 'transaction',
+    contexts: {
+      trace: {
+        op: 'navigation',
+        trace_id: 't-1',
+        data: { 'route.name': 'reset-password', 'route.params': { token: 'RESET-SECRET' }, url: '/x?token=T1&page=2' },
+      },
+    },
+    spans: [
+      {
+        op: 'http.client',
+        description: 'GET https://tarodan.com.tr/api/orders?page=2&token=T2',
+        data: {
+          url: 'https://tarodan.com.tr/api/orders?page=2&token=T2',
+          'http.method': 'GET',
+          'http.response.status_code': 200,
+          'http.query': 'page=2&token=T3',
+          accessToken: 'AT-SPAN',
+        },
+      },
+    ],
+  };
+
+  it('span.data ve contexts.trace.data metne çevrilmez; içindeki sırlar maskelenir, teşhis alanları kalır', () => {
+    const cleaned = scrubEvent(tx);
+    const span = cleaned.spans[0]!;
+    expect(typeof span.data).toBe('object');
+    expect(span.data.url).toBe('https://tarodan.com.tr/api/orders?page=2&token=[scrubbed]');
+    expect(span.data['http.method']).toBe('GET');
+    expect(span.data['http.response.status_code']).toBe(200);
+    expect(span.data['http.query']).toBe('page=2&token=[scrubbed]');
+    expect(span.data.accessToken).toBe('[scrubbed]');
+
+    const trace = cleaned.contexts.trace;
+    expect(typeof trace.data).toBe('object');
+    expect(trace.data['route.name']).toBe('reset-password');
+    expect(trace.data['route.params'].token).toBe('[scrubbed]');
+    expect(trace.data.url).toBe('/x?token=[scrubbed]&page=2');
+    expect(trace.trace_id).toBe('t-1');
+
+    const text = JSON.stringify(cleaned);
+    for (const secret of ['RESET-SECRET', 'T1', 'T2', 'T3', 'AT-SPAN']) expect(text).not.toContain(secret);
+  });
+});
+
 describe('kullanıcı bağlamı: yalnız id', () => {
   it('olaydaki user e-posta / kullanıcı adı / IP taşımaz', () => {
     const cleaned = scrubEvent({
