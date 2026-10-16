@@ -1,4 +1,4 @@
-/** Karşı teklif şemaları: admin fiyat tabanı (`floor`) alt sınırı. */
+/** Karşı teklif şemaları: admin fiyat tabanı (`floor`, `offerPriceFloor` ile hesaplanır) alt sınırı. */
 import i18n from '@/i18n/config';
 import { buyerCounterSchema, sellerCounterSchema } from '../schema';
 

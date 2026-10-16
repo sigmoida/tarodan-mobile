@@ -20,7 +20,7 @@ import { offersApi } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { IS_MAESTRO } from '@/config/maestro';
 import { usePriceLimits } from '@/hooks/usePriceLimits';
-import { buyerOfferFloor } from '@/lib/shared/priceLimits';
+import { offerPriceFloor } from '@/lib/shared/priceLimits';
 import { formatPrice } from '../../utils/format';
 import { MIN_OFFER_RATIO, offerPresets } from './offerPresets';
 
@@ -56,9 +56,9 @@ export default function MakeOfferModal({
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
   const msg = useModalMessage();
-  // Admin fiyat tabanı: teklif min(taban, ilanın etkin fiyatı) altına inemez.
+  // Admin fiyat tabanı: ilanın etkin fiyatı tabana eşit/üstüyse teklif tabanın altına inemez.
   const { minPrice } = usePriceLimits();
-  const floor = buyerOfferFloor(minPrice, listPrice);
+  const floor = offerPriceFloor(minPrice, listPrice);
 
   const createOfferMutation = useMutation({
     // Değerler çağrı anında geçirilir: modal kapanınca form state'i sıfırlanıyor.

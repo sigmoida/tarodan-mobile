@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal, ModalFooter, Text } from '@/ui';
 import { useZodForm, Form, FormInput } from '@/ui/form';
 import { usePriceLimits } from '@/hooks/usePriceLimits';
-import { buyerOfferFloor } from '@/lib/shared/priceLimits';
+import { offerPriceFloor } from '@/lib/shared/priceLimits';
 import { buyerCounterSchema } from '../_lib/schema';
 import { formatPrice } from '../_lib/status';
 import { useDoBuyerCounter } from '../_hooks/useDoBuyerCounter';
@@ -23,9 +23,9 @@ export function BuyerCounterModal({
   const { t } = useTranslation();
   const refAmount = Number(offer?.amount) || 0;
 
-  // Admin fiyat tabanı: karşı teklif min(taban, ilan fiyatı) altına inemez (taban ilan fiyatından küçükse).
+  // Admin fiyat tabanı: ilan fiyatı tabana eşit/üstüyse karşı teklif tabanın altına inemez.
   const { minPrice } = usePriceLimits();
-  const floor = buyerOfferFloor(minPrice, Number(offer?.product?.price) || 0);
+  const floor = offerPriceFloor(minPrice, Number(offer?.product?.price) || 0);
 
   const schema = useMemo(() => buyerCounterSchema(refAmount, t, floor), [refAmount, t, floor]);
   const form = useZodForm(schema, { defaultValues: { amount: '' } });

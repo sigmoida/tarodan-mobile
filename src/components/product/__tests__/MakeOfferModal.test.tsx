@@ -115,7 +115,18 @@ describe('MakeOfferModal', () => {
       expect(createMock).not.toHaveBeenCalled();
     });
 
-    it('taban ilan fiyatından büyükse (eski ucuz ilan) pazarlık açık kalır', async () => {
+    it('tam tabandaki ilanda (fiyat = taban) taban altı teklif reddedilir', async () => {
+      settingsMock.mockImplementation(() => Promise.resolve({ data: { min_product_price: 250 } }));
+      renderModal({ listPrice: 250 });
+      // Taban yüklenince tüm çipler (238/225/213 < 250) düşer.
+      await waitFor(() => expect(screen.queryByTestId('offer-preset-5')).toBeNull());
+      fireEvent.changeText(screen.getByTestId('offer-amount-input'), '130'); // %50 üstü ama < 250
+      fireEvent.press(screen.getByTestId('offer-submit-button'));
+      await waitFor(() => expect(screen.getByText('Teklif en az 250,00 TL olmalıdır.')).toBeOnTheScreen());
+      expect(createMock).not.toHaveBeenCalled();
+    });
+
+    it('fiyat tabanın altındaysa (eski ucuz ilan) taban yok, pazarlık açık kalır', async () => {
       settingsMock.mockImplementation(() => Promise.resolve({ data: { min_product_price: 250 } }));
       renderModal({ listPrice: 200 });
       await waitFor(() => expect(settingsMock).toHaveBeenCalled());

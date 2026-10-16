@@ -26,7 +26,7 @@ export function CounterOfferModal({
   const refAmount = Number(offer?.amount) || 0;
   const maxPrice = Number(offer?.product?.price) || 0;
 
-  // Admin fiyat tabanı: karşı teklif min(taban, ilan fiyatı) altına inemez.
+  // Admin fiyat tabanı: ilan fiyatı tabana eşit/üstüyse karşı teklif tabanın altına inemez.
   const { minPrice } = usePriceLimits();
   const floor = offerPriceFloor(minPrice, maxPrice);
 

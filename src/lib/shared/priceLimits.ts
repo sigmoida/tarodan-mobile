@@ -30,20 +30,12 @@ export function parsePriceLimits(raw: unknown): PriceLimits {
 }
 
 /**
- * Teklif tutarının alt sınırı: `min(minPrice, ilanın etkin fiyatı)` — taban altı
- * kalmış (eski) ucuz ilanlar pazarlığa açık kalır. Sınır yoksa / fiyat bilinmiyorsa `null`.
+ * Teklif / karşı teklif tutarının alt sınırı (sunucu + web ile aynı kural): `p` ilanın etkin
+ * fiyatı (aktif indirimli fiyat, yoksa fiyat) olsun. Taban tanımlıysa VE `p >= minPrice` ise
+ * tutar `>= minPrice` olmalı; `p < minPrice` (tabanın altında kalmış eski ilan) ise taban yok.
+ * Sınır yoksa / fiyat bilinmiyorsa `null`.
  */
-export function offerPriceFloor(minPrice: number | null, listPrice: number): number | null {
-  if (minPrice == null || !Number.isFinite(listPrice) || listPrice <= 0) return null;
-  return Math.min(minPrice, listPrice);
-}
-
-/**
- * ALICI tarafının teklif tabanı (yeni teklif / karşı teklif): teklif liste fiyatının
- * ALTINDA olmak zorunda olduğundan, taban liste fiyatına eşit/üstüyse (taban altı kalmış
- * eski ucuz ilan) uygulanmaz — o ilan pazarlığa açık kalır. Bu durumda `null`.
- */
-export function buyerOfferFloor(minPrice: number | null, listPrice: number): number | null {
-  const floor = offerPriceFloor(minPrice, listPrice);
-  return floor != null && floor < listPrice ? floor : null;
+export function offerPriceFloor(minPrice: number | null, effectivePrice: number): number | null {
+  if (minPrice == null || !Number.isFinite(effectivePrice) || effectivePrice <= 0) return null;
+  return effectivePrice >= minPrice ? minPrice : null;
 }

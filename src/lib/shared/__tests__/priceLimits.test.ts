@@ -1,4 +1,4 @@
-import { buyerOfferFloor, offerPriceFloor, parsePriceLimits } from '../priceLimits';
+import { offerPriceFloor, parsePriceLimits } from '../priceLimits';
 
 describe('parsePriceLimits', () => {
   it('okur: min ve max', () => {
@@ -40,22 +40,20 @@ describe('parsePriceLimits', () => {
   });
 });
 
-describe('offerPriceFloor / buyerOfferFloor', () => {
-  it('min(taban, ilan fiyatı)', () => {
+describe('offerPriceFloor', () => {
+  it('etkin fiyat tabana eşit/üstüyse taban uygulanır (tam tabandaki ilan dahil)', () => {
     expect(offerPriceFloor(250, 400)).toBe(250);
-    expect(offerPriceFloor(250, 200)).toBe(200);
+    expect(offerPriceFloor(250, 250)).toBe(250);
+  });
+
+  it('etkin fiyat tabanın altındaysa (eski ucuz ilan) taban yok', () => {
+    expect(offerPriceFloor(250, 249)).toBeNull();
+    expect(offerPriceFloor(250, 200)).toBeNull();
   });
 
   it('taban yok / fiyat bilinmiyor → null', () => {
     expect(offerPriceFloor(null, 400)).toBeNull();
     expect(offerPriceFloor(250, 0)).toBeNull();
     expect(offerPriceFloor(250, NaN)).toBeNull();
-  });
-
-  it('alıcı tarafı: taban liste fiyatından küçükse uygulanır, değilse (eski ucuz ilan) null', () => {
-    expect(buyerOfferFloor(250, 400)).toBe(250);
-    expect(buyerOfferFloor(250, 250)).toBeNull();
-    expect(buyerOfferFloor(250, 200)).toBeNull();
-    expect(buyerOfferFloor(null, 400)).toBeNull();
   });
 });
