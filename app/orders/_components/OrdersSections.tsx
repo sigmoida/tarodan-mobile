@@ -74,7 +74,7 @@ export function useOrdersEmptyTitle(filter: FilterType): string {
 // ---------------------------------------------------------------------------
 // Multi-item group card (accordion)
 // ---------------------------------------------------------------------------
-export function OrderGroupCard({
+export const OrderGroupCard = React.memo(function OrderGroupCard({
   group,
   isExpanded,
   onToggle,
@@ -82,7 +82,8 @@ export function OrderGroupCard({
 }: {
   group: OrderGroup;
   isExpanded: boolean;
-  onToggle: () => void;
+  /** Kararlı (satır başına closure yok): grup kimliğini alır. */
+  onToggle: (groupId: string) => void;
   onRate: (type: 'product' | 'seller', order: Order) => void;
 }) {
   const { t } = useTranslation();
@@ -96,7 +97,7 @@ export function OrderGroupCard({
       {/* Özet kart — tekli sipariş kartıyla AYNI krom. Tıkla aç/kapa (accordion). */}
       <SectionCard bodyStyle={styles.card}>
         <Pressable
-          onPress={onToggle}
+          onPress={() => onToggle(group.id)}
           accessibilityRole="button"
           accessibilityState={{ expanded: isExpanded }}
           style={styles.card}
@@ -161,4 +162,4 @@ export function OrderGroupCard({
       )}
     </View>
   );
-}
+});
