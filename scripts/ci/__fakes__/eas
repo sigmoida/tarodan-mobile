@@ -83,6 +83,12 @@ switch (args[0]) {
     console.log(JSON.stringify(result, null, 2));
     process.exit(Number(process.env.FAKE_BUILD_EXIT || 0));
   }
+  case 'env:list': {
+    // EAS sunucu ortam değişkenleri: $FAKE_DIR/eas-env-<ortam>.txt (yoksa boş liste).
+    const p = path.join(dir, `eas-env-${args[1]}.txt`);
+    if (fs.existsSync(p)) process.stdout.write(fs.readFileSync(p, 'utf8'));
+    break;
+  }
   case 'submit':
   case 'update':
     break;

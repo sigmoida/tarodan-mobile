@@ -77,6 +77,8 @@ type RunOpts = {
   buildsSeq?: Build[][];
   /** Koşudan sonra okunacak dosyalar (geçici köke göre). */
   readFiles?: string[];
+  /** Sahte eas'in okuyacağı ek dosyalar ($FAKE_DIR'e yazılır; ör. `eas-env-production.txt`). */
+  fakeFiles?: Record<string, string>;
 };
 
 function run(args: string[], opts: RunOpts = {}) {
@@ -88,6 +90,7 @@ function run(args: string[], opts: RunOpts = {}) {
   if (opts.builds) fs.writeFileSync(path.join(dir, 'builds.json'), JSON.stringify(opts.builds));
   if (opts.submissions) fs.writeFileSync(path.join(dir, 'submissions.json'), JSON.stringify(opts.submissions));
   if (opts.buildResult) fs.writeFileSync(path.join(dir, 'build-result.json'), JSON.stringify(opts.buildResult));
+  for (const [name, content] of Object.entries(opts.fakeFiles ?? {})) fs.writeFileSync(path.join(dir, name), content);
   const seqEnv: Record<string, string> = {};
   if (opts.buildsSeq) {
     // 'FAIL' (dizi yerine) o sorguyu geçici EAS hatasıyla düşürür.
@@ -339,6 +342,60 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     const r = ota('staging', 'preview');
     expect(r.status).toBe(0);
     expect(r.easCalls('update')[0]).toContain('EXPO_PUBLIC_API_URL=https://staging.tarodan.com.tr/api');
+  });
+
+  it.each([
+    ['EXPO_PUBLIC_MAESTRO', '1'],
+    ['EXPO_PUBLIC_MAESTRO_EMAIL', 'qa@example.com'],
+  ])('test kancası profilde (%s) → production/staging OTA yayınlanmaz', (key, value) => {
+    for (const [branch, profile] of [
+      ['production', 'production'],
+      ['staging', 'preview'],
+    ]) {
+      const r = ota(branch, profile, { easJson: withEnv(profile, { [key]: value }) });
+      expect(r.status).not.toBe(0);
+      expect(r.all).toContain(key);
+      expect(r.easCalls('update')).toHaveLength(0);
+    }
+  });
+
+  it("runner'dan sızan EXPO_PUBLIC_MAESTRO OTA bundle'ına taşınmaz (silinir, yayın sürer)", () => {
+    const r = ota('production', 'production', { env: { EXPO_PUBLIC_MAESTRO: '1', EXPO_PUBLIC_MAESTRO_PASSWORD: 'x' } });
+    expect(r.status).toBe(0);
+    expect(r.easCalls('update')).toHaveLength(1);
+  });
+
+  it('build-submit: profilde test kancası varsa build alınmaz', () => {
+    const r = run(['build-submit', 'ios', 'staging', 'staging'], {
+      easJson: withEnv('staging', { EXPO_PUBLIC_MAESTRO: '1' }),
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('EXPO_PUBLIC_MAESTRO');
+    expect(r.easCalls('build')).toHaveLength(0);
+  });
+
+  it('build-submit production: EAS sunucu ortamında EXPO_PUBLIC_MAESTRO varsa build alınmaz', () => {
+    const r = run(['build-submit', 'ios', 'production', '-'], {
+      fakeFiles: { 'eas-env-production.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\nEXPO_PUBLIC_MAESTRO=1\n' },
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('EAS production ortamında');
+    expect(r.easCalls('build')).toHaveLength(0);
+  });
+
+  it('build-submit production: EAS ortamı okunamazsa build alınmaz (kapalı-başarısız)', () => {
+    const r = run(['build-submit', 'ios', 'production', '-'], { env: { FAKE_EAS_FAIL_ENV_LIST: '1' } });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('build')).toHaveLength(0);
+  });
+
+  it('build-submit production: temiz ortamda build alınır', () => {
+    const r = run(['build-submit', 'ios', 'production', '-'], {
+      fakeFiles: { 'eas-env-production.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\n' },
+    });
+    expect(r.status).toBe(0);
+    expect(r.easCalls('env:list')).toHaveLength(1);
+    expect(r.easCalls('build')).toHaveLength(1);
   });
 
   it('fingerprint de boş env ile hesaplanmaz (yanlış runtime → gereksiz build)', () => {
