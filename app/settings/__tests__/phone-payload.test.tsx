@@ -42,6 +42,8 @@ jest.mock('@/stores/authStore', () => ({
   useAuthStore: (sel?: (state: any) => unknown) => {
     const state: any = ({
     isAuthenticated: true,
+    // Tam profil yüklenmiş (useFullProfile beklemez).
+    profileValidated: true,
     limits: { maxAddresses: 10 },
     user: { displayName: 'Test', email: 't@b.com', membershipTier: 'free' },
     refreshUserData: jest.fn(),
