@@ -5,7 +5,6 @@ import { useCheckout } from './_hooks/useCheckout';
 import { CheckoutItemsSection } from './_components/CheckoutItemsSection';
 import { CheckoutUnavailableItems } from './_components/CheckoutUnavailableItems';
 import { CheckoutAddressSection } from './_components/CheckoutAddressSection';
-import { CheckoutPaymentSection } from './_components/CheckoutPaymentSection';
 import { CheckoutSummarySection } from './_components/CheckoutSummarySection';
 import { CheckoutPayBar } from './_components/CheckoutPayBar';
 import { OtpModal } from './_modals/OtpModal';
@@ -61,7 +60,6 @@ export default function CheckoutScreen() {
       <CheckoutItemsSection c={c} />
       <CheckoutUnavailableItems items={c.unavailableItems} titleFor={c.cartTitleFor} />
       <CheckoutAddressSection c={c} />
-      <CheckoutPaymentSection />
       <CheckoutSummarySection c={c} />
     </PageShell>
   );

@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors, spacing } = theme;
+const { colors, spacing, radiusRole } = theme;
 
 // Satıcı profili: web `SellerHeader` (kenarlıklı kart, MetricCard ızgarası) + sekmeler + sekme içerikleri.
 export const styles = StyleSheet.create({
@@ -12,7 +12,15 @@ export const styles = StyleSheet.create({
   name: { flexShrink: 1 },
   flex: { flex: 1 },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[3] },
-  metric: { width: '47%', flexGrow: 1, gap: spacing[0.5] },
+  // Beyaz profil kartı içinde gri ton döşeme (web'de beyaz+çerçeve; mobilde kart içinde kart ayrışsın diye surface.alt).
+  metric: {
+    width: '47%',
+    flexGrow: 1,
+    gap: spacing[0.5],
+    padding: spacing[4],
+    borderRadius: radiusRole.card,
+    backgroundColor: colors.surface.alt,
+  },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing[3] },
   cell: { width: '48%' },
   review: { gap: spacing[1], paddingVertical: spacing[3] },

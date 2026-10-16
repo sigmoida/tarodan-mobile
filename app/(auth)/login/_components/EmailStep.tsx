@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Controller } from 'react-hook-form';
-import { Button, HStack, Input, Text } from '@/ui';
+import { Button, Input, Text } from '@/ui';
 import { styles } from '../_lib/styles';
 import type { LoginController } from '../_hooks/useLogin';
 import { SocialButtons } from '@/components/auth/SocialButtons';
@@ -82,15 +82,17 @@ export function EmailStep({ f }: { f: LoginController }) {
         <Text variant="caption" tone="muted">
           {t('auth.loginTermsNotice')}
         </Text>
-        <HStack wrap gap={1}>
+        {/* Tek satır metin: bağlantılar iç içe Text, aralarındaki boşluk gerçek boşluk karakteri
+            (HStack `gap` ham sayıyı pt alır — `gap={1}` 1pt'ydi, "ve" bitişik görünüyordu). */}
+        <Text variant="caption" tone="muted">
           <Text testID="login-terms-link" variant="caption" tone="primary" weight="semibold" onPress={() => router.push('/terms')}>
             {t('footer.terms')}
           </Text>
-          <Text variant="caption" tone="muted">{t('common.and')}</Text>
+          {` ${t('common.and')} `}
           <Text testID="login-privacy-link" variant="caption" tone="primary" weight="semibold" onPress={() => router.push('/privacy')}>
             {t('footer.privacy')}
           </Text>
-        </HStack>
+        </Text>
       </View>
     </View>
   );

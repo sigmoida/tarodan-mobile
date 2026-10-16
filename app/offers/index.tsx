@@ -119,8 +119,6 @@ export default function OffersScreen() {
           subtitle: t("offer.authGateSubtitle"),
           actionLabel: t("common.login"),
           onAction: () => router.push("/(auth)/login"),
-          secondaryLabel: t("auth.createAccount"),
-          onSecondary: () => router.push("/(auth)/register"),
         }}
       />
     );

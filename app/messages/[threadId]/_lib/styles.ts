@@ -7,6 +7,8 @@ const { colors, spacing, radius, radiusRole, typography } = theme;
 const MESSAGE_IMAGE = 160;
 const PENDING_THUMB = 56;
 const AVATAR_COLUMN = 36;
+/** Mesaj kutusunun büyüyebileceği azami yükseklik: ~5 satır gövde metni; sonrası kutu içinde kayar. */
+const MESSAGE_INPUT_MAX_HEIGHT = Math.round(typography.fontSize.base * typography.lineHeight.normal * 5);
 
 // Mesaj sohbeti ekranının route-local stylesheet'i — web MessageBubble/ChatHeader dili, token'lı.
 export const styles = StyleSheet.create({
@@ -129,6 +131,19 @@ export const styles = StyleSheet.create({
   },
   inputWrapper: {
     flex: 1,
+  },
+  messageInputContainer: {
+    marginBottom: spacing[0],
+  },
+  // Input'un çok satırlı varsayılanı (80pt) yerine tek satır: düğme boyu (`controlHeight.md`).
+  messageInputField: {
+    minHeight: theme.controlHeight.md,
+    paddingVertical: spacing[2],
+    alignItems: "center",
+  },
+  messageInputText: {
+    maxHeight: MESSAGE_INPUT_MAX_HEIGHT,
+    textAlignVertical: "center",
   },
   pendingImageBar: {
     flexDirection: "row",

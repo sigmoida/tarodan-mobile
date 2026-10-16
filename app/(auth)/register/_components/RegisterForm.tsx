@@ -74,9 +74,6 @@ export function RegisterForm({ f }: { f: RegisterController }) {
           />
         )}
       />
-      <Text variant="bodySm" tone="muted" style={styles.fieldHint}>
-        {t('auth.usernameImmutableHint')}
-      </Text>
 
       <Controller
         control={control}

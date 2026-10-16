@@ -102,12 +102,13 @@ describe('checkout-tek-sayfa', () => {
   });
 
   describe('J25 · tek sayfa düzeni (web CheckoutClient)', () => {
-    it('bölümler alt alta: ürünler, teslimat adresi, ödeme yöntemi, sipariş özeti', () => {
+    it('bölümler alt alta: ürünler, teslimat adresi, sipariş özeti (ödeme yöntemi kartı yok)', () => {
       seedCart([SAMPLE_ITEM]);
       renderWithProviders(<CheckoutScreen />);
       expect(screen.getByTestId('checkout-items')).toBeOnTheScreen();
       expect(screen.getByText('Teslimat Adresi')).toBeOnTheScreen();
-      expect(screen.getByText('Ödeme Yöntemi')).toBeOnTheScreen();
+      // Ödeme yöntemi kartı kaldırıldı: "Ödeme Yap" doğrudan PayTR'yi açar.
+      expect(screen.queryByText('Ödeme Yöntemi')).toBeNull();
       // Web'de olduğu gibi iki kart da "Sipariş Özeti" başlığını taşır (ürünler + özet).
       expect(screen.getAllByText('Sipariş Özeti')).toHaveLength(2);
       expect(screen.getByText('Test Model Araba')).toBeOnTheScreen();

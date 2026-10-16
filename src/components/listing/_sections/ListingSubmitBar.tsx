@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonRow, theme } from '@/ui';
@@ -11,19 +12,23 @@ type SectionProps = { f: ListingFormController };
 const goBack = () => router.back();
 
 /**
- * Vazgeç + Gönder (web `SubmitBar`). `ButtonRow`: eşit genişlik, etiket sarmaz; sığmazsa alt
- * alta tam genişlik. Görsel yüklenirken ve gönderim sürerken kilitli.
+ * Gönder çubuğu (düzenlemede PageShell'in sabit alt barı, oluşturmada formun sonu): üstte tam genişlik
+ * birincil "Değişiklikleri Kaydet" / "İlan Oluştur"; altında ikincil satır — düzenlemede
+ * [İlanı Sil][İptal] yan yana (`ButtonRow`, eşit genişlik; sığmazsa alt alta), oluşturmada yalnız
+ * İptal. Görsel yüklenirken ve gönderim sürerken kilitli; silmenin onay/nedeni `ListingRemovalModal`'da.
  */
 export function ListingSubmitBar({ f }: SectionProps) {
   const { t } = useTranslation();
   const locked = f.isSubmitting || f.uploadingImages;
+  const cancel = (
+    <Button key="cancel" variant="outline" size="lg" title={t('common.cancel')} onPress={goBack} />
+  );
   return (
-    <ButtonRow gap={theme.spacing[3]}>
-      <Button key="cancel" variant="outline" size="lg" title={t('common.cancel')} onPress={goBack} />
+    <View style={styles.bar}>
       <Button
-        key="submit"
         testID="listing-submit-button"
         size="lg"
+        fullWidth
         title={
           f.uploadingImages
             ? t('product.saveWhileUploading')
@@ -35,25 +40,29 @@ export function ListingSubmitBar({ f }: SectionProps) {
         isLoading={f.isSubmitting}
         disabled={locked}
       />
-    </ButtonRow>
+      {f.isEdit ? (
+        <ButtonRow gap={theme.spacing[3]}>
+          <Button
+            key="delete"
+            testID="listing-delete-button"
+            variant="danger"
+            size="lg"
+            title={t('product.deleteListing')}
+            onPress={f.handleDelete}
+            disabled={f.isSubmitting}
+          />
+          {cancel}
+        </ButtonRow>
+      ) : (
+        <ButtonRow>{cancel}</ButtonRow>
+      )}
+    </View>
   );
 }
 
-/** İlanı sil (yalnız düzenleme) — web gibi `danger` düğmesi; onay/neden `ListingRemovalModal`'da. */
-export function ListingDeleteButton({ f }: SectionProps) {
-  const { t } = useTranslation();
-  if (!f.isEdit) return null;
-  return (
-    <Button
-      variant="danger"
-      size="lg"
-      fullWidth
-      title={t('product.deleteListing')}
-      onPress={f.handleDelete}
-      disabled={f.isSubmitting}
-    />
-  );
-}
+const styles = StyleSheet.create({
+  bar: { gap: theme.spacing[3] },
+});
 
 /** Silme nedeni penceresi (yalnız düzenleme) — `PageShell` `overlay`'inde, gövdeden bağımsız. */
 export function ListingRemovalOverlay({ f }: SectionProps) {

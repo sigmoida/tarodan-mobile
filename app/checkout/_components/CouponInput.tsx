@@ -66,18 +66,18 @@ export function CouponInput({
         isLoading={coupon.isPending}
         disabled={coupon.isPending || !coupon.code.trim()}
         testID="coupon-apply-button"
-        style={styles.applyButton}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Input (md) ve Button (md) aynı boy (`controlHeight.md`): üstten hizalı = aynı hizada; hata
+  // satırı kutunun altına eklenir, düğme kutuyla hizalı kalır.
   box: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: theme.spacing[2],
   },
   field: { flex: 1 },
-  applyButton: { marginTop: theme.spacing[1] },
 });

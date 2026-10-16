@@ -35,8 +35,6 @@ function FavoritesScreen() {
           subtitle={t('favorites.loginRequired')}
           actionLabel={t('common.login')}
           onAction={() => router.push('/(auth)/login')}
-          secondaryLabel={t('auth.createAccount')}
-          onSecondary={() => router.push('/(auth)/register')}
         />
       </AppShell>
     );

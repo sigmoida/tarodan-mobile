@@ -44,6 +44,8 @@ export function MessageInputBar({ f }: { f: MessageThreadController }) {
           <IconButton
             testID="message-attach"
             icon="photo"
+            variant="secondary"
+            shape="round"
             size="md"
             accessibilityLabel={t('message.attachImage')}
             onPress={f.handleAttachImage}
@@ -59,6 +61,11 @@ export function MessageInputBar({ f }: { f: MessageThreadController }) {
               f.notifyTyping();
             }}
             multiline
+            // Varsayılan TEK satır (düğmelerle aynı 40pt); yazdıkça büyür, `MESSAGE_INPUT_MAX_HEIGHT`'ta
+            // kayar. Input'un alt boşluğu sıfır: düğmeler alttan kutuyla hizalı.
+            containerStyle={styles.messageInputContainer}
+            fieldStyle={styles.messageInputField}
+            inputStyle={styles.messageInputText}
             maxLength={1000}
             editable={f.canSend && !f.uploadingImage}
           />
@@ -67,6 +74,7 @@ export function MessageInputBar({ f }: { f: MessageThreadController }) {
           testID="message-send"
           icon="paper-airplane"
           variant="primary"
+          shape="round"
           size="md"
           accessibilityLabel={t('common.send')}
           onPress={f.handleSend}
