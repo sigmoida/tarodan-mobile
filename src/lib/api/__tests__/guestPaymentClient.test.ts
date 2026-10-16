@@ -17,8 +17,11 @@ jest.mock('expo-router', () => ({
 
 jest.mock('@/lib/api-client', () => {
   const actual = jest.requireActual('@/lib/api-client');
-  // Çıplak axios yalnız `/auth/refresh` için kullanılıyor: yenileme başarısız.
-  return { ...actual, axios: { ...actual.axios, post: jest.fn(() => Promise.reject(new Error('refresh failed'))) } };
+  // Çıplak axios yalnız `/auth/refresh` için kullanılıyor: yenileme KESİN reddedildi (401) —
+  // geçici hata (ağ / 5xx) oturumu kapatmaz (`refreshFailure`).
+  const refreshRejected = () =>
+    Promise.reject(Object.assign(new Error('refresh failed'), { response: { status: 401, data: {} } }));
+  return { ...actual, axios: { ...actual.axios, post: jest.fn(refreshRejected) } };
 });
 
 jest.mock('@/stores/authStore', () => {

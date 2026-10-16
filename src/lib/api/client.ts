@@ -7,6 +7,7 @@ import Constants from "expo-constants";
 import { captureException } from "@/services/sentry";
 import { errorFingerprint } from "./requestId";
 import { authFailureKind } from "./authFailureKind";
+import { refreshFailureKind } from "./refreshFailure";
 import { acceptLanguageHeader } from "./acceptLanguage";
 import { neutralizeUpsellError } from "./iosNeutralErrors";
 import { noteNetworkFailure } from "@/lib/network/networkFailure";
@@ -212,37 +213,79 @@ function syncStoreAccessToken(newAccess: string): void {
   }
 }
 
-async function performTokenRefresh(): Promise<string | null> {
+/** Yenileme isteğinin üst sınırı: asılı bir refresh, tek-uçuş üzerinden HER kimlikli isteği bekletir. */
+export const REFRESH_TIMEOUT_MS = 15000;
+
+/**
+ * Yenilemenin sonucu (tek-uçuş: eşzamanlı tüm 401'ler aynı sonucu paylaşır).
+ * - `refreshed`: yeni access token yazıldı, istek yeniden denenir.
+ * - `invalid`: sunucu refresh token'ı KESİN reddetti ya da token yok → oturum biter.
+ * - `stale`: yanıt beklenirken oturum kapandı / değişti → ne yazılır ne çıkış yapılır.
+ * - `transient`: ağ / zaman aşımı / 5xx / 429 / anahtar zinciri okunamadı → oturum korunur,
+ *   istek bu hatayla reddedilir (bkz. `./refreshFailure`).
+ */
+type RefreshResult =
+  | { status: "refreshed"; accessToken: string }
+  | { status: "invalid" }
+  | { status: "stale" }
+  | { status: "transient"; error: unknown };
+
+async function performTokenRefresh(): Promise<RefreshResult> {
   // İsteği başlatan oturum. Yanıt döndüğünde hâlâ aynı kuşaktaysak yazarız.
   const epochAtStart = sessionEpoch;
+  const sessionChanged = () => epochAtStart !== sessionEpoch || isLogoutInProgress();
   // Çıkış sürerken yenileme YOK: çıkışın kendi isteği (push iptali) 401 alırsa yenilenen
   // token'lar SecureStore'a yazılır, çıkış temizliğiyle yarışır ve kalırsa sonraki açılışta
   // `loadToken` kapanmış oturumu diriltirdi.
-  if (isLogoutInProgress()) return null;
-  const refreshToken = await SecureStore.getItemAsync("refreshToken");
-  if (!refreshToken) return null;
+  if (isLogoutInProgress()) return { status: "stale" };
+  let refreshToken: string | null;
+  try {
+    refreshToken = await SecureStore.getItemAsync("refreshToken");
+  } catch (error) {
+    // Anahtar zinciri okunamadı (ör. cihaz kilidi açılmadan arka planda açılış): bu
+    // "oturum yok" DEĞİL — token'lar duruyor, sonraki istek yeniden dener.
+    return { status: "transient", error };
+  }
+  if (!refreshToken) return { status: "invalid" };
   // Çıplak `axios` — instance'ların ayarını miras ALMAZ, o yüzden çerez kapısı
   // burada tekrar edilir. Yenileme, çerezlerin sızdığı iki uçtan biridir.
-  const response = await axios.post(
-    `${API_URL}/auth/refresh`,
-    { refreshToken },
-    NO_COOKIES,
-  );
+  // Süre sınırı iki katmanlı: axios `timeout` + AbortController (asılı bir soket
+  // `timeout`'u her ağ yığınında tetiklemeyebilir). Zaman aşımı GEÇİCİDİR.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
+  let response;
+  try {
+    response = await axios.post(
+      `${API_URL}/auth/refresh`,
+      { refreshToken },
+      { ...NO_COOKIES, timeout: REFRESH_TIMEOUT_MS, signal: controller.signal },
+    );
+  } catch (error) {
+    if (sessionChanged()) return { status: "stale" };
+    return refreshFailureKind(error) === "invalid"
+      ? { status: "invalid" }
+      : { status: "transient", error };
+  } finally {
+    clearTimeout(timer);
+  }
   const data: any = response.data;
   const newAccess: string | undefined =
     data?.tokens?.accessToken ?? data?.accessToken;
   const newRefresh: string | undefined =
     data?.tokens?.refreshToken ?? data?.refreshToken;
-  if (!newAccess) return null;
   // Uçuştayken çıkış yapıldı: bu token artık kapanmış bir oturuma ait. Yazarsak
   // bu arada giriş yapmış olan kullanıcının token'ını ezeriz.
   // Yanıt beklenirken çıkış başladıysa da (kuşak aynı kalsa bile) yazma/uygulama yok.
-  if (epochAtStart !== sessionEpoch || isLogoutInProgress()) return null;
+  if (sessionChanged()) return { status: "stale" };
+  // 2xx ama token yok: sunucu token'ı reddetmedi (beklenmeyen gövde) — oturum korunur.
+  if (!newAccess) {
+    return { status: "transient", error: new Error("Refresh response without access token") };
+  }
   await SecureStore.setItemAsync("accessToken", newAccess);
   // ROTATED refresh token'ı da kaydet (asıl bug buydu).
   if (newRefresh) await SecureStore.setItemAsync("refreshToken", newRefresh);
   syncStoreAccessToken(newAccess);
-  return newAccess;
+  return { status: "refreshed", accessToken: newAccess };
 }
 
 // Tek-uçuş refresh: eşzamanlı 401'ler tek refresh paylaşır (rotated token + storm önlenir).
@@ -336,6 +379,35 @@ const isPublicAuthRequest = (config?: { url?: string }): boolean => {
   return PUBLIC_AUTH_PATHS.some((path) => url.includes(path));
 };
 
+/**
+ * Geçici refresh hatasını ASIL isteğin hatası olarak biçimler: durum/gövde/kod
+ * yenilemeden gelir (ağ hatası → yanıtsız, 5xx/429 → o durum), `config` asıl isteğindir.
+ * Yenileme hatasının kendisi verilmez — onun `config.data`'sı refresh token'ı taşır ve
+ * çağıranın hata raporuna (Sentry) sızardı. Zaman aşımı iptali (`ERR_CANCELED`) kullanıcı
+ * iptali sanılmasın diye `ECONNABORTED` olur.
+ */
+function asTransientRefreshError(original: Record<string, unknown>, refreshError: unknown): unknown {
+  const source = refreshError as
+    | { response?: { status?: number; statusText?: string; headers?: unknown; data?: unknown }; code?: string; message?: string }
+    | null
+    | undefined;
+  const response = source?.response;
+  original.response = response
+    ? {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data,
+        config: original.config,
+      }
+    : undefined;
+  original.status = response?.status;
+  if (source?.code) original.code = source.code === "ERR_CANCELED" ? "ECONNABORTED" : source.code;
+  if (typeof source?.message === "string") original.message = source.message;
+  original.refreshTransient = true;
+  return original;
+}
+
 // Response interceptor - handle token refresh
 api.interceptors.response.use(
   (response) => response,
@@ -376,9 +448,9 @@ api.interceptors.response.use(
       }
       originalRequest._retry = true;
       try {
-        const newAccess = await refreshAccessToken();
-        if (newAccess) {
-          originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+        const result = await refreshAccessToken();
+        if (result.status === "refreshed") {
+          originalRequest.headers.Authorization = `Bearer ${result.accessToken}`;
           return api(originalRequest);
         }
       } catch {
@@ -394,14 +466,28 @@ api.interceptors.response.use(
       !startedInClosedSession(originalRequest)
     ) {
       originalRequest._retry = true;
+      // 401'in işlendiği oturum. Refresh beklenirken çıkış + yeni giriş olduysa, eski
+      // oturumun refresh sonucu YENİ oturumu kapatmamalı.
+      const epochAtFailure = sessionEpoch;
+      let result: RefreshResult;
       try {
-        const newAccess = await refreshAccessToken();
-        if (newAccess) {
-          originalRequest.headers.Authorization = `Bearer ${newAccess}`;
-          return api(originalRequest);
-        }
-        await handleAuthFailure(error);
+        result = await refreshAccessToken();
       } catch (refreshError) {
+        // `performTokenRefresh` sınıflandırılmış sonuç döndürür; buraya düşen beklenmeyen
+        // bir hatadır (ör. SecureStore yazımı) — oturumu korumak güvenli taraftır.
+        result = { status: "transient", error: refreshError };
+      }
+      if (result.status === "refreshed") {
+        originalRequest.headers.Authorization = `Bearer ${result.accessToken}`;
+        return api(originalRequest);
+      }
+      if (result.status === "transient") {
+        // Oturum KORUNUR (token'lar + kullanıcı). Çağırana yenilemenin hatası verilir:
+        // ağ hatası / 5xx olarak görünür (çevrimdışı diyaloğu, "tekrar dene"); asıl 401
+        // verilseydi açılış doğrulaması gibi çağıranlar onu "oturum bitti" sanardı.
+        return Promise.reject(asTransientRefreshError(error, result.error));
+      }
+      if (result.status === "invalid" && epochAtFailure === sessionEpoch) {
         await handleAuthFailure(error);
       }
     }
