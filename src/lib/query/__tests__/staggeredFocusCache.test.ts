@@ -33,7 +33,7 @@ describe('StaggeredFocusQueryCache', () => {
     fns.forEach((fn, i) => {
       client.setQueryData(['q', i], 'cached');
       const obs = new QueryObserver(client, { queryKey: ['q', i], queryFn: fn, refetchOnMount: false });
-      unsubs.push(obs.subscribe(() => {}));
+      unsubs.push(obs.subscribe(() => undefined));
     });
     fns.forEach((fn) => fn.mockClear());
     return fns;
