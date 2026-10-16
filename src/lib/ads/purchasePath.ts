@@ -1,4 +1,4 @@
-import { stripLocalePrefix } from '@/lib/deeplinks';
+import { normalizePath } from '@/lib/deeplinks';
 
 /**
  * Dijital satış (üyelik, boost/öne çıkarma) kapalı — bu yollar uygulamada hiçbir
@@ -14,6 +14,5 @@ const PURCHASE_PATH =
  * (`/en/membership`) ve sondaki `/` ile yazılmış biçimleri de kapsar.
  */
 export function isPurchasePath(pathWithQuery: string): boolean {
-  const raw = pathWithQuery.split(/[?#]/)[0]!.replace(/\/{2,}/g, '/').replace(/\/+$/, '') || '/';
-  return PURCHASE_PATH.test(stripLocalePrefix(raw));
+  return PURCHASE_PATH.test(normalizePath(pathWithQuery));
 }

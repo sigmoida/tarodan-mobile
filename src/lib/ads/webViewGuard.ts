@@ -17,10 +17,14 @@ export type WebRequestDecision = 'allow' | 'external' | 'block';
  *   götürmeyen her sayfası uygulama içinde kalır.
  * - `embed` (yasal belgeler): yalnız uygulama modu sayfaları (`/app/*`,
  *   `/en/app/*`) içeride kalır; kendi sitemizin diğer sayfaları ve dış linkler
- *   sistem tarayıcısında açılır (belgedeki `mailto:`/`tel:` de sisteme gider).
- *   Satın alma yolları iki kipte de hiçbir yoldan açılmaz.
+ *   sistem tarayıcısında açılır.
+ * İki kipte de: satın alma yolları hiçbir yoldan açılmaz; `mailto:`/`tel:`
+ * sisteme gider; diğer şemalar engellenir.
  */
 export type WebViewMode = 'site' | 'embed';
+
+/** Sistem uygulamasına bırakılan şemalar (e-posta, telefon). */
+const SYSTEM_SCHEMES = /^(mailto|tel):/i;
 
 /** Adres, kendi sitemizin satın almaya götürmeyen bir sayfası mı. */
 export function isAllowedOwnPage(url: string): boolean {
@@ -41,7 +45,10 @@ export function decideWebRequest(
     if (mode === 'site') return 'allow';
     return isAppEmbedPath(pathFromUrl(url) ?? '/') ? 'allow' : 'external';
   }
-  if (mode === 'embed' && /^(mailto|tel):/i.test(url)) return 'external';
+  // E-posta / telefon bağlantıları sisteme bırakılır; diğer şemalar (sms:,
+  // intent:, itms-apps:, tarodan:, javascript:, data:, http: …) engellenir.
+  // WebView `originWhitelist={['*']}` ile HER adresi buraya sorar.
+  if (SYSTEM_SCHEMES.test(url)) return 'external';
   // Dış https linki sessizce yutulmaz — sistem tarayıcısı açar.
   if (/^https:\/\//i.test(url)) return 'external';
   return 'block';

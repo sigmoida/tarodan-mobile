@@ -21,7 +21,7 @@ describe('decideWebRequest — iframe ve dış linkler', () => {
     expect(decideWebRequest('about:blank', true)).toBe('allow');
     expect(decideWebRequest('javascript:alert(1)', true)).toBe('block');
     expect(decideWebRequest('http://example.org/x', true)).toBe('block');
-    expect(decideWebRequest('tel:+90555', true)).toBe('block');
+    expect(decideWebRequest('tarodan://cart', true)).toBe('block');
   });
 });
 
@@ -49,8 +49,25 @@ describe('decideWebRequest — embed kipi (yasal belgeler)', () => {
     expect(decideWebRequest('https://www.youtube.com/embed/x', false, 'embed')).toBe('allow');
   });
 
-  it('varsayılan (site) kipi değişmedi: kendi sitemizin her sayfası içeride', () => {
+  it('varsayılan (site) kipi: kendi sitemizin her sayfası içeride', () => {
     expect(decideWebRequest('https://tarodan.com.tr/contact', true)).toBe('allow');
-    expect(decideWebRequest('mailto:destek@tarodan.com.tr', true)).toBe('block');
   });
+
+  it.each(['site', 'embed'] as const)(
+    '%s: mailto/tel sisteme, diğer şemalar engelli (originWhitelist hepsini buraya sorar)',
+    (mode) => {
+      expect(decideWebRequest('mailto:destek@tarodan.com.tr', true, mode)).toBe('external');
+      expect(decideWebRequest('TEL:+902324334142', true, mode)).toBe('external');
+      for (const url of [
+        'sms:+905550000000',
+        'intent://scan/#Intent;scheme=zxing;end',
+        'itms-apps://apps.apple.com/app/id1',
+        'tarodan://membership',
+        'data:text/html,hi',
+        'javascript:alert(1)',
+      ]) {
+        expect(`${url} → ${decideWebRequest(url, true, mode)}`).toBe(`${url} → block`);
+      }
+    },
+  );
 });

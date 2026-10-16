@@ -1,4 +1,4 @@
-import { stripLocalePrefix } from '@/lib/deeplinks';
+import { normalizePath } from '@/lib/deeplinks';
 import { ownWebPageUrl } from '@/lib/web';
 
 /**
@@ -40,21 +40,21 @@ function localePrefix(lang: string | null | undefined): string {
   return lang?.toLowerCase().startsWith('en') ? '/en' : '';
 }
 
-/** WebView'de açılan uygulama modu adresi: `/app/<doc>` ya da `/en/app/<doc>`. */
+/**
+ * Uygulama modu adresi: `/app/<doc>` ya da `/en/app/<doc>`. Hem WebView hem
+ * "Tarayıcıda aç" yedeği bunu açar — mağaza ekleri (Apple 1.2 UGC maddesi)
+ * yalnız uygulama modu koşullarında.
+ */
 export function legalEmbedUrl(doc: LegalWebDoc, lang: string | null | undefined): string {
   return ownWebPageUrl(`${localePrefix(lang)}/app/${doc}`);
 }
 
-/** "Tarayıcıda aç": aynı belgenin normal web sayfası (`/<doc>` ya da `/en/<doc>`). */
-export function legalBrowserUrl(doc: LegalWebDoc, lang: string | null | undefined): string {
-  return ownWebPageUrl(`${localePrefix(lang)}/${doc}`);
-}
-
 /**
- * Yol (sorgu/hash olabilir) uygulama modu sayfası mı: `/app/*` ya da locale
- * önekli `/en/app/*`. Yasal ekranların WebView'i yalnız bu yollarda kalır.
+ * Yol (sorgu/hash olabilir) uygulama modu sayfası mı — web kuralıyla aynı:
+ * `/app` ya da `/app/*`, locale önekli (`/en/app/*`) dahil. Yasal ekranların
+ * WebView'i yalnız bu yollarda kalır.
  */
 export function isAppEmbedPath(pathWithQuery: string): boolean {
-  const raw = pathWithQuery.split(/[?#]/)[0]!.replace(/\/{2,}/g, '/');
-  return stripLocalePrefix(raw).startsWith('/app/');
+  const path = normalizePath(pathWithQuery);
+  return path === '/app' || path.startsWith('/app/');
 }

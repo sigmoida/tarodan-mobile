@@ -6,7 +6,7 @@
 import { DEFAULT_WEB_BASE, ownWebPageUrl, webBaseUrl } from '@/lib/web';
 import { collectionShareUrl, productShareUrl } from '@/utils/share';
 import { resolveAdLink } from '@/lib/ads/openAdLink';
-import { legalBrowserUrl, legalEmbedUrl } from '@/lib/legal/webDocs';
+import { legalEmbedUrl } from '@/lib/legal/webDocs';
 
 const ORIGINAL = process.env.EXPO_PUBLIC_WEB_URL;
 afterEach(() => {
@@ -37,6 +37,6 @@ describe('@/lib/web', () => {
       url: 'https://staging.tarodan.com.tr/bilinmeyen-yol-xyz',
     });
     expect(legalEmbedUrl('terms', 'tr')).toBe('https://staging.tarodan.com.tr/app/terms');
-    expect(legalBrowserUrl('terms', 'en')).toBe('https://staging.tarodan.com.tr/en/terms');
+    expect(legalEmbedUrl('terms', 'en')).toBe('https://staging.tarodan.com.tr/en/app/terms');
   });
 });

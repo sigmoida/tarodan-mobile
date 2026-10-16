@@ -36,6 +36,13 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   testID = 'error-state',
 }) => {
   const { t } = useTranslation();
+  const retryButton = onRetry ? (
+    <Button variant="primary" title={retryLabel ?? t('mobile.errorRetry')} onPress={onRetry} style={styles.button} />
+  ) : null;
+  const secondaryButton =
+    secondaryLabel && onSecondary ? (
+      <Button variant="ghost" title={secondaryLabel} onPress={onSecondary} style={styles.button} />
+    ) : null;
   return (
     <StateLayout
       icon="exclamation-circle"
@@ -44,19 +51,11 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
       placement={placement}
       testID={testID}
     >
-      {onRetry || (secondaryLabel && onSecondary) ? (
+      {/* Aksiyon yoksa boş aksiyon satırı (üst boşluk) çizilmesin diye `null`. */}
+      {retryButton || secondaryButton ? (
         <>
-          {onRetry ? (
-            <Button
-              variant="primary"
-              title={retryLabel ?? t('mobile.errorRetry')}
-              onPress={onRetry}
-              style={styles.button}
-            />
-          ) : null}
-          {secondaryLabel && onSecondary ? (
-            <Button variant="ghost" title={secondaryLabel} onPress={onSecondary} style={styles.button} />
-          ) : null}
+          {retryButton}
+          {secondaryButton}
         </>
       ) : null}
     </StateLayout>

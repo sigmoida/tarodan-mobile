@@ -90,6 +90,17 @@ export function stripLocalePrefix(path: string): string {
     : path;
 }
 
+/**
+ * Yolu KARSILASTIRMA icin normal forma indirir: sorgu/hash atilir, ardisik `/`
+ * teklenir, sondaki `/` atilir, locale oneki (`/en`, `/tr`) soyulur. Satin alma
+ * kapisi (`isPurchasePath`) ve uygulama modu yolu (`isAppEmbedPath`) ayni
+ * kurali kullanir. Kok → `/`.
+ */
+export function normalizePath(pathWithQuery: string): string {
+  const raw = pathWithQuery.split(/[?#]/)[0]!.replace(/\/{2,}/g, '/').replace(/\/+$/, '') || '/';
+  return stripLocalePrefix(raw) || '/';
+}
+
 // AASA/assetlinks uretimi BILEREK burada degil: tek uygulama
 // scripts/gen-wellknown.mjs'de. Buraya bir kopya konursa iki taraf ayri ayri
 // bakim ister ve sessizce ayrisir — tam da elle yazilan AASA listesinin

@@ -3,7 +3,7 @@
  * `/seller-agreement`, `/refund-policy`) web'in uygulama modu sayfasını
  * WebView'de açar: Türkçe `/app/<doc>`, İngilizce `/en/app/<doc>`. WebView
  * yalnız `/app/*`'da kalır (diğer linkler sistem tarayıcısında); yükleme
- * hatasında "Tekrar dene" + "Tarayıcıda aç" (normal web sayfası).
+ * hatasında "Tekrar dene" + "Tarayıcıda aç" (aynı uygulama modu adresi).
  */
 import React from 'react';
 import { Linking } from 'react-native';
@@ -54,6 +54,7 @@ const SCREENS: Array<[string, React.ComponentType, MessageKey]> = [
 /** Testin okuduğu WebView prop'ları. */
 interface WebViewTestProps {
   source: { uri: string };
+  originWhitelist: string[];
   onShouldStartLoadWithRequest: (req: { url: string; isTopFrame?: boolean; navigationType?: string }) => boolean;
   onNavigationStateChange: (nav: { url?: string; canGoBack?: boolean; loading?: boolean }) => void;
   onError: (e: { nativeEvent: { description: string } }) => void;
@@ -117,51 +118,100 @@ describe('yasal belge ekranları — gezinme kuralları', () => {
     expect(openURL).not.toHaveBeenCalled();
   });
 
-  it('SPA geçişiyle /app dışına çıkılırsa: tarayıcıda bir kez açılır, WebView belgeye döner', () => {
+  it('her adres karar kapısından geçer (originWhitelist hepsi)', () => {
     renderWithProviders(<TermsScreen />);
-    const nav = { url: ownWebPageUrl('/contact'), canGoBack: true, loading: false };
-    act(() => lastWebView().onNavigationStateChange(nav));
-    act(() => lastWebView().onNavigationStateChange(nav));
-    expect(openURL).toHaveBeenCalledTimes(1);
-    expect(openURL).toHaveBeenCalledWith(ownWebPageUrl('/contact'));
-    expect(mockGoBack).toHaveBeenCalledTimes(1);
-    // Belgeye dönüldü; aynı link tekrar tıklanabilir.
-    act(() => lastWebView().onNavigationStateChange({ url: ownWebPageUrl('/app/terms'), canGoBack: false }));
-    act(() => lastWebView().onNavigationStateChange(nav));
-    expect(openURL).toHaveBeenCalledTimes(2);
+    expect(lastWebView().originWhitelist).toEqual(['*']);
+    expect(start('sms:+905550000000')).toBe(false);
+    expect(start('itms-apps://apps.apple.com/app/id1')).toBe(false);
+    expect(start('intent://x#Intent;end')).toBe(false);
+    expect(openURL).not.toHaveBeenCalled();
+    expect(start('tel:+902324334142')).toBe(false);
+    expect(openURL).toHaveBeenLastCalledWith('tel:+902324334142');
+  });
+});
+
+describe('yasal belge ekranları — SPA kaçışı (/app dışına site içi geçiş)', () => {
+  const nav = (path: string, extra: Record<string, unknown> = {}) => ({
+    url: ownWebPageUrl(path),
+    canGoBack: true,
+    loading: false,
+    ...extra,
   });
 
-  it('SPA kaçışında geçmiş yoksa WebView belgeyle yeniden kurulur', () => {
+  it('hedef tarayıcıda bir kez açılır; WebView goBack DEĞİL belge adresiyle yeniden kurulur', () => {
     renderWithProviders(<TermsScreen />);
-    expect(mockMounts).toBe(1);
-    act(() => lastWebView().onNavigationStateChange({ url: ownWebPageUrl('/about'), canGoBack: false }));
+    const old = lastWebView();
+    // Aynı geçiş için gelen tekrar olaylar (yükleme başladı / bitti / başlık).
+    act(() => old.onNavigationStateChange(nav('/contact', { loading: true })));
+    act(() => old.onNavigationStateChange(nav('/contact')));
+    act(() => old.onNavigationStateChange(nav('/contact')));
+
+    expect(openURL).toHaveBeenCalledTimes(1);
+    expect(openURL).toHaveBeenCalledWith(ownWebPageUrl('/contact'));
     expect(mockGoBack).not.toHaveBeenCalled();
     expect(mockMounts).toBe(2);
     expect(lastWebView().source).toEqual({ uri: ownWebPageUrl('/app/terms') });
+    expect(screen.queryByTestId('own-site-load-error')).toBeNull();
+  });
+
+  it('kaçış öncesi açık olan belgeye döner (belgeler arası gezinme korunur)', () => {
+    renderWithProviders(<TermsScreen />);
+    act(() => lastWebView().onNavigationStateChange(nav('/app/privacy')));
+    act(() => lastWebView().onNavigationStateChange(nav('/about')));
+    expect(lastWebView().source).toEqual({ uri: ownWebPageUrl('/app/privacy') });
+  });
+
+  it('yeniden kurulduktan sonra AYNI kaçış tekrar olursa döngü yok: hata durumu, tarayıcı yeniden açılmaz', () => {
+    renderWithProviders(<TermsScreen />);
+    act(() => lastWebView().onNavigationStateChange(nav('/contact')));
+    expect(mockMounts).toBe(2);
+    // Yeni WebView belgeyi yükledi, sonra yine /contact'a kaçtı (ör. istemci yönlendirmesi).
+    act(() => lastWebView().onNavigationStateChange(nav('/app/terms')));
+    act(() => lastWebView().onNavigationStateChange(nav('/contact')));
+
+    expect(mockMounts).toBe(2);
+    expect(openURL).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('own-site-load-error')).toBeOnTheScreen();
+    expect(screen.queryByTestId('legal-webview')).toBeNull();
+
+    // "Tekrar dene" belgeyi yeniden kurar; döngü sayacı sıfırlanır.
+    fireEvent.press(screen.getByText(i18n.t('mobile.errorRetry')));
+    expect(screen.getByTestId('legal-webview')).toBeOnTheScreen();
+    expect(mockMounts).toBe(3);
+  });
+
+  it('farklı hedefe kaçış ayrı sayılır (her biri bir kez tarayıcıda)', () => {
+    renderWithProviders(<TermsScreen />);
+    act(() => lastWebView().onNavigationStateChange(nav('/contact')));
+    act(() => lastWebView().onNavigationStateChange(nav('/app/terms')));
+    act(() => lastWebView().onNavigationStateChange(nav('/about')));
+    expect(openURL.mock.calls.map((c) => c[0])).toEqual([ownWebPageUrl('/contact'), ownWebPageUrl('/about')]);
+    expect(mockMounts).toBe(3);
+    expect(screen.queryByTestId('own-site-load-error')).toBeNull();
   });
 });
 
 describe('yasal belge ekranları — hata durumu', () => {
-  it('ağ hatasında "Tekrar dene" + "Tarayıcıda aç"; tarayıcıda normal web sayfası', async () => {
+  it('ağ hatasında "Tekrar dene" + "Tarayıcıda aç"; tarayıcıda AYNI uygulama modu adresi', async () => {
     renderWithProviders(<CookiesScreen />);
     act(() => lastWebView().onError({ nativeEvent: { description: 'offline' } }));
 
     expect(screen.queryByTestId('legal-webview')).toBeNull();
     expect(screen.getByTestId('own-site-load-error')).toBeOnTheScreen();
     fireEvent.press(screen.getByText(i18n.t('mobile.openInBrowser')));
-    expect(openURL).toHaveBeenCalledWith(ownWebPageUrl('/cookies'));
+    expect(openURL).toHaveBeenCalledWith(ownWebPageUrl('/app/cookies'));
 
     fireEvent.press(screen.getByText(i18n.t('mobile.errorRetry')));
     expect(screen.getByTestId('legal-webview')).toBeOnTheScreen();
     expect(mockMounts).toBe(2);
   });
 
-  it('İngilizcede "Tarayıcıda aç" /en/<doc> açar', async () => {
+  it('İngilizcede "Tarayıcıda aç" /en/app/<doc> açar', async () => {
     await i18n.changeLanguage('en');
     renderWithProviders(<RefundPolicyScreen />);
     act(() => lastWebView().onError({ nativeEvent: { description: 'offline' } }));
     fireEvent.press(screen.getByText(i18n.t('mobile.openInBrowser')));
-    expect(openURL).toHaveBeenCalledWith(ownWebPageUrl('/en/refund-policy'));
+    expect(openURL).toHaveBeenCalledWith(ownWebPageUrl('/en/app/refund-policy'));
   });
 
   it('HTTP 4xx/5xx de hata durumuna düşer; 2xx/3xx düşmez', () => {

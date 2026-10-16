@@ -46,7 +46,7 @@ export function OwnSiteWebView({
   onBack?: () => void;
   /** Gezinme kipi — bkz. `WebViewMode`. */
   mode?: WebViewMode;
-  /** `embed`: yükleme hatasında "Tarayıcıda aç" ile açılacak normal web adresi. */
+  /** `embed`: yükleme hatasında "Tarayıcıda aç" ile açılacak adres. */
   browserUrl?: string;
   testID?: string;
 }) {
@@ -54,6 +54,7 @@ export function OwnSiteWebView({
   const target = typeof url === 'string' && isAllowedOwnPage(url) ? url : null;
   const webRef = useRef<WebView>(null);
   const back = onBack ?? leaveOwnSiteScreen;
+  const embed = mode === 'embed';
   // `onNavigationStateChange` aynı engelli adres için birden çok kez gelir
   // (yükleme başladı / bitti / başlık değişti). Ekrandan çıkış TEK sefer:
   // aksi halde `router.back()` iki ekran geri giderdi. Bayrak yalnız çıkış
@@ -62,22 +63,54 @@ export function OwnSiteWebView({
   // Engelli sayfaya geçildi: çıkış ne olursa olsun WebView sökülür, satın alma
   // sayfası hiçbir durumda ekranda kalmaz (Apple 3.1.1).
   const [blocked, setBlocked] = useState(false);
-  // `embed`: ağ/HTTP hatası → hata durumu; "Tekrar dene" WebView'i yeniden kurar.
+  // `embed`: ağ/HTTP hatası ya da kaçış döngüsü → hata durumu.
   const [failed, setFailed] = useState(false);
+  // WebView'in yüklediği belge ve yeniden kurma sayacı (`key`): kaçıştan sonra
+  // WebView doğrudan belge adresine yeniden kurulur (`goBack`'e güvenilmez).
+  const [docUrl, setDocUrl] = useState(target);
   const [attempt, setAttempt] = useState(0);
-  // `embed`: site içi (SPA) geçişle uygulama modu dışına çıkılan son adres —
-  // aynı adres için gelen tekrar olaylarında tarayıcı bir kez açılır.
-  const escapedTo = useRef<string | null>(null);
+  const escape = useRef(newEscapeState(target));
   useEffect(() => {
     left.current = false;
-    escapedTo.current = null;
+    escape.current = newEscapeState(target);
     setBlocked(false);
     setFailed(false);
+    setDocUrl(target);
   }, [target]);
-  const embed = mode === 'embed';
+
+  const reload = () => setAttempt((n) => n + 1);
   const retry = () => {
+    // Bilinçli yeniden deneme döngü sayacını sıfırlar; tarayıcıda açılmış
+    // hedefler yine açılmaz.
+    escape.current.redirected.clear();
+    escape.current.pending = false;
     setFailed(false);
-    setAttempt((n) => n + 1);
+    reload();
+  };
+
+  /**
+   * `embed`: site içi (SPA) geçişle uygulama modu dışına çıkıldı.
+   * (a) hedef tarayıcıda YALNIZ BİR KEZ açılır; (b) WebView son belgeye
+   * yeniden kurulur; (c) yeniden kurulduktan sonra AYNI kaçış tekrar olursa
+   * döngüye girilmez — hata durumu. Yeniden kurulum beklenirken eski
+   * WebView'den gelen tekrar olaylar yok sayılır.
+   */
+  const handleEscape = (to: string) => {
+    const s = escape.current;
+    if (s.pending) return;
+    webRef.current?.stopLoading();
+    if (!s.opened.has(to)) {
+      s.opened.add(to);
+      Linking.openURL(to).catch(() => undefined);
+    }
+    if (s.redirected.has(to)) {
+      setFailed(true);
+      return;
+    }
+    s.redirected.add(to);
+    s.pending = true;
+    setDocUrl(s.lastDoc);
+    reload();
   };
 
   return (
@@ -96,15 +129,20 @@ export function OwnSiteWebView({
         <WebView
           key={attempt}
           ref={webRef}
-          source={{ uri: target }}
+          source={{ uri: docUrl ?? target }}
+          // Her adres (mailto:, tel:, intent:, itms-apps:, özel şemalar dahil)
+          // aşağıdaki karar kapısından geçsin: varsayılan liste (http/https)
+          // dışındaki şemaları kütüphane kapıya sormadan `Linking` ile açıyordu.
+          originWhitelist={ALL_ORIGINS}
           startInLoadingState
           renderLoading={() => <Spinner />}
           // Her üst çerçeve yüklemesi karar kapısından geçer: satın alma sayfaları
-          // engellenir, dış https linkleri sistem tarayıcısına gider, iframe'ler
-          // serbesttir. `isTopFrame` Android'de yok → üst çerçeve say.
+          // engellenir, dış https linkleri ve mailto/tel sisteme gider, diğer
+          // şemalar engellenir, iframe'ler serbesttir. `isTopFrame` Android'de
+          // yok → üst çerçeve say.
           onShouldStartLoadWithRequest={(req) => {
             const decision = decideWebRequest(req.url, req.isTopFrame !== false, mode);
-            if (decision === 'external') Linking.openURL(req.url).catch(() => {});
+            if (decision === 'external') Linking.openURL(req.url).catch(() => undefined);
             return decision === 'allow';
           }}
           // Yalnız `embed`: çevrimdışı / sunucu hatasında WebView'in kendi hata
@@ -118,9 +156,8 @@ export function OwnSiteWebView({
               : undefined
           }
           // Site içi (SPA/pushState) gezinmeler yukarıdaki kancadan GEÇMEZ: menüden
-          // /membership'e geçilirse ekrandan çık.
-          // Çıkış her zaman router üzerinden (`onBack` değil): geçmiş yoksa
-          // ana sekmelere düşülür.
+          // /membership'e geçilirse ekrandan çık (çıkış her zaman router üzerinden,
+          // geçmiş yoksa ana sekmelere). `embed`: uygulama modu dışına çıkış → `handleEscape`.
           onNavigationStateChange={(nav) => {
             if (left.current || !nav.url) return;
             const decision = decideWebRequest(nav.url, true, mode);
@@ -131,18 +168,13 @@ export function OwnSiteWebView({
               return;
             }
             if (!embed) return;
-            if (decision === 'allow') {
-              escapedTo.current = null;
+            if (decision === 'external') {
+              handleEscape(nav.url);
               return;
             }
-            // `embed`: SPA geçişiyle uygulama modu dışına çıkıldı — sayfa
-            // tarayıcıda açılır, WebView belgeye geri döner (geçmiş yoksa yeniden kurulur).
-            if (escapedTo.current === nav.url) return;
-            escapedTo.current = nav.url;
-            webRef.current?.stopLoading();
-            if (nav.canGoBack) webRef.current?.goBack();
-            else setAttempt((n) => n + 1);
-            Linking.openURL(nav.url).catch(() => undefined);
+            // Belgeye dönüldü (yeni WebView yüklendi): bekleyen yeniden kurulum bitti.
+            escape.current.pending = false;
+            if (nav.url !== 'about:blank') escape.current.lastDoc = nav.url;
           }}
         />
       ) : (
@@ -150,6 +182,19 @@ export function OwnSiteWebView({
       )}
     </View>
   );
+}
+
+/** `originWhitelist`: her adres karar kapısına gelsin (bkz. `decideWebRequest`). */
+const ALL_ORIGINS = ['*'];
+
+/** `embed` kaçış durumu: açılan hedefler, yeniden kurulan kaçışlar, son belge. */
+function newEscapeState(doc: string | null) {
+  return {
+    opened: new Set<string>(),
+    redirected: new Set<string>(),
+    pending: false,
+    lastDoc: doc,
+  };
 }
 
 const styles = StyleSheet.create({
