@@ -12,7 +12,14 @@ const mockSocket = {
 // bu yüzden getSocket'in dönüş değeri doğrudan mockGetSocket'in kendisi üzerinden kontrol edilir.
 const mockGetSocket = jest.fn(() => mockSocket as any);
 
-jest.mock('@/services/socket', () => ({ getSocket: () => mockGetSocket() }));
+const mockInstanceListeners = new Set<(s: unknown) => void>();
+jest.mock('@/services/socket', () => ({
+  getSocket: () => mockGetSocket(),
+  onSocketInstanceChange: (l: (s: unknown) => void) => {
+    mockInstanceListeners.add(l);
+    return () => mockInstanceListeners.delete(l);
+  },
+}));
 
 const mockGetAuthState = jest.fn(() => ({ user: { id: 'me' } }) as any);
 jest.mock('@/stores/authStore', () => ({
@@ -82,9 +89,9 @@ describe('useTypingIndicator', () => {
     // Soket henüz yok — dinleyici kaydolmadı, karşı taraf yazsa bile bilemeyiz.
     expect(mockSocket.on).not.toHaveBeenCalled();
 
-    // Soket hazır olur (ör. kök layout'un connectSocket'i tamamlanır)
+    // Soket hazır olur (ör. kök layout'un connectSocket'i tamamlanır) → örnek değişimi bildirilir
     mockGetSocket.mockImplementation(() => mockSocket as any);
-    act(() => { jest.advanceTimersByTime(500); });
+    act(() => { mockInstanceListeners.forEach((l) => l(mockSocket)); });
 
     expect(mockSocket.on).toHaveBeenCalledWith('typing:started', expect.any(Function));
     act(() => { handlers['typing:started']({ threadId: 't1' }); });
@@ -108,5 +115,13 @@ describe('useTypingIndicator', () => {
     const starts = emit.mock.calls.filter(([e]) => e === 'typing:start');
     expect(starts).toHaveLength(1);
     expect(starts[0][1]).toEqual({ threadId: 't1' });
+  });
+
+  it('zamanlayıcıyla soket yoklamaz; unmount örnek aboneliğini bırakır', () => {
+    const { unmount } = renderHook(() => useTypingIndicator('t1'));
+    expect(jest.getTimerCount()).toBe(0);
+    expect(mockInstanceListeners.size).toBe(1);
+    unmount();
+    expect(mockInstanceListeners.size).toBe(0);
   });
 });

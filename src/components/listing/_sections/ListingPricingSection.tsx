@@ -5,6 +5,7 @@ import { DateField, Divider, Input, ListRowCard, SectionCard, Spinner, Text, the
 import { formatPrice } from '@/utils/format';
 
 import type { ListingFormController } from '../_hooks/useListingForm';
+import { LISTING_PRICING_KEYS, useListingPricing, type ListingPricing } from '../_hooks/useListingPricing';
 import { memoSection, type ListingFormKey } from '../_lib/memoSection';
 import { fieldStyles } from './fields';
 import { formatSaleDay } from '../_lib/sale';
@@ -12,26 +13,20 @@ import { formatSaleDay } from '../_lib/sale';
 const { colors, spacing } = theme;
 
 type SectionProps = { f: ListingFormController };
+/** Görünüm: controller (`f`) + yaprakta türetilen fiyat değerleri (`d`, `useListingPricing`). */
+type ViewProps = SectionProps & { d: ListingPricing };
 
 /** Bu dosyadaki bölümün okuduğu controller alanları (memo karşılaştırması; bkz. `memoSection`). */
 const KEYS: readonly ListingFormKey[] = [
-  'commissionError',
-  'commissionLoading',
-  'commissionPreview',
-  'discountPercent',
+  ...LISTING_PRICING_KEYS,
   'isEdit',
   'onPriceBlur',
   'onSalePriceBlur',
-  'price',
-  'priceError',
   'priceHint',
-  'quantity',
   'reservedQty',
   'saleEndDate',
   'salePrice',
-  'salePriceError',
   'saleStartDate',
-  'saleStartsOn',
   'setPrice',
   'setQuantity',
   'setSaleEndDate',
@@ -65,18 +60,18 @@ function BreakdownRow({ label, value, tone }: { label: string; value: string; to
  * içinde. Kargo payı 0 ise satır gizlenmez (sıfır mı, hesaba katılmadı mı belli olsun).
  * Önizleme alınamazsa (ör. eşleşen komisyon kuralı yok) web'in hata metni.
  */
-function CommissionPreview({ f }: SectionProps) {
+function CommissionPreview({ d }: { d: ListingPricing }) {
   const { t } = useTranslation();
-  const p = f.commissionPreview;
-  if (!f.commissionLoading && !p && !f.commissionError) return null;
+  const p = d.commissionPreview;
+  if (!d.commissionLoading && !p && !d.commissionError) return null;
   return (
     <ListRowCard direction="column" padding={3} gap={1.5} style={styles.commission} testID="commission-preview">
       <Text variant="label" tone="muted">
         {t('product.estimatedPerSale')}
       </Text>
-      {f.commissionLoading ? (
+      {d.commissionLoading ? (
         <Spinner size="sm" color={colors.text.subtle} style={styles.commissionSpinner} />
-      ) : f.commissionError ? (
+      ) : d.commissionError ? (
         <Text variant="bodySm" tone="danger">
           {t('product.commissionRuleUnavailable')}
         </Text>
@@ -96,21 +91,27 @@ function CommissionPreview({ f }: SectionProps) {
 
 /**
  * Fiyatlandırma (web `PricingCard` + `DiscountCard`): fiyat, stok, indirim (fiyat + tarih
- * aralığı) ve komisyon önizlemesi.
+ * aralığı) ve komisyon önizlemesi. Fiyat/adet bu bölümde izlenir (`useListingPricing`): tuş
+ * vuruşu controller'ı yeniden çalıştırmaz.
  */
 export const ListingPricingSection = memoSection(function ListingPricingSection({ f }: SectionProps) {
+  return <ListingPricingView f={f} d={useListingPricing(f)} />;
+}, KEYS);
+
+/** Saf görünüm (testler türetilmiş değerleri doğrudan verir). */
+export function ListingPricingView({ f, d }: ViewProps) {
   const { t } = useTranslation();
   return (
     <SectionCard title={t('product.pricing')} bodyStyle={fieldStyles.body}>
       <Input
         label={t('listing.priceFieldLabel')}
         required
-        value={f.price}
+        value={d.price}
         onChangeText={f.setPrice}
         placeholder="0.00"
         keyboardType="decimal-pad"
         onBlur={f.onPriceBlur}
-        error={f.priceError}
+        error={d.priceError}
         helperText={f.priceHint}
         style={fieldStyles.flush}
       />
@@ -118,7 +119,7 @@ export const ListingPricingSection = memoSection(function ListingPricingSection(
       <View>
         <Input
           label={t('product.stockQuantity')}
-          value={f.quantity}
+          value={d.quantity}
           onChangeText={f.setQuantity}
           placeholder={f.isEdit ? t('membership.unlimited') : '1'}
           keyboardType="number-pad"
@@ -129,7 +130,7 @@ export const ListingPricingSection = memoSection(function ListingPricingSection(
           <Text variant="caption" tone="warning" style={styles.reserved}>
             {t('listing.reservedHint', {
               reserved: f.reservedQty,
-              available: Math.max(0, (Number(f.quantity) || 0) - f.reservedQty),
+              available: Math.max(0, (Number(d.quantity) || 0) - f.reservedQty),
             })}
           </Text>
         ) : null}
@@ -148,12 +149,12 @@ export const ListingPricingSection = memoSection(function ListingPricingSection(
           placeholder={t('listing.salePricePlaceholder')}
           keyboardType="decimal-pad"
           onBlur={f.onSalePriceBlur}
-          error={f.salePriceError}
+          error={d.salePriceError}
           style={fieldStyles.flush}
         />
-        {f.discountPercent > 0 ? (
+        {d.discountPercent > 0 ? (
           <Text variant="bodySm" weight="semibold" tone="success" style={styles.discountPercent}>
-            {t('listing.discountPercentLabel', { percent: f.discountPercent })}
+            {t('listing.discountPercentLabel', { percent: d.discountPercent })}
           </Text>
         ) : null}
       </View>
@@ -172,17 +173,17 @@ export const ListingPricingSection = memoSection(function ListingPricingSection(
           minimumDate={f.saleStartDate ? new Date(f.saleStartDate) : undefined}
           containerStyle={fieldStyles.flush}
         />
-        {f.saleStartsOn ? (
+        {d.saleStartsOn ? (
           <Text variant="caption" tone="info" style={styles.saleHint} testID="sale-starts-later">
-            {t('listing.saleStartsOn', { date: formatSaleDay(f.saleStartsOn, t('common.dateLocale')) })}
+            {t('listing.saleStartsOn', { date: formatSaleDay(d.saleStartsOn, t('common.dateLocale')) })}
           </Text>
         ) : null}
       </View>
 
-      <CommissionPreview f={f} />
+      <CommissionPreview d={d} />
     </SectionCard>
   );
-}, KEYS);
+}
 
 const styles = StyleSheet.create({
   reserved: {

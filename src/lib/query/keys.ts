@@ -146,6 +146,8 @@ export const qk = {
     carModel: (slug: string) => ["car-model", slug] as const,
     modelProducts: (slug: string) => ["model-products", slug] as const,
     carModels: (filters?: Filters) => ["car-models", filters] as const,
+    /** Prefix root — tüm model listeleri (filtreli/filtresiz). */
+    carModelsAll: ["car-models"] as const,
   },
 
   collections: {

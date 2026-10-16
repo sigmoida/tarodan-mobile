@@ -4,6 +4,8 @@ import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { Alert, Radio, SectionCard, Text } from '@/ui';
 import { AddressSelector } from './AddressSelector';
+import { useAddressValue } from '../_hooks/useAddressValue';
+import type { AddressStore } from '../_lib/addressStore';
 import { CheckoutGuestFields } from './CheckoutGuestFields';
 import { styles } from '../_lib/styles';
 import type { useCheckout } from '../_hooks/useCheckout';
@@ -16,19 +18,29 @@ type Props = Pick<
   | 'addresses'
   | 'selectedAddressId'
   | 'setSelectedAddressId'
-  | 'shippingAddress'
-  | 'setShippingAddress'
+  | 'shippingAddressStore'
   | 'billingDifferent'
   | 'setBillingDifferent'
   | 'selectedBillingAddressId'
   | 'setSelectedBillingAddressId'
-  | 'billingAddress'
-  | 'setBillingAddress'
+  | 'billingAddressStore'
 >;
 
 /**
+ * Adres seçici + inline form; değeri adres deposundan okur (`useAddressValue`). Tuş vuruşu
+ * YALNIZ bunu yeniden çizer — kart ve `useCheckout` controller'ı çalışmaz.
+ */
+function StoreAddressSelector({
+  store,
+  ...rest
+}: Omit<React.ComponentProps<typeof AddressSelector>, 'inline' | 'setInline'> & { store: AddressStore }) {
+  const inline = useAddressValue(store);
+  return <AddressSelector {...rest} inline={inline} setInline={store.set} />;
+}
+
+/**
  * Teslimat adresi + fatura adresi (web `AddressStep`). Misafirde iletişim alanları aynı kartın
- * içinde, adresin üstünde. State/doğrulama `useCheckout`'ta; burası yalnız sunum.
+ * içinde, adresin üstünde. Doğrulama `useCheckout`'ta; inline adres değeri depoda (`addressStore`).
  *
  * Misafir alanları RHF'de (`CheckoutGuestFields`) — yazarken yalnız o alan render olur. Kart
  * `React.memo`: kupon/özet değişimi adres formunu yeniden çizmez.
@@ -47,13 +59,12 @@ export const CheckoutAddressSection = React.memo(function CheckoutAddressSection
         </View>
       ) : null}
 
-      <AddressSelector
+      <StoreAddressSelector
         isAuthenticated={c.isAuthenticated}
         addresses={c.addresses}
         selectedId={c.selectedAddressId}
         setSelectedId={c.setSelectedAddressId}
-        inline={c.shippingAddress}
-        setInline={c.setShippingAddress}
+        store={c.shippingAddressStore}
       />
 
       {!c.isAuthenticated ? (
@@ -83,14 +94,13 @@ export const CheckoutAddressSection = React.memo(function CheckoutAddressSection
         {c.billingDifferent ? (
           <View style={styles.billingForm}>
             <Text variant="bodySm" tone="muted" style={styles.field}>{t('checkout.enterBillingAddress')}</Text>
-            <AddressSelector
+            <StoreAddressSelector
               isBilling
               isAuthenticated={c.isAuthenticated}
               addresses={c.addresses}
               selectedId={c.selectedBillingAddressId}
               setSelectedId={c.setSelectedBillingAddressId}
-              inline={c.billingAddress}
-              setInline={c.setBillingAddress}
+              store={c.billingAddressStore}
             />
           </View>
         ) : null}

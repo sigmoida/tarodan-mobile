@@ -151,16 +151,16 @@ export function useListings() {
     },
     getNextPageParam: (last) =>
       last.meta.page < last.meta.totalPages ? last.meta.page + 1 : undefined,
-    // Bound resident pages (#76) — image-heavy list, trim trailing pages.
-    maxPages: 5,
-    getPreviousPageParam: (first) => (first.meta.page > 1 ? first.meta.page - 1 : undefined),
+    // NOT: `maxPages` bilerek YOK (`useSearch` ile aynı gerekçe): liste `fetchPreviousPage` çağırmaz;
+    // ~100 öğeden sonra 1. sayfa düşünce liste sıçrıyordu. Bellek FlatList pencerelemesiyle
+    // (`listWindowing`) sınırlı tutulur — ekran dışı kartlar bağlanmaz.
   });
 
   const listings: any[] = useMemo(() => flattenUniqueListings(data?.pages), [data]);
 
   // Çekip-yenile: gösterge YALNIZ kullanıcı çektiğinde döner (`isRefetching` filtre/sıralama
   // değişiminde — keepPreviousData — ve arka plan tazelemesinde de true oluyordu). Önce önbellek
-  // ilk sayfaya kırpılır: `refetch()` yüklü tüm sayfaları (en çok 5) sırayla çekerdi.
+  // ilk sayfaya kırpılır: `refetch()` yüklü tüm sayfaları sırayla çekerdi.
   const [refreshing, setRefreshing] = useState(false);
   const refreshFirstPage = useCallback(async () => {
     setRefreshing(true);

@@ -2,6 +2,7 @@ import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Badge, Button, HStack, SectionCard, Text } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
+import { useSecondsUntil } from '@/hooks/useSecondsUntil';
 import type { EmailChangeFlow } from '../_hooks/useEmailChangeFlow';
 import { styles, ACTION_GAP } from '../_lib/styles';
 
@@ -68,17 +69,7 @@ export function EmailChangeForm({ f }: { f: EmailChangeFlow }) {
                 testID="email-change-code"
               />
               <HStack justify="space-between" align="center" wrap>
-                <Button
-                  variant="link"
-                  title={
-                    f.resendIn > 0
-                      ? t('checkout.resendCodeWithTimer', { seconds: f.resendIn })
-                      : t('checkout.resendCode')
-                  }
-                  onPress={f.resend}
-                  disabled={f.resendIn > 0 || f.isRequesting}
-                  testID="email-change-resend"
-                />
+                <EmailResendButton resendAt={f.resendAt} isRequesting={f.isRequesting} onPress={f.resend} />
                 <Button
                   variant="link"
                   title={t('profile.fixEmail')}
@@ -91,5 +82,28 @@ export function EmailChangeForm({ f }: { f: EmailChangeFlow }) {
         </SectionCard>
       )}
     </>
+  );
+}
+
+/** "Tekrar gönder" + saniyelik geri sayım — tik YALNIZ bu düğmeyi yeniden çizer. */
+function EmailResendButton({
+  resendAt,
+  isRequesting,
+  onPress,
+}: {
+  resendAt: number;
+  isRequesting: boolean;
+  onPress: () => void;
+}) {
+  const { t } = useTranslation();
+  const resendIn = useSecondsUntil(resendAt);
+  return (
+    <Button
+      variant="link"
+      title={resendIn > 0 ? t('checkout.resendCodeWithTimer', { seconds: resendIn }) : t('checkout.resendCode')}
+      onPress={onPress}
+      disabled={resendIn > 0 || isRequesting}
+      testID="email-change-resend"
+    />
   );
 }

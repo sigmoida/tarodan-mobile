@@ -7,6 +7,7 @@ import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { useRefresh } from '@/hooks/useRefresh';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
+import { useSafeTimeout } from '@/hooks/useSafeTimeout';
 
 /** Yükseltme ekranına yönlendirmeden önce bilgi mesajının görünme süresi (ms). */
 const UPGRADE_REDIRECT_DELAY_MS = 1500;
@@ -16,6 +17,8 @@ const UPGRADE_REDIRECT_DELAY_MS = 1500;
  * "yeni koleksiyon" kapısı (premium değilse bilgi toast'ı; iOS'ta yükseltme yönlendirmesi yok).
  */
 export function useMyCollections() {
+  // Gecikmeli yönlendirme ekrandan çıkılınca iptal olur.
+  const schedule = useSafeTimeout();
   const { t } = useTranslation();
   const limits = useAuthStore((s) => s.limits);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -48,7 +51,7 @@ export function useMyCollections() {
           : t('membership.featureUnavailableOnAccount'),
       );
       // iOS'ta yükseltme ekranına yönlendirme yok (Guideline 3.1.3).
-      if (CAN_BUY_DIGITAL) setTimeout(() => router.push('/upgrade'), UPGRADE_REDIRECT_DELAY_MS);
+      if (CAN_BUY_DIGITAL) schedule(() => router.push('/upgrade'), UPGRADE_REDIRECT_DELAY_MS);
       return;
     }
     router.push('/collections/new');

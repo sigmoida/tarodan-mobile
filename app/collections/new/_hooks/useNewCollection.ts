@@ -12,6 +12,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { buildCollectionSchema, type CollectionForm } from '../_lib/schema';
 import { buildCollectionTemplates, type CollectionTemplate } from '../_lib/templates';
 import { useCollectionCover } from '../../_hooks/useCollectionCover';
+import { useSafeTimeout } from '@/hooks/useSafeTimeout';
 
 /**
  * New-collection controller — owns the RHF+zod form, cover-image pick, template
@@ -22,6 +23,8 @@ import { useCollectionCover } from '../../_hooks/useCollectionCover';
  * koleksiyona o ürün de eklenir ve kullanıcı ürün sayfasına döner (web'deki modal akışı gibi).
  */
 export function useNewCollection() {
+  // Başarı sonrası gecikmeli yönlendirme ekrandan çıkılınca iptal olur.
+  const schedule = useSafeTimeout();
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const limits = useAuthStore((s) => s.limits);
@@ -96,7 +99,7 @@ export function useNewCollection() {
         return;
       }
       toast.success(t('collection.collectionCreated'));
-      setTimeout(() => router.replace(`/collections/${res.data.id}`), 1500);
+      schedule(() => router.replace(`/collections/${res.data.id}`), 1500);
     },
     onError: (error: any) => {
       toast.error(apiErrorMessage(error, t('collection.createCollectionFailed')));

@@ -20,6 +20,7 @@ import { AdBanner } from '@/components/ads/AdBanner';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { withInlineAds, type GridRow } from '@/lib/ads/inlinePlacement';
 import { useAdSession } from '@/lib/ads/useAdSession';
+import { listWindowing } from '@/lib/list/windowing';
 import { useListings } from './_hooks/useListings';
 import { styles } from './_lib/styles';
 import { listingsTitle } from './_lib/title';
@@ -82,6 +83,7 @@ function ListingsScreen() {
     >
       <Animated.FlatList
         {...page.listProps}
+        {...listWindowing}
         data={f.isLoading ? [] : rows}
         keyExtractor={(row) => row.key}
         renderItem={({ item: row }: { item: GridRow<any> }) =>

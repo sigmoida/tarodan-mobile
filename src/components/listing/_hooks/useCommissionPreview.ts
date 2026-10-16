@@ -41,7 +41,15 @@ export function toCommissionPreview(data: CommissionPreviewResponse | null | und
  * tutarları "…"ya düşüp aynı sayılara geri dönmesin.
  */
 export function useCommissionPreview(amount: string, categoryId: string, packageTier: string) {
-  const debouncedAmount = useDebounced(amount, COMMISSION_DEBOUNCE_MS);
+  return useCommissionQuery(useDebounced(amount, COMMISSION_DEBOUNCE_MS), categoryId, packageTier);
+}
+
+/**
+ * Gecikmesi ÇAĞIRANDA yapılmış tutarla komisyon sorgusu (aynı anahtar → `useCommissionPreview` ile
+ * tek istek). Kargo bölümü fiyatı render etmeden izler ve tutarı kendisi geciktirir
+ * (`useListingCommission`).
+ */
+export function useCommissionQuery(debouncedAmount: string, categoryId: string, packageTier: string) {
   const num = Number(debouncedAmount);
   const enabled = !!debouncedAmount && !!categoryId && Number.isFinite(num) && num > 0;
   const tier = (packageTier || null) as ShippingPackageTierCode | null;

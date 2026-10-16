@@ -20,9 +20,8 @@ jest.mock('expo-router', () => ({
 import {
   ListingHeaderBanners,
   ListingImagesSection,
-  ListingShippingSection,
 } from '../_components/ListingSections';
-import { tierColumns } from '../_sections/ListingShippingSection';
+import { ListingShippingView, tierColumns } from '../_sections/ListingShippingSection';
 import { ListingGates } from '../_components/ListingGates';
 import type { ListingFormController } from '../_hooks/useListingForm';
 
@@ -430,7 +429,12 @@ describe('Kargo paket kartları — ekran genişliği', () => {
       shippingPackageTier: 'large',
       setShippingPackageTier,
     });
-    render(<ListingShippingSection f={f} />);
+    render(
+      <ListingShippingView
+        f={f}
+        d={{ commissionPreview: null, commissionLoading: false, commissionEnabled: true }}
+      />,
+    );
     expect(screen.getByTestId('package-tier-large')).toHaveProp('accessibilityState', { selected: true });
     fireEvent.press(screen.getByText('Küçük Paket'));
     expect(setShippingPackageTier).toHaveBeenCalledWith('small');

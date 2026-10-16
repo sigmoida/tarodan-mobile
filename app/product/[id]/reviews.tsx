@@ -15,6 +15,7 @@ import {
   usePageScrollHandler,
 } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
+import { listWindowing } from '@/lib/list/windowing';
 import { ListFooterRetry } from '@/components/common/ListFooterRetry';
 import { useAllProductReviews } from './_hooks/useAllProductReviews';
 import { ReviewRow } from './_components/ReviewRow';
@@ -51,6 +52,7 @@ export default function ProductReviewsScreen() {
     >
       <Animated.FlatList
         {...page.listProps}
+        {...listWindowing}
         data={f.isLoading ? [] : f.reviews}
         keyExtractor={(item, index) => item.id ?? String(index)}
         renderItem={({ item, index }) => <ReviewRow review={item} divided={index > 0} />}
