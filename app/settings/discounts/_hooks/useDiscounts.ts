@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { appAlert } from '@/ui';
@@ -51,19 +51,29 @@ export function useDiscounts() {
     },
   );
 
-  const openCreate = () => router.push(discountRoutes.new as never);
-  const openEdit = (d: Discount) => router.push(discountRoutes.edit(d.id) as never);
+  // Kararlı referanslar: memo'lu DiscountCard satırları her render'da yeniden çizilmesin.
+  const { mutate: deleteDiscount } = deleteMutation;
+  const { mutate: toggleDiscount } = toggleActiveMutation;
+  const openCreate = useCallback(() => router.push(discountRoutes.new as never), []);
+  const openEdit = useCallback((d: Discount) => router.push(discountRoutes.edit(d.id) as never), []);
+  const toggleActive = useCallback(
+    (d: Discount, isActive: boolean) => toggleDiscount({ id: d.id, isActive }),
+    [toggleDiscount],
+  );
 
-  const handleDelete = (d: Discount) => {
-    appAlert(
-      t('discount.deleteTitle'),
-      t('discount.deleteConfirmNamed', { name: d.name }),
-      [
-        { text: t('discount.discard'), style: 'cancel' },
-        { text: t('common.delete'), style: 'destructive', onPress: () => deleteMutation.mutate(d.id) },
-      ],
-    );
-  };
+  const handleDelete = useCallback(
+    (d: Discount) => {
+      appAlert(
+        t('discount.deleteTitle'),
+        t('discount.deleteConfirmNamed', { name: d.name }),
+        [
+          { text: t('discount.discard'), style: 'cancel' },
+          { text: t('common.delete'), style: 'destructive', onPress: () => deleteDiscount(d.id) },
+        ],
+      );
+    },
+    [t, deleteDiscount],
+  );
 
   return {
     // gates
@@ -80,6 +90,7 @@ export function useDiscounts() {
     openCreate,
     openEdit,
     handleDelete,
+    toggleActive,
     toggleActiveMutation,
   };
 }
