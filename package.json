@@ -34,6 +34,7 @@
     "@hookform/resolvers": "^3.6.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
+    "@react-native-community/netinfo": "11.4.1",
     "@react-native-google-signin/google-signin": "^16.1.2",
     "@sentry/react-native": "~7.2.0",
     "@shopify/flash-list": "2.0.2",
@@ -50,11 +51,12 @@
     "expo-font": "~14.0.12",
     "expo-glass-effect": "~0.1.10",
     "expo-image": "~3.0.11",
+    "expo-image-manipulator": "~14.0.8",
     "expo-image-picker": "~17.0.11",
     "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.12",
     "expo-notifications": "~0.32.17",
-    "expo-router": "~6.0.24",
+    "expo-router": "6.0.24",
     "expo-secure-store": "~15.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
@@ -123,6 +125,9 @@
       "minimatch@>=9.0.0 <9.0.7": "9.0.7",
       "ws@>=8.0.0 <8.21.0": "8.21.0",
       "@react-navigation/bottom-tabs": "7.4.6"
+    },
+    "patchedDependencies": {
+      "expo-router@6.0.24": "patches/expo-router@6.0.24.patch"
     }
   }
 }

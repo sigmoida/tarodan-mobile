@@ -12,11 +12,11 @@ export interface HeroViewMetrics {
 }
 
 /**
- * Hero görünür alanda mı? Ölçüm henüz yoksa (yerleşim gelmedi) `true` — ilk
+ * Hero görünür alanda mı? Ölçüm henüz yoksa (yerleşim gelmedi) ya da hero yoksa (yükseklik 0) `true` — ilk
  * boyamada gösterim/ilerleme gereksiz yere kapalı başlamasın. Saf fonksiyon.
  */
 export function isHeroInView(m: HeroViewMetrics): boolean {
-  if (m.height <= 0 || m.viewportHeight <= 0) return true;
+  if (!(m.height > 0) || !(m.viewportHeight > 0)) return true;
   const visibleTop = Math.max(m.top, m.scrollY);
   const visibleBottom = Math.min(m.top + m.height, m.scrollY + m.viewportHeight);
   return visibleBottom - visibleTop >= m.height * HERO_VISIBLE_RATIO;

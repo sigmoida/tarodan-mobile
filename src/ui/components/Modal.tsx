@@ -11,6 +11,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../lib/theme';
 import { useKeyboardOverlap } from '../lib/keyboard';
+import { useModalPresence } from '../lib/modalPresence';
+import { GlassIconButton } from './GlassIconButton';
 import { IconButton, iconButtonBoxSize, type IconButtonSize } from './IconButton';
 import { SheetHeader } from './SheetHeader';
 import { ToastLayer } from './Toast';
@@ -20,6 +22,13 @@ export type ModalSize = 'md' | 'lg';
 
 export const MODAL_MAX_WIDTH: Record<ModalSize, number> = { md: 480, lg: 512 };
 
+/**
+ * `default`: başlık satırı (başlık ve/veya X) + iç boşluklu gövde. `media`: başlık satırı YOK,
+ * gövde kenardan kenara (görsel tam kart), kapat (X) içeriğin sağ üstüne binen cam yuvarlak
+ * düğme (her zaman var). Popup reklam gibi tek görselli kartlar için.
+ */
+export type ModalVariant = 'default' | 'media';
+
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,6 +37,12 @@ export interface ModalProps {
   closeOnBackdrop?: boolean;
   /** Kart genişliği (varsayılan `md`). */
   size?: ModalSize;
+  /**
+   * `media`: başlık satırı yok, gövde iç boşluksuz, kapat (X) içeriğin üstünde sağ üstte (cam
+   * daire, 44pt dokunma alanı, `closeLabel` etiketi). `title`/`showCloseButton`/`flushBody` bu
+   * varyantta yok sayılır. Varsayılan `default` (mevcut davranış).
+   */
+  variant?: ModalVariant;
   /**
    * Başlık satırında kapat (X) düğmesi (web `Modal` başlığı). Varsayılan kapalı: mevcut
    * mobil modallar kendi İptal düğmelerini taşır. Düğme başlıkta kalır, gövdeye binmez.
@@ -58,6 +73,8 @@ export interface ModalProps {
    * taşıyan gövdeler `false` verir (çift kaydırma olmasın) — gövde yine de kalan alana küçülür.
    */
   scrollable?: boolean;
+  /** Kartın erişilebilir adı (ör. popup reklamın başlığı); ekran okuyucu modal kapsamında okur. */
+  accessibilityLabel?: string;
 }
 
 const { colors, radius, spacing } = theme;
@@ -75,14 +92,19 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   closeOnBackdrop = true,
   size = 'md',
+  variant = 'default',
   showCloseButton = false,
   closeLabel,
   flushBody = false,
   fitContent = false,
   footer,
   scrollable = !fitContent,
+  accessibilityLabel,
 }) => {
-  const hasHeader = !!title || showCloseButton;
+  useModalPresence(isOpen);
+  const media = variant === 'media';
+  const hasHeader = !media && (!!title || showCloseButton);
+  const flush = media || flushBody;
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardOverlap();
   // Kart pencereye sığar: üstte güvenli alan, altta güvenli alan ya da klavye. iOS'ta klavyeyi
@@ -97,7 +119,7 @@ export const Modal: React.FC<ModalProps> = ({
       style={[
         styles.body,
         hasHeader && !title && styles.bodyAfterHeader,
-        flushBody && styles.bodyFlush,
+        flush && styles.bodyFlush,
         // Kaydırmasız gövde (çağıranın kendi ScrollView'ı): küçülme zinciri burada da sürmeli, aksi
         // halde içteki ScrollView klavye açıkken alt şeridin üstüne taşar.
         !scrollable && styles.bodyShrink,
@@ -128,14 +150,29 @@ export const Modal: React.FC<ModalProps> = ({
           >
             <Pressable
               accessibilityViewIsModal
+              accessibilityLabel={accessibilityLabel}
+              // media: kart tek bir öğe olarak gruplanmasın — X ve içerik ayrı ayrı erişilebilir kalır.
+              accessible={media ? false : undefined}
               style={[
                 styles.sheet,
                 { maxWidth: MODAL_MAX_WIDTH[size] },
                 fitContent && styles.sheetFit,
-                flushBody && styles.sheetFlush,
+                flush && styles.sheetFlush,
               ]}
             >
-              {title ? (
+              {media ? (
+                // Ekran okuyucu sırası için içerikten ÖNCE; mutlak konum + zIndex ile görselin
+                // üstüne biner. Cam daire koyu/açık görselde de seçilir.
+                <View style={styles.mediaClose}>
+                  <GlassIconButton
+                    icon="x-mark"
+                    size="sm"
+                    accessibilityLabel={closeLabel ?? 'Close'}
+                    onPress={onClose}
+                    testID="modal-close"
+                  />
+                </View>
+              ) : title ? (
                 <SheetHeader
                   title={title}
                   paddingX={6}
@@ -239,5 +276,11 @@ const styles = StyleSheet.create({
   },
   bodyFlush: {
     padding: 0,
+  },
+  mediaClose: {
+    position: 'absolute',
+    top: spacing[2],
+    right: spacing[2],
+    zIndex: 1,
   },
 });

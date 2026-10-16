@@ -76,7 +76,9 @@ export {
 export {
 	GlassIconButton,
 	GLASS_ICON_BUTTON_SIZE,
+	GLASS_ICON_BUTTON_SIZE_SM,
 	type GlassIconButtonProps,
+	type GlassIconButtonSize,
 	type GlassIconTone,
 } from './components/GlassIconButton';
 export { usePressScale, PRESS_SCALE, PRESS_SPRING } from './lib/pressScale';
@@ -87,6 +89,8 @@ export {
 	type RippleOptions,
 	type RippleTone,
 } from './lib/pressableFeedback';
+export { isModalPresent, subscribeModalPresence, useModalPresence } from './lib/modalPresence';
+export { setToastErrorFilter } from './lib/toastStore';
 export { useKeyboardAvoid, type KeyboardAvoid } from './lib/keyboard';
 export { getGlassView, resetGlassCache, type GlassViewComponent } from './lib/glass';
 export { BadgeAnchor, type BadgeAnchorProps } from './components/BadgeAnchor';
@@ -226,6 +230,7 @@ export {
 	MODAL_CLOSE_HEADER_HEIGHT,
 	type ModalProps,
 	type ModalSize,
+	type ModalVariant,
 } from './components/Modal';
 export { ModalFooter, type ModalFooterProps } from './components/ModalFooter';
 // Alttan açılan her şey bu üç primitive'den (ham RN Modal ile sheet yazılmaz).
@@ -246,6 +251,7 @@ export {
 export { ActionSheet, type ActionSheetProps, type ActionSheetAction } from './components/ActionSheet';
 export {
 	appAlert,
+	dismissAlert,
 	confirm,
 	AlertDialogHost,
 	type AlertDialogButton,

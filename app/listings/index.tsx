@@ -17,6 +17,7 @@ import {
   useProductCellWidth,
 } from '@/components/product';
 import { AdBanner } from '@/components/ads/AdBanner';
+import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { withInlineAds, type GridRow } from '@/lib/ads/inlinePlacement';
 import { useAdSession } from '@/lib/ads/useAdSession';
 import { useListings } from './_hooks/useListings';
@@ -42,6 +43,7 @@ function ListingsScreen() {
   const isList = f.layout === 'list';
   const rows = useMemo(() => withInlineAds(f.listings, isList ? 1 : 2), [f.listings, isList]);
   const cellWidth = useProductCellWidth();
+  const favoriteProps = useProductCardFavorites();
   // Tek handler: alt menü daralması + üst barın kaydırma kenarı.
   const page = useTabBarPageScroll();
   const tabInset = useTabBarInset();
@@ -87,7 +89,7 @@ function ListingsScreen() {
             <View style={styles.row}>
               {row.items.map((item, i) => (
                 <View key={`${item.id}-${i}`} style={{ width: isList ? '100%' : cellWidth }}>
-                  <ProductCard product={item} layout={isList ? 'list' : 'grid'} />
+                  <ProductCard product={item} layout={isList ? 'list' : 'grid'} {...favoriteProps(item)} />
                 </View>
               ))}
             </View>

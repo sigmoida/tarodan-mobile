@@ -8,7 +8,9 @@ import {
   useShellScrollState,
   type PageScrollValue,
 } from '@/ui';
-import { ShellHeaderActions, ShellMenuButton } from './ShellHeaderActions';
+import { ShellHeaderActions, ShellLeadingButton } from './ShellHeaderActions';
+import { useEdgeSwipeWhenFocused } from './SideMenuContext';
+import { DEFAULT_SHELL_LEADING, type ShellLeading } from './shellLeading';
 
 const { colors } = theme;
 
@@ -23,6 +25,8 @@ export interface TitleShellProps {
    * Verilmezse gövde bar altında başlar ve kenar efekti SABİT şerittir.
    */
   scroll?: PageScrollValue;
+  /** Sol düğme: `categories` (varsayılan) ya da `menu` (☰, yalnız Profil kökleri). */
+  leading?: ShellLeading;
   children?: React.ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
   testID?: string;
@@ -30,11 +34,21 @@ export interface TitleShellProps {
 
 /**
  * Sekme köklerinin başlıklı kabuğu (`AppShell variant="title"`): `ScreenHeader` ile AYNI yüzen bar
- * (ortalı başlık, cam butonlar) + kaydırma kenarı. Geri oku yerine solda ☰ (yan menü), sağda TAM iki
+ * (ortalı başlık, cam butonlar) + kaydırma kenarı. Geri oku yerine solda `ShellLeadingButton` (Profil: ☰ yan menü; diğerleri: kategoriler), sağda TAM iki
  * düğme: Mesajlar + Bildirimler (`ShellHeaderActions`) — Ana Sayfa'nın yüzen barıyla aynı düzen.
  * Ekrana özel üst bar aksiyonu yok (sağ grup sabit). İçerik tam yükseklikte; bar üstünde yüzer.
  */
-export const TitleShell: React.FC<TitleShellProps> = ({ title, subtitle, scroll, children, contentStyle, testID }) => {
+export const TitleShell: React.FC<TitleShellProps> = ({
+  title,
+  subtitle,
+  scroll,
+  leading: leadingKind = DEFAULT_SHELL_LEADING,
+  children,
+  contentStyle,
+  testID,
+}) => {
+  // Yan menü soldan kaydırma yalnız ☰'lı (Profil) kabuk odaktayken etkin.
+  useEdgeSwipeWhenFocused(leadingKind === 'menu');
   const shell = useShellScrollState(scroll, false);
   useResetScrollOnBind(shell.page.scrollY, shell.bound);
   return (
@@ -50,7 +64,7 @@ export const TitleShell: React.FC<TitleShellProps> = ({ title, subtitle, scroll,
       <ScreenHeader
         title={title ?? ''}
         subtitle={subtitle}
-        leading={<ShellMenuButton testID="app-shell-menu" />}
+        leading={<ShellLeadingButton leading={leadingKind} categoriesTestID="app-shell-categories" />}
         right={<ShellHeaderActions />}
         testID="app-shell-bar"
         scrollY={shell.bound ? shell.page.scrollY : undefined}

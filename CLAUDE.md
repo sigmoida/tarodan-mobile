@@ -104,6 +104,12 @@ zustand store. React Query is the **single server-state**.
 - **Writes** → a **mutation hook** (`useDoXxx.ts`) that owns the snackbar/toast +
   `invalidateQueries`. This is the **only** way to mutate — so lists refresh
   automatically, no manual `refetch()`.
+- **Deliberate exception — file upload queue.** Per-file progress/cancel/retry uploads
+  (listing images) run outside a React Query mutation: image preparation (resize/compress,
+  serial gate, timeout, abort, temp-file cleanup, `pickerQuality()`) lives in `src/lib/media`,
+  the multipart part (`appendRNFile`, iOS URI rule) in `src/lib/api/formData.ts`, the queue in
+  the feature (`src/components/listing/_lib/uploadQueue.ts`). Every photo upload goes through
+  `src/lib/media` first; all other writes are still mutation hooks.
 - Every dialog/modal is its **own** component in `_modals/`, owning its
   `useZodForm` + zod schema + mutation. The screen holds only open/close state.
 
@@ -139,8 +145,28 @@ must **never fetch** — server data belongs in React Query. (Migrating
 
 ## 9. Folder shape per route (mirror web)
 
-`_`-prefixed folders are hidden from expo-router's route tree (same as
-`__tests__`), so colocate freely:
+**expo-router does NOT hide `_` folders by itself** — it treats every `.ts/.tsx`
+under `app/` as a route (only `+api`/`+html`/`+middleware` are skipped). This repo
+hides them with `patches/expo-router@6.0.24.patch` (pnpm `patchedDependencies`):
+any path segment starting with `_` (`_hooks/`, `_lib/`, `__tests__/`, `_foo.tsx`,
+and everything inside a `_` folder) is excluded from the route scan and typed
+routes; only files named `_layout` / `_sitemap` (+ optional `.ios/.android/.native/.web`)
+stay routes. `__tests__` is additionally kept out of the bundle by Metro's default
+`blockList`.
+
+- `expo-router` is pinned to the **exact** version in `package.json` (no `~`) — the
+  patch key is version-bound; a silent bump fails install (`ERR_PNPM_UNUSED_PATCH`).
+- `patches/**` is in `.fingerprintignore` (the patch is JS-only, so it must not
+  change `runtimeVersion` / break OTA). A patch that touches native code must
+  narrow that line.
+- Guarded by `__tests__/routerPrivateFolders.test.ts` (reads the regexes from
+  `node_modules`, so a lost patch fails it). **On any expo-router upgrade** re-create
+  the patch for the new version (`pnpm patch expo-router@<new>`) and run that test.
+
+Current Expo practice is to keep non-route code out of `app/`: for new features put
+shared / non-route code under `src/`; small route-specific helpers may stay in
+colocated `_` folders (thanks to the patch). Never name a route file
+`_something.tsx` — it would not be a route.
 
 ```
 app/<group>/<route>/
@@ -299,12 +325,12 @@ local rules in `eslint-plugin-tarodan/`) — today as **warnings**; wave 2 clear
 and turns them into **errors**, so write new code warning-free.
 
 - **Shells are mandatory.** Tab roots use `AppShell` (`@/components/shell/AppShell` — the same
-  bar on EVERY tab root: [☰ side menu][search field or title][messages][notifications] — exactly two
+  bar on EVERY tab root: [left button: ☰ side menu on the Profile root only, `squares-2x2` → `/categories` on every other tab root (`leading` prop of `AppShell`)][search field or title][messages][notifications] — exactly two
   right-side icons with unread badges, no cart, no logo). The bottom menu is a floating pill
   (`AppTabBar`; Home, Favorites, Cart, Profile + the separate "+" sell button); tab-root
   lists/ScrollViews add `useTabBarInset()` as bottom padding so content never hides under it.
   Messages and Notifications are stack routes (`/messages`, `/notifications`) opened from the header.
-  The side menu also opens with a left-edge swipe on the base tab root only. Navigating to a tab
+  The side menu also opens with a left-edge swipe on the Profile tab root only (while it is focused and is the base tab root). Navigating to a tab
   root from a stack screen / push / ad / deep link goes through `navigateTo()`
   (`@/lib/navigation/goTo`, `router.dismissTo`) — never `router.push('/(tabs)/…')`, which stacks a
   second `(tabs)`. Search is a stack route (`/search`). Stack screens use
@@ -396,8 +422,14 @@ and turns them into **errors**, so write new code warning-free.
 - **One product card.** Every product tile is `ProductCard` (`@/components/product`; grid + list,
   mirrors web `ProductCard` at phone width) — never a local card. Lists use `ProductGrid`
   (skeleton → single empty state → error), sort via `ProductSortModal`, active filters via
-  `ActiveFilterChips`; collection tiles are `CollectionCard` (`@/components/collection`). No favourite
-  heart / "in cart" pill on cards (web has none).
+  `ActiveFilterChips`; collection tiles are `CollectionCard` (`@/components/collection`). Cards carry
+  a favourite heart (decided for web + mobile together): small glass circle (`GlassIconButton
+  size="sm"`, 32pt, 44pt hitSlop) at the image's bottom-right, outline / solid `danger-500`, drawn as a
+  sibling of the card `Pressable` (tapping it never opens the product). Wire it once per list with
+  `useProductCardFavorites()` (`@/hooks/useFavoriteToggle`) → `<ProductCard {...favoriteProps(p)} />`
+  (`ProductGrid` does it itself); it hides the heart on the user's own listing and sends guests to
+  sign-in. Detail and card share `useFavoriteToggle` (one toggle flow, one favorites cache). Still no
+  "in cart" pill on cards (web has none).
 - **Tap targets ≥ 44pt** — visuals may stay at the web size, close the gap with
   `hitSlop` (Button/IconButton/Chip already do).
 - **Press feedback:** Android = `android_ripple`, iOS = the existing pressed opacity — both from

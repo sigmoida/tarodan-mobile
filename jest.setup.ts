@@ -91,6 +91,11 @@ jest.mock('@/ui', () => {
   };
 });
 
+// NetInfo: native modül (RNCNetInfo) testte yok → paketin kendi jest mock'u (bağlantı var).
+jest.mock('@react-native-community/netinfo', () =>
+  jest.requireActual('@react-native-community/netinfo/jest/netinfo-mock.js'),
+);
+
 // FlashList v2: jest'te yerel ölçüm yok → ebeveyn/hücre ölçümlerini sabitle (liste hücreleri render olsun).
 // NOT: paketin kendi `jestSetup.js`'i 2.0.2'de çalışmıyor (var olmayan `RecyclerView` export'unu
 // FlashList yerine koyuyor) — yalnız ölçüm modülünü mock'luyoruz, gerçek FlashList kullanılır.

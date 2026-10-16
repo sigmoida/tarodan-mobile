@@ -14,11 +14,20 @@ function amountSchema(t: TFunction) {
     .refine((n) => !Number.isNaN(n) && n > 0, t('validation.enterValidAmount'));
 }
 
+/** Admin fiyat tabanı (`min_product_price`) teklif alt sınırı: `floor` yoksa kural yok. */
+const belowFloorMessage = (floor: number | null, t: TFunction) =>
+  floor == null ? '' : t('offer.counterBelowFloor', { amount: formatPrice(floor) });
+
 /**
  * Satıcının karşı teklifi: mevcut tekliften YÜKSEK, ürün fiyatından
- * (varsa) DÜŞÜK/eşit olmalı.
+ * (varsa) DÜŞÜK/eşit, `floor` (varsa) altında olmamalı.
  */
-export function sellerCounterSchema(refAmount: number, maxPrice: number, t: TFunction) {
+export function sellerCounterSchema(
+  refAmount: number,
+  maxPrice: number,
+  t: TFunction,
+  floor: number | null = null,
+) {
   return z.object({
     amount: amountSchema(t)
       .refine(
@@ -28,17 +37,23 @@ export function sellerCounterSchema(refAmount: number, maxPrice: number, t: TFun
       .refine(
         (n) => maxPrice <= 0 || n <= maxPrice,
         t('offer.counterMustNotExceedPrice', { amount: formatPrice(maxPrice) }),
-      ),
+      )
+      .refine((n) => floor == null || n >= floor, belowFloorMessage(floor, t)),
   });
 }
 
-/** Alıcının karşı teklifi (satıcının counter'ından sonra): satıcı tutarından DÜŞÜK. */
-export function buyerCounterSchema(refAmount: number, t: TFunction) {
+/**
+ * Alıcının karşı teklifi (satıcının counter'ından sonra): satıcı tutarından DÜŞÜK,
+ * `floor` (varsa) altında olmamalı.
+ */
+export function buyerCounterSchema(refAmount: number, t: TFunction, floor: number | null = null) {
   return z.object({
-    amount: amountSchema(t).refine(
-      (n) => n < refAmount,
-      t('offer.buyerCounterMustBeLower', { amount: formatPrice(refAmount) }),
-    ),
+    amount: amountSchema(t)
+      .refine(
+        (n) => n < refAmount,
+        t('offer.buyerCounterMustBeLower', { amount: formatPrice(refAmount) }),
+      )
+      .refine((n) => floor == null || n >= floor, belowFloorMessage(floor, t)),
   });
 }
 

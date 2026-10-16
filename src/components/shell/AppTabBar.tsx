@@ -44,6 +44,9 @@ import { useTabHighlight } from "./useTabHighlight";
 
 const { colors, spacing, iconSize, radius } = theme;
 
+/** Seçili sekme hap/daire dolgusu: nötr açık gri (turuncu vurgu yok). */
+const TAB_ACTIVE_FILL = colors.gray[100] as string;
+
 export { TAB_BAR_ANIM_MS };
 
 /** Gizlenirken hapın aşağı kayma payı ve küçülme oranı. */
@@ -71,8 +74,9 @@ export type TabBarRoute = TabDef["name"] | typeof SELL_ROUTE;
 /**
  * Özel yüzen alt menü (düz RN View'lar): solda 4 sekmeli hap [Ana Sayfa][Favoriler][Sepet][Profil], sağında
  * AYRI yuvarlak "+" (İlan Ver) düğmesi; ikisi aynı alt hizada/yükseklikte. Yüzeyler `GlassSurface`:
- * iOS 26'da gerçek Liquid Glass (arkadaki içerik görünür; "+" primary tint), iOS < 26 / Android'de
- * opak beyaz hap (ince border + gölge) ve düz turuncu daire. İçerik aşağı kaydırılınca
+ * iOS 26'da gerçek Liquid Glass (arkadaki içerik görünür), iOS < 26 / Android'de opak beyaz hap ve
+ * opak beyaz "+" dairesi (ince border + gölge). İkon ve etiketler üst bar ikonlarıyla aynı başlık
+ * renginde; seçili sekme dolu ikon + nötr gri hap ile ayrışır. İçerik aşağı kaydırılınca
  * (bkz. `useTabBarScrollHandler`) hap daralır; geride TEK öğe kalır, sekmeye göre:
  * - Ana Sayfa (ve hap dışı rotalar): "+" sağdan sola (alt sol köşe) kayar.
  * - Favoriler / Sepet / Profil: "+" gizlenir; o sekmenin seçili ikonu (rozetiyle) tek daire
@@ -195,7 +199,8 @@ export function TabBarView({ activeName, onNavigate }: TabBarViewProps) {
             />
             {TABS.map((tab) => {
               const focused = activeName === tab.name;
-              const color = focused ? colors.primary[600]! : theme.inactiveIconColor;
+              // Etiket/ikon üst bar ikonlarıyla aynı renk (başlık rengi); seçili sekme dolu ikon + nötr hap ile ayrışır.
+              const color = colors.text.heading;
               const label = t(tab.labelKey);
 
               return (
@@ -214,7 +219,7 @@ export function TabBarView({ activeName, onNavigate }: TabBarViewProps) {
                     {tab.badge && (
                       <CountBadge
                         count={counts[tab.badge]}
-                        ringColor={focused ? colors.primary[50] : colors.surface.elevated}
+                        ringColor={focused ? TAB_ACTIVE_FILL : colors.surface.elevated}
                         style={styles.badge}
                       />
                     )}
@@ -283,11 +288,11 @@ export function TabBarView({ activeName, onNavigate }: TabBarViewProps) {
             <GlassSurface
               shape="circle"
               size={TAB_SELL_SIZE}
-              tint={colors.primary[600]}
+              opaque
               interactive
               pointerEvents={glass ? undefined : "none"}
             >
-              <Icon name="plus" size={FLOATING_ACTION_ICON_SIZE} color={colors.text.inverted} />
+              <Icon name="plus" size={FLOATING_ACTION_ICON_SIZE} color={colors.text.heading} />
             </GlassSurface>
           </Animated.View>
         </Pressable>
@@ -335,11 +340,11 @@ function CollapsedTabButton({ tab, label, hint, count, glass, onPress }: Collaps
         >
           <View style={styles.collapsedInner}>
             <View>
-              <Icon name={tab.icon} variant="solid" size={iconSize.lg} color={colors.primary[600]!} />
+              <Icon name={tab.icon} variant="solid" size={iconSize.lg} color={colors.text.heading} />
               {tab.badge ? (
                 <CountBadge
                   count={count}
-                  ringColor={colors.primary[50]}
+                  ringColor={TAB_ACTIVE_FILL}
                   style={styles.badge}
                   testID="tab-collapsed-badge"
                 />
@@ -412,8 +417,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: radius.full,
   },
-  // Aktif sekme vurgusu (sekmeler arasında kayar): çok hafif primary-50 (cam ve fallback'te aynı;
-  // etiket/ikon primary-600 kalır, kontrast korunur). Konum/genişlik animasyonlu stilden
+  // Aktif sekme vurgusu (sekmeler arasında kayar): nötr açık gri hap (cam ve fallback'te aynı;
+  // etiket/ikon başlık renginde kalır, kontrast korunur). Konum/genişlik animasyonlu stilden
   // (`useTabHighlight`); burada yalnız sabit kısım.
   highlight: {
     position: "absolute",
@@ -421,7 +426,7 @@ const styles = StyleSheet.create({
     top: spacing[2],
     height: TAB_PILL_HEIGHT - 2 * spacing[2],
     borderRadius: radius.full,
-    backgroundColor: colors.primary[50],
+    backgroundColor: TAB_ACTIVE_FILL,
   },
   itemContent: {
     alignItems: "center",
@@ -436,16 +441,16 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
   },
-  // Hap vurgusuyla aynı iç daire (primary-50): seçili sekme görünümü daralınca da korunur.
+  // Hap vurgusuyla aynı iç daire (TAB_ACTIVE_FILL): seçili sekme görünümü daralınca da korunur.
   collapsedInner: {
     width: TAB_PILL_HEIGHT - 2 * spacing[2],
     height: TAB_PILL_HEIGHT - 2 * spacing[2],
     borderRadius: radius.full,
-    backgroundColor: colors.primary[50],
+    backgroundColor: TAB_ACTIVE_FILL,
     alignItems: "center",
     justifyContent: "center",
   },
-  // Turuncu "+" (cam üstünde primary tint, fallback düz primary): yüzeyi GlassSurface çizer.
+  // "+" diğer cam düğmelerle aynı nötr yüzey, ikon başlık renginde: yüzeyi GlassSurface çizer.
   sellButton: {
     width: TAB_SELL_SIZE,
     height: TAB_SELL_SIZE,

@@ -268,6 +268,25 @@ export function formatOfferStatus(status: string | null | undefined, locale: str
 }
 
 /**
+ * "12 Ekim 2026" — uygulamanın tek uzun tarih biçimi. Geçersiz/boş tarih → `null`
+ * (çağıran satırı düşürür, çökmez); geçersiz yerel etiket → cihaz varsayılan yereli.
+ */
+export function formatLongDate(
+  value: string | Date | null | undefined,
+  locale: string,
+): string | null {
+  if (!value) return null;
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (isNaN(date.getTime())) return null;
+  const options = { day: 'numeric', month: 'long', year: 'numeric' } as const;
+  try {
+    return date.toLocaleDateString(locale, options);
+  } catch {
+    return date.toLocaleDateString(undefined, options);
+  }
+}
+
+/**
  * Relative date formatter: "2 saat önce", "3 gün önce", "tam tarih"
  *
  * `localeOrT` da bir `TFunction` verilirse (i18n-aware çağrı yerleri, örn.
@@ -300,7 +319,7 @@ export function formatRelativeDate(
     if (diffMin < 60) return t('time.relative.minutes', { count: diffMin });
     if (diffHr < 24) return t('time.relative.hours', { count: diffHr });
     if (diffDay < 7) return t('time.relative.days', { count: diffDay });
-    return d.toLocaleDateString(t('common.dateLocale'), { day: 'numeric', month: 'long', year: 'numeric' });
+    return formatLongDate(d, t('common.dateLocale'))!; // `d` yukarıda doğrulandı
   }
 
   const locale = localeOrT;
@@ -309,12 +328,12 @@ export function formatRelativeDate(
     if (diffMin < 60) return `${diffMin} min ago`;
     if (diffHr < 24) return `${diffHr} hr ago`;
     if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
-    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    return formatLongDate(d, 'en-US')!;
   }
 
   if (diffSec < 60) return 'Az önce';
   if (diffMin < 60) return `${diffMin} dk önce`;
   if (diffHr < 24) return `${diffHr} sa önce`;
   if (diffDay < 7) return `${diffDay} gün önce`;
-  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+  return formatLongDate(d, 'tr-TR')!;
 }

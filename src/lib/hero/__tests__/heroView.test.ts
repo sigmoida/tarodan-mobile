@@ -66,6 +66,19 @@ describe('visibleSlides', () => {
     expect(visibleSlides([slide({ cta2: { ...buy, href: 'https://tarodan.com.tr/tr/pricing' } })], 'tr')).toEqual([]);
   });
 
+  it("platform: 'web' slayt elenir; 'app' / 'all' / alan yok (eski sunucu) gösterilir", () => {
+    const out = visibleSlides(
+      [
+        slide({ id: 'w', platform: 'web' }),
+        slide({ id: 'a', platform: 'app' }),
+        slide({ id: 'l', platform: 'all' }),
+        slide({ id: 'n' }),
+      ],
+      'tr',
+    );
+    expect(out.map((s) => s.id)).toEqual(['a', 'l', 'n']);
+  });
+
   it('görseli ya da başlığı olmayan slayt elenir; sırayı değiştirmez', () => {
     const out = visibleSlides(
       [slide({ id: 'a' }), slide({ id: 'b', title: { tr: '' } }), slide({ id: 'c', imageUrl: '' }), slide({ id: 'd' })],

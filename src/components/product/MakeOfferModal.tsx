@@ -19,6 +19,8 @@ import {
 import { offersApi } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { IS_MAESTRO } from '@/config/maestro';
+import { usePriceLimits } from '@/hooks/usePriceLimits';
+import { offerPriceFloor } from '@/lib/shared/priceLimits';
 import { formatPrice } from '../../utils/format';
 import { MIN_OFFER_RATIO, offerPresets } from './offerPresets';
 
@@ -54,6 +56,9 @@ export default function MakeOfferModal({
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
   const msg = useModalMessage();
+  // Admin fiyat tabanı: ilanın etkin fiyatı tabana eşit/üstüyse teklif tabanın altına inemez.
+  const { minPrice } = usePriceLimits();
+  const floor = offerPriceFloor(minPrice, listPrice);
 
   const createOfferMutation = useMutation({
     // Değerler çağrı anında geçirilir: modal kapanınca form state'i sıfırlanıyor.
@@ -82,6 +87,10 @@ export default function MakeOfferModal({
       msg.error(t('offer.minimumOfferErrorTl', { amount: formatPrice(minOffer) }));
       return;
     }
+    if (floor != null && numeric < floor) {
+      msg.error(t('offer.minimumOfferFloorError', { amount: formatPrice(floor) }));
+      return;
+    }
     if (numeric >= listPrice) {
       msg.error(t('offer.aboveListPriceError'));
       return;
@@ -95,7 +104,7 @@ export default function MakeOfferModal({
   const discount = listPrice > 0 && numeric > 0 ? listPrice - numeric : 0;
   const discountPct = listPrice > 0 && numeric > 0 ? Math.round(((listPrice - numeric) / listPrice) * 100) : 0;
   // Hızlı teklif: liste fiyatından −%5/−%10/−%15 (tam TL); serbest giriş de açık.
-  const presets = offerPresets(listPrice);
+  const presets = offerPresets(listPrice, floor);
 
   return (
     <Modal isOpen={visible} onClose={handleClose} title={t('product.makeOffer')}>

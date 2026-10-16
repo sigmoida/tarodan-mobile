@@ -11,6 +11,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-
 import { theme } from '@/ui';
 import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 import { State } from 'react-native-gesture-handler';
+import { Image as ExpoImage } from 'expo-image';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
@@ -28,22 +29,38 @@ import type { ListingFormController } from '../_hooks/useListingForm';
 /** Bölümlere yalnız okudukları alanlar verilir; denetleyicinin geri kalanı testte gereksiz. */
 const asF = (o: Record<string, unknown>) => o as unknown as ListingFormController;
 
-const img = (id: string, status: 'ready' | 'rotating' = 'ready') => ({
+type ImgStatus = 'ready' | 'rotating' | 'queued' | 'uploading' | 'processing' | 'failed';
+const img = (id: string, status: ImgStatus = 'ready', extra: Record<string, unknown> = {}) => ({
   id,
   cardKey: `card-${id}`,
   detailKey: `detail-${id}`,
   uri: `https://cdn.example.com/${id}.jpg`,
   status,
+  ...extra,
+});
+/** Yeni seçilmiş, henüz yüklenmemiş kalem (yerel önizleme, anahtar yok). */
+const local = (id: string, status: ImgStatus, extra: Record<string, unknown> = {}) => ({
+  id,
+  uri: `file:///tmp/${id}.jpg`,
+  status,
+  progress: 0,
+  file: { uri: `file:///tmp/${id}.jpg`, name: `${id}.jpg`, type: 'image/jpeg' },
+  ...extra,
 });
 
 function imagesF(over: Record<string, unknown> = {}) {
   const images = (over.images as ReturnType<typeof img>[] | undefined) ?? [img('a'), img('b'), img('c')];
   return asF({
     limits: { maxImagesPerListing: 5 },
+    maxImages: 5,
     images,
-    imageKeys: images.map(({ cardKey, detailKey }) => ({ cardKey, detailKey })),
+    imageKeys: images
+      .filter((i) => i.cardKey && i.status === 'ready')
+      .map(({ cardKey, detailKey }) => ({ cardKey, detailKey })),
     uploadingImages: false,
+    imageSubmitBlocker: null,
     pickImages: jest.fn(),
+    retryImage: jest.fn(),
     removeImage: jest.fn(),
     rotateImage: jest.fn(),
     makeCoverImage: jest.fn(),
@@ -267,6 +284,94 @@ describe('Fotoğraflar bölümü', () => {
     );
     expect(screen.queryByTestId('listing-image-add')).toBeNull();
     expect(screen.getByText('Maksimum görsel sayısına ulaştınız')).toBeTruthy();
+  });
+
+  it('yüklenen karo: yerel önizleme + yüzde + ilerleme çubuğu; sırada / işleniyor etiketleri; eylemler kapalı', () => {
+    render(
+      <ListingImagesSection
+        f={imagesF({
+          images: [
+            img('a'),
+            local('b', 'uploading', { progress: 40 }),
+            local('c', 'queued'),
+            local('d', 'processing', { progress: 100 }),
+          ],
+          uploadingImages: true,
+        })}
+      />,
+    );
+    layoutGrid();
+    expect(screen.getByText('Yükleniyor %40')).toBeTruthy();
+    expect(screen.getByText('Sırada')).toBeTruthy();
+    expect(screen.getByText('İşleniyor')).toBeTruthy();
+    expect(screen.getByLabelText('2. görsel yükleniyor').props.accessibilityValue).toMatchObject({ now: 40 });
+    expect(screen.queryByTestId('listing-image-rotate-1')).toBeNull();
+    expect(screen.queryByTestId('listing-image-cover-1')).toBeNull();
+    // Kaldır (iptal) her durumda açık.
+    expect(screen.getByTestId('listing-image-remove-1')).toBeTruthy();
+    // Sayaç yalnız yüklenmişleri sayar; yükleme sürerken de yeni görsel eklenebilir.
+    expect(screen.getByText('1 / 5 yüklendi')).toBeTruthy();
+    expect(screen.getByTestId('listing-image-add')).toBeTruthy();
+  });
+
+  it('hatalı karo: "Yüklenemedi" + "Tekrar dene" doğru kimliği çağırır; diğer karolar etkilenmez; neden yazılı', () => {
+    const f = imagesF({
+      images: [img('a'), local('b', 'failed', { error: 'Dosya bozuk' }), img('c')],
+      imageSubmitBlocker: {
+        reason: 'failed',
+        message: 'Yüklenemeyen görsel var. Tekrar deneyin ya da o görseli kaldırın.',
+      },
+    });
+    render(<ListingImagesSection f={f} />);
+    layoutGrid();
+    expect(screen.getByTestId('listing-image-failed-1')).toBeTruthy();
+    expect(screen.getByText('Yüklenemedi')).toBeTruthy();
+    expect(screen.queryByTestId('listing-image-failed-0')).toBeNull();
+    expect(screen.getByTestId('listing-image-rotate-2')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('listing-image-retry-1'));
+    expect(f.retryImage as jest.Mock).toHaveBeenCalledWith('b');
+    fireEvent.press(screen.getByTestId('listing-image-remove-1'));
+    expect(f.removeImage as jest.Mock).toHaveBeenCalledWith('b');
+    expect(screen.getByTestId('listing-image-blocker')).toBeTruthy();
+    expect(screen.getByText('Yüklenemeyen görsel var. Tekrar deneyin ya da o görseli kaldırın.')).toBeTruthy();
+  });
+
+  it('cihaz URI\'si yalnız yerel dosyası olan (yeni seçilmiş) kalemde gösterilir; sunucu verisinde asla', () => {
+    render(
+      <ListingImagesSection
+        f={imagesF({
+          images: [
+            img('a'),
+            local('b', 'uploading'),
+            // Sunucudan gelmiş gibi görünen ama cihaz URI'si taşıyan kalem: yerel dosyası yok.
+            img('c', 'ready', { uri: 'file:///tmp/sneaky.jpg' }),
+          ],
+        })}
+      />,
+    );
+    layoutGrid();
+    const sources = screen.UNSAFE_getAllByType(ExpoImage).map((n) => (n.props.source as { uri: string }).uri);
+    expect(sources[0]).toBe('https://cdn.example.com/a.jpg');
+    expect(sources[1]).toBe('file:///tmp/b.jpg');
+    // Yer tutucu (gömülü veri) — cihaz URI'si çözülmez.
+    expect(sources[2]).toMatch(/^data:image\//);
+  });
+
+  it('hatalı kapak karosu sunucu mesajını gösterir', () => {
+    render(<ListingImagesSection f={imagesF({ images: [local('a', 'failed', { error: 'Dosya bozuk' })] })} />);
+    layoutGrid();
+    expect(screen.getByText('Dosya bozuk')).toBeTruthy();
+  });
+
+  it('bekleyen ve hatalı kalemler de kontenjandan düşer', () => {
+    render(
+      <ListingImagesSection
+        f={imagesF({
+          images: [img('1'), img('2'), local('3', 'uploading'), local('4', 'queued'), local('5', 'failed')],
+        })}
+      />,
+    );
+    expect(screen.queryByTestId('listing-image-add')).toBeNull();
   });
 });
 

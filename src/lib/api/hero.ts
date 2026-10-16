@@ -14,6 +14,12 @@ export interface LocalizedText {
 
 export type HeroPlacement = "home" | "auth_default" | "auth_register";
 
+/** Slaytın gösterileceği platform (admin seçer). Mobil yalnız `app` ve `all` gösterir. */
+export type HeroPlatform = "web" | "app" | "all";
+
+/** Bu istemcinin platformu: sunucu `platform=app` ile `app`/`all` slaytlarını (ve uygulama için hero açık mı bayrağını) uygular. */
+export const HERO_CLIENT_PLATFORM = "app" as const;
+
 export interface HeroCta {
   label: LocalizedText;
   /** Mutlak http(s) URL ya da tek `/` ile başlayan site içi yol. */
@@ -23,6 +29,8 @@ export interface HeroCta {
 export interface HeroSlide {
   id: string;
   placement: HeroPlacement;
+  /** Opsiyonel (eski sunucu göndermeyebilir). `web` ise mobilde gösterilmez. */
+  platform?: HeroPlatform;
   imageUrl: string;
   /** Mobil görsel; yoksa `imageUrl`. */
   mobileImageUrl: string | null;
@@ -38,9 +46,14 @@ export interface HeroSlide {
 }
 
 export const heroApi = {
-  /** Yayındaki slaytlar (en çok 5, sunucu sırasıyla). Boş dönebilir. */
+  /**
+   * Yayındaki slaytlar (en çok 5, sunucu sırasıyla). Boş dönebilir: admin
+   * uygulama için hero'yu kapattıysa ya da canlı slayt yoksa `[]` gelir.
+   */
   getSlides: (placement: HeroPlacement) =>
-    guestApi.get<HeroSlide[]>("/hero-slides", { params: { placement } }),
+    guestApi.get<HeroSlide[]>("/hero-slides", {
+      params: { placement, platform: HERO_CLIENT_PLATFORM },
+    }),
 
   /** Gösterim sayacı — slayt ilk göründüğünde; ateşle-unut, 204. */
   recordImpression: (id: string) =>

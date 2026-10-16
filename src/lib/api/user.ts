@@ -1,4 +1,6 @@
 import { api } from "./client";
+import { DOCUMENT_UPLOAD_TIMEOUT_MS } from "./media";
+import { appendRNFile } from "./formData";
 
 // User API - Web ile aynı endpoint'ler
 export const userApi = {
@@ -122,9 +124,10 @@ export const sellerDocumentsApi = {
     const formData = new FormData();
     formData.append("documentType", documentType);
     if (stakeholderId) formData.append("stakeholderId", stakeholderId);
-    formData.append("file", file as unknown as Blob);
+    appendRNFile(formData, "file", file);
     return api.post("/users/me/seller-documents", formData, {
       headers: { "Content-Type": "multipart/form-data" },
+      timeout: DOCUMENT_UPLOAD_TIMEOUT_MS,
     });
   },
   /** Başvuru yoksa backend 400/404 döner — çağıran taraf "başvuru yok" olarak ele alır. */

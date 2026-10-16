@@ -9,6 +9,9 @@ export interface ErrorStateProps {
   message?: string;
   onRetry?: () => void;
   retryLabel?: string;
+  /** İkincil aksiyon (ghost buton, yeniden denemenin altında) — `EmptyState` ile aynı ad. */
+  secondaryLabel?: string;
+  onSecondary?: () => void;
   /** Bkz. `EmptyStateProps.placement`. */
   placement?: EmptyStatePlacement;
   testID?: string;
@@ -27,10 +30,19 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   message,
   onRetry,
   retryLabel,
+  secondaryLabel,
+  onSecondary,
   placement,
   testID = 'error-state',
 }) => {
   const { t } = useTranslation();
+  const retryButton = onRetry ? (
+    <Button variant="primary" title={retryLabel ?? t('mobile.errorRetry')} onPress={onRetry} style={styles.button} />
+  ) : null;
+  const secondaryButton =
+    secondaryLabel && onSecondary ? (
+      <Button variant="ghost" title={secondaryLabel} onPress={onSecondary} style={styles.button} />
+    ) : null;
   return (
     <StateLayout
       icon="exclamation-circle"
@@ -39,13 +51,12 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
       placement={placement}
       testID={testID}
     >
-      {onRetry ? (
-        <Button
-          variant="primary"
-          title={retryLabel ?? t('mobile.errorRetry')}
-          onPress={onRetry}
-          style={styles.button}
-        />
+      {/* Aksiyon yoksa boş aksiyon satırı (üst boşluk) çizilmesin diye `null`. */}
+      {retryButton || secondaryButton ? (
+        <>
+          {retryButton}
+          {secondaryButton}
+        </>
       ) : null}
     </StateLayout>
   );

@@ -1,15 +1,14 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { router } from 'expo-router';
-import { Badge, Input, SectionCard, Text, theme, Icon } from '@/ui';
-import { DocAccordionItem, DocLink } from '@/components/content/DocBlocks';
+import { Input, SectionCard, Text, theme, Icon } from '@/ui';
+import { DocAccordionItem } from '@/components/content/DocBlocks';
 
 import { styles } from '../_lib/styles';
 import type { HelpController } from '../_hooks/useHelp';
 
 const { colors, iconSize } = theme;
 
-/** Arama, hızlı bağlantılar ve SSS kategori/soru akordeonu — her biri web gibi SectionCard. */
+/** Arama ve SSS kategori/soru akordeonu — her biri web gibi SectionCard. */
 export function HelpFaq({ f }: { f: HelpController }) {
   return (
     <>
@@ -20,11 +19,6 @@ export function HelpFaq({ f }: { f: HelpController }) {
           onChangeText={f.handleSearch}
           leftIconName="magnifying-glass"
         />
-        <View style={styles.quickLinks}>
-          <DocLink label={f.t('mobile.guestOrderTrack')} onPress={() => router.push('/order-track')} />
-          <DocLink label={f.t('common.login')} onPress={() => router.push('/(auth)/login')} />
-          <DocLink label={f.t('footer.sell')} onPress={() => f.setExpandedCategory('selling')} />
-        </View>
       </SectionCard>
 
       <SectionCard title={f.t('faq.title')}>
@@ -41,9 +35,6 @@ export function HelpFaq({ f }: { f: HelpController }) {
                 <Text variant="h3" style={styles.categoryTitle}>
                   {category.title}
                 </Text>
-                <Badge variant="outline" size="sm">
-                  {category.questions.length}
-                </Badge>
                 <Icon
                   name={open ? 'chevron-up' : 'chevron-down'}
                   size={iconSize.md}
@@ -51,8 +42,10 @@ export function HelpFaq({ f }: { f: HelpController }) {
                 />
               </Pressable>
 
-              {open
-                ? category.questions.map((item, index) => {
+              {/* Alt maddeler: kategoriden ayırt edilsin diye girintili, zeminli ve sol vurgulu panel. */}
+              {open ? (
+                <View style={styles.questionList}>
+                  {category.questions.map((item, index) => {
                     const key = `${category.id}-${index}`;
                     return (
                       <DocAccordionItem
@@ -63,8 +56,9 @@ export function HelpFaq({ f }: { f: HelpController }) {
                         onToggle={() => f.setExpandedQuestion(f.expandedQuestion === key ? null : key)}
                       />
                     );
-                  })
-                : null}
+                  })}
+                </View>
+              ) : null}
             </View>
           );
         })}

@@ -31,6 +31,11 @@ export type MappedListing = {
    */
   globalAttrs: Record<string, string[]>;
   sale: { salePrice: string; saleStartDate: string; saleEndDate: string };
+  /**
+   * İlanda SAKLI fiyatlar (fiyat, eski/orijinal fiyat, indirimli fiyat) — sunucu bunlardan
+   * birine eşit aday fiyatı taban/tavan denetiminden muaf tutar (eski kayıt muafiyeti).
+   */
+  storedPrices: string[];
   reservedQty: number;
   isPreorder: boolean;
   labels: {
@@ -156,6 +161,7 @@ export function toFormValues(p: MyProductResponse): MappedListing | null {
       saleStartDate: onSale ? day(e.saleStartDate) : '',
       saleEndDate: onSale ? day(e.saleEndDate) : '',
     },
+    storedPrices: [e.price, e.oldPrice, e.salePrice].filter((v) => v != null).map(String),
     reservedQty:
       quantity != null && available != null
         ? Math.max(0, Number(quantity) - Number(available))

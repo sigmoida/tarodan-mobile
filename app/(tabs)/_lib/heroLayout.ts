@@ -4,13 +4,13 @@ import { HOME_GUTTER } from './homeLayout';
 const { spacing } = theme;
 
 /**
- * Hero yerleşimi — ayrılan yükseklik ile gerçek slider AYNI sabitlerden çıkar,
- * böylece API cevabı gelince (rezerve alan → slider) akış kaymaz.
+ * Hero yerleşimi — ayrılan yükseklik ile gerçek slider AYNI sabitlerden çıkar.
+ * Yer yalnız son açılışta hero görünmüşse ve cevap henüz gelmemişse tutulur
+ * (`useLastHadSlides`); hero'su kapalıysa hiçbir şey ayrılmaz.
  *
  * Gerçek yükseklik = kenarlık + görsel (genişlik / oran) + gövde (en az
  * `HERO_BODY_MIN_HEIGHT`) + nokta şeridi. Gövdeye taban yükseklik verildiği için
- * tipik slaytlar (1-2 satır başlık, alt başlık, 1-2 buton) rezerve alanla
- * birebir tutar; daha uzun metin yalnız gövdeyi büyütür (tüm slaytlar en uzununa uyar).
+ * tipik slaytlar rezerve alanla birebir tutar; daha uzun metin yalnız gövdeyi büyütür.
  */
 
 /** Hero görsel oranı — web mobil görünümüyle aynı (16/10). */

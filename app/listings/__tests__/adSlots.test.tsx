@@ -1,10 +1,11 @@
 /**
- * /listings: header + inline (8. karttan sonra, 24. karttan sonra) + footer
+ * /listings: header + inline (liste başına tek: 8. karttan sonra) + footer
  * reklam yuvaları. Izgara 2 sütunlu satırlara bölünür; afiş tam genişlikte.
  */
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { render } from '@testing-library/react-native';
+// Kartlardaki favori kalbi (`useProductCardFavorites`) React Query ister: provider'lı render.
+import { renderWithProviders as render } from '@/test-utils';
 
 const mockListings = jest.fn();
 jest.mock('../_hooks/useListings', () => ({ useListings: () => mockListings() }));

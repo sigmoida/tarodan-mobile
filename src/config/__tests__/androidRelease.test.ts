@@ -378,12 +378,12 @@ describe('docs/ANDROID_RELEASE.md', () => {
   });
 
   it('SECRETS_SETUP.md ve RELEASE.md kılavuza bağlanıyor', () => {
-    expect(fs.readFileSync(path.join(root, 'SECRETS_SETUP.md'), 'utf8')).toContain('docs/ANDROID_RELEASE.md');
+    expect(fs.readFileSync(path.join(root, 'docs/SECRETS_SETUP.md'), 'utf8')).toContain('docs/ANDROID_RELEASE.md');
     expect(fs.readFileSync(path.join(root, 'docs/RELEASE.md'), 'utf8')).toContain('ANDROID_RELEASE.md');
   });
 
   it('eski "Android paketi değişmez" iddiası kalmadı', () => {
-    for (const f of ['SECRETS_SETUP.md', 'docs/RELEASE.md']) {
+    for (const f of ['docs/SECRETS_SETUP.md', 'docs/RELEASE.md']) {
       const text = fs.readFileSync(path.join(root, f), 'utf8');
       expect(text).not.toMatch(/Android paket adına `\.staging` eki EKLENMEZ/);
       expect(text).not.toMatch(/On \*\*Android\*\* the package stays/);

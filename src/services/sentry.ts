@@ -29,7 +29,7 @@ const enabled = !isExpoGo && Boolean(dsn);
 let initialized = false;
 
 /**
- * Uygulama açılışında bir kere çağrılır (App.tsx / _layout.tsx içinden).
+ * Uygulama açılışında bir kere çağrılır (app/_layout.tsx içinden).
  * Expo Go'da veya DSN yoksa no-op.
  */
 export function initSentry(): void {

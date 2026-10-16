@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { GlassIconButton, theme } from '@/ui';
+import { DEFAULT_SHELL_LEADING, type ShellLeading } from './shellLeading';
 import { useSideMenu } from './SideMenuContext';
 import { useShellCounts } from './useShellCounts';
 import { useLockedPush } from './useLockedPush';
@@ -9,13 +10,35 @@ import { useLockedPush } from './useLockedPush';
 const { spacing } = theme;
 
 /**
- * Sekme köklerinin üst barındaki sol düğme: ☰ (yan menüyü açar). Ana Sayfa'nın yüzen barı ve
- * başlıklı sekme kökleri (`TitleShell`) aynı düğmeyi kullanır; testID çağırandan.
+ * Sekme köklerinin üst barındaki sol düğme. Türü kabuğun KENDİ prop'u belirler (`leading`, bkz.
+ * `shellLeading.ts`): `menu` → ☰ (`bars-3`, yan menüyü açar; yalnız Profil kökleri), `categories`
+ * (varsayılan) → `squares-2x2` (`/categories` yığın rotasını açar; çift dokunuş tek açılış —
+ * `useLockedPush`). Ana Sayfa'nın yüzen barı ve başlıklı sekme kökleri (`TitleShell`) aynı bileşeni
+ * kullanır; testID'ler çağırandan.
  */
-export function ShellMenuButton({ testID }: { testID: string }) {
+export function ShellLeadingButton({
+  leading = DEFAULT_SHELL_LEADING,
+  menuTestID = 'app-shell-menu',
+  categoriesTestID,
+}: {
+  leading?: ShellLeading;
+  menuTestID?: string;
+  categoriesTestID: string;
+}) {
   const { t } = useTranslation();
   const { open } = useSideMenu();
-  return <GlassIconButton icon="bars-3" accessibilityLabel={t('nav.menu')} testID={testID} onPress={open} />;
+  const openCategories = useLockedPush('/categories');
+  if (leading === 'menu') {
+    return <GlassIconButton icon="bars-3" accessibilityLabel={t('nav.menu')} testID={menuTestID} onPress={open} />;
+  }
+  return (
+    <GlassIconButton
+      icon="squares-2x2"
+      accessibilityLabel={t('nav.categories')}
+      testID={categoriesTestID}
+      onPress={openCategories}
+    />
+  );
 }
 
 /**

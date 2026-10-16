@@ -1,17 +1,11 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { spacing } = theme;
+const { spacing, colors, radiusRole } = theme;
 
 // Yardım merkezi route-local stilleri: yalnız yerleşim boşlukları. Kartlar, başlıklar ve
 // metinler `@/ui` SectionCard / Text / `DocBlocks`'tan gelir.
 export const styles = StyleSheet.create({
-  quickLinks: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    columnGap: spacing[4],
-    rowGap: spacing[3],
-  },
   faqCategory: {
     marginBottom: spacing[2],
   },
@@ -24,22 +18,13 @@ export const styles = StyleSheet.create({
   categoryTitle: {
     flex: 1,
   },
-  contactOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    minHeight: theme.minTouchTarget,
-  },
-  contactInfo: {
-    flex: 1,
-    gap: spacing[0.5],
-  },
-  appInfo: {
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  appLinks: {
-    flexDirection: 'row',
-    gap: spacing[4],
+  // Açık kategorinin soruları: zeminli, sol vurgulu, girintili panel (kategori satırından ayrışır).
+  questionList: {
+    marginTop: spacing[1],
+    paddingHorizontal: spacing[3],
+    backgroundColor: colors.surface.alt,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.primary[500],
+    borderRadius: radiusRole.card,
   },
 });

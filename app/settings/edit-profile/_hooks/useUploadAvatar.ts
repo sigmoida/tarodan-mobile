@@ -6,6 +6,7 @@ import { toast } from '@/ui';
 import { mediaApi, userApi } from '@/lib/api';
 import { errorText } from '@/lib/api/errorText';
 import { useAuthStore } from '@/stores/authStore';
+import { IMAGE_PROFILES, fromPickerAsset, pickerQuality, withPreparedImage, type LocalImageFile } from '@/lib/media';
 import { useRefreshAccount } from './useRefreshAccount';
 
 /**
@@ -13,6 +14,7 @@ import { useRefreshAccount } from './useRefreshAccount';
  * `/media/upload/avatar` → dönen anahtar `PATCH /users/me { avatarUrl }` → store tazelenir
  * (profil sekmesi de yeni fotoğrafı görür) + toast. Profil formunun "Kaydet"inden bağımsız.
  * Yükleme sürerken yerel önizleme gösterilir; hata olursa önizleme geri alınır.
+ * Yüklemeden önce `avatar` profiliyle küçültülür (sunucu 300×300 kırpıyor, sınırı 2 MB).
  */
 export function useUploadAvatar() {
   const { t } = useTranslation();
@@ -23,8 +25,14 @@ export function useUploadAvatar() {
   const picking = useRef(false);
 
   const upload = useMutation({
-    mutationFn: async (uri: string) => {
-      const uploadRes = await mediaApi.uploadAvatar({ uri, name: 'avatar.jpg', type: 'image/jpeg' });
+    mutationFn: async (file: LocalImageFile) => {
+      // Ad/tür eskisi gibi sabit: hazırlanmış dosya zaten JPEG; dokunulmayan PNG/WebP'yi de
+      // sunucu (sharp) kırpıp işliyor.
+      const uploadRes = await withPreparedImage(
+        file,
+        (prepared) => mediaApi.uploadAvatar({ uri: prepared.uri, name: 'avatar.jpg', type: 'image/jpeg' }),
+        IMAGE_PROFILES.avatar,
+      );
       const key: string | undefined = uploadRes.data?.key ?? uploadRes.data?.url;
       if (!key) throw new Error('avatar upload returned no key');
       await userApi.updateProfile({ avatarUrl: key });
@@ -51,12 +59,12 @@ export function useUploadAvatar() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: pickerQuality(),
       });
-      if (result.canceled || !result.assets?.[0]) return;
-      const uri = result.assets[0].uri;
-      setPreview(uri);
-      upload.mutate(uri);
+      const asset = result.canceled ? undefined : result.assets?.[0];
+      if (!asset) return;
+      setPreview(asset.uri);
+      upload.mutate(fromPickerAsset(asset, 'avatar.jpg'));
     } catch {
       toast.error(t('profile.photoUploadFailed'));
     } finally {

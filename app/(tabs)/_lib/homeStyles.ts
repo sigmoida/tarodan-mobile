@@ -16,6 +16,11 @@ export const homeStyles = StyleSheet.create({
   scroll: { flex: 1 },
   // Bölümler: web PageShell `space-y-4` + `px-4` (tek kaynak `homeLayout`; hero ile aynı kenar).
   sections: { paddingHorizontal: HOME_GUTTER, paddingVertical: HOME_SECTION_GAP, gap: HOME_SECTION_GAP },
+  // Reklam yuvaları ana sayfada bölümlerle aynı ritim: üst barın/bölümlerin altından tek
+  // `HOME_SECTION_GAP`, yan kenar `HOME_GUTTER`. Hero ve bölümler kendi üst boşluğunu verdiği
+  // için header reklamı alt, footer reklamı üst boşluk bırakmaz (çift boşluk olmasın).
+  adHeader: { paddingHorizontal: HOME_GUTTER, paddingTop: HOME_SECTION_GAP, paddingBottom: 0 },
+  adFooter: { paddingHorizontal: HOME_GUTTER, paddingTop: 0, paddingBottom: HOME_SECTION_GAP },
 
   // Ürün rayı (web: flex gap-3 overflow-x-auto, kart w-40)
   // Yatay şeritler: flexGrow:0 (dikeyde içerik kadar) + hizalama (kartlar germesin).
@@ -75,17 +80,4 @@ export const homeStyles = StyleSheet.create({
     borderRadius: radiusRole.productCard,
     backgroundColor: colors.surface.alt,
   },
-
-  // Statik yedek hero
-  heroBanner: {
-    marginTop: HOME_SECTION_GAP,
-    marginHorizontal: HOME_GUTTER,
-    gap: spacing[2],
-    padding: spacing[4],
-    borderRadius: radiusRole.section,
-    borderWidth: 1,
-    borderColor: colors.primary[100],
-    backgroundColor: colors.primary[50],
-  },
-  heroButtons: { gap: spacing[2], marginTop: spacing[2] },
 });

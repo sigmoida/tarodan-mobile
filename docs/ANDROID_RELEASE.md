@@ -9,7 +9,7 @@ tamamını sırasıyla anlatır. Her adımda **Kim** sütunu işi kimin yapacağ
 - **Kod** — bu repoda zaten yapıldı (bu dalda), kullanıcı bir şey yapmaz.
 
 Genel yayın akışı: [`RELEASE.md`](./RELEASE.md) · EAS hesap/secret kurulumu:
-[`../SECRETS_SETUP.md`](../SECRETS_SETUP.md) · Deep link: [`deep-links.md`](./deep-links.md).
+[`SECRETS_SETUP.md`](./SECRETS_SETUP.md) · Deep link: [`deep-links.md`](./deep-links.md).
 
 ---
 

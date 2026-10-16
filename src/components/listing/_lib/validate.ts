@@ -1,5 +1,7 @@
 import type { TFunction } from 'i18next';
+import type { PriceLimits } from '@/lib/shared/priceLimits';
 import { buildListingFormSchema, MIN_IMAGES, type ListingFormValues } from './schema';
+import { salePriceFieldError, type PriceBaseline } from './priceRules';
 
 export interface ListingValidationInput {
   values: ListingFormValues;
@@ -17,6 +19,12 @@ export interface ListingValidationInput {
   requiredGlobalGroups?: ReadonlyArray<{ slug: string; name: string }>;
   /** Gönderilecek TÜM özel özellik seçimleri (genel + üreticiye bağlı). */
   attributeSelections?: Record<string, string[]>;
+  /** Admin fiyat sınırları; yoksa / yüklenemediyse kural yok (sunucu yine doğrular). */
+  priceLimits?: PriceLimits;
+  /** Şema dışı (useState): indirim alanları — taban denetimi için. */
+  sale?: { salePrice: string; saleStartDate: string; saleEndDate: string };
+  /** Düzenlemede ilanda saklı fiyatlar (eski kayıt muafiyeti); oluşturmada yok. */
+  priceBaseline?: PriceBaseline | null;
 }
 
 /**
@@ -31,9 +39,23 @@ export function firstListingValidationError(
   t: TFunction,
   input: ListingValidationInput,
 ): string | null {
-  const result = buildListingFormSchema(t, { isEdit: input.isEdit }).safeParse(input.values);
+  const result = buildListingFormSchema(t, {
+    isEdit: input.isEdit,
+    priceLimits: input.priceLimits,
+    storedPrices: input.priceBaseline,
+  }).safeParse(input.values);
   if (!result.success) {
     return result.error.issues[0]?.message || t('listing.checkFieldsFallback');
+  }
+  // İndirimli fiyat da tabanın altına inemez (sale alanları şema dışı).
+  if (input.priceLimits && input.sale) {
+    const saleError = salePriceFieldError(
+      t,
+      { price: input.values.price, ...input.sale },
+      input.priceLimits,
+      input.priceBaseline,
+    );
+    if (saleError) return saleError;
   }
   if (!input.categoryId) return t('listing.categoryRequiredMsg');
   if (input.imageCount < MIN_IMAGES) return t('listing.minImagesMsg', { min: MIN_IMAGES });

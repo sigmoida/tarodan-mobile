@@ -1,6 +1,4 @@
-import { Linking } from 'react-native';
 import type { TFunction } from 'i18next';
-import { SUPPORT_EMAIL } from '@/constants/legalFacts';
 import type { TimingMessageValues } from '@/lib/shared/timingPolicy';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
@@ -93,21 +91,4 @@ export const buildFaqCategories = (t: TFunction, timing: TimingMessageValues): F
         : []),
     ],
   },
-];
-
-export type ContactOption = {
-  id: string;
-  title: string;
-  subtitle: string;
-  action: () => void;
-};
-
-export const buildContactOptions = (t: TFunction): ContactOption[] => [
-  {
-    id: 'email',
-    title: t('common.email'),
-    subtitle: SUPPORT_EMAIL,
-    action: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}`),
-  },
-  // Telefon / WhatsApp hattı henüz yok — yer tutucu numara gösterilmez.
 ];

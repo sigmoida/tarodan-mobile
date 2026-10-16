@@ -96,7 +96,7 @@ describe('AppTabBar — yüzen hap', () => {
     expect(hl.props.pointerEvents).toBe('none');
     expect(StyleSheet.flatten(hl.props.style)).toMatchObject({
       position: 'absolute',
-      backgroundColor: theme.colors.primary[50],
+      backgroundColor: theme.colors.gray[100],
     });
     PILL_ORDER.forEach((id) =>
       expect(StyleSheet.flatten(screen.getByTestId(id).props.style).backgroundColor).toBeUndefined(),

@@ -27,6 +27,12 @@ describe('misafir profil düzeni', () => {
     expect(router.push).toHaveBeenCalledWith('/(auth)/register');
   });
 
+  it('Profil kökü: sol düğme ☰ (yan menü), kategoriler düğmesi değil', () => {
+    render(<ProfileGuestView f={f} />);
+    expect(screen.getByTestId('app-shell-menu')).toBeTruthy();
+    expect(screen.queryByTestId('app-shell-categories')).toBeNull();
+  });
+
   it('boş avatar dairesi 120pt ve baş harf metni yok', () => {
     render(<ProfileGuestView f={f} />);
     expect(screen.queryByText('?')).toBeNull();

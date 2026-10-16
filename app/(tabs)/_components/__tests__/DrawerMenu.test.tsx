@@ -92,7 +92,7 @@ describe('DrawerMenu — üye', () => {
       'profile-refunds-link',
       'profile-saved-searches-link',
       'profile-account-following-link',
-      'profile-info-guides-link',
+      'profile-legal-seller-agreement-link',
       'profile-legal-privacy-link',
     ]) {
       expect(screen.getByTestId(id)).toBeTruthy();

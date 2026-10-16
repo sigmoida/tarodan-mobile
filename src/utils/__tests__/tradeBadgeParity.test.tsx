@@ -22,7 +22,8 @@ const layouts = ['grid', 'list'] as const;
 
 describe.each(layouts)('ProductCard (%s) trade badge', (layout) => {
   // Liste görünümünde telefonda rozet yalnız ikon (web `hidden sm:inline`): etiket erişilebilirlik adıyla aranır.
-  const badge = () => screen.queryByLabelText(/takas/i) ?? screen.queryByText(/takas/i);
+  // Kart etiketi de rozet adını içerir (erişilebilirlik) — birden çok eşleşme olabilir.
+  const badge = () => screen.queryAllByLabelText(/takas/i)[0] ?? screen.queryByText(/takas/i);
   const renderCard = (item: any) => render(<ProductCard product={item} layout={layout} />);
 
   it('shows the badge when only tradeAvailable is set', () => {
@@ -48,5 +49,23 @@ describe.each(layouts)('ProductCard (%s) trade badge', (layout) => {
   it('hides the badge when no trade signal is present', () => {
     renderCard({ ...base });
     expect(badge()).toBeNull();
+  });
+});
+
+describe.each(layouts)('ProductCard (%s) trade badge - satın alınabilirlik', (layout) => {
+  const badge = () => screen.queryAllByLabelText(/takas/i)[0] ?? screen.queryByText(/takas/i);
+  const renderCard = (item: Record<string, unknown>) => render(<ProductCard product={item as never} layout={layout} />);
+
+  it('hides the badge on sold / reserved / zero-stock listings', () => {
+    for (const extra of [{ status: 'sold' }, { status: 'reserved' }, { availableQuantity: 0 }]) {
+      const { unmount } = renderCard({ ...base, tradeAvailable: true, ...extra });
+      expect(badge()).toBeNull();
+      unmount();
+    }
+  });
+
+  it('shows the badge on an active in-stock listing', () => {
+    renderCard({ ...base, tradeAvailable: true, status: 'active', availableQuantity: 3 });
+    expect(badge()).toBeTruthy();
   });
 });

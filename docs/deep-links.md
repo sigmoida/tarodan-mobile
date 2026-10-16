@@ -333,7 +333,7 @@ kalanları beklemek yeterlidir — yayın başarısız demek değildir.
 
 ## 10. Teyit bekleyenler
 
-`paths.json`'da `confirmed: false` olan 8 yol — web'de gerçekten var
+`paths.json`'da `confirmed: false` olan 7 yol — web'de gerçekten var
 olduğu **doğrulanmadığı** için üretilen dosyalara girmiyor:
 
 - `/seller/*` (mobil rota var — `app/seller/[id]/index.tsx`; teyit bekleyen
@@ -341,15 +341,14 @@ olduğu **doğrulanmadığı** için üretilen dosyalara girmiyor:
 - `/orders/*` (aşağıda 3. soru)
 - `/category/*`
 - `/brands/*`
-- `/sayfa/*`
 - `/membership`
 - `/pricing`
 - `/favorites`
 
 Web tarafına dört soru:
 
-1. **Bu 7 yol web'de gerçekten bu path'lerde mi yaşıyor?** (`/category/*`,
-   `/brands/*`, `/sayfa/*` için `toMobileRoute` içinde henüz bir eşleme de
+1. **Bu yollar web'de gerçekten bu path'lerde mi yaşıyor?** (`/category/*`,
+   `/brands/*` için `toMobileRoute` içinde henüz bir eşleme de
    yok — hem yol hem eşleme teyit bekliyor.)
 2. ~~**Locale ön ek biçimi ne?**~~ **CEVAPLANDI (2026-08-03).**
    `sigmoida/tarodan-app` → `apps/web/src/i18n/routing.ts`:

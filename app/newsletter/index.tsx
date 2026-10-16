@@ -6,7 +6,6 @@ import { router } from 'expo-router';
 import { guestApi } from '@/lib/api';
 import { useAppMutation } from '@/lib/query';
 import { ContentPage } from '@/components/content/ContentPage';
-import { DocLink } from '@/components/content/DocBlocks';
 
 /**
  * Bülten aboneliği — form ekranı kalıbı (edit-profile gibi): sayfa açıklaması + kartsız düz form
@@ -94,7 +93,6 @@ export default function NewsletterScreen() {
           onChange={setConsent}
           label={t('marketing.newsletter.consentText')}
         />
-        <DocLink label={t('mobile.pagePrivacy')} onPress={() => router.push('/privacy' as never)} />
       </View>
 
       <Button

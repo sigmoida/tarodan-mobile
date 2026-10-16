@@ -110,7 +110,6 @@ export const qk = {
     carModel: (slug: string) => ["car-model", slug] as const,
     modelProducts: (slug: string) => ["model-products", slug] as const,
     carModels: (filters?: Filters) => ["car-models", filters] as const,
-    pages: (slug?: string) => ["pages", slug] as const,
   },
 
   collections: {
@@ -304,8 +303,11 @@ export const qk = {
   },
 
   hero: {
-    /** GET /hero-slides?placement= — admin'den yönetilen vitrin slaytları. */
-    slides: (placement: string) => ["hero", "slides", placement] as const,
+    /**
+     * GET /hero-slides?placement=&platform= — admin'den yönetilen vitrin slaytları.
+     * Platform anahtarda: parametresiz eski istek önbelleği yenisiyle karışmasın.
+     */
+    slides: (placement: string, platform: string) => ["hero", "slides", placement, platform] as const,
   },
 
   membershipLimits: {
@@ -327,5 +329,10 @@ export const qk = {
   timingPolicy: {
     /** GET /timing-rules — admin'den yönetilen herkese açık politika süreleri. */
     all: ["timing-policy"] as const,
+  },
+
+  publicSettings: {
+    /** GET /admin/settings/public — admin'in herkese açık sayısal ayarları (ilan fiyat sınırları…). */
+    all: ["public-settings"] as const,
   },
 } as const;

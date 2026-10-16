@@ -25,22 +25,24 @@ describe('heroReservedHeight', () => {
     expect(heroReservedHeight(430)).toBeGreaterThan(heroReservedHeight(360));
   });
 
-  it('gerçek slider parçalarıyla aynı sabitleri paylaşır (kayma olmasın)', () => {
+  it('negatif/çok dar genişlikte taşmaz', () => {
+    expect(heroReservedHeight(0)).toBeGreaterThan(0);
+  });
+});
+
+describe('hero sabitleri', () => {
+  it('gerçek slider parçaları aynı sabitleri paylaşır', () => {
     expect(StyleSheet.flatten(heroStyles.image).aspectRatio).toBe(HERO_IMAGE_RATIO);
     expect(StyleSheet.flatten(heroStyles.body).minHeight).toBe(HERO_BODY_MIN_HEIGHT);
     expect(StyleSheet.flatten(heroStyles.dots).height).toBe(HERO_DOTS_HEIGHT);
     expect(StyleSheet.flatten(heroStyles.shell).borderWidth).toBe(HERO_BORDER_WIDTH);
     expect(StyleSheet.flatten(heroStyles.shell).marginHorizontal).toBe(HERO_MARGIN_X);
   });
-
-  it('negatif/çok dar genişlikte taşmaz', () => {
-    expect(heroReservedHeight(0)).toBeGreaterThan(0);
-  });
 });
 
 describe('ana sayfa bölüm hizası (tek kaynak homeLayout)', () => {
-  it('hero (slider / rezerve / yedek) üst bardan ayrılır ve bölümlerle aynı yan kenarda', () => {
-    for (const st of [heroStyles.shell, heroStyles.reserved, homeStyles.heroBanner]) {
+  it('hero (slider / rezerve) üst bardan ayrılır ve bölümlerle aynı yan kenarda', () => {
+    for (const st of [heroStyles.shell, heroStyles.reserved]) {
       const f: ViewStyle = StyleSheet.flatten(st);
       expect(f.marginTop).toBe(HOME_SECTION_GAP);
       expect(f.marginHorizontal).toBe(HOME_GUTTER);

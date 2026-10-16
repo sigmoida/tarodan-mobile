@@ -168,7 +168,7 @@ maestro/
     ├── open-tarodan.yaml      # Expo Go → Tarodan launch
     ├── login-as.yaml          # Profil → Giriş Yap (iki aşamalı: e-posta → login-continue-button → şifre; zeynep, hard-coded)
     ├── logout.yaml            # Profil → Çıkış Yap
-    ├── open-side-menu.yaml    # Ana Sayfa → hamburger (`home-menu-button`) → yan menü (`side-menu`); Alışveriş/Finans/Koleksiyon/Analiz/Destek/Bilgi satırları artık burada
+    ├── open-side-menu.yaml    # Profil → hamburger (`app-shell-menu`; yalnız Profil kökünde) → yan menü (`side-menu`); Alışveriş/Finans/Koleksiyon/Analiz/Destek/Bilgi satırları artık burada
     ├── open-first-order.yaml  # Yan menü → Siparişlerim → ilk kart
     ├── open-first-trade.yaml  # Yan menü → Takaslarım → liste
     └── open-search.yaml       # Üst bar arama alanına dokun → /search (Ara sekmesi yok)
@@ -264,7 +264,7 @@ pnpm test:e2e --testPathPattern=payment-bypass
 
 `.github/workflows/maestro-cloud.yml` hazır ama `MAESTRO_CLOUD_API_KEY` secret'ı eklenmediği sürece no-op olarak biter (notice mesajı bırakır).
 
-**Ayrıntılı kurulum talimatı:** [CLOUD_SETUP.md](CLOUD_SETUP.md).
+**Ayrıntılı kurulum talimatı:** [CLOUD_SETUP.md](../docs/maestro/CLOUD_SETUP.md).
 
 Şimdiye kadar: **API katmanı CI'da koşuyor; UI testleri yerelden manuel koşuluyor.** Bu pratik ayrım: para hareketleri ve veri kontratları otomatik korunuyor, UI smoke'ları sürüm öncesi spot kontrol için yerelde.
 

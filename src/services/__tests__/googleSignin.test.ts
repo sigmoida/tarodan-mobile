@@ -50,13 +50,13 @@ describe('B-2.7b · Google butonu görünürlüğü', () => {
     ).toBe(false);
   });
 
-  it('bayrak env.example.txt içinde gerekçesiyle belgeli, varsayılanı kapalı', () => {
+  it('bayrak .env.example içinde gerekçesiyle belgeli, varsayılanı kapalı', () => {
     /* eslint-disable @typescript-eslint/no-var-requires */
     const fs = require('fs');
     const path = require('path');
     /* eslint-enable @typescript-eslint/no-var-requires */
     const example: string = fs.readFileSync(
-      path.join(__dirname, '../../../env.example.txt'),
+      path.join(__dirname, '../../../.env.example'),
       'utf8',
     );
     expect(example).toMatch(/^EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED=false$/m);

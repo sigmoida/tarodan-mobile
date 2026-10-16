@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Icon, Text, theme, useHeaderTopInset } from '@/ui';
+import { Icon, Text, theme, useHeaderTopInset, useModalPresence } from '@/ui';
 import { AppImage } from '@/components/AppImage';
 import ZoomableImage from '@/components/product/ZoomableImage';
 
@@ -37,6 +37,7 @@ export function ImageViewerModal({
   initialIndex: number;
   onClose: () => void;
 }) {
+  useModalPresence(visible);
   return (
     <Modal
       visible={visible}

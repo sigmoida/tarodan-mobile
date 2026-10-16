@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
-import { mediaApi, type RNFile } from '@/lib/api';
+import { mediaApi } from '@/lib/api';
+import { withPreparedImage, type LocalImageFile } from '@/lib/media';
 import { captureException } from '@/services/sentry';
 
 /**
@@ -9,11 +10,18 @@ import { captureException } from '@/services/sentry';
  * gidip sunucudan `400 evidenceRequired` alıyordu. Hepsi ya da hiçbiri — bir
  * fotoğraf bile URL'siz gelirse mutasyon düşer; geri bildirim yok, ekran hatayı
  * kanıt alanının altında gösterir (talep gönderilmez).
+ *
+ * Her fotoğraf yüklemeden önce küçültülür (≤1600 px JPEG; hazırlama seri, yüklemeler paralel)
+ * ve hazırlanmış geçici dosya yükleme bitince silinir.
  */
 export function useUploadRefundEvidence(orderId: string) {
   return useMutation({
-    mutationFn: async (files: RNFile[]): Promise<string[]> => {
-      const results = await Promise.all(files.map((file) => mediaApi.uploadRefundEvidence(file)));
+    mutationFn: async (files: LocalImageFile[]): Promise<string[]> => {
+      const results = await Promise.all(
+        files.map((file) =>
+          withPreparedImage(file, (prepared) => mediaApi.uploadRefundEvidence(prepared)),
+        ),
+      );
       const urls = results.map((r) => r?.data?.url);
       const missing = urls.filter((u) => typeof u !== 'string' || u.length === 0).length;
       if (missing > 0) {

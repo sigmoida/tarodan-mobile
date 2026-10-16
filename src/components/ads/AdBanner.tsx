@@ -62,7 +62,7 @@ export function AdBanner({ position = 'header', slotKey, session, style }: AdBan
   if (isLoading) {
     if (position !== 'header') return null;
     return (
-      <View style={styles.container} testID="ad-banner-slot-reserved">
+      <View style={[styles.container, style]} testID="ad-banner-slot-reserved">
         <View style={[styles.reserved, { aspectRatio: adAspectRatio({ width: null, height: null }, position) }]} />
       </View>
     );

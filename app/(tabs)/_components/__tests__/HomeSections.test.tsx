@@ -3,7 +3,8 @@
  * boş = çizilmez (Popüler hariç: web gibi ilan daveti), dolu = tek ProductCard rayı.
  */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
+import { renderWithProviders as render } from '@/test-utils';
 import { router } from 'expo-router';
 import { FeaturedRail, OnSaleRail, PopularRail, TradeRail } from '../HomeRails';
 import { BrandsStrip } from '../HomeBrands';
@@ -77,9 +78,10 @@ describe('ürün rayları', () => {
     expect(router.push).toHaveBeenCalledWith('/listings?tradeOnly=true');
   });
 
-  it('İndirimdekiler "Fırsat" rozeti taşır', () => {
+  it('İndirimdekiler başlığında sabit "Fırsat" etiketi yok', () => {
     render(<OnSaleRail items={items} isLoading={false} onProductPress={noop} />);
-    expect(screen.getByText('Fırsat')).toBeTruthy();
+    expect(screen.getByText('İndirimdekiler')).toBeTruthy();
+    expect(screen.queryByText('Fırsat')).toBeNull();
   });
 });
 

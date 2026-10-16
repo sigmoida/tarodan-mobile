@@ -53,7 +53,7 @@ describe('J14 · üyelik başarı ekranı (membership/success)', () => {
     // Not: ekran katalogtaki `membership.business` ("İş") kullanır — checkout
     // (`checkout/_lib/tiers.ts`) ile parite. Bu ekran daha önce hardcoded
     // "Business" gösteriyordu; katalog/checkout ile aynı hizaya getirildi
-    // (i18n göçü, bkz. docs/i18n-uyelik-report.md).
+    // (i18n göçü, bkz. docs/archive/i18n/i18n-uyelik-report.md).
     mockParams = { tier: 'business', paymentId: 'pay1' };
     renderWithProviders(<MembershipSuccessScreen />);
     await waitFor(() =>

@@ -1046,7 +1046,7 @@ git commit -m "test(mobile): iOS dijital satış regresyon ağı"
 ### Task 10: Uçtan uca doğrulama ve belgeleme
 
 **Files:**
-- Modify: `docs/APP_REVIEW_CEVAP_1.2.md` (yeni bir bölüm)
+- Modify: `docs/app-review/APP_REVIEW_CEVAP_1.2.md` (yeni bir bölüm)
 
 - [ ] **Step 1: Tam doğrulama**
 
@@ -1073,7 +1073,7 @@ Android emülatöründe veya `Platform.OS` testleriyle: üyelik ekranında fiyat
 
 - [ ] **Step 4: Belgeye işle**
 
-`docs/APP_REVIEW_CEVAP_1.2.md` içine "iOS'ta dijital satış kapatıldı" bölümü: hangi yüzeylerin kapandığı, fiziksel ticaretin neden dokunulmadığı (`3.1.3(e)`), ve Resolution Center cevabına eklenecek İngilizce paragraf:
+`docs/app-review/APP_REVIEW_CEVAP_1.2.md` içine "iOS'ta dijital satış kapatıldı" bölümü: hangi yüzeylerin kapandığı, fiziksel ticaretin neden dokunulmadığı (`3.1.3(e)`), ve Resolution Center cevabına eklenecek İngilizce paragraf:
 
 ```
 The app no longer offers any digital purchase on iOS. Membership plans and
@@ -1089,7 +1089,7 @@ required by Guideline 3.1.3(e).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add docs/APP_REVIEW_CEVAP_1.2.md
+git add docs/app-review/APP_REVIEW_CEVAP_1.2.md
 git commit -m "docs: iOS dijital satış kapısını App Review cevabına işle"
 ```
 
@@ -1098,5 +1098,5 @@ git commit -m "docs: iOS dijital satış kapısını App Review cevabına işle"
 ## Sonraki adım (bu planın dışında)
 
 Yeni bir build (`expo.version` → 1.0.4) ve Apple'a dönüş. Kalan üç madde
-`docs/APP_REVIEW_CEVAP_1.2.md`'de: demo hesabını doldurmak (2.1), 1.2 cevabına
+`docs/app-review/APP_REVIEW_CEVAP_1.2.md`'de: demo hesabını doldurmak (2.1), 1.2 cevabına
 filtreleme anlatımını eklemek, ASC'de Privacy Policy ve EULA alanları.

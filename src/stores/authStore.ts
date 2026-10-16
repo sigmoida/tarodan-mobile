@@ -8,6 +8,7 @@ import {
   sweepExpiredPaymentCapabilities,
 } from "@/lib/payment/paymentCapability";
 import type { LogoutReason } from "./resetUserStores";
+import { usePendingAuthEmailStore } from "./pendingAuthEmailStore";
 import { logger, safeError } from "../services/logger";
 import { withTimeout } from "../utils/withTimeout";
 import { IS_MAESTRO_NO_AUTOLOGIN, getMaestroAutoLoginCredentials } from "@/config/maestro";
@@ -440,6 +441,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const limits = mergeLimits(mappedUser.membershipTier, get().serverLimits);
     logger.debug("Auth stored", { tier: mappedUser.membershipTier });
     set({ isAuthenticated: true, token, user: mappedUser, limits });
+    // Doğrulama/giriş akışının bellek içi e-postası işini bitirdi (her giriş yolu: parola, Google, Apple).
+    usePendingAuthEmailStore.getState().setEmail(null);
     // Ödeme yetki belirteci kimliği bu hesap; başka hesabın belirteçleri (zorunlu
     // çıkıştan kalmış) silinir.
     void bindPaymentCapabilitiesToAccount(mappedUser.id);

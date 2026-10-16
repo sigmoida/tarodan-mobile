@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { AuthFooterLink } from '@/components/auth/AuthFooterLink';
 import { Button, Text } from '@/ui';
+import { ResendVerification } from '@/components/auth/ResendVerification';
 import type { RegisterController } from '../_hooks/useRegister';
 
 /**
@@ -11,8 +12,6 @@ import type { RegisterController } from '../_hooks/useRegister';
  */
 export function RegisterVerifySent({ f }: { f: RegisterController }) {
   const { t } = useTranslation();
-  const { resend } = f;
-  const waiting = resend.cooldown > 0;
 
   return (
     <AuthShell
@@ -46,19 +45,12 @@ export function RegisterVerifySent({ f }: { f: RegisterController }) {
         title={t('auth.goToLogin')}
         onPress={f.goToLogin}
       />
-      <Button
-        testID="register-resend-button"
+      <ResendVerification
+        testID="register-resend"
+        email={f.registeredEmail}
+        askEmail={false}
         variant="outline"
-        size="lg"
-        fullWidth
-        title={
-          waiting
-            ? t('checkout.resendCodeWithTimer', { seconds: resend.cooldown })
-            : t('auth.resendVerificationEmail')
-        }
-        onPress={resend.resend}
-        isLoading={resend.isPending}
-        disabled={waiting || resend.isPending}
+        label={t('auth.resendVerificationEmail')}
       />
     </AuthShell>
   );

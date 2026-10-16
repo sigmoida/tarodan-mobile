@@ -7,6 +7,10 @@ describe('isHeroInView', () => {
     expect(isHeroInView({ scrollY: 0, viewportHeight: 0, top: 0, height: 0 })).toBe(true);
     expect(isHeroInView({ scrollY: 500, viewportHeight: 800, top: 0, height: 0 })).toBe(true);
   });
+  it('yükseklik yok/geçersiz (hero çizilmedi) → görünür', () => {
+    expect(isHeroInView({ scrollY: 900, viewportHeight: 800, top: 100, height: Number.NaN })).toBe(true);
+    expect(isHeroInView({ scrollY: 900, viewportHeight: 800, top: 100, height: undefined as unknown as number })).toBe(true);
+  });
   it('tepede: tamamen görünür', () => {
     expect(isHeroInView({ ...base, scrollY: 0 })).toBe(true);
   });

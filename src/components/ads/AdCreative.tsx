@@ -41,6 +41,12 @@ export interface AdCreativeProps {
   sentImpressions?: Set<string>;
   /** Yuva kimliği: gösterim tekilleştirmesi yuva+reklam başınadır. */
   slotId?: string;
+  /**
+   * Görselde tam 1 çizilebilir bölge varsa bölge yerine TÜM görsel tıklanır (o bölgenin
+   * bağlantısı ve kimliğiyle). Popup için: tek hedefli reklamda küçük bölgeyi aratmaz.
+   * Birden çok bölgede etkisizdir (bölgeler aynen çizilir).
+   */
+  singleHotspotFillsImage?: boolean;
 }
 
 /**
@@ -57,6 +63,7 @@ export function AdCreative({
   maxSize,
   sentImpressions,
   slotId,
+  singleHotspotFillsImage = false,
 }: AdCreativeProps) {
   const hasImage = hasAdImage(ad);
   // Görsel yüklenince kutu onun GERÇEK oranını alır (kayıtlı ölçü görselden
@@ -76,15 +83,23 @@ export function AdCreative({
     setTimeout(() => openAdLink(url), NAVIGATE_AFTER_CLOSE_MS);
   };
 
-  const hotspots = renderableHotspots(ad);
+  const renderable = renderableHotspots(ad);
+  // Tek bölge tüm görsele yayılır (`singleHotspotFillsImage`); bölgeler zaten güvenli ve satın
+  // almaya gitmeyen hedeflerle süzülmüş (`renderableHotspots`).
+  const wholeHotspot = singleHotspotFillsImage && renderable.length === 1 ? renderable[0]! : null;
+  const hotspots = wholeHotspot ? [] : renderable;
   // Görselli reklamda tıklama YALNIZ bölgelerden (web ile aynı kural); bölge
   // yoksa eski/metin reklamın `linkUrl`'i tüm reklamı tıklanabilir yapar.
-  const wholeLink =
-    hotspots.length === 0 && resolveAdLink(ad.linkUrl).kind !== 'blocked' ? ad.linkUrl : null;
+  const wholeLink = wholeHotspot
+    ? wholeHotspot.linkUrl
+    : renderable.length === 0 && resolveAdLink(ad.linkUrl).kind !== 'blocked'
+      ? ad.linkUrl
+      : null;
 
   const handleWholePress = () => {
-    // Ölçümü bekletmeden yönlendir; sayaç arka planda gider.
-    adsApi.recordClick(ad.id).catch(() => {});
+    // Ölçümü bekletmeden yönlendir; sayaç arka planda gider. Görselli reklamda sunucu
+    // tıklamayı yalnız bölge kimliğiyle sayar.
+    (wholeHotspot ? adsApi.recordClick(ad.id, wholeHotspot.id) : adsApi.recordClick(ad.id)).catch(() => {});
     open(wholeLink);
   };
 
@@ -104,7 +119,7 @@ export function AdCreative({
       onPress={handleWholePress}
       disabled={!wholeLink}
       accessibilityRole={wholeLink ? 'link' : hasImage ? 'image' : 'text'}
-      accessibilityLabel={ad.altText || ad.title}
+      accessibilityLabel={wholeHotspot?.label || ad.altText || ad.title}
       testID={`ad-banner-${ad.id}`}
       style={[isTopbar ? styles.topbarSlot : styles.slot, !isTopbar && hasImage && maxSize && styles.fitted]}
     >

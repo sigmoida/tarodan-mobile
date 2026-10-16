@@ -1,9 +1,8 @@
 import { useCallback } from 'react';
-import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Badge, EmptyState, Spinner, TopBarAction, usePageScrollHandler } from '@/ui';
+import { EmptyState, Spinner, TopBarAction, usePageScrollHandler } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { useNotifications } from './_hooks/useNotifications';
@@ -14,8 +13,8 @@ import type { Notification } from './_lib/types';
 /**
  * Bildirimler — yığın ekranı (sekme köklerinin üst barındaki Bildirimler düğmesinden, push
  * bildiriminden ve `/notifications` derin bağlantısından açılır): PageShell (geri oklu yüzen bar) +
- * liste; Skeleton, çekip yenileme, sonsuz kaydırma; sağ üstte okunmamış sayacı (danger-500) ve
- * "Tümünü oku".
+ * liste; Skeleton, çekip yenileme, sonsuz kaydırma; sağ üstte "tümünü okundu işaretle" cam ikonu
+ * (okunmamış sayısı rozetinde, danger-500).
  */
 export default function NotificationsScreen() {
   const { t } = useTranslation();
@@ -50,16 +49,17 @@ export default function NotificationsScreen() {
       mode="list"
       // Yükleniyor iskeleti listeyi taşımaz: bar altından başlasın (sabit şerit).
       scroll={f.loading ? undefined : page}
+      // Sağ eylem tek cam ikon (okunmamış sayısı rozetinde): metin hapı + ayrı rozet Android'de
+      // ortalanmış başlığı ezip "Bildiriml…" diye kesiyordu (yan yuvalar eşit genişlikte).
       right={
-        f.unreadCount > 0 ? (
-          <View style={styles.headerRight}>
-            <Badge variant="danger" appearance="solid" size="sm">
-              {f.unreadCount}
-            </Badge>
-            {f.handleMarkAllAsRead ? (
-              <TopBarAction label={t('notification.markAllReadShort')} onPress={f.handleMarkAllAsRead} />
-            ) : null}
-          </View>
+        f.unreadCount > 0 && f.handleMarkAllAsRead ? (
+          <TopBarAction
+            icon="envelope-open"
+            accessibilityLabel={t('notification.markAllRead')}
+            count={f.unreadCount}
+            onPress={f.handleMarkAllAsRead}
+            testID="notifications-mark-all-read"
+          />
         ) : undefined
       }
     >

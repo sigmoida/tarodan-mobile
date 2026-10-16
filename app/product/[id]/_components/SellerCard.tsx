@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
-import { Avatar, Button, SectionCard, Text, theme, Icon, ButtonRow } from '@/ui';
+import { Avatar, Badge, Button, SectionCard, Text, theme, Icon, ButtonRow } from '@/ui';
 import { resolveAvatarSource } from '@/utils/imageUrl';
 import type { ProductSeller } from '../_lib/types';
 
@@ -36,6 +36,16 @@ export function SellerCard({
             <Text variant="body" weight="semibold" numberOfLines={1} style={styles.name}>
               {seller.displayName}
             </Text>
+            {seller.isPremium ? (
+              <Badge
+                testID="product-seller-premium-badge"
+                variant="warning"
+                size="sm"
+                icon={<Icon name="star" variant="solid" size={iconSize.sm} color={colors.warning[800]!} />}
+              >
+                {t('seller.premiumBadge')}
+              </Badge>
+            ) : null}
           </View>
           <View style={styles.statsRow}>
             {rating > 0 ? (

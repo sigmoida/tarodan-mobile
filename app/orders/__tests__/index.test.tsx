@@ -155,11 +155,11 @@ describe('J62 · Siparişlerim listesi', () => {
 });
 
 /**
- * "İptal edilenler" sekmesi (web profile/orders `cancelled` sekmesi). Sunucu
+ * "İptal Edilenler" sekmesi (web profile/orders `cancelled` sekmesi). Sunucu
  * `/orders/groups` için varsayılan `tab=active`'te iptalleri DIŞLAR → iptaller
  * eskiden hiçbir sekmede görünmüyordu.
  */
-describe('Siparişlerim · İptal edilenler sekmesi', () => {
+describe('Siparişlerim · İptal Edilenler sekmesi', () => {
   beforeEach(() => {
     getGroupsMock.mockReset();
     mockAuth = { isAuthenticated: true };
@@ -190,11 +190,11 @@ describe('Siparişlerim · İptal edilenler sekmesi', () => {
       .getByTestId('orders-filters')
       .findAll((n: { props: { children?: unknown } }) => typeof n.props.children === 'string')
       .map((n: { props: { children?: unknown } }) => n.props.children as string);
-    const order = ['Tamamlandı', 'İptal edilenler', 'İadeler'].map((l) => labels.indexOf(l));
+    const order = ['Tamamlandı', 'İptal Edilenler', 'İadeler'].map((l) => labels.indexOf(l));
     expect(order.every((i) => i >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
 
-    fireEvent.press(screen.getByText('İptal edilenler'));
+    fireEvent.press(screen.getByText('İptal Edilenler'));
     await waitFor(() =>
       expect(screen.getByText('Sipariş #ORD-CANCEL0001')).toBeOnTheScreen(),
     );
@@ -206,7 +206,7 @@ describe('Siparişlerim · İptal edilenler sekmesi', () => {
     getGroupsMock.mockResolvedValue({ data: { data: [] } });
     renderWithProviders(<OrdersScreen />);
     await waitFor(() => expect(screen.getByText('Henüz siparişiniz yok')).toBeOnTheScreen());
-    fireEvent.press(screen.getByText('İptal edilenler'));
+    fireEvent.press(screen.getByText('İptal Edilenler'));
     await waitFor(() =>
       expect(screen.getByText('İptal edilmiş siparişiniz yok.')).toBeOnTheScreen(),
     );
