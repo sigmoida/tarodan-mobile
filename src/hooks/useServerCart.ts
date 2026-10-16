@@ -1,10 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { cartApi, type ServerCart, type ServerCartItem } from '@/lib/api';
 import { qk } from '@/lib/query';
+import { createForegroundTracker } from '@/lib/query/focusManager';
+import { subscribeOnline } from '@/lib/network/networkStatus';
+import { mergeLocalCart } from '@/lib/cart/mergeLocalCart';
 import { useAuthStore } from '@/stores/authStore';
 import { useCartStore } from '@/stores/cartStore';
-import { captureException } from '@/services/sentry';
 
 /**
  * Üyenin sunucu sepeti.
@@ -41,59 +44,75 @@ export function useServerCart() {
   };
 }
 
+/** Geçici hatadan sonra zamanlı yeniden deneme: 30 sn'den başlar, ≤ 5 dk; en çok bu kadar. */
+const MERGE_RETRY_BASE_MS = 30_000;
+const MERGE_RETRY_MAX_MS = 5 * 60_000;
+const MERGE_TIMED_RETRIES = 6;
+
 /**
- * Misafirken sepete atılan ürünleri giriş sonrası sunucu sepetine taşır.
+ * Misafirken sepete atılan ürünleri sunucu sepetine taşır — GİRİŞ GEÇİŞİ BAŞINA bir kez.
  *
- * Yalnız sunucuda BULUNMAYAN satırlar gönderilir; mevcut satırın adedi
- * değiştirilmez, böylece başka cihazdaki sepet ezilmez. Oturum başına bir kez
- * çalışır (ref guard) — aksi halde her yeniden render kopya satır üretirdi.
+ * Tetikleyici her soğuk açılış DEĞİL, sepetin kalıcı "birleştirme bekliyor" işaretidir
+ * (`cartStore.mergePendingFor`): giriş (ve ertelenmiş oturumun doğrulanması) koyar, aynalanan
+ * eklemenin geçici hatası da koyar. Kesin sonuçta (`done`) kalkar. Geçici hatada (ağ / 5xx /
+ * 401 / 403 / 429) yerel satırlar KORUNUR ve işaret kalır: bağlantı gelince, ön plana dönüşte,
+ * geri çekilen süre dolunca ya da sonraki açılışta yeniden denenir (`mergeLocalCart`).
  */
 export function useCartMergeOnLogin() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const userId = useAuthStore((s) => s.user?.id);
+  const pendingFor = useCartStore((s) => s.mergePendingFor);
   const queryClient = useQueryClient();
-  const mergedForUser = useRef<string | null>(null);
+  const session = useRef({ isAuthenticated, userId });
+  session.current = { isAuthenticated, userId };
+  const running = useRef(false);
+  const failures = useRef(0);
+  const [retryTick, setRetryTick] = useState(0);
+  const [waiting, setWaiting] = useState(false);
+
+  const due = isAuthenticated && !!userId && pendingFor === userId;
 
   useEffect(() => {
-    if (!isAuthenticated || !userId) {
-      mergedForUser.current = null;
-      return;
-    }
-    if (mergedForUser.current === userId) return;
-    mergedForUser.current = userId;
-
-    const localItems = useCartStore.getState().items;
-    if (localItems.length === 0) return;
-
-    (async () => {
-      try {
-        const res = await cartApi.get();
-        const server = ((res.data as any)?.data ?? res.data ?? null) as ServerCart | null;
-        const existing = new Set(
-          (server?.calculation?.items ?? []).map((it) => it.productId),
-        );
-        const missing = localItems.filter((it) => !existing.has(it.productId));
-        if (missing.length === 0) return;
-
-        for (const item of missing) {
-          // 4xx = sunucu bu satırı REDDETTİ (satışa uygun değil, askıda satıcı…).
-          // Eskiden hata yutuluyordu ve satır yerelde HAYALET kalıyordu: sunucuda
-          // karşılığı yok, checkout'ta patlıyor. Reddedileni düşür.
-          // 5xx/ağ geçicidir — satır korunur, bir sonraki oturumda yeniden denenir.
-          // Uyarı çıkarılmaz: bu kullanıcının tetiklemediği bir arka plan
-          // uzlaştırması, açılışta modal basmak yersiz olurdu.
-          await cartApi.addItem(item.productId, item.quantity).catch((error) => {
-            const status = (error as { response?: { status?: number } })?.response?.status;
-            if (typeof status === 'number' && status >= 400 && status < 500) {
-              useCartStore.getState().removeByProductId(item.productId);
-            }
-          });
-        }
+    if (!due || !userId || running.current || waiting) return;
+    running.current = true;
+    const isCurrent = () =>
+      session.current.isAuthenticated && session.current.userId === userId;
+    void mergeLocalCart(isCurrent).then((outcome) => {
+      running.current = false;
+      if (outcome === 'done') {
+        failures.current = 0;
+        useCartStore.getState().clearMergePending(userId);
         queryClient.invalidateQueries({ queryKey: qk.cart.mine });
-      } catch (error) {
-        // Birleştirme başarısız olsa da yerel sepet duruyor; kullanıcı kaybetmiyor.
-        captureException(error, { level: 'warning', tags: { flow: 'cart.mergeOnLogin' } });
+      } else if (outcome === 'retry') {
+        failures.current += 1;
+        setWaiting(true);
       }
-    })();
-  }, [isAuthenticated, userId, queryClient]);
+    });
+  }, [due, userId, waiting, retryTick, queryClient]);
+
+  // Geçici hatadan sonra: bağlantı geri gelince / gerçek ön plana dönüşte / süre dolunca.
+  useEffect(() => {
+    if (!waiting) return;
+    const fire = () => {
+      setWaiting(false);
+      setRetryTick((t) => t + 1);
+    };
+    const attempt = failures.current;
+    const timer =
+      attempt <= MERGE_TIMED_RETRIES
+        ? setTimeout(fire, Math.min(MERGE_RETRY_BASE_MS * 2 ** (attempt - 1), MERGE_RETRY_MAX_MS))
+        : undefined;
+    const stopOnline = subscribeOnline((online) => {
+      if (online) fire();
+    });
+    const track = createForegroundTracker();
+    const appState = AppState.addEventListener('change', (next) => {
+      if (track(next) === 'foreground') fire();
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      stopOnline();
+      appState.remove();
+    };
+  }, [waiting]);
 }

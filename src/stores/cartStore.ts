@@ -45,6 +45,17 @@ interface CartState {
    */
   deselectedIds: string[];
 
+  /**
+   * Yerel satırların sunucu sepetiyle birleştirilmesi bu kullanıcı için BEKLİYOR (kalıcı).
+   * Misafir→üye geçişinde (giriş) ve üyenin aynalanan eklemesi geçici hatayla düştüğünde
+   * konur; `useCartMergeOnLogin` birleştirmeyi kesin sonuca (başarı / satırın kesin reddi)
+   * ulaşınca kaldırır. Soğuk açılış birleştirme tetiklemez — yalnız işaret varsa çalışır.
+   */
+  mergePendingFor: string | null;
+  markMergePending: (userId: string) => void;
+  /** Birleştirme bitti — yalnız işaret hâlâ bu kullanıcıya aitse kaldırılır. */
+  clearMergePending: (userId: string) => void;
+
   // Actions
   /** `quantity` (varsayılan 1): ürün detayındaki adet seçici; stok/sipariş sınırını aşamaz. */
   addItem: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>, quantity?: number) => void;
@@ -93,6 +104,15 @@ export const useCartStore = create<CartState>()(
       isLoading: false,
       buyNowItem: null,
       deselectedIds: [],
+      mergePendingFor: null,
+
+      markMergePending: (userId: string) => {
+        if (get().mergePendingFor !== userId) set({ mergePendingFor: userId });
+      },
+
+      clearMergePending: (userId: string) => {
+        if (get().mergePendingFor === userId) set({ mergePendingFor: null });
+      },
 
       setBuyNow: (item, quantity = 1) => {
         set({
@@ -194,7 +214,8 @@ export const useCartStore = create<CartState>()(
       },
 
       clearCart: () => {
-        set({ items: [], deselectedIds: [], lastUpdated: Date.now() });
+        // Boş sepette birleştirilecek bir şey kalmaz (çıkış da buradan geçer).
+        set({ items: [], deselectedIds: [], mergePendingFor: null, lastUpdated: Date.now() });
       },
 
       syncStock: (productId: string, stock: number) => {
@@ -252,7 +273,12 @@ export const useCartStore = create<CartState>()(
       name: 'tarodan-cart',
       storage: createJSONStorage(() => AsyncStorage),
       // buyNowItem geçicidir; yalnızca sepet kalıcı yazılır.
-      partialize: (state) => ({ items: state.items, lastUpdated: state.lastUpdated }),
+      partialize: (state) => ({
+        items: state.items,
+        lastUpdated: state.lastUpdated,
+        // Birleştirme bekliyor işareti kalıcı: geçici hatada sonraki açılışta yeniden denenir.
+        mergePendingFor: state.mergePendingFor,
+      }),
     }
   )
 );

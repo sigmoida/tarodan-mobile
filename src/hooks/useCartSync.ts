@@ -7,6 +7,7 @@ import { captureException } from '@/services/sentry';
 import { toast } from '@/ui';
 import i18n from '@/i18n/config';
 import { errorText } from '@/lib/api/errorText';
+import { isDefinitiveItemRejection } from '@/lib/cart/mergeLocalCart';
 
 type NewCartItem = Omit<CartItem, 'id' | 'quantity' | 'addedAt'>;
 
@@ -28,25 +29,30 @@ type NewCartItem = Omit<CartItem, 'id' | 'quantity' | 'addedAt'>;
  */
 export function useCartSync() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const userId = useAuthStore((s) => s.user?.id);
   const queryClient = useQueryClient();
 
   /**
-   * @param onReject 4xx'te çağrılır — iyimser yazmayı geri almak için.
+   * @param onReject satırın KESİN reddinde (kalıcı 4xx) çağrılır — iyimser yazmayı geri almak
+   *   için. 401 / 403 / 429 gibi geçici hatalar ret DEĞİLDİR (`isDefinitiveItemRejection`).
    *   Verilmezse eski davranış (yalnız raporla) korunur.
+   * @param resyncOnTransient geçici hatada satır sunucuya ulaşmadı: yerel satır KORUNUR ve
+   *   sepet birleştirmesi bekliyor işaretlenir (`useCartMergeOnLogin` sonra gönderir).
    */
   const mirror = (
     run: () => Promise<unknown>,
     flow: string,
     onReject?: (message: string) => void,
+    resyncOnTransient = false,
   ) => {
     if (!isAuthenticated) return;
     run()
       .then(() => queryClient.invalidateQueries({ queryKey: qk.cart.mine }))
       .catch((error) => {
-        const status = (error as { response?: { status?: number } })?.response?.status;
-        const rejected = typeof status === 'number' && status >= 400 && status < 500;
-        if (rejected && onReject) {
-          onReject(errorText(error, i18n.t('cart.addToCartFailed')));
+        if (isDefinitiveItemRejection(error)) {
+          onReject?.(errorText(error, i18n.t('cart.addToCartFailed')));
+        } else if (resyncOnTransient && userId) {
+          useCartStore.getState().markMergePending(userId);
         }
         captureException(error, { level: 'warning', tags: { flow } });
       });
@@ -71,7 +77,7 @@ export function useCartSync() {
         if (before) useCartStore.getState().updateQuantity(before.id, before.quantity);
         else useCartStore.getState().removeByProductId(item.productId);
         toast.error(message);
-      });
+      }, !before);
     },
 
     removeByProductId: (productId: string) => {
