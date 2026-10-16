@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, FlatList } from 'react-native';
-import { Avatar, Text, theme } from '@/ui';
+import { Avatar, SkeletonChatBubble, Text, theme } from '@/ui';
 
 import { parseMessageContent } from '@/utils/contentFilter';
 import { AppImage } from '@/components/AppImage';
-import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { styles } from '../_lib/styles';
 import { formatTime } from '../_lib/helpers';
 import type { MessageThreadController } from '../_hooks/useMessageThread';
@@ -12,6 +11,16 @@ import { MessageTicks } from './MessageTicks';
 import { TypingIndicator } from './TypingIndicator';
 
 const { colors } = theme;
+
+/** Yükleniyor: tipik bir sohbet akışı (karşı taraf / kendi, farklı genişlik ve satır). */
+const SKELETON_BUBBLES = [
+  { side: 'left', width: '62%', lines: 1, showAvatar: true },
+  { side: 'left', width: '48%', lines: 2, showAvatar: false },
+  { side: 'right', width: '55%', lines: 1, showAvatar: false },
+  { side: 'left', width: '70%', lines: 2, showAvatar: true },
+  { side: 'right', width: '40%', lines: 1, showAvatar: false },
+  { side: 'right', width: '66%', lines: 2, showAvatar: false },
+] as const;
 
 /**
  * Grouped, date-divided message list with own/other bubbles (web MessageBubble: kendi balonu
@@ -119,8 +128,11 @@ export function MessageList({ f }: { f: MessageThreadController }) {
 
   if (f.isLoadingMessages && f.messages.length === 0) {
     return (
-      <View style={styles.loadingContainer}>
-        <RowListSkeleton rows={6} />
+      // Sohbetin kendi yerleşimi: karşılıklı balonlar (gerçek balonla aynı ölçüler).
+      <View style={[styles.loadingContainer, styles.messagesContent]} testID="message-list-skeleton">
+        {SKELETON_BUBBLES.map((b, i) => (
+          <SkeletonChatBubble key={i} side={b.side} width={b.width} lines={b.lines} showAvatar={b.showAvatar} />
+        ))}
       </View>
     );
   }

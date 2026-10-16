@@ -4,8 +4,19 @@ import { Badge, Icon, Text, theme, type IconName } from '@/ui';
 
 const { colors, spacing, iconSize } = theme;
 
-/** Satır yüksekliği (Storytel "Profilim" listesi ≈ 56pt). */
-const ROW_HEIGHT = spacing[12] + spacing[2];
+/**
+ * Satır geometrisi — TEK kaynak: satırın kendisi ve `SkeletonMenuRow` buradan okur.
+ * `flat` (kartsız liste, Storytel "Profilim" ≈ 56pt) · `card` (`SectionCard` içinde, 48pt; kartın
+ * 12'lik iç boşluğuna negatif marjla taşar, aynı dolguyla içerik hizalı).
+ */
+export const PROFILE_ROW_METRICS = {
+  gap: spacing[4],
+  iconSize: iconSize.lg,
+  chevronSize: iconSize.md,
+  flat: { minHeight: spacing[12] + spacing[2], paddingHorizontal: spacing[4], marginHorizontal: 0 },
+  card: { minHeight: theme.controlHeight.lg, paddingHorizontal: spacing[3], marginHorizontal: -spacing[3] },
+} as const;
+const ROW_HEIGHT = PROFILE_ROW_METRICS.flat.minHeight;
 
 interface ProfileRowProps {
   label: string;
@@ -96,15 +107,11 @@ const styles = StyleSheet.create({
     minHeight: ROW_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[4],
-    paddingHorizontal: spacing[4],
+    gap: PROFILE_ROW_METRICS.gap,
+    paddingHorizontal: PROFILE_ROW_METRICS.flat.paddingHorizontal,
   },
   // SectionCard `padding: spacing[3]`: negatif marjla kart kenarına taşar, aynı dolguyla içerik hizalı.
-  cardRow: {
-    minHeight: theme.controlHeight.lg,
-    marginHorizontal: -spacing[3],
-    paddingHorizontal: spacing[3],
-  },
+  cardRow: PROFILE_ROW_METRICS.card,
   pressed: { backgroundColor: colors.surface.alt },
   label: { flex: 1 },
 });

@@ -1,6 +1,7 @@
-export { ProductCard, default as ProductCardDefault } from './ProductCard';
+export { ProductCard, default as ProductCardDefault, PRODUCT_CARD_METRICS } from './ProductCard';
 export type { ProductCardProduct, ProductCardLayout, ProductCardProps } from './ProductCard';
 export { ProductGrid, default as ProductGridDefault } from './ProductGrid';
+export { SkeletonProductCard, type SkeletonProductCardProps } from './SkeletonProductCard';
 export { ProductGridSkeleton, ProductListEmpty, PRODUCT_GRID_GAP, useProductCellWidth } from './ProductListStates';
 export { ProductListControls } from './ProductListControls';
 export { ProductListToolbar, type ProductListToolbarProps } from './ProductListToolbar';

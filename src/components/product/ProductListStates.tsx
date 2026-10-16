@@ -1,8 +1,9 @@
 import React from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, PAGE_GUTTER, SkeletonCard, theme } from '@/ui';
+import { Button, EmptyState, PAGE_GUTTER, theme } from '@/ui';
 import type { ProductCardLayout } from './ProductCard';
+import { SkeletonProductCard } from './SkeletonProductCard';
 
 const { spacing } = theme;
 
@@ -16,23 +17,30 @@ export function useProductCellWidth(): number {
 }
 
 /**
- * Yükleniyor — web `ListingsGrid` iskeleti: kare görsel + satırlar. Izgara 2 sütun, liste tek sütun.
- * Liste/kart ekranlarında tam ekran spinner yerine bu kullanılır.
+ * Yükleniyor — gerçek ızgarayla AYNI yerleşim: hücre genişliği `useProductCellWidth`, aralık
+ * `PRODUCT_GRID_GAP`, her hücre `SkeletonProductCard` (kartın kendi geometrisi). Izgara 2 sütun,
+ * liste tek sütun. Liste/kart ekranlarında tam ekran spinner yerine bu kullanılır.
  */
 export function ProductGridSkeleton({
   count = 6,
   layout = 'grid',
+  showMeta = true,
 }: {
   count?: number;
   layout?: ProductCardLayout;
+  showMeta?: boolean;
 }) {
+  const cellWidth = useProductCellWidth();
   const items = Array.from({ length: layout === 'list' ? Math.min(count, 4) : count });
   return (
     <View style={layout === 'list' ? styles.list : styles.grid} testID="product-grid-skeleton">
       {items.map((_, i) => (
-        <View key={i} style={layout === 'list' ? undefined : styles.cell}>
-          <SkeletonCard />
-        </View>
+        <SkeletonProductCard
+          key={i}
+          layout={layout}
+          showMeta={showMeta}
+          style={layout === 'list' ? undefined : { width: cellWidth, flex: 0 }}
+        />
       ))}
     </View>
   );
@@ -65,7 +73,6 @@ export function ProductListEmpty({
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: PRODUCT_GRID_GAP },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: PRODUCT_GRID_GAP },
   list: { gap: PRODUCT_GRID_GAP },
-  cell: { width: '48%' },
 });
