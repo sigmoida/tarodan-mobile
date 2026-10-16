@@ -37,8 +37,10 @@ jest.mock('expo-image-picker', () => ({
 
 const mockGet = jest.fn();
 const mockPost = jest.fn();
+const mockUpload = jest.fn();
 jest.mock('@/lib/api', () => ({
   api: { get: (...a: any[]) => mockGet(...a), post: (...a: any[]) => mockPost(...a), patch: jest.fn() },
+  mediaApi: { uploadProductImage: (...a: unknown[]) => mockUpload(...a) },
   productsApi: {
     create: jest.fn(async () => ({ data: {} })),
     update: jest.fn(),
@@ -172,8 +174,9 @@ describe('kaydet kapısı — görsel yükleme sürerken', () => {
   beforeEach(() => {
     mockGet.mockReset();
     mockPost.mockReset();
+    mockUpload.mockReset();
     wireApi();
-    mockPost.mockImplementation(
+    mockUpload.mockImplementation(
       () =>
         new Promise((resolve) => {
           resolveUpload = resolve;
@@ -195,8 +198,11 @@ describe('kaydet kapısı — görsel yükleme sürerken', () => {
 
     fireEvent.press(screen.getByText('Görsel yüklemek için dokunun'));
 
-    await waitFor(() => expect(mockPost).toHaveBeenCalled());
+    await waitFor(() => expect(mockUpload).toHaveBeenCalled());
     await waitFor(() => expect(screen.getByTestId('listing-submit-button')).toBeDisabled());
+    // Yanıt beklenmeden görsel ızgarası (yerel önizleme) çizilir; sayaç henüz yüklenmişi saymaz.
+    expect(screen.getByTestId('listing-image-grid')).toBeTruthy();
+    expect(screen.getByText('0 / 5 yüklendi')).toBeTruthy();
 
     // Kilitliyken basmak submit'i tetiklemez — yarım images[] gönderilmez.
     fireEvent.press(screen.getByTestId('listing-submit-button'));

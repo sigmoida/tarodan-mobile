@@ -527,7 +527,15 @@
       "makeCover": "Make cover",
       "moveLeft": "Move left",
       "moveRight": "Move right",
-      "orderHintTouch": "The first image is the cover — press and hold to drag, or tap an image to reorder."
+      "orderHintTouch": "The first image is the cover — press and hold to drag, or tap an image to reorder.",
+      "queued": "Queued",
+      "processing": "Processing",
+      "uploadingPercent": "Uploading {progress}%",
+      "uploadProgressLabel": "Image {index} uploading",
+      "failed": "Upload failed",
+      "noServerResult": "The server returned no result for this file",
+      "retry": "Try again",
+      "blockerFailed": "Some images failed to upload. Retry them or remove them."
     },
     "views": "views",
     "likes": "likes",

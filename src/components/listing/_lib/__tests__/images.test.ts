@@ -1,5 +1,9 @@
 import {
+  applyUploadEvent,
   hasPendingImages,
+  hasPendingUploads,
+  imageFromFile,
+  imageSubmitBlocker,
   imagesFromMapped,
   makeCoverById,
   makeCoverImage,
@@ -87,6 +91,81 @@ describe('ilan görsel modeli', () => {
     expect(rotatedPreviewUri('https://cdn/new.webp', 'https://cdn/old.webp')).toBe('https://cdn/new.webp');
     expect(rotatedPreviewUri('https://cdn/old.webp', 'https://cdn/old.webp')).toMatch(/^https:\/\/cdn\/old\.webp\?v=\d+$/);
     expect(rotatedPreviewUri(undefined, 'https://cdn/x.webp?a=1')).toMatch(/\?a=1&v=\d+$/);
+  });
+});
+
+describe('yükleme durumları (yerel önizleme → sunucu anahtarı)', () => {
+  const local = (n: number) =>
+    imageFromFile({ uri: `file:///tmp/${n}.jpg`, name: `${n}.jpg`, type: 'image/jpeg' });
+
+  it('imageFromFile: yerel önizleme, anahtar YOK, kuyrukta', () => {
+    const item = local(1);
+    expect(item).toMatchObject({ uri: 'file:///tmp/1.jpg', status: 'queued', progress: 0 });
+    expect(item.cardKey).toBeUndefined();
+    expect(item.detailKey).toBeUndefined();
+  });
+
+  it('payload YALNIZ sunucu anahtarlı kalemlerden — bekleyen/hatalı kalemin yerel URI\'si gitmez', () => {
+    const list: ListingImage[] = [
+      img('a'),
+      local(1),
+      { ...local(2), status: 'uploading', progress: 40 },
+      { ...local(3), status: 'processing', progress: 100 },
+      { ...local(4), status: 'failed', error: 'x' },
+      // Anahtar yazılmış ama durum `ready` değil: yine gitmez.
+      { ...local(5), cardKey: 'k5', detailKey: 'd5', status: 'uploading' },
+      { ...img('b'), status: 'rotating' },
+    ];
+    expect(toImageKeys(list)).toEqual([
+      { cardKey: 'card-a', detailKey: 'detail-a' },
+      { cardKey: 'card-b', detailKey: 'detail-b' },
+    ]);
+    expect(JSON.stringify(toImageKeys(list))).not.toContain('file://');
+  });
+
+  it('imageSubmitBlocker: bekleyen/çevrilen → pending; yalnız hatalı → failed; hepsi hazır → null', () => {
+    expect(imageSubmitBlocker([img('a'), local(1)])).toBe('pending');
+    expect(imageSubmitBlocker([img('a'), { ...img('b'), status: 'rotating' }])).toBe('pending');
+    expect(imageSubmitBlocker([img('a'), { ...local(1), status: 'failed' }, local(2)])).toBe('pending');
+    expect(imageSubmitBlocker([img('a'), { ...local(1), status: 'failed' }])).toBe('failed');
+    expect(imageSubmitBlocker([img('a')])).toBeNull();
+    expect(imageSubmitBlocker([])).toBeNull();
+  });
+
+  it('hasPendingUploads çevirmeyi saymaz; hasPendingImages sayar', () => {
+    const rotating = [{ ...img('a'), status: 'rotating' as const }];
+    expect(hasPendingUploads(rotating)).toBe(false);
+    expect(hasPendingImages(rotating)).toBe(true);
+    expect(hasPendingUploads([local(1)])).toBe(true);
+    expect(hasPendingImages([{ ...local(1), status: 'failed' }])).toBe(false);
+  });
+
+  it('applyUploadEvent: başarıda anahtar + sunucu URL\'si, yerel dosya bırakılır; sıra korunur', () => {
+    const a = local(1);
+    const b = local(2);
+    let list = [a, b];
+    list = applyUploadEvent(list, { clientId: b.id, status: 'uploading', progress: 35 });
+    expect(list[1]).toMatchObject({ status: 'uploading', progress: 35 });
+    list = applyUploadEvent(list, {
+      clientId: b.id,
+      status: 'ready',
+      progress: 100,
+      result: { cardKey: 'kb', detailKey: 'db', url: 'https://cdn/kb.webp' },
+    });
+    expect(list.map((i) => i.id)).toEqual([a.id, b.id]);
+    expect(list[1]).toMatchObject({ cardKey: 'kb', detailKey: 'db', uri: 'https://cdn/kb.webp', status: 'ready' });
+    expect(list[1]!.file).toBeUndefined();
+    expect(toImageKeys(list)).toEqual([{ cardKey: 'kb', detailKey: 'db' }]);
+  });
+
+  it('applyUploadEvent: hata metni yalnız o kaleme; kaldırılmış kalemde liste aynen döner', () => {
+    const a = local(1);
+    const b = local(2);
+    const list = applyUploadEvent([a, b], { clientId: a.id, status: 'failed', error: new Error('x') }, 'Yüklenemedi');
+    expect(list[0]).toMatchObject({ status: 'failed', error: 'Yüklenemedi', progress: 0 });
+    expect(list[0]!.file).toBe(a.file); // yeniden deneme için korunur
+    expect(list[1]).toBe(b);
+    expect(applyUploadEvent(list, { clientId: 'gone', status: 'ready', result: { cardKey: 'k', detailKey: 'd' } })).toBe(list);
   });
 });
 

@@ -13,6 +13,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 import { router } from 'expo-router';
 import { makeTestQueryClient } from '../../../test-utils';
+import { uploadResponder } from '@/test-utils/listingUpload';
 
 // B4: kimlik kapısı bu testin konusu değil — geçti say (kapı testi ayrı dosyada).
 jest.mock('@/hooks/useLegalIdentity', () =>
@@ -24,20 +25,17 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({}),
 }));
 
-jest.mock('expo-image-picker', () => ({
-  requestMediaLibraryPermissionsAsync: jest.fn(async () => ({ granted: true })),
-  launchImageLibraryAsync: jest.fn(async () => ({
-    canceled: false,
-    assets: [{ uri: 'file:///tmp/photo.jpg', fileName: 'photo.jpg', mimeType: 'image/jpeg' }],
-  })),
-  MediaTypeOptions: { Images: 'Images' },
-}));
+jest.mock('expo-image-picker', () =>
+  jest.requireActual<typeof import('@/test-utils/listingUpload')>('@/test-utils/listingUpload').imagePickerMock(3),
+);
 
 const mockGet = jest.fn();
 const mockPost = jest.fn();
+const mockUpload = jest.fn();
 const mockGetAddresses = jest.fn();
 jest.mock('@/lib/api', () => ({
   api: { get: (...a: any[]) => mockGet(...a), post: (...a: any[]) => mockPost(...a), patch: jest.fn() },
+  mediaApi: { uploadProductImage: (...a: unknown[]) => mockUpload(...a) },
   productsApi: {
     create: jest.fn(async () => ({ data: {} })),
     update: jest.fn(),
@@ -161,14 +159,8 @@ describe('satıcı kargo çıkış adresi kapısı', () => {
     mockPost.mockReset();
     mockGetAddresses.mockReset();
     wireApi();
-    mockPost.mockResolvedValue({
-      data: [1, 2, 3].map((n) => ({
-        cardKey: `card-${n}`,
-        detailKey: `detail-${n}`,
-        cardUrl: `https://example.com/card-${n}.jpg`,
-        detailUrl: `https://example.com/detail-${n}.jpg`,
-      })),
-    });
+    // Dosya başına bir yükleme: N. istek → card-N (en az 3 fotoğraf).
+    mockUpload.mockImplementation(uploadResponder());
     (productsApi.create as jest.Mock).mockClear();
     (router.push as jest.Mock).mockClear();
     (appAlert as jest.Mock).mockReset();

@@ -527,7 +527,15 @@
       "makeCover": "Kapak yap",
       "moveLeft": "Sola taşı",
       "moveRight": "Sağa taşı",
-      "orderHintTouch": "İlk görsel kapak olur — basılı tutup sürükleyerek ya da görsele dokunarak sırayı değiştirebilirsiniz."
+      "orderHintTouch": "İlk görsel kapak olur — basılı tutup sürükleyerek ya da görsele dokunarak sırayı değiştirebilirsiniz.",
+      "queued": "Sırada",
+      "processing": "İşleniyor",
+      "uploadingPercent": "Yükleniyor %{progress}",
+      "uploadProgressLabel": "{index}. görsel yükleniyor",
+      "failed": "Yüklenemedi",
+      "noServerResult": "Sunucu bu dosya için sonuç döndürmedi",
+      "retry": "Tekrar dene",
+      "blockerFailed": "Yüklenemeyen görsel var. Tekrar deneyin ya da o görseli kaldırın."
     },
     "views": "görüntülenme",
     "likes": "beğeni",
