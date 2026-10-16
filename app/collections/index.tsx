@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { View, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
 import {
@@ -11,6 +12,7 @@ import {
 } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
 import { useCollectionsBrowse } from './_hooks/useCollectionsBrowse';
 import { styles } from './_lib/browseStyles';
@@ -21,6 +23,8 @@ import { CollectionsSheets } from './_components/CollectionsSheets';
 
 const { colors } = theme;
 
+const collectionKey = (item: { id: string | number }) => String(item.id);
+
 /**
  * Koleksiyonlar (web `/collections`): PageShell + "Herkese açık / Benim" sekmeleri (Benim yalnız
  * girişli), sunucu araması, kategori filtresi ve sıralama (SelectSheet) ile 2 sütun koleksiyon
@@ -30,6 +34,14 @@ export default function CollectionsScreen() {
   const { t } = useTranslation();
   const f = useCollectionsBrowse();
   const page = usePageScrollHandler();
+  const renderCollection = useCallback(
+    ({ item }: { item: any }) => (
+      <View style={styles.cell}>
+        <CollectionCard item={item} />
+      </View>
+    ),
+    [],
+  );
   const mineEmpty = f.activeTab === 'mine' && !f.hasSearch;
 
   return (
@@ -44,12 +56,9 @@ export default function CollectionsScreen() {
         {...page.listProps}
         testID="collections-list"
         data={f.isLoading ? [] : f.collections}
-        renderItem={({ item }) => (
-          <View style={styles.cell}>
-            <CollectionCard item={item} />
-          </View>
-        )}
-        keyExtractor={(item) => String(item.id)}
+        renderItem={renderCollection}
+        keyExtractor={collectionKey}
+        {...listWindowing}
         numColumns={2}
         columnWrapperStyle={styles.row}
         contentContainerStyle={page.contentStyle([pageListContentStyle, styles.footer])}

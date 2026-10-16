@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMessagesStore, type MessageThread } from '@/stores/messagesStore';
@@ -27,14 +27,14 @@ export function useMessagesTab() {
     }, [isAuthenticated, refetch, daily.refetch]),
   );
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
-  };
+  }, [refetch]);
 
   // Güvenli participant helper — store'dan gelen null/undefined durumlarını yakala.
-  const safeGetOther = (thread: MessageThread) => {
+  const safeGetOther = useCallback((thread: MessageThread) => {
     try {
       const result = getOtherParticipant(thread);
       if (!result) {
@@ -48,21 +48,25 @@ export function useMessagesTab() {
     } catch {
       return { id: '', displayName: t('common.user'), avatarUrl: null };
     }
-  };
+  }, [getOtherParticipant, t]);
 
-  return {
-    isAuthenticated,
-    user,
-    threads,
-    isLoading,
-    hasLoadedThreads,
-    dailyMessageCount: daily.used,
-    refreshing,
-    onRefresh,
-    safeGetOther,
-    messageLimit: daily.limit,
-    dailyNearLimit: daily.nearLimit,
-  };
+  // Kararlı denetleyici: FlatList satırları (memo) yalnız gerçek değişimde yeniden çizilir.
+  return useMemo(
+    () => ({
+      isAuthenticated,
+      user,
+      threads,
+      isLoading,
+      hasLoadedThreads,
+      dailyMessageCount: daily.used,
+      refreshing,
+      onRefresh,
+      safeGetOther,
+      messageLimit: daily.limit,
+      dailyNearLimit: daily.nearLimit,
+    }),
+    [isAuthenticated, user, threads, isLoading, hasLoadedThreads, daily.used, daily.limit, daily.nearLimit, refreshing, onRefresh, safeGetOther],
+  );
 }
 
 export type MessagesTabController = ReturnType<typeof useMessagesTab>;

@@ -1,14 +1,19 @@
+import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { EmptyState, TopBarLabel, pageListContentStyle, usePageScrollHandler } from '@/ui';
 
+import { listWindowing } from '@/lib/list/windowing';
+import type { BlockedUser } from '@/lib/api';
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { PageShell } from '@/components/common/PageShell';
 import { useBlockUser } from '@/hooks/useBlockUser';
 import { useBlockedUsers } from './_hooks/useBlockedUsers';
 import { BlockedUserRow } from './_components/BlockedUserRow';
+
+const blockedKey = (item: BlockedUser) => item.id;
 
 /**
  * Profil → Engellenen Kullanıcılar (Apple App Review 1.2: engellenenler listesi
@@ -20,6 +25,12 @@ export default function BlockedUsersScreen() {
   const { requestUnblock, pending } = useBlockUser();
   const title = t('profile.blockedPage.title');
   const page = usePageScrollHandler();
+  const renderBlocked = useCallback(
+    ({ item }: { item: BlockedUser }) => (
+      <BlockedUserRow item={item} busy={pending} onUnblock={requestUnblock} />
+    ),
+    [pending, requestUnblock],
+  );
 
   if (!f.isAuthenticated) {
     return (
@@ -44,7 +55,8 @@ export default function BlockedUsersScreen() {
       <Animated.FlatList
         {...page.listProps}
         data={f.blocked}
-        keyExtractor={(item) => item.id}
+        keyExtractor={blockedKey}
+        {...listWindowing}
         contentContainerStyle={page.contentStyle(pageListContentStyle)}
         ListEmptyComponent={
           <EmptyState
@@ -53,13 +65,7 @@ export default function BlockedUsersScreen() {
             subtitle={t('profile.blockedPage.emptyDesc')}
           />
         }
-        renderItem={({ item }) => (
-          <BlockedUserRow
-            item={item}
-            busy={pending}
-            onUnblock={(userId, name) => requestUnblock(userId, name)}
-          />
-        )}
+        renderItem={renderBlocked}
       />
     </PageShell>
   );

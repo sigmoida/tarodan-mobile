@@ -106,8 +106,9 @@ function pickFromObject(obj: Record<string, unknown>, variant: ImageVariant): un
  * Her şekildeki görsel girdisini render edilebilir mutlak bir uri'ye çevirir.
  * Geçersiz/boş ise placeholder döner (asla undefined döndürmez).
  *
- * @param variant `card` → küçük hücreler için thumbnail (cardUrl önce);
- *   `detail` (varsayılan) → galeri/detay için tam çözünürlük (detailUrl önce).
+ * @param variant `card` (varsayılan) → küçük hücreler için thumbnail (cardUrl önce);
+ *   `detail` → galeri/tam ekran için tam çözünürlük (detailUrl önce, açıkça
+ *   istenmeli). Varsayılan `card`: argümanı unutan çağıran büyük görsel indirmez.
  */
 export interface ResolveImageOptions {
   /**
@@ -120,7 +121,7 @@ export interface ResolveImageOptions {
 
 export function resolveImageUrl(
   input: unknown,
-  variant: ImageVariant = 'detail',
+  variant: ImageVariant = 'card',
   options: ResolveImageOptions = {},
 ): string {
   if (input == null) return IMAGE_PLACEHOLDER;
@@ -171,7 +172,7 @@ export function resolveAvatarSource(input: unknown): string | undefined {
  * Geriye dönük uyumlu alias'lar. Mevcut çağrılar otomatik sağlamlaşır.
  * @deprecated Yeni kodda `resolveImageUrl` kullanın.
  */
-export const transformImageUrl = (url: unknown, variant: ImageVariant = 'detail'): string =>
+export const transformImageUrl = (url: unknown, variant: ImageVariant = 'card'): string =>
   resolveImageUrl(url, variant);
 
 /**
@@ -179,5 +180,5 @@ export const transformImageUrl = (url: unknown, variant: ImageVariant = 'detail'
  * Liste hücrelerinde `getImageUrl(x, 'card')` çağırarak thumbnail yükleyin.
  * @deprecated Yeni kodda `resolveImageUrl` kullanın.
  */
-export const getImageUrl = (images: unknown, variant: ImageVariant = 'detail'): string =>
+export const getImageUrl = (images: unknown, variant: ImageVariant = 'card'): string =>
   resolveImageUrl(images, variant);

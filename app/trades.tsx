@@ -9,10 +9,13 @@ import { PageShell } from '@/components/common/PageShell';
 import { tradesApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
+import { listWindowing } from '@/lib/list/windowing';
 import { TradeCard, type TradeCardTrade } from '@/components/trade/TradeCard';
 import type { TFn } from './trade/[id]/_lib/types';
 
 const { spacing } = theme;
+
+const tradeKey = (item: TradeCardTrade) => String(item.id);
 
 // "Kargoda" filtresi artık sunucu tarafında (statusGroup=shipping) yapılıyor;
 // istemci tarafı statü listesine gerek kalmadı.
@@ -147,8 +150,9 @@ export default function TradesScreen() {
         contentContainerStyle={page.contentStyle(pageListContentStyle)}
         refreshing={refreshing}
         onRefresh={onRefresh}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={tradeKey}
         renderItem={renderTrade}
+        {...listWindowing}
         ListHeaderComponent={
           // Durum filtreleri — tek satır, yatay kaydırılan sekmeler (sayaçlar hepsinde ya da hiçbirinde)
           <ChipTabs

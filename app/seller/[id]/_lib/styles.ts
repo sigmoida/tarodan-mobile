@@ -23,6 +23,7 @@ export const styles = StyleSheet.create({
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing[3] },
   cell: { width: '48%' },
+  showMore: { marginTop: spacing[3] },
   review: { gap: spacing[1], paddingVertical: spacing[3] },
   reviewDivided: { borderTopWidth: 1, borderTopColor: colors.border.DEFAULT },
   reviewHead: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },

@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { EmptyState, SkeletonCard, pageListContentStyle, usePageScrollHandler } from '@/ui';
@@ -12,6 +13,10 @@ import { SalesFilterChips } from './_components/SalesFilterChips';
 import { SaleCard } from './_components/SaleCard';
 import { ShipDialog } from './_modals/ShipDialog';
 import { navigateTo } from '@/lib/navigation/goTo';
+import { listWindowing } from '@/lib/list/windowing';
+import type { Sale } from './_lib/types';
+
+const saleKey = (sale: Sale) => sale.id;
 
 /**
  * Satışlarım — PageShell (`list` modu) + kazanç kartı + filtre chip'leri + SaleCard listesi.
@@ -22,6 +27,11 @@ export default function SalesScreen() {
   const s = useSales();
   const actions = useSaleActions();
   const page = usePageScrollHandler();
+  // Kararlı renderItem (erken return'den ÖNCE — hook sırası sabit).
+  const renderSale = useCallback(
+    ({ item }: { item: Sale }) => <SaleCard sale={item} actions={actions} />,
+    [actions],
+  );
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
   if (!s.isAuthenticated) {
@@ -54,7 +64,8 @@ export default function SalesScreen() {
       <Animated.FlatList
         {...page.listProps}
         data={loading ? [] : s.filteredSales}
-        keyExtractor={(sale) => sale.id}
+        keyExtractor={saleKey}
+        {...listWindowing}
         contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
         refreshing={s.refreshing}
         onRefresh={s.onRefresh}
@@ -80,7 +91,7 @@ export default function SalesScreen() {
             />
           )
         }
-        renderItem={({ item: sale }) => <SaleCard sale={sale} actions={actions} />}
+        renderItem={renderSale}
       />
     </PageShell>
   );
