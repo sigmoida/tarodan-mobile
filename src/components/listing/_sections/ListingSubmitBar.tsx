@@ -6,8 +6,22 @@ import { Button, ButtonRow, theme } from '@/ui';
 
 import { ListingRemovalModal } from '../ListingRemovalModal';
 import type { ListingFormController } from '../_hooks/useListingForm';
+import { memoSection, type ListingFormKey } from '../_lib/memoSection';
 
 type SectionProps = { f: ListingFormController };
+
+/** Bu dosyadaki bölümlerin okuduğu controller alanları (memo karşılaştırması; bkz. `memoSection`). */
+const KEYS: readonly ListingFormKey[] = [
+  'closeRemoval',
+  'deleteWithReason',
+  'form',
+  'handleDelete',
+  'handleSubmit',
+  'isEdit',
+  'isSubmitting',
+  'removalOpen',
+  'uploadingImages',
+];
 
 const goBack = () => router.back();
 
@@ -17,7 +31,7 @@ const goBack = () => router.back();
  * [İlanı Sil][İptal] yan yana (`ButtonRow`, eşit genişlik; sığmazsa alt alta), oluşturmada yalnız
  * İptal. Görsel yüklenirken ve gönderim sürerken kilitli; silmenin onay/nedeni `ListingRemovalModal`'da.
  */
-export function ListingSubmitBar({ f }: SectionProps) {
+export const ListingSubmitBar = memoSection(function ListingSubmitBar({ f }: SectionProps) {
   const { t } = useTranslation();
   const locked = f.isSubmitting || f.uploadingImages;
   const cancel = (
@@ -58,22 +72,24 @@ export function ListingSubmitBar({ f }: SectionProps) {
       )}
     </View>
   );
-}
+}, KEYS);
 
 const styles = StyleSheet.create({
   bar: { gap: theme.spacing[3] },
 });
 
 /** Silme nedeni penceresi (yalnız düzenleme) — `PageShell` `overlay`'inde, gövdeden bağımsız. */
-export function ListingRemovalOverlay({ f }: SectionProps) {
+export const ListingRemovalOverlay = memoSection(function ListingRemovalOverlay({ f }: SectionProps) {
   if (!f.isEdit) return null;
   return (
     <ListingRemovalModal
       action="delete"
       visible={f.removalOpen}
-      listingTitle={f.title}
+      // Başlık izlenmiyor (bkz. `FormTextField`): pencere açılırken (`removalOpen` değişimi bu
+      // bölümü yeniden çizer) formdan güncel değer okunur.
+      listingTitle={f.form.getValues('title')}
       onClose={f.closeRemoval}
       onSubmit={f.deleteWithReason}
     />
   );
-}
+}, KEYS);

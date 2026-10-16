@@ -86,6 +86,13 @@ export const qk = {
     myListings: (filters?: Filters | string) =>
       ["my-listings", filters] as const,
     myListingsStats: ["my-listings-stats"] as const,
+    /**
+     * İlan formunun kota kartı (`GET /products/my/stats` → `ListingLimits`). `myListingsStats`
+     * kökünün altında: ilan yazımlarının invalidasyonu (`listingCacheKeys`) bunu da tazeler.
+     * Şekil İlanlarım sayaçlarından farklı olduğu için AYRI anahtar; `tier` (üyelik imzası)
+     * değişince yeniden sorulur.
+     */
+    myListingQuota: (tier: string) => ["my-listings-stats", "listing-quota", tier] as const,
     /** İlanlarım "Süresi dolan" sayacı (`limit=1` + `meta.total`). `my-listings` kökünün altında → `myListingsAll` ile tazelenir. */
     myListingsExpiredCount: ["my-listings", "expired-count"] as const,
     /** Satıcı paneli "Aktif ilan" sayacı — `my-listings` kökünün altında. */

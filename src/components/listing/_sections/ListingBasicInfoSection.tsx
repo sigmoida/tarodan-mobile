@@ -1,45 +1,48 @@
 import React from 'react';
-import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Input, SectionCard, Textarea } from '@/ui';
+import { SectionCard } from '@/ui';
 
 import { TITLE_MAX, DESCRIPTION_MAX } from '../_lib/schema';
 import type { ListingFormController } from '../_hooks/useListingForm';
-import { CharCount, fieldStyles } from './fields';
+import { memoSection, type ListingFormKey } from '../_lib/memoSection';
+import { fieldStyles } from './fields';
+import { FormTextField } from './FormTextField';
 
 type SectionProps = { f: ListingFormController };
 
-/** Temel bilgiler: başlık + açıklama (web `TitleDescriptionCard`). */
-export function ListingBasicInfoSection({ f }: SectionProps) {
+/** Bu dosyadaki bölümün okuduğu controller alanları (memo karşılaştırması; bkz. `memoSection`). */
+const KEYS: readonly ListingFormKey[] = ['form'];
+
+/**
+ * Temel bilgiler: başlık + açıklama (web `TitleDescriptionCard`). Alanlar RHF'ye doğrudan bağlı
+ * (`FormTextField`): yazarken yalnız alanın kendisi ve sayacı yeniden çizilir.
+ */
+export const ListingBasicInfoSection = memoSection(function ListingBasicInfoSection({ f }: SectionProps) {
   const { t } = useTranslation();
   return (
     <SectionCard title={t('product.basicInfo')} bodyStyle={fieldStyles.body}>
-      <View>
-        <Input
-          label={t('common.title')}
-          required
-          value={f.title}
-          onChangeText={f.setTitle}
-          placeholder={t('product.titlePlaceholder')}
-          maxLength={TITLE_MAX}
-          style={fieldStyles.flush}
-        />
-        <CharCount value={f.title} max={TITLE_MAX} />
-      </View>
+      <FormTextField
+        control={f.form.control}
+        name="title"
+        countMax={TITLE_MAX}
+        label={t('common.title')}
+        required
+        placeholder={t('product.titlePlaceholder')}
+        maxLength={TITLE_MAX}
+        style={fieldStyles.flush}
+      />
 
-      <View>
-        <Textarea
-          label={t('common.description')}
-          required
-          rows={5}
-          value={f.description}
-          onChangeText={f.setDescription}
-          placeholder={t('product.descriptionPlaceholder')}
-          maxLength={DESCRIPTION_MAX}
-          style={fieldStyles.flush}
-        />
-        <CharCount value={f.description} max={DESCRIPTION_MAX} />
-      </View>
+      <FormTextField
+        control={f.form.control}
+        name="description"
+        rows={5}
+        countMax={DESCRIPTION_MAX}
+        label={t('common.description')}
+        required
+        placeholder={t('product.descriptionPlaceholder')}
+        maxLength={DESCRIPTION_MAX}
+        style={fieldStyles.flush}
+      />
     </SectionCard>
   );
-}
+}, KEYS);

@@ -5,12 +5,39 @@ import { DateField, Divider, Input, ListRowCard, SectionCard, Spinner, Text, the
 import { formatPrice } from '@/utils/format';
 
 import type { ListingFormController } from '../_hooks/useListingForm';
+import { memoSection, type ListingFormKey } from '../_lib/memoSection';
 import { fieldStyles } from './fields';
 import { formatSaleDay } from '../_lib/sale';
 
 const { colors, spacing } = theme;
 
 type SectionProps = { f: ListingFormController };
+
+/** Bu dosyadaki bölümün okuduğu controller alanları (memo karşılaştırması; bkz. `memoSection`). */
+const KEYS: readonly ListingFormKey[] = [
+  'commissionError',
+  'commissionLoading',
+  'commissionPreview',
+  'discountPercent',
+  'isEdit',
+  'onPriceBlur',
+  'onSalePriceBlur',
+  'price',
+  'priceError',
+  'priceHint',
+  'quantity',
+  'reservedQty',
+  'saleEndDate',
+  'salePrice',
+  'salePriceError',
+  'saleStartDate',
+  'saleStartsOn',
+  'setPrice',
+  'setQuantity',
+  'setSaleEndDate',
+  'setSalePrice',
+  'setSaleStartDate',
+];
 
 function BreakdownRow({ label, value, tone }: { label: string; value: string; tone: 'default' | 'deduction' | 'net' }) {
   const net = tone === 'net';
@@ -71,7 +98,7 @@ function CommissionPreview({ f }: SectionProps) {
  * Fiyatlandırma (web `PricingCard` + `DiscountCard`): fiyat, stok, indirim (fiyat + tarih
  * aralığı) ve komisyon önizlemesi.
  */
-export function ListingPricingSection({ f }: SectionProps) {
+export const ListingPricingSection = memoSection(function ListingPricingSection({ f }: SectionProps) {
   const { t } = useTranslation();
   return (
     <SectionCard title={t('product.pricing')} bodyStyle={fieldStyles.body}>
@@ -155,7 +182,7 @@ export function ListingPricingSection({ f }: SectionProps) {
       <CommissionPreview f={f} />
     </SectionCard>
   );
-}
+}, KEYS);
 
 const styles = StyleSheet.create({
   reserved: {

@@ -6,11 +6,24 @@ import UpgradeCta from '@/components/UpgradeCta';
 
 import { ListingQuotaCard, quotaProgressColor } from '../ListingQuotaCard';
 import type { ListingFormController } from '../_hooks/useListingForm';
+import { memoSection, type ListingFormKey } from '../_lib/memoSection';
 import { navigateTo } from '@/lib/navigation/goTo';
 
 const { colors, spacing, controlHeight, radiusRole } = theme;
 
 type SectionProps = { f: ListingFormController };
+
+/** Bu dosyadaki bölümün okuduğu controller alanları (memo karşılaştırması; bkz. `memoSection`). */
+const KEYS: readonly ListingFormKey[] = [
+  'handleReactivate',
+  'isEdit',
+  'limitsLoading',
+  'listingLimits',
+  'reactivateQuantity',
+  'reactivating',
+  'setReactivateQuantity',
+  'status',
+];
 type ListingLimits = NonNullable<ListingFormController['listingLimits']>;
 
 const goPremium = () => navigateTo('/(tabs)/profile');
@@ -77,7 +90,7 @@ function ReactivatePanel({ f }: SectionProps) {
  * Formun üstü: alt başlık (yeni ilan), kota kartı ve durum panelleri (satıldı / kaldırıldı).
  * Kendi kendini kapılar: koşulu tutmayan parça çizilmez.
  */
-export function ListingHeaderBanners({ f }: SectionProps) {
+export const ListingHeaderBanners = memoSection(function ListingHeaderBanners({ f }: SectionProps) {
   const { t } = useTranslation();
   return (
     <>
@@ -105,7 +118,7 @@ export function ListingHeaderBanners({ f }: SectionProps) {
       ) : null}
     </>
   );
-}
+}, KEYS);
 
 const styles = StyleSheet.create({
   reactivateInput: {
