@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, SectionCard, SkeletonText, StatusBadge, Text, theme, Icon } from '@/ui';
+import { Button, EmptyState, ErrorState, SectionCard, SkeletonText, StatusBadge, Text, theme, Icon } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { buildTicketStatusConfig } from './_lib/status';
 import { buildCategoryLabels, formatTicketDate, type TicketSummary } from './_lib/types';
@@ -98,6 +98,8 @@ export default function SupportTicketsScreen() {
               <SkeletonText key={i} lines={3} />
             ))}
           </View>
+        ) : f.loadFailed ? (
+          <ErrorState placement="inline" onRetry={f.retry} />
         ) : f.tickets.length === 0 ? (
           <EmptyState
             icon="chat-bubble-left-right"

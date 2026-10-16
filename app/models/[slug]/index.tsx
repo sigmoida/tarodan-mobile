@@ -8,14 +8,14 @@ import { ModelHero, ModelProductsGrid } from './_components/ModelSections';
 export default function ModelDetailScreen() {
   const { t } = useTranslation();
   const f = useModelDetail();
-  const notFound = !f.modelQuery.isLoading && (f.modelQuery.isError || !f.model);
-
   return (
     <PageShell
       title={f.model?.name ?? t('product.model')}
       subtitle={f.model?.brand?.name}
       loading={f.modelQuery.isLoading}
-      empty={notFound}
+      error={f.modelLoadFailed || undefined}
+      onRetry={() => f.modelQuery.refetch()}
+      empty={f.notFound}
       emptyState={{
         icon: 'face-frown',
         title: t('models.noResults'),

@@ -23,6 +23,8 @@ export default function SellerProfileScreen() {
       title={t('seller.sellerProfile')}
       onBack={goBack}
       loading={f.isLoading}
+      error={f.loadFailed || undefined}
+      onRetry={f.retry}
       empty={!f.isLoading && !f.seller}
       emptyState={{
         icon: 'user',

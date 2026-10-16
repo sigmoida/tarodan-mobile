@@ -54,6 +54,8 @@ export default function SupportTicketDetailScreen() {
         title={title}
         onBack={onBack}
         loading={f.isLoading}
+        error={f.loadFailed || undefined}
+        onRetry={f.retry}
         empty={!f.isLoading}
         emptyState={{ icon: 'exclamation-circle', title: t('support.notFound'), subtitle: t('emptyState.notFoundHint') }}
       />

@@ -17,29 +17,25 @@ export function useSales() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: salesData, isLoading, refetch } = useQuery({
+  const { data: salesData, isLoading, isError, refetch } = useQuery({
     queryKey: qk.orders.sellerList(filter),
+    // Hata yutulmaz: önbelleğe `[]` yazmak hatayı "satış yok" gibi gösteriyordu → ErrorState.
     queryFn: async () => {
-      try {
-        const params: any = { role: 'seller', limit: 100 };
-        if (filter !== 'all') {
-          // Mobil UI 'processing' adını kullanır; backend enum'u 'preparing'. Sınırda çevir.
-          // 'cancelled' filtresi hem iptal (cancelled) hem para-iadesi (refunded) getirir.
-          params.status =
-            filter === 'processing' ? 'preparing'
-            : filter === 'cancelled' ? 'cancelled,refunded'
-            : filter;
-        }
-        const response = await ordersApi.getAll(params);
-        const raw = (response.data as any)?.data || response.data || [];
-        // Backend 'preparing' → mobil 'processing' (badge/aksiyon/filtre tek isimle çalışsın).
-        return (Array.isArray(raw) ? raw : []).map((o: any) =>
-          o?.status === 'preparing' ? { ...o, status: 'processing' } : o,
-        );
-      } catch (error) {
-        console.log('Failed to fetch sales');
-        return [];
+      const params: any = { role: 'seller', limit: 100 };
+      if (filter !== 'all') {
+        // Mobil UI 'processing' adını kullanır; backend enum'u 'preparing'. Sınırda çevir.
+        // 'cancelled' filtresi hem iptal (cancelled) hem para-iadesi (refunded) getirir.
+        params.status =
+          filter === 'processing' ? 'preparing'
+          : filter === 'cancelled' ? 'cancelled,refunded'
+          : filter;
       }
+      const response = await ordersApi.getAll(params);
+      const raw = (response.data as any)?.data || response.data || [];
+      // Backend 'preparing' → mobil 'processing' (badge/aksiyon/filtre tek isimle çalışsın).
+      return (Array.isArray(raw) ? raw : []).map((o: any) =>
+        o?.status === 'preparing' ? { ...o, status: 'processing' } : o,
+      );
     },
     enabled: isAuthenticated,
   });
@@ -86,6 +82,8 @@ export function useSales() {
     sales,
     filteredSales,
     isLoading,
+    /** Liste alınamadı (önbellekte de yok) — "satış yok" değil, ErrorState + yeniden dene. */
+    loadFailed: isError && !salesData,
     refetch,
     refreshing,
     onRefresh,

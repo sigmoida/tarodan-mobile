@@ -14,7 +14,7 @@ export function useModels() {
   const [search, setSearch] = useState('');
   const [selectedBrand, setSelectedBrand] = useState<string>('all');
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: qk.catalog.carModels(),
     queryFn: async () => {
       const response = await carModelsApi.findAll();
@@ -64,6 +64,11 @@ export function useModels() {
     selectedBrand,
     setSelectedBrand,
     isLoading,
+    /** Modeller alınamadı (önbellekte de yok) — "sonuç yok" değil, ErrorState. */
+    loadFailed: isError && !data,
+    retry: () => {
+      void refetch();
+    },
     refreshing,
     onRefresh,
     brands,

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { qk } from '@/lib/query';
+import { isNotFoundError, qk } from '@/lib/query';
 import { apiStatusToUi } from '@/utils/orderStatus';
 import type { OrderDetail } from '../_lib/types';
 
@@ -20,9 +20,10 @@ export function useOrder(id: string | undefined) {
           quantity: data.quantity ?? data.items?.[0]?.quantity ?? 1,
           product: { ...(data.product || {}), imageUrl: data.product?.imageUrl },
         };
-      } catch {
-        console.log('Failed to fetch order');
-        return null;
+      } catch (error) {
+        // Yalnız gerçek 404 "bulunamadı" (null); ağ/5xx FIRLATILIR → ekran ErrorState + yeniden dene.
+        if (isNotFoundError(error)) return null;
+        throw error;
       }
     },
   });

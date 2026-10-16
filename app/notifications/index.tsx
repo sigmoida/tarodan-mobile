@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, Spinner, TopBarAction, usePageScrollHandler } from '@/ui';
+import { EmptyState, ErrorState, Spinner, TopBarAction, usePageScrollHandler } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { useNotifications } from './_hooks/useNotifications';
@@ -81,11 +81,15 @@ export default function NotificationsScreen() {
           refreshing={f.refreshing}
           onRefresh={f.handleRefresh}
           ListEmptyComponent={
-            <EmptyState
-              icon="bell"
-              title={t('notification.noneYet')}
-              subtitle={t('notification.emptyListDesc')}
-            />
+            f.loadFailed ? (
+              <ErrorState onRetry={f.retry} />
+            ) : (
+              <EmptyState
+                icon="bell"
+                title={t('notification.noneYet')}
+                subtitle={t('notification.emptyListDesc')}
+              />
+            )
           }
           onEndReached={f.loadMore}
           onEndReachedThreshold={0.4}

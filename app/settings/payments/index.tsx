@@ -1,4 +1,4 @@
-import { ChipTabs, EmptyState } from '@/ui';
+import { ChipTabs, EmptyState, ErrorState } from '@/ui';
 import { useTranslation } from 'react-i18next';
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { PageShell } from '@/components/common/PageShell';
@@ -43,7 +43,10 @@ export default function PaymentsScreen() {
         items={statusOptions.map((opt) => ({ key: opt.value, label: opt.label }))}
       />
 
-      {f.payments.length === 0 ? (
+      {f.paymentsQuery.isError && f.payments.length === 0 ? (
+        // Hata "ödeme yok" gibi görünmesin; filtre çipleri yerinde kalır.
+        <ErrorState onRetry={() => f.paymentsQuery.refetch()} />
+      ) : f.payments.length === 0 ? (
         <EmptyState
           icon="credit-card"
           title={t('payment.noPaymentsTitle')}

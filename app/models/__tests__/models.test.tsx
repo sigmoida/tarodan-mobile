@@ -72,9 +72,22 @@ describe('model detayı', () => {
     expect(screen.getByTestId('product-card-price').props.children).toBe('250,00 TL');
   });
 
-  it('model bulunamazsa boş durum', () => {
-    mockDetail.mockReturnValue({ ...detailBase(), model: null, modelQuery: { isLoading: false, isError: true } });
+  it('model bulunamazsa (404) boş durum', () => {
+    mockDetail.mockReturnValue({ ...detailBase(), model: null, notFound: true, modelLoadFailed: false });
     render(<ModelDetailScreen />);
     expect(screen.getByText('Modellere Dön')).toBeTruthy();
+  });
+
+  it('model yüklenemezse (ağ/5xx) bulunamadı değil ErrorState', () => {
+    mockDetail.mockReturnValue({
+      ...detailBase(),
+      model: null,
+      notFound: false,
+      modelLoadFailed: true,
+      modelQuery: { isLoading: false, isError: true, refetch: jest.fn() },
+    });
+    render(<ModelDetailScreen />);
+    expect(screen.getByTestId('error-state')).toBeTruthy();
+    expect(screen.queryByText('Modellere Dön')).toBeNull();
   });
 });

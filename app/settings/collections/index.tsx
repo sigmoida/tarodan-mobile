@@ -30,6 +30,8 @@ export default function CollectionsScreen() {
       onBack={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)"))}
       loading={f.isLoading}
       loadingFallback={<RowListSkeleton rows={4} />}
+      error={f.loadFailed || undefined}
+      onRetry={f.retry}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
       overlay={

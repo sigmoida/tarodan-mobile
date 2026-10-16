@@ -68,11 +68,18 @@ describe('J67 · Sipariş detayı render', () => {
     expect(screen.getAllByText('Teslim Edildi').length).toBeGreaterThan(0);
   });
 
-  it('J67.2 sipariş bulunamazsa hata durumu gösterilir', async () => {
-    getMock.mockRejectedValue(new Error('not found'));
+  it('J67.2 sipariş bulunamazsa (404) "bulunamadı" gösterilir', async () => {
+    getMock.mockRejectedValue(Object.assign(new Error('not found'), { response: { status: 404 } }));
     renderWithProviders(<OrderDetailScreen />);
     expect(await screen.findByText('Sipariş bulunamadı')).toBeOnTheScreen();
   });
+
+  it('J67.2b ağ/sunucu hatası "bulunamadı" değil, ErrorState + yeniden dene', async () => {
+    getMock.mockRejectedValue(new Error('Network Error'));
+    renderWithProviders(<OrderDetailScreen />);
+    expect(await screen.findByTestId('error-state', {}, { timeout: 10000 })).toBeOnTheScreen();
+    expect(screen.queryByText('Sipariş bulunamadı')).toBeNull();
+  }, 15000);
 });
 
 describe('J78 · Alıcı onay butonu KALDIRILDI + escrow bilgisi', () => {

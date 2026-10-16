@@ -14,7 +14,7 @@ export function useMessagesTab() {
   const { t } = useTranslation();
   const { isAuthenticated, user } = useAuthStore();
   const getOtherParticipant = useMessagesStore((s) => s.getOtherParticipant);
-  const { data: threads = [], isLoading, isFetched: hasLoadedThreads, refetch } = useThreadsQuery();
+  const { data: threads = [], isLoading, isError, isFetched: hasLoadedThreads, refetch } = useThreadsQuery();
   const daily = useDailyMessageLimit();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -56,6 +56,9 @@ export function useMessagesTab() {
     threads,
     isLoading,
     hasLoadedThreads,
+    /** Liste alınamadı (boş değil) — ekran ErrorState + yeniden dene gösterir. */
+    isError,
+    refetch,
     dailyMessageCount: daily.used,
     refreshing,
     onRefresh,

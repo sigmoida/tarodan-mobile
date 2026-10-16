@@ -72,6 +72,8 @@ export function usePaymentHistory() {
     isAuthenticated,
     payments: query.data ?? [],
     isLoading: query.isLoading,
+    /** Geçmiş alınamadı (önbellekte de yok) — "geçmiş yok" değil, ErrorState + yeniden dene. */
+    loadFailed: query.isError && !query.data,
     isRefreshing: query.isRefetching,
     fetchPayments: () => query.refetch(),
     handlePaymentPress,

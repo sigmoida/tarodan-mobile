@@ -36,6 +36,8 @@ export default function PaymentHistoryScreen() {
       scroll={page}
       loading={f.isLoading}
       loadingFallback={<RowListSkeleton rows={5} />}
+      error={f.loadFailed || undefined}
+      onRetry={() => f.fetchPayments()}
     >
       <Animated.FlatList
         {...page.listProps}

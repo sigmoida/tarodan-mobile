@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, router } from "expo-router";
 import { userApi, productsApi, ratingsApi, collectionsApi } from "@/lib/api";
-import { qk } from "@/lib/query";
+import { isNotFoundError, qk } from "@/lib/query";
 import { useRefresh } from "@/hooks/useRefresh";
 import { useFollowing } from "@/hooks/useFollowing";
 import { useAuthStore } from "@/stores/authStore";
@@ -30,6 +30,7 @@ export function useSellerProfile() {
   const {
     data: apiSeller,
     isLoading,
+    isError: sellerLoadFailed,
     refetch: refetchSeller,
   } = useQuery({
     queryKey: qk.seller.detail(sellerId),
@@ -39,8 +40,10 @@ export function useSellerProfile() {
         const response = await userApi.getPublicProfile(String(id));
         return (response.data as any)?.data || response.data;
       } catch (error) {
-        console.log("⚠️ Satıcı bilgisi yüklenemedi, mock data kullanılacak");
-        return null;
+        // Gerçek 404 (silinmiş / engellenmiş profil) → "bulunamadı" (null); ağ/5xx FIRLATILIR
+        // → ekran ErrorState + yeniden dene (önceden her hata "satıcı bulunamadı" görünüyordu).
+        if (isNotFoundError(error)) return null;
+        throw error;
       }
     },
     retry: 1,
@@ -181,6 +184,11 @@ export function useSellerProfile() {
   return {
     isAuthenticated,
     isLoading,
+    /** Profil yüklenemedi (404 değil, önbellekte de yok) → ErrorState + yeniden dene. */
+    loadFailed: sellerLoadFailed && !apiSeller,
+    retry: () => {
+      void refetchSeller();
+    },
     sellerId,
     /** Kendi vitrinim mi? Şikayet/engelle menüsü kendine gösterilmez. */
     isOwnProfile: !!user?.id && user.id === sellerId,

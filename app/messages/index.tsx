@@ -11,6 +11,7 @@ import { PageShell } from "@/components/common/PageShell";
 import {
   Alert,
   EmptyState,
+  ErrorState,
   SkeletonAvatar,
   SkeletonText,
   theme,
@@ -78,6 +79,9 @@ export default function MessagesScreen() {
                 </View>
               ))}
             </View>
+          ) : f.isError ? (
+            // Hata "henüz mesaj yok" gibi görünmesin — yeniden dene.
+            <ErrorState onRetry={() => f.refetch()} />
           ) : (
             <EmptyState
               icon="chat-bubble-left-ellipsis"

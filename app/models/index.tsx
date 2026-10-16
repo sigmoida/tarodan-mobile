@@ -18,6 +18,8 @@ export default function ModelsScreen() {
       onRefresh={f.onRefresh}
       loading={f.isLoading}
       loadingFallback={<SkeletonText lines={8} />}
+      error={f.loadFailed || undefined}
+      onRetry={f.retry}
     >
       <View style={styles.filters}>
         <Input

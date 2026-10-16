@@ -26,6 +26,9 @@ export default function DiscountsScreen() {
       title={t('discount.myDiscountsTitle')}
       loading={f.discountsQuery.isLoading}
       loadingFallback={<RowListSkeleton rows={3} />}
+      // Liste alınamadı → "indirim yok" değil, ErrorState + yeniden dene.
+      error={(f.discountsQuery.isError && !f.discountsQuery.data) || undefined}
+      onRetry={() => f.discountsQuery.refetch()}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
       right={

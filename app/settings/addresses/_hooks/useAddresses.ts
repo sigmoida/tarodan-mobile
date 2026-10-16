@@ -48,6 +48,11 @@ export function useAddresses() {
     // Sunucu limiti (3) tek kaynaktan; bilinmeyen/sınırsız → Infinity (sayaç gizli).
     maxAddresses: resolveMaxAddresses(limits?.maxAddresses),
     isLoading: query.isLoading,
+    /** Liste alınamadı (önbellekte de yok) — "kayıtlı adres yok" değil, ErrorState. */
+    loadFailed: query.isError && !query.data,
+    retry: () => {
+      void refetch();
+    },
     refreshing,
     onRefresh,
   };

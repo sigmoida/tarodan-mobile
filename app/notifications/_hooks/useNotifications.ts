@@ -184,6 +184,11 @@ export function useNotifications() {
     isAuthenticated,
     notifications: data.list,
     loading: query.isLoading,
+    /** İlk sayfa alınamadı (liste boş) — "henüz bildirim yok" değil, ErrorState + yeniden dene. */
+    loadFailed: query.isError && data.list.length === 0,
+    retry: () => {
+      void refetch();
+    },
     refreshing,
     unreadCount: data.unreadCount,
     handleRefresh,
