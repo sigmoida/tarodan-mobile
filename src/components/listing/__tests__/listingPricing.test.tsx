@@ -5,7 +5,7 @@
  * ipucu ve gizli Set/Paket anahtarı.
  */
 import React from 'react';
-import { render, screen, within } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
@@ -52,6 +52,43 @@ function pricingF(over: Record<string, unknown> = {}) {
     ...over,
   });
 }
+
+describe('Fiyat sınırı (admin min_product_price)', () => {
+  it('fiyat alanının altında "En az 250,00 TL" yardımcı satırı', () => {
+    render(<ListingPricingSection f={pricingF({ priceHint: 'En az 250,00 TL' })} />);
+    expect(screen.getByText('En az 250,00 TL')).toBeTruthy();
+  });
+
+  it('fiyat ve indirimli fiyat satır içi hatası', () => {
+    render(
+      <ListingPricingSection
+        f={pricingF({
+          priceError: 'Ürün fiyatı minimum 250,00 TL olmalıdır.',
+          priceHint: 'En az 250,00 TL',
+          salePriceError: 'İndirimli fiyat en az 250,00 TL olmalıdır.',
+        })}
+      />,
+    );
+    expect(screen.getByText('Ürün fiyatı minimum 250,00 TL olmalıdır.')).toBeTruthy();
+    expect(screen.getByText('İndirimli fiyat en az 250,00 TL olmalıdır.')).toBeTruthy();
+  });
+
+  it('alan terk edilince (blur) hook\'a bildirilir — limit hatası ancak o zaman / gönderimde görünür', () => {
+    const onPriceBlur = jest.fn();
+    const onSalePriceBlur = jest.fn();
+    render(<ListingPricingSection f={pricingF({ onPriceBlur, onSalePriceBlur })} />);
+    fireEvent(screen.getByDisplayValue('500'), 'blur');
+    expect(onPriceBlur).toHaveBeenCalledTimes(1);
+    expect(onSalePriceBlur).not.toHaveBeenCalled();
+    fireEvent(screen.getByPlaceholderText('İndirim yoksa boş bırakın'), 'blur');
+    expect(onSalePriceBlur).toHaveBeenCalledTimes(1);
+  });
+
+  it('sınır yoksa ipucu / hata çizilmez', () => {
+    render(<ListingPricingSection f={pricingF()} />);
+    expect(screen.queryByText(/En az/)).toBeNull();
+  });
+});
 
 describe('Fiyatlandırma özeti (web PricingBreakdown)', () => {
   it('iki satır: Kargo ücreti ve Hak edişiniz', () => {

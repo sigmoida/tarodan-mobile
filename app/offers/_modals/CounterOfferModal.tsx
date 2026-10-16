@@ -2,6 +2,8 @@ import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, ModalFooter } from '@/ui';
 import { useZodForm, Form, FormInput } from '@/ui/form';
+import { usePriceLimits } from '@/hooks/usePriceLimits';
+import { offerPriceFloor } from '@/lib/shared/priceLimits';
 import { sellerCounterSchema } from '../_lib/schema';
 import { useDoCounterOffer } from '../_hooks/useDoCounterOffer';
 
@@ -24,9 +26,13 @@ export function CounterOfferModal({
   const refAmount = Number(offer?.amount) || 0;
   const maxPrice = Number(offer?.product?.price) || 0;
 
+  // Admin fiyat tabanı: ilan fiyatı tabana eşit/üstüyse karşı teklif tabanın altına inemez.
+  const { minPrice } = usePriceLimits();
+  const floor = offerPriceFloor(minPrice, maxPrice);
+
   const schema = useMemo(
-    () => sellerCounterSchema(refAmount, maxPrice, t),
-    [refAmount, maxPrice, t],
+    () => sellerCounterSchema(refAmount, maxPrice, t, floor),
+    [refAmount, maxPrice, t, floor],
   );
   const form = useZodForm(schema, { defaultValues: { amount: '' } });
   const counter = useDoCounterOffer();

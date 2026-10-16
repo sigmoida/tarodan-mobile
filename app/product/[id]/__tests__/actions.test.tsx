@@ -148,7 +148,7 @@ describe('adet tavanı', () => {
 });
 
 describe('teklif/takas görünürlüğü (tek kaynak)', () => {
-  const avail = (over: Record<string, unknown> = {}, opts: Partial<{ isOwner: boolean; isOutOfStock: boolean }> = {}) =>
+  const avail = (over: Record<string, unknown> = {}, opts: Partial<{ isOwner: boolean; isOutOfStock: boolean; minPrice: number | null }> = {}) =>
     getOfferTradeAvailability({ ...base, ...over } as Product, {
       isOwner: false,
       isOutOfStock: false,
@@ -162,6 +162,17 @@ describe('teklif/takas görünürlüğü (tek kaynak)', () => {
 
   it('sahipte teklif/takas kapalı; takas rozeti sahibe de görünür', () => {
     expect(avail({ tradeAvailable: true }, { isOwner: true })).toEqual({ offer: false, trade: false, tradeBadge: true });
+  });
+
+  it('admin fiyat tabanı: tam tabandaki ilanda geçerli teklif yok → giriş yok; üstünde / altında açık', () => {
+    // fiyat = taban (250): teklif liste fiyatının altında VE tabanın üstünde olmak zorunda → imkânsız.
+    expect(avail({ price: 250 }, { minPrice: 250 }).offer).toBe(false);
+    expect(avail({ price: 251 }, { minPrice: 250 }).offer).toBe(true);
+    // fiyat tabanın altında (eski ucuz ilan): taban yok → pazarlık açık.
+    expect(avail({ price: 200 }, { minPrice: 250 }).offer).toBe(true);
+    // taban tanımsız / yüklenemedi: kural yok.
+    expect(avail({ price: 250 }, { minPrice: null }).offer).toBe(true);
+    expect(avail({ price: 250 }).offer).toBe(true);
   });
 
   it('satıldı / rezerve / stok bitti: ikisi de kapalı (web: aktif değilse teklif/takas yok)', () => {

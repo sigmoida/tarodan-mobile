@@ -15,15 +15,16 @@ export interface OfferPreset {
 /**
  * Liste fiyatından −%5 / −%10 / −%15 teklif tutarları (tam TL'ye yuvarlanır). Geçersiz olanlar
  * düşer: asgari teklifin (%50) altı ya da yuvarlanınca liste fiyatına eşit/üstü (çok düşük fiyatlar);
- * aynı tutara yuvarlanan yüzdelerden yalnız ilki kalır.
+ * aynı tutara yuvarlanan yüzdelerden yalnız ilki kalır. `floor` (admin fiyat tabanı) altındakiler de düşer.
  */
-export function offerPresets(listPrice: number): OfferPreset[] {
+export function offerPresets(listPrice: number, floor: number | null = null): OfferPreset[] {
   if (!Number.isFinite(listPrice) || listPrice <= 0) return [];
   const seen = new Set<number>();
   const out: OfferPreset[] = [];
   for (const percent of OFFER_PRESET_PERCENTS) {
     const amount = Math.round((listPrice * (100 - percent)) / 100);
     if (amount <= 0 || amount >= listPrice || amount < listPrice * MIN_OFFER_RATIO) continue;
+    if (floor != null && amount < floor) continue; // admin fiyat tabanının altı
     if (seen.has(amount)) continue;
     seen.add(amount);
     out.push({ percent, amount });

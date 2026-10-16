@@ -27,6 +27,8 @@ import {
   salePayload,
   saleStartsLater,
 } from '../_lib/sale';
+import { priceFieldError, priceLimitHint, salePriceFieldError, type PriceBaseline } from '../_lib/priceRules';
+import { usePriceLimits } from '@/hooks/usePriceLimits';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import { useLatestRef } from '@/hooks/useLatestRef';
 
@@ -263,6 +265,26 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   // Komisyon önizlemesi — indirim BUGÜN geçerliyse indirimli fiyattan sorulur
   // (create + edit; web düzenleme ekranı hâlâ normal fiyatı kullanıyor).
   const saleFields = { price, salePrice, saleStartDate, saleEndDate };
+
+  // Admin fiyat sınırları (yüklenemezse / boşsa kural yok — form asla bloklanmaz). Düzenlemede
+  // yüklenen ilk fiyatlar taban altındaysa DEĞİŞTİRİLMEDİKÇE hata verilmez (eski kayıt muafiyeti).
+  const { minPrice, maxPrice } = usePriceLimits();
+  const priceLimits = { minPrice, maxPrice };
+  const [priceBaseline, setPriceBaseline] = useState<PriceBaseline | null>(null);
+  // Limit hatası yazarken kırmızı yanmaz: alan terk edilince (blur) ya da gönderim denenince görünür
+  // (ipucu satırı HEP görünür). Gönderim kapısı (`validate`) bundan bağımsız, her zaman çalışır.
+  const [priceBlurred, setPriceBlurred] = useState(false);
+  const [salePriceBlurred, setSalePriceBlurred] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const priceError =
+    priceBlurred || submitAttempted
+      ? priceFieldError(t, price, priceLimits, priceBaseline) ?? undefined
+      : undefined;
+  const salePriceError =
+    salePriceBlurred || submitAttempted
+      ? salePriceFieldError(t, saleFields, priceLimits, priceBaseline) ?? undefined
+      : undefined;
+  const priceHint = priceLimitHint(t, priceLimits);
   const { commissionPreview, commissionLoading, commissionError, commissionEnabled } =
     useCommissionPreview(commissionPreviewAmount(saleFields), categoryId, shippingPackageTier);
   const saleStartsOn = saleStartsLater(saleFields);
@@ -326,6 +348,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     setReservedQty(mapped.reservedQty);
     replaceImages(imagesFromMapped(mapped.images));
     setSalePrice(mapped.sale.salePrice);
+    setPriceBaseline(mapped.storedPrices);
     setSaleStartDate(mapped.sale.saleStartDate);
     setSaleEndDate(mapped.sale.saleEndDate);
     // YALNIZ üretici-kapsamlı nitelikler: `scale`/`material` gibi
@@ -629,6 +652,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const buildSalePayload = (): Record<string, unknown> => ({ ...salePayload(saleFields) });
 
   const validate = (): boolean => {
+    setSubmitAttempted(true);
     // Görsel yüklemesi/çevirmesi sürerken ya da yüklenemeyen görsel varken kaydedilen ilan,
     // ekrandakinden farklı (eksik ya da çevrilmemiş) görselle giderdi — payload yalnız sunucu
     // anahtarlı kalemleri taşır (web `imageSubmitBlocker`). Güncel liste ref'ten okunur.
@@ -648,6 +672,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       isEdit,
       requiredGlobalGroups: requiredGlobalGroups(globalAttrGroups),
       attributeSelections: { ...customAttributes, ...globalAttributes },
+      priceLimits,
+      sale: { salePrice, saleStartDate, saleEndDate },
+      priceBaseline,
     });
     if (error) {
       toast.error(error);
@@ -917,6 +944,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     title, setTitle,
     description, setDescription,
     price, setPrice,
+    priceError, priceHint, onPriceBlur: () => setPriceBlurred(true),
     quantity, setQuantity,
     reservedQty,
     categoryId, setCategoryId,
@@ -938,7 +966,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     isPreorder, setIsPreorder,
     shippingPackageTier, setShippingPackageTier,
     packageTiers, packageTiersLoading, packageTiersError,
-    salePrice, setSalePrice,
+    salePrice, setSalePrice, salePriceError, onSalePriceBlur: () => setSalePriceBlurred(true),
     saleStartDate, setSaleStartDate,
     saleEndDate, setSaleEndDate,
     reactivateQuantity, setReactivateQuantity,

@@ -330,4 +330,9 @@ export const qk = {
     /** GET /timing-rules — admin'den yönetilen herkese açık politika süreleri. */
     all: ["timing-policy"] as const,
   },
+
+  publicSettings: {
+    /** GET /admin/settings/public — admin'in herkese açık sayısal ayarları (ilan fiyat sınırları…). */
+    all: ["public-settings"] as const,
+  },
 } as const;
