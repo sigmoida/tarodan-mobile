@@ -17,6 +17,7 @@ import {
   type LegalIdentityStatus,
 } from '@/lib/shared/legalIdentity';
 import { useSubmitLegalIdentity } from '@/hooks/useLegalIdentity';
+import { useScreenCaptureProtection } from '@/lib/security/screenCapture';
 import { RequiredStepShell } from './RequiredStepShell';
 
 /**
@@ -47,6 +48,8 @@ export function LegalIdentityGate({
 }) {
   const { t } = useTranslation();
   const submit = useSubmitLegalIdentity();
+  // TCKN girişi ekran görüntüsüne ve uygulama değiştiriciye düşmez.
+  useScreenCaptureProtection();
   const { missing } = status;
   const asks = (field: LegalIdentityField) => missing.includes(field);
 

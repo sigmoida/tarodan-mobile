@@ -22,6 +22,9 @@ jest.mock('../resetUserStores', () => ({
   resetUserStores: jest.fn(),
   resetServerStateForNewSession: jest.fn(() => Promise.resolve()),
 }));
+// Ödeme yetki belirteci deposu da SecureStore kullanıyor; açılış süpürmesi buradaki
+// sıralı anahtar zinciri mock'larını (`mockImplementationOnce`) tüketmesin (yalnız bellek).
+jest.mock('@/lib/payment/secureCapabilityStore', () => ({ createSecureCapabilityStore: () => null }));
 
 const mockOnlineListeners = new Set<(online: boolean) => void>();
 jest.mock('@/lib/network/networkStatus', () => ({

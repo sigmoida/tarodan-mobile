@@ -500,13 +500,9 @@ api.interceptors.response.use(
       errData?.errorCode === "USER_BANNED"
     ) {
       // Bayrak `./sessionState`'te: her giriş/çıkışta sıfırlanır (sonraki oturum takılı kalmaz).
+      // Neden rota parametresiyle taşınmaz: ekran onu sunucudan okur (`useBanStatus`).
       if (claimBannedRedirect()) {
-        router.replace({
-          pathname: "/banned",
-          params: errData.bannedReason
-            ? { reason: errData.bannedReason }
-            : undefined,
-        });
+        router.replace("/banned");
       }
       return Promise.reject(error);
     }

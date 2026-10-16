@@ -45,6 +45,39 @@ const REDACTED_KEYS = new Set([
   'legalfirstname',
   'legallastname',
   'tckimlikno',
+  // Ödeme: misafir ödeme yetki belirteci (gövde + `X-Payment-Capability` başlığı), PayTR
+  // imzalı form alanları / 3DS HTML'i ve kart alanları (asla buraya gelmemeli; gelirse de gitmesin).
+  'paymentaccesstoken',
+  'x-payment-capability',
+  'paytr_token',
+  'merchant_key',
+  'merchant_salt',
+  'threedshtml',
+  'threedsdata',
+  'htmlcontent',
+  'checkoutformcontent',
+  'paymentpagecontent',
+  'card_number',
+  'cardnumber',
+  'cc_owner',
+  'cvv',
+  'cvc',
+  'expiry_month',
+  'expiry_year',
+  // Doğrulama kodları ve 2FA sırları (OTP, TOTP, yedek kodlar, otpauth adresi).
+  'otp',
+  'otpcode',
+  'smscode',
+  'verificationcode',
+  'twofactorcode',
+  'totp',
+  'secret',
+  'otpauthurl',
+  'qrcode',
+  'qrcodeurl',
+  'backupcode',
+  'backupcodes',
+  'recoverycodes',
   'data', // axios `config.data` — serileştirilmiş istek gövdesi
   'body',
 ]);
@@ -87,15 +120,144 @@ function scrubValue(value: unknown, depth: number, seen: WeakSet<object>, rules:
   return result;
 }
 
-const SENTRY_RULES: ScrubRules = { redactKey: (k) => REDACTED_KEYS.has(k) };
+/**
+ * Sentry'de ADI bunlardan birini içeren anahtar da atılır (`accessToken`, `pushToken`,
+ * `x-api-key`, `set-cookie`, `clientSecret`...). `email`/`phone` gibi kimlik alanları zaten
+ * `REDACTED_KEYS`'te; burada yalnız kimlik bilgisi/sır taşıyan ad kalıpları var — teşhis
+ * alanlarına (`requestId`, `status`, `url`, `i18nKey`, `code`) dokunulmaz.
+ */
+const SENTRY_SENSITIVE_KEY = /token|secret|passw|authorization|cookie|api-?key|api_key|credential/i;
+
+const SENTRY_RULES: ScrubRules = {
+  redactKey: (k) => REDACTED_KEYS.has(k) || SENTRY_SENSITIVE_KEY.test(k),
+  // Olay metinleri (hata mesajı, breadcrumb mesajı, http/navigasyon adresi) içindeki
+  // Bearer / JWT / e-posta ve adres sorgusundaki sırlar maskelenir. Opak-dizi kuralı
+  // (konsoldaki `OPAQUE`) burada YOK: yığın izindeki dosya adlarını/hash'leri bozardı.
+  mapValue: (v) => (typeof v === 'string' ? scrubSentryString(v) : v),
+};
 
 /**
- * Bir Sentry olayını yerinde değil, kopyalayarak temizler.
+ * Bir Sentry olayını (hata, işlem) yerinde değil, kopyalayarak temizler.
  * `null`/`undefined` aynen döner (SDK olayı düşürmek için `null` bekler).
+ *
+ * Kullanıcı bağlamı (`user`) yalnız `id`'ye indirilir: e-posta, kullanıcı adı ve IP gitmez.
+ * Olaya iliştirilen breadcrumb'lar `scrubBreadcrumb` kuralıyla temizlenir. İşlem
+ * (transaction) olayında `spans[].data` ve `contexts.trace.data` yapılandırılmış teşhis
+ * verisidir: axios gövdesi gibi `[scrubbed]` metnine ÇEVRİLMEZ, yapısı korunup içi temizlenir.
  */
 export function scrubEvent<T>(event: T): T {
   if (!event || typeof event !== 'object') return event;
-  return scrubValue(event, 0, new WeakSet(), SENTRY_RULES) as T;
+  const { breadcrumbs, spans, ...rest } = event as T & { breadcrumbs?: unknown; spans?: unknown };
+  const cleaned = scrubValue(rest, 0, new WeakSet(), SENTRY_RULES) as Record<string, unknown>;
+  if (cleaned.user && typeof cleaned.user === 'object') {
+    cleaned.user = sentryUser(cleaned.user as { id?: unknown });
+  }
+  if (Array.isArray(breadcrumbs)) cleaned.breadcrumbs = breadcrumbs.map((b) => scrubBreadcrumb(b));
+  else if (breadcrumbs !== undefined) cleaned.breadcrumbs = PLACEHOLDER;
+  if (Array.isArray(spans)) cleaned.spans = spans.map((s) => scrubSpan(s));
+  else if (spans !== undefined) cleaned.spans = PLACEHOLDER;
+  const traceData = (rest as { contexts?: { trace?: { data?: unknown } } }).contexts?.trace?.data;
+  const cleanedTrace = (cleaned.contexts as { trace?: Record<string, unknown> } | undefined)?.trace;
+  if (traceData !== undefined && cleanedTrace && typeof cleanedTrace === 'object') {
+    cleanedTrace.data = scrubStructuredData(traceData);
+  }
+  return cleaned as T;
+}
+
+/**
+ * Ağ ve gezinme breadcrumb'larının `data`'sı yapılandırılmış teşhis verisidir (`url`, `method`,
+ * `status_code`, `from`/`to`): axios gövdesi gibi tümüyle atılmaz, İÇİ temizlenir (anahtar
+ * kuralları + adres sorgusundaki sırlar). Diğer kategorilerde (console vb.) `data` atılır —
+ * rastgele argüman taşıyabilir.
+ */
+const STRUCTURED_BREADCRUMB_CATEGORIES = new Set(['xhr', 'fetch', 'http', 'navigation']);
+
+/** Tek bir breadcrumb'ı kopyalayarak temizler (`beforeBreadcrumb` ve olaydaki liste). */
+export function scrubBreadcrumb<T>(crumb: T): T {
+  if (!crumb || typeof crumb !== 'object') return crumb;
+  const { data, ...rest } = crumb as T & { data?: unknown; category?: unknown };
+  const cleaned = scrubValue(rest, 0, new WeakSet(), SENTRY_RULES) as Record<string, unknown>;
+  if (data === undefined) return cleaned as T;
+  const structured =
+    typeof rest.category === 'string' && STRUCTURED_BREADCRUMB_CATEGORIES.has(rest.category);
+  cleaned.data = structured ? scrubStructuredData(data) : PLACEHOLDER;
+  return cleaned as T;
+}
+
+/** Ayrı sorgu dizesi taşıyan span/breadcrumb alanları (`?` öneksiz gelir). */
+const QUERY_STRING_KEYS = new Set(['http.query', 'query', 'http.fragment']);
+
+/**
+ * Yapılandırılmış teşhis verisi (`breadcrumb.data`, `span.data`, `contexts.trace.data`):
+ * nesne YAPISI korunur, içi temizlenir (anahtar kuralları, metinlerdeki Bearer / JWT /
+ * e-posta / adres sorgusu sırları; `http.query` gibi öneksiz sorgu dizeleri de). Nesne
+ * değilse tümüyle atılır.
+ */
+function scrubStructuredData(data: unknown): unknown {
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) return PLACEHOLDER;
+  const cleaned = scrubValue(data, 1, new WeakSet(), SENTRY_RULES) as Record<string, unknown>;
+  for (const [key, value] of Object.entries(cleaned)) {
+    if (QUERY_STRING_KEYS.has(key) && typeof value === 'string' && value && !value.startsWith('?')) {
+      cleaned[key] = scrubUrlSecrets(`?${value}`).slice(1);
+    }
+  }
+  return cleaned;
+}
+
+/** İşlem span'ı: `data` yapılandırılmış teşhis verisidir (url, http.method, durum kodu). */
+function scrubSpan(span: unknown): unknown {
+  if (!span || typeof span !== 'object' || Array.isArray(span)) return scrubValue(span, 1, new WeakSet(), SENTRY_RULES);
+  const { data, ...rest } = span as { data?: unknown };
+  const cleaned = scrubValue(rest, 1, new WeakSet(), SENTRY_RULES) as Record<string, unknown>;
+  if (data !== undefined) cleaned.data = scrubStructuredData(data);
+  return cleaned;
+}
+
+/** Sentry'ye giden kullanıcı: yalnız kimlik (e-posta / kullanıcı adı / IP asla). */
+export function sentryUser(user: { id?: unknown } | null | undefined): { id: string } | null {
+  const id = user?.id;
+  return typeof id === 'string' || typeof id === 'number' ? { id: String(id) } : null;
+}
+
+// ---------------------------------------------------------------------------
+// Adres (URL) sırları
+// ---------------------------------------------------------------------------
+
+/**
+ * Sorgu/parça parametresinin ADI bunu içeriyorsa değeri maskelenir: e-posta doğrulama /
+ * şifre sıfırlama / davet linklerindeki `token`, OAuth `code`/`state`, OTP, imzalı S3
+ * adreslerindeki `X-Amz-Signature`/`X-Amz-Credential`/`X-Amz-Security-Token`, misafir sipariş
+ * takibindeki `email`, ban ekranının `reason`'ı...
+ */
+const SENSITIVE_PARAM =
+  /token|secret|passw|otp|code|(?:^|[-_.])key$|apikey|signature|^sig$|auth|session|^state$|hash|credential|email|phone|iban|tckn|nationalid|reason/i;
+/** `?ad=değer` / `&ad=değer` / `#ad=değer` / `;ad=değer`. */
+const URL_PARAM = /([?&#;])([^=&#?\s"'<>]+)=([^&#\s"'<>]*)/g;
+/** Adı masum olsa da değeri opak bir sırra benzeyen parametre (24+ karakterlik belirteç). */
+const OPAQUE_PARAM_VALUE = /^[A-Za-z0-9._~%+/=-]{24,}$/;
+
+/** Metindeki adres sorgularında sır taşıyan parametre değerlerini maskeler. */
+export function scrubUrlSecrets(text: string): string {
+  if (!text.includes('=')) return text;
+  return text.replace(URL_PARAM, (match, sep: string, name: string, value: string) => {
+    if (!value) return match;
+    let decodedName = name;
+    try {
+      decodedName = decodeURIComponent(name);
+    } catch {
+      /* bozuk kodlama: adı olduğu gibi değerlendir */
+    }
+    const sensitive =
+      SENSITIVE_PARAM.test(decodedName) || (OPAQUE_PARAM_VALUE.test(value) && !UUID.test(value));
+    return sensitive ? `${sep}${name}=${PLACEHOLDER}` : match;
+  });
+}
+
+/** Sentry metin temizliği: Bearer / JWT / e-posta + adres sorgusundaki sırlar. */
+function scrubSentryString(text: string): string {
+  return scrubUrlSecrets(
+    text.replace(BEARER, 'Bearer [scrubbed]').replace(JWT, PLACEHOLDER).replace(EMAIL, PLACEHOLDER),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -121,11 +283,13 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Dizideki e-posta / Bearer / JWT / opak token benzeri değerleri maskeler. */
 export function scrubString(text: string): string {
-  return text
-    .replace(BEARER, 'Bearer [scrubbed]')
-    .replace(JWT, PLACEHOLDER)
-    .replace(EMAIL, PLACEHOLDER)
-    .replace(OPAQUE, (m) => (UUID.test(m) ? m : PLACEHOLDER));
+  return scrubUrlSecrets(
+    text
+      .replace(BEARER, 'Bearer [scrubbed]')
+      .replace(JWT, PLACEHOLDER)
+      .replace(EMAIL, PLACEHOLDER)
+      .replace(OPAQUE, (m) => (UUID.test(m) ? m : PLACEHOLDER)),
+  );
 }
 
 const looksLikeError = (v: unknown): boolean =>

@@ -5,7 +5,7 @@
  */
 import Constants from "expo-constants";
 import * as Sentry from "@sentry/react-native";
-import { scrubEvent } from "./sentryScrub";
+import { scrubBreadcrumb, scrubEvent, sentryUser } from "./sentryScrub";
 
 export type SeverityLevel = "fatal" | "error" | "warning" | "info" | "debug";
 
@@ -40,12 +40,17 @@ export function initSentry(): void {
     environment: process.env.EXPO_PUBLIC_ENVIRONMENT ?? "development",
     tracesSampleRate: 0.1,
     enableNative: true,
-    // Kişisel veri kayıt sunucusuna GİTMEZ. Axios hataları `config.data`
+    // IP / çerez / istek gövdesi gibi varsayılan kişisel veriler SDK tarafından eklenmez.
+    sendDefaultPii: false,
+    // Kişisel veri ve sırlar kayıt sunucusuna GİTMEZ. Axios hataları `config.data`
     // alanında serileştirilmiş istek gövdesini taşıyor (telefon, adres, IBAN,
-    // şifre); SDK bunları olaya kopyalıyordu. Teşhis alanları (requestId,
-    // status, url, i18nKey) korunur — bkz. `./sentryScrub`.
+    // şifre); SDK bunları olaya kopyalıyordu. Ayrıca: oturum / ödeme belirteçleri,
+    // OTP ve 2FA sırları, adres sorgusundaki belirteçler (http + navigasyon
+    // breadcrumb'ları, işlem span'ları) ve kullanıcının e-postası (yalnız id gider).
+    // Teşhis alanları (requestId, status, url, i18nKey) korunur — bkz. `./sentryScrub`.
     beforeSend: (event) => scrubEvent(event),
-    beforeBreadcrumb: (breadcrumb) => scrubEvent(breadcrumb),
+    beforeSendTransaction: (event) => scrubEvent(event),
+    beforeBreadcrumb: (breadcrumb) => scrubBreadcrumb(breadcrumb),
   });
 }
 
@@ -68,7 +73,7 @@ export function captureException(
       Object.entries(options.tags).forEach(([k, v]) => scope.setTag(k, v));
     if (options.extra)
       Object.entries(options.extra).forEach(([k, v]) => scope.setExtra(k, v));
-    if (options.user) scope.setUser(options.user);
+    if (options.user) scope.setUser(sentryUser(options.user));
     Sentry.captureException(error);
   });
 }
@@ -85,9 +90,13 @@ export function captureMessage(
   Sentry.captureMessage(message, level);
 }
 
+/**
+ * Olaylara kullanıcıyı iliştirir — YALNIZ id. Çağıran e-posta / kullanıcı adı verse de
+ * gönderilmez (`beforeSend` aynı kuralı bir kez daha uygular).
+ */
 export function setUser(user: SentryUser | null): void {
   if (!enabled) return;
-  Sentry.setUser(user);
+  Sentry.setUser(sentryUser(user));
 }
 
 /**
