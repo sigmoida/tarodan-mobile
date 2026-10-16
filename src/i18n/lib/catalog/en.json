@@ -177,7 +177,16 @@
     "loginForTrades": "Sign In for Trade Operations",
     "vehicleTypes": "Vehicle Types",
     "manufacturers": "Manufacturers",
-    "allManufacturers": "All Manufacturers"
+    "allManufacturers": "All Manufacturers",
+    "allListings": "All Listings",
+    "newArrivals": "New Arrivals",
+    "bestSellers": "Best Sellers",
+    "onSale": "On Sale",
+    "categories": "Categories",
+    "scale": "Scale",
+    "explore": "Explore",
+    "categoriesEmptyTitle": "No categories found",
+    "categoriesEmptySubtitle": "There is nothing to show right now. Please try again later."
   },
   "auth": {
     "loginTitle": "Login",

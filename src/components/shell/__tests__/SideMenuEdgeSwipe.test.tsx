@@ -21,7 +21,7 @@ import {
 
 jest.mock('expo-status-bar', () => ({ StatusBar: () => null, setStatusBarStyle: jest.fn() }));
 
-let mockSegments: string[] = ['(tabs)'];
+let mockSegments: string[] = ['(tabs)', 'profile'];
 const BASE_TABS = { index: 0, routes: [{ name: '(tabs)' }] };
 let mockRootState: unknown = { index: 0, routes: [{ name: '__root', state: BASE_TABS }] };
 jest.mock('expo-router', () => ({
@@ -62,7 +62,7 @@ const edge = () => getByGestureTestId('side-menu-edge-pan');
 
 beforeEach(() => {
   jest.useFakeTimers();
-  mockSegments = ['(tabs)'];
+  mockSegments = ['(tabs)', 'profile'];
   mockRootState = { index: 0, routes: [{ name: '__root', state: BASE_TABS }] };
   jest.spyOn(BackHandler, 'addEventListener').mockImplementation(() => ({ remove: () => undefined }) as never);
 });
@@ -72,11 +72,22 @@ afterEach(() => {
 });
 
 describe('Yan menü — kenardan açma', () => {
-  it('sekme kökünde etkin; şerit sol kenarla sınırlı (hitSlop: left 0 + platform genişliği)', () => {
+  it('Profil sekme kökünde etkin; şerit sol kenarla sınırlı (hitSlop: left 0 + platform genişliği)', () => {
     setup();
     const g = edge();
     expect(g.config.enabled).toBe(true);
     expect(g.config.hitSlop).toEqual({ left: 0, width: SIDE_MENU_EDGE_WIDTH_IOS });
+  });
+
+  it.each([
+    ['Ana Sayfa', ['(tabs)']],
+    ['Favoriler', ['(tabs)', 'favorites']],
+    ['Sepet', ['(tabs)', 'cart']],
+    ['İlan Ver', ['(tabs)', 'sell']],
+  ])('%s sekme kökünde kapalı (☰ yalnız Profil kökünde; sol düğme kategorilerdir)', (_name, segments) => {
+    mockSegments = segments as string[];
+    setup();
+    expect(edge().config.enabled).toBe(false);
   });
 
   it('yığın ekranında (iOS kaydırarak geri) kapalı', () => {
@@ -86,7 +97,7 @@ describe('Yan menü — kenardan açma', () => {
   });
 
   it('üste itilmiş ikinci (tabs) kopyasında kapalı (kök yığın indeksi > 0)', () => {
-    mockSegments = ['(tabs)', 'cart'];
+    mockSegments = ['(tabs)', 'profile'];
     mockRootState = {
       index: 0,
       routes: [

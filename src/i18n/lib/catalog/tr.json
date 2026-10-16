@@ -177,7 +177,16 @@
     "loginForTrades": "Takas İşlemleri İçin Giriş Yapın",
     "vehicleTypes": "Araç Türleri",
     "manufacturers": "Üreticiler",
-    "allManufacturers": "Tüm Üreticiler"
+    "allManufacturers": "Tüm Üreticiler",
+    "allListings": "Tüm İlanlar",
+    "newArrivals": "Yeni Gelenler",
+    "bestSellers": "Çok Satanlar",
+    "onSale": "İndirimler",
+    "categories": "Kategoriler",
+    "scale": "Ölçek",
+    "explore": "Keşfet",
+    "categoriesEmptyTitle": "Kategori bulunamadı",
+    "categoriesEmptySubtitle": "Şu an gösterilecek kategori yok. Daha sonra tekrar deneyin."
   },
   "auth": {
     "loginTitle": "Giriş Yap",

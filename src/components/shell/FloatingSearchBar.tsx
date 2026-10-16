@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { GLASS_ICON_BUTTON_SIZE, theme, useHeaderTopInset } from '@/ui';
 import { SearchField } from './SearchField';
-import { ShellHeaderActions, ShellMenuButton } from './ShellHeaderActions';
+import { ShellHeaderActions, ShellLeadingButton } from './ShellHeaderActions';
 import { useLockedPush } from './useLockedPush';
 import { useTabBarCollapsedFlag, useTabBarProgress } from './TabBarCollapse';
 import { APP_SHELL_BAR_HEIGHT } from './tabBarLayout';
@@ -12,7 +12,7 @@ import { barBackgroundOpacity, searchHideStyle } from './floatingBar';
 const { colors, spacing } = theme;
 
 /**
- * Ana sayfanın yüzen üst barı: solda ☰ (yan menü), ortada arama alanı, sağda Mesajlar + Bildirimler
+ * Ana sayfanın yüzen üst barı: solda kategoriler düğmesi (`ShellLeadingButton`), ortada arama alanı, sağda Mesajlar + Bildirimler
  * (sayaçlı; `ShellHeaderActions`). Düğmeler `GlassIconButton` (cam daire). Liste başında beyaz bar
  * zemini + arama alanı görünür; içerik aşağı kaydırılınca (alt menüyle AYNI `collapsed` sinyali/süre/
  * eğri: `useTabBarProgress`) bar zemini solar ve arama alanı yukarı + sola kayarak kaybolur — yalnız
@@ -33,7 +33,7 @@ export const FloatingSearchBar: React.FC = () => {
     <View pointerEvents="box-none" style={[styles.bar, { paddingTop: topInset }]} testID="app-shell-bar">
       <Animated.View pointerEvents="none" style={[styles.background, bgStyle]} testID="app-shell-bar-bg" />
       <View pointerEvents="box-none" style={styles.row} testID="app-shell-bar-row">
-        <ShellMenuButton testID="home-menu-button" />
+        <ShellLeadingButton menuTestID="home-menu-button" categoriesTestID="home-categories-button" />
         <Animated.View
           style={[styles.search, searchStyle]}
           pointerEvents={hidden ? 'none' : 'auto'}

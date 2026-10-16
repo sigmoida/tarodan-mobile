@@ -8,7 +8,7 @@ import {
   useShellScrollState,
   type PageScrollValue,
 } from '@/ui';
-import { ShellHeaderActions, ShellMenuButton } from './ShellHeaderActions';
+import { ShellHeaderActions, ShellLeadingButton } from './ShellHeaderActions';
 
 const { colors } = theme;
 
@@ -30,7 +30,7 @@ export interface TitleShellProps {
 
 /**
  * Sekme köklerinin başlıklı kabuğu (`AppShell variant="title"`): `ScreenHeader` ile AYNI yüzen bar
- * (ortalı başlık, cam butonlar) + kaydırma kenarı. Geri oku yerine solda ☰ (yan menü), sağda TAM iki
+ * (ortalı başlık, cam butonlar) + kaydırma kenarı. Geri oku yerine solda `ShellLeadingButton` (Profil: ☰ yan menü; diğerleri: kategoriler), sağda TAM iki
  * düğme: Mesajlar + Bildirimler (`ShellHeaderActions`) — Ana Sayfa'nın yüzen barıyla aynı düzen.
  * Ekrana özel üst bar aksiyonu yok (sağ grup sabit). İçerik tam yükseklikte; bar üstünde yüzer.
  */
@@ -50,7 +50,7 @@ export const TitleShell: React.FC<TitleShellProps> = ({ title, subtitle, scroll,
       <ScreenHeader
         title={title ?? ''}
         subtitle={subtitle}
-        leading={<ShellMenuButton testID="app-shell-menu" />}
+        leading={<ShellLeadingButton menuTestID="app-shell-menu" categoriesTestID="app-shell-categories" />}
         right={<ShellHeaderActions />}
         testID="app-shell-bar"
         scrollY={shell.bound ? shell.page.scrollY : undefined}
