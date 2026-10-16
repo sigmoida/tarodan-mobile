@@ -10,6 +10,7 @@ export const styles = StyleSheet.create({
   earningItem: { flex: 1, alignItems: 'center', gap: spacing[1] },
   earningDivider: { width: 1, height: spacing[10], backgroundColor: colors.border.DEFAULT },
   list: { gap: spacing[3] },
+  footerSpinner: { paddingVertical: spacing[4] },
   saleCard: { gap: spacing[3] },
   saleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing[3] },
   saleContent: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },

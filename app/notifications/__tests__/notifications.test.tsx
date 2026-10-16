@@ -306,6 +306,24 @@ describe('P2 #17 · bildirim sayfalaması', () => {
   });
 });
 
+describe('Bildirimler · tek satır okundu işaretleme', () => {
+  it('liste yeniden çekilmez (önbellek iyimser düzeltilir), yalnız rozet sorgusu tazelenir', async () => {
+    getAll.mockResolvedValue({ data: { notifications: sample, pagination: { page: 1, pages: 1 } } });
+    renderWithProviders(<NotificationsScreen />);
+    await screen.findByText('Yeni Sipariş');
+    const before = getAll.mock.calls.length;
+
+    fireEvent.press(screen.getByText('Yeni Sipariş'));
+    await waitFor(() => expect(markAsRead).toHaveBeenCalledWith('n1'));
+    // onSettled mikro görevleri otursun.
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(getAll.mock.calls.length).toBe(before);
+  });
+});
+
 /**
  * Sekmeye her girişte görünür otomatik yenileme olmasın: odak dönüşü ve arka plan
  * tazelemeleri sessiz; gösterge yalnız kullanıcı çekip-yenilediğinde.

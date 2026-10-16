@@ -309,7 +309,7 @@ describe("C2 inceleme · 6 odaklanma/yenileme aynı anahtarı iki kez çekmez", 
   const listCalls = (reason?: "expired") =>
     mockGetMyListings.mock.calls
       .map(([p]) => p)
-      .filter((p) => (reason ? p?.inactiveReason === reason && p.limit === 100 : p?.limit === 100));
+      .filter((p) => (reason ? p?.inactiveReason === reason && p.limit === 20 : p?.limit === 20));
 
   it("ilk açılış: liste ve sayaç sorgusu birer kez gider (odaklanma uçuştakini iptal etmez)", async () => {
     serve([expired()]);
@@ -328,12 +328,39 @@ describe("C2 inceleme · 6 odaklanma/yenileme aynı anahtarı iki kez çekmez", 
     await waitFor(() => expect(listCalls("expired")).toHaveLength(1));
     mockGetMyListings.mockClear();
 
-    const scroll = screen.UNSAFE_getAllByType(require("react-native").ScrollView).find((n) => n.props.refreshControl);
+    // Liste artık FlatList (PageShell list modu): çek-yenile FlatList'in `onRefresh`i.
     await act(async () => {
-      await scroll!.props.refreshControl.props.onRefresh();
+      await screen.getByTestId("my-listings-list").props.onRefresh();
     });
     expect(listCalls("expired")).toHaveLength(1);
     expect(mockGetMyListings.mock.calls.filter(([p]) => p?.limit === 1)).toHaveLength(1);
+  });
+});
+
+describe("İlanlarım · sayfalama", () => {
+  it("liste sonuna gelince sonraki sayfa istenir (20'şer), satırlar eklenir ve tekrarlar elenir", async () => {
+    const all = Array.from({ length: 30 }, (_, i) => listing({ id: `P${i}`, title: `İlan ${i}` }));
+    mockGetMyListings.mockImplementation(async (params: Record<string, unknown> = {}) => {
+      if (params.limit === 1) return { data: { data: [], meta: { total: 0, page: 1, limit: 1, totalPages: 0 } } };
+      const page = Number(params.page ?? 1);
+      const limit = Number(params.limit ?? 20);
+      // 2. sayfa, ofset kayması yüzünden 1. sayfanın son satırını TEKRAR getirir.
+      const rows = all.slice(page === 1 ? 0 : limit - 1, page * limit);
+      return { data: { data: rows, meta: { total: 30, page, limit, totalPages: 2 } } };
+    });
+    renderWithProviders(<MyListingsScreen />);
+    await screen.findByText("İlan 0");
+    expect(mockGetMyListings).toHaveBeenCalledWith(expect.objectContaining({ page: 1, limit: 20 }));
+
+    fireEvent(screen.getByTestId("my-listings-list"), "endReached");
+    await waitFor(() =>
+      expect(mockGetMyListings).toHaveBeenCalledWith(expect.objectContaining({ page: 2, limit: 20 })),
+    );
+    // Sanallaştırma: ekranda yalnız ilk satırlar çizilir → doğrulama FlatList verisi üzerinden.
+    await waitFor(() => expect(screen.getByTestId("my-listings-list").props.data).toHaveLength(30));
+    const ids = (screen.getByTestId("my-listings-list").props.data as Array<{ id: string }>).map((l) => l.id);
+    // 2. sayfanın tekrar eden ilk satırı (P19) elenir: kimlikler benzersiz.
+    expect(new Set(ids).size).toBe(30);
   });
 });
 

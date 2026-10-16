@@ -10,6 +10,9 @@ const DOT = 6;
 
 // İlan yönetimi ekranının route-local stylesheet'i — web Card/SectionCard dili, token'lı.
 export const styles = StyleSheet.create({
+  // Liste başlığı (kota kartı · sekmeler · banner · seçim çubuğu): eski PageShell bölüm aralığı.
+  listHeader: { gap: spacing[4] },
+  footerSpinner: { paddingVertical: spacing[4] },
   progressBar: {
     marginTop: spacing[2],
   },

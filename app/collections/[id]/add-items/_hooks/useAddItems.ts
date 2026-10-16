@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -68,7 +68,7 @@ export function useAddItems() {
     setOverlay((o) => ({ ...o, [productId]: itemId }));
   };
 
-  const toggle = async (listing: Listing) => {
+  const toggleImpl = async (listing: Listing) => {
     if (pending[listing.id]) return;
     const itemId = effectiveItemId(listing.id);
     // Gerçek itemId henüz gelmediyse çıkarma isteği atılamaz; senkron tamamlanana dek bekle.
@@ -122,6 +122,12 @@ export function useAddItems() {
       }
     }
   };
+
+  // Kararlı referans: `toggleImpl` her render'da güncel `pending`/`overlay`'i kapatır; memo'lu
+  // satırlar yeniden çizilmesin diye ref üzerinden çağrılır (verbatim iyimser mantık değişmedi).
+  const toggleRef = useRef(toggleImpl);
+  toggleRef.current = toggleImpl;
+  const toggle = useCallback((listing: Listing) => toggleRef.current(listing), []);
 
   return {
     search,

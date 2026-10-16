@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Pressable } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { Button, Text, ListRowCard } from '@/ui';
@@ -5,14 +6,25 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
 import type { Listing } from '../_lib/types';
-import type { AddItemsController } from '../_hooks/useAddItems';
 import { formatPrice } from '@/utils/format';
 
-/** Tek ilan satırı — foto/başlık/fiyat + Ekle / Çıkar düğmesi (optimistic). */
-export function ListingPickerRow({ listing, f }: { listing: Listing; f: AddItemsController }) {
+/**
+ * Tek ilan satırı — foto/başlık/fiyat + Ekle / Çıkar düğmesi (optimistic). Memo'lu: `added` / `busy`
+ * ekran tarafından satır için hesaplanıp boolean geçilir, `onToggle` kararlı referanstır → bir
+ * satırın durumu değişince diğer satırlar yeniden çizilmez.
+ */
+export const ListingPickerRow = React.memo(function ListingPickerRow({
+  listing,
+  added,
+  busy,
+  onToggle,
+}: {
+  listing: Listing;
+  added: boolean;
+  busy: boolean;
+  onToggle: (listing: Listing) => void;
+}) {
   const { t } = useTranslation();
-  const added = !!f.effectiveItemId(listing.id);
-  const busy = !!f.pending[listing.id];
 
   return (
     <ListRowCard>
@@ -36,11 +48,11 @@ export function ListingPickerRow({ listing, f }: { listing: Listing; f: AddItems
         size="sm"
         variant={added ? 'primary' : 'outline'}
         icon={added ? 'check' : 'plus'}
-        onPress={() => f.toggle(listing)}
+        onPress={() => onToggle(listing)}
         isLoading={busy}
         disabled={busy}
         accessibilityLabel={added ? t('collection.removeFromCollection') : t('collection.addToCollection')}
       />
     </ListRowCard>
   );
-}
+});

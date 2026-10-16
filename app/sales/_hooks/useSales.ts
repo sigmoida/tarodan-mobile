@@ -1,11 +1,24 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useCallback, useMemo, useState } from 'react';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { qk } from '@/lib/query';
+import {
+  flattenPagesUnique,
+  nextPageFromInfo,
+  readPageInfo,
+  trimInfiniteToFirstPage,
+  type PageInfo,
+} from '@/lib/query/infinite';
 import { ordersApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { FOCUS_LIST_STALE_MS, useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import type { Sale, FilterType } from '../_lib/types';
 import { saleBadgeStatus } from '../_lib/status';
+
+/** Sayfa boyutu ve bellekte tutulan en çok sayfa (≈ eski tek seferlik 100 kayıt tavanı). */
+const PAGE_SIZE = 20;
+const MAX_PAGES = 5;
+
+type SalesPage = PageInfo & { sales: Sale[] };
 
 /**
  * Sales list controller — owns the seller-orders query, the filter-independent
@@ -17,11 +30,23 @@ export function useSales() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: salesData, isLoading, isError, refetch } = useQuery({
-    queryKey: qk.orders.sellerList(filter),
+  const listKey = qk.orders.sellerList(filter);
+  const queryClient = useQueryClient();
+  const {
+    data: salesData,
+    isLoading,
+    isError,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: listKey,
+    initialPageParam: 1,
     // Hata yutulmaz: önbelleğe `[]` yazmak hatayı "satış yok" gibi gösteriyordu → ErrorState.
-    queryFn: async () => {
-      const params: any = { role: 'seller', limit: 100 };
+    queryFn: async ({ pageParam }): Promise<SalesPage> => {
+      const page = pageParam as number;
+      const params: any = { role: 'seller', limit: PAGE_SIZE, page };
       if (filter !== 'all') {
         // Mobil UI 'processing' adını kullanır; backend enum'u 'preparing'. Sınırda çevir.
         // 'cancelled' filtresi hem iptal (cancelled) hem para-iadesi (refunded) getirir.
@@ -33,16 +58,23 @@ export function useSales() {
       const response = await ordersApi.getAll(params);
       const raw = (response.data as any)?.data || response.data || [];
       // Backend 'preparing' → mobil 'processing' (badge/aksiyon/filtre tek isimle çalışsın).
-      return (Array.isArray(raw) ? raw : []).map((o: any) =>
+      const sales = (Array.isArray(raw) ? raw : []).map((o: any) =>
         o?.status === 'preparing' ? { ...o, status: 'processing' } : o,
       );
+      return { sales, ...readPageInfo(response.data, page) };
     },
+    getNextPageParam: nextPageFromInfo,
+    maxPages: MAX_PAGES,
     enabled: isAuthenticated,
     // Yeni satış / durum değişimi alıcıdan gelir: dönüşte bundan eskiyse tazelenir.
     staleTime: FOCUS_LIST_STALE_MS,
   });
 
-  const sales: Sale[] = salesData || [];
+  // Sayfalar arası ofset kayması aynı satışı iki kez getirebilir → kimliğe göre tekilleştir.
+  const sales: Sale[] = useMemo(
+    () => flattenPagesUnique(salesData?.pages, (p) => p.sales, (sale) => sale.id),
+    [salesData],
+  );
 
   // Kazanç özeti — AKTİF FİLTREDEN BAĞIMSIZ sunucu agregatı. Önceden totalEarnings/
   // pendingEarnings filtrelenmiş + sayfalı `sales` listesinden hesaplanıyordu → 'paid'
@@ -58,18 +90,31 @@ export function useSales() {
   // Ekrana dönüşte yalnız bayatsa tazele (liste + kazanç; ilk açılışta ikinci istek yok).
   useRefetchStaleOnFocus([qk.orders.all], isAuthenticated);
 
+  // Çekip-yenile: önce ilk sayfaya kırp (refetch yüklü TÜM sayfaları sırayla çekerdi).
   const onRefresh = async () => {
     setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
+    try {
+      trimInfiniteToFirstPage(queryClient, listKey);
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  const filteredSales = sales.filter((sale) => {
-    if (filter === 'all') return true;
-    const ui = saleBadgeStatus(sale);
-    if (filter === 'cancelled') return ui === 'cancelled' || ui === 'refunded';
-    return ui === filter;
-  });
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const filteredSales = useMemo(
+    () =>
+      sales.filter((sale) => {
+        if (filter === 'all') return true;
+        const ui = saleBadgeStatus(sale);
+        if (filter === 'cancelled') return ui === 'cancelled' || ui === 'refunded';
+        return ui === filter;
+      }),
+    [sales, filter],
+  );
 
   return {
     isAuthenticated,
@@ -83,6 +128,8 @@ export function useSales() {
     refetch,
     refreshing,
     onRefresh,
+    loadMore,
+    isFetchingNextPage,
     totalEarnings,
     pendingEarnings,
   };

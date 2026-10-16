@@ -212,3 +212,35 @@ describe('Siparişlerim · İptal Edilenler sekmesi', () => {
     );
   });
 });
+
+describe('Siparişlerim · sayfalama', () => {
+  beforeEach(() => {
+    getGroupsMock.mockReset();
+    mockAuth = { isAuthenticated: true };
+  });
+
+  it('liste sonuna gelince sonraki sayfa istenir ve satırlar eklenir', async () => {
+    getGroupsMock.mockImplementation((params: { page: number }) =>
+      Promise.resolve({
+        data: {
+          data: [
+            orderGroupFixture(
+              params.page === 1
+                ? { id: 'o-p1', orderNumber: 'ORD-PAGE-1' }
+                : { id: 'o-p2', orderNumber: 'ORD-PAGE-2' },
+            ),
+          ],
+          meta: { total: 2, page: params.page, limit: 20, totalPages: 2 },
+        },
+      }),
+    );
+    renderWithProviders(<OrdersScreen />);
+    expect(await screen.findByText(/ORD-PAGE-1/)).toBeOnTheScreen();
+    expect(getGroupsMock).toHaveBeenCalledWith(expect.objectContaining({ page: 1, limit: 20 }));
+
+    fireEvent(screen.getByTestId('orders-list'), 'endReached');
+    expect(await screen.findByText(/ORD-PAGE-2/)).toBeOnTheScreen();
+    expect(getGroupsMock).toHaveBeenCalledWith(expect.objectContaining({ page: 2 }));
+    expect(screen.getByText(/ORD-PAGE-1/)).toBeOnTheScreen();
+  });
+});

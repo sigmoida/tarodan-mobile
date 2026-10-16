@@ -7,12 +7,19 @@ import { useAuthStore } from '@/stores/authStore';
 import type { Notification } from '../_lib/types';
 import { routeForNotification } from '../_lib/route';
 import { navigateTo } from '@/lib/navigation/goTo';
+import { trimInfiniteToFirstPage } from '@/lib/query/infinite';
+import { useNotificationUnreadCount } from '@/hooks/useNotificationUnreadCount';
 
 /**
  * Liste bu süreden taze sayılır: sekmeye dönüşte sessiz tazeleme yalnız bayatsa çalışır.
  * (Yeni push gelince `setupPushNotificationRouting` listeyi zaten geçersiz kılar.)
  */
 const LIST_STALE_MS = 30_000;
+/**
+ * Bellekte tutulan en çok sayfa (20'şer → ~100 bildirim). Aşılınca en eski sayfa düşer;
+ * `getNextPageParam` bu yüzden `all.length` değil `lastPageParam` üzerinden ilerler.
+ */
+const MAX_PAGES = 5;
 
 type NotificationsPayload = { list: Notification[]; unreadCount: number; hasMore: boolean };
 /** `useInfiniteQuery` önbelleğinin şekli — iyimser güncellemeler bunu düzenler. */
@@ -76,17 +83,24 @@ export function useNotifications() {
     queryKey: qk.notifications.list,
     queryFn: ({ pageParam }) => fetchNotifications(pageParam as number),
     initialPageParam: 1,
-    getNextPageParam: (last, all) => (last.hasMore ? all.length + 1 : undefined),
+    // `maxPages` sayfa düşürebildiği için sonraki sayfa numarası son parametreden türetilir.
+    getNextPageParam: (last, _all, lastPageParam) =>
+      last.hasMore ? (lastPageParam as number) + 1 : undefined,
+    maxPages: MAX_PAGES,
     enabled: isAuthenticated,
     staleTime: LIST_STALE_MS,
   });
 
   const { refetch } = query;
   const pages = query.data?.pages ?? [];
+  // İlk sayfa `maxPages` yüzünden düştüyse sayaç (yalnız 1. sayfada sorulur) listede yok:
+  // rozet sorgusuna (`qk.notifications.unread`) düşülür.
+  const firstPageDropped = pages.length > 0 && query.data?.pageParams[0] !== 1;
+  const badgeUnread = useNotificationUnreadCount(isAuthenticated && firstPageDropped);
   const data = {
     list: pages.flatMap((p) => p.list),
     // Rozet listenin TAMAMINA ait; ilk sayfanın sayacı otoritedir.
-    unreadCount: pages[0]?.unreadCount ?? 0,
+    unreadCount: firstPageDropped ? badgeUnread : (pages[0]?.unreadCount ?? 0),
   };
 
   /**
@@ -120,10 +134,17 @@ export function useNotifications() {
         list: prev.list.map((n) => (n.id === id ? { ...n, read: true, isRead: true } : n)),
         unreadCount: Math.max(0, prev.unreadCount - 1),
       }));
+      // Anasayfa rozeti ayrı sorgu — iyimser düşür (sunucu sayısı onSettled'da doğrulanır).
+      queryClient.setQueryData<number>(qk.notifications.unread, (n) =>
+        typeof n === 'number' ? Math.max(0, n - 1) : n,
+      );
+    },
+    onError: () => {
+      // Tek satır yazımı başarısız: iyimser düzenlemeyi geri almak için YALNIZ hatada liste tazelenir.
+      queryClient.invalidateQueries({ queryKey: qk.notifications.list });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: qk.notifications.list });
-      // Anasayfa rozeti ayrı sorgu — o da tazelensin.
+      // Önbellek iyimser olarak zaten düzeltildi → listeyi (yüklü TÜM sayfaları) yeniden çekme.
       queryClient.invalidateQueries({ queryKey: qk.notifications.unread });
     },
   });
@@ -160,11 +181,17 @@ export function useNotifications() {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await refetch();
+      // 1. sayfa düşmüşse refetch yalnız ara sayfaları yeniler → baştan yükle.
+      if (firstPageDropped) await queryClient.resetQueries({ queryKey: qk.notifications.list });
+      else {
+        // Yüklü TÜM sayfaları sırayla çekmek yerine ilk sayfaya kırp (tek istek).
+        trimInfiniteToFirstPage(queryClient, qk.notifications.list);
+        await refetch();
+      }
     } finally {
       setRefreshing(false);
     }
-  }, [refetch]);
+  }, [refetch, firstPageDropped, queryClient]);
 
   const handlePress = useCallback(
     (notification: Notification) => {
