@@ -43,6 +43,8 @@ export interface GlassIconButtonProps {
   iconColor?: string;
   /** Görsel ölçü; dokunma alanı her ölçüde ≥ 44pt. */
   size?: GlassIconButtonSize;
+  /** Aç/kapa düğmelerinde (favori) durum: etiket sabit kalır, ekran okuyucu "seçili" der. */
+  selected?: boolean;
 }
 
 /**
@@ -61,6 +63,7 @@ export function GlassIconButton({
   tone = 'heading',
   iconColor,
   size = 'md',
+  selected,
 }: GlassIconButtonProps) {
   // Native cam, ata opacity < 1 iken efektini kaybeder: camda soluklaştırma ve basılı geri bildirimi
   // (disabled opacity / pressed opacity) yüzeye değil içeriğe / ölçeğe uygulanır.
@@ -81,7 +84,7 @@ export function GlassIconButton({
         disabled={disabled}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
-        accessibilityState={{ disabled: !!disabled }}
+        accessibilityState={selected === undefined ? { disabled: !!disabled } : { disabled: !!disabled, selected }}
         hitSlop={slop > 0 ? slop : undefined}
         android_ripple={Platform.OS === 'android' ? { color: colors.overlay.black10, radius: box / 2, foreground: true } : undefined}
         style={({ pressed }) => [

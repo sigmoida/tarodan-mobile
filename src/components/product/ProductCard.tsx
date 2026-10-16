@@ -103,7 +103,17 @@ const FAVORITE_INSET = spacing[1.5];
  * Görselin sağ altındaki cam favori kalbi (32pt, dokunma alanı 44pt). Kartın Pressable'ının KARDEŞİ
  * olarak çizilir: basmak kartı açmaz. Pasif: çizgi kalp; aktif: dolu `danger-500`.
  */
-function FavoriteHeart({ productId, isFavorite, onToggle }: { productId: string; isFavorite: boolean; onToggle: (id: string) => void }) {
+function FavoriteHeart({
+  productId,
+  title,
+  isFavorite,
+  onToggle,
+}: {
+  productId: string;
+  title: string;
+  isFavorite: boolean;
+  onToggle: (id: string) => void;
+}) {
   const { t } = useTranslation();
   return (
     <GlassIconButton
@@ -111,7 +121,10 @@ function FavoriteHeart({ productId, isFavorite, onToggle }: { productId: string;
       icon="heart"
       iconVariant={isFavorite ? 'solid' : 'outline'}
       iconColor={isFavorite ? colors.danger[500] : undefined}
-      accessibilityLabel={t(isFavorite ? 'product.removeFromFavorites' : 'product.addToFavorites')}
+      // Etiket sabit (ürün adıyla), durum `selected` (web: sabit "Favori" + aria-pressed) — ikisi
+      // birden değişirse ekran okuyucu "Favorilerden çıkar, seçili" gibi çelişik okur.
+      accessibilityLabel={t('product.favoriteNamed', { title })}
+      selected={isFavorite}
       testID={`product-card-favorite-${productId}`}
       onPress={() => onToggle(productId)}
     />
@@ -200,13 +213,14 @@ function ProductCardBase({
   testID,
 }: ProductCardProps) {
   const { t } = useTranslation();
-  // Liste: görsel satırda dikey ortalı (yükseklik gövdeye bağlı) — kalbi ölçülen konuma yerleştir.
+  // Liste: görsel satırda dikey ortalı (web `items-center`; konum gövde yüksekliğine bağlı) — kalp
+  // görselin ÖLÇÜLEN çerçevesine yerleşir ve ölçüm gelene dek çizilmez (ilk karede zıplama yok).
   const [listImageFrame, setListImageFrame] = useState<LayoutRectangle | null>(null);
   const onListImageLayout = onToggleFavorite
     ? (e: LayoutChangeEvent) => setListImageFrame(e.nativeEvent.layout)
     : undefined;
   const heart = onToggleFavorite ? (
-    <FavoriteHeart productId={product.id} isFavorite={isFavorite} onToggle={onToggleFavorite} />
+    <FavoriteHeart productId={product.id} title={product.title} isFavorite={isFavorite} onToggle={onToggleFavorite} />
   ) : null;
 
   const { effective, original, onSale, discount, outOfStock, isTrade, showSponsored, showTrade, showCampaign, campaign } = useMemo(
@@ -284,7 +298,9 @@ function ProductCardBase({
             {onSale ? <ProductBadge variant="sale">%{discount}</ProductBadge> : null}
           </View>
         </Pressable>
-        {heart ? <View style={[styles.favoriteBox, listHeartPosition(listImageFrame)]}>{heart}</View> : null}
+        {heart && listImageFrame ? (
+          <View style={[styles.favoriteBox, listHeartPosition(listImageFrame)]}>{heart}</View>
+        ) : null}
         {overlay ? <View style={styles.overlayEnd}>{overlay}</View> : null}
         {footer ? <View style={styles.listFooter}>{footer}</View> : null}
       </View>
@@ -366,25 +382,17 @@ function ProductCardBase({
   );
 }
 
-/** Liste kalbinin konumu: ölçülen görsel çerçevesinin sağ altı (ölçüm gelene dek üst hizalı varsayım). */
-function listHeartPosition(frame: LayoutRectangle | null): ViewStyle {
-  const x = frame?.x ?? LIST_IMAGE_ORIGIN;
-  const y = frame?.y ?? LIST_IMAGE_ORIGIN;
-  const w = frame?.width ?? LIST_IMAGE_SIZE;
-  const h = frame?.height ?? LIST_IMAGE_SIZE;
+/** Liste kalbinin konumu: ölçülen görsel çerçevesinin sağ altı. */
+function listHeartPosition(frame: LayoutRectangle): ViewStyle {
   return {
-    left: x + w - GLASS_ICON_BUTTON_SIZE_SM - spacing[1],
-    top: y + h - GLASS_ICON_BUTTON_SIZE_SM - spacing[1],
+    left: frame.x + frame.width - GLASS_ICON_BUTTON_SIZE_SM - spacing[1],
+    top: frame.y + frame.height - GLASS_ICON_BUTTON_SIZE_SM - spacing[1],
   };
 }
 
 export const ProductCard = React.memo(ProductCardBase);
 
 export default ProductCard;
-
-/** Liste görseli: 80pt; kartın kenarlığı (1) + iç boşluğu içinde başlar. */
-const LIST_IMAGE_SIZE = spacing[20];
-const LIST_IMAGE_ORIGIN = spacing[3] + 1;
 
 const styles = StyleSheet.create({
   fill: { width: '100%', height: '100%' },

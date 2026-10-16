@@ -108,20 +108,47 @@ describe('ProductCard — grid', () => {
 describe('ProductCard — favori kalbi', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it.each(['grid', 'list'] as const)('%s: pasif kalp "Favorilere Ekle"; basınca toggle(id), kart AÇILMAZ', (layout) => {
+  /** Liste düzeninde kalp görselin ölçülen çerçevesine oturur: testte ölçümü taklit et. */
+  function layoutListImage() {
+    const img = screen.UNSAFE_root.findAll(
+      (n: { props: { onLayout?: unknown; style?: unknown } }) =>
+        typeof n.props.onLayout === 'function' && String(JSON.stringify(n.props.style ?? null)).includes('"width":80'),
+    )[0]!;
+    fireEvent(img, 'layout', { nativeEvent: { layout: { x: 13, y: 20, width: 80, height: 80 } } });
+  }
+
+  it.each(['grid', 'list'] as const)('%s: etiket ürün adıyla, pasif; basınca toggle(id), kart AÇILMAZ', (layout) => {
     const onToggle = jest.fn();
     render(<ProductCard product={base} layout={layout} onToggleFavorite={onToggle} />);
+    if (layout === 'list') {
+      // Ölçüm gelmeden çizilmez (ilk karede yanlış yerde görünüp zıplamasın).
+      expect(screen.queryByTestId('product-card-favorite-p1')).toBeNull();
+      layoutListImage();
+    }
     const heart = screen.getByTestId('product-card-favorite-p1');
-    expect(heart.props.accessibilityLabel).toBe('Favorilere Ekle');
+    expect(heart.props.accessibilityLabel).toBe('Hot Wheels Supra — Favori');
+    expect(heart.props.accessibilityState).toEqual(expect.objectContaining({ selected: false }));
     fireEvent.press(heart);
     expect(onToggle).toHaveBeenCalledWith('p1');
     expect(mockPush).not.toHaveBeenCalled();
     expect(productsApi.recordClick).not.toHaveBeenCalled();
   });
 
-  it('aktif: etiket "Favorilerden Çıkar"', () => {
+  it('liste: kalp ölçülen görselin sağ altına oturur', () => {
+    render(<ProductCard product={base} layout="list" onToggleFavorite={jest.fn()} />);
+    layoutListImage();
+    // Kalbin kutusu: GlassIconButton'ın (Animated.View) atası.
+    let node = screen.getByTestId('product-card-favorite-p1').parent;
+    while (node && !String(JSON.stringify(node.props.style ?? null)).includes('"left"')) node = node.parent;
+    // 13 + 80 - 32 - 4 = 57; 20 + 80 - 32 - 4 = 64
+    expect(JSON.stringify(node?.props.style)).toContain('"left":57');
+    expect(JSON.stringify(node?.props.style)).toContain('"top":64');
+  });
+
+  it('aktif: aynı etiket, durum seçili', () => {
     render(<ProductCard product={base} isFavorite onToggleFavorite={jest.fn()} />);
-    expect(screen.getByLabelText('Favorilerden Çıkar')).toBeTruthy();
+    const heart = screen.getByLabelText('Hot Wheels Supra — Favori');
+    expect(heart.props.accessibilityState).toEqual(expect.objectContaining({ selected: true }));
   });
 
   it('kalp varken kartın kendisine basmak yine ürünü açar', () => {

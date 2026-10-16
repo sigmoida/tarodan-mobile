@@ -20,6 +20,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
   const { t } = useTranslation();
   const { activeTab, products, reviews, collections } = f;
   const rating = sellerRatingSummary(f);
+  // Kendi profilinde ilanların hepsi kullanıcının: kalp hiç çizilmez (DTO'da satıcı olmasa da).
   const favoriteProps = useProductCardFavorites();
   return (
     <>
@@ -41,7 +42,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
           <View style={styles.grid}>
             {products.map((product: any) => (
               <View key={product.id} style={styles.cell}>
-                <ProductCard product={product} {...favoriteProps(product)} />
+                <ProductCard product={product} {...(f.isOwnProfile ? null : favoriteProps(product))} />
               </View>
             ))}
           </View>

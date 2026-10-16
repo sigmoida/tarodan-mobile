@@ -500,6 +500,7 @@
     "makeOffer": "Make Offer",
     "trade": "Trade Offer",
     "addToFavorites": "Add to Favorites",
+    "favoriteNamed": "{title} — Favorite",
     "removeFromFavorites": "Remove from Favorites",
     "removedFromFavorites": "Removed from favorites",
     "addedToFavorites": "Added to favorites",
