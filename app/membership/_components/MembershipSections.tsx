@@ -27,26 +27,14 @@ import type { MembershipController } from '../_hooks/useMembership';
 type SectionProps = { f: MembershipController };
 
 // ---------------------------------------------------------------------------
-// Error + pending-payment banners
+// Pending-payment banner (yükleme hatası artık PageShell ErrorState'i — `f.error`)
 // ---------------------------------------------------------------------------
 export function MembershipBanners({ f }: SectionProps) {
   const { membership, t } = f;
   return (
     <>
-      {f.error ? (
-        <Alert variant="danger" testID="membership-error">
-          <View style={styles.errorBody}>
-            <Text variant="bodySm" tone="danger">
-              {f.error}
-            </Text>
-            <Button variant="link" size="sm" title={t('common.tryAgain')} onPress={f.fetchData} />
-          </View>
-        </Alert>
-      ) : null}
-
       {/* Bekleyen ödeme bandı yarım kalmış PayTR ödemesini tamamlamaya çağırıyor
-          — iOS'ta satın alma çağrısı olduğu için kalkar. Hata bandı (yukarıda)
-          satın almayla ilgisi olmadığı için DOKUNULMAZ. */}
+          — iOS'ta satın alma çağrısı olduğu için kalkar. */}
       {f.hasPendingPayment && CAN_BUY_DIGITAL && (
         <Pressable
           style={styles.pendingPressable}

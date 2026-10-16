@@ -1,11 +1,12 @@
-import { useState, useCallback, useMemo } from "react";
-import { router, useFocusEffect } from "expo-router";
+import { useState, useMemo } from "react";
+import { router } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { theme } from "@/ui";
 import { CAN_BUY_DIGITAL, limitAlert } from "@/lib/purchases";
 import { productsApi, type ListingRemovalPayload } from "@/lib/api";
 import { qk } from "@/lib/query";
 import { useAuthStore } from "@/stores/authStore";
+import { useRefetchStaleOnFocus } from "@/hooks/useRefetchStaleOnFocus";
 import { useTranslation } from "react-i18next";
 import type { SellerRemovalAction } from "@/components/listing/_lib/removal";
 import {
@@ -32,7 +33,7 @@ export interface RemovalTarget {
 }
 
 /**
- * My-listings controller — owns the listings + stats queries, focus refresh,
+ * My-listings controller — owns the listings + stats queries, stale-only focus refresh,
  * filter/modal state, quota derivation, and the action-menu dispatcher.
  * Durum mutasyonları `useListingMutations`, yenileme `useRenewListings`
  * içindedir; invalidation seti `useInvalidateMyListings`te TEK yerdedir.
@@ -104,23 +105,18 @@ export function useMyListings() {
   const { deactivate, remove, reactivate } = useListingMutations();
   const { renewOne, renewMany } = useRenewListings();
 
-  // Odaklanma ve çek-yenile AYNI yoldan geçer. `cancelRefetch:false`: uçuştaki bir
-  // istek varsa (ilk açılış, hızlı art arda tetik) onu iptal edip yeniden başlatmak
-  // yerine ona katılır → anahtar başına tek istek.
+  // Çek-yenile. `cancelRefetch:false`: uçuştaki bir istek varsa (ilk açılış, hızlı art
+  // arda tetik) onu iptal edip yeniden başlatmak yerine ona katılır → anahtar başına tek istek.
   const refreshLists = () =>
     Promise.all([
       refetch({ cancelRefetch: false }),
       refetchExpired({ cancelRefetch: false }),
     ]);
 
-  // Refresh on focus
-  useFocusEffect(
-    useCallback(() => {
-      refreshLists();
-      queryClient.invalidateQueries({ queryKey: qk.products.myListingsStats });
-      refreshUserData();
-    }, []),
-  );
+  // Ekrana dönüşte yalnız BAYATSA tazele (liste + süresi dolan sayacı `my-listings` önekinde,
+  // sayaçlar ayrı). Eskiden her odakta üç istek + `/users/me` gidiyordu; ilan yazımları
+  // (`useInvalidateMyListings`, ilan formu) zaten hepsini invalidate edip kullanıcıyı tazeliyor.
+  useRefetchStaleOnFocus([qk.products.myListingsAll, qk.products.myListingsStats]);
 
   const onRefresh = async () => {
     setRefreshing(true);

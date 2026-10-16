@@ -30,7 +30,8 @@ const base = {
   isLoading: false,
   error: null,
   refetch: jest.fn(),
-  isRefetching: false,
+  refreshing: false,
+  onRefresh: jest.fn(),
 };
 
 describe('Üreticiler ekranı', () => {

@@ -1,7 +1,8 @@
-import { useCallback, useMemo } from 'react';
-import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { useCallback, useMemo, useState } from 'react';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { brandsApi, manufacturersApi, productsApi } from '@/lib/api';
 import { qk } from '@/lib/query';
+import { trimInfiniteToFirstPage } from '@/lib/query/infinite';
 import type { ProductCardProduct } from '@/components/product';
 import { extractListings, extractMeta, flattenUniqueListings } from '@/utils/productFilters';
 
@@ -82,13 +83,16 @@ export function useEntityProducts(kind: CatalogEntityKind, slug: string | undefi
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Çek-bırak: önce önbelleği ilk sayfaya kırp, sonra yenile → tek istek (arama ile aynı).
+  // Gösterge yalnız kullanıcı çektiğinde döner (`isRefetching` arka plan tazelemesinde de true).
+  const [refreshing, setRefreshing] = useState(false);
   const refresh = useCallback(async () => {
-    queryClient.setQueryData<InfiniteData<unknown>>(productsKey, (old) =>
-      old && old.pages.length > 1
-        ? { pages: old.pages.slice(0, 1), pageParams: old.pageParams.slice(0, 1) }
-        : old,
-    );
-    await refetch();
+    setRefreshing(true);
+    try {
+      trimInfiniteToFirstPage(queryClient, productsKey);
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
     // productsKey her render'da yeni dizi; içeriği entity id'den türüyor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryClient, refetch, isBrand, entity?.id]);
@@ -103,8 +107,8 @@ export function useEntityProducts(kind: CatalogEntityKind, slug: string | undefi
     // açık kaldığı için bir sonraki `onEndReached` sayfayı yeniden dener.
     error: products.length === 0 ? productsQuery.error : null,
     refetch: refresh,
-    // Sonraki sayfa yüklenirken de `isRefetching` değil — yalnız çek-bırak yenilemesi.
-    isRefetching: productsQuery.isRefetching && !isFetchingNextPage,
+    /** Yalnız kullanıcının çek-bırak yenilemesi (sonraki sayfa / arka plan tazelemesi değil). */
+    refreshing,
     loadMore,
     loadingMore: isFetchingNextPage,
   };

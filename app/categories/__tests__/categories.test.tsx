@@ -42,7 +42,7 @@ const loaded = {
   retry,
   retryAll,
   isLoading: false,
-  isRefetching: false,
+  refreshing: false,
 };
 
 beforeEach(() => {

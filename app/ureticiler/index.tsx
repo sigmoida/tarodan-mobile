@@ -55,8 +55,8 @@ export default function ManufacturersScreen() {
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
-            refreshing={f.isRefetching}
-            onRefresh={f.refetch}
+            refreshing={f.refreshing}
+            onRefresh={f.onRefresh}
             progressViewOffset={page.topInset}
             colors={[colors.primary[600]!]}
             tintColor={colors.primary[600]!}

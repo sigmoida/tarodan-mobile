@@ -6,6 +6,7 @@ import { ErrorState, SkeletonCard, pageListContentStyle, theme, usePageScrollHan
 import { PageShell } from "@/components/common/PageShell";
 import { useAuthStore } from "@/stores/authStore";
 import { useTimingValues } from "@/hooks/useTimingPolicy";
+import { useRefresh } from "@/hooks/useRefresh";
 import { useTranslation } from "react-i18next";
 import type { Offer, TabType } from "./_lib/types";
 import { useOffers } from "./_hooks/useOffers";
@@ -58,9 +59,10 @@ export default function OffersScreen() {
     data: offers = [],
     isLoading,
     isError,
-    isRefetching,
     refetch,
   } = useOffers(activeTab, isAuthenticated);
+  // Gösterge yalnız kullanıcı çektiğinde (`isRefetching` sekme değişimi / invalidate'te de döner).
+  const { refreshing, onRefresh } = useRefresh(refetch);
   const estimatedNetByOfferId = useCommissionPreview(offers, activeTab);
   const { requestAccept, requestReject, requestCancel, pendingOfferIds } = useOfferActions();
   const timing = useTimingValues();
@@ -162,8 +164,8 @@ export default function OffersScreen() {
           )
         }
         contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
-        refreshing={isRefetching}
-        onRefresh={refetch}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
       />
     </PageShell>
   );

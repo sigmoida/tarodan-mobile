@@ -24,6 +24,9 @@ export default function MembershipScreen() {
       title={f.t('mobile.membershipTitle')}
       onBack={f.guardLocked ? f.handleLockedExit : f.handleBack}
       loading={f.loading}
+      error={f.error}
+      errorMessage={f.error ?? undefined}
+      onRetry={f.fetchData}
     >
       <MembershipBanners f={f} />
       <MembershipCurrentPlan f={f} />

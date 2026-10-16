@@ -17,7 +17,13 @@ export default function MembershipPlansScreen() {
   const f = useMembership();
 
   return (
-    <PageShell title={f.t('membership.title')} loading={f.loading}>
+    <PageShell
+      title={f.t('membership.title')}
+      loading={f.loading}
+      error={f.error}
+      errorMessage={f.error ?? undefined}
+      onRetry={f.fetchData}
+    >
       <View style={styles.list}>
         {f.visibleTiers.map((tier) => (
           <PlanCard key={tier} f={f} tier={tier} />

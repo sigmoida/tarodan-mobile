@@ -4,7 +4,7 @@ import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { PageShell } from '@/components/common/PageShell';
-import { pageListContentStyle, theme } from '@/ui';
+import { ErrorState, pageListContentStyle, theme } from '@/ui';
 import { useTabBarPageScroll } from '@/components/shell/TabBarCollapse';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { withStackTabBar } from '@/components/shell/StackTabBar';
@@ -100,8 +100,8 @@ function ListingsScreen() {
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
-            refreshing={f.isRefetching}
-            onRefresh={f.refetch}
+            refreshing={f.refreshing}
+            onRefresh={f.refreshFirstPage}
             progressViewOffset={page.topInset}
             colors={[colors.primary[600]!]}
             tintColor={colors.primary[600]!}
@@ -116,6 +116,9 @@ function ListingsScreen() {
         ListEmptyComponent={
           f.isLoading ? (
             <ProductGridSkeleton />
+          ) : f.isError ? (
+            // Yükleme hatası "ilan yok" boş durumuyla maskelenmesin (arama ekranıyla aynı).
+            <ErrorState title={t('utility.error500.title')} onRetry={() => f.refetch()} />
           ) : (
             <ProductListEmpty
               filtered={f.activeFilterCount > 0 || !!f.filters.search}

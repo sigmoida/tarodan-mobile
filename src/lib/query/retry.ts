@@ -1,9 +1,10 @@
 /**
- * 4xx yeniden denenmez — TEK KAYNAK (CLAUDE.md §5).
+ * 4xx yeniden denenmez — TEK KAYNAK (CLAUDE.md §5). Artık sorguların VARSAYILAN
+ * `retry`'si (bkz. `client.ts`).
  *
- * Varsayılan `retry: 2` (bkz. `client.ts`) bir kupon 400'ünde aynı isteği üç kez
- * atıp aynı uyarıyı üç kez bastırıyordu; istemci hatası tekrar denemekle
- * düzelmiyor. Ağ/5xx hataları varsayılan gibi denenir.
+ * Eski varsayılan `retry: 2` bir kupon 400'ünde aynı isteği üç kez atıp aynı
+ * uyarıyı üç kez bastırıyordu; istemci hatası tekrar denemekle düzelmiyor.
+ * Ağ/5xx hataları en fazla 2 kez denenir.
  *
  * Sepet ve checkout AYNI quote anahtarını paylaşır; yüklem iki yerde
  * kopyalanırsa biri güncellenip diğeri unutulduğunda aynı sorgu iki ekranda

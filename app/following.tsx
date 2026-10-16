@@ -1,6 +1,6 @@
 import { View, Pressable, StyleSheet } from 'react-native';
-import { useState, useCallback } from 'react';
-import { router, useFocusEffect } from 'expo-router';
+import { useState } from 'react';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { theme, Text, Card, Avatar, Button, Icon } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
@@ -8,6 +8,8 @@ import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { useFollowing, FollowedSeller } from '@/hooks/useFollowing';
 import { useAuthStore } from '@/stores/authStore';
+import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
+import { qk } from '@/lib/query';
 
 const { colors, spacing, iconSize } = theme;
 
@@ -18,14 +20,8 @@ export default function FollowingScreen() {
   const { following, isLoading, isError, fetchFollowing, unfollowSeller, getFollowingCount } = useFollowing();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch following on focus
-  useFocusEffect(
-    useCallback(() => {
-      if (isAuthenticated) {
-        fetchFollowing();
-      }
-    }, [isAuthenticated])
-  );
+  // Ekrana dönüşte yalnız bayatsa tazele (takip/bırakma zaten önbelleği güncelliyor).
+  useRefetchStaleOnFocus([qk.follow.following], isAuthenticated);
 
   const onRefresh = async () => {
     setRefreshing(true);

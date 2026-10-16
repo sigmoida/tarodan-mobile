@@ -1,16 +1,16 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { qk, useAppMutation } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
+import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { useAuthStore } from '@/stores/authStore';
 import { DEFAULT_SETTINGS, type NotificationSettings } from '../_lib/types';
 
 /**
  * Notification-settings controller — owns the local settings state synced from
- * GET /users/me/settings, the PATCH save mutation, per-key toggle and focus
+ * GET /users/me/settings, the PATCH save mutation, per-key toggle and stale-only focus
  * refetch. Lifted verbatim from the monolithic screen (§12).
  */
 export function useNotificationSettings() {
@@ -47,13 +47,8 @@ export function useNotificationSettings() {
     }
   }, [settingsData]);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (isAuthenticated) {
-        refetch();
-      }
-    }, [isAuthenticated]),
-  );
+  // Ekrana dönüşte yalnız bayatsa tazele (her odakta değil; ilk açılışta ikinci istek yok).
+  useRefetchStaleOnFocus([qk.user.notificationSettings], isAuthenticated);
 
   // Anahtarlar PATCH /users/me/settings (UpdateNotificationSettingsDto) ile birebir;
   // backend bu tercihleri gönderim yollarında uygular (Bulgu #9 fix).

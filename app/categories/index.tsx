@@ -53,7 +53,7 @@ export default function CategoriesScreen() {
           onBack={c.back}
           onPressTile={c.pressTile}
           onPressFooter={c.openHref}
-          refreshing={c.isRefetching}
+          refreshing={c.refreshing}
           onRefresh={c.refetchAll}
           bottomInset={bottom}
           scroll={scroll}

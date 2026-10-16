@@ -4,13 +4,14 @@ import { AppImage } from '@/components/AppImage';
 import { Button, SectionCard, Text, StatusBadge, appAlert, theme } from '@/ui';
 import { refundReasonLabel } from '@/lib/shared/status-configs';
 import { useState, useCallback } from 'react';
-import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { refundsApi } from '@/lib/api';
 import { useAppMutation } from '@/lib/query';
 import { formatPrice } from '@/utils/format';
 import { useAuthStore } from '@/stores/authStore';
+import { FOCUS_LIST_STALE_MS, useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { captureException } from '@/services/sentry';
 import { PageShell } from '@/components/common/PageShell';
 import { refundHistoryActionLabel } from './_lib/history';
@@ -33,13 +34,17 @@ export default function RefundDetailScreen() {
   const { isAuthenticated, user } = useAuthStore();
   const [refreshing, setRefreshing] = useState(false);
 
+  // Anahtar sorgu ile odak tazelemesi arasında tek yerde.
+  const detailKey = ['refund-requests', 'detail', id] as const;
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['refund-requests', 'detail', id],
+    queryKey: detailKey,
     queryFn: async () => {
       const res: any = await refundsApi.getById(id as string);
       return (res?.data?.data ?? res?.data ?? res) as any;
     },
     enabled: isAuthenticated && !!id,
+    // Durum satıcıdan değişir: dönüşte bundan eskiyse tazelenir.
+    staleTime: FOCUS_LIST_STALE_MS,
   });
 
   const cancelMutation = useAppMutation(() => refundsApi.cancel(id as string), {
@@ -58,11 +63,8 @@ export default function RefundDetailScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  useFocusEffect(
-    useCallback(() => {
-      refetch();
-    }, [refetch]),
-  );
+  // Ekrana dönüşte yalnız bayatsa tazele (her odakta değil; ilk açılışta ikinci istek yok).
+  useRefetchStaleOnFocus([detailKey], isAuthenticated && !!id);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 

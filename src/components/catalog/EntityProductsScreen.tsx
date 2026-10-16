@@ -30,7 +30,7 @@ export function EntityProductsScreen({ kind }: { kind: CatalogEntityKind }) {
       <ProductGrid
         items={f.products}
         loading={f.loading}
-        refreshing={f.isRefetching}
+        refreshing={f.refreshing}
         onRefresh={f.refetch}
         onEndReached={f.loadMore}
         loadingMore={f.loadingMore}

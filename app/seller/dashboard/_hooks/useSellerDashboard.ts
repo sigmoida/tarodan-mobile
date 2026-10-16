@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { userApi, ordersApi, productsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { useRefresh } from '@/hooks/useRefresh';
 import type { SellerStats } from '../_lib/types';
 
 /**
@@ -77,8 +78,10 @@ export function useSellerDashboard() {
     enabled: isAuthenticated,
   });
 
+  // Yükleyici ÜÇ sorgu da ilk kez çözülene dek kalır (eskiden `&&`: biri gelince kalkıyor,
+  // kartlar önce 0 sonra gerçek değerle yeniden çiziliyordu).
   const isLoading =
-    statsQuery.isLoading && pendingOrdersQuery.isLoading && myListingsQuery.isLoading;
+    statsQuery.isLoading || pendingOrdersQuery.isLoading || myListingsQuery.isLoading;
 
   const stats = statsQuery.data ?? {};
   const activeListings = myListingsQuery.data ?? stats.activeListings ?? 0;
@@ -86,18 +89,20 @@ export function useSellerDashboard() {
   const monthly = stats.monthlySales ?? 0;
   const rating = stats.averageRating ?? 0;
 
-  const refresh = () => {
-    statsQuery.refetch();
-    pendingOrdersQuery.refetch();
-    myListingsQuery.refetch();
-  };
+  // Çekip-yenile: gösterge yalnız kullanıcı çektiğinde ve üç istek bitene dek döner
+  // (eskiden `statsQuery.isRefetching` — arka plan tazelemesinde de dönüyordu).
+  const { refreshing, onRefresh: refresh } = useRefresh(
+    statsQuery.refetch,
+    pendingOrdersQuery.refetch,
+    myListingsQuery.refetch,
+  );
 
   return {
     user,
     isAuthenticated,
     isBusiness,
     isLoading,
-    isRefetching: statsQuery.isRefetching,
+    refreshing,
     stats,
     activeListings,
     pendingOrders,

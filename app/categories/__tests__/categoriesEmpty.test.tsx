@@ -12,7 +12,7 @@ jest.mock('../_hooks/useCategoriesScreen', () => ({
     canGoBack: false,
     parentTitle: '',
     isLoading: false,
-    isRefetching: false,
+    refreshing: false,
     refetchAll: jest.fn(),
     retryGroup: jest.fn(),
     selectGroup: jest.fn(),
