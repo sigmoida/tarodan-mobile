@@ -20,6 +20,7 @@ import { FeaturedRail, OnSaleRail, TradeRail, PopularRail } from './_components/
 import { TopCollections } from './_components/HomeCollections';
 import { Spotlights } from './_components/HomeSpotlights';
 import { HeroSection } from './_components/HeroSlider';
+import { HeroReserved } from './_components/HeroReserved';
 import { useHomeHero } from './_hooks/useHomeHero';
 import { useHeroVisibility } from './_hooks/useHeroVisibility';
 import { AdBanner } from '@/components/ads/AdBanner';
@@ -40,6 +41,12 @@ export default function HomeScreen() {
   const data = useHomeData();
   const hero = useHomeHero();
   const heroView = useHeroVisibility();
+  const showHero = !hero.loadingSlides && hero.slides.length > 0;
+  // Sarmalayıcı kalkınca ölçüm sıfırlanır (visible eski değerde donmasın).
+  const { resetHero } = heroView;
+  useEffect(() => {
+    if (!showHero) resetHero();
+  }, [showHero, resetHero]);
   // Tab bar daralma sinyali + hero görünürlüğü (ofset UI thread'inden seyrek köprülenir).
   const tabScroll = useTabBarScrollHandler(heroView.onScrollOffset);
   const { onLayout: onTabScrollLayout } = tabScroll;
@@ -66,11 +73,12 @@ export default function HomeScreen() {
   }, []);
 
   const { refetchAll } = data;
+  const { refetch: refetchHero } = hero;
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refetchAll();
+    await Promise.all([refetchAll(), refetchHero()]);
     setRefreshing(false);
-  }, [refetchAll]);
+  }, [refetchAll, refetchHero]);
 
   const handleProductPress = (productId: string) => {
     if (!isAuthenticated) incrementListingView();
@@ -102,14 +110,16 @@ export default function HomeScreen() {
       >
         <AdBanner position="topbar" session={adSession} />
         <AdBanner position="header" session={adSession} />
-        <View onLayout={heroView.onHeroLayout}>
-          <HeroSection
-            slides={hero.slides}
-            locale={hero.locale}
-            isLoading={hero.loadingSlides}
-            visible={heroView.visible}
-          />
-        </View>
+        {/* Hero yokken (boş liste) sarmalayıcı da yok: ilk bölüm üstteki reklam/üst barın altından
+            tek `HOME_SECTION_GAP` ile (sections dolgusu) başlar. Yükleniyorsa yalnız son açılışta
+            hero vardıysa yer tutulur (`reserveSpace`). */}
+        {showHero ? (
+          <View onLayout={heroView.onHeroLayout} testID="home-hero">
+            <HeroSection slides={hero.slides} locale={hero.locale} visible={heroView.visible} />
+          </View>
+        ) : hero.reserveSpace ? (
+          <HeroReserved />
+        ) : null}
 
         <View style={styles.sections}>
           <BrandsStrip items={data.manufacturers} />

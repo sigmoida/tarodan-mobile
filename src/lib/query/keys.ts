@@ -304,8 +304,11 @@ export const qk = {
   },
 
   hero: {
-    /** GET /hero-slides?placement= — admin'den yönetilen vitrin slaytları. */
-    slides: (placement: string) => ["hero", "slides", placement] as const,
+    /**
+     * GET /hero-slides?placement=&platform= — admin'den yönetilen vitrin slaytları.
+     * Platform anahtarda: parametresiz eski istek önbelleği yenisiyle karışmasın.
+     */
+    slides: (placement: string, platform: string) => ["hero", "slides", placement, platform] as const,
   },
 
   membershipLimits: {

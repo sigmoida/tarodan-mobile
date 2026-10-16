@@ -75,17 +75,4 @@ export const homeStyles = StyleSheet.create({
     borderRadius: radiusRole.productCard,
     backgroundColor: colors.surface.alt,
   },
-
-  // Statik yedek hero
-  heroBanner: {
-    marginTop: HOME_SECTION_GAP,
-    marginHorizontal: HOME_GUTTER,
-    gap: spacing[2],
-    padding: spacing[4],
-    borderRadius: radiusRole.section,
-    borderWidth: 1,
-    borderColor: colors.primary[100],
-    backgroundColor: colors.primary[50],
-  },
-  heroButtons: { gap: spacing[2], marginTop: spacing[2] },
 });

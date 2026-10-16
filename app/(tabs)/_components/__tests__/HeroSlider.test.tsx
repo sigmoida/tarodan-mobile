@@ -1,10 +1,10 @@
 /**
- * D-4.3/4.4: ana sayfa hero'su API'den gelir. Yüklenirken rezerve alan, görünür
- * slayt yoksa statik yedek; CTA'lar paylaşılan openAdLink ile açılır, tıklama
+ * D-4.3/4.4: ana sayfa hero'su API'den gelir. Görünür slayt yokken hiçbir
+ * şey çizilmez (yükleniyor/yer tutma kararı ekranda); CTA'lar paylaşılan openAdLink ile açılır, tıklama
  * `?cta=` ile TEK istek olarak sayılır, gösterim görünürlükte (mount'ta değil).
  */
 import React from 'react';
-import { AppState, ScrollView, StyleSheet } from 'react-native';
+import { AppState, Dimensions, ScrollView, StyleSheet } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 const mockRecordClick = jest.fn((..._a: unknown[]) => Promise.resolve());
@@ -34,12 +34,8 @@ jest.mock('expo-router', () => {
   };
 });
 
-jest.mock('../HeroBanner', () => {
-  const { Text } = require('react-native');
-  return { HeroBanner: () => <Text>STATIC_HERO</Text> };
-});
-
 import { HeroSection } from '../HeroSlider';
+import { HeroReserved } from '../HeroReserved';
 import { heroReservedHeight } from '../../_lib/heroLayout';
 import * as heroView from '@/lib/hero/heroView';
 import { IMPRESSION_DWELL_MS } from '@/lib/ads/useAdImpression';
@@ -78,23 +74,17 @@ describe('HeroSection', () => {
   });
   afterEach(() => jest.useRealTimers());
 
-  it('yüklenirken rezerve alan çizer, statik hero çizmez', () => {
-    const api = render(<HeroSection slides={[]} locale="tr" isLoading />);
-    expect(api.getByTestId('hero-reserved')).toBeTruthy();
-    expect(api.queryByText('STATIC_HERO')).toBeNull();
-  });
-
-  it('rezerve alan yüksekliği ekran genişliğinden hesaplanır (sabit 380 değil)', () => {
-    const { Dimensions } = require('react-native');
-    const api = render(<HeroSection slides={[]} locale="tr" isLoading />);
+  it('HeroReserved: ekran genişliğinden hesaplanan yükseklikte boş yer tutar', () => {
+    const api = render(<HeroReserved />);
     const style = StyleSheet.flatten(api.getByTestId('hero-reserved').props.style);
     expect(style.height).toBeCloseTo(heroReservedHeight(Dimensions.get('window').width), 5);
   });
 
-  it('görünür slayt yoksa statik hero', () => {
+  it('görünür slayt yoksa hiçbir şey çizilmez (statik yedek hero yok)', () => {
     const api = render(<HeroSection slides={[]} locale="tr" />);
-    expect(api.getByText('STATIC_HERO')).toBeTruthy();
+    expect(api.toJSON()).toBeNull();
     expect(api.queryByTestId('hero-slider')).toBeNull();
+    expect(api.queryByTestId('hero-banner')).toBeNull();
   });
 
   it('slayt başlığı/alt başlığı/CTA etiketi dile göre', () => {
