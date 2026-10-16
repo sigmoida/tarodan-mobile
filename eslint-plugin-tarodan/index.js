@@ -440,8 +440,61 @@ const noInlineQueryKey = {
   },
 };
 
+/**
+ * Yükleme göstergesi TEK yerde: `src/ui/loading/LoadingIndicator.tsx` (değiştirme noktası — özel
+ * animasyona geçişte yalnız orası değişir). Başka yerde RN `ActivityIndicator` import'u (adlı ya da
+ * `import * as RN` + `RN.ActivityIndicator`) uyarı verir; `LoadingIndicator` / `Spinner` /
+ * `ScreenLoader` / `Button isLoading` (@/ui) kullanılır. Çekip yenileme (`RefreshControl`) native kalır.
+ */
+const ACTIVITY_INDICATOR_ALLOWED = ['/src/ui/loading/'];
+
+/** @type {import('eslint').Rule.RuleModule} */
+const noRawActivityIndicator = {
+  meta: {
+    type: 'suggestion',
+    docs: { description: 'RN ActivityIndicator yalnız src/ui/loading/ içinde — LoadingIndicator (@/ui) kullan' },
+    schema: [],
+    messages: {
+      raw: "Ham 'ActivityIndicator' — tek gösterge LoadingIndicator / Spinner / ScreenLoader ya da Button isLoading (@/ui) kullan. Bkz. CLAUDE.md §14 Loading.",
+    },
+  },
+  create(context) {
+    const filename = String(context.filename || (context.getFilename && context.getFilename()) || '').replace(/\\/g, '/');
+    if (ACTIVITY_INDICATOR_ALLOWED.some((a) => filename.includes(a))) return {};
+    const namespaces = new Set();
+    const isNs = (o) => o && (o.type === 'Identifier' || o.type === 'JSXIdentifier') && namespaces.has(o.name);
+    return {
+      ImportDeclaration(node) {
+        if (!node.source || node.source.value !== 'react-native' || node.importKind === 'type') return;
+        for (const sp of node.specifiers || []) {
+          if (sp.type === 'ImportNamespaceSpecifier') namespaces.add(sp.local.name);
+          else if (
+            sp.type === 'ImportSpecifier' &&
+            sp.importKind !== 'type' &&
+            sp.imported &&
+            (sp.imported.name || sp.imported.value) === 'ActivityIndicator'
+          ) {
+            context.report({ node: sp, messageId: 'raw' });
+          }
+        }
+      },
+      MemberExpression(node) {
+        if (!node.computed && isNs(node.object) && node.property.name === 'ActivityIndicator') {
+          context.report({ node, messageId: 'raw' });
+        }
+      },
+      JSXMemberExpression(node) {
+        if (isNs(node.object) && node.property.name === 'ActivityIndicator') {
+          context.report({ node, messageId: 'raw' });
+        }
+      },
+    };
+  },
+};
+
 module.exports = {
   rules: {
+    'no-raw-activity-indicator': noRawActivityIndicator,
     'no-inline-query-key': noInlineQueryKey,
     'empty-state-standard': emptyStateStandard,
     'restrict-button-icon': restrictButtonIcon,

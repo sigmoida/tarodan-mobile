@@ -204,8 +204,9 @@ resolves tsconfig `paths` at runtime; jest maps `@/` in `jest.config.js`. Prefer
 
 ## 11. Loading / empty / error states
 
-Use the shared `Spinner`/`ScreenLoader`, `EmptyState`, and `ErrorState` primitives
-consistently — don't hand-roll per-screen loaders or empty views.
+Use the shared loading module (`src/ui/loading/`, exported from `@/ui` — see §14
+"Loading"), `EmptyState`, and `ErrorState` primitives consistently — don't hand-roll
+per-screen loaders, skeleton colours/animations or empty views.
 
 ## 12. Canonical example — `app/offers/`
 
@@ -453,8 +454,35 @@ and turns them into **errors**, so write new code warning-free.
   bottom, 48pt circle) — `ErrorState` takes the same prop. Give each `EmptyState` a unique
   `testID` when several can render on one screen (default `empty-state` / `error-state`); never wrap it in extra padding/margin or hand-draw View + icon + Text
   (`tarodan/empty-state-standard` warns on hand-drawn `ListEmptyComponent`s).
-- **Loading:** list and card screens use `Skeleton*` (web-like); a full-screen
-  spinner only for the very first load.
+- **Loading: one replaceable system** (`src/ui/loading/`, all exported from `@/ui`). List and card
+  screens use skeletons (web-like); a full-screen spinner (`ScreenLoader`) only for the very first
+  load / layout-less flows (payment, gates).
+  - **One indicator:** `LoadingIndicator` (`size` sm 16 · md 20 · lg 36, `tone` primary | inverted |
+    muted, `accessibilityLabel`) is the ONLY spinner. `Spinner` (alias), `ScreenLoader`,
+    `Button`/`IconButton` `isLoading` all draw it. Raw RN `ActivityIndicator` outside
+    `src/ui/loading/` is lint-warned (`tarodan/no-raw-activity-indicator`). **To swap the animation**
+    (Lottie/Reanimated) edit only the inside of `LoadingIndicator.tsx`: keep the box size
+    (`theme.loading.indicator.size`), colour (`theme.loading.indicator.color[tone]`), the
+    `progressbar` role and a static frame under reduce-motion. `RefreshControl` stays native (tint
+    from tokens only).
+  - **One skeleton driver:** every skeleton is `SkeletonBlock` (alias `Skeleton`) animated by ONE
+    shared loop (`useSkeletonAnimation`, reduce-motion aware). Look/animation = one token,
+    `theme.loading.skeleton.{animation: 'pulse' | 'shimmer' | 'none', duration, pulseMinOpacity,
+    baseColor, highlightColor}` — never a local skeleton colour or `Animated` loop.
+  - **Layout-faithful blocks** read the real component's geometry constants so nothing jumps when
+    data arrives: `SkeletonLine` (a `Text` variant's line box), `SkeletonText`, `SkeletonAvatar`
+    (`AVATAR_SIZES`), `SkeletonSectionCard` (`SECTION_CARD_METRICS`), `SkeletonListRow`,
+    `SkeletonChatBubble` (`CHAT_BUBBLE_METRICS`), and next to their components
+    `SkeletonProductCard` (`@/components/product`, `PRODUCT_CARD_METRICS`; `ProductGridSkeleton`
+    uses the real cell width) and `SkeletonMenuRow` (`@/components/menu`, `PROFILE_ROW_METRICS`).
+    A new screen skeleton composes these; a new component that needs one exports its metrics and
+    gets a sibling `Skeleton<Name>`.
+  - **Delayed loading:** `useDelayedLoading(isLoading, { delay, minDuration })` shows nothing for
+    loads shorter than `theme.loading.delayMs` (150) and, once shown, keeps the loader at least
+    `theme.loading.minVisibleMs` (300). `PageShell` `loading` uses it automatically (empty body during
+    the delay — never the old content); use it for a list's `ListEmptyComponent` skeleton too. Tests
+    advance jest fake timers (`theme.loading.delayMs`) instead of expecting an immediate skeleton.
+  - Showcase: `/tasarim` → "Yükleme".
 - **Copy:** same i18n key, same value as web. New keys go into both `tr` and `en`
   (prefer the web's key name and text), then `node scripts/gen-keys.mjs`; don't
   rewrite existing catalog values as a side effect of a UI change.

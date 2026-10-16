@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   View,
@@ -15,6 +14,7 @@ import { Pill } from './Pill';
 import { RefIcon, type IconRef, type IconVariant } from '../icons';
 import { useButtonGroup } from '../lib/buttonGroup';
 import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFeedback';
+import { LoadingIndicator } from '../loading/LoadingIndicator';
 
 /** Web `@tarodan/ui` Button varyantları (adlar aynı). */
 export type ButtonVariant =
@@ -164,7 +164,13 @@ export const Button: React.FC<ButtonProps> = ({
     >
       <View style={styles.row}>
         {isLoading ? (
-          <ActivityIndicator size="small" color={vs.text} style={styles.iconLeft} />
+          // Gösterge ikon yuvasında, ikon boyunda (sm/md 16 · lg/xl 20) ve etiket renginde.
+          <LoadingIndicator
+            size={ss.icon > iconSize.sm ? 'md' : 'sm'}
+            color={vs.text}
+            style={styles.iconLeft}
+            testID="button-loading"
+          />
         ) : (
           resolvedLeftIcon && <View style={styles.iconLeft}>{resolvedLeftIcon}</View>
         )}

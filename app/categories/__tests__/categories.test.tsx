@@ -7,6 +7,7 @@ import React from 'react';
 import { RefreshControl } from 'react-native';
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
+import { theme } from '@/ui';
 
 jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').routerMock);
 
@@ -192,9 +193,16 @@ describe('Kategoriler ekranı — hedefler', () => {
 describe('Kategoriler ekranı — durumlar', () => {
   it('veri yokken ilk yüklemede tam ekran iskelet', () => {
     mockCatalog.mockReturnValue({ ...loaded, categories: [], manufacturers: [], scales: [], isLoading: true });
+    jest.useFakeTimers();
     render(<CategoriesScreen />);
+    // PageShell iskeleti gecikmeli gösterir (useDelayedLoading): pencere boyunca boş gövde.
+    expect(screen.queryByTestId('categories-skeleton')).toBeNull();
+    act(() => {
+      jest.advanceTimersByTime(theme.loading.delayMs);
+    });
     expect(screen.getByTestId('categories-skeleton')).toBeTruthy();
     expect(screen.queryByTestId('categories-rail')).toBeNull();
+    jest.useRealTimers();
   });
 
   it('bir grup hâlâ yüklenirken ekran açılır: grup rayda, sağ alan ızgara iskeleti (ölçekler tam ekranı bekletmez)', () => {

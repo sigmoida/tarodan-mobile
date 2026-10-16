@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { theme, Text, Icon, ListRowCard, RadioIndicator, EmptyState } from '@/ui';
+import { theme, Text, Icon, ListRowCard, RadioIndicator, EmptyState, LoadingIndicator } from '@/ui';
 import { router, useFocusEffect } from 'expo-router';
 import { addressesApi } from '@/lib/api';
 
@@ -83,7 +83,7 @@ export function TradeAddressPicker({ onChange, label }: Props) {
       ) : null}
 
       {loading ? (
-        <ActivityIndicator color={colors.primary[600]!} style={{ marginVertical: theme.spacing[4] }} />
+        <LoadingIndicator style={styles.loading} />
       ) : (
         <>
           {addresses.map((a) => {
@@ -127,6 +127,7 @@ export function TradeAddressPicker({ onChange, label }: Props) {
 
 const styles = StyleSheet.create({
   container: { gap: theme.spacing[2] },
+  loading: { marginVertical: theme.spacing[4] },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[1.5], marginBottom: theme.spacing[1] },
   label: { fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.semibold, color: colors.text.heading },
   card: { alignItems: 'stretch' },

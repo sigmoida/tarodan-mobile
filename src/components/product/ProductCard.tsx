@@ -17,6 +17,7 @@ import {
 } from '@/utils/productPrice';
 import { formatPrice } from '@/utils/format';
 import { OutOfStockOverlay } from './OutOfStockOverlay';
+import { PRODUCT_CARD_METRICS } from './productCardMetrics';
 import { getProductSalePercent, isProductTradeBadgeVisible, selectProductCardBadges, type ProductCardBadge } from './productCardBadges';
 
 const { colors, spacing, typography, radiusRole, iconSize } = theme;
@@ -87,6 +88,10 @@ export interface ProductCardProps {
   style?: ViewStyle;
   testID?: string;
 }
+
+/** Geometri `productCardMetrics.ts`'te (iskeletle tek kaynak; ayrı dosya: kartı mock'layan testler iskeleti kırmasın). */
+export { PRODUCT_CARD_METRICS };
+const PM = PRODUCT_CARD_METRICS;
 
 /** Kalbin görsel köşesine uzaklığı (rozetlerle aynı iç boşluk). */
 const FAVORITE_INSET = spacing[1.5];
@@ -457,8 +462,8 @@ const styles = StyleSheet.create({
   gridCard: {
     flex: 1,
     overflow: 'hidden',
-    borderRadius: radiusRole.productCard,
-    borderWidth: 1,
+    borderRadius: PM.grid.radius,
+    borderWidth: PM.borderWidth,
     borderColor: colors.border.DEFAULT,
     backgroundColor: colors.surface.elevated,
   },
@@ -472,10 +477,10 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing[1],
   },
-  gridBody: { flex: 1, padding: spacing[2.5] },
+  gridBody: { flex: 1, padding: PM.grid.bodyPadding },
   gridTitle: {
-    marginBottom: spacing[1],
-    lineHeight: typography.fontSize.sm * typography.lineHeight.tight,
+    marginBottom: PM.grid.titleGap,
+    lineHeight: PM.grid.titleLineHeight,
   },
   // Meta + fiyat altta sabit: 1 ya da 2 satırlık başlıkta kartlar hizalı kalır.
   gridBottom: { marginTop: 'auto' },
@@ -485,13 +490,13 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     columnGap: spacing[3],
     rowGap: spacing[0.5],
-    marginBottom: spacing[1.5],
+    marginBottom: PM.grid.metaGap,
   },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: spacing[0.5] },
   priceBlock: {
     borderTopWidth: 1,
     borderTopColor: colors.border.subtle,
-    paddingTop: spacing[1.5],
+    paddingTop: PM.grid.priceTopPadding,
   },
   gridFooter: { paddingHorizontal: spacing[2.5], paddingBottom: spacing[2.5] },
   overlayEnd: { position: 'absolute', top: spacing[1.5], right: spacing[1.5], zIndex: 1 },
@@ -506,23 +511,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: spacing[3],
-    padding: spacing[3],
-    borderRadius: radiusRole.card,
-    borderWidth: 1,
+    gap: PM.list.gap,
+    padding: PM.list.padding,
+    borderRadius: PM.list.radius,
+    borderWidth: PM.borderWidth,
     borderColor: colors.border.DEFAULT,
     backgroundColor: colors.surface.elevated,
   },
   listImage: {
-    width: spacing[20],
-    height: spacing[20],
+    width: PM.list.imageSize,
+    height: PM.list.imageSize,
     overflow: 'hidden',
     borderRadius: radiusRole.card,
     backgroundColor: colors.surface.alt,
   },
   listTradeBadge: { position: 'absolute', top: spacing[1], left: spacing[1], padding: spacing[1], gap: 0 },
   listBody: { flex: 1, minWidth: 0 },
-  listTitle: { lineHeight: typography.fontSize.base * typography.lineHeight.tight },
+  listTitle: { lineHeight: PM.list.titleLineHeight },
   listDescription: { marginTop: spacing[2] },
   listPrice: {
     width: '100%',

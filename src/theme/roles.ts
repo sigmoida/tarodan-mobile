@@ -99,6 +99,41 @@ export const tabBarLabel = {
   lineHeight: 11 * lineHeightScale.normal,
 } as const;
 
+/** İskelet animasyonu türü — `pulse` (web `animate-pulse`), `shimmer` (parlama şeridi) ya da `none`. */
+export type SkeletonAnimationKind = "pulse" | "shimmer" | "none";
+
+/**
+ * Yükleme sistemi rol token'ları (`src/ui/loading/` TEK tüketici). Ekran bu değerleri okumaz;
+ * görünümü değiştirmek için yalnız burası düzenlenir:
+ *   - `delayMs` / `minVisibleMs`: `useDelayedLoading` — `delayMs`'ten kısa yüklemede gösterge HİÇ
+ *     çıkmaz (göz kırpması yok); çıktıysa en az `minVisibleMs` kalır (iskelet → içerik titremesi yok).
+ *   - `indicator`: `LoadingIndicator` kutu ölçüleri (pt) ve ton renkleri.
+ *   - `skeleton`: TÜM iskeletlerin ortak animasyonu (tek sürücü) ve renkleri. `duration` tam döngü (ms).
+ */
+export const loading = {
+  delayMs: 150,
+  minVisibleMs: 300,
+  indicator: {
+    /** sm = ikon sm (16; düğme içi), md = ikon md (20; satır/alt yükleme), lg = tam ekran (36). */
+    size: { sm: iconSize.sm, md: iconSize.md, lg: 36 },
+    color: {
+      primary: colors.primary[600] as string,
+      inverted: colors.text.inverted as string,
+      muted: colors.text.subtle as string,
+    },
+  },
+  skeleton: {
+    animation: "pulse" as SkeletonAnimationKind,
+    duration: 2000,
+    /** `pulse`: döngünün ortasındaki opaklık (web animate-pulse 0.5). */
+    pulseMinOpacity: 0.5,
+    /** Web `bg-border-subtle`. */
+    baseColor: colors.border.subtle as string,
+    /** `shimmer`: zeminin üstünden geçen parlama şeridinin rengi. */
+    highlightColor: colors.white as string,
+  },
+} as const;
+
 export const roles = {
   iconSize,
   controlHeight,
@@ -110,4 +145,5 @@ export const roles = {
   counterBadgeColor,
   inactiveIconColor,
   tabBarLabel,
+  loading,
 } as const;

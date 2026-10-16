@@ -20,8 +20,9 @@ import { useKeyboardAvoid } from '../lib/keyboard';
 import { ScreenHeader, type ScreenHeaderProps } from './ScreenHeader';
 import { EmptyState, type EmptyStateProps } from './EmptyState';
 import { ErrorState } from './ErrorState';
-import { ScreenLoader } from './ScreenLoader';
-import { SkeletonText } from './Skeleton';
+import { ScreenLoader } from '../loading/ScreenLoader';
+import { SkeletonText } from '../loading/Skeleton';
+import { useDelayedLoading } from '../loading/useDelayedLoading';
 import { useToastBottomInset } from './Toast';
 
 /** Sayfa kenar boşluğu (web telefon `px-4`) ve bölüm aralığı (web PageShell `space-y-4`). */
@@ -75,7 +76,11 @@ export interface PageShellProps
    * açıkken alt çubuk güvenli alan boşluğunu eklemez (klavyenin hemen üstünde durur).
    */
   keyboardAware?: boolean;
-  /** Yükleniyor: varsayılan Skeleton (liste/kart), `spinner` yalnız ilk açılışta. */
+  /**
+   * Yükleniyor: varsayılan Skeleton (liste/kart), `spinner` yalnız ilk açılışta. Gösterim
+   * `useDelayedLoading` ile: `theme.loading.delayMs`'ten kısa yüklemede gösterge HİÇ çizilmez (gövde
+   * boş kalır — eski içerik değil), çıktıysa en az `theme.loading.minVisibleMs` kalır.
+   */
   loading?: boolean;
   loadingVariant?: 'skeleton' | 'spinner';
   /** Özel yükleniyor görünümü (ör. ekranın kendi kart iskeleti). */
@@ -146,7 +151,10 @@ export const PageShell: React.FC<PageShellProps> = ({
   // Özel `header` akışta çizilir (ör. sohbet: opak, floating={false}); `false` = bar yok; aksi halde YÜZEN bar.
   const customHeader = header !== undefined && header !== false;
   const hasBar = header === undefined;
-  const contentVisible = !error && !loading && !(empty && emptyState);
+  // Gecikmeli gösterim: kısa yüklemede iskelet göz kırpmaz; çıktıysa asgari süre kalır (içerik bekler).
+  const showLoader = useDelayedLoading(loading);
+  const loadingPhase = loading || showLoader;
+  const contentVisible = !error && !loadingPhase && !(empty && emptyState);
   const shell = useShellScrollState(scroll, mode === 'scroll');
   const { own } = shell;
   // İçerik bar altından kayıyor mu? (scroll modu kendi ScrollView'ını bağlar; list/static: ekran/çocuk bağladıysa)
@@ -180,7 +188,11 @@ export const PageShell: React.FC<PageShellProps> = ({
     body = (
       <ErrorState title={errorTitle} message={errorMessage} onRetry={onRetry} />
     );
-  } else if (loading) {
+  } else if (loadingPhase && !showLoader) {
+    // Gecikme penceresi: boş gövde (içerik / eski veri değil); gösterge henüz çizilmez.
+    showFooter = false;
+    body = <View style={styles.fill} testID="page-shell-loading-pending" />;
+  } else if (loadingPhase) {
     showFooter = false;
     body =
       loadingFallback ??

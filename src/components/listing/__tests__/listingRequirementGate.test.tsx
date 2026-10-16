@@ -82,9 +82,9 @@ describe('ListingRequirementGate', () => {
   });
 
   it('ikisi birlikte yüklenirken TEK loader ve hiçbir istem', () => {
-    const { UNSAFE_getAllByType } = render(<ListingRequirementGate f={ctrl({ ...BANK_LOADING, ...ADDR_LOADING })} />);
-    const { ActivityIndicator } = require('react-native');
-    expect(UNSAFE_getAllByType(ActivityIndicator)).toHaveLength(1);
+    render(<ListingRequirementGate f={ctrl({ ...BANK_LOADING, ...ADDR_LOADING })} />);
+    // Tek gösterge (LoadingIndicator) — uygulamanın yükleme göstergesi tek yerden.
+    expect(screen.getAllByTestId('loading-indicator')).toHaveLength(1);
     expect(screen.queryByText('IBAN Ekle')).toBeNull();
     expect(screen.queryByText('Adres Ekle')).toBeNull();
   });
