@@ -17,5 +17,4 @@ export const styles = StyleSheet.create({
   },
   cardInfo: { flex: 1, gap: spacing[1] },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[1.5] },
-  secureText: { textAlign: 'center' },
 });

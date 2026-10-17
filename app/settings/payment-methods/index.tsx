@@ -85,11 +85,6 @@ export default function PaymentMethodsScreen() {
       error={(cardsQuery.isError && !cardsQuery.data) || undefined}
       onRetry={() => cardsQuery.refetch()}
     >
-      <Text variant="bodySm" tone="muted">
-        {/* Dijital satış kapalıyken (iOS + Android) abonelik satılmıyor (Apple 2.1(b) / Play): oto-yenileme ifadesi yok. */}
-        {t(CAN_BUY_DIGITAL ? "payment.savedCardsIntro" : "payment.savedCardsIntroNeutral")}
-      </Text>
-
       {cards.length === 0 ? (
         <EmptyState
           icon="credit-card"
@@ -130,10 +125,6 @@ export default function PaymentMethodsScreen() {
           ))}
         </SectionCard>
       )}
-
-      <Text variant="caption" tone="muted" style={styles.secureText}>
-        {t("payment.cardsVaultNotice")}
-      </Text>
     </PageShell>
   );
 }
