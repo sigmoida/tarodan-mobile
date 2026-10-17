@@ -9,6 +9,7 @@ import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { parse } from 'yaml';
 
 const ROOT = path.resolve(__dirname, '../../..');
 const SCRIPT = path.join(ROOT, 'scripts/ci/release.sh');
@@ -468,6 +469,44 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     const r = ota('production', 'production', { env: { FAKE_UPDATE_NO_MAPS: 'android' } });
     expect(r.status).not.toBe(0);
     expect(r.all).toContain('no android source map');
+  });
+
+  // mobile-production.yml runs one OTA job per platform (the ota_matrix), so the CI
+  // path is `publish-ota production <ios|android>`, never `all`.
+  const otaOne = (p: string, env: Record<string, string> = {}) =>
+    run(['publish-ota', 'production', p, 'production', 'msg'], {
+      env: { SENTRY_AUTH_TOKEN: 'test-token', ...env },
+      fakeFiles: DSN_ENV,
+    });
+
+  it.each(['ios', 'android'])('a single-platform production OTA (%s) publishes and uploads only that platform', (p) => {
+    const r = otaOne(p);
+    expect(r.status).toBe(0);
+    expect(r.easCalls('update')).toEqual([
+      expect.stringContaining(`--branch production --platform ${p} --environment production --message msg`),
+    ]);
+    expect(r.log.filter((l) => l.startsWith('npx sentry-expo-upload-sourcemaps dist'))).toHaveLength(1);
+  });
+
+  it('a single-platform production OTA without its source map fails after publishing and says not to re-run', () => {
+    const r = otaOne('android', { FAKE_UPDATE_NO_MAPS: 'android' });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(1);
+    expect(r.all).toContain('::error::The OTA IS published, but eas update wrote no android source map to dist/');
+    expect(r.all).toContain('Do NOT re-run this job');
+    expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
+  });
+
+  it.each([
+    ['no SENTRY_AUTH_TOKEN', { env: { SENTRY_AUTH_TOKEN: '' } }, 'SENTRY_AUTH_TOKEN is empty'],
+    ['no DSN in the EAS environment', { fakeFiles: { 'eas-env-production-project.txt': '' } }, 'EXPO_PUBLIC_SENTRY_DSN is missing'],
+    ['no Sentry org/project', { env: { FAKE_NO_SENTRY_PLUGIN: '1' } }, 'The Sentry source map upload would fail'],
+  ])('a production OTA refused for %s says that nothing was published', (_n, opts, reason) => {
+    const r = ota('production', 'production', opts as RunOpts);
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain(`::error::${reason}`);
+    expect(r.all).toMatch(/Nothing was published|production OTA without it reports nothing/);
+    expect(r.easCalls('update')).toHaveLength(0);
   });
 
   it('staging OTA without the token publishes with a warning (no DSN required)', () => {
@@ -1371,6 +1410,40 @@ describe('release.sh next-version — computed from Conventional Commits since t
     expect(r.status).not.toBe(0);
     expect(r.all).toContain('shallow');
   });
+
+  it('stops when app.json at the ref is not X.Y.Z (no version is guessed from it)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commitVersion('1.1.0-rc.1', 'feat: a');
+    const r = repo.run(['next-version']);
+    expect(r.status).not.toBe(0);
+    expect(r.stdout).toBe('');
+    expect(r.all).toContain("app.json at HEAD holds '1.1.0-rc.1', not X.Y.Z");
+  });
+
+  it('notes a tag the ref does not contain (a hotfix not merged back) and still counts from it', () => {
+    repo.git(['switch', '-q', '-c', 'master']);
+    repo.commit('feat: hotfix released from master only');
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.git(['switch', '-q', 'development']);
+    repo.commit('fix: a');
+    const r = repo.run(['next-version']);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toBe('1.0.6\n'); // the hotfix feat is in the tag, so not counted
+    expect(r.stderr).toContain(`::notice::next-version: mobile-v${TEST_VERSION} has commits that HEAD does not contain`);
+  });
+
+  it('a git-generated Revert header counts as other (patch), not as the reverted type', () => {
+    const r = since('Revert "feat: b"\n\nThis reverts commit 0123456789abcdef.');
+    expect(r.stdout).toBe('1.0.6\n');
+  });
+
+  it('prints the reasoning on stderr with the counts per class', () => {
+    const r = since('feat!: a', 'feat: b', 'fix: c', 'chore(release): 2.0.0');
+    expect(r.stdout).toBe('2.0.0\n');
+    expect(r.stderr).toContain(
+      `mobile-v${TEST_VERSION}..HEAD: 1 breaking, 1 feat, 1 other, 1 chore(release) ignored -> major -> 2.0.0`,
+    );
+  });
 });
 
 describe('release.sh check-release-version — a release merge carries the computed version', () => {
@@ -1443,6 +1516,35 @@ describe('release.sh check-release-version — a release merge carries the compu
     expect(r.all).toContain('call for 1.2.0');
     // Merge commits never count: only the hotfix feat, the fix and the release commit.
     expect(r.all).toContain('0 breaking, 1 feat, 1 other, 1 chore(release) ignored');
+  });
+
+  it('fails, never passes silently, when the clone has no mobile-v tag', () => {
+    repo.git(['tag', '-d', `mobile-v${TEST_VERSION}`]);
+    repo.commitVersion('1.1.0');
+    const r = check();
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('no mobile-vX.Y.Z tag');
+    expect(r.all).not.toContain('check-release-version: OK');
+  });
+
+  it('fails on a shallow clone instead of comparing against an incomplete range', () => {
+    repo.commitVersion('1.1.0');
+    const shallow = path.join(repo.dir, 'shallow');
+    repo.git(['clone', '-q', '--depth', '1', `file://${repo.dir}`, shallow]);
+    const res = spawnSync('bash', [path.join(shallow, 'scripts/ci/release.sh'), 'check-release-version'], {
+      cwd: shallow,
+      env: { ...repo.env, MODE: 'auto', SOURCE_REF: 'development' },
+      encoding: 'utf8',
+    });
+    expect(res.status).not.toBe(0);
+    expect(`${res.stdout}\n${res.stderr}`).toContain('shallow clone');
+  });
+
+  it('only a tag of the current X.Y.Z on HEAD counts as a re-run (an rc tag does not)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}-rc.1`);
+    const r = check();
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('call for 1.1.0');
   });
 
   it.each([
@@ -1529,3 +1631,167 @@ describe('release.sh — called from outside the checkout with a relative app.js
   });
 });
 
+/**
+ * mobile-production.yml `release-bookkeeping`, executed: the step's script runs in a
+ * throwaway repository with a bare `origin` and a fake `gh`, so the tag and Release
+ * rules are pinned by what happens, not only by the strings in the YAML
+ * (releaseWorkflow.test.ts pins those and the job's `if`).
+ */
+describe('release-bookkeeping step — tags the released commit and creates its Release', () => {
+  const STEP = 'Tag the released commit + GitHub Release';
+  const script = (
+    parse(fs.readFileSync(path.join(ROOT, '.github/workflows/mobile-production.yml'), 'utf8')) as {
+      jobs: Record<string, { steps: { name?: string; run?: string }[] }>;
+    }
+  ).jobs['release-bookkeeping'].steps.find((s) => s.name === STEP)?.run;
+  // `gh release view` succeeds only with FAKE_GH_RELEASE_EXISTS; `gh release create` is logged.
+  const GH_FAKE = [
+    '#!/usr/bin/env bash',
+    'echo "gh $*" >> "$FAKE_GH_LOG"',
+    'if [ "$1 $2" = "release view" ]; then [ -n "${FAKE_GH_RELEASE_EXISTS:-}" ]; exit $?; fi',
+    'if [ "$1 $2" = "release create" ]; then exit 0; fi',
+    'echo "fake gh: unexpected $*" >&2; exit 2',
+    '',
+  ].join('\n');
+
+  let repo: ReturnType<typeof gitRepo>;
+  let tmp: string;
+  let origin: string;
+  beforeEach(() => {
+    repo = gitRepo();
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'release-bookkeeping-'));
+    origin = path.join(tmp, 'origin.git');
+    repo.git(['init', '-q', '--bare', origin], undefined, tmp);
+    repo.git(['remote', 'add', 'origin', origin]);
+    fs.mkdirSync(path.join(tmp, 'bin'));
+    fs.writeFileSync(path.join(tmp, 'bin/gh'), GH_FAKE, { mode: 0o755 });
+    fs.mkdirSync(path.join(tmp, 'runner'));
+  });
+  afterEach(() => {
+    repo.cleanup();
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  const bookkeep = (env: Record<string, string> = {}) => {
+    const sha = repo.git(['rev-parse', 'HEAD']);
+    const file = path.join(tmp, 'step.sh');
+    const log = path.join(tmp, 'gh.log');
+    fs.writeFileSync(file, script!);
+    fs.writeFileSync(log, '');
+    // The shell GitHub Actions uses for `run:`.
+    const res = spawnSync('bash', ['--noprofile', '--norc', '-eo', 'pipefail', file], {
+      cwd: repo.dir,
+      env: {
+        ...repo.env,
+        PATH: `${path.join(tmp, 'bin')}:${process.env.PATH}`,
+        SHA: sha,
+        GH_TOKEN: 'test-token',
+        RUNNER_TEMP: path.join(tmp, 'runner'),
+        FAKE_GH_LOG: log,
+        ...env,
+      },
+      encoding: 'utf8',
+    });
+    if (res.error) throw res.error;
+    const gh = fs.readFileSync(log, 'utf8').split('\n').filter(Boolean);
+    return { status: res.status, all: `${res.stdout}\n${res.stderr}`, sha, gh, creates: gh.filter((l) => l.startsWith('gh release create')) };
+  };
+  /** The commit a tag points to in `origin` ('' if the tag is not there). */
+  const remoteTag = (tag: string) => {
+    const r = spawnSync('git', ['--git-dir', origin, 'rev-parse', '-q', '--verify', `refs/tags/${tag}^{commit}`], {
+      env: repo.env,
+      encoding: 'utf8',
+    });
+    return r.status === 0 ? r.stdout.trim() : '';
+  };
+
+  it('finds its step in the workflow', () => {
+    expect(script).toContain('git tag -a "$tag" "$SHA"');
+  });
+
+  it('tags the released commit with an annotated mobile-v tag and creates the Release with notes since the previous one', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commit('feat: a');
+    repo.commitVersion('1.1.0');
+    const r = bookkeep();
+    expect(r.status).toBe(0);
+    expect(remoteTag('mobile-v1.1.0')).toBe(r.sha);
+    expect(repo.git(['cat-file', '-t', 'mobile-v1.1.0'])).toBe('tag');
+    expect(r.creates).toEqual([
+      `gh release create mobile-v1.1.0 --verify-tag --title Tarodan 1.1.0 --generate-notes --notes-start-tag mobile-v${TEST_VERSION}`,
+    ]);
+  });
+
+  it('without a previous release tag the notes have no start tag', () => {
+    repo.commitVersion('1.1.0');
+    const r = bookkeep();
+    expect(r.status).toBe(0);
+    expect(remoteTag('mobile-v1.1.0')).toBe(r.sha);
+    expect(r.creates).toEqual(['gh release create mobile-v1.1.0 --verify-tag --title Tarodan 1.1.0 --generate-notes']);
+  });
+
+  it('a rebuild of a tagged version leaves the tag on the first submitted commit', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commitVersion('1.1.0');
+    const first = repo.git(['rev-parse', 'HEAD']);
+    repo.tag('mobile-v1.1.0');
+    repo.git(['push', '-q', 'origin', 'refs/tags/mobile-v1.1.0']);
+    repo.commit('fix: app review feedback'); // mode=build of the same version
+    const r = bookkeep();
+    expect(r.status).toBe(0);
+    expect(r.all).toContain(`::warning::mobile-v1.1.0 is already on ${first}; not moved (this run: ${r.sha}).`);
+    expect(repo.git(['rev-parse', 'mobile-v1.1.0^{commit}'])).toBe(first);
+    expect(remoteTag('mobile-v1.1.0')).toBe(first);
+  });
+
+  it('a version not above the highest released tag gets no tag and no Release (warning, job green)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.tag('mobile-v1.2.0');
+    repo.commitVersion('1.1.0');
+    const r = bookkeep();
+    expect(r.status).toBe(0);
+    expect(r.all).toContain('::warning::1.1.0 is not greater than the highest released tag (mobile-v1.2.0); no tag or Release created.');
+    expect(remoteTag('mobile-v1.1.0')).toBe('');
+    expect(r.gh).toEqual([]);
+  });
+
+  it('a version that is not X.Y.Z fails the job before any tag or Release', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commitVersion('1.1.0-rc.1');
+    const r = bookkeep();
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain("latest-release: '1.1.0-rc.1' is not X.Y.Z");
+    expect(remoteTag('mobile-v1.1.0-rc.1')).toBe('');
+    expect(r.gh).toEqual([]);
+  });
+
+  it('an existing Release is left alone (safe to re-run)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commitVersion('1.1.0');
+    const r = bookkeep({ FAKE_GH_RELEASE_EXISTS: '1' });
+    expect(r.status).toBe(0);
+    expect(r.gh).toEqual(['gh release view mobile-v1.1.0']);
+  });
+
+  it('a failed tag push fails the job and creates no Release (a store release never ends untagged silently)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commitVersion('1.1.0');
+    repo.git(['remote', 'set-url', 'origin', path.join(tmp, 'missing.git')]);
+    const r = bookkeep();
+    expect(r.status).not.toBe(0);
+    expect(r.creates).toEqual([]);
+  });
+
+  it('a tag another run of the same version pushed meanwhile is accepted', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commitVersion('1.1.0');
+    const sha = repo.git(['rev-parse', 'HEAD']);
+    repo.git(['push', '-q', 'origin', 'HEAD:refs/heads/master']);
+    // A different annotated tag object for the same commit: the push is rejected.
+    repo.git(['--git-dir', origin, 'tag', '-a', 'mobile-v1.1.0', sha, '-m', 'other run']);
+    const r = bookkeep();
+    expect(r.status).toBe(0);
+    expect(r.all).toContain('::warning::mobile-v1.1.0 was already created by another run.');
+    expect(r.creates).toHaveLength(1);
+  });
+});
