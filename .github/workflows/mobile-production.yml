@@ -127,6 +127,8 @@ jobs:
           fi
       - uses: actions/checkout@v7
         if: steps.guard.outputs.skip != 'true'
+        with:
+          fetch-depth: 0  # history + mobile-v tags for check-release-version
       - name: Only master ships to production
         if: steps.guard.outputs.skip != 'true'
         env:
@@ -166,6 +168,16 @@ jobs:
           fi
           echo "Merge edilen PR'ın dalı: '${ref:-bulunamadı}'"
           echo "ref=$ref" >> "$GITHUB_OUTPUT"
+      - name: Release version matches the commits (release merges only)
+        # A development -> master merge must carry the version next-version computes
+        # (the release PR's chore(release) commit) or a higher manual one; otherwise
+        # nothing is built. Hotfixes and mode=ota|build skip this (release.sh).
+        id: version
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          MODE: ${{ inputs.mode || 'auto' }}
+          SOURCE_REF: ${{ steps.source.outputs.ref }}
+        run: scripts/ci/release.sh check-release-version
       - name: Decide per platform + VERSION-GATE
         id: decide
         if: steps.guard.outputs.skip != 'true'
@@ -334,6 +346,9 @@ jobs:
           set -euo pipefail
           version="$(scripts/ci/release.sh app-version app.json)"
           tag="mobile-v$version"
+          # The previous release, for the notes. Computed BEFORE tagging: it also
+          # refuses a version that is not X.Y.Z, so no such tag is ever pushed.
+          prev="$(scripts/ci/release.sh latest-release "$version")"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
@@ -368,7 +383,6 @@ jobs:
             # Notes start at the previous release tag; without it GitHub would list
             # the whole history (the seed tag has no Release of its own).
             notes=(--generate-notes)
-            prev="$(scripts/ci/release.sh latest-release "$version")"
             if [ -n "$prev" ]; then notes+=(--notes-start-tag "mobile-v$prev"); fi
             gh release create "$tag" --verify-tag --title "Tarodan $version" "${notes[@]}" \
               || gh release view "$tag" >/dev/null  # enough if a concurrent run created it

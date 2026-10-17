@@ -33,6 +33,9 @@
 #       are ignored. Prints X.Y.Z on stdout (the reasoning on stderr). If app.json
 #       at <ref> already holds a higher version, that one wins (manual override)
 #       with a notice. No tag, a shallow clone or nothing to release -> fails.
+#   release.sh check-release-version
+#       Production release merge (env SOURCE_REF not hotfix/*, MODE=auto): fails
+#       unless app.json's expo.version equals next-version for HEAD. Else no-op.
 #   release.sh set-version <X.Y.Z> [app.json]
 #       Sets expo.version (only that line changes; never lowers it). Used for
 #       the release PR's `chore(release): X.Y.Z` commit.
@@ -407,6 +410,42 @@ next_version() {
   echo "$next"
 }
 
+# Kind of a production merge, from the merged PR's branch. An unknown source (API
+# not readable, manual dispatch) counts as a RELEASE: at worst a hotfix stops with
+# "bump the version"; never an unapproved or unwanted OTA.
+merge_kind() {
+  case "${1:-}" in
+    hotfix/*) echo hotfix ;;
+    *) echo release ;;
+  esac
+}
+
+# Production gate for a release merge (mode=auto, kind=release): expo.version must
+# be what next-version computes for the merged commit (or a higher manual version),
+# so a release PR without its chore(release) commit cannot ship under too low a
+# version. VERSION-GATE alone only compares with the last production build.
+# Hotfixes (a JS-only one keeps its version) and manual mode=ota|build skip it.
+# Inputs from env: SOURCE_REF, MODE. Needs full history and tags (fetch-depth 0).
+check_release_version() {
+  local kind current want
+  kind="$(merge_kind "${SOURCE_REF:-}")"
+  if [ "${MODE:-auto}" != auto ] || [ "$kind" != release ]; then
+    echo "check-release-version: skipped (kind=$kind, mode=${MODE:-auto})."
+    return 0
+  fi
+  current="$(app_version)" || exit 1
+  # A re-run of a merge that already shipped (the other platform failed): the tag
+  # of this version is on HEAD, so there is nothing new to count.
+  if git -C "$ROOT" tag --points-at HEAD | grep -qxF "$TAG_PREFIX$current"; then
+    echo "check-release-version: OK, HEAD is already tagged $TAG_PREFIX$current."
+    return 0
+  fi
+  want="$(next_version HEAD)" || exit 1
+  [ "$want" = "$current" ] \
+    || die "check-release-version: app.json expo.version is $current, but the commits since mobile-v$(latest_release) call for $want. Make the release commit on development (scripts/ci/release.sh set-version $want, chore(release): $want; docs/RELEASE.md) and open a new PR. No store build was started."
+  echo "check-release-version: OK, $current matches the commits."
+}
+
 # Sets expo.version for the release PR. Only the `"version": "<current>"` line
 # changes (the rest of the file stays byte for byte); both versions must be
 # X.Y.Z (a "1.2.4-rc.1" would sort above 1.2.4 and slip past VERSION-GATE).
@@ -616,13 +655,7 @@ plan() {
   fi
   if [ "$env" = production ]; then
     version="$(node -p "require(process.argv[1]).expo.version" "$ROOT/app.json")"
-    # Merge'ün türü. Kaynak bilinmiyorsa (API okunamadı, elle tetikleme) SÜRÜM
-    # sayılır: en kötü ihtimalle bir hotfix "sürümü artır" hatasıyla durur; asla
-    # onaysız ya da istenmemiş bir OTA hazırlanmaz.
-    case "$source" in
-      hotfix/*) kind=hotfix ;;
-      *) kind=release ;;
-    esac
+    kind="$(merge_kind "$source")"
     echo "production: kaynak '${source:-?}' → $kind (mode=$mode)"
   fi
 
@@ -651,7 +684,7 @@ plan() {
       gated=true
       last="$(last_store_version "$p" "$BUILD_PROFILE" "$sha")"
       if [ -n "$last" ] && ! version_gt "$version" "$last"; then
-        echo "::error::$p: sürüm merge'ü (kaynak: ${source:-bilinmiyor}) ama app.json expo.version ($version) son production build'inin sürümünden ($last) büyük değil — store build ALINMADI, OTA da yok. Yeni sürüm için development'ta expo.version'ı artırıp yeni PR aç. Aynı sürümün yeni build'i (ör. App Review reddi, sürüm henüz yayınlanmadıysa): gh workflow run mobile-production.yml --ref master -f mode=build -f platform=$p. DİKKAT: master artık yayınlanmamış kod içeriyor; buradan çıkacak bir OTA (hotfix/* ya da mode=ota) o kodu da canlıya taşır. Merge yalnız uygulamaya girmeyen dosyaları (test, CI, belge) değiştirdiyse bu hata yok sayılabilir."
+        echo "::error::$p: sürüm merge'ü (kaynak: ${source:-bilinmiyor}) ama app.json expo.version ($version) son production build'inin sürümünden ($last) büyük değil — store build ALINMADI, OTA da yok. New version: make the release commit on development (scripts/ci/release.sh next-version + set-version, chore(release): X.Y.Z; docs/RELEASE.md) and open a new PR. Aynı sürümün yeni build'i (ör. App Review reddi, sürüm henüz yayınlanmadıysa): gh workflow run mobile-production.yml --ref master -f mode=build -f platform=$p. DİKKAT: master artık yayınlanmamış kod içeriyor; buradan çıkacak bir OTA (hotfix/* ya da mode=ota) o kodu da canlıya taşır. Merge yalnız uygulamaya girmeyen dosyaları (test, CI, belge) değiştirdiyse bu hata yok sayılabilir."
         decision=blocked
       else
         case "${state%% *}" in
@@ -715,7 +748,7 @@ plan() {
     if [ "$decision" = build ] && [ "$env" = production ] && [ "$gated" != true ]; then
       last="$(last_store_version "$p" "$BUILD_PROFILE" "$sha")"
       if [ -n "$last" ] && ! version_gt "$version" "$last"; then
-        text="$p: native değişti (fingerprint $fp için production build'i yok) ama app.json expo.version ($version) son production build'inin sürümünden ($last) büyük değil. Bu merge'de expo.version'ı artır (ör. development'ta app.json'u güncelleyip yeni bir PR aç)."
+        text="$p: native değişti (fingerprint $fp için production build'i yok) ama app.json expo.version ($version) son production build'inin sürümünden ($last) büyük değil. Set a new version in this merge (scripts/ci/release.sh next-version + set-version, chore(release): X.Y.Z; docs/RELEASE.md)."
         if [ "$mode" = build ]; then
           echo "::warning::$text — mode=build ile elle istendi, devam ediliyor."
         else
@@ -871,6 +904,7 @@ case "$cmd" in
   latest-release) latest_release "$@" ;;
   next-version) next_version "$@" ;;
   set-version) set_version "$@" ;;
+  check-release-version) check_release_version "$@" ;;
   app-version) app_version "$@" ;;
   build-submit) build_submit "$@" ;;
   *) die "bilinmeyen komut: '$cmd' (bkz. dosya başı)" ;;

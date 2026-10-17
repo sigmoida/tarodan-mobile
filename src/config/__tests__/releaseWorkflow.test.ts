@@ -315,6 +315,24 @@ describe('production', () => {
     for (const s of job.steps!) expect([s.name, (s.run ?? '').includes('${{')]).toEqual([s.name, false]);
   });
 
+  it('a release merge must carry the computed version before anything is built', () => {
+    const steps = production.jobs.plan.steps!;
+    const check = steps.find((s) => s.run === 'scripts/ci/release.sh check-release-version');
+    expect(check?.env).toEqual({ MODE: "${{ inputs.mode || 'auto' }}", SOURCE_REF: '${{ steps.source.outputs.ref }}' });
+    const source = steps.findIndex((s) => s.id === 'source');
+    const decide = steps.findIndex((s) => s.id === 'decide');
+    expect(source).toBeLessThan(steps.indexOf(check!));
+    expect(steps.indexOf(check!)).toBeLessThan(decide);
+    // next-version needs the full history and the mobile-v tags.
+    expect(steps.find((s) => (s.uses ?? '').startsWith('actions/checkout'))?.with).toEqual({ 'fetch-depth': 0 });
+  });
+
+  it('bookkeeping validates the version (latest-release) before it pushes a tag', () => {
+    const all = runs(production.jobs['release-bookkeeping']);
+    expect(all.indexOf('latest-release "$version"')).toBeGreaterThan(-1);
+    expect(all.indexOf('latest-release "$version"')).toBeLessThan(all.indexOf('git tag -a'));
+  });
+
   it('release.sh and the workflow use the same tag prefix (mobile-v)', () => {
     expect(shCode()).toMatch(/^TAG_PREFIX=mobile-v$/m);
     expect(runs(production.jobs['release-bookkeeping'])).toContain('"mobile-v$');

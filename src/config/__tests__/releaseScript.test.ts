@@ -1035,6 +1035,8 @@ function gitRepo(version = TEST_VERSION) {
   git(['commit', '-q', '-m', 'chore: initial']);
   const repo = {
     dir,
+    /** The isolated git environment (no global config, no caller GIT_* variables). */
+    env,
     git,
     /** An empty commit with the full message (header, body, footers). */
     commit: (message: string) => {
@@ -1190,6 +1192,63 @@ describe('release.sh next-version — computed from Conventional Commits since t
     const r = repo.run(['next-version'], shallow);
     expect(r.status).not.toBe(0);
     expect(r.all).toContain('shallow');
+  });
+});
+
+describe('release.sh check-release-version — a release merge carries the computed version', () => {
+  let repo: ReturnType<typeof gitRepo>;
+  beforeEach(() => {
+    repo = gitRepo();
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commit('feat: a'); // next-version: 1.1.0
+  });
+  afterEach(() => repo.cleanup());
+  const check = (env: Record<string, string> = {}) => {
+    const res = spawnSync('bash', [path.join(repo.dir, 'scripts/ci/release.sh'), 'check-release-version'], {
+      cwd: repo.dir,
+      env: { ...repo.env, MODE: 'auto', SOURCE_REF: 'development', ...env },
+      encoding: 'utf8',
+    });
+    return { status: res.status, all: `${res.stdout}\n${res.stderr}` };
+  };
+
+  it('fails a release merge without the release commit (version below next-version)', () => {
+    const r = check();
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('call for 1.1.0');
+    expect(r.all).toContain('set-version 1.1.0');
+  });
+
+  it('an unknown source counts as a release (the safe side)', () => {
+    expect(check({ SOURCE_REF: '' }).status).not.toBe(0);
+  });
+
+  it('passes with the release commit', () => {
+    repo.commitVersion('1.1.0');
+    expect(check().status).toBe(0);
+  });
+
+  it('passes with a higher manual version', () => {
+    repo.commitVersion('2.0.0');
+    expect(check().status).toBe(0);
+  });
+
+  it('passes a re-run of a merge already tagged with its version', () => {
+    repo.commitVersion('1.1.0');
+    repo.tag('mobile-v1.1.0');
+    const r = check();
+    expect(r.status).toBe(0);
+    expect(r.all).toContain('already tagged mobile-v1.1.0');
+  });
+
+  it.each([
+    ['a hotfix (a JS-only one keeps its version)', { SOURCE_REF: 'hotfix/crash' }],
+    ['mode=build', { MODE: 'build' }],
+    ['mode=ota', { MODE: 'ota' }],
+  ])('skips %s', (_n, env) => {
+    const r = check(env);
+    expect(r.status).toBe(0);
+    expect(r.all).toContain('skipped');
   });
 });
 
