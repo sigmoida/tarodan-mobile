@@ -78,6 +78,18 @@ describe('app.json — Android izinleri', () => {
     expect(offenders).toEqual([]);
   });
 
+  // expo-screen-capture declares READ_MEDIA_IMAGES (API 33) for its screenshot listener.
+  // The app only blocks capture (FLAG_SECURE, no permission), and Play rejects a release
+  // that holds the photo permission without a core-use declaration.
+  it('READ_MEDIA_IMAGES is blocked and the screenshot listener is never used', () => {
+    expect(expo.android.blockedPermissions ?? []).toContain('android.permission.READ_MEDIA_IMAGES');
+    expect(expo.android.permissions ?? []).not.toContain('android.permission.READ_MEDIA_IMAGES');
+    const offenders = [...walk(path.join(ROOT, 'app')), ...walk(path.join(ROOT, 'src'))]
+      .filter((f) => !f.includes(`${path.sep}__tests__${path.sep}`))
+      .filter((f) => /addScreenshotListener/.test(fs.readFileSync(f, 'utf8')));
+    expect(offenders).toEqual([]);
+  });
+
   it('POST_NOTIFICATIONS kalır', () => {
     expect(expo.android.permissions).toContain('android.permission.POST_NOTIFICATIONS');
   });
