@@ -70,8 +70,8 @@ parity table is in tarodan-ops `docs/design-system.md`. Tokens: `src/theme/CLAUD
   `_lib/schema.ts`); shared field rules come from `@/utils/validation`.
 
 ```ts
-import { useZodForm, Form, FormInput } from '@/ui/form';
-import { offerSchema } from './_lib/schema';
+import { useZodForm, Form, FormInput } from "@/ui/form";
+import { offerSchema } from "./_lib/schema";
 const form = useZodForm(offerSchema);
 ```
 
@@ -92,8 +92,9 @@ first load or layout-less flows (payment, gates). Never hand-roll a loader.
   stays native (tint from tokens only).
 - **One skeleton driver:** every skeleton is `SkeletonBlock` (alias `Skeleton`)
   animated by one shared loop (`useSkeletonAnimation`, reduce-motion aware). Look and
-  animation are one token, `theme.loading.skeleton.{animation: 'pulse' | 'shimmer' |
-  'none', duration, pulseMinOpacity, baseColor, highlightColor}`; never a local
+  animation are one token,
+  `theme.loading.skeleton.{animation, duration, pulseMinOpacity, baseColor, highlightColor}`
+  (`animation`: pulse, shimmer or none); never a local
   skeleton colour or `Animated` loop.
 - **Layout-faithful blocks** read the real component's geometry so nothing jumps:
   `SkeletonLine` (a `Text` variant's line box), `SkeletonText`, `SkeletonAvatar`

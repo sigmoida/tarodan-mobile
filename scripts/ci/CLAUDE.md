@@ -44,5 +44,8 @@ change one:
 - `src/config/__tests__/releaseScript.test.ts` runs `release.sh` against the fakes in
   `scripts/ci/__fakes__/` (`eas`, `npx`); `releaseWorkflow.test.ts` pins the
   workflow wiring. Change the fakes together with the script.
-- Run: `pnpm test --maxWorkers=2 src/config/__tests__/releaseScript.test.ts
-  src/config/__tests__/releaseWorkflow.test.ts`.
+- Run:
+
+  ```bash
+  pnpm test --maxWorkers=2 src/config/__tests__/releaseScript.test.ts src/config/__tests__/releaseWorkflow.test.ts
+  ```

@@ -40,8 +40,9 @@ app/<group>/<route>/
 - Query keys: add to `src/lib/query/keys.ts` and use `qk.<domain>.*`; never inline.
 - API calls: add to the domain module in `src/lib/api/` using `apiPath` for path
   variables; types from `src/types`.
-- Reads: `useXxx` query hook. Writes: `useDoXxx` with `useAppMutation(fn, {
-  invalidates, success, error })`. No `useState` + `useEffect` fetching.
+- Reads: `useXxx` query hook. Writes: `useDoXxx` with
+  `useAppMutation(fn, { invalidates, success, error })`. No `useState` +
+  `useEffect` fetching.
 - Call every hook before any early return.
 
 ## 3. UI

@@ -26,10 +26,13 @@ and has no `theme` export.
 ## Using tokens
 
 ```ts
-import { theme } from '@/ui';
+import { theme } from "@/ui";
 const s = StyleSheet.create({
-  card: { backgroundColor: theme.colors.surface.DEFAULT, padding: theme.spacing[4],
-          borderRadius: theme.radiusRole.card },
+  card: {
+    backgroundColor: theme.colors.surface.DEFAULT,
+    padding: theme.spacing[4],
+    borderRadius: theme.radiusRole.card,
+  },
 });
 ```
 

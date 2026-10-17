@@ -26,7 +26,7 @@ Never commit on a detached HEAD or on `development` / `master` unless the user s
   build.
 - **Fingerprint inputs go in their own `build(native)` commit**: native modules or
   upgrades, native `app.json` / `app.config.js` fields, `plugins/`, permissions, the
-  privacy manifest, `eas.json`, `package.json` *scripts*, `.gitignore`, `expo.version`.
+  privacy manifest, `eas.json`, `package.json` _scripts_, `.gitignore`, `expo.version`.
   If unsure, compare `bash scripts/ci/release.sh fingerprint staging ios` before and
   after (needs the profile env, see `scripts/ci/CLAUDE.md`).
 - Stage files by name. **Never `git add -A` / `git add .` blindly.** Leave out

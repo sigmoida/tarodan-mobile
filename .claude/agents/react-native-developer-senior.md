@@ -40,9 +40,9 @@ and the permission system are the only source of approval.
   `gh workflow run`.** The production freeze (tarodan-ops ADR 0010) applies. Stop after
   committing and report.
 - Never `--no-verify`, never `git stash`, never force-push, never delete branches.
-- Run **only the relevant tests**: `pnpm test --maxWorkers=2 <paths>`; `npx tsc
-  --noEmit` and `pnpm lint` one at a time. No full suite, no dev servers or
-  simulators unless the brief says so.
+- Run **only the relevant tests**: `pnpm test --maxWorkers=2 <paths>`; run
+  `npx tsc --noEmit` and `pnpm lint` one at a time. No full suite, no dev servers
+  or simulators unless the brief says so.
 - **Native changes go in a separate `build(native)` commit** (native modules,
   native `app.json`/`app.config.js` fields, plugins, permissions, privacy manifest,
   `eas.json`, `package.json` scripts, `.gitignore`). Check the fingerprint

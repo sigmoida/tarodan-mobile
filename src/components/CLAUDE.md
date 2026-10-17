@@ -56,8 +56,8 @@ Marketplace components built from `@/ui` primitives, grouped by feature
 
 ## Menu
 
-- One menu model: `src/lib/menu/profileMenu.ts` with `surface: 'profile' |
-  'settings'`. The Profile tab lists the user's activity (Shopping, Finance,
+- One menu model: `src/lib/menu/profileMenu.ts` with
+  `surface: 'profile' | 'settings'`. The Profile tab lists the user's activity (Shopping, Finance,
   Collection, Analytics); `/settings` lists Account, Payments & Bank, Membership,
   Preferences, Help & Support, Info & Legal + logout.
 - Each group is a white `SectionCard` rendered by `MenuGroupList`

@@ -23,14 +23,14 @@ width, and any contract delta involved.
 
 ## 2. Classify risk
 
-| Area | Minimum |
-| --- | --- |
-| Money / payment (checkout, PayTR, refunds, offers, trades) | behaviour-pinning jest test before and after; senior QA review |
-| Session / auth / push | jest + RNTL for hooks, screens and stores |
-| New or split screen | screen test (states: loading, empty, error, data), hook tests |
-| API contract change | contract fixture test against `src/types` |
-| Native change | device checklist on 1 iOS + 1 Android; Maestro critical flows on a staging build |
-| Copy / i18n | `src/i18n` tests |
+| Area                                                       | Minimum                                                                          |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Money / payment (checkout, PayTR, refunds, offers, trades) | behaviour-pinning jest test before and after; senior QA review                   |
+| Session / auth / push                                      | jest + RNTL for hooks, screens and stores                                        |
+| New or split screen                                        | screen test (states: loading, empty, error, data), hook tests                    |
+| API contract change                                        | contract fixture test against `src/types`                                        |
+| Native change                                              | device checklist on 1 iOS + 1 Android; Maestro critical flows on a staging build |
+| Copy / i18n                                                | `src/i18n` tests                                                                 |
 
 ## 3. Write the plan
 

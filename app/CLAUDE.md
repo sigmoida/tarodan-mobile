@@ -167,8 +167,14 @@ Shells are mandatory; the `screenShells` jest scan checks every `app/**` screen.
   `<Animated.FlatList {...page.listProps} contentContainerStyle={page.contentStyle(base)} />`
   (iOS gets `contentInset`, Android `paddingTop`; `page.topInset` for `RefreshControl`
   `progressViewOffset`).
-- Tab roots use ONE handler: `const page = usePageScrollValue(); const tabScroll =
-  useTabBarScrollHandler(undefined, page.scrollY);` -> `<AppShell variant="title" scroll={page}>`.
+- Tab roots use ONE handler (never two `onScroll`s):
+
+  ```tsx
+  const page = usePageScrollValue();
+  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
+  // <AppShell variant="title" scroll={page}>
+  ```
+
 - Home binds the same edge (`<AppShell scroll={page}>`); product detail uses the same
   `ScrollEdge` + bar metrics, timed to complete when the gallery's end reaches the bar.
 - Unbound screens (and every screen while loading/empty/error) draw no edge: the body
