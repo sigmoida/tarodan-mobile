@@ -1919,7 +1919,8 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
   // like git, picks one merge base) as `.total_commits` and as "<sha> <parents>" lines,
   // and `.status`: identical | ahead (B contains A) | behind | diverged. FAKE_GH_FAIL
   // makes every call fail, FAKE_GH_FAIL_JQ=<jq> only the calls with that jq;
-  // FAKE_GH_TOTAL / FAKE_GH_LIST / FAKE_GH_STATUS replace those answers.
+  // FAKE_GH_TOTAL / FAKE_GH_LIST / FAKE_GH_STATUS replace those answers;
+  // FAKE_GH_STATUS_<sha> answers the status call for that one root (FAIL = HTTP 502).
   const GH_FAKE = [
     '#!/usr/bin/env bash',
     'echo "gh $*" >> "$FAKE_GH_LOG"',
@@ -1948,6 +1949,8 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     '    if [ -n "${FAKE_GH_LIST+x}" ]; then printf "%s" "$FAKE_GH_LIST"; exit 0; fi',
     '    mb="$(g merge-base "$a" "$b")" || exit 1; g rev-list --parents "$mb..$b" ;;',
     '  .status)',
+    '    v="FAKE_GH_STATUS_$a"',
+    '    if [ -n "${!v+x}" ]; then [ "${!v}" != FAIL ] || { echo "fake gh: HTTP 502" >&2; exit 1; }; echo "${!v}"; exit 0; fi',
     '    if [ -n "${FAKE_GH_STATUS+x}" ]; then echo "$FAKE_GH_STATUS"; exit 0; fi',
     '    ra="$(g rev-parse "$a^{commit}")" || exit 1; rb="$(g rev-parse "$b^{commit}")" || exit 1',
     '    if [ "$ra" = "$rb" ]; then echo identical',
@@ -2285,6 +2288,62 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     expect(r.status).toBe(0);
     const compared = r.gh.filter((l) => l.endsWith('--jq .status')).map((l) => l.split('/compare/')[1].split('...')[0]);
     expect(compared.sort()).toEqual([fix, side].sort());
+  });
+
+  // Two roots, compared in list order: r1 then r2 (m merges them).
+  const [m, r1, r2] = [sha40('3'), sha40('1'), sha40('2')];
+  const twoRoots = `${m} ${r1} ${r2}\n${r1} ${sha40('0')}\n${r2} ${sha40('0')}\n`;
+  const statusCalls = (gh: string[]) => gh.filter((l) => l.endsWith('--jq .status')).map((l) => l.split('/compare/')[1].split('...')[0]);
+  it.each([
+    ['diverged', 'ahead', `(${r2} is on development; compare status: ahead)`],
+    ['behind', 'identical', `(${r2} is on development; compare status: identical)`],
+    ['diverged', 'unknown', `Could not tell whether development contains ${r2} (compare status: 'unknown')`],
+    ['behind', 'FAIL', 'fake gh: HTTP 502'],
+  ])('a later root fails the guard after an earlier root passed (%s, then %s)', (first, second, message) => {
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', {
+      FAKE_GH_TOTAL: '3',
+      FAKE_GH_LIST: twoRoots,
+      [`FAKE_GH_STATUS_${r1}`]: first,
+      [`FAKE_GH_STATUS_${r2}`]: second,
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain(message);
+    expect(r.all).not.toContain('OK:');
+    expect(statusCalls(r.gh)).toEqual([r1, r2]);
+  });
+
+  it('the first root on development stops the guard before the next root is compared', () => {
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', {
+      FAKE_GH_TOTAL: '3',
+      FAKE_GH_LIST: twoRoots,
+      [`FAKE_GH_STATUS_${r1}`]: 'ahead',
+      [`FAKE_GH_STATUS_${r2}`]: 'diverged',
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain(`(${r1} is on development; compare status: ahead)`);
+    expect(statusCalls(r.gh)).toEqual([r1]);
+  });
+
+  it('two roots that development lacks (behind, diverged) pass after both are compared', () => {
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', {
+      FAKE_GH_TOTAL: '3',
+      FAKE_GH_LIST: twoRoots,
+      [`FAKE_GH_STATUS_${r1}`]: 'behind',
+      [`FAKE_GH_STATUS_${r2}`]: 'diverged',
+    });
+    expect(r.status).toBe(0);
+    expect(r.all).toContain('OK: hotfix/crash -> master (cut from master; none of its 3 commits over master is on development)');
+    expect(statusCalls(r.gh)).toEqual([r1, r2]);
+  });
+
+  it('a total too large for shell arithmetic still fails (closed), without a status call', () => {
+    // bash `[ -gt ]` rejects it as "integer expression expected" (false, so neither the
+    // zero nor the cap check fires); the list count check is what keeps it closed.
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_TOTAL: '99999999999999999999' });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('::error::hotfix/crash: The API listed 1 of the 99999999999999999999 commits');
+    expect(r.all).not.toContain('OK:');
+    expect(statusCalls(r.gh)).toEqual([]);
   });
 
   it.each([[''], ['null'], ['unknown']])('a compare status %j fails (closed)', (status) => {
