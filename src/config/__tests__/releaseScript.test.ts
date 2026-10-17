@@ -603,7 +603,7 @@ describe('release.sh plan — production: sürüm merge\'ü her zaman store buil
     const olderAnd = build({ id: 'old-a', platform: 'ANDROID', profile: 'production', runtime: 'eski', appVersion: '1.0.4' });
     const r = plan('production', { env: { SOURCE_REF: 'development', ANDROID_ENABLED: 'true' }, builds: [older, olderAnd] });
     expect(r.outputs).toMatchObject({ ios: 'build', android: 'build', ota_matrix: '[]', blocked: '' });
-    expect(r.all).toContain('ios: sürüm 1.0.4 → 1.0.5');
+    expect(r.all).toContain('ios: version 1.0.4 -> 1.0.5');
     expect(r.summary).toContain('`development` → release');
   });
 
@@ -1263,7 +1263,8 @@ describe('release.sh check-release-version — a release merge carries the compu
     const r = check();
     expect(r.status).not.toBe(0);
     expect(r.all).toContain('call for 1.2.0');
-    expect(r.all).not.toContain('Merge pull request'); // merge commits never count
+    // Merge commits never count: only the hotfix feat, the fix and the release commit.
+    expect(r.all).toContain('0 breaking, 1 feat, 1 other, 1 chore(release) ignored');
   });
 
   it.each([

@@ -442,7 +442,7 @@ check_release_version() {
   fi
   want="$(next_version HEAD)" || exit 1
   [ "$want" = "$current" ] \
-    || die "check-release-version: app.json expo.version is $current, but the commits since mobile-v$(latest_release) call for $want. Make the release commit on development (scripts/ci/release.sh set-version $want, chore(release): $want; docs/RELEASE.md) and open a new PR. No store build was started."
+    || die "check-release-version: app.json expo.version is $current, but the commits since mobile-v$(latest_release) call for $want. Push the release commit to development (scripts/ci/release.sh set-version $want, chore(release): $want; docs/RELEASE.md); an open release PR picks it up. Nothing is built from this commit."
   echo "check-release-version: OK, $current matches the commits."
 }
 
@@ -684,7 +684,7 @@ plan() {
       gated=true
       last="$(last_store_version "$p" "$BUILD_PROFILE" "$sha")"
       if [ -n "$last" ] && ! version_gt "$version" "$last"; then
-        echo "::error::$p: release merge (source: ${source:-unknown}) but app.json expo.version ($version) is not greater than the last production build ($last). No store build and no OTA. New version: make the release commit on development (scripts/ci/release.sh next-version + set-version, chore(release): X.Y.Z; docs/RELEASE.md) and open a new PR. A new build of the same version (e.g. after an App Review rejection, version not released yet): gh workflow run mobile-production.yml --ref master -f mode=build -f platform=$p. CAUTION: master now holds unreleased code; an OTA from here (hotfix/* or mode=ota) takes that code live too. If the merge changed only files that do not go into the app (tests, CI, docs), this error can be ignored."
+        echo "::error::$p: release merge (source: ${source:-unknown}) but app.json expo.version ($version) is not greater than the last production build ($last). No store build and no OTA. New version: make the release commit on development (scripts/ci/release.sh next-version + set-version, chore(release): X.Y.Z; docs/RELEASE.md) and open a new PR. A new build of the same version (e.g. after an App Review rejection, version not released yet): gh workflow run mobile-production.yml --ref master -f mode=build -f platform=$p. CAUTION: master now holds unreleased code; an OTA from here (hotfix/* or mode=ota) takes that code live too. (A merge that changes only tests, CI or docs does not start this workflow: paths-ignore.)"
         decision=blocked
       else
         case "${state%% *}" in
@@ -696,7 +696,7 @@ plan() {
             echo "::warning::$p: bu sürümün production build'i/gönderimi sürüyor ($build_id) — ikinci build alınmadı." ;;
           *)
             decision=build
-            echo "$p: sürüm ${last:-<ilk build>} → $version" ;;
+            echo "$p: version ${last:-<first build>} -> $version" ;;
         esac
       fi
     else
@@ -750,13 +750,13 @@ plan() {
       if [ -n "$last" ] && ! version_gt "$version" "$last"; then
         text="$p: native code changed (no production build for fingerprint $fp) but app.json expo.version ($version) is not greater than the last production build ($last). Set a new version in this merge (scripts/ci/release.sh next-version + set-version, chore(release): X.Y.Z; docs/RELEASE.md)."
         if [ "$mode" = build ]; then
-          echo "::warning::$text — mode=build ile elle istendi, devam ediliyor."
+          echo "::warning::$text Requested by hand with mode=build; continuing."
         else
           echo "::error::$text"
           decision=blocked
         fi
       fi
-      [ "$decision" = blocked ] || echo "$p: sürüm ${last:-<ilk build>} → $version"
+      [ "$decision" = blocked ] || echo "$p: version ${last:-<first build>} -> $version"
     fi
 
     if [ "$decision" = build ] && [ "$mode" = auto ]; then
