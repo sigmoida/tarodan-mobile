@@ -100,7 +100,17 @@ iOS prod + staging'i yan yana tutabilir.
 `src/services/sentry.ts` reads the DSN **only** from `EXPO_PUBLIC_SENTRY_DSN`;
 without it Sentry is silently off. The `eas.json` profiles do not carry the DSN;
 it is an EAS environment variable (plaintext), and a production EAS build stops
-when it is missing.
+when it is missing:
+
+```bash
+eas env:create --environment production --name EXPO_PUBLIC_SENTRY_DSN --value "<dsn>" --visibility plaintext
+eas env:create --environment preview    --name EXPO_PUBLIC_SENTRY_DSN --value "<dsn>" --visibility plaintext
+```
+
+The `preview` value covers the `preview` (ad-hoc APK) builds, and staging OTAs once
+`publish-ota` passes `--environment`; without it those run with Sentry off. The
+`staging` store profile sets no `environment`, so EAS builds it with the
+`production` variables.
 
 Source map and dSYM upload is on for the `production` profile only and needs the
 EAS secret `SENTRY_AUTH_TOKEN`. Setup steps (Sentry project, DSN, token, OTA):

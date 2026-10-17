@@ -413,9 +413,10 @@ and dSYMs (iOS native) of the exact binary or update that crashed. How it is wir
 is on and `SENTRY_AUTH_TOKEN` is missing, and on any production build when
 `EXPO_PUBLIC_SENTRY_DSN` is missing. Why fail rather than skip: a store binary
 cannot get its symbols later (the dSYMs and Hermes maps exist only inside that
-build), so a silent skip would ship 1.1.0 with unreadable crashes. Failing in
-the first minute, with the fix in the message, is cheaper than failing at the
-end of the native build, which is what `sentry-cli` does on its own. Staging
+build), so a silent skip would ship 1.1.0 with unreadable crashes. Failing at
+the "Read app config" step, a few minutes in and with the fix in the message, is
+cheaper than failing at the end of the native build, which is what `sentry-cli`
+does on its own. Staging
 profiles are not affected. To ship a production build without symbols on
 purpose (for example during a Sentry outage), set `SENTRY_DISABLE_AUTO_UPLOAD=true`
 in the EAS `production` environment; the build logs a warning. Remove it again
@@ -433,6 +434,9 @@ afterwards.
    eas env:create --environment production --name EXPO_PUBLIC_SENTRY_DSN \
      --visibility plaintext --scope project
    ```
+
+   Add the same DSN to the `preview` environment too (`docs/SECRETS_SETUP.md`
+   section 3c) so internal builds report as well.
 
 3. **Auth token.** Sentry -> Settings -> Developer Settings -> **Organization
    Tokens** -> "Create New Token" (name it e.g. `eas-tarodan-mobile`). Organization
