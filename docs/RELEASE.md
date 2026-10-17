@@ -280,11 +280,13 @@ Conventional Commits in `git log --no-merges mobile-v<latest>..<ref>`, where
 
 **Release PR commit.** Who: the devops agent under the hub `prod-release mobile`
 skill (or the repo's `/mobile-release-prod`); the user approves the push and the PR.
-On an up-to-date clone with tags:
+In a worktree of its own (never in the shared checkout), from the repo root:
 
 ```bash
 git fetch origin --tags
-git switch --detach origin/development
+git worktree add --detach .claude/worktrees/release origin/development
+cd .claude/worktrees/release
+pnpm install --frozen-lockfile --prefer-offline   # the commit hooks need node_modules
 v="$(scripts/ci/release.sh next-version)"   # e.g. 1.1.0; the reasoning goes to stderr
 git switch -c "chore/release-$v"
 scripts/ci/release.sh set-version "$v"      # or a higher manual version
@@ -299,12 +301,20 @@ quota and `STAGING_MAX_BUILDS_PER_DAY`). The commit touches only `app.json` and 
 its own commit, as the fingerprint rule requires; its type stays `chore(release)` so
 `next-version` ignores it. Then open the `development -> master` PR and merge it with
 **"Create a merge commit"** (never squash or rebase: the tag goes on that merge
-commit and the next `next-version` counts from it).
+commit and the next `next-version` counts from it; the master ruleset allows merge
+commits only).
 
-**First run:** `next-version` needs a seed tag on the last released master commit
-(1.0.5 build 11). It is created by hand, with the user's approval:
-`git tag -a mobile-v1.0.5 <master sha> -m "Tarodan 1.0.5"` and
-`git push origin refs/tags/mobile-v1.0.5`.
+**CI enforces it.** On a release merge (`development -> master`, `mode=auto`) the
+production `plan` runs `release.sh check-release-version` before anything is built:
+`expo.version` must equal `next-version` for the merge commit (a higher manual
+version passes, as next-version returns it). A PR without the release commit fails
+there with the `set-version` command to run. Hotfixes and `mode=ota|build` skip the
+check; a re-run of a merge already tagged with its version passes.
+
+**Seed tag:** `next-version` needs a tag to count from. The first one,
+`mobile-v1.0.5`, is on the last released master commit (1.0.5 build 11); it was
+created by hand with the user's approval. Release tags cannot be moved or deleted
+(tag ruleset on `mobile-v*`).
 
 ### After the release (automatic): tag and GitHub Release
 
