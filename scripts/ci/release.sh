@@ -569,11 +569,12 @@ assert_sentry_upload_config() {
 }
 
 # The Sentry package's own check that a source map carries a debugId (the id the
-# bundle and its map are matched by in Sentry; a map without one never resolves).
-SENTRY_DEBUGID_CHECK="$ROOT/node_modules/@sentry/react-native/scripts/has-sourcemap-debugid.js"
+# bundle and its map are matched by in Sentry; a map without one never resolves),
+# resolved the way Node resolves the package from the repo root.
+SENTRY_DEBUGID_CHECK="@sentry/react-native/scripts/has-sourcemap-debugid.js"
 
 publish_ota() {
-  local branch="$1" platform="$2" profile="$3" message="$4" environment p maps map
+  local branch="$1" platform="$2" profile="$3" message="$4" environment p maps map debugid_check
   environment="$(eas_build_environment "$profile")" || die "no EAS environment for build.$profile"
   (
     load_profile_env "$profile"
@@ -587,8 +588,9 @@ publish_ota() {
     # (org and project, as sentry-expo-upload-sourcemaps resolves them).
     if [ -n "${SENTRY_AUTH_TOKEN:-}" ]; then
       assert_sentry_upload_config
-      [ -f "$SENTRY_DEBUGID_CHECK" ] \
-        || die "$SENTRY_DEBUGID_CHECK is missing (dependencies not installed, or @sentry/react-native moved it); the source maps cannot be checked. Nothing was published."
+      debugid_check="$(node -p 'require.resolve(process.argv[1], { paths: [process.argv[2]] })' \
+        "$SENTRY_DEBUGID_CHECK" "$ROOT" 2>/dev/null)" \
+        || die "$SENTRY_DEBUGID_CHECK cannot be found (dependencies not installed, or @sentry/react-native moved it); the source maps cannot be checked. Nothing was published."
     fi
     # The upload reads ./dist; start empty so only this export is uploaded.
     rm -rf dist
@@ -603,8 +605,9 @@ publish_ota() {
         [ -n "$maps" ] \
           || die "The OTA IS published, but eas update wrote no $p source map to dist/, so its stack traces cannot go to Sentry. Do NOT re-run this job: that publishes a second update."
         while IFS= read -r map; do
-          node "$SENTRY_DEBUGID_CHECK" "$map" >/dev/null 2>&1 \
-            || die "The OTA IS published, but its $p source map $map carries no debugId, so Sentry cannot match it to the bundle and its stack traces stay unreadable. Nothing was uploaded. Do NOT re-run this job: that publishes a second update. Fix the Metro serializer (debug ids) before the next OTA."
+          # Its output stays visible: it names the cause (no debugId, unreadable JSON).
+          node "$debugid_check" "$map" \
+            || die "The OTA IS published, but its $p source map $map has no readable debugId (see above), so Sentry cannot match it to the bundle and its stack traces stay unreadable. Nothing was uploaded. Do NOT re-run this job: that publishes a second update. Fix the cause (a missing debugId: the Metro serializer) before the next OTA."
         done <<EOF
 $maps
 EOF

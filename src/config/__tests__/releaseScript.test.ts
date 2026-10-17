@@ -80,7 +80,7 @@ type RunOpts = {
   readFiles?: string[];
   /** Sahte eas'in okuyacağı ek dosyalar ($FAKE_DIR'e yazılır; ör. `eas-env-production-account.txt`). */
   fakeFiles?: Record<string, string>;
-  /** false: run without node_modules (dependencies not installed). */
+  /** true: link the real node_modules (publish-ota with a token runs a Sentry package script). */
   nodeModules?: boolean;
 };
 
@@ -125,9 +125,9 @@ function run(args: string[], opts: RunOpts = {}) {
   const appJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
   appJson.expo.version = TEST_VERSION;
   fs.writeFileSync(path.join(root, 'app.json'), `${JSON.stringify(appJson, null, 2)}\n`);
-  // The real dependencies (publish-ota runs @sentry/react-native's debugId check);
-  // rmSync below removes the link, not its target.
-  if (opts.nodeModules !== false) fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(root, 'node_modules'));
+  // Only where asked: the other runs stay sealed off from real packages. rmSync below
+  // removes the link, not its target.
+  if (opts.nodeModules) fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(root, 'node_modules'));
   const eas = opts.easJson ? opts.easJson(realEasJson()) : realEasJson();
   fs.writeFileSync(path.join(root, 'eas.json'), typeof eas === 'string' ? eas : JSON.stringify(eas));
 
@@ -301,6 +301,7 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
   // By default a ready OTA: the Sentry token is set and the EAS environment has the DSN.
   const ota = (branch: string, profile: string, opts: RunOpts = {}) =>
     run(['publish-ota', branch, 'all', profile, 'msg'], {
+      nodeModules: true,
       ...opts,
       env: { SENTRY_AUTH_TOKEN: 'test-token', ...opts.env },
       fakeFiles: { ...DSN_ENV, ...opts.fakeFiles },
@@ -480,6 +481,7 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
   // path is `publish-ota production <ios|android>`, never `all`.
   const otaOne = (p: string, env: Record<string, string> = {}) =>
     run(['publish-ota', 'production', p, 'production', 'msg'], {
+      nodeModules: true,
       env: { SENTRY_AUTH_TOKEN: 'test-token', ...env },
       fakeFiles: DSN_ENV,
     });
@@ -503,8 +505,15 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     expect(r.status).not.toBe(0);
     expect(r.easCalls('update')).toHaveLength(1);
     expect(r.all).toContain(`::error::The OTA IS published, but its ${p} source map`);
-    expect(r.all).toContain('carries no debugId');
+    expect(r.all).toContain('has no readable debugId');
     expect(r.all).toContain('Do NOT re-run this job');
+    expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
+  });
+
+  it('an unreadable map fails with the cause visible, not only "no debugId"', () => {
+    const r = otaOne('ios', { FAKE_UPDATE_NO_DEBUGID: 'ios', FAKE_UPDATE_BAD_MAP: '1' });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('was unable to be read');
     expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
   });
 
@@ -512,7 +521,7 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     const r = ota('production', 'production', { env: { FAKE_UPDATE_NO_DEBUGID: 'android' } });
     expect(r.status).not.toBe(0);
     expect(r.all).toContain('android source map');
-    expect(r.all).toContain('carries no debugId');
+    expect(r.all).toContain('has no readable debugId');
     expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
   });
 
@@ -520,10 +529,9 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     const r = run(['publish-ota', 'production', 'ios', 'production', 'msg'], {
       env: { SENTRY_AUTH_TOKEN: 'test-token' },
       fakeFiles: DSN_ENV,
-      nodeModules: false,
     });
     expect(r.status).not.toBe(0);
-    expect(r.all).toContain('has-sourcemap-debugid.js is missing');
+    expect(r.all).toContain('has-sourcemap-debugid.js cannot be found');
     expect(r.easCalls('update')).toHaveLength(0);
   });
 
