@@ -534,7 +534,8 @@ describe('master akışı', () => {
     expect(step.env?.GH_TOKEN).toBe('${{ github.token }}');
     // Every commit the hotfix adds over master, then one check per commit: no merge
     // base is trusted (there can be several).
-    expect(step.run).toContain(`gh api "repos/$REPO/compare/master...$HEAD_SHA?per_page=100" --paginate --jq '.commits[].sha'`);
+    expect(step.run).toContain('gh api "repos/$REPO/compare/master...$HEAD_SHA?per_page=1" --jq .total_commits');
+    expect(step.run).toContain(`gh api "repos/$REPO/compare/master...$HEAD_SHA?per_page=100" --paginate --jq '.commits[] | ([.sha] + [.parents[].sha]) | join(" ")'`);
     expect(step.run).toContain('gh api "repos/$REPO/compare/$sha...development?per_page=1" --jq .status');
     expect(step.run).not.toContain('merge_base_commit');
     // Read-only: the job inherits contents: read and asks for nothing more.

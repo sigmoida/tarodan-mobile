@@ -13,8 +13,7 @@ name: Master Flow (source guard + hotfix back-merge)
 # pull_request_target reads it from the TARGET branch (master); a PR cannot change
 # it. The trigger is dangerous (write token + secrets) only if PR code runs; here:
 #   - source-guard checks out NOTHING; it reads the event metadata and asks the
-#     GitHub API about commit ancestry (`gh api .../compare`, read-only, one call
-#     per commit the hotfix adds over master);
+#     GitHub API about commit ancestry (`gh api .../compare`, read-only);
 #   - every value from the PR (branch name, head sha, repo name) is read through
 #     `env:` only, never injected into `run:` with `${{ }}` (no script injection);
 #   - hotfix-backmerge runs only for a merged hotfix/* PR from this repo and checks
@@ -36,7 +35,8 @@ jobs:
     name: Master source guard
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Two API calls plus one per root commit of the hotfix (usually one).
+    timeout-minutes: 10
     # No checkout of PR code (pull_request_target safety; see the file header).
     steps:
       - name: Source branch must be development or a hotfix/* cut from master
@@ -56,29 +56,52 @@ jobs:
             development)
               echo "OK: development -> master" ;;
             hotfix/*)
-              # A hotfix skips check-release-version and its JS-only merge ships as a
-              # production OTA, so none of the commits it adds over master may be on
-              # development: those are unreleased development code (a hotfix cut from
-              # development, or one that merged development or a branch development
-              # already merged). Every added commit is checked on its own, so no merge
-              # base (there can be several) is trusted. Any API error, an empty or
-              # unexpected answer, or more than max_commits commits fails (closed).
+              # THE HOTFIX RULE (docs point here). A hotfix skips check-release-version
+              # and its JS-only merge ships as a production OTA, so none of the commits
+              # it adds over master may be on development: those are unreleased
+              # development code (a hotfix cut from development, or one that merged
+              # development or a branch development already merged). No merge base with
+              # development is trusted (a criss-cross history has several); the added
+              # commits are checked themselves. Checking their roots (listed commits
+              # with no listed parent) is exact: development holding a listed commit
+              # holds that commit's root ancestor in the list too. The rule is checked
+              # on every PR event (open, push, edit). Fails closed: an API error, an
+              # unexpected or incomplete answer, or more than max_commits commits.
+              # (A criss-cross between master and the hotfix can list a commit master
+              # already has; that refuses a hotfix, never admits one.)
               max_commits=250
-              shas="$(gh api "repos/$REPO/compare/master...$HEAD_SHA?per_page=100" --paginate --jq '.commits[].sha')"
-              count="$(printf '%s\n' "$shas" | grep -c . || true)"
-              if [ "$count" -eq 0 ]; then
+              total="$(gh api "repos/$REPO/compare/master...$HEAD_SHA?per_page=1" --jq .total_commits)"
+              case "$total" in
+                ''|*[!0-9]*)
+                  echo "::error::The API gave '$total' as the number of commits $HEAD_REF adds over master; the hotfix cannot be checked."
+                  exit 1 ;;
+              esac
+              if [ "$total" -eq 0 ]; then
                 echo "::error::The API lists no commits that $HEAD_REF adds over master; the hotfix cannot be checked."
                 exit 1
               fi
-              if [ "$count" -gt "$max_commits" ]; then
-                echo "::error::$HEAD_REF adds $count commits over master (more than $max_commits); a hotfix is a small fix cut from master. Unreleased development code must go through a development -> master release PR."
+              if [ "$total" -gt "$max_commits" ]; then
+                echo "::error::$HEAD_REF adds $total commits over master (more than $max_commits); a hotfix is a small fix cut from master. Unreleased development code must go through a development -> master release PR."
                 exit 1
               fi
-              for sha in $shas; do
-                if ! printf '%s' "$sha" | grep -Eqx '[0-9a-f]{40}'; then
-                  echo "::error::The API listed '$sha' as a commit of $HEAD_REF; the hotfix cannot be checked."
-                  exit 1
-                fi
+              # One line per added commit: "<sha> <parent sha>...".
+              list="$(gh api "repos/$REPO/compare/master...$HEAD_SHA?per_page=100" --paginate --jq '.commits[] | ([.sha] + [.parents[].sha]) | join(" ")')"
+              if ! roots="$(printf '%s\n' "$list" | awk -v want="$total" '
+                function sha(v) { return v ~ /^[0-9a-f]+$/ && length(v) == 40 }
+                NF { n++; line[n] = $0; listed[$1] = 1; for (i = 1; i <= NF; i++) if (!sha($i)) bad = $i }
+                END {
+                  if (bad != "") { print "The API listed '\''" bad "'\'' in the commits of the hotfix; it cannot be checked."; exit 1 }
+                  if (n != want) { print "The API listed " n " of the " want " commits the hotfix adds over master; it cannot be checked."; exit 1 }
+                  for (k = 1; k <= n; k++) {
+                    m = split(line[k], f, " "); root = 1
+                    for (i = 2; i <= m; i++) if (f[i] in listed) root = 0
+                    if (root) print f[1]
+                  }
+                }')"; then
+                echo "::error::$HEAD_REF: $roots"
+                exit 1
+              fi
+              for sha in $roots; do
                 # identical | ahead: development contains the commit.
                 status="$(gh api "repos/$REPO/compare/$sha...development?per_page=1" --jq .status)"
                 case "$status" in
@@ -91,7 +114,7 @@ jobs:
                     exit 1 ;;
                 esac
               done
-              echo "OK: $HEAD_REF -> master (cut from master; none of its $count commits over master is on development)" ;;
+              echo "OK: $HEAD_REF -> master (cut from master; none of its $total commits over master is on development)" ;;
             *)
               echo "::error::A PR into master must come from 'development' or a 'hotfix/*' branch (source: '$HEAD_REF'). Merge the change into development, or for an urgent fix cut hotfix/<name> from master."
               exit 1 ;;
