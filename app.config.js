@@ -217,7 +217,9 @@ function withStagingHosts(intentFilters = [], hosts = stagingHosts) {
  * long native build; here the build stops while the config is read, with a
  * message that names the fix. A production build also needs
  * `EXPO_PUBLIC_SENTRY_DSN`: without it `src/services/sentry.ts` is a no-op and
- * the store binary reports nothing at all.
+ * the store binary reports nothing at all. A production build that uploads also
+ * stops when `SENTRY_ALLOW_FAILURE` is on, because sentry-cli would then swallow
+ * a failed upload and the binary would ship without symbols unnoticed.
  *
  * Staging and development profiles keep `SENTRY_DISABLE_AUTO_UPLOAD=true` and
  * pass. Only EAS build workers are checked (`EAS_BUILD`): eas-cli on the CI
@@ -245,6 +247,22 @@ function assertSentryBuildReady(env = process.env, warn = console.warn) {
       `[app.config] EAS build profile "${profile}" is missing ${missing.join(' and ')}. ` +
         'Without them the store binary ships with unreadable (or no) Sentry crash reports. ' +
         'Create the EAS environment variable(s) for this profile\'s environment, or set ' +
+        'SENTRY_DISABLE_AUTO_UPLOAD=true there to skip the upload on purpose. ' +
+        'See docs/RELEASE.md, "Sentry source maps and debug symbols".',
+    );
+  }
+  // sentry-cli reads SENTRY_ALLOW_FAILURE itself and then exits 0 on a failed
+  // upload, so the Xcode phase and Gradle task pass and the store binary ships
+  // without symbols, silently. sentry-cli 2.x honours exactly "true" and "1"
+  // (checked against the vendored binary); other values upload and fail loudly.
+  // The deliberate opt-out above is the only way to skip the upload.
+  const allowFailure = ['true', '1'].includes(env.SENTRY_ALLOW_FAILURE);
+  if (isProduction && !uploadDisabled && allowFailure) {
+    const profile = env.EAS_BUILD_PROFILE || 'unknown';
+    throw new Error(
+      `[app.config] EAS build profile "${profile}" sets SENTRY_ALLOW_FAILURE=${env.SENTRY_ALLOW_FAILURE}: ` +
+        'a failed Sentry upload would pass silently and the store binary would ship with unreadable crash reports. ' +
+        'Remove SENTRY_ALLOW_FAILURE from this profile\'s environment, or set ' +
         'SENTRY_DISABLE_AUTO_UPLOAD=true there to skip the upload on purpose. ' +
         'See docs/RELEASE.md, "Sentry source maps and debug symbols".',
     );

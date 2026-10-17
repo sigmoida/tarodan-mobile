@@ -134,6 +134,63 @@ describe('app.config — Sentry upload guard on EAS builds', () => {
     expect(() => assertSentryBuildReady(env, jest.fn())).toThrow(/missing EXPO_PUBLIC_SENTRY_DSN\./);
   });
 
+  // sentry-cli 2.x exits 0 on a failed upload for exactly these values.
+  it.each(['true', '1'])(
+    'stops a production build that uploads with SENTRY_ALLOW_FAILURE=%s, which would swallow a failed upload',
+    (value) => {
+      const env = easBuild('production', { ...secrets, SENTRY_ALLOW_FAILURE: value });
+      expect(() => assertSentryBuildReady(env, jest.fn())).toThrow(/sets SENTRY_ALLOW_FAILURE=/);
+    },
+  );
+
+  it('names the profile, the value and the two ways out in the allow-failure error', () => {
+    let message = '';
+    try {
+      assertSentryBuildReady(easBuild('production', { ...secrets, SENTRY_ALLOW_FAILURE: 'true' }), jest.fn());
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    expect(message).toContain('EAS build profile "production" sets SENTRY_ALLOW_FAILURE=true');
+    expect(message).toContain('Remove SENTRY_ALLOW_FAILURE');
+    expect(message).toContain('SENTRY_DISABLE_AUTO_UPLOAD=true');
+    expect(message).toContain('docs/RELEASE.md, "Sentry source maps and debug symbols"');
+  });
+
+  it.each(['TRUE', 'True', ' true', 'true ', 'yes', '0', 'false', ''])(
+    'passes SENTRY_ALLOW_FAILURE=%j, which sentry-cli ignores (a failed upload still fails the build)',
+    (value) => {
+      const warn = jest.fn();
+      const env = easBuild('production', { ...secrets, SENTRY_ALLOW_FAILURE: value });
+      expect(() => assertSentryBuildReady(env, warn)).not.toThrow();
+      expect(warn).not.toHaveBeenCalled();
+    },
+  );
+
+  it('lets the exact opt-out win over SENTRY_ALLOW_FAILURE, with the opt-out warning', () => {
+    const warn = jest.fn();
+    const env = easBuild('production', {
+      EXPO_PUBLIC_SENTRY_DSN: secrets.EXPO_PUBLIC_SENTRY_DSN,
+      SENTRY_DISABLE_AUTO_UPLOAD: 'true',
+      SENTRY_ALLOW_FAILURE: 'true',
+    });
+    expect(() => assertSentryBuildReady(env, warn)).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/NOT uploaded/));
+  });
+
+  it.each(['TRUE', 'true ', '1'])(
+    'does not let a non-exact opt-out (%j) cover SENTRY_ALLOW_FAILURE, because the Sentry scripts would still upload',
+    (value) => {
+      const env = easBuild('production', { ...secrets, SENTRY_DISABLE_AUTO_UPLOAD: value, SENTRY_ALLOW_FAILURE: 'true' });
+      expect(() => assertSentryBuildReady(env, jest.fn())).toThrow(/sets SENTRY_ALLOW_FAILURE=true/);
+    },
+  );
+
+  it('leaves SENTRY_ALLOW_FAILURE to a non-production profile that uploads', () => {
+    const { SENTRY_DISABLE_AUTO_UPLOAD: _optOut, ...uploading } = easBuild('staging');
+    const env = { ...uploading, SENTRY_AUTH_TOKEN: secrets.SENTRY_AUTH_TOKEN, SENTRY_ALLOW_FAILURE: 'true' };
+    expect(() => assertSentryBuildReady(env, jest.fn())).not.toThrow();
+  });
+
   it('a non-production profile that uploads needs the token but never the DSN', () => {
     const { SENTRY_DISABLE_AUTO_UPLOAD: _optOut, ...uploading } = easBuild('staging');
     expect(() => assertSentryBuildReady(uploading, jest.fn())).toThrow(/missing SENTRY_AUTH_TOKEN\./);
@@ -188,7 +245,13 @@ describe('app.config — Sentry upload guard on EAS builds', () => {
   );
 
   it('runs on every config read, so the EAS worker stops before the native build', () => {
-    const keys = ['EAS_BUILD', 'SENTRY_AUTH_TOKEN', 'SENTRY_DISABLE_AUTO_UPLOAD', 'EXPO_PUBLIC_SENTRY_DSN'];
+    const keys = [
+      'EAS_BUILD',
+      'SENTRY_AUTH_TOKEN',
+      'SENTRY_DISABLE_AUTO_UPLOAD',
+      'SENTRY_ALLOW_FAILURE',
+      'EXPO_PUBLIC_SENTRY_DSN',
+    ];
     const saved = keys.map((k) => [k, process.env[k]] as const);
     keys.forEach((k) => delete process.env[k]);
     process.env.EAS_BUILD = 'true';

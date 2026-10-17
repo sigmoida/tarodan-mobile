@@ -411,7 +411,10 @@ and dSYMs (iOS native) of the exact binary or update that crashed. How it is wir
 **Fail-safe.** On an EAS build worker (`EAS_BUILD`), `app.config.js`
 (`assertSentryBuildReady`) stops the build while the config is read when upload
 is on and `SENTRY_AUTH_TOKEN` is missing, and on any production build when
-`EXPO_PUBLIC_SENTRY_DSN` is missing. Why fail rather than skip: a store binary
+`EXPO_PUBLIC_SENTRY_DSN` is missing. A production build that uploads also stops
+when `SENTRY_ALLOW_FAILURE` is `true` or `1` (the values `sentry-cli` honours):
+`sentry-cli` would then exit 0 on a failed upload and the binary would ship
+without symbols, unnoticed. Why fail rather than skip: a store binary
 cannot get its symbols later (the dSYMs and Hermes maps exist only inside that
 build), so a silent skip would ship 1.1.0 with unreadable crashes. Failing at
 the "Read app config" step, a few minutes in and with the fix in the message, is
@@ -424,7 +427,7 @@ there), and any change to the `production` environment reaches staging store
 builds too. To ship a production build without symbols on
 purpose (for example during a Sentry outage), set `SENTRY_DISABLE_AUTO_UPLOAD=true`
 in the EAS `production` environment; the build logs a warning. Remove it again
-afterwards.
+afterwards. `SENTRY_ALLOW_FAILURE` is not a way to do this: set the opt-out.
 
 ### One-time setup (user)
 
