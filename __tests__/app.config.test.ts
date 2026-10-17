@@ -74,7 +74,7 @@ describe('app.config — other environments', () => {
 describe('app.config — Sentry upload guard on EAS builds', () => {
   const { assertSentryBuildReady } = withVariant;
   const builds: Record<string, { env: Record<string, string> }> = eas.build;
-  const easBuild = (profile: string, extra: Record<string, string> = {}) => ({
+  const easBuild = (profile: string, extra: Record<string, string> = {}): Record<string, string> => ({
     EAS_BUILD: 'true',
     EAS_BUILD_PROFILE: profile,
     ...builds[profile].env,
@@ -126,6 +126,55 @@ describe('app.config — Sentry upload guard on EAS builds', () => {
       EXPO_PUBLIC_SENTRY_DSN: secrets.EXPO_PUBLIC_SENTRY_DSN,
       SENTRY_DISABLE_AUTO_UPLOAD: 'true ',
     });
+    expect(() => assertSentryBuildReady(env, jest.fn())).toThrow(/SENTRY_AUTH_TOKEN/);
+  });
+
+  it('the opt-out skips only the token: a production build without the DSN still stops', () => {
+    const env = easBuild('production', { SENTRY_DISABLE_AUTO_UPLOAD: 'true' });
+    expect(() => assertSentryBuildReady(env, jest.fn())).toThrow(/missing EXPO_PUBLIC_SENTRY_DSN\./);
+  });
+
+  it('a non-production profile that uploads needs the token but never the DSN', () => {
+    const { SENTRY_DISABLE_AUTO_UPLOAD: _optOut, ...uploading } = easBuild('staging');
+    expect(() => assertSentryBuildReady(uploading, jest.fn())).toThrow(/missing SENTRY_AUTH_TOKEN\./);
+    expect(() =>
+      assertSentryBuildReady({ ...uploading, SENTRY_AUTH_TOKEN: secrets.SENTRY_AUTH_TOKEN }, jest.fn()),
+    ).not.toThrow();
+  });
+
+  it('names the profile, both missing values and the two ways out in the error', () => {
+    let message = '';
+    try {
+      assertSentryBuildReady(easBuild('production'), jest.fn());
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    expect(message).toContain('EAS build profile "production" is missing SENTRY_AUTH_TOKEN and EXPO_PUBLIC_SENTRY_DSN.');
+    expect(message).toContain('SENTRY_DISABLE_AUTO_UPLOAD=true');
+    expect(message).toContain('docs/RELEASE.md, "Sentry source maps and debug symbols"');
+    const { EAS_BUILD_PROFILE: _p, ...noProfile } = easBuild('production');
+    expect(() => assertSentryBuildReady(noProfile, jest.fn())).toThrow(/EAS build profile "unknown"/);
+  });
+
+  it.each(['TRUE', 'True', '1', 'yes'])(
+    'does not treat SENTRY_DISABLE_AUTO_UPLOAD=%s as an opt-out (the Sentry scripts only skip on "true")',
+    (value) => {
+      const env = easBuild('production', {
+        EXPO_PUBLIC_SENTRY_DSN: secrets.EXPO_PUBLIC_SENTRY_DSN,
+        SENTRY_DISABLE_AUTO_UPLOAD: value,
+      });
+      expect(() => assertSentryBuildReady(env, jest.fn())).toThrow(/SENTRY_AUTH_TOKEN/);
+    },
+  );
+
+  it.each(['preview', 'staging', 'development'])('does not warn on the %s opt-out (only production warns)', (profile) => {
+    const warn = jest.fn();
+    assertSentryBuildReady(easBuild(profile), warn);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it.each(['1', 'TRUE', ' true '])('is on for any truthy EAS_BUILD value (%j)', (flag) => {
+    const env = easBuild('production', { EAS_BUILD: flag });
     expect(() => assertSentryBuildReady(env, jest.fn())).toThrow(/SENTRY_AUTH_TOKEN/);
   });
 
