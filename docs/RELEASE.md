@@ -62,11 +62,12 @@ Workflow her yayın öncesi, platform başına:
      Belirsiz her şey (tanınmayan CLI JSON'u dahil) "binary var" sayılmaz.
 3. Build kararı otomatikse iki koruma uygulanır (aşağıda "Build korumaları").
 
-Fingerprint'e girenler (doğrulandı): `app.config.js`'in **çıktısı**
-(çözümlenmiş expo config — `.staging` kimliği dahil; app.config.js'te çıktıyı
-değiştirmeyen düzenleme build tetiklemez), `app.json` alanları — **`expo.version`
-dahil**, `eas.json`, config plugin'leri (`plugins/`), native autolinking,
-`package.json` script'leri, ikon/splash dosyaları. Sonuç:
+Fingerprint inputs (verified): the **output** of `app.config.js` (the resolved
+expo config, including the `.staging` identity; an edit that does not change the
+output triggers no build), the `app.json` fields **including `expo.version`**,
+`eas.json`, config plugins (`plugins/`), native autolinking, `package.json`
+scripts, icon/splash files, and the **content** of `android.googleServicesFile`
+(`google-services.json`, Android fingerprint only). As a result:
 
 - **`expo.version` artışı her zaman yeni build'dir.**
 - **`eas.json`'daki her değişiklik** (yalnız `submit` bloğu bile) yeni build'dir.

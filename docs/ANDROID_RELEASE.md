@@ -254,9 +254,11 @@ düşük hassasiyetlidir); (b) EAS build'leri `.gitignore`'u dikkate alarak arş
 çıkarır, ignore edilen dosya bulutta görünmez; (c) `.gitignore` değişikliği runtime
 fingerprint'ine girer.
 
-**Not (OTA / CI):** `.github/workflows/mobile-staging.yml` içindeki `native_re` listesi
-bugün yalnız `google-services.json` içeriyor; `google-services.staging.json` de
-eklenmeli ki dosya değişince OTA "native değişti" uyarısı versin (CI sahibine iletildi).
+**Note (OTA / CI):** the release pipeline decides OTA vs build by runtime
+fingerprint, not by a file list. The content of the `android.googleServicesFile`
+the profile resolves is a fingerprint input, so changing `google-services.json`
+(production) or `google-services.staging.json` (staging) means a new Android store
+build for that profile; an OTA does not reach it.
 
 ---
 
