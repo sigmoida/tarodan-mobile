@@ -42,7 +42,8 @@
 #   release.sh publish-ota  <eas-branch> <ios|android|all> <build-profile> <message>
 #       Loads the profile env, checks the profile's EAS environment (eas-cli rule, see
 #       eas_build_environment), publishes `eas update --environment <it>` and uploads
-#       the source maps to Sentry (SENTRY_AUTH_TOKEN; required on production).
+#       the source maps to Sentry (SENTRY_AUTH_TOKEN; required on production). With a
+#       token it requires a source map per platform, each carrying a debugId.
 #   release.sh plan         <staging|production>
 #       Platform başına karar (fingerprint → OTA / build / skip). Girdiler env'den:
 #       MODE (auto|ota|build|apk), PLATFORM (all|ios|android), ANDROID_ENABLED,
@@ -567,8 +568,12 @@ assert_sentry_upload_config() {
     });' || exit 1
 }
 
+# The Sentry package's own check that a source map carries a debugId (the id the
+# bundle and its map are matched by in Sentry; a map without one never resolves).
+SENTRY_DEBUGID_CHECK="$ROOT/node_modules/@sentry/react-native/scripts/has-sourcemap-debugid.js"
+
 publish_ota() {
-  local branch="$1" platform="$2" profile="$3" message="$4" environment p
+  local branch="$1" platform="$2" profile="$3" message="$4" environment p maps map
   environment="$(eas_build_environment "$profile")" || die "no EAS environment for build.$profile"
   (
     load_profile_env "$profile"
@@ -580,17 +585,29 @@ publish_ota() {
     cd "$ROOT"
     # The upload runs after publishing; what can be checked beforehand is checked here
     # (org and project, as sentry-expo-upload-sourcemaps resolves them).
-    if [ -n "${SENTRY_AUTH_TOKEN:-}" ]; then assert_sentry_upload_config; fi
+    if [ -n "${SENTRY_AUTH_TOKEN:-}" ]; then
+      assert_sentry_upload_config
+      [ -f "$SENTRY_DEBUGID_CHECK" ] \
+        || die "$SENTRY_DEBUGID_CHECK is missing (dependencies not installed, or @sentry/react-native moved it); the source maps cannot be checked. Nothing was published."
+    fi
     # The upload reads ./dist; start empty so only this export is uploaded.
     rm -rf dist
     eas update --branch "$branch" --platform "$platform" --environment "$environment" \
       --message "$message" --non-interactive
     if [ -n "${SENTRY_AUTH_TOKEN:-}" ]; then
-      # The upload script exits 0 even when a bundle has no source map; require one
-      # per published platform.
+      # The upload script exits 0 even when a bundle has no source map, and uploads a
+      # map without a debugId that Sentry then never matches; require a map per
+      # published platform, each with a debugId.
       for p in $([ "$platform" = all ] && echo "ios android" || echo "$platform"); do
-        [ -n "$(find dist -path "*/$p/*" -name '*.map' -print -quit 2>/dev/null)" ] \
+        maps="$(find dist -path "*/$p/*" -name '*.map' -print 2>/dev/null)"
+        [ -n "$maps" ] \
           || die "The OTA IS published, but eas update wrote no $p source map to dist/, so its stack traces cannot go to Sentry. Do NOT re-run this job: that publishes a second update."
+        while IFS= read -r map; do
+          node "$SENTRY_DEBUGID_CHECK" "$map" >/dev/null 2>&1 \
+            || die "The OTA IS published, but its $p source map $map carries no debugId, so Sentry cannot match it to the bundle and its stack traces stay unreadable. Nothing was uploaded. Do NOT re-run this job: that publishes a second update. Fix the Metro serializer (debug ids) before the next OTA."
+        done <<EOF
+$maps
+EOF
       done
       npx sentry-expo-upload-sourcemaps dist \
         || die "The OTA IS published, but its source maps were NOT uploaded to Sentry, so its stack traces stay unreadable. Do NOT re-run this job: that publishes a second update. Fix the cause before the next OTA."

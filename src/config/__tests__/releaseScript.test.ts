@@ -80,6 +80,8 @@ type RunOpts = {
   readFiles?: string[];
   /** Sahte eas'in okuyacağı ek dosyalar ($FAKE_DIR'e yazılır; ör. `eas-env-production-account.txt`). */
   fakeFiles?: Record<string, string>;
+  /** false: run without node_modules (dependencies not installed). */
+  nodeModules?: boolean;
 };
 
 function run(args: string[], opts: RunOpts = {}) {
@@ -123,6 +125,9 @@ function run(args: string[], opts: RunOpts = {}) {
   const appJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
   appJson.expo.version = TEST_VERSION;
   fs.writeFileSync(path.join(root, 'app.json'), `${JSON.stringify(appJson, null, 2)}\n`);
+  // The real dependencies (publish-ota runs @sentry/react-native's debugId check);
+  // rmSync below removes the link, not its target.
+  if (opts.nodeModules !== false) fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(root, 'node_modules'));
   const eas = opts.easJson ? opts.easJson(realEasJson()) : realEasJson();
   fs.writeFileSync(path.join(root, 'eas.json'), typeof eas === 'string' ? eas : JSON.stringify(eas));
 
@@ -486,6 +491,40 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
       expect.stringContaining(`--branch production --platform ${p} --environment production --message msg`),
     ]);
     expect(r.log.filter((l) => l.startsWith('npx sentry-expo-upload-sourcemaps dist'))).toHaveLength(1);
+  });
+
+  it.each([
+    ['ios', 'ios'],
+    ['android', 'android'],
+    ['all', 'ios'],
+  ])('a %s map without a debugId fails after publishing, before any upload, and says not to re-run', (missing, p) => {
+    // Sentry matches a bundle to its map by debugId; a map without one never resolves.
+    const r = otaOne(p, { FAKE_UPDATE_NO_DEBUGID: missing });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(1);
+    expect(r.all).toContain(`::error::The OTA IS published, but its ${p} source map`);
+    expect(r.all).toContain('carries no debugId');
+    expect(r.all).toContain('Do NOT re-run this job');
+    expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
+  });
+
+  it('one platform without a debugId fails an all-platform OTA too', () => {
+    const r = ota('production', 'production', { env: { FAKE_UPDATE_NO_DEBUGID: 'android' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('android source map');
+    expect(r.all).toContain('carries no debugId');
+    expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
+  });
+
+  it('without the Sentry debugId check script nothing is published', () => {
+    const r = run(['publish-ota', 'production', 'ios', 'production', 'msg'], {
+      env: { SENTRY_AUTH_TOKEN: 'test-token' },
+      fakeFiles: DSN_ENV,
+      nodeModules: false,
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('has-sourcemap-debugid.js is missing');
+    expect(r.easCalls('update')).toHaveLength(0);
   });
 
   it('a single-platform production OTA without its source map fails after publishing and says not to re-run', () => {
