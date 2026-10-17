@@ -9,6 +9,7 @@ import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { parse } from 'yaml';
 
 const ROOT = path.resolve(__dirname, '../../..');
 const SCRIPT = path.join(ROOT, 'scripts/ci/release.sh');
@@ -107,7 +108,9 @@ function run(args: string[], opts: RunOpts = {}) {
   for (const k of Object.keys(base)) {
     if (k.startsWith('EXPO_PUBLIC_') || k.startsWith('GITHUB_')) delete base[k];
   }
-  for (const k of ['MODE', 'PLATFORM', 'ANDROID_ENABLED', 'COMMIT_MSG', 'SHA', 'FP', 'SOURCE_REF']) delete base[k];
+  for (const k of ['MODE', 'PLATFORM', 'ANDROID_ENABLED', 'COMMIT_MSG', 'SHA', 'FP', 'SOURCE_REF', 'SENTRY_AUTH_TOKEN']) {
+    delete base[k];
+  }
 
   // Script HER ZAMAN geçici bir kök dizinden koşar: build-submit eas-build.json'u
   // kökte yazar; testler repoya asla dosya bırakmamalı.
@@ -288,17 +291,275 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     eas.build[profile] = { ...eas.build[profile], env };
     return eas;
   };
+  /** A clean EAS production environment with the Sentry DSN (as the real one must be). */
+  const DSN_ENV = { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=https://key@example.invalid/1\n' };
+  // By default a ready OTA: the Sentry token is set and the EAS environment has the DSN.
   const ota = (branch: string, profile: string, opts: RunOpts = {}) =>
-    run(['publish-ota', branch, 'all', profile, 'msg'], opts);
+    run(['publish-ota', branch, 'all', profile, 'msg'], {
+      ...opts,
+      env: { SENTRY_AUTH_TOKEN: 'test-token', ...opts.env },
+      fakeFiles: { ...DSN_ENV, ...opts.fakeFiles },
+    });
 
-  it('production OTA eas.json\'daki production env\'iyle yayınlanır', () => {
+  it('production OTA is published with the eas.json production env and the production EAS environment', () => {
     const r = ota('production', 'production');
     expect(r.status).toBe(0);
     expect(r.easCalls('update')).toEqual([
       expect.stringContaining(
-        '--branch production --platform all --message msg --non-interactive | EXPO_PUBLIC_ENVIRONMENT=production EXPO_PUBLIC_API_URL=https://tarodan.com.tr/api',
+        '--branch production --platform all --environment production --message msg --non-interactive | EXPO_PUBLIC_ENVIRONMENT=production EXPO_PUBLIC_API_URL=https://tarodan.com.tr/api',
       ),
     ]);
+  });
+
+  it('production OTA: EAS variables of the production environment are checked first, then the source maps go to Sentry', () => {
+    const r = ota('production', 'production');
+    const calls = r.log.map((l) => l.split(' | ')[0]);
+    const envList = calls.indexOf('eas env:list production --scope project --format short');
+    const update = calls.findIndex((c) => c.startsWith('eas update '));
+    const upload = calls.indexOf('npx sentry-expo-upload-sourcemaps dist');
+    expect(calls).toContain('eas env:list production --scope account --format short');
+    expect(envList).toBeGreaterThan(-1);
+    expect(envList).toBeLessThan(update);
+    expect(update).toBeLessThan(upload);
+  });
+
+  it('production OTA without SENTRY_AUTH_TOKEN is not published', () => {
+    const r = ota('production', 'production', { env: { SENTRY_AUTH_TOKEN: '' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('SENTRY_AUTH_TOKEN');
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('production OTA without the Sentry DSN in the EAS environment is not published', () => {
+    const r = ota('production', 'production', { fakeFiles: { 'eas-env-production-project.txt': '' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('EXPO_PUBLIC_SENTRY_DSN');
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('the DSN may also come from the account scope', () => {
+    const r = ota('production', 'production', {
+      fakeFiles: { 'eas-env-production-project.txt': '', 'eas-env-production-account.txt': 'EXPO_PUBLIC_SENTRY_DSN=https://key@example.invalid/1\n' },
+    });
+    expect(r.status).toBe(0);
+  });
+
+  it('a failed source map upload fails the job (the OTA is already out, so it says so)', () => {
+    const r = ota('production', 'production', { env: { FAKE_SENTRY_UPLOAD_FAIL: '1' } });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(1);
+    expect(r.all).toContain('source maps were NOT uploaded');
+  });
+
+  it.each([['EXPO_PUBLIC_API_URL'], ['EXPO_PUBLIC_ENVIRONMENT']])(
+    'an EAS variable that would override eas.json (%s) stops the OTA (eas update lets EAS win)',
+    (key) => {
+      const r = ota('production', 'production', {
+        fakeFiles: { 'eas-env-production-project.txt': `EXPO_PUBLIC_SENTRY_DSN=https://key@example.invalid/1\n${key}=https://staging.example\n` },
+      });
+      expect(r.status).not.toBe(0);
+      expect(r.all).toContain(key);
+      expect(r.easCalls('update')).toHaveLength(0);
+    },
+  );
+
+  it.each(['project', 'account'])('an unreadable EAS environment (%s scope) stops the OTA', (scope) => {
+    const r = ota('production', 'production', { env: { FAKE_EAS_FAIL_ENV_LIST_SCOPE: scope } });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('a Maestro test hook in the EAS environment stops the OTA', () => {
+    const r = ota('staging', 'preview', { fakeFiles: { 'eas-env-preview-account.txt': 'EXPO_PUBLIC_MAESTRO=1\n' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('EXPO_PUBLIC_MAESTRO');
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('no Sentry org/project for the upload -> nothing is published', () => {
+    const r = ota('production', 'production', { env: { FAKE_NO_SENTRY_PLUGIN: '1' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('Sentry source map upload would fail');
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('SENTRY_ORG + SENTRY_PROJECT + SENTRY_URL replace the plugin options (all three, as the upload script needs)', () => {
+    const env = { FAKE_NO_SENTRY_PLUGIN: '1', SENTRY_ORG: 'org', SENTRY_PROJECT: 'project' };
+    expect(ota('production', 'production', { env }).status).not.toBe(0);
+    expect(ota('production', 'production', { env: { ...env, SENTRY_URL: 'https://sentry.io/' } }).status).toBe(0);
+  });
+
+  it.each([
+    ['empty', 'EXPO_PUBLIC_SENTRY_DSN=\n'],
+    [
+      'secret visibility (eas update cannot read it)',
+      "EXPO_PUBLIC_SENTRY_DSN=***** (This is a secret env variable that can only be accessed on EAS builder and can't be read in any UI. Learn more.)\n",
+    ],
+  ])('a DSN that is %s does not count', (_n, line) => {
+    const r = ota('production', 'production', { fakeFiles: { 'eas-env-production-project.txt': line } });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('a sensitive DSN counts (eas update can read it)', () => {
+    const line = 'EXPO_PUBLIC_SENTRY_DSN=***** (This is a sensitive env variable. To access it, run command with --include-sensitive flag. Learn more.)\n';
+    expect(ota('production', 'production', { fakeFiles: { 'eas-env-production-project.txt': line } }).status).toBe(0);
+  });
+
+  it('no source map in the export fails the job (the upload script would exit 0)', () => {
+    const r = ota('production', 'production', { env: { FAKE_UPDATE_NO_MAPS: 'all' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('source map to dist/');
+    expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
+  });
+
+  it('a test hook that is not at the line start is still caught (fail closed)', () => {
+    const r = ota('production', 'production', {
+      fakeFiles: { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=https://key@example.invalid/1\n  EXPO_PUBLIC_MAESTRO_PASSWORD=x\n' },
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('EXPO_PUBLIC_MAESTRO_PASSWORD');
+  });
+
+  it('a DSN leaked from the runner does not count (only eas.json / EAS values do)', () => {
+    const r = ota('production', 'production', {
+      env: { EXPO_PUBLIC_SENTRY_DSN: 'https://leaked@example.invalid/1' },
+      fakeFiles: { 'eas-env-production-project.txt': '' },
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('the override check fails closed: a value that mentions a profile key also stops the OTA', () => {
+    const r = ota('production', 'production', {
+      fakeFiles: { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=https://key@example.invalid/1\nNOTE=see EXPO_PUBLIC_API_URL=x\n' },
+    });
+    expect(r.status).not.toBe(0);
+  });
+
+  it('a hook not in TEST_HOOK_ENV is still caught by its EXPO_PUBLIC_MAESTRO prefix', () => {
+    const r = ota('production', 'production', {
+      fakeFiles: { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=https://key@example.invalid/1\nEXPO_PUBLIC_MAESTRO_SEED=1\n' },
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('EXPO_PUBLIC_MAESTRO_SEED');
+  });
+
+  it('a secret DSN in one scope fails even if the other scope has a readable one', () => {
+    const secret = "EXPO_PUBLIC_SENTRY_DSN=***** (This is a secret env variable that can only be accessed on EAS builder and can't be read in any UI. Learn more.)\n";
+    const r = ota('production', 'production', {
+      fakeFiles: { 'eas-env-production-project.txt': secret, 'eas-env-production-account.txt': 'EXPO_PUBLIC_SENTRY_DSN=https://k@example.invalid/1\n' },
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('a bare masked DSN without the sensitive marker fails (fail closed if eas-cli rewords)', () => {
+    const r = ota('production', 'production', { fakeFiles: { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\n' } });
+    expect(r.status).not.toBe(0);
+  });
+
+  it('SENTRY_ORG + SENTRY_PROJECT with plugin options that lack them pass, as in the upload script', () => {
+    const env = { FAKE_NO_SENTRY_PLUGIN: 'url', SENTRY_ORG: 'org', SENTRY_PROJECT: 'project' };
+    expect(ota('production', 'production', { env }).status).toBe(0);
+    expect(ota('production', 'production', { env: { FAKE_NO_SENTRY_PLUGIN: 'url' } }).status).not.toBe(0);
+  });
+
+  it('a missing map for one of the platforms fails the job', () => {
+    const r = ota('production', 'production', { env: { FAKE_UPDATE_NO_MAPS: 'android' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('no android source map');
+  });
+
+  // mobile-production.yml runs one OTA job per platform (the ota_matrix), so the CI
+  // path is `publish-ota production <ios|android>`, never `all`.
+  const otaOne = (p: string, env: Record<string, string> = {}) =>
+    run(['publish-ota', 'production', p, 'production', 'msg'], {
+      env: { SENTRY_AUTH_TOKEN: 'test-token', ...env },
+      fakeFiles: DSN_ENV,
+    });
+
+  it.each(['ios', 'android'])('a single-platform production OTA (%s) publishes and uploads only that platform', (p) => {
+    const r = otaOne(p);
+    expect(r.status).toBe(0);
+    expect(r.easCalls('update')).toEqual([
+      expect.stringContaining(`--branch production --platform ${p} --environment production --message msg`),
+    ]);
+    expect(r.log.filter((l) => l.startsWith('npx sentry-expo-upload-sourcemaps dist'))).toHaveLength(1);
+  });
+
+  it.each([
+    ['ios', 'ios'],
+    ['android', 'android'],
+    ['all', 'ios'],
+  ])('a %s map without a debugId fails after publishing, before any upload, and says not to re-run', (missing, p) => {
+    // Sentry matches a bundle to its map by debugId; a map without one never resolves.
+    const r = otaOne(p, { FAKE_UPDATE_NO_DEBUGID: missing });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(1);
+    expect(r.all).toContain(`::error::The OTA IS published, but its ${p} source map`);
+    expect(r.all).toMatch(/::error::\S+index\.hbc\.map has no debugId\./);
+    expect(r.all).not.toContain('is not a readable source map');
+    expect(r.all).toContain('has no readable debugId');
+    expect(r.all).toContain('Do NOT re-run this job');
+    expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
+  });
+
+  it('an unreadable map fails with its own cause, not only "no debugId"', () => {
+    const r = otaOne('ios', { FAKE_UPDATE_BAD_MAP: 'ios' });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toMatch(/::error::\S+index\.hbc\.map is not a readable source map \(/);
+    expect(r.all).toContain('has no readable debugId (cause above)');
+    expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
+  });
+
+  it('a map with debug_id counts (Sentry accepts either key)', () => {
+    const r = otaOne('ios', { FAKE_UPDATE_SNAKE_DEBUGID: 'ios' });
+    expect(r.status).toBe(0);
+    expect(r.log.filter((l) => l.startsWith('npx sentry-expo-upload-sourcemaps dist'))).toHaveLength(1);
+  });
+
+  it('a non-string debugId does not hide a valid debug_id (each key is checked on its own)', () => {
+    const r = otaOne('ios', { FAKE_UPDATE_SNAKE_DEBUGID: 'ios', FAKE_UPDATE_NUMERIC_DEBUGID: '1' });
+    expect(r.status).toBe(0);
+  });
+
+  it('one platform without a debugId fails an all-platform OTA too', () => {
+    const r = ota('production', 'production', { env: { FAKE_UPDATE_NO_DEBUGID: 'android' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('android source map');
+    expect(r.all).toContain('has no readable debugId');
+    expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
+  });
+
+  it('a single-platform production OTA without its source map fails after publishing and says not to re-run', () => {
+    const r = otaOne('android', { FAKE_UPDATE_NO_MAPS: 'android' });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(1);
+    expect(r.all).toContain('::error::The OTA IS published, but eas update wrote no android source map to dist/');
+    expect(r.all).toContain('Do NOT re-run this job');
+    expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
+  });
+
+  it.each([
+    ['no SENTRY_AUTH_TOKEN', { env: { SENTRY_AUTH_TOKEN: '' } }, 'SENTRY_AUTH_TOKEN is empty'],
+    ['no DSN in the EAS environment', { fakeFiles: { 'eas-env-production-project.txt': '' } }, 'EXPO_PUBLIC_SENTRY_DSN is missing'],
+    ['no Sentry org/project', { env: { FAKE_NO_SENTRY_PLUGIN: '1' } }, 'The Sentry source map upload would fail'],
+  ])('a production OTA refused for %s says that nothing was published', (_n, opts, reason) => {
+    const r = ota('production', 'production', opts as RunOpts);
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain(`::error::${reason}`);
+    expect(r.all).toMatch(/Nothing was published|production OTA without it reports nothing/);
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('staging OTA without the token publishes with a warning (no DSN required)', () => {
+    // The preview environment has no DSN (no fake file): staging does not require one.
+    const r = ota('staging', 'preview', { env: { SENTRY_AUTH_TOKEN: '' } });
+    expect(r.status).toBe(0);
+    expect(r.easCalls('update')[0]).toContain('--environment preview');
+    expect(r.all).toContain('::warning::SENTRY_AUTH_TOKEN is not set');
+    expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
   });
 
   it('profil yoksa durur (process substitution hatası artık yutulmuyor)', () => {
@@ -387,7 +648,7 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
       fakeFiles: { [`eas-env-${env}-${scope}.txt`]: 'EXPO_PUBLIC_SENTRY_DSN=*****\nEXPO_PUBLIC_MAESTRO=1\n' },
     });
     expect(r.status).not.toBe(0);
-    expect(r.all).toContain(`EAS ${env} ortamında (${scope} kapsamı)`);
+    expect(r.all).toContain(`EAS ${env} environment defines EXPO_PUBLIC_MAESTRO`);
     expect(r.easCalls('build')).toHaveLength(0);
   });
 
@@ -567,11 +828,11 @@ describe('release.sh plan — production: sürüm merge\'ü her zaman store buil
       const r = plan('production', { env: { PLATFORM: 'ios', SOURCE_REF: source }, builds: [live.b], submissions: [live.s] });
       expect(r.status).toBe(0);
       expect(r.outputs).toMatchObject({ ios: 'blocked', ota_matrix: '[]', blocked: 'ios', decided: 'true' });
-      expect(r.all).toContain("::error::ios: sürüm merge'ü");
+      expect(r.all).toContain('::error::ios: release merge');
       expect(r.all).toContain('mode=build');
       // master artık yayınlanmamış kod taşır: OTA önerilmez, aksine uyarılır.
       expect(r.all).not.toContain('-f mode=ota');
-      expect(r.all).toContain('DİKKAT');
+      expect(r.all).toContain('CAUTION');
     },
   );
 
@@ -603,7 +864,7 @@ describe('release.sh plan — production: sürüm merge\'ü her zaman store buil
     const olderAnd = build({ id: 'old-a', platform: 'ANDROID', profile: 'production', runtime: 'eski', appVersion: '1.0.4' });
     const r = plan('production', { env: { SOURCE_REF: 'development', ANDROID_ENABLED: 'true' }, builds: [older, olderAnd] });
     expect(r.outputs).toMatchObject({ ios: 'build', android: 'build', ota_matrix: '[]', blocked: '' });
-    expect(r.all).toContain('ios: sürüm 1.0.4 → 1.0.5');
+    expect(r.all).toContain('ios: version 1.0.4 -> 1.0.5');
     expect(r.summary).toContain('`development` → release');
   });
 
@@ -648,7 +909,7 @@ describe('release.sh plan — production: sürüm merge\'ü her zaman store buil
       builds: [build({ id: 'x', profile: 'production', runtime: 'eski' })],
     });
     expect(r.outputs.ios).toBe('blocked');
-    expect(r.all).toContain('::error::ios: native değişti');
+    expect(r.all).toContain('::error::ios: native code changed');
   });
 
   it('hotfix: sürüm artırılmış native düzeltme → build', () => {
@@ -687,7 +948,7 @@ describe('release.sh plan — VERSION-GATE platform başına', () => {
       blocked: 'ios',
       decided: 'true',
     });
-    expect(r.all).toContain('::error::ios: native değişti');
+    expect(r.all).toContain('::error::ios: native code changed');
   });
 
   it('iki platform da takılırsa ikisi de blocked, OTA yok', () => {
@@ -709,7 +970,7 @@ describe('release.sh plan — VERSION-GATE platform başına', () => {
   it('mode=build kapıyı uyarıya çevirir', () => {
     const r = plan('production', { env: { PLATFORM: 'ios', MODE: 'build' }, builds: [iosOld] });
     expect(r.outputs).toMatchObject({ ios: 'build', blocked: '' });
-    expect(r.all).toContain('::warning::ios: native değişti');
+    expect(r.all).toContain('::warning::ios: native code changed');
   });
 
   it('decided=true en son yazılır; hata olursa hiç yazılmaz', () => {
@@ -953,50 +1214,423 @@ describe('release.sh await-binary — staging OTA\'sı derlenen build\'den SONRA
   });
 });
 
-describe('release.sh bump-version — yayın sonrası development bir sonraki yamaya geçer', () => {
-  const bump = (released: string) => run(['bump-version', released], { readFiles: ['app.json'] });
-  const versionOf = (r: ReturnType<typeof bump>) => JSON.parse(r.files['app.json']).expo.version;
-  // Senaryolarda development'taki (geçici kök) sürüm TEST_VERSION'dır.
+describe('release.sh set-version — the release PR sets expo.version', () => {
+  const setVersion = (...args: string[]) => run(['set-version', ...args], { readFiles: ['app.json'] });
+  const versionOf = (r: ReturnType<typeof setVersion>) => JSON.parse(r.files['app.json']).expo.version;
+  // In these scenarios app.json (temporary root) holds TEST_VERSION.
   const original = () => {
     const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
     j.expo.version = TEST_VERSION;
     return `${JSON.stringify(j, null, 2)}\n`;
   };
 
-  it('yayınlanan sürüm development\'takiyle aynıysa → sonraki yama', () => {
-    const r = bump(TEST_VERSION);
+  it('sets a higher version', () => {
+    const r = setVersion('1.1.0');
     expect(r.status).toBe(0);
-    expect(versionOf(r)).toBe('1.0.6');
-    expect(r.outputs).toMatchObject({ bumped: 'true', version: '1.0.6' });
+    expect(versionOf(r)).toBe('1.1.0');
   });
 
-  it('development geride kaldıysa (ör. hotfix sürümü) → yayınlananın sonraki yaması', () => {
-    const r = bump('1.0.9');
-    expect(versionOf(r)).toBe('1.0.10');
+  it('changes only the version line; the rest of the file stays byte for byte', () => {
+    const r = setVersion('2.0.0');
+    expect(r.files['app.json']).toBe(original().replace(`"version": "${TEST_VERSION}"`, '"version": "2.0.0"'));
   });
 
-  it('development zaten ilerideyse (elle 1.1.0 gibi) dokunmaz', () => {
-    const r = bump('1.0.4');
+  it('the same version is a no-op', () => {
+    const r = setVersion(TEST_VERSION);
     expect(r.status).toBe(0);
     expect(r.files['app.json']).toBe(original());
-    expect(r.outputs).toMatchObject({ bumped: 'false', version: TEST_VERSION });
   });
 
-  it('yalnız sürüm alanı değişir, dosyanın geri kalanı aynı kalır', () => {
-    const r = bump(TEST_VERSION);
-    expect(r.files['app.json']).toBe(original().replace(`"version": "${TEST_VERSION}"`, '"version": "1.0.6"'));
+  it('never lowers the version', () => {
+    const r = setVersion('1.0.4');
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('lower');
+    expect(r.files['app.json']).toBe(original());
   });
 
-  it.each([['1.0'], ['abc'], ['1.0.5-beta'], ['1..5'], ['']])('X.Y.Z olmayan sürüm (%s) → durur', (v) => {
-    const r = bump(v);
+  it.each([['1.0'], ['abc'], ['1.0.6-beta'], ['1..6'], ['']])('refuses a version that is not X.Y.Z (%s)', (v) => {
+    const r = setVersion(v);
     expect(r.status).not.toBe(0);
     expect(r.files['app.json']).toBe(original());
   });
+
+  it('no longer offers bump-version (no post-release bump of development)', () => {
+    const r = run(['bump-version', TEST_VERSION]);
+    expect(r.status).not.toBe(0);
+  });
 });
 
-describe('release.sh — CI\'daki gibi çağrı (kopyalanmış script, göreli app.json)', () => {
-  // release-bookkeeping: master'daki script $RUNNER_TEMP'e kopyalanır, development
-  // checkout'unda göreli `app.json` ile çağrılır.
+/**
+ * A throwaway git repository with release.sh and app.json committed, for
+ * next-version / latest-release. Global and system git config are ignored (no
+ * hooks, no signing, no user settings), and so are GIT_* variables of a caller
+ * such as a pre-commit hook.
+ */
+function gitRepo(version = TEST_VERSION) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'release-git-'));
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  for (const k of Object.keys(env)) if (k.startsWith('GIT_')) delete env[k];
+  Object.assign(env, {
+    GIT_CONFIG_GLOBAL: '/dev/null',
+    GIT_CONFIG_NOSYSTEM: '1',
+    GIT_AUTHOR_NAME: 'Test',
+    GIT_AUTHOR_EMAIL: 'test@example.invalid',
+    GIT_COMMITTER_NAME: 'Test',
+    GIT_COMMITTER_EMAIL: 'test@example.invalid',
+  });
+  const git = (args: string[], input?: string, cwd = dir) => {
+    const res = spawnSync('git', args, { cwd, env, input, encoding: 'utf8' });
+    if (res.status !== 0) throw new Error(`git ${args.join(' ')}: ${res.stderr}`);
+    return res.stdout.trim();
+  };
+  const writeVersion = (v: string) => {
+    const appJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
+    appJson.expo.version = v;
+    fs.writeFileSync(path.join(dir, 'app.json'), `${JSON.stringify(appJson, null, 2)}\n`);
+  };
+  git(['init', '-q', '-b', 'development']);
+  fs.mkdirSync(path.join(dir, 'scripts/ci'), { recursive: true });
+  fs.copyFileSync(SCRIPT, path.join(dir, 'scripts/ci/release.sh'));
+  writeVersion(version);
+  git(['add', '.']);
+  git(['commit', '-q', '-m', 'chore: initial']);
+  const repo = {
+    dir,
+    /** The isolated git environment (no global config, no caller GIT_* variables). */
+    env,
+    git,
+    /** An empty commit with the full message (header, body, footers). */
+    commit: (message: string) => {
+      git(['commit', '-q', '--allow-empty', '-F', '-'], message);
+      return git(['rev-parse', 'HEAD']);
+    },
+    /** Commits app.json with another expo.version (the release PR's commit). */
+    commitVersion: (v: string, message = `chore(release): ${v}`) => {
+      writeVersion(v);
+      git(['add', 'app.json']);
+      git(['commit', '-q', '-F', '-'], message);
+    },
+    tag: (name: string, ref = 'HEAD') => git(['tag', name, ref]),
+    run: (args: string[], cwd = dir) => {
+      const res = spawnSync('bash', [path.join(cwd, 'scripts/ci/release.sh'), ...args], {
+        cwd,
+        env,
+        encoding: 'utf8',
+      });
+      if (res.error) throw res.error;
+      return { status: res.status, stdout: res.stdout, stderr: res.stderr, all: `${res.stdout}\n${res.stderr}` };
+    },
+    cleanup: () => fs.rmSync(dir, { recursive: true, force: true }),
+  };
+  return repo;
+}
+
+describe('release.sh next-version — computed from Conventional Commits since the last mobile-v tag', () => {
+  let repo: ReturnType<typeof gitRepo>;
+  beforeEach(() => {
+    repo = gitRepo();
+  });
+  afterEach(() => repo.cleanup());
+
+  /** Seed tag on the current commit, then the given commits on top. */
+  const since = (...messages: string[]) => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    for (const m of messages) repo.commit(m);
+    return repo.run(['next-version']);
+  };
+
+  it('fails with a clear message when there is no mobile-v tag (no guessed fallback)', () => {
+    repo.tag('v1.0.5'); // the old prefix does not count
+    repo.commit('feat: x');
+    const r = repo.run(['next-version']);
+    expect(r.status).not.toBe(0);
+    expect(r.stdout).toBe('');
+    expect(r.all).toContain('no mobile-vX.Y.Z tag');
+  });
+
+  it('only fixes and other types -> patch', () => {
+    const r = since('fix: a', 'docs: b', 'refactor(ui): c', 'build(native): d');
+    expect(r.status).toBe(0);
+    expect(r.stdout).toBe('1.0.6\n');
+  });
+
+  it('any feat -> minor', () => {
+    const r = since('fix: a', 'feat(checkout): b', 'chore: c');
+    expect(r.stdout).toBe('1.1.0\n');
+  });
+
+  it.each([['feat!: drop x'], ['fix(api)!: change y'], ['refactor(ui,nav)!: z']])('%s -> major', (m) => {
+    const r = since('feat: a', m);
+    expect(r.stdout).toBe('2.0.0\n');
+  });
+
+  it.each([['BREAKING CHANGE'], ['BREAKING-CHANGE']])('a %s footer -> major', (token) => {
+    const r = since('fix: a', `fix(auth): b\n\nWhy it changed.\n\n${token}: the old token is rejected`);
+    expect(r.stdout).toBe('2.0.0\n');
+  });
+
+  it('a body that only mentions a breaking change (not a footer line) stays minor', () => {
+    const r = since('feat: a\n\nThis is not a BREAKING CHANGE: callers keep working.');
+    expect(r.stdout).toBe('1.1.0\n');
+  });
+
+  it('chore(release) commits are ignored, even with a !', () => {
+    const r = since('fix: a', 'chore(release)!: 1.0.6', 'chore(release): development 1.0.6 (canlıda 1.0.5)');
+    expect(r.stdout).toBe('1.0.6\n');
+  });
+
+  it('fails when nothing but chore(release) was committed since the tag', () => {
+    const r = since('chore(release): 1.0.6');
+    expect(r.status).not.toBe(0);
+    expect(r.stdout).toBe('');
+    expect(r.all).toContain('nothing to release');
+  });
+
+  it('a higher version already in app.json wins (manual override) with a notice', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commit('fix: a');
+    repo.commitVersion('1.3.0');
+    const r = repo.run(['next-version']);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toBe('1.3.0\n');
+    expect(r.stderr).toContain('manual override');
+  });
+
+  it('after set-version to the computed version it prints the same version again', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commit('feat: a');
+    repo.commitVersion('1.1.0');
+    expect(repo.run(['next-version']).stdout).toBe('1.1.0\n');
+  });
+
+  it('merge commits are ignored (only their non-merge commits count)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.git(['switch', '-q', '-c', 'fix/side']);
+    repo.commit('fix: side');
+    repo.git(['switch', '-q', 'development']);
+    repo.git(['merge', '-q', '--no-ff', 'fix/side', '-m', 'feat!: a merge message that must not count']);
+    expect(repo.run(['next-version']).stdout).toBe('1.0.6\n');
+  });
+
+  it('finds the tag on a master merge commit that development does not contain', () => {
+    // Topology of the real repo: release-bookkeeping tags master's merge commit.
+    repo.commit('feat: released in 1.0.5');
+    repo.git(['switch', '-q', '-c', 'master']);
+    repo.git(['merge', '-q', '--no-ff', 'development', '-m', 'Merge branch development into master']);
+    repo.git(['switch', '-q', 'development']);
+    repo.tag(`mobile-v${TEST_VERSION}`, 'master');
+    repo.commit('fix: after the release');
+    const r = repo.run(['next-version']);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toBe('1.0.6\n'); // the feat before the release is not counted again
+  });
+
+  it('counts from the highest mobile-vX.Y.Z tag; pre-release tags are ignored', () => {
+    repo.tag('mobile-v1.0.4');
+    repo.commit('feat: in 1.0.5');
+    repo.tag('mobile-v1.0.5');
+    repo.tag('mobile-v1.2.0-rc.1');
+    repo.commit('fix: a');
+    const r = repo.run(['next-version']);
+    expect(r.stdout).toBe('1.0.6\n');
+    expect(r.stderr).toContain('mobile-v1.0.5..HEAD');
+  });
+
+  it('takes a ref (the range ends there)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    const fixSha = repo.commit('fix: a');
+    repo.commit('feat: b');
+    expect(repo.run(['next-version', fixSha]).stdout).toBe('1.0.6\n');
+    expect(repo.run(['next-version', 'no-such-ref']).status).not.toBe(0);
+  });
+
+  it('refuses a shallow clone (the commit range would be incomplete)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commit('fix: a');
+    repo.commit('feat: b');
+    const shallow = path.join(repo.dir, 'shallow');
+    repo.git(['clone', '-q', '--depth', '1', `file://${repo.dir}`, shallow]);
+    const r = repo.run(['next-version'], shallow);
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('shallow');
+  });
+
+  it('stops when app.json at the ref is not X.Y.Z (no version is guessed from it)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commitVersion('1.1.0-rc.1', 'feat: a');
+    const r = repo.run(['next-version']);
+    expect(r.status).not.toBe(0);
+    expect(r.stdout).toBe('');
+    expect(r.all).toContain("app.json at HEAD holds '1.1.0-rc.1', not X.Y.Z");
+  });
+
+  it('notes a tag the ref does not contain (a hotfix not merged back) and still counts from it', () => {
+    repo.git(['switch', '-q', '-c', 'master']);
+    repo.commit('feat: hotfix released from master only');
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.git(['switch', '-q', 'development']);
+    repo.commit('fix: a');
+    const r = repo.run(['next-version']);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toBe('1.0.6\n'); // the hotfix feat is in the tag, so not counted
+    expect(r.stderr).toContain(`::notice::next-version: mobile-v${TEST_VERSION} has commits that HEAD does not contain`);
+  });
+
+  it('a git-generated Revert header counts as other (patch), not as the reverted type', () => {
+    const r = since('Revert "feat: b"\n\nThis reverts commit 0123456789abcdef.');
+    expect(r.stdout).toBe('1.0.6\n');
+  });
+
+  it('prints the reasoning on stderr with the counts per class', () => {
+    const r = since('feat!: a', 'feat: b', 'fix: c', 'chore(release): 2.0.0');
+    expect(r.stdout).toBe('2.0.0\n');
+    expect(r.stderr).toContain(
+      `mobile-v${TEST_VERSION}..HEAD: 1 breaking, 1 feat, 1 other, 1 chore(release) ignored -> major -> 2.0.0`,
+    );
+  });
+});
+
+describe('release.sh check-release-version — a release merge carries the computed version', () => {
+  let repo: ReturnType<typeof gitRepo>;
+  beforeEach(() => {
+    repo = gitRepo();
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commit('feat: a'); // next-version: 1.1.0
+  });
+  afterEach(() => repo.cleanup());
+  const check = (env: Record<string, string> = {}) => {
+    const res = spawnSync('bash', [path.join(repo.dir, 'scripts/ci/release.sh'), 'check-release-version'], {
+      cwd: repo.dir,
+      env: { ...repo.env, MODE: 'auto', SOURCE_REF: 'development', ...env },
+      encoding: 'utf8',
+    });
+    return { status: res.status, all: `${res.stdout}\n${res.stderr}` };
+  };
+
+  it('fails a release merge without the release commit (version below next-version)', () => {
+    const r = check();
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('call for 1.1.0');
+    expect(r.all).toContain('set-version 1.1.0');
+  });
+
+  it('an unknown source counts as a release (the safe side)', () => {
+    expect(check({ SOURCE_REF: '' }).status).not.toBe(0);
+  });
+
+  it('passes with the release commit', () => {
+    repo.commitVersion('1.1.0');
+    expect(check().status).toBe(0);
+  });
+
+  it('passes with a higher manual version', () => {
+    repo.commitVersion('2.0.0');
+    expect(check().status).toBe(0);
+  });
+
+  it('passes a re-run of a merge already tagged with its version', () => {
+    repo.commitVersion('1.1.0');
+    repo.tag('mobile-v1.1.0');
+    const r = check();
+    expect(r.status).toBe(0);
+    expect(r.all).toContain('already tagged mobile-v1.1.0');
+  });
+
+  it('real topology: tag on the master merge, a hotfix not merged back still counts on the next release merge', () => {
+    // development: feat (1.1.0 released via master merge M1, tagged there).
+    repo.commitVersion('1.1.0');
+    repo.git(['switch', '-q', '-c', 'master']);
+    repo.git(['merge', '-q', '--no-ff', 'development', '-m', 'Merge pull request #1 from x/development']);
+    repo.tag('mobile-v1.1.0');
+    // A JS-only hotfix on master (OTA, no tag) with a feat; not merged back yet.
+    repo.git(['switch', '-q', '-c', 'hotfix/x']);
+    repo.commit('feat(push): hotfix that is also a feature');
+    repo.git(['switch', '-q', 'master']);
+    repo.git(['merge', '-q', '--no-ff', 'hotfix/x', '-m', 'Merge pull request #2 from x/hotfix/x']);
+    // development: only a fix and the release commit for 1.1.1.
+    repo.git(['switch', '-q', 'development']);
+    repo.commit('fix: a');
+    repo.commitVersion('1.1.1');
+    expect(check().status).toBe(0); // on development the range has only the fix
+    // The release merge (= the PR's merge ref) also contains the hotfix feat.
+    repo.git(['switch', '-q', 'master']);
+    repo.git(['merge', '-q', '--no-ff', 'development', '-m', 'Merge pull request #3 from x/development']);
+    const r = check();
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('call for 1.2.0');
+    // Merge commits never count: only the hotfix feat, the fix and the release commit.
+    expect(r.all).toContain('0 breaking, 1 feat, 1 other, 1 chore(release) ignored');
+  });
+
+  it('fails, never passes silently, when the clone has no mobile-v tag', () => {
+    repo.git(['tag', '-d', `mobile-v${TEST_VERSION}`]);
+    repo.commitVersion('1.1.0');
+    const r = check();
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('no mobile-vX.Y.Z tag');
+    expect(r.all).not.toContain('check-release-version: OK');
+  });
+
+  it('fails on a shallow clone instead of comparing against an incomplete range', () => {
+    repo.commitVersion('1.1.0');
+    const shallow = path.join(repo.dir, 'shallow');
+    repo.git(['clone', '-q', '--depth', '1', `file://${repo.dir}`, shallow]);
+    const res = spawnSync('bash', [path.join(shallow, 'scripts/ci/release.sh'), 'check-release-version'], {
+      cwd: shallow,
+      env: { ...repo.env, MODE: 'auto', SOURCE_REF: 'development' },
+      encoding: 'utf8',
+    });
+    expect(res.status).not.toBe(0);
+    expect(`${res.stdout}\n${res.stderr}`).toContain('shallow clone');
+  });
+
+  it('only a tag of the current X.Y.Z on HEAD counts as a re-run (an rc tag does not)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}-rc.1`);
+    const r = check();
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('call for 1.1.0');
+  });
+
+  it.each([
+    ['a hotfix (a JS-only one keeps its version)', { SOURCE_REF: 'hotfix/crash' }],
+    ['mode=build', { MODE: 'build' }],
+    ['mode=ota', { MODE: 'ota' }],
+  ])('skips %s', (_n, env) => {
+    const r = check(env);
+    expect(r.status).toBe(0);
+    expect(r.all).toContain('skipped');
+  });
+});
+
+describe('release.sh latest-release — highest released mobile-vX.Y.Z', () => {
+  let repo: ReturnType<typeof gitRepo>;
+  beforeEach(() => {
+    repo = gitRepo();
+  });
+  afterEach(() => repo.cleanup());
+
+  it('prints nothing (and succeeds) when there is no release tag', () => {
+    repo.tag('v1.0.5');
+    const r = repo.run(['latest-release']);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toBe('');
+  });
+
+  it('semver order, not string order; rc and old-prefix tags ignored', () => {
+    for (const t of ['mobile-v1.0.9', 'mobile-v1.0.10', 'mobile-v1.1.0-rc.1', 'v9.9.9']) repo.tag(t);
+    expect(repo.run(['latest-release']).stdout).toBe('1.0.10\n');
+  });
+
+  it('with <below>: the highest release lower than it (the previous release)', () => {
+    for (const t of ['mobile-v1.0.5', 'mobile-v1.1.0', 'mobile-v1.2.0']) repo.tag(t);
+    expect(repo.run(['latest-release', '1.2.0']).stdout).toBe('1.1.0\n');
+    expect(repo.run(['latest-release', '1.0.5']).stdout).toBe('');
+  });
+});
+
+describe('release.sh — called from outside the checkout with a relative app.json', () => {
+  // The script lives elsewhere (e.g. $RUNNER_TEMP) and gets `app.json` relative to
+  // the working directory; it must not resolve it as a package name.
   const ciLike = (args: string[], version = '1.0.6') => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'release-ci-'));
     const repo = path.join(tmp, 'repo');
@@ -1007,28 +1641,24 @@ describe('release.sh — CI\'daki gibi çağrı (kopyalanmış script, göreli a
     const appJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
     appJson.expo.version = version;
     fs.writeFileSync(path.join(repo, 'app.json'), `${JSON.stringify(appJson, null, 2)}\n`);
-    const out = path.join(tmp, 'out');
-    fs.writeFileSync(out, '');
     const res = spawnSync('bash', [path.join(runnerTemp, 'release.sh'), ...args], {
       cwd: repo,
       encoding: 'utf8',
-      env: { ...process.env, GITHUB_OUTPUT: out },
+      env: process.env,
     });
     const result = {
       status: res.status,
       all: `${res.stdout}\n${res.stderr}`,
       version: JSON.parse(fs.readFileSync(path.join(repo, 'app.json'), 'utf8')).expo.version,
-      outputs: fs.readFileSync(out, 'utf8'),
     };
     fs.rmSync(tmp, { recursive: true, force: true });
     return result;
   };
 
-  it('bump-version göreli app.json ile çalışır', () => {
-    const r = ciLike(['bump-version', '1.0.6', 'app.json']);
+  it('set-version works with a relative app.json', () => {
+    const r = ciLike(['set-version', '1.1.0', 'app.json']);
     expect(r.status).toBe(0);
-    expect(r.version).toBe('1.0.7');
-    expect(r.outputs).toContain('bumped=true');
+    expect(r.version).toBe('1.1.0');
   });
 
   it('app-version göreli app.json\'u okur', () => {
@@ -1037,11 +1667,337 @@ describe('release.sh — CI\'daki gibi çağrı (kopyalanmış script, göreli a
     expect(r.all.trim()).toContain('2.3.4');
   });
 
-  it.each([['1.2.4-rc.1'], ['1.2']])('development sürümü X.Y.Z değilse (%s) durur, sessizce atlamaz', (v) => {
-    const r = ciLike(['bump-version', '1.2.3', 'app.json'], v);
+  it.each([['1.2.4-rc.1'], ['1.2']])('stops if the current version is not X.Y.Z (%s), never skips silently', (v) => {
+    const r = ciLike(['set-version', '1.3.0', 'app.json'], v);
     expect(r.status).not.toBe(0);
     expect(r.version).toBe(v);
     expect(r.all).toContain('X.Y.Z');
   });
 });
 
+/**
+ * mobile-production.yml `release-bookkeeping`, executed: the step's script runs in a
+ * throwaway repository with a bare `origin` and a fake `gh`, so the tag and Release
+ * rules are pinned by what happens, not only by the strings in the YAML
+ * (releaseWorkflow.test.ts pins those and the job's `if`).
+ */
+describe('release-bookkeeping step — tags the released commit and creates its Release', () => {
+  const STEP = 'Tag the released commit + GitHub Release';
+  const script = (
+    parse(fs.readFileSync(path.join(ROOT, '.github/workflows/mobile-production.yml'), 'utf8')) as {
+      jobs: Record<string, { steps: { name?: string; run?: string }[] }>;
+    }
+  ).jobs['release-bookkeeping'].steps.find((s) => s.name === STEP)?.run;
+  // `gh release view` succeeds only with FAKE_GH_RELEASE_EXISTS; `gh release create` is logged.
+  const GH_FAKE = [
+    '#!/usr/bin/env bash',
+    'echo "gh $*" >> "$FAKE_GH_LOG"',
+    'if [ "$1 $2" = "release view" ]; then [ -n "${FAKE_GH_RELEASE_EXISTS:-}" ]; exit $?; fi',
+    'if [ "$1 $2" = "release create" ]; then exit 0; fi',
+    'echo "fake gh: unexpected $*" >&2; exit 2',
+    '',
+  ].join('\n');
+
+  let repo: ReturnType<typeof gitRepo>;
+  let tmp: string;
+  let origin: string;
+  beforeEach(() => {
+    repo = gitRepo();
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'release-bookkeeping-'));
+    origin = path.join(tmp, 'origin.git');
+    repo.git(['init', '-q', '--bare', origin], undefined, tmp);
+    repo.git(['remote', 'add', 'origin', origin]);
+    fs.mkdirSync(path.join(tmp, 'bin'));
+    fs.writeFileSync(path.join(tmp, 'bin/gh'), GH_FAKE, { mode: 0o755 });
+    fs.mkdirSync(path.join(tmp, 'runner'));
+  });
+  afterEach(() => {
+    repo.cleanup();
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  const bookkeep = (env: Record<string, string> = {}) => {
+    const sha = repo.git(['rev-parse', 'HEAD']);
+    const file = path.join(tmp, 'step.sh');
+    const log = path.join(tmp, 'gh.log');
+    fs.writeFileSync(file, script!);
+    fs.writeFileSync(log, '');
+    // The shell GitHub Actions uses for `run:`.
+    const res = spawnSync('bash', ['--noprofile', '--norc', '-eo', 'pipefail', file], {
+      cwd: repo.dir,
+      env: {
+        ...repo.env,
+        PATH: `${path.join(tmp, 'bin')}:${process.env.PATH}`,
+        SHA: sha,
+        GH_TOKEN: 'test-token',
+        RUNNER_TEMP: path.join(tmp, 'runner'),
+        FAKE_GH_LOG: log,
+        ...env,
+      },
+      encoding: 'utf8',
+    });
+    if (res.error) throw res.error;
+    const gh = fs.readFileSync(log, 'utf8').split('\n').filter(Boolean);
+    return { status: res.status, all: `${res.stdout}\n${res.stderr}`, sha, gh, creates: gh.filter((l) => l.startsWith('gh release create')) };
+  };
+  /** The commit a tag points to in `origin` ('' if the tag is not there). */
+  const remoteTag = (tag: string) => {
+    const r = spawnSync('git', ['--git-dir', origin, 'rev-parse', '-q', '--verify', `refs/tags/${tag}^{commit}`], {
+      env: repo.env,
+      encoding: 'utf8',
+    });
+    return r.status === 0 ? r.stdout.trim() : '';
+  };
+
+  it('finds its step in the workflow', () => {
+    expect(script).toContain('git tag -a "$tag" "$SHA"');
+  });
+
+  it('tags the released commit with an annotated mobile-v tag and creates the Release with notes since the previous one', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commit('feat: a');
+    repo.commitVersion('1.1.0');
+    const r = bookkeep();
+    expect(r.status).toBe(0);
+    expect(remoteTag('mobile-v1.1.0')).toBe(r.sha);
+    expect(repo.git(['cat-file', '-t', 'mobile-v1.1.0'])).toBe('tag');
+    expect(r.creates).toEqual([
+      `gh release create mobile-v1.1.0 --verify-tag --title Tarodan 1.1.0 --generate-notes --notes-start-tag mobile-v${TEST_VERSION}`,
+    ]);
+  });
+
+  it('without a previous release tag the notes have no start tag', () => {
+    repo.commitVersion('1.1.0');
+    const r = bookkeep();
+    expect(r.status).toBe(0);
+    expect(remoteTag('mobile-v1.1.0')).toBe(r.sha);
+    expect(r.creates).toEqual(['gh release create mobile-v1.1.0 --verify-tag --title Tarodan 1.1.0 --generate-notes']);
+  });
+
+  it('a rebuild of a tagged version leaves the tag on the first submitted commit', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commitVersion('1.1.0');
+    const first = repo.git(['rev-parse', 'HEAD']);
+    repo.tag('mobile-v1.1.0');
+    repo.git(['push', '-q', 'origin', 'refs/tags/mobile-v1.1.0']);
+    repo.commit('fix: app review feedback'); // mode=build of the same version
+    const r = bookkeep();
+    expect(r.status).toBe(0);
+    expect(r.all).toContain(`::warning::mobile-v1.1.0 is already on ${first}; not moved (this run: ${r.sha}).`);
+    expect(repo.git(['rev-parse', 'mobile-v1.1.0^{commit}'])).toBe(first);
+    expect(remoteTag('mobile-v1.1.0')).toBe(first);
+  });
+
+  it('a version not above the highest released tag gets no tag and no Release (warning, job green)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.tag('mobile-v1.2.0');
+    repo.commitVersion('1.1.0');
+    const r = bookkeep();
+    expect(r.status).toBe(0);
+    expect(r.all).toContain('::warning::1.1.0 is not greater than the highest released tag (mobile-v1.2.0); no tag or Release created.');
+    expect(remoteTag('mobile-v1.1.0')).toBe('');
+    expect(r.gh).toEqual([]);
+  });
+
+  it('a version that is not X.Y.Z fails the job before any tag or Release', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commitVersion('1.1.0-rc.1');
+    const r = bookkeep();
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain("latest-release: '1.1.0-rc.1' is not X.Y.Z");
+    expect(remoteTag('mobile-v1.1.0-rc.1')).toBe('');
+    expect(r.gh).toEqual([]);
+  });
+
+  it('an existing Release is left alone (safe to re-run)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commitVersion('1.1.0');
+    const r = bookkeep({ FAKE_GH_RELEASE_EXISTS: '1' });
+    expect(r.status).toBe(0);
+    expect(r.gh).toEqual(['gh release view mobile-v1.1.0']);
+  });
+
+  it('a failed tag push fails the job and creates no Release (a store release never ends untagged silently)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commitVersion('1.1.0');
+    repo.git(['remote', 'set-url', 'origin', path.join(tmp, 'missing.git')]);
+    const r = bookkeep();
+    expect(r.status).not.toBe(0);
+    expect(r.creates).toEqual([]);
+  });
+
+  it('a tag another run of the same version pushed meanwhile is accepted', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commitVersion('1.1.0');
+    const sha = repo.git(['rev-parse', 'HEAD']);
+    repo.git(['push', '-q', 'origin', 'HEAD:refs/heads/master']);
+    // A different annotated tag object for the same commit: the push is rejected.
+    repo.git(['--git-dir', origin, 'tag', '-a', 'mobile-v1.1.0', sha, '-m', 'other run']);
+    const r = bookkeep();
+    expect(r.status).toBe(0);
+    expect(r.all).toContain('::warning::mobile-v1.1.0 was already created by another run.');
+    expect(r.creates).toHaveLength(1);
+  });
+});
+
+describe('Master source guard step — a hotfix/* must be cut from master', () => {
+  const script = (
+    parse(fs.readFileSync(path.join(ROOT, '.github/workflows/master-flow.yml'), 'utf8')) as {
+      jobs: Record<string, { steps: { run?: string }[] }>;
+    }
+  ).jobs['source-guard'].steps.find((s) => s.run)?.run;
+  // Answers the two compare calls from a real local repo, the way the REST API does:
+  // `.merge_base_commit.sha` is the merge base, `.status` is identical | ahead (head
+  // contains base) | behind | diverged. FAKE_GH_FAIL makes every call fail.
+  const GH_FAKE = [
+    '#!/usr/bin/env bash',
+    'echo "gh $*" >> "$FAKE_GH_LOG"',
+    '[ -z "${FAKE_GH_FAIL:-}" ] || { echo "fake gh: HTTP 502" >&2; exit 1; }',
+    'case "$1 $2 $3" in api\\ repos/*/compare/*\\ --jq) ;; *) echo "fake gh: unexpected $*" >&2; exit 2 ;; esac',
+    'spec="${2#repos/*/compare/}"; a="${spec%%...*}"; b="${spec#*...}"',
+    'g() { git -C "$FAKE_GIT_DIR" "$@"; }',
+    'case "$4" in',
+    '  .merge_base_commit.sha) g merge-base "$a" "$b" ;;',
+    '  .status)',
+    '    ra="$(g rev-parse "$a^{commit}")" || exit 1; rb="$(g rev-parse "$b^{commit}")" || exit 1',
+    '    if [ "$ra" = "$rb" ]; then echo identical',
+    '    elif g merge-base --is-ancestor "$ra" "$rb"; then echo ahead',
+    '    elif g merge-base --is-ancestor "$rb" "$ra"; then echo behind',
+    '    else echo diverged; fi ;;',
+    '  *) echo "fake gh: unexpected jq $4" >&2; exit 2 ;;',
+    'esac',
+    '',
+  ].join('\n');
+
+  let repo: ReturnType<typeof gitRepo>;
+  let tmp: string;
+  beforeEach(() => {
+    // development and master start equal; master then gets a release merge.
+    repo = gitRepo();
+    repo.git(['branch', 'master']);
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'source-guard-'));
+    fs.mkdirSync(path.join(tmp, 'bin'));
+    fs.writeFileSync(path.join(tmp, 'bin/gh'), GH_FAKE, { mode: 0o755 });
+  });
+  afterEach(() => {
+    repo.cleanup();
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  /** Runs the guard for a PR whose head is `ref` (HEAD_SHA = its commit). */
+  const guard = (headRef: string, ref: string, env: Record<string, string> = {}) => {
+    const file = path.join(tmp, 'step.sh');
+    const log = path.join(tmp, 'gh.log');
+    fs.writeFileSync(file, script!);
+    fs.writeFileSync(log, '');
+    const res = spawnSync('bash', ['--noprofile', '--norc', '-eo', 'pipefail', file], {
+      cwd: tmp,
+      env: {
+        ...repo.env,
+        PATH: `${path.join(tmp, 'bin')}:${process.env.PATH}`,
+        GH_TOKEN: 'test-token',
+        HEAD_REF: headRef,
+        HEAD_SHA: repo.git(['rev-parse', ref]),
+        HEAD_REPO: 'tarodan/tarodan-mobile',
+        REPO: 'tarodan/tarodan-mobile',
+        FAKE_GIT_DIR: repo.dir,
+        FAKE_GH_LOG: log,
+        ...env,
+      },
+      encoding: 'utf8',
+    });
+    if (res.error) throw res.error;
+    const gh = fs.readFileSync(log, 'utf8').split('\n').filter(Boolean);
+    return { status: res.status, all: `${res.stdout}\n${res.stderr}`, gh };
+  };
+  /** A branch from `from` with one fix commit; returns its name. */
+  const branchFrom = (name: string, from: string) => {
+    repo.git(['switch', '-q', '-c', name, from]);
+    repo.commit(`fix: ${name}`);
+    repo.git(['switch', '-q', 'development']);
+    return name;
+  };
+  /** Releases development into master with a merge commit, as the release PR does. */
+  const release = () => {
+    repo.git(['switch', '-q', 'master']);
+    repo.git(['merge', '-q', '--no-ff', '-m', 'Merge development', 'development']);
+    repo.git(['switch', '-q', 'development']);
+  };
+
+  it('finds its step in the workflow', () => {
+    expect(script).toContain('case "$HEAD_REF" in');
+  });
+
+  it('a hotfix cut from master passes, also while development holds unreleased commits', () => {
+    repo.commit('feat: released');
+    release();
+    repo.commit('feat: unreleased on development');
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash');
+    expect([r.status, r.all]).toEqual([0, expect.stringContaining('OK: hotfix/crash -> master')]);
+    expect(r.gh).toHaveLength(2);
+  });
+
+  it('a hotfix merged into development before master fails, and the message says why', () => {
+    // Its own commit is then shared with development but not on master yet; ancestry
+    // cannot tell it from development code, so the guard stays closed.
+    branchFrom('hotfix/crash', 'master');
+    repo.git(['merge', '-q', '--no-ff', '-m', 'Merge hotfix/crash', 'hotfix/crash']);
+    const r = guard('hotfix/crash', 'hotfix/crash');
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('cut a hotfix branch with a new name from origin/master, cherry-pick the fix commits onto it');
+  });
+
+  it('a hotfix cut from development with unreleased commits fails (they would ship as an OTA)', () => {
+    repo.commit('feat: released');
+    release();
+    repo.commit('feat: unreleased on development');
+    const r = guard(branchFrom('hotfix/crash', 'development'), 'hotfix/crash');
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('::error::hotfix/crash carries development commits that are not on master');
+  });
+
+  it('a hotfix cut from master that merged development later fails', () => {
+    repo.commit('feat: released');
+    release();
+    repo.commit('feat: unreleased on development');
+    branchFrom('hotfix/crash', 'master');
+    repo.git(['switch', '-q', 'hotfix/crash']);
+    repo.git(['merge', '-q', '--no-ff', '-m', 'Merge development', 'development']);
+    repo.git(['switch', '-q', 'development']);
+    const r = guard('hotfix/crash', 'hotfix/crash');
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('carries development commits that are not on master');
+  });
+
+  it('a hotfix cut from a development that is fully released passes (nothing unreleased)', () => {
+    repo.commit('feat: released');
+    release();
+    const r = guard(branchFrom('hotfix/crash', 'development'), 'hotfix/crash');
+    expect(r.status).toBe(0);
+  });
+
+  it('an API failure fails the guard (closed)', () => {
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_FAIL: '1' });
+    expect(r.status).not.toBe(0);
+    expect(r.all).not.toContain('OK:');
+  });
+
+  it('development passes without any API call', () => {
+    const r = guard('development', 'development');
+    expect(r.status).toBe(0);
+    expect(r.gh).toEqual([]);
+  });
+
+  it.each([['feat/x'], ['hotfix'], ['backmerge/crash-1']])('another source (%s) fails', (ref) => {
+    const r = guard(ref, 'development');
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain("must come from 'development' or a 'hotfix/*' branch");
+    expect(r.gh).toEqual([]);
+  });
+
+  it('a branch from a fork fails, even when named development', () => {
+    const r = guard('development', 'development', { HEAD_REPO: 'someone/tarodan-mobile' });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('must come from a branch of this repository');
+  });
+});

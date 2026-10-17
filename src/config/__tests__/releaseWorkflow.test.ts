@@ -3,7 +3,7 @@
  *   development push → CI → fingerprint → staging OTA ya da build (otomatik)
  *   master merge     → CI → development'tan: store build (sürüm artmalı) ·
  *                      hotfix/*'tan: fingerprint → onaylı production OTA ya da store build
- *   master PR'ı      → "Master source guard" (yalnız development / hotfix/*)
+ *   master PR       → "Master source guard" (only development, or a hotfix/* cut from master)
  *   hotfix merge     → master → development geri birleştirme PR'ı
  *   Android          → tüm build/submit job'ları vars.ANDROID_RELEASE_ENABLED'a bağlı
  *
@@ -18,7 +18,15 @@ import { parse } from 'yaml';
 const ROOT = path.resolve(__dirname, '../../..');
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
-type Step = { id?: string; name?: string; uses?: string; run?: string; if?: string; env?: Record<string, string> };
+type Step = {
+  id?: string;
+  name?: string;
+  uses?: string;
+  run?: string;
+  if?: string;
+  env?: Record<string, string>;
+  with?: Record<string, unknown>;
+};
 type Job = {
   name?: string;
   needs?: string | string[];
@@ -265,11 +273,11 @@ describe('production', () => {
     expect(production.jobs.plan.permissions).toEqual({ contents: 'read', 'pull-requests': 'read' });
   });
 
-  it('yayın sonrası: etiket + GitHub Release + development sonraki yama + staging', () => {
+  it('after a release: mobile-v tag + GitHub Release, never a push to development', () => {
     const job = production.jobs['release-bookkeeping'];
     expect(needsOf(job)).toEqual(expect.arrayContaining(['plan', 'build-ios', 'build-android']));
-    // Yalnız bir store build'i GERÇEKTEN gönderildiyse (job başarılı + build id dolu);
-    // diğer platformun başarısızlığı ya da takılması onu durdurmaz. Yalnız OTA tetiklemez.
+    // Only if a store build was REALLY submitted (job succeeded + build id set); the
+    // other platform failing or being blocked does not stop it. OTA-only runs do not trigger it.
     expect(job.if).toContain("(needs.build-ios.result == 'success' && needs.build-ios.outputs.build_id != '')");
     expect(job.if).toContain("(needs.build-android.result == 'success' && needs.build-android.outputs.build_id != '')");
     for (const p of ['ios', 'android']) {
@@ -277,27 +285,85 @@ describe('production', () => {
       expect(bj.outputs?.build_id).toBe('${{ steps.build.outputs.build_id }}');
       expect(bj.steps!.find((s) => s.id === 'build')?.run).toContain(`build-submit ${p} production production`);
     }
-    // Farklı yayınların işleri aynı kuyrukta birbirini düşürmesin.
+    // Jobs of different releases must not cancel each other in the queue.
     expect(job.concurrency?.group).toContain('${{ github.sha }}');
-    expect(job.permissions).toEqual({ contents: 'write', actions: 'write' });
+    // Writes only the tag and the Release: no actions: write (no workflow dispatch).
+    expect(job.permissions).toEqual({ contents: 'write' });
     expect(envName(job)).toBeUndefined();
     expect(JSON.stringify(job)).not.toContain('EXPO_TOKEN');
+    // Full history and tags for latest-release.
+    expect(job.steps![0]).toMatchObject({ uses: 'actions/checkout@v7', with: { 'fetch-depth': 0 } });
     const all = runs(job);
+    expect(all).toContain('version="$(scripts/ci/release.sh app-version app.json)"');
+    expect(all).toContain('tag="mobile-v$version"');
     expect(all).toContain('git tag -a "$tag" "$SHA"');
     expect(all).toContain('gh release create "$tag" --verify-tag');
     expect(all).toContain('--generate-notes');
-    // Sürüm hesabı tek yerde (release.sh), master'daki kopyayla.
-    expect(all).toContain('GITHUB_OUTPUT=/dev/null "$RUNNER_TEMP/release.sh" bump-version "$RELEASED" app.json');
-    expect(all).toContain('scripts/ci/release.sh app-version app.json');
-    // Yayınlanmış en büyük X.Y.Z etiketinden eski sürüm etiketlenmez, development da ilerletilmez.
+    // Notes since the previous release tag (the seed tag has no Release of its own).
+    expect(all).toContain('prev="$(scripts/ci/release.sh latest-release "$version")"');
+    expect(all).toContain('--notes-start-tag "mobile-v$prev"');
+    // A version not above the highest released tag is not tagged; the lookup is release.sh's (X.Y.Z only).
+    expect(all).toContain('latest="$(scripts/ci/release.sh latest-release)"');
     expect(all).toContain('release.sh version-gt "$version" "$latest"');
-    expect(all).toContain("grep -E '^[0-9]+\\.[0-9]+\\.[0-9]+$'");
-    expect(job.steps!.find((s) => s.id === 'bump')?.if).toBe("steps.tag.outputs.skip != 'true'");
-    expect(all).toContain('git push -q origin HEAD:development');
-    const start = job.steps!.find((s) => (s.run ?? '').includes('gh workflow run mobile-staging.yml --ref development'));
-    expect(start?.if).toBe("steps.bump.outputs.bumped == 'true'");
-    // Olay verisi run'a enjekte edilmez.
+    // The old v<version> tags and the post-release bump are gone.
+    expect(all).not.toMatch(/tag="v\$version"|tag -l 'v\*'/);
+    expect(all).not.toContain('bump-version');
+    expect(all).not.toContain('HEAD:development');
+    expect(all).not.toContain('gh workflow run');
+    expect(job.steps!.map((s) => s.name)).toEqual([undefined, 'Tag the released commit + GitHub Release']);
+    // Event data is never injected into run.
     for (const s of job.steps!) expect([s.name, (s.run ?? '').includes('${{')]).toEqual([s.name, false]);
+  });
+
+  it('a release merge must carry the computed version before anything is built', () => {
+    const steps = production.jobs.plan.steps!;
+    const check = steps.find((s) => s.run === 'scripts/ci/release.sh check-release-version');
+    expect(check?.env).toEqual({ MODE: "${{ inputs.mode || 'auto' }}", SOURCE_REF: '${{ steps.source.outputs.ref }}' });
+    const source = steps.findIndex((s) => s.id === 'source');
+    const decide = steps.findIndex((s) => s.id === 'decide');
+    expect(source).toBeLessThan(steps.indexOf(check!));
+    expect(steps.indexOf(check!)).toBeLessThan(decide);
+    // next-version needs the full history and the mobile-v tags.
+    expect(steps.find((s) => (s.uses ?? '').startsWith('actions/checkout'))?.with).toEqual({ 'fetch-depth': 0 });
+  });
+
+  it('the release version is checked on the PR (required CI job), before the merge', () => {
+    const steps = ci.jobs.check.steps!;
+    const step = steps.find((s) => (s.run ?? '').includes('release.sh check-release-version'));
+    expect(step?.if).toBe("github.event_name == 'pull_request' && github.base_ref == 'master'");
+    expect(step?.env).toEqual({ MODE: 'auto', SOURCE_REF: '${{ github.head_ref }}' });
+    expect(step?.run).toContain('git fetch -q --unshallow origin');
+    expect(step?.run).toContain('git fetch -q --tags origin');
+    expect(ci.jobs.check.name).toBe('Lint + Typecheck + Test'); // the ruleset's required check
+    expect(steps.indexOf(step!)).toBeLessThan(steps.findIndex((s) => s.name === 'Install'));
+  });
+
+  it('bookkeeping validates the version (latest-release) before it pushes a tag', () => {
+    const all = runs(production.jobs['release-bookkeeping']);
+    expect(all.indexOf('latest-release "$version"')).toBeGreaterThan(-1);
+    expect(all.indexOf('latest-release "$version"')).toBeLessThan(all.indexOf('git tag -a'));
+  });
+
+  it('production OTA gets SENTRY_AUTH_TOKEN from the production environment (source maps)', () => {
+    const job = production.jobs.ota;
+    expect(envName(job)).toBe('production');
+    const step = job.steps!.find((s) => (s.run ?? '').includes('publish-ota production'));
+    expect(step?.env?.SENTRY_AUTH_TOKEN).toBe('${{ secrets.SENTRY_AUTH_TOKEN }}');
+    const sh = shCode();
+    expect(sh).toContain('--environment "$environment"');
+    expect(sh).toContain('npx sentry-expo-upload-sourcemaps dist');
+  });
+
+  it('release.sh and the workflow use the same tag prefix (mobile-v)', () => {
+    expect(shCode()).toMatch(/^TAG_PREFIX=mobile-v$/m);
+    expect(runs(production.jobs['release-bookkeeping'])).toContain('"mobile-v$');
+  });
+
+  it('no production job pushes to development or dispatches staging', () => {
+    for (const [id, job] of Object.entries(production.jobs)) {
+      expect([id, runs(job)]).toEqual([id, expect.not.stringContaining('HEAD:development')]);
+      expect([id, runs(job)]).toEqual([id, expect.not.stringContaining('mobile-staging.yml')]);
+    }
   });
 
   it('staging plan\'ı SOURCE_REF almaz (kural yalnız production\'da)', () => {
@@ -457,7 +523,19 @@ describe('master akışı', () => {
     expect(pr['paths-ignore']).toBeUndefined();
     const guard = masterFlow.jobs['source-guard'];
     expect(guard.name).toBe('Master source guard');
-    expect(runs(guard)).toMatch(/development\|hotfix\/\*\)/);
+    expect(runs(guard)).toMatch(/^\s*development\)$/m);
+    expect(runs(guard)).toMatch(/^\s*hotfix\/\*\)$/m);
+  });
+
+  it('a hotfix/* source is checked against master through the read-only compare API', () => {
+    // Behaviour: releaseScript.test.ts › "Master source guard step".
+    const step = masterFlow.jobs['source-guard'].steps!.find((s) => s.run)!;
+    expect(step.env?.HEAD_SHA).toBe('${{ github.event.pull_request.head.sha }}');
+    expect(step.env?.GH_TOKEN).toBe('${{ github.token }}');
+    expect(step.run).toContain('gh api "repos/$REPO/compare/development...$HEAD_SHA" --jq .merge_base_commit.sha');
+    expect(step.run).toContain('gh api "repos/$REPO/compare/$base...master" --jq .status');
+    // Read-only: the job inherits contents: read and asks for nothing more.
+    expect(masterFlow.jobs['source-guard'].permissions).toBeUndefined();
   });
 
   it('guard PR\'ın değiştiremeyeceği tetikleyicide (pull_request_target) ve güvenli', () => {
@@ -489,6 +567,22 @@ describe('master akışı', () => {
     expect(job.permissions).toEqual({ contents: 'write', 'pull-requests': 'write' });
     expect(runs(job)).toContain('gh pr create');
     expect(runs(job)).toContain('--base development');
+  });
+
+  it('a refused back-merge PR fails with the setting to enable and the manual command', () => {
+    // GITHUB_TOKEN may not open PRs unless the repo allows Actions to create them.
+    const all = runs(masterFlow.jobs['hotfix-backmerge']);
+    expect(all).toContain('if ! gh pr create');
+    expect(all).toContain('Allow GitHub Actions to create and approve pull requests');
+    expect(all).toContain('gh pr create --base development --head ${branch}');
+  });
+
+  it('an OTA-only hotfix run writes no tag or Release (the version did not change)', () => {
+    // release-bookkeeping needs a submitted store build; the OTA job never feeds it.
+    const job = production.jobs['release-bookkeeping'];
+    expect(needsOf(job)).not.toContain('ota');
+    expect(job.if).not.toContain('needs.ota');
+    expect(runs(production.jobs.ota)).not.toMatch(/git tag|gh release/);
   });
 
   it('workflow düzeyinde yetkiler salt-okunur', () => {

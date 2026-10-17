@@ -102,9 +102,12 @@ a pre-push branch-name check). One-time setup per clone, shared by every worktre
   (several: `fix(ui,nav): ...`).
 - Stage whole files (partially staged files are refused); never `git add -A`
   blindly. Never `--no-verify`, never `git stash`, never force-push.
-- **Anything that changes the runtime fingerprint goes in its own `build(native)`
-  commit**: native modules, native `app.json`/`app.config.js` fields, config plugins,
-  permissions, privacy manifest, `eas.json`, `package.json` scripts, `.gitignore`.
+- **Anything that changes the runtime fingerprint goes in its own commit.** Native
+  modules, native app.json/app.config.js fields, config plugins, permissions, the
+  privacy manifest, eas.json, package.json scripts and .gitignore go in a
+  `build(native)` commit. The one exception is `expo.version`: it changes only in a
+  `chore(release): X.Y.Z` commit made with `scripts/ci/release.sh set-version` that
+  touches nothing else (release PR or native hotfix; see docs/RELEASE.md).
 - Branches `<type>/<kebab-description>` with types feat, fix, refactor, perf, chore,
   ci, docs, test, hotfix, build (also `integration/<wave>`); `worktree-*` names stay
   local. Checked on pre-push. Merges are `--no-ff`; no squash.
@@ -142,11 +145,13 @@ Details: `docs/RELEASE.md`, `docs/EAS_UPDATE_OTA.md`, `scripts/ci/CLAUDE.md`.
   fingerprint.
 - `development` push -> staging (automatic OTA or build). `development -> master`
   PR = a release = always a store build, gated by **VERSION-GATE** (the version must
-  be bumped). A production OTA ships **only from a `hotfix/*` merge**, with approval.
-- Deploy order across repos: web -> API -> mobile; a mobile fix that the new API
-  needs ships as an OTA before the API deploy.
-- **The production freeze is active** (tarodan-ops ADR 0010): no master merge, no
-  production OTA, build or submit until the user lifts it.
+  be bumped). A production OTA ships **only from a `hotfix/*` merge** (a branch cut
+  from master; `Master source guard` refuses any other), with approval.
+- Deploy order across repos: a needed mobile OTA first, then API, web and admin
+  together from one tarodan-app release, then mobile store builds, flags last.
+- **The production freeze was lifted on 2026-10-17** (tarodan-ops ADR 0010): every
+  production action (master merge, production OTA, build or submit) still needs the
+  user's approval.
 
 ## Contracts and parity
 

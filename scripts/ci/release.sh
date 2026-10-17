@@ -21,11 +21,29 @@
 #       a > b (semver, sort -V) ise 0, değilse 1 ile çıkar.
 #   release.sh app-version  [app.json]
 #       expo.version'ı basar (göreli/mutlak yol; require() kullanmaz).
-#   release.sh bump-version <yayınlanan-sürüm> [app.json]
-#       Yayın sonrası development'ın sürümünü bir sonraki yamaya çeker (geride ya
-#       da eşitse); daha büyükse dokunmaz. GITHUB_OUTPUT: bumped, version.
+#   release.sh latest-release [below]
+#       The highest released version: the highest mobile-vX.Y.Z tag in the repo
+#       (pre-release tags such as mobile-v1.2.0-rc.1 are ignored). With <below>,
+#       only versions lower than it count. Prints nothing if there is none.
+#   release.sh next-version [ref]
+#       The version of the next release, from the Conventional Commits in
+#       `git log --no-merges mobile-v<latest>..<ref>` (default ref: HEAD): a `!`
+#       after the type/scope or a BREAKING CHANGE / BREAKING-CHANGE footer ->
+#       major, any feat -> minor, anything else -> patch; chore(release) commits
+#       are ignored. Prints X.Y.Z on stdout (the reasoning on stderr). If app.json
+#       at <ref> already holds a higher version, that one wins (manual override)
+#       with a notice. No tag, a shallow clone or nothing to release -> fails.
+#   release.sh check-release-version
+#       Production release merge (env SOURCE_REF not hotfix/*, MODE=auto): fails
+#       unless app.json's expo.version equals next-version for HEAD. Else no-op.
+#   release.sh set-version <X.Y.Z> [app.json]
+#       Sets expo.version (only that line changes; never lowers it). Used for
+#       the release PR's `chore(release): X.Y.Z` commit.
 #   release.sh publish-ota  <eas-branch> <ios|android|all> <build-profile> <message>
-#       Profil env'ini yükleyip `eas update` yayınlar.
+#       Loads the profile env, checks the profile's EAS environment (eas-cli rule, see
+#       eas_build_environment), publishes `eas update --environment <it>` and uploads
+#       the source maps to Sentry (SENTRY_AUTH_TOKEN; required on production). With a
+#       token it requires a source map per platform, each carrying a debugId.
 #   release.sh plan         <staging|production>
 #       Platform başına karar (fingerprint → OTA / build / skip). Girdiler env'den:
 #       MODE (auto|ota|build|apk), PLATFORM (all|ios|android), ANDROID_ENABLED,
@@ -116,16 +134,17 @@ REQUIRED_PUBLIC_ENV="EXPO_PUBLIC_ENVIRONMENT EXPO_PUBLIC_API_URL EXPO_PUBLIC_WEB
 # sızmış değer `load_profile_env`'de silinir, profilde varsa `assert_no_test_hooks` durur.
 TEST_HOOK_ENV="EXPO_PUBLIC_MAESTRO EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN EXPO_PUBLIC_MAESTRO_EMAIL EXPO_PUBLIC_MAESTRO_PASSWORD"
 
-# Profil env'ini bu kabuğa export eder. Process substitution (`< <(...)`)
-# KULLANILMAZ: içindeki hata set -e'ye ulaşmaz ve döngü boş env ile sessizce
-# devam ederdi (→ API adresi boş bir OTA). Önce çıktı alınır, hata varsa durulur.
-# Runner'dan sızmış eski değerler önce temizlenir: doğrulama yalnız eas.json'dan
-# gelen değerleri görsün (test kancası değişkenleri dahil — `eas update` runner
-# env'ini bundle'a gömer).
+# Exports the profile env into this shell. No process substitution (`< <(...)`): an
+# error inside it would not reach set -e and the loop would carry on with an empty
+# env (-> an OTA with no API address). The output is read first and errors stop.
+# Values leaked from the runner are cleared first, so the checks see only what
+# eas.json provides (test hook variables included: `eas update` embeds the runner
+# env in the bundle).
 load_profile_env() {
   local profile="$1" lines line key
   lines="$(profile_env "$profile")" || die "eas.json build.$profile env'i okunamadı"
-  for key in $REQUIRED_PUBLIC_ENV $TEST_HOOK_ENV; do unset "$key"; done
+  # EXPO_PUBLIC_SENTRY_DSN too: the production OTA check must see only eas.json / EAS values.
+  for key in $REQUIRED_PUBLIC_ENV $TEST_HOOK_ENV EXPO_PUBLIC_SENTRY_DSN; do unset "$key"; done
   while IFS= read -r line; do
     if [ -n "$line" ]; then export "${line?}"; fi
   done <<< "$lines"
@@ -181,21 +200,41 @@ eas_build_environment() {
   ' "$ROOT/eas.json" "$1"
 }
 
-# Store build'i öncesi: profil env'i (eas.json) ve EAS sunucusundaki ortam değişkenleri
-# (profilin kullandığı ortam; proje VE hesap kapsamı) test kancası taşımıyor mu? EAS bulut
-# build'i runner env'ini değil eas.json + EAS ortam değişkenlerini kullanır; hepsi burada
-# denetlenir. `eas env:list` okunamazsa build DURUR (kapalı-başarısız).
+# Before a store build: do the profile env (eas.json) and the EAS server variables of
+# the environment the profile uses (project AND account scope) carry no test hook? An
+# EAS cloud build uses eas.json + the EAS variables, not the runner env; all of them
+# are checked here. If `eas env:list` cannot be read the build STOPS (fail closed).
 assert_release_build_env() {
-  local profile="$1" environment scope vars
+  local profile="$1" environment vars
   ( load_profile_env "$profile"; assert_no_test_hooks "$profile" ) || exit 1
-  environment="$(eas_build_environment "$profile")" || die "build.$profile için EAS ortamı çözülemedi"
+  environment="$(eas_build_environment "$profile")" || die "no EAS environment for build.$profile"
+  vars="$(eas_env_vars "$environment" "the $profile build")" || exit 1
+  assert_no_eas_test_hooks "$vars" "$environment" "the $profile build"
+}
+
+# The EAS variables (eas_env_vars output) define no EXPO_PUBLIC_MAESTRO* variable (the
+# prefix, so a hook added later without updating TEST_HOOK_ENV is caught too).
+# Deliberately not anchored to the line start: a fail-closed guard must still match
+# if eas-cli changes its line layout. <what> names what is refused.
+assert_no_eas_test_hooks() {
+  local vars="$1" environment="$2" what="$3" hit
+  hit="$(printf '%s\n' "$vars" | grep -Eo '(^|[^A-Z0-9_])EXPO_PUBLIC_MAESTRO[A-Z0-9_]*=' | head -n1 | sed -E 's/^[^E]*//; s/=$//')" || true
+  [ -z "$hit" ] \
+    || die "EAS $environment environment defines $hit (an EXPO_PUBLIC_MAESTRO* test hook); Maestro/E2E test hooks never go into $what."
+}
+
+# `NAME=value` lines of an EAS environment, project and account scope together, with
+# any colour codes stripped (so a check can anchor on the name). Unreadable -> stop:
+# the checks that use it fail closed. <purpose> names what is refused.
+eas_env_vars() {
+  local environment="$1" purpose="$2" scope vars all="" esc
+  esc="$(printf '\033')"
   for scope in project account; do
-    vars="$(eas env:list "$environment" --scope "$scope" --format short)" \
-      || die "EAS $environment ortam değişkenleri ($scope kapsamı) okunamadı — test kancası denetimi yapılamadan $profile build'i alınmaz."
-    if printf '%s\n' "$vars" | grep -Eq '(^|[^A-Z_])EXPO_PUBLIC_MAESTRO'; then
-      die "EAS $environment ortamında ($scope kapsamı) EXPO_PUBLIC_MAESTRO* değişkeni var — Maestro/E2E test kancaları $profile build'ine giremez."
-    fi
+    vars="$(FORCE_COLOR=0 eas env:list "$environment" --scope "$scope" --format short)" \
+      || die "EAS $environment environment variables ($scope scope) could not be read; $purpose is refused without checking them."
+    all="$all$vars"$'\n'
   done
+  printf '%s' "$all" | sed "s/$esc\[[0-9;]*m//g"
 }
 
 fingerprint() {
@@ -329,46 +368,264 @@ app_version() {
   ' "$file" || die "app.json sürümü okunamadı ($file)"
 }
 
-# Yayın sonrası: development'ın sürümü yayınlanan sürümden büyük değilse onu bir
-# sonraki YAMA sürümüne çeker (1.2.4 yayınlandı → 1.2.5). Elle verilmiş daha büyük
-# bir sürüme (ör. 1.3.0) dokunmaz. Yalnız `expo.version` satırı değişir (dosyanın
-# geri kalanı bayt bayt aynı kalır). İki sürüm de X.Y.Z olmalı; değilse durur
-# (ör. "1.2.4-rc.1", sort -V'de 1.2.4'ten büyük görünüp sessizce atlanmasın).
-# GITHUB_OUTPUT: bumped=true|false, version=<sonuç>.
-bump_version() {
-  local released="$1" file="${2:-$ROOT/app.json}" current next
-  is_xyz "$released" || die "bump-version: yayınlanan sürüm '$released' X.Y.Z biçiminde değil"
-  current="$(app_version "$file")" || exit 1
-  is_xyz "$current" || die "bump-version: development'ın sürümü '$current' X.Y.Z biçiminde değil — elle düzelt"
-  if version_gt "$current" "$released"; then
-    echo "development zaten ileride: $current > $released — dokunulmadı."
-    output bumped=false "version=$current"
+# Tag prefix of mobile releases (release-bookkeeping in mobile-production.yml).
+TAG_PREFIX=mobile-v
+
+# Highest released X.Y.Z (see the header). Deliberately NOT "reachable from a ref":
+# release-bookkeeping tags the master merge commit, which development never
+# contains (master only gets merge commits development does not have).
+latest_release() {
+  local below="${1:-}" tags v best=""
+  if [ -n "$below" ]; then is_xyz "$below" || die "latest-release: '$below' is not X.Y.Z"; fi
+  tags="$(git -C "$ROOT" tag -l "$TAG_PREFIX*")" || die "latest-release: cannot list git tags in $ROOT"
+  for v in $(printf '%s\n' "$tags" | sed "s/^$TAG_PREFIX//" | { grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || true; }); do
+    if [ -n "$below" ] && ! version_gt "$below" "$v"; then continue; fi
+    if [ -z "$best" ] || version_gt "$v" "$best"; then best="$v"; fi
+  done
+  if [ -n "$best" ]; then echo "$best"; fi
+}
+
+# The next release version (see the header). Only stdout carries the version, so
+# `v="$(release.sh next-version)"` works; everything else goes to stderr.
+next_version() {
+  local ref="${1:-HEAD}" base tag counts level major minor patch ignored next current x y z
+  git -C "$ROOT" rev-parse -q --verify "$ref^{commit}" >/dev/null \
+    || die "next-version: '$ref' is not a commit in $ROOT"
+  [ "$(git -C "$ROOT" rev-parse --is-shallow-repository)" != true ] \
+    || die "next-version: shallow clone; the commit range would be incomplete. Run: git fetch --unshallow --tags origin"
+  base="$(latest_release)" || exit 1
+  [ -n "$base" ] \
+    || die "next-version: no ${TAG_PREFIX}X.Y.Z tag in this clone. Run git fetch --tags origin; on the very first run the seed tag (${TAG_PREFIX}<live version> on the released master commit) must be created first, with approval. No version is guessed."
+  tag="$TAG_PREFIX$base"
+  if [ -n "$(git -C "$ROOT" rev-list --no-merges -n 1 "$ref..$tag")" ]; then
+    echo "::notice::next-version: $tag has commits that $ref does not contain (a hotfix not merged back yet?); counting from $tag anyway." >&2
+  fi
+  # %x1e separates the messages; headers and footers are classified in node.
+  counts="$(git -C "$ROOT" log --no-merges --format='%B%x1e' "$tag..$ref" | node -e '
+    let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
+      const n = { major: 0, minor: 0, patch: 0, ignored: 0 };
+      for (const raw of s.split("\x1e")) {
+        const lines = raw.replace(/^\n+/, "").split("\n");
+        const header = lines[0];
+        if (!header.trim()) continue;
+        if (/^chore\(release\)!?:/.test(header)) n.ignored++;
+        else if (/^[a-z]+(\([^)]*\))?!:/.test(header) || lines.slice(1).some((l) => /^BREAKING[ -]CHANGE:/.test(l))) n.major++;
+        else if (/^feat(\([^)]*\))?:/.test(header)) n.minor++;
+        else n.patch++;
+      }
+      const level = n.major ? "major" : n.minor ? "minor" : n.patch ? "patch" : "none";
+      console.log([level, n.major, n.minor, n.patch, n.ignored].join(" "));
+    });')" || die "next-version: cannot read the commits in $tag..$ref"
+  read -r level major minor patch ignored <<< "$counts"
+  [ "$level" != none ] || die "next-version: nothing to release in $tag..$ref (no commits besides chore(release))."
+  IFS=. read -r x y z <<< "$base"
+  case "$level" in
+    major) next="$(( 10#$x + 1 )).0.0" ;;
+    minor) next="$x.$(( 10#$y + 1 )).0" ;;
+    patch) next="$x.$y.$(( 10#$z + 1 ))" ;;
+  esac
+  echo "next-version: $tag..$ref: $major breaking, $minor feat, $patch other, $ignored chore(release) ignored -> $level -> $next" >&2
+  current="$(git -C "$ROOT" show "$ref:app.json" | app_version /dev/stdin)" || die "next-version: cannot read app.json at $ref"
+  is_xyz "$current" || die "next-version: app.json at $ref holds '$current', not X.Y.Z; fix it by hand"
+  if version_gt "$current" "$next"; then
+    echo "::notice::next-version: app.json at $ref already holds $current (> computed $next); the manual override wins." >&2
+    next="$current"
+  fi
+  echo "$next"
+}
+
+# Kind of a production merge, from the merged PR's branch. An unknown source (API
+# not readable, manual dispatch) counts as a RELEASE: at worst a hotfix stops with
+# "bump the version"; never an unapproved or unwanted OTA. The branch name is
+# enough because "Master source guard" (master-flow.yml, a required check) lets a
+# hotfix/* into master only when it was cut from master, so it carries no
+# unreleased development code past check-release-version.
+merge_kind() {
+  case "${1:-}" in
+    hotfix/*) echo hotfix ;;
+    *) echo release ;;
+  esac
+}
+
+# Production gate for a release merge (mode=auto, kind=release): expo.version must
+# be what next-version computes for the merged commit (or a higher manual version),
+# so a release PR without its chore(release) commit cannot ship under too low a
+# version. VERSION-GATE alone only compares with the last production build.
+# Hotfixes (a JS-only one keeps its version) and manual mode=ota|build skip it.
+# Inputs from env: SOURCE_REF, MODE. Needs full history and tags (fetch-depth 0).
+check_release_version() {
+  local kind current want
+  kind="$(merge_kind "${SOURCE_REF:-}")"
+  if [ "${MODE:-auto}" != auto ] || [ "$kind" != release ]; then
+    echo "check-release-version: skipped (kind=$kind, mode=${MODE:-auto})."
     return 0
   fi
-  next="${released%.*}.$(( 10#${released##*.} + 1 ))"
+  current="$(app_version)" || exit 1
+  # A re-run of a merge that already shipped (the other platform failed): the tag
+  # of this version is on HEAD, so there is nothing new to count.
+  if git -C "$ROOT" tag --points-at HEAD | grep -qxF "$TAG_PREFIX$current"; then
+    echo "check-release-version: OK, HEAD is already tagged $TAG_PREFIX$current."
+    return 0
+  fi
+  want="$(next_version HEAD)" || exit 1
+  [ "$want" = "$current" ] \
+    || die "check-release-version: app.json expo.version is $current, but the commits since mobile-v$(latest_release) call for $want. Push the release commit to development (scripts/ci/release.sh set-version $want, chore(release): $want; docs/RELEASE.md); an open release PR picks it up. Nothing is built from this commit."
+  echo "check-release-version: OK, $current matches the commits."
+}
+
+# Sets expo.version for the release PR. Only the `"version": "<current>"` line
+# changes (the rest of the file stays byte for byte); both versions must be
+# X.Y.Z (a "1.2.4-rc.1" would sort above 1.2.4 and slip past VERSION-GATE).
+set_version() {
+  local next="${1:-}" file="${2:-$ROOT/app.json}" current
+  is_xyz "$next" || die "set-version: '$next' is not X.Y.Z"
+  current="$(app_version "$file")" || exit 1
+  is_xyz "$current" || die "set-version: $file holds '$current', not X.Y.Z; fix it by hand"
+  if [ "$current" = "$next" ]; then
+    echo "set-version: $file is already at $next."
+    return 0
+  fi
+  version_gt "$next" "$current" \
+    || die "set-version: $next is lower than $file ($current); a release never lowers the version. Edit app.json by hand if that is really intended."
   node -e '
     const fs = require("fs");
     const [file, from, to] = process.argv.slice(1);
     const src = fs.readFileSync(file, "utf8");
     const re = new RegExp(`("version"\\s*:\\s*")${from.replace(/\./g, "\\.")}(")`, "g");
     const hits = src.match(re) || [];
-    if (hits.length !== 1) { console.error(`${file}: "version": "${from}" tam bir kez bulunmalı (${hits.length})`); process.exit(1); }
+    if (hits.length !== 1) { console.error(`${file}: "version": "${from}" must occur exactly once (found ${hits.length})`); process.exit(1); }
     const out = src.replace(re, `$1${to}$2`);
-    if (JSON.parse(out).expo.version !== to) { console.error("expo.version güncellenemedi"); process.exit(1); }
+    if (JSON.parse(out).expo.version !== to) { console.error("expo.version was not updated"); process.exit(1); }
     fs.writeFileSync(file, out);
-  ' "$file" "$current" "$next" || die "bump-version: $file güncellenemedi"
-  echo "development sürümü: $current → $next ($released yayına gönderildi)"
-  output bumped=true "version=$next"
+  ' "$file" "$current" "$next" || die "set-version: cannot update $file"
+  echo "set-version: $current -> $next ($file)"
+}
+
+# `eas update --environment <env>` loads that EAS environment's variables (e.g.
+# EXPO_PUBLIC_SENTRY_DSN) and lets them OVERRIDE the shell, both for the app config
+# (runtime version) and for the bundle: eas-cli 24.x passes {...process.env,
+# ...serverEnv}. `eas build` is the other way round (eas.json wins). So before an
+# OTA the EAS variables are checked here (project and account scope; unreadable ->
+# stop): no Maestro/E2E test hook, no key of eas.json build.<profile>.env (it would
+# silently replace the value require_public_env just validated), and on the
+# production branch the Sentry DSN (without it the OTA reports nothing).
+assert_ota_eas_env() {
+  local profile="$1" branch="$2" environment="$3" all keys key dsn
+  all="$(eas_env_vars "$environment" "the $branch OTA")" || exit 1
+  assert_no_eas_test_hooks "$all" "$environment" "the $branch OTA"
+  keys="$(profile_env "$profile" | sed 's/=.*//')" || die "eas.json build.$profile env could not be read"
+  for key in $keys; do
+    # Not anchored either (fail closed): a value that only mentions the name also stops.
+    if printf '%s\n' "$all" | grep -Eq "(^|[^A-Z0-9_])$key="; then
+      die "EAS $environment environment defines $key, which eas update --environment would use instead of eas.json build.$profile.env.$key (eas build keeps the eas.json value). Remove it from one of the two."
+    fi
+  done
+  # The DSN must be readable by eas update. Fail closed, per line and over both scopes
+  # (the scope eas update picks is not visible here): every DSN line must be a plain
+  # value or one eas-cli marks "sensitive"; an empty, "secret" (EAS builders only) or
+  # otherwise masked value fails, even if the other scope has a good one.
+  if [ "$branch" = production ] && [ -z "${EXPO_PUBLIC_SENTRY_DSN:-}" ]; then
+    dsn="$(printf '%s\n' "$all" | grep -E '(^|[^A-Z0-9_])EXPO_PUBLIC_SENTRY_DSN=' || true)"
+    [ -n "$dsn" ] && ! printf '%s\n' "$dsn" | node -e '
+      let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
+        const bad = s.split("\n").filter(Boolean).some((l) => {
+          const v = l.slice(l.indexOf("EXPO_PUBLIC_SENTRY_DSN=") + 23).trim();
+          return !v || (v.startsWith("*") && !/sensitive env variable/.test(v));
+        });
+        process.exit(bad ? 0 : 1);
+      });' \
+      || die "EXPO_PUBLIC_SENTRY_DSN is missing, empty or not readable by eas update (e.g. 'secret' visibility, which exists only on EAS builders) in the EAS $environment environment; a production OTA without it reports nothing to Sentry. Store it as plain text or sensitive."
+  fi
+}
+
+# Mirrors how sentry-expo-upload-sourcemaps resolves its target, BEFORE publishing:
+# with SENTRY_ORG, SENTRY_PROJECT and SENTRY_URL all set it needs nothing else;
+# otherwise it reads `npx expo config --json` and needs the
+# `["@sentry/react-native/expo", {options}]` entry, taking org and project from the
+# env or from those options (the URL falls back to sentry.io).
+assert_sentry_upload_config() {
+  local config
+  [ -n "${SENTRY_ORG:-}" ] && [ -n "${SENTRY_PROJECT:-}" ] && [ -n "${SENTRY_URL:-}" ] && return 0
+  config="$(npx expo config --json)" \
+    || die "npx expo config failed (see above); the Sentry upload target cannot be checked. Nothing was published."
+  printf '%s' "$config" | node -e '
+    let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
+      let c;
+      try { c = JSON.parse(s); } catch (e) {
+        console.error("::error::npx expo config --json printed no valid JSON (" + e.message + "); the Sentry upload target cannot be checked. Nothing was published.");
+        process.exit(1);
+      }
+      const p = (c.plugins || []).find((x) => Array.isArray(x) && x[0] === "@sentry/react-native/expo");
+      const missing = [];
+      if (!p || !p[1]) missing.push("the @sentry/react-native/expo plugin options in app.json");
+      const o = (p && p[1]) || {};
+      if (!process.env.SENTRY_ORG && !o.organization) missing.push("organization (plugin option or SENTRY_ORG)");
+      if (!process.env.SENTRY_PROJECT && !o.project) missing.push("project (plugin option or SENTRY_PROJECT)");
+      if (missing.length) {
+        console.error("::error::The Sentry source map upload would fail: missing " + missing.join(", ") + ". Nothing was published.");
+        process.exit(1);
+      }
+    });' || exit 1
+}
+
+# Fails unless the source map file $1 carries a debugId: the id Sentry matches a
+# bundle and its map by (a map without one uploads but never resolves). Same rule as
+# @sentry/react-native's scripts/has-sourcemap-debugid.js (`debugId` or `debug_id`, a
+# non-empty string), kept here because that internal script exits non-zero only
+# through a typo and is not part of the package's public surface.
+assert_map_debug_id() {
+  node -e '
+    const f = process.argv[1];
+    let m;
+    try { m = JSON.parse(require("fs").readFileSync(f, "utf8")); } catch (e) {
+      console.error("::error::" + f + " is not a readable source map (" + e.message + ").");
+      process.exit(1);
+    }
+    const str = (v) => typeof v === "string" && v.length > 0;
+    if (!m || !(str(m.debugId) || str(m.debug_id))) {
+      console.error("::error::" + f + " has no debugId.");
+      process.exit(1);
+    }' "$1"
 }
 
 publish_ota() {
-  local branch="$1" platform="$2" profile="$3" message="$4"
+  local branch="$1" platform="$2" profile="$3" message="$4" environment p maps map
+  environment="$(eas_build_environment "$profile")" || die "no EAS environment for build.$profile"
   (
     load_profile_env "$profile"
     require_public_env "$profile" "$branch"
+    assert_ota_eas_env "$profile" "$branch" "$environment"
+    if [ "$branch" = production ] && [ -z "${SENTRY_AUTH_TOKEN:-}" ]; then
+      die "SENTRY_AUTH_TOKEN is empty: a production OTA needs its source maps in Sentry (secret in the GitHub Environment 'production'). Nothing was published."
+    fi
     cd "$ROOT"
-    eas update --branch "$branch" --platform "$platform" \
+    # The upload runs after publishing; what can be checked beforehand is checked here
+    # (org and project, as sentry-expo-upload-sourcemaps resolves them).
+    if [ -n "${SENTRY_AUTH_TOKEN:-}" ]; then assert_sentry_upload_config; fi
+    # The upload reads ./dist; start empty so only this export is uploaded.
+    rm -rf dist
+    eas update --branch "$branch" --platform "$platform" --environment "$environment" \
       --message "$message" --non-interactive
+    if [ -n "${SENTRY_AUTH_TOKEN:-}" ]; then
+      # The upload script exits 0 even when a bundle has no source map, and uploads a
+      # map without a debugId that Sentry then never matches; require a map per
+      # published platform, each with a debugId.
+      for p in $([ "$platform" = all ] && echo "ios android" || echo "$platform"); do
+        maps="$(find dist -path "*/$p/*" -name '*.map' -print 2>/dev/null)"
+        [ -n "$maps" ] \
+          || die "The OTA IS published, but eas update wrote no $p source map to dist/, so its stack traces cannot go to Sentry. Do NOT re-run this job: that publishes a second update."
+        while IFS= read -r map; do
+          assert_map_debug_id "$map" \
+            || die "The OTA IS published, but its $p source map $map has no readable debugId (cause above), so Sentry cannot match it to the bundle and its stack traces stay unreadable. Nothing was uploaded. Do NOT re-run this job: that publishes a second update. Fix the cause (a missing debugId: the Metro serializer) before the next OTA."
+        done <<EOF
+$maps
+EOF
+      done
+      npx sentry-expo-upload-sourcemaps dist \
+        || die "The OTA IS published, but its source maps were NOT uploaded to Sentry, so its stack traces stay unreadable. Do NOT re-run this job: that publishes a second update. Fix the cause before the next OTA."
+    else
+      echo "::warning::SENTRY_AUTH_TOKEN is not set: the $branch OTA was published without source maps in Sentry."
+    fi
   )
 }
 
@@ -542,13 +799,7 @@ plan() {
   fi
   if [ "$env" = production ]; then
     version="$(node -p "require(process.argv[1]).expo.version" "$ROOT/app.json")"
-    # Merge'ün türü. Kaynak bilinmiyorsa (API okunamadı, elle tetikleme) SÜRÜM
-    # sayılır: en kötü ihtimalle bir hotfix "sürümü artır" hatasıyla durur; asla
-    # onaysız ya da istenmemiş bir OTA hazırlanmaz.
-    case "$source" in
-      hotfix/*) kind=hotfix ;;
-      *) kind=release ;;
-    esac
+    kind="$(merge_kind "$source")"
     echo "production: kaynak '${source:-?}' → $kind (mode=$mode)"
   fi
 
@@ -577,7 +828,7 @@ plan() {
       gated=true
       last="$(last_store_version "$p" "$BUILD_PROFILE" "$sha")"
       if [ -n "$last" ] && ! version_gt "$version" "$last"; then
-        echo "::error::$p: sürüm merge'ü (kaynak: ${source:-bilinmiyor}) ama app.json expo.version ($version) son production build'inin sürümünden ($last) büyük değil — store build ALINMADI, OTA da yok. Yeni sürüm için development'ta expo.version'ı artırıp yeni PR aç. Aynı sürümün yeni build'i (ör. App Review reddi, sürüm henüz yayınlanmadıysa): gh workflow run mobile-production.yml --ref master -f mode=build -f platform=$p. DİKKAT: master artık yayınlanmamış kod içeriyor; buradan çıkacak bir OTA (hotfix/* ya da mode=ota) o kodu da canlıya taşır. Merge yalnız uygulamaya girmeyen dosyaları (test, CI, belge) değiştirdiyse bu hata yok sayılabilir."
+        echo "::error::$p: release merge (source: ${source:-unknown}) but app.json expo.version ($version) is not greater than the last production build ($last). No store build and no OTA. New version: make the release commit on development (scripts/ci/release.sh next-version + set-version, chore(release): X.Y.Z; docs/RELEASE.md) and open a new PR. A new build of the same version (e.g. after an App Review rejection, version not released yet): gh workflow run mobile-production.yml --ref master -f mode=build -f platform=$p. CAUTION: master now holds unreleased code; an OTA from here (hotfix/* or mode=ota) takes that code live too. (A merge that changes only tests, CI or docs does not start this workflow: paths-ignore.)"
         decision=blocked
       else
         case "${state%% *}" in
@@ -589,7 +840,7 @@ plan() {
             echo "::warning::$p: bu sürümün production build'i/gönderimi sürüyor ($build_id) — ikinci build alınmadı." ;;
           *)
             decision=build
-            echo "$p: sürüm ${last:-<ilk build>} → $version" ;;
+            echo "$p: version ${last:-<first build>} -> $version" ;;
         esac
       fi
     else
@@ -641,15 +892,15 @@ plan() {
     if [ "$decision" = build ] && [ "$env" = production ] && [ "$gated" != true ]; then
       last="$(last_store_version "$p" "$BUILD_PROFILE" "$sha")"
       if [ -n "$last" ] && ! version_gt "$version" "$last"; then
-        text="$p: native değişti (fingerprint $fp için production build'i yok) ama app.json expo.version ($version) son production build'inin sürümünden ($last) büyük değil. Bu merge'de expo.version'ı artır (ör. development'ta app.json'u güncelleyip yeni bir PR aç)."
+        text="$p: native code changed (no production build for fingerprint $fp) but app.json expo.version ($version) is not greater than the last production build ($last). Set a new version in this merge (scripts/ci/release.sh next-version + set-version, chore(release): X.Y.Z; docs/RELEASE.md)."
         if [ "$mode" = build ]; then
-          echo "::warning::$text — mode=build ile elle istendi, devam ediliyor."
+          echo "::warning::$text Requested by hand with mode=build; continuing."
         else
           echo "::error::$text"
           decision=blocked
         fi
       fi
-      [ "$decision" = blocked ] || echo "$p: sürüm ${last:-<ilk build>} → $version"
+      [ "$decision" = blocked ] || echo "$p: version ${last:-<first build>} -> $version"
     fi
 
     if [ "$decision" = build ] && [ "$mode" = auto ]; then
@@ -794,7 +1045,10 @@ case "$cmd" in
   plan) plan "$@" ;;
   recheck) recheck "$@" ;;
   await-binary) await_binary "$@" ;;
-  bump-version) bump_version "$@" ;;
+  latest-release) latest_release "$@" ;;
+  next-version) next_version "$@" ;;
+  set-version) set_version "$@" ;;
+  check-release-version) check_release_version "$@" ;;
   app-version) app_version "$@" ;;
   build-submit) build_submit "$@" ;;
   *) die "bilinmeyen komut: '$cmd' (bkz. dosya başı)" ;;

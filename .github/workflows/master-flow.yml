@@ -1,30 +1,30 @@
 name: Master Flow (source guard + hotfix back-merge)
 
-# master = production. master'a yalnız PR ile ve yalnız iki kaynaktan girilir:
-#   - development  (normal sürüm)
-#   - hotfix/*     (acil düzeltme; merge sonrası development'a geri birleştirilir)
+# master = production. master is changed only by a PR, and only from two sources:
+#   - development  (a release)
+#   - hotfix/*     (an urgent fix cut from master; merged back into development)
 #
-# "Master source guard" job'ı ruleset'te master için ZORUNLU check olmalı. Bu
-# workflow'a path filtresi KONMAZ: zorunlu bir check atlanırsa PR sonsuza dek
-# "Expected — waiting" kalır.
+# The "Master source guard" job must be a REQUIRED check for master in the ruleset.
+# This workflow gets NO path filter: a skipped required check leaves the PR at
+# "Expected - waiting" forever.
 #
-# Neden `pull_request_target` (pull_request değil): pull_request, workflow
-# dosyasını PR'ın HEAD'inden okur — PR bu dosyayı değiştirip guard'ı her zaman
-# yeşil yapabilirdi. pull_request_target dosyayı HEDEF daldan (master) okur, PR
-# değiştiremez. Bu tetikleyici tehlikeli olabilir (yazma yetkili token + gizli
-# değerler) ama YALNIZ PR kodu çalıştırılırsa; burada:
-#   - source-guard hiçbir şeyi checkout ETMEZ, yalnız olay meta verisini okur;
-#   - PR'dan gelen her değer (dal adı, repo adı) yalnız `env:` üzerinden okunur,
-#     `run:` içine `${{ }}` ile enjekte edilmez (script injection yok);
-#   - hotfix-backmerge yalnız merge edilmiş, aynı depodaki hotfix/* PR'ında
-#     koşar ve PR'ın kodunu değil master'ı checkout eder.
-# Not: dosya master'dan okunduğu için guard, bu dosya master'a girdikten SONRA
-# devreye girer (ruleset'e zorunlu check'i o zaman ekle).
+# Why `pull_request_target` (not pull_request): pull_request reads the workflow file
+# from the PR's HEAD, so a PR could edit this file and turn the guard green.
+# pull_request_target reads it from the TARGET branch (master); a PR cannot change
+# it. The trigger is dangerous (write token + secrets) only if PR code runs; here:
+#   - source-guard checks out NOTHING; it reads the event metadata and asks the
+#     GitHub API about commit ancestry (`gh api .../compare`, read-only);
+#   - every value from the PR (branch name, head sha, repo name) is read through
+#     `env:` only, never injected into `run:` with `${{ }}` (no script injection);
+#   - hotfix-backmerge runs only for a merged hotfix/* PR from this repo and checks
+#     out master, not the PR's code.
+# Note: since the file is read from master, the guard takes effect only AFTER this
+# file is on master (add the required check to the ruleset then).
 
 on:
   pull_request_target:
     branches: [master]
-    # edited: PR'ın hedef dalı sonradan master'a çevrilirse de guard koşsun.
+    # edited: the guard also runs when a PR's base is changed to master later.
     types: [opened, reopened, synchronize, edited, closed]
 
 permissions:
@@ -36,24 +36,45 @@ jobs:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # PR kodu checkout EDİLMEZ (pull_request_target güvenliği; bkz. dosya başı).
+    # No checkout of PR code (pull_request_target safety; see the file header).
     steps:
-      - name: Source branch must be development or hotfix/*
+      - name: Source branch must be development or a hotfix/* cut from master
         env:
+          GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           if [ "$HEAD_REPO" != "$REPO" ]; then
-            echo "::error::master'a yalnız bu depodaki dallardan PR açılabilir (kaynak: $HEAD_REPO:$HEAD_REF)."
+            echo "::error::A PR into master must come from a branch of this repository (source: $HEAD_REPO:$HEAD_REF)."
             exit 1
           fi
           case "$HEAD_REF" in
-            development|hotfix/*)
-              echo "OK: $HEAD_REF → master" ;;
+            development)
+              echo "OK: development -> master" ;;
+            hotfix/*)
+              # A hotfix skips check-release-version and its JS-only merge ships as a
+              # production OTA, so it may carry nothing from development that master
+              # does not already have: what it shares with development (their merge
+              # base) must be on master. A hotfix/* cut from development, or one that
+              # merged development later, fails here. Any API error fails (closed).
+              base="$(gh api "repos/$REPO/compare/development...$HEAD_SHA" --jq .merge_base_commit.sha)"
+              if [ -z "$base" ] || [ "$base" = null ]; then
+                echo "::error::Could not find where $HEAD_REF meets development; the hotfix cannot be checked."
+                exit 1
+              fi
+              status="$(gh api "repos/$REPO/compare/$base...master" --jq .status)"
+              case "$status" in
+                identical|ahead)
+                  echo "OK: $HEAD_REF -> master (cut from master; shares $base with development, which master contains)" ;;
+                *)
+                  echo "::error::$HEAD_REF carries development commits that are not on master (merge base with development: $base, compare status: $status). A hotfix must be cut from master: git switch -c hotfix/<name> origin/master, then cherry-pick the fix. Unreleased development code must go through a development -> master release PR. A hotfix merged into development before master also trips this check: cut a hotfix branch with a new name from origin/master, cherry-pick the fix commits onto it, open that PR and ask for this one to be closed; the back-merge carries it into development after the master merge."
+                  exit 1 ;;
+              esac ;;
             *)
-              echo "::error::master'a yalnız 'development' ya da 'hotfix/*' dalından PR açılabilir (kaynak: '$HEAD_REF'). Değişikliği development'a birleştir, ya da acil düzeltme için dalı hotfix/<ad> olarak aç."
+              echo "::error::A PR into master must come from 'development' or a 'hotfix/*' branch (source: '$HEAD_REF'). Merge the change into development, or for an urgent fix cut hotfix/<name> from master."
               exit 1 ;;
           esac
 
@@ -96,21 +117,26 @@ jobs:
           fi
           git push origin "${MERGE_SHA}:refs/heads/${branch}"
 
-          conflict_note="Otomatik birleştirme denemesi temiz."
+          conflict_note="The trial merge was clean."
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch --detach origin/development
           if ! git merge --no-commit --no-ff "$MERGE_SHA" >/dev/null 2>&1; then
-            conflict_note="⚠️ **Çakışma var.** \`${branch}\` dalında çöz (git merge origin/development), sonra merge et."
+            conflict_note="**Conflict.** Resolve it on \`${branch}\` (git merge origin/development), then merge."
           fi
           git merge --abort 2>/dev/null || true
 
-          # Çakışma olsa da PR açılır; insan çözer.
-          gh pr create \
+          # The PR is opened even with a conflict; a person resolves it.
+          # GITHUB_TOKEN may open a PR only if the repo allows it (Settings -> Actions ->
+          # General -> "Allow GitHub Actions to create and approve pull requests").
+          if ! gh pr create \
             --base development \
             --head "$branch" \
-            --title "chore: back-merge ${HOTFIX_REF} (#${HOTFIX_PR}) master → development" \
+            --title "chore: back-merge ${HOTFIX_REF} (#${HOTFIX_PR}) master -> development" \
             --body "$(printf '%s\n\n%s\n\n%s\n' \
-              "Hotfix #${HOTFIX_PR} (\`${HOTFIX_REF}\`) master'a merge edildi; bu PR düzeltmeyi development'a geri taşır." \
+              "Hotfix #${HOTFIX_PR} (\`${HOTFIX_REF}\`) was merged into master; this PR carries the fix back into development." \
               "${conflict_note}" \
-              "Not: GITHUB_TOKEN ile açılan PR'lar workflow tetiklemez — CI için PR'ı kapatıp yeniden aç ya da dala bir commit at.")"
+              "Note: PRs opened with GITHUB_TOKEN do not trigger workflows. For CI, close and reopen the PR or push a commit to the branch.")"; then
+            echo "::error::The back-merge PR was not opened; branch ${branch} is pushed. If GitHub refused PR creation by Actions, enable Settings -> Actions -> General -> 'Allow GitHub Actions to create and approve pull requests', or open it by hand: gh pr create --base development --head ${branch}"
+            exit 1
+          fi
