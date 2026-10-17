@@ -2213,9 +2213,9 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
   const sha40 = (c: string) => c.repeat(40);
   it.each([
     ['a repeated line hides a missing commit', `${sha40('b')} ${sha40('0')}\n${sha40('b')} ${sha40('0')}\n${sha40('c')} ${sha40('b')} ${sha40('d')}\n`, '3', `listed ${sha40('b')} twice`],
-    ['a commit is its own parent', `${sha40('b')} ${sha40('b')}\n`, '1', `listed ${sha40('b')} with a parent cycle`],
-    ['two commits name each other as parents', `${sha40('b')} ${sha40('c')}\n${sha40('c')} ${sha40('b')}\n`, '2', 'with a parent cycle'],
-    ['a cycle next to a good root', `${sha40('a')} ${sha40('0')}\n${sha40('b')} ${sha40('c')}\n${sha40('c')} ${sha40('b')}\n`, '3', 'with a parent cycle'],
+    ['a commit is its own parent', `${sha40('b')} ${sha40('b')}\n`, '1', `listed ${sha40('b')}, which does not reach a root commit`],
+    ['two commits name each other as parents', `${sha40('b')} ${sha40('c')}\n${sha40('c')} ${sha40('b')}\n`, '2', 'does not reach a root commit'],
+    ['a cycle next to a good root', `${sha40('a')} ${sha40('0')}\n${sha40('b')} ${sha40('c')}\n${sha40('c')} ${sha40('b')}\n`, '3', 'does not reach a root commit'],
   ])('a list where %s fails before any status call (closed)', (_case, list, total, message) => {
     const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_TOTAL: total, FAKE_GH_LIST: list });
     expect(r.status).not.toBe(0);
@@ -2228,9 +2228,21 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_TOTAL: '2', FAKE_GH_LIST: '' });
     expect(r.status).not.toBe(0);
     expect(r.all).toContain('The API listed 0 of the 2 commits the hotfix adds over master');
+    expect(r.all).not.toContain('OK:');
+    expect(r.gh).toHaveLength(2);
   });
 
-    it('only root commits are compared: a linear hotfix of two commits makes one status call', () => {
+  it('a cycle that a member leaves through a parent is checked through that root', () => {
+    // b and c name each other, but b also has the root a: c and b reach a, so comparing a
+    // covers them (development holding c would hold a too).
+    const list = `${sha40('a')} ${sha40('0')}\n${sha40('b')} ${sha40('a')} ${sha40('c')}\n${sha40('c')} ${sha40('b')}\n`;
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_TOTAL: '3', FAKE_GH_LIST: list, FAKE_GH_STATUS: 'ahead' });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain(`(${sha40('a')} is on development; compare status: ahead)`);
+    expect(r.gh.filter((l) => l.endsWith('--jq .status'))).toHaveLength(1);
+  });
+
+  it('only root commits are compared: a linear hotfix of two commits makes one status call', () => {
     branchFrom('hotfix/crash', 'master');
     repo.git(['switch', '-q', 'hotfix/crash']);
     repo.commit('fix: second part');
