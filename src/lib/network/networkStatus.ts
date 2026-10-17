@@ -3,7 +3,7 @@ import { getNetInfo, type NetInfoStateLike } from './netinfo';
 
 /**
  * Bağlantı durumu — modül düzeyinde TEK karar noktası (React dışında; sunucu verisi değil, fetch
- * yok: CLAUDE.md §8). Hem çevrimdışı diyaloğu hem TanStack `onlineManager` AYNI kararı dinler
+ * yok: src/stores/CLAUDE.md › Client state only). Hem çevrimdışı diyaloğu hem TanStack `onlineManager` AYNI kararı dinler
  * (`subscribeOnline`), ham NetInfo olayını değil: kısa titreşimler hiçbirini tetiklemez
  * (diyalog çıkmaz, `refetchOnReconnect` fırtınası olmaz).
  *

@@ -175,7 +175,7 @@ describe("J133 · İlan düzenleme navigasyon wiring", () => {
 
 /**
  * Eylem menüsü bir ui-native Modal. Menü kapanırken AYNI tick'te appAlert (o da
- * bir RN Modal) açmak iOS'ta donmaya yol açıyor (CLAUDE.md §12) — uyarı menü
+ * bir RN Modal) açmak iOS'ta donmaya yol açıyor (src/ui/CLAUDE.md › iOS modal rule) — uyarı menü
  * kapandıktan sonra açılmalı.
  */
 describe("İlanlarım · menü kapanmadan uyarı açılmaz (iOS donma)", () => {

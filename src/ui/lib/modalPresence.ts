@@ -5,7 +5,7 @@ import { MODAL_CLOSE_DELAY_MS } from './modal-timing';
  * Açık / kapanmakta olan native modal takibi — modül düzeyinde TEK kaynak (yalnız UI durumu).
  *
  * iOS bir modal sunuluyorken ya da kapanırken ikinci bir modal sunumunu sessizce reddeder
- * (CLAUDE.md §14). Kendiliğinden (kullanıcı eylemi olmadan) diyalog açmak isteyen global
+ * (src/ui/CLAUDE.md › Feedback). Kendiliğinden (kullanıcı eylemi olmadan) diyalog açmak isteyen global
  * dinleyiciler (çevrimdışı diyaloğu gibi) önce `isModalPresent()` bakar ve engel kalkınca
  * (`subscribeModalPresence`) gösterir. `@/ui` `Modal` ve `BottomSheet` ailesi `useModalPresence`
  * ile kayıt olur; kapanış, `onDismiss`'e bel bağlamadan `MODAL_CLOSE_DELAY_MS` sonra düşer

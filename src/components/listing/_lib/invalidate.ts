@@ -4,7 +4,7 @@ import { qk } from '@/lib/query';
 /**
  * Bir ilan değişince (düzenle / pasife al / sil / yenile / yeniden aç) bayat
  * kalabilecek TÜM önbellekler — TEK küme; İlanlarım ile düzenleme formu aynısını
- * kullanır (CLAUDE.md §5). Anahtarlar yalnız `qk` kaydından gelir.
+ * kullanır (CLAUDE.md › Principles). Anahtarlar yalnız `qk` kaydından gelir.
  *
  *  - İlanlarım listesi + sayaçlar, profil istatistikleri,
  *  - ürün detayı (`productId` verilirse yalnız o, yoksa tüm detaylar),

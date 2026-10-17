@@ -87,7 +87,7 @@ export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: bool
 /**
  * Satıcı-bazlı paket kırılımı (B10). Yalnızca 2+ paketli grupta gösterilir —
  * tek paketli grupta üstteki sipariş satırının kendi kargo satırı zaten aynı
- * bilgiyi taşıyor, ayrı kart tekrar olurdu (§5 DRY).
+ * bilgiyi taşıyor, ayrı kart tekrar olurdu (CLAUDE.md › Principles).
  *
  * Takip linki HER ZAMAN `deriveShipmentView` ile kurulur — sunucunun
  * `cargo.trackingUrl`'ı hiç okunmaz (bkz. `_hooks/useOrderGroup.ts`).

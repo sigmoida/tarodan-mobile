@@ -1,6 +1,6 @@
 /**
  * UserActionsSheet: eylem menüsü `ActionSheet` (appAlert düğmesi değil). Şikayet penceresi ve
- * engel onayı sheet TAMAMEN kapandıktan sonra açılır (zamanlayıcı hack'i yok, §12).
+ * engel onayı sheet TAMAMEN kapandıktan sonra açılır (zamanlayıcı hack'i yok, src/ui/CLAUDE.md › iOS modal rule).
  */
 import React from 'react';
 import { Modal } from 'react-native';

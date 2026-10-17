@@ -3,7 +3,7 @@
  * çağrılmıyordu. Değerlendirme durumunun kaynağı zaten sipariş gövdesindeki
  * `hasProductRating` / `hasSellerRating` — ikisi de sunucudan geliyor ve
  * `OrderRatingButtons` onları okuyor. İkinci bir uç eklemek, aynı gerçeğin iki
- * kaynağı olması demekti (CLAUDE.md §5).
+ * kaynağı olması demekti (CLAUDE.md › Principles).
  *
  * Uç gerçekten gerekirse geri gelebilir; bu test yalnız "tanımlı ama
  * çağrılmayan" hâline geri dönülmediğini kilitler.

@@ -20,7 +20,7 @@ import { parseE164TrPhone } from './phone';
  * çağıran taraf `useMemo(() => …, [t])` ile dil değişiminde yeniden kuruyor.
  *
  * Mesajlar `validation.*` kataloğundan gelir — üç kayıt ekranı, kurumsal davet
- * ve kullanıcı adı talebi aynı metinleri paylaşır (§5).
+ * ve kullanıcı adı talebi aynı metinleri paylaşır (CLAUDE.md › Principles).
  */
 
 /**
@@ -92,7 +92,7 @@ export const USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$/;
  * TEK KAYNAK: register (`RegisterForm.tsx`), kurumsal davet
  * (`corporate-invite/index.tsx`) ve kullanıcı adı talebi
  * (`settings/edit-profile/_sections/UsernameSection.tsx`) ekranlarının üçü de buradan alır (önceden
- * üç ayrı `(t) => t.toLowerCase()` kopyası vardı, §5).
+ * üç ayrı `(t) => t.toLowerCase()` kopyası vardı, CLAUDE.md › Principles).
  *
  * ⚠️ Bilinçli olarak transliterasyon YAPMAZ (`ı→i`, `ş→s`, `ğ→g` gibi bir eşleme
  * yok) — kullanıcının adını sessizce başka bir kalıcı handle'a çevirmek ürün

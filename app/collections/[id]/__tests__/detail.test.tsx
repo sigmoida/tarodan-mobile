@@ -166,7 +166,7 @@ describe('J106 · Sahiplik kontrolü (düzenle butonu)', () => {
 /**
  * Misafir koleksiyonu şikayet ederse ReportModal açılıyor, POST /user-reports
  * 401 dönüyor ve 401 interceptor'ı Modal açıkken oturumu kapatıp login'e
- * atıyordu (iOS donma — CLAUDE.md §12). Ürün sayfasıyla aynı: önce giriş.
+ * atıyordu (iOS donma — src/ui/CLAUDE.md › iOS modal rule). Ürün sayfasıyla aynı: önce giriş.
  */
 describe('Koleksiyon şikayeti · misafir', () => {
   beforeEach(() => {

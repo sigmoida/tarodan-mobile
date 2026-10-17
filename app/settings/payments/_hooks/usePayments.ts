@@ -13,7 +13,7 @@ import { useDoRetryPayment } from './useDoRetryPayment';
  * Payments-history controller — owns the GET /payments/me query + status filter,
  * the cancel (pending) handler (info → toast); retry (failed → kimlik → onay →
  * paymentUrl webview) lives in `useDoRetryPayment`. Lifted from the monolithic
- * screen (§12).
+ * screen (app/CLAUDE.md › Worked examples).
  */
 export function usePayments() {
   const { t } = useTranslation();

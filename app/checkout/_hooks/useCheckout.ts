@@ -356,7 +356,7 @@ export function useCheckout() {
     },
     enabled: items.length > 0,
     staleTime: 60_000,
-    // 4xx yeniden denenmez (tek kaynak — sepet aynı yüklemi kullanır, §5).
+    // 4xx yeniden denenmez (tek kaynak — sepet aynı yüklemi kullanır, CLAUDE.md › Principles).
     retry: retryUnlessClientError,
   });
   const quote = quoteQuery.data;
@@ -505,7 +505,7 @@ export function useCheckout() {
    * düşer. Ülke kodu ile numara BİRLİKTE taşınır: numara `guestPhone`'dan
    * gelirken ülke kodunu `shippingAddress`'ten okumak, `+1 415 555 0100` gibi
    * bir girdiyi TR sanıp doğrulamayı ayrıştırırdı. `buildShippingPayload`'un
-   * eşleştirmesiyle AYNI (tek kaynak, §5).
+   * eşleştirmesiyle AYNI (tek kaynak, CLAUDE.md › Principles).
    */
   const shippingPhoneSource = (): { phone: string; countryCode: string } => {
     const { guestPhone, guestPhoneCountryCode } = readGuest();
@@ -1055,7 +1055,7 @@ export function useCheckout() {
     /** Satır adedi — tutarla AYNI kaynaktan; yoksa `null` (yerel adet basılır). */
     lineQuantityFor,
     quoteLoading: quoteQuery.isLoading,
-    /** Quote hatası — ekran ErrorState + "Tekrar Dene" gösterir (CLAUDE.md §11). */
+    /** Quote hatası — ekran ErrorState + "Tekrar Dene" gösterir (src/ui/CLAUDE.md › Empty and error states). */
     quoteError: quoteQuery.isError,
     retryQuote,
     coupon,

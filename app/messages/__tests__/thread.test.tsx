@@ -350,7 +350,7 @@ describe('mesaj eki görselleri — bearer + şema beyaz listesi', () => {
 
 /**
  * Başlık menüsü: `appAlert` düğmeleri değil `ActionSheet`. Eylemler sheet kapandıktan SONRA
- * çalışır (şikayet penceresi / engel onayı için 300 ms zamanlayıcı hack'i kalktı, §12).
+ * çalışır (şikayet penceresi / engel onayı için 300 ms zamanlayıcı hack'i kalktı, src/ui/CLAUDE.md › iOS modal rule).
  */
 describe('başlık menüsü (ActionSheet)', () => {
   beforeEach(() => {

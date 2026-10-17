@@ -22,7 +22,7 @@ export interface ModalFooterProps {
  * sığmıyorsa alt alta tam genişlik, ana aksiyon ÜSTTE (`ButtonRow stackOrder="reverse"`). Etiket
  * asla sarmaz. Bütün diyalog düğmeleri aynı dizilimi kullansın diye tek kaynak.
  *
- * **`isLoading` bilerek YOK (iOS ModalFreeze, CLAUDE.md §12):** web'deki "mutasyon bitene kadar
+ * **`isLoading` bilerek YOK (iOS ModalFreeze, src/ui/CLAUDE.md › iOS modal rule):** web'deki "mutasyon bitene kadar
  * diyaloğu açık tut" kalıbı native'de yapılmaz — bir mutasyonun `appAlert`'i açık bir ui-native
  * Modal'ın üstünde iOS'u dondurur. Kalıp: `onConfirm` içinde doğrulama geçince ÖNCE modalı kapat
  * (`onClose()`), SONRA mutasyonu tetikle; ilerleme/sonuç toast ya da liste durumuyla gösterilir

@@ -1,5 +1,5 @@
 /**
- * 4xx yeniden denenmez — TEK KAYNAK (CLAUDE.md §5). Artık sorguların VARSAYILAN
+ * 4xx yeniden denenmez — TEK KAYNAK (CLAUDE.md › Principles). Artık sorguların VARSAYILAN
  * `retry`'si (bkz. `client.ts`).
  *
  * Eski varsayılan `retry: 2` bir kupon 400'ünde aynı isteği üç kez atıp aynı

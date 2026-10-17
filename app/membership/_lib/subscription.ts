@@ -74,7 +74,7 @@ export const getDaysUntilRenewal = (subscription: Subscription | null): number =
 
 // `t` MUST come from a live useTranslation()/schemaT at the call site — this
 // module is a route-local `_lib`, not a hook/component, so it can't resolve
-// its own translator (see CLAUDE.md §8 / membershipLimits.ts note).
+// its own translator (see src/i18n/CLAUDE.md › Build labels at call time / membershipLimits.ts note).
 export const formatBillingPeriod = (t: TFunction, period: 'monthly' | 'yearly'): string => {
   return period === 'monthly' ? t('membership.monthly') : t('membership.yearly');
 };

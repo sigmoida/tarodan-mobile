@@ -4,7 +4,7 @@ import { usernameSchema } from '@/utils/validation';
 import { passwordSchema, refinePasswordMatch } from '@/utils/passwordPolicy';
 
 /**
- * Kullanıcı adı kuralı tek kaynaktan gelir: `@/utils/validation` (§5) — küçük
+ * Kullanıcı adı kuralı tek kaynaktan gelir: `@/utils/validation` (CLAUDE.md › Principles) — küçük
  * harf, boşluksuz, 3-30, `^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$` ve **bir kez
  * belirlenince değiştirilemez**. Şifre kuralı da tek kaynaktan (`passwordSchema`, 8-72).
  *

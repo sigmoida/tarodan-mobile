@@ -6,7 +6,7 @@ import { RawText } from './Text';
 /**
  * Rozet / çip / sayaç ailesinin TEK tabanı: ortak boyut, dolgu, köşe ve yazı token'ları burada.
  * `Badge` (+ `StatusBadge`, `ProductBadge`), `CountBadge` ve `Chip` bunu kullanır; ekranlarda
- * elle `View + Text` ile hap çizilmez (bkz. CLAUDE.md §14).
+ * elle `View + Text` ile hap çizilmez (bkz. src/ui/CLAUDE.md › Primitives).
  */
 export type PillSize = 'count' | 'sm' | 'body' | 'md' | 'lg';
 /**

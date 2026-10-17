@@ -16,7 +16,7 @@ import { buildMembershipTiers, DEFAULT_MONTHLY, type MembershipTierKey } from '.
  * (single source, backend charges exactly this), the auth redirect, and the
  * payment initiation (subscribe → bypass-complete OR PayTR WebView redirect).
  * ⚠️ PAYMENT-CRITICAL: handlePayment lifted VERBATIM — do not restructure the
- * subscribe/bypass/PayTR branch logic. (§12)
+ * subscribe/bypass/PayTR branch logic. (app/CLAUDE.md › Worked examples)
  */
 export function useMembershipCheckout() {
   const { t } = useTranslation();
@@ -34,7 +34,7 @@ export function useMembershipCheckout() {
   // tam bunu tahsil eder. Web checkout ile birebir aynı. Eskiden /admin/settings/public
   // + hardcoded fallback'ler gösterilen tutarı çekilenle uyumsuzlaştırıyordu
   // (UI ₺499 / charge ₺249.99).
-  // Katman fiyatları React Query ile (CLAUDE.md §6). Ulaşılamazsa varsayılan
+  // Katman fiyatları React Query ile (src/lib/query/CLAUDE.md › Query hooks). Ulaşılamazsa varsayılan
   // fiyatlara düşülür — eski davranış korundu.
   const tiersQuery = useQuery({
     queryKey: qk.membership.tiers,

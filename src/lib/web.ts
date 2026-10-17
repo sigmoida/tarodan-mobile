@@ -2,7 +2,7 @@ import { deepLinkConfig, productionHosts } from '@/lib/deeplinks';
 import { strictHttpsHost } from '@/lib/security/url';
 
 /**
- * Kendi web sitemizin adresi — TEK kaynak (CLAUDE.md §5): reklam linkleri
+ * Kendi web sitemizin adresi — TEK kaynak (CLAUDE.md › Principles): reklam linkleri
  * (`openAdLink`), paylaşım linkleri (`utils/share`) ve yasal belge ekranları
  * (`@/lib/legal/webDocs`) aynı türetimi kullanır.
  */

@@ -5,7 +5,7 @@
  * valueLimit) 'default'a düşürüp ilan-limiti başlığını döndürüyordu. Örneğin
  * adres limiti dolduğunda kullanıcı "İlan Limitine Ulaştınız" görüyordu.
  * Her promptType artık kendi (non-iOS ile aynı) başlığını korur; mesaj nötr
- * kalır — bkz. CLAUDE.md COPY RULE.
+ * kalır — bkz. src/i18n/CLAUDE.md › Store-neutral copy.
  *
  * TEKNİK: CAN_BUY_DIGITAL modül seviyesinde mock'lanmalı.
  */

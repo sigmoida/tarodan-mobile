@@ -6,7 +6,7 @@
  *
  * Alttan açılan `BottomSheet`: gövdede paket/süre radyoları, sabit footer'da toplam fiyat +
  * [Öne Çıkar ve Öde]. Ödeme ekranına yönlendirme sheet TAMAMEN kapandıktan sonra çalışır
- * (`runAfterClose`, CLAUDE.md §12 iOS donma kuralı).
+ * (`runAfterClose`, src/ui/CLAUDE.md › iOS modal rule).
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -151,7 +151,7 @@ export function BoostModal({
       const paymentUrl: string | undefined = data.paymentUrl;
       if (paymentId) {
         setSubmitting(false);
-        // Önce sheet kapanır, yönlendirme kapanış bittikten sonra (iOS donma kuralı §12).
+        // Önce sheet kapanır, yönlendirme kapanış bittikten sonra (src/ui/CLAUDE.md › iOS modal rule).
         runAfterClose(() =>
           router.push({
             pathname: '/payment/[id]',

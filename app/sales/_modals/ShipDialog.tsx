@@ -8,7 +8,7 @@ import type { SaleActionsController } from '../_hooks/useSaleActions';
 
 /**
  * Kargoya verme onay diyaloğu — numara artık sunucu üretiyor, elle giriş yok.
- * Onaylayınca ÖNCE kapanır, istek SONRA gider (`handleShip`, §12) — düğme yükleniyor beklemez;
+ * Onaylayınca ÖNCE kapanır, istek SONRA gider (`handleShip`, src/ui/CLAUDE.md › iOS modal rule) — düğme yükleniyor beklemez;
  * ilerleme satış kartındaki spinner'da, sonuç toast/diyalogla gelir.
  *
  * Şubede verilecek numara İÇ REFERANSTIR (`trackingNumber`, `PKG-…`), gerçek

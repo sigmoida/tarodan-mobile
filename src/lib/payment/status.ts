@@ -8,7 +8,7 @@ import {
 } from '@/lib/shared/status-configs';
 
 /**
- * Ödeme durumları: tek kaynak (CLAUDE.md §5).
+ * Ödeme durumları: tek kaynak (CLAUDE.md › Principles).
  *
  * Sunucu `PaymentStatus`: `pending`, `processing`, `completed`, `failed`,
  * `refunded` (iptal de `failed` yazar). İstemci eski/başka uçlardan gelen eş

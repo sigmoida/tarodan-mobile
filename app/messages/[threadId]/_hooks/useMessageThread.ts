@@ -207,7 +207,7 @@ export function useMessageThread() {
   });
 
   // Başlık menüsü (ActionSheet): her eylem sheet TAMAMEN kapandıktan sonra çalışır, bu yüzden
-  // şikayet modalı / engel onayı (appAlert) zamanlayıcı hack'i olmadan açılır (§12).
+  // şikayet modalı / engel onayı (appAlert) zamanlayıcı hack'i olmadan açılır (src/ui/CLAUDE.md › iOS modal rule).
   const handleHeaderMenu = () => {
     if (other) setHeaderMenuOpen(true);
   };

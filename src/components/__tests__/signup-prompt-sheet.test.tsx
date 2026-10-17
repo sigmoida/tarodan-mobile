@@ -1,6 +1,6 @@
 /**
  * SignupPrompt artık `BottomSheet size="fit"`: kapalıyken içerik bağlı değil, "Şimdilik geç"
- * kapatır, ana eylem / giriş bağlantısı yönlendirmeyi sheet kapandıktan SONRA yapar (§12).
+ * kapatır, ana eylem / giriş bağlantısı yönlendirmeyi sheet kapandıktan SONRA yapar (src/ui/CLAUDE.md › iOS modal rule).
  */
 import React, { useState } from 'react';
 import { Modal } from 'react-native';

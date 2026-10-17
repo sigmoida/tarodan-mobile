@@ -1,4 +1,4 @@
-// Güvenlik akışlarının zod şemaları (colocated, CLAUDE.md §7). Mesajlar şema kurulurken
+// Güvenlik akışlarının zod şemaları (colocated, src/ui/CLAUDE.md › Forms). Mesajlar şema kurulurken
 // çözüldüğü için hepsi `t` alan fabrika — ekranlar `useMemo(() => …, [t])` ile kurar.
 import type { TFunction } from 'i18next';
 import { z } from 'zod';

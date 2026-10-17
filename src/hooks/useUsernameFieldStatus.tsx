@@ -14,7 +14,7 @@ export interface UsernameFieldStatus {
 
 /**
  * Kullanıcı adı alanının durum slotu — kayıt ve profilde "kullanıcı adı belirle"
- * için TEK kaynak (§5). `Input` tek satır gösterdiği için TEK öncelik sırası:
+ * için TEK kaynak (CLAUDE.md › Principles). `Input` tek satır gösterdiği için TEK öncelik sırası:
  *   1) zod format hatası (submit sonrası)  2) ham biçim uyarısı (ANINDA, submit
  *   beklemeden — Türkçe büyük 'İ'.toLowerCase() birleşik noktalı 'i' üretir,
  *   alanda gözle doğru görünür ama regex'i geçmez)  3) "kontrol ediliyor"

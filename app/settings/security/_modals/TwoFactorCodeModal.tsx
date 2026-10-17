@@ -15,7 +15,7 @@ interface Props {
   destructive?: boolean;
   /** Yıkıcı işlemde kırmızı uyarı kutusu (web `disableWarning` Alert'i). */
   warning?: { title: string; body: string };
-  /** Geçerli kodla çağrılır — modal ZATEN kapanmıştır (§12: kapat → mutate). */
+  /** Geçerli kodla çağrılır — modal ZATEN kapanmıştır (src/ui/CLAUDE.md › iOS modal rule: kapat → mutate). */
   onSubmit: (code: string) => void;
   testID?: string;
 }

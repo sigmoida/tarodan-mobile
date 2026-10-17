@@ -1,5 +1,5 @@
 /**
- * Phone utilities — TEK KAYNAK (§5): ülke kodu listesi, alan formatlayıcısı ve
+ * Phone utilities — TEK KAYNAK (CLAUDE.md › Principles): ülke kodu listesi, alan formatlayıcısı ve
  * E.164 ayrıştırıcısı. Adres, checkout, profil ve kurumsal kayıt formlarının
  * tamamı buradan besleniyor; ayrı bir "route-local telefon" kopyası YOK.
  *

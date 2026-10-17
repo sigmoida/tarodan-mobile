@@ -1,6 +1,6 @@
 /**
  * Kayıtlı kartlar query hook'u — CardPaymentForm'daki elle yazılmış
- * useState + useEffect + listCards akışının yerine (CLAUDE.md §6).
+ * useState + useEffect + listCards akışının yerine (src/lib/query/CLAUDE.md › Query hooks).
  */
 import React from 'react';
 import { Text } from 'react-native';

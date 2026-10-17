@@ -18,7 +18,7 @@ export type RationaleResult =
  * hakkı tüketir (iOS bir kez sorar): kullanıcı neden istendiğini görmeden harcanmasın.
  *
  * `showRationale` kullanıcı kabul ederse `true` döner ve kendi arayüzü KAPANDIKTAN sonra
- * çözülmelidir (iOS: açık sheet üstünde sistem diyaloğu / ikinci sunum donma kuralı, CLAUDE.md §12).
+ * çözülmelidir (iOS: açık sheet üstünde sistem diyaloğu / ikinci sunum donma kuralı, src/ui/CLAUDE.md › iOS modal rule).
  */
 export async function requestWithRationale(
   accessor: PermissionAccessor,

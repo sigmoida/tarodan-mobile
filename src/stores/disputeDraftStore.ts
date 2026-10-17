@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 /**
  * Takas itirazı açıklama taslakları (takas id → metin). Yalnız istemci/UI durumu
- * (CLAUDE.md §8), bellek içi: itiraz ekranından çıkıp geri gelen kullanıcı yazdığını
+ * (src/stores/CLAUDE.md › Client state only), bellek içi: itiraz ekranından çıkıp geri gelen kullanıcı yazdığını
  * kaybetmez; başarılı gönderimde silinir, çıkışta (`resetUserStores`) temizlenir.
  */
 interface DisputeDraftState {

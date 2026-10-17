@@ -9,7 +9,7 @@ import { invalidateListingCaches } from '../_lib/invalidate';
 /**
  * Düzenleme ekranından ilan silme — `DELETE /products/:id` (neden gövdede).
  * Önbellek invalidation'ı (İlanlarım ile ortak küme), kullanıcı yenileme ve
- * uyarının sahibidir; ekran elle `isSubmitting`/try-catch tutmaz (CLAUDE.md §6).
+ * uyarının sahibidir; ekran elle `isSubmitting`/try-catch tutmaz (src/lib/query/CLAUDE.md › Mutation hooks).
  *
  * `ListingRemovalModal` `onSubmit`'ten ÖNCE kapanır; yanıt hızlı gelirse kapanış
  * animasyonu sürerken `appAlert` açmak iOS'ta donmaya yol açar → uyarılar

@@ -11,7 +11,7 @@ const { colors } = theme;
 // hem kapsam hem kelime olarak ayrışmıştı.
 export { tradeStatusMeta as TRADE_STATUSES, useTradeStatusDetail } from '@/lib/shared/tradeStatus';
 
-// Statü açıklama anahtarları — build fonksiyonu (import-zamanı dondurulmasın, CLAUDE.md §2).
+// Statü açıklama anahtarları — build fonksiyonu (import-zamanı dondurulmasın, src/i18n/CLAUDE.md › Build labels at call time).
 const STATUS_DESCRIPTION_KEYS: Record<string, MessageKey> = {
   pending: "trade.statusDescription.pending",
   accepted: "trade.statusDescription.accepted",

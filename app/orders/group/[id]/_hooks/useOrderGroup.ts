@@ -13,7 +13,7 @@ import type { GroupDetail, GroupOrder, GroupPackage } from '../_lib/types';
 
 /**
  * Order-group controller — owns the group query (with the raw→UI status mapping)
- * and pull-to-refresh. Lifted verbatim from the monolithic screen (§12).
+ * and pull-to-refresh. Lifted verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
  */
 export function useOrderGroup() {
   const { t } = useTranslation();

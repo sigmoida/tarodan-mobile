@@ -11,7 +11,7 @@ const EDIT_BADGE_SIZE = 28;
 /** Bölüm içi eylem düğmeleri arası boşluk (yatay). */
 export const ACTION_GAP = spacing[4];
 
-// Route-local stylesheet (§12) — D1b referans düzeni: token'lar, bölümler SectionCard.
+// Route-local stylesheet (app/CLAUDE.md › Worked examples) — D1b referans düzeni: token'lar, bölümler SectionCard.
 export const styles = StyleSheet.create({
   avatarSection: {
     alignItems: 'center',

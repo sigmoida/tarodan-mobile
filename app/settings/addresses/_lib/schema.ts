@@ -24,7 +24,7 @@ export const ADDRESS_LIMITS = {
 } as const;
 
 /**
- * Adres formu şeması (colocated, CLAUDE.md §7), API DTO'suyla hizalı (`ADDRESS_LIMITS`):
+ * Adres formu şeması (colocated, src/ui/CLAUDE.md › Forms), API DTO'suyla hizalı (`ADDRESS_LIMITS`):
  * başlık / ad soyad / telefon / adres / il / ilçe zorunlu; telefon `@/utils/phone`
  * ayrıştırıcısıyla (TEK KAYNAK — alanın blur uyarısı da aynı kuralı kullanır).
  * Hatalar `superRefine` ile alan yoluna bağlanır: ilgili girdinin (il/ilçe dahil) altında görünür.

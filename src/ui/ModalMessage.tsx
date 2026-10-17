@@ -53,7 +53,7 @@ export function alertAfterClose(
 }
 
 /** Modal kapatıldıktan SONRA bir sonraki adımı (appAlert, başka bir Modal)
- *  çalıştırır — aynı tick'te açmak iOS'ta donmaya yol açıyor (CLAUDE.md §12).
+ *  çalıştırır — aynı tick'te açmak iOS'ta donmaya yol açıyor (src/ui/CLAUDE.md › iOS modal rule).
  *  Kapatmayı çağıran yapar; bu yalnız bekletir. */
 export function runAfterModalClose(next: () => void, delayMs = MODAL_CLOSE_DELAY_MS): void {
   setTimeout(next, delayMs);

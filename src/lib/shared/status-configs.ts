@@ -427,7 +427,7 @@ export const ticketStatusConfig: StatusConfigDefMap = {
  * src/status-configs.ts`, kendisi de çevrilmemiş) kopyası olduğu için
  * kasten dokunulmadı; bkz. dosya başı notu. Bu küme FARKLI: canlı dört
  * çağıran var (aşağıda listelenen), o yüzden `build*Config(t)` kalıbına
- * (CLAUDE.md kural 2) geçirildi — sabit değişkenler ÇAĞRI ANINDA aktif dile
+ * (src/i18n/CLAUDE.md › Build labels at call time) geçirildi — sabit değişkenler ÇAĞRI ANINDA aktif dile
  * göre üretilen fonksiyonlara dönüştü. Yalnızca ETİKETLER dile göre değişir;
  * `variant` ve enum kodları (backend sözleşmesi) sabit kalır, o yüzden ayrı
  * tutuldu.

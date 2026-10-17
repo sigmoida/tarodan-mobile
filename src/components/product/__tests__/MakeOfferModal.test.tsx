@@ -153,7 +153,7 @@ describe('MakeOfferModal', () => {
     );
   });
 
-  it('§14: geçerli teklifte modal ÖNCE kapanır, gönderim sonra (sonuç beklenmez)', async () => {
+  it('src/ui/CLAUDE.md › iOS modal rule: geçerli teklifte modal ÖNCE kapanır, gönderim sonra (sonuç beklenmez)', async () => {
     let resolveCreate: (v: unknown) => void = () => undefined;
     createMock.mockImplementationOnce(() => new Promise((r) => (resolveCreate = r)));
     const { onDismiss, onSuccess } = renderModal();

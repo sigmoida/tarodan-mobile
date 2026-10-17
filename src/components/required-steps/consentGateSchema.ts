@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { canSubmitConsents, type PendingConsent } from '@/lib/shared/legalConsent';
 
 /**
- * Onay kapısı formunun şeması (CLAUDE.md §7). İşaretli belgeler `accepted`
+ * Onay kapısı formunun şeması (src/ui/CLAUDE.md › Forms). İşaretli belgeler `accepted`
  * dizisinde, belge + sürüm anahtarıyla (`consentCheckKey`, ör.
  * `terms@2026-08-05`): yeni sürüm gelince eski işaret onu karşılamaz; şema bekleyen belgelerin HEPSİ işaretlenmeden geçmez. Bekleyen
  * liste sunucudan geldiği için şema bir factory: liste değişince yeniden

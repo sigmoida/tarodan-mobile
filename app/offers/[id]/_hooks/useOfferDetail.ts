@@ -18,7 +18,7 @@ import { OFFER_INVALIDATES } from '../../_lib/invalidates';
  * mutations (`useAppMutation`: toast + invalidate), the counter modal target (the modal
  * `CounterOfferModal` owns its form + mutation),
  * pull-to-refresh and derived flags. Lifted verbatim from the monolithic
- * orphan screen (§12); route-local (not merged into the list's offers/_lib).
+ * orphan screen (app/CLAUDE.md › Worked examples); route-local (not merged into the list's offers/_lib).
  */
 export function useOfferDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();

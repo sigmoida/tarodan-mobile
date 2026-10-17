@@ -170,7 +170,7 @@ export function useMyListings() {
   /**
    * Menü satırı eylemi. ActionSheet satırı sheet TAMAMEN kapandıktan sonra çağırır
    * (`runAfterClose`); bu yüzden uyarı/diyalog açan adımlar (kaldırma penceresi, öne çıkar,
-   * kota uyarısı) ek bekleme olmadan güvenle açılır (CLAUDE.md §12).
+   * kota uyarısı) ek bekleme olmadan güvenle açılır (src/ui/CLAUDE.md › iOS modal rule).
    */
   const handleMenuAction = (action: string, listing: Listing) => {
     switch (action) {

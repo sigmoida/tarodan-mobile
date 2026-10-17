@@ -12,7 +12,7 @@ import { buildSearchParams } from '../_lib/helpers';
 /**
  * Saved-searches controller — owns the AsyncStorage-backed list query, the
  * delete + notify-toggle mutations, run-search navigation and delete confirm.
- * Lifted verbatim from the monolithic screen (§12).
+ * Lifted verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
  */
 export function useSavedSearches() {
   const { t } = useTranslation();

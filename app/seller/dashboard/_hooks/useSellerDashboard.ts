@@ -8,7 +8,7 @@ import type { SellerStats } from '../_lib/types';
 /**
  * Seller dashboard controller — owns the 3 stat queries (product stats +
  * analytics + optional business-stats merge, pending-orders count, active-
- * listings count), derived values and refresh. Lifted verbatim (§12).
+ * listings count), derived values and refresh. Lifted verbatim (app/CLAUDE.md › Worked examples).
  */
 export function useSellerDashboard() {
   const user = useAuthStore((s) => s.user);

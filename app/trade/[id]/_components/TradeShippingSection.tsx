@@ -16,7 +16,7 @@ const openSuratTrack = (code: string) => {
   if (url) void openExternalUrlSafely(url);
 };
 
-// 'Sürat Kargo' bir taşıyıcı markası — özel ad, çevrilmez (CLAUDE.md kural 4).
+// 'Sürat Kargo' bir taşıyıcı markası — özel ad, çevrilmez (src/i18n/CLAUDE.md › Proper names).
 const carrierLabel = (s: TradeShipment) =>
   (s.carrier === 'surat' ? 'Sürat Kargo' : s.carrier || '—') +
   (s.trackingNumber ? ` · ${s.trackingNumber}` : '');
@@ -25,7 +25,7 @@ const carrierLabel = (s: TradeShipment) =>
  * Gönderi → takip görünümü. `TradeShipment.carrier` field'ını
  * `deriveShipmentView`'ün beklediği `provider`'a eşler ve `cargoCode`'u
  * fallback olarak verir — üç kart (depoya-giriş/alıcıya-çıkış/iade) bu
- * eşlemeyi paylaşır (CLAUDE.md §5: tekrar eden blok çıkarılır).
+ * eşlemeyi paylaşır (CLAUDE.md › Principles: tekrar eden blok çıkarılır).
  */
 function shipmentTrackingView(s: TradeShipment | null | undefined) {
   if (!s) return deriveShipmentView(null);

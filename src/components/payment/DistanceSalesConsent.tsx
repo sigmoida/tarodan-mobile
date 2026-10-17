@@ -12,7 +12,7 @@ const { colors } = theme;
  *
  * Sepet checkout'u (3. adım) ve ödeme ekranı aynı onayı ister; metin ve
  * sözleşme bağlantısı tek yerde durur ki biri güncellenip diğeri eskide
- * kalmasın. Kutu `@/ui` `Checkbox` (CLAUDE.md §1). Metindeki sözleşme adı bağlantıdır (iç içe
+ * kalmasın. Kutu `@/ui` `Checkbox` (src/ui/CLAUDE.md › Primitives). Metindeki sözleşme adı bağlantıdır (iç içe
  * `Text` onPress): ona basmak sözleşmeyi açar, onayı değiştirmez. Onayın kendisi
  * çağıranın state'idir (checkout sipariş gövdesiyle, ödeme ekranı direct-form
  * gövdesiyle sunucuya yazar).

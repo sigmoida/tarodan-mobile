@@ -104,7 +104,7 @@ describe('kargoya verme geri bildirimi', () => {
     expect(alertText()).not.toMatch(/güncellendi/i);
   });
 
-  it('KAPAT -> GÖNDER: diyalog istek bitmeden kapanır (§12)', async () => {
+  it('KAPAT -> GÖNDER: diyalog istek bitmeden kapanır (src/ui/CLAUDE.md › iOS modal rule)', async () => {
     let resolve!: (v: unknown) => void;
     jest.mocked(shippingApi.getOrderShipments).mockReturnValue(new Promise((r) => (resolve = r)) as any);
     const { result } = renderHook(() => useSaleActions(), { wrapper });

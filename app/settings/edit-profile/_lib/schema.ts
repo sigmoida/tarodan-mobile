@@ -63,7 +63,7 @@ export type ProfileForm = {
 };
 
 // ── Kullanıcı adı belirleme (bölüm içi form) ────────────────────────────────
-// Kural tek kaynaktan gelir: `@/utils/validation` (§5). Bu dosya yalnız formun
+// Kural tek kaynaktan gelir: `@/utils/validation` (CLAUDE.md › Principles). Bu dosya yalnız formun
 // alan şeklini (`{ username }`) tanımlar.
 export const buildClaimUsernameSchema = (t: TFunction) =>
   z.object({ username: usernameSchema(t) });

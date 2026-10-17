@@ -23,7 +23,7 @@ const { colors } = theme;
 function ProfileScreen() {
   const f = useProfile();
   const { t } = useTranslation();
-  // Hook sırası sabit kalsın diye erken return'den ÖNCE çağrılır (CLAUDE.md §12).
+  // Hook sırası sabit kalsın diye erken return'den ÖNCE çağrılır (app/CLAUDE.md › Thin screens).
   const tabInset = useTabBarInset();
   const page = usePageScrollValue();
   // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.

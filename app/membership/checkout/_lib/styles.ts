@@ -3,7 +3,7 @@ import { theme } from '@/ui';
 
 const { colors } = theme;
 
-// Route-local stylesheet (§12). Monolitten BİREBİR taşındı.
+// Route-local stylesheet (app/CLAUDE.md › Worked examples). Monolitten BİREBİR taşındı.
 export const styles = StyleSheet.create({
   planBody: { gap: theme.spacing[2] },
   container: {

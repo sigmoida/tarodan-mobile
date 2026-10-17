@@ -2,7 +2,7 @@
  * İki adımlı doğrulama EKRANI: 2FA kapalıyken açılışta doğrudan kurulum (enable bir kez; QR + anahtar
  * + kod; yanlış kod alanın altında) → yedek kodlar aynı ekranda; açıkken
  * kapat / yedek kod yenile DİYALOGLARI kendi formunu taşır, geçerli kodda ÖNCE kapanır SONRA
- * mutation (§12); yenilenen kodlar diyalogda değil ekranın kartında gösterilir.
+ * mutation (src/ui/CLAUDE.md › iOS modal rule); yenilenen kodlar diyalogda değil ekranın kartında gösterilir.
  */
 import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';

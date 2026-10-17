@@ -9,7 +9,7 @@
  * - `isBlocked()` doğruyken (açık `@/ui` Modal / sheet ya da kapanış animasyonu, splash, tam ekran
  *   kapı) gösterilmez, ERTELENİR: `reevaluate()` engel kalkınca çağrılır. Ertelenen diyalog bu
  *   sırada bağlantı dönerse hiç gösterilmez. Diyalog `appAlert` kuyruğuna ancak gösterilebilirken
- *   girer, yani başka alert'leri bloklamaz (iOS: modal üstüne modal donması, CLAUDE.md §14).
+ *   girer, yani başka alert'leri bloklamaz (iOS: modal üstüne modal donması, src/ui/CLAUDE.md › iOS modal rule).
  * - `present()` kullanıcı isteğiyle (Tekrar dene → hâlâ çevrimdışı) süreç kuralını atlar; yine de
  *   engel varsa ertelenir.
  */

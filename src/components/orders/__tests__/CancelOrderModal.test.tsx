@@ -6,7 +6,7 @@
  * kod olmadan `server.order.cancelReasonRequired` ile 400 attığı için ödenmiş
  * siparişin iptali mobilde hiç çalışmıyordu.
  *
- * İkincisi: modal mutasyondan ÖNCE kapanır (CLAUDE.md §12 — mutasyonun uyarısı
+ * İkincisi: modal mutasyondan ÖNCE kapanır (src/ui/CLAUDE.md › iOS modal rule — mutasyonun uyarısı
  * `ui-native` Modal açıkken iOS'u donduruyor).
  */
 import React from 'react';

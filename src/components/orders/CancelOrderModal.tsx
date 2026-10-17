@@ -8,7 +8,7 @@
  * Böylece "her modal kendi mutation'ını taşır" kuralı bozulmadan, iki farklı
  * uca giden aynı form tek yerde kalır.
  *
- * ⚠️ CLAUDE.md §12: mutasyonun `appAlert`'i modal AÇIKKEN patlarsa iOS donuyor.
+ * ⚠️ src/ui/CLAUDE.md › iOS modal rule: mutasyonun `appAlert`'i modal AÇIKKEN patlarsa iOS donuyor.
  * Bu yüzden `onConfirm` çağrılmadan ÖNCE `onClose()` çalışır — sonuç geri
  * bildirimi çağıranın snackbar'ına düşer.
  */

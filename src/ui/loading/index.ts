@@ -1,5 +1,5 @@
 /**
- * Yükleme sistemi — TEK modül (CLAUDE.md §11/§14 "Loading"):
+ * Yükleme sistemi — TEK modül (src/ui/CLAUDE.md › Loading):
  *   - `LoadingIndicator`: uygulamanın tek dönen göstergesi (değiştirme noktası; `Spinner`,
  *     `ScreenLoader`, `Button`/`IconButton` `isLoading` hepsi bunu çizer).
  *   - `SkeletonBlock` + `useSkeletonAnimation`: tek iskelet primitive'i ve tek animasyon sürücüsü

@@ -8,12 +8,12 @@ import { qk, useAppMutation } from '@/lib/query';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 
 /**
- * Başarısız ödemeyi yeniden deneme (CLAUDE.md §6 mutasyon hook'u).
+ * Başarısız ödemeyi yeniden deneme (src/lib/query/CLAUDE.md › Mutation hooks).
  *
  * Akış: yasal kimlik (B4) → onay penceresi → `POST /payments/:id/retry`.
  * Kimlik ONAYDAN ÖNCE: `appAlert` kapanırken native kapı açılırsa iOS donar.
  *
- * Kart başına durum `useState` DEĞİL, mutasyonların `variables`'ından (§12):
+ * Kart başına durum `useState` DEĞİL, mutasyonların `variables`'ından (src/lib/query/CLAUDE.md › Mutation hooks):
  * - `checkingId`: kimliği kontrol edilen ödeme (yalnız kontrol gerçekten ağa
  *   / kapıya gittiyse — önbellek "tamam" ise titreme yok),
  * - `retryingId`: retry isteği uçuşta olan ödeme.

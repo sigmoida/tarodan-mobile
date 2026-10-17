@@ -44,7 +44,7 @@ export async function offerNotificationPrompt(reason: NotificationPromptReason):
     if (await dismissedRecently(Date.now())) return false;
     shownThisSession = true;
     // Tetikleyen akışın kapanan modalı (teklif modalı) / toast'u yerleşsin: kapanış animasyonu
-    // sürerken ikinci bir native sunum (sheet) iOS'u kilitleyebilir (CLAUDE.md §12).
+    // sürerken ikinci bir native sunum (sheet) iOS'u kilitleyebilir (src/ui/CLAUDE.md › iOS modal rule).
     await new Promise((resolve) => setTimeout(resolve, PRE_PROMPT_SHOW_DELAY_MS));
     if (!useAuthStore.getState().isAuthenticated) return false;
     useNotificationPromptStore.getState().show(reason);

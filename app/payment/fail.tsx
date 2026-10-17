@@ -11,7 +11,7 @@ import { useHardwareBackToHome } from '@/hooks/useBlockHardwareBack';
 import { PaymentResultCard } from '@/components/payment/PaymentResultCard';
 
 /**
- * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
+ * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (exception: src/lib/query/CLAUDE.md › Exceptions).
  *
  * Buradaki yükleme saf bir okuma değil: `confirmFailed` çağrısıyla stok rezervasyonunu SERBEST BIRAKIYOR. React Query sorguları
  * başarısızlıkta yeniden dener, odaklanmada/yeniden bağlanmada tazeler ve

@@ -5,7 +5,7 @@ import { TwoFactorCodeModal } from './TwoFactorCodeModal';
 
 /**
  * Yeni yedek kodlar — tek alan (TOTP). Kodlar diyalogda DEĞİL, 2FA ekranının yedek kod kartında
- * gösterilir (`onCodes`): diyalog mutation'dan önce kapanır (§12).
+ * gösterilir (`onCodes`): diyalog mutation'dan önce kapanır (src/ui/CLAUDE.md › iOS modal rule).
  */
 export function RegenerateBackupCodesModal({
   isOpen,

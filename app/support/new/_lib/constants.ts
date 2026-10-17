@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next';
 
 // id'ler backend TicketCategory enum'u ile birebir (payment, shipping, trade, account, product, technical, other)
-// Modül kapsamında import-zamanı dondurulmaması için build fonksiyonu (CLAUDE.md §2 kuralı).
+// Modül kapsamında import-zamanı dondurulmaması için build fonksiyonu (src/i18n/CLAUDE.md › Build labels at call time kuralı).
 export const buildSupportCategories = (t: TFunction) => [
   { id: 'shipping', name: t('support.new.category.shipping') },
   { id: 'payment', name: t('support.new.category.payment') },

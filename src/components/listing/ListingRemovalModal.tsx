@@ -28,7 +28,7 @@ const BODY_MAX_HEIGHT = 420;
  * taşır (ilanlarım ve düzenleme ekranı ayrı mutasyon kullanır).
  *
  * ⚠️ `onSubmit`'ten ÖNCE modal kapanır: mutasyonun `appAlert`'i ui-native Modal
- * açıkken çıkarsa iOS donar (CLAUDE.md §12). Bu yüzden pencerede "gönderiliyor"
+ * açıkken çıkarsa iOS donar (src/ui/CLAUDE.md › iOS modal rule). Bu yüzden pencerede "gönderiliyor"
  * durumu YOKTUR (mutasyon başladığında pencere zaten kapalı); çift gönderimi
  * çağıran ekran engeller (ör. düzenleme ekranında `isSubmitting`).
  */

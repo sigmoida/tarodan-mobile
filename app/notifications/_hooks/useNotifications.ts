@@ -61,7 +61,7 @@ async function fetchNotifications(page: number): Promise<NotificationsPayload> {
 /**
  * Bildirimler controller'ı.
  *
- * Elle `useState + useEffect + api` yerine React Query (CLAUDE.md §6). Kazanç
+ * Elle `useState + useEffect + api` yerine React Query (src/lib/query/CLAUDE.md › Query hooks). Kazanç
  * davranışsal: okundu işaretleme artık yalnız yerel state'i değil sorguyu da
  * güncelliyor, yani başka bir ekran aynı listeyi okuduğunda tutarlı görüyor.
  * Dokunma anındaki his korunuyor — önce iyimser güncelleme, sonra tazeleme.

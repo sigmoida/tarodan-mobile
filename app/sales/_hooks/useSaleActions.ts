@@ -9,7 +9,7 @@ import type { Sale } from '../_lib/types';
 /**
  * Seller sale-status controller — owns the prepare/ship mutation and the ship
  * dialog state + the two action handlers. Owns the feedback + invalidation
- * (`useAppMutation`, §6). Ship dialog closes BEFORE the mutation fires (§12:
+ * (`useAppMutation`, src/lib/query/CLAUDE.md › Mutation hooks). Ship dialog closes BEFORE the mutation fires (src/ui/CLAUDE.md › iOS modal rule:
  * a result alert/toast must never compete with an open native Modal).
  */
 export function useSaleActions() {
@@ -102,7 +102,7 @@ export function useSaleActions() {
   const handleShip = () => {
     const order = shipDialog.order;
     if (!order) return;
-    setShipDialog({ visible: false, order: null }); // §12: önce kapat,
+    setShipDialog({ visible: false, order: null }); // src/ui/CLAUDE.md › iOS modal rule: önce kapat,
     updateStatusMutation.mutate({ orderId: order.id, status: 'shipped' }); // sonra gönder.
   };
 
