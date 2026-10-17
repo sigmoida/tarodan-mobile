@@ -5,6 +5,7 @@
  */
 import Constants from "expo-constants";
 import * as Sentry from "@sentry/react-native";
+import { sentryEnvironment } from "./sentryEnvironment";
 import { scrubBreadcrumb, scrubEvent, sentryUser } from "./sentryScrub";
 
 export type SeverityLevel = "fatal" | "error" | "warning" | "info" | "debug";
@@ -37,7 +38,9 @@ export function initSentry(): void {
   initialized = true;
   Sentry.init({
     dsn,
-    environment: process.env.EXPO_PUBLIC_ENVIRONMENT ?? "development",
+    // `preview` (every staging build and OTA) reports as `staging`; see ./sentryEnvironment.
+    // The `process.env.EXPO_PUBLIC_*` access stays direct: Metro inlines it at build time.
+    environment: sentryEnvironment(process.env.EXPO_PUBLIC_ENVIRONMENT),
     tracesSampleRate: 0.1,
     enableNative: true,
     // IP / çerez / istek gövdesi gibi varsayılan kişisel veriler SDK tarafından eklenmez.
