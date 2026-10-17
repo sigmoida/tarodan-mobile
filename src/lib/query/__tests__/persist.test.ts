@@ -32,7 +32,8 @@ const PUBLIC_KEYS: QueryKey[] = [
   qk.catalog.collectionCategories,
   qk.catalog.brands,
   qk.catalog.manufacturers,
-  qk.hero.slides('home', 'app'),
+  qk.hero.slides('auth_default', 'app'),
+  qk.hero.slides('auth_register', 'app'),
   qk.publicSettings.all,
   qk.timingPolicy.all,
   qk.appConfig.check('ios', '1.0.6'),
@@ -66,6 +67,10 @@ const PRIVATE_KEYS: QueryKey[] = [
   qk.products.myListings(),
   qk.ads.active,
   qk.shipping.byOrder('o1'),
+  // Ana sayfa hero'su herkese açık ama admin anahtarıyla anında gizlenebilir: soğuk açılışta eski
+  // kopya çizilmesin.
+  qk.hero.slides('home', 'app'),
+  qk.hero.slidesAll,
 ];
 
 describe('izin listesi', () => {

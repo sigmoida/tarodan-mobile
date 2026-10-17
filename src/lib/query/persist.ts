@@ -28,7 +28,8 @@ export const QUERY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
  * Saklanan veri şekli değişince (sorgu `queryFn` dönüşü / `select` öncesi şekil) artır:
  * aynı sürüm numarasıyla çıkan OTA güncellemesi de eski önbelleği bıraksın.
  */
-const QUERY_CACHE_SCHEMA = 1;
+// 2: ana sayfa hero'su izin listesinden çıktı — cihazlardaki eski kopya (içinde o var) düşsün.
+const QUERY_CACHE_SCHEMA = 2;
 
 /** Yeni build (sürüm) ya da şema değişikliği eski önbelleği düşürür. */
 export const QUERY_CACHE_BUSTER = `${getAppVersion() ?? "unknown"}:${QUERY_CACHE_SCHEMA}`;
@@ -43,7 +44,12 @@ export const PERSISTED_QUERY_PREFIXES: readonly QueryKey[] = [
   qk.catalog.categories,
   qk.catalog.brands,
   qk.catalog.manufacturers,
-  qk.hero.slidesAll,
+  // Giriş / kayıt ekranı görseli: soğuk açılışta ağı beklemeden çizilir.
+  qk.hero.slidesOf("auth_default"),
+  qk.hero.slidesOf("auth_register"),
+  // ANA SAYFA hero'su (`qk.hero.slidesOf("home")`) BİLEREK yok: admin uygulama anahtarını kapatınca
+  // ya da slayt süresi dolunca soğuk açılışta 24 sa'lik eski kopya çizilip gösterim saymasın.
+  // Zıplama `hero.home.lastHadSlides` yer tutucusuyla önlenir (`useHomeHero`).
   // İlan fiyat sınırları vb. herkese açık ayarlar (`usePriceLimits`).
   qk.publicSettings.all,
   qk.timingPolicy.all,
