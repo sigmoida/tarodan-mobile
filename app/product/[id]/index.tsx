@@ -4,7 +4,6 @@ import { StyleSheet, View } from 'react-native';
 import { theme, toast } from '@/ui';
 import { useLocalSearchParams, router } from 'expo-router';
 import { PageShell } from '@/components/common/PageShell';
-import { useRefresh } from '@/hooks/useRefresh';
 import { useTransitionReady } from '@/hooks/useTransitionReady';
 import { useAuthStore } from '@/stores/authStore';
 import { isOwnProduct } from '@/hooks/useFavoriteToggle';
@@ -63,9 +62,8 @@ export default function ProductDetailScreen() {
   const full = !!product && !productQuery.isPlaceholderData;
   const fullProduct = full ? product : null;
   const sectionsReady = useTransitionReady();
-  const { data: reviews, refetch: refetchReviews } = useProductReviews(productId, !!id && sectionsReady);
+  const { data: reviews } = useProductReviews(productId, !!id && sectionsReady);
   const { data: similar } = useSimilarProducts(productId, full && sectionsReady);
-  const { refreshing, onRefresh } = useRefresh(refetchProduct, refetchReviews);
   const guest = useGuestPrompt(productId, isAuthenticated);
   const scroll = useProductScroll();
 
@@ -207,7 +205,7 @@ export default function ProductDetailScreen() {
       }
     >
       {visible ? (
-        <ProductScrollView onScroll={scroll.onScroll} refreshing={refreshing} onRefresh={onRefresh}>
+        <ProductScrollView onScroll={scroll.onScroll}>
           <ProductGallery
             images={images}
             currentImage={currentImage}

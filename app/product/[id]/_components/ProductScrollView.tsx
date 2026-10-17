@@ -1,40 +1,30 @@
 import React from 'react';
-import { RefreshControl, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { theme, useHeaderTopInset } from '@/ui';
+import { theme } from '@/ui';
 
 /**
  * Ürün detayının kaydırma gövdesi. PageShell'in kendi ScrollView'u yerine kullanılır: galeri
  * durum çubuğunun altına kadar uzanır (üst bar yok, yüzen adalar var) ve kaydırma konumu
  * `ProductTopBar`'ın kaydırma kenarı için dışarı verilir (`useProductScroll`).
+ *
+ * Bilerek pull-to-refresh YOK: galeri durum çubuğunun altına uzandığı için yerel yenileme
+ * göstergesi durum çubuğu ile yüzen üst barın arasına düşüyordu. Veri, sorgunun ön plana
+ * dönüş / ekrana odaklanma tazelemesiyle güncel kalır; iOS esnemesi (bounce) korunur.
  */
 export function ProductScrollView({
   onScroll,
-  refreshing,
-  onRefresh,
   children,
 }: {
   onScroll: React.ComponentProps<typeof Animated.ScrollView>['onScroll'];
-  refreshing: boolean;
-  onRefresh: () => void;
   children: React.ReactNode;
 }) {
-  const topInset = useHeaderTopInset();
   return (
     <Animated.ScrollView
       style={styles.fill}
       onScroll={onScroll}
       scrollEventThrottle={16}
       keyboardShouldPersistTaps="handled"
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          progressViewOffset={topInset}
-          colors={[theme.colors.primary[600]]}
-          tintColor={theme.colors.primary[600]}
-        />
-      }
     >
       {children}
     </Animated.ScrollView>

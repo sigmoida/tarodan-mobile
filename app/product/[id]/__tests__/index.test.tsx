@@ -115,6 +115,16 @@ describe('Ürün detay ekranı', () => {
     expect(screen.getByTestId('product-detail-add-to-cart-button')).toBeOnTheScreen();
   });
 
+  it('pull-to-refresh yok: kaydırma gövdesinde RefreshControl / refreshControl çizilmez', async () => {
+    getOneMock.mockResolvedValue({ data: { data: productFixture() } });
+    renderWithProviders(<ProductDetailScreen />);
+
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    const { RefreshControl } = jest.requireActual('react-native');
+    expect(screen.UNSAFE_queryAllByType(RefreshControl)).toHaveLength(0);
+    expect(screen.UNSAFE_root.findAll((n: { props?: { refreshControl?: unknown } }) => n.props?.refreshControl != null)).toHaveLength(0);
+  });
+
   it('yüzen adalar: geri, ⋮ menü, paylaş, favori; sepet adası yok; üst bar başlığı yok', async () => {
     getOneMock.mockResolvedValue({ data: { data: productFixture() } });
     renderWithProviders(<ProductDetailScreen />);
