@@ -3,7 +3,7 @@
  *   development push → CI → fingerprint → staging OTA ya da build (otomatik)
  *   master merge     → CI → development'tan: store build (sürüm artmalı) ·
  *                      hotfix/*'tan: fingerprint → onaylı production OTA ya da store build
- *   master PR'ı      → "Master source guard" (yalnız development / hotfix/*)
+ *   master PR       → "Master source guard" (only development, or a hotfix/* cut from master)
  *   hotfix merge     → master → development geri birleştirme PR'ı
  *   Android          → tüm build/submit job'ları vars.ANDROID_RELEASE_ENABLED'a bağlı
  *
@@ -523,7 +523,19 @@ describe('master akışı', () => {
     expect(pr['paths-ignore']).toBeUndefined();
     const guard = masterFlow.jobs['source-guard'];
     expect(guard.name).toBe('Master source guard');
-    expect(runs(guard)).toMatch(/development\|hotfix\/\*\)/);
+    expect(runs(guard)).toMatch(/^\s*development\)$/m);
+    expect(runs(guard)).toMatch(/^\s*hotfix\/\*\)$/m);
+  });
+
+  it('a hotfix/* source is checked against master through the read-only compare API', () => {
+    // Behaviour: releaseScript.test.ts › "Master source guard step".
+    const step = masterFlow.jobs['source-guard'].steps!.find((s) => s.run)!;
+    expect(step.env?.HEAD_SHA).toBe('${{ github.event.pull_request.head.sha }}');
+    expect(step.env?.GH_TOKEN).toBe('${{ github.token }}');
+    expect(step.run).toContain('gh api "repos/$REPO/compare/development...$HEAD_SHA" --jq .merge_base_commit.sha');
+    expect(step.run).toContain('gh api "repos/$REPO/compare/$base...master" --jq .status');
+    // Read-only: the job inherits contents: read and asks for nothing more.
+    expect(masterFlow.jobs['source-guard'].permissions).toBeUndefined();
   });
 
   it('guard PR\'ın değiştiremeyeceği tetikleyicide (pull_request_target) ve güvenli', () => {

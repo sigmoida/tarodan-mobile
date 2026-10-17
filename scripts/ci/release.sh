@@ -435,7 +435,10 @@ next_version() {
 
 # Kind of a production merge, from the merged PR's branch. An unknown source (API
 # not readable, manual dispatch) counts as a RELEASE: at worst a hotfix stops with
-# "bump the version"; never an unapproved or unwanted OTA.
+# "bump the version"; never an unapproved or unwanted OTA. The branch name is
+# enough because "Master source guard" (master-flow.yml, a required check) lets a
+# hotfix/* into master only when it was cut from master, so it carries no
+# unreleased development code past check-release-version.
 merge_kind() {
   case "${1:-}" in
     hotfix/*) echo hotfix ;;

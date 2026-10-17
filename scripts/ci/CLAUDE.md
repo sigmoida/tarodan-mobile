@@ -24,6 +24,10 @@ change one:
 - `check-release-version`: release gate (`mode=auto`, source not `hotfix/*`):
   `expo.version` must equal `next-version`. Runs in `ci.yml` on PRs into master
   (merge ref, required check) and in the production `plan` after the merge.
+  Skipping hotfixes by branch name is safe only because `Master source guard`
+  (`master-flow.yml`, required) admits a `hotfix/*` head only when its merge base
+  with `development` is already on master (two read-only `gh api .../compare`
+  calls, no checkout): a hotfix cut from development fails there.
 - `plan <staging|production>`: the single per-platform decision loop
   (`ota | build | wait | skip | blocked`). Production: a `development` merge (or an
   unknown source) is always a store build and never an OTA; `hotfix/*` follows the
@@ -67,8 +71,10 @@ change one:
 ## Tests
 
 - `src/config/__tests__/releaseScript.test.ts` runs `release.sh` against the fakes in
-  `scripts/ci/__fakes__/` (`eas`, `npx`); `releaseWorkflow.test.ts` pins the
-  workflow wiring. Change the fakes together with the script.
+  `scripts/ci/__fakes__/` (`eas`, `npx`), and runs the `run:` scripts of the
+  release-bookkeeping and `Master source guard` steps with a fake `gh`;
+  `releaseWorkflow.test.ts` pins the workflow wiring. Change the fakes together with
+  the script.
 - Run:
 
   ```bash

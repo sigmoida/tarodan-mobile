@@ -13,13 +13,18 @@ onaylar ve Android durumu. Workflow'lar: `mobile-staging.yml`,
 | `master`      | **Production** — `development`'tan merge = yeni sürüm (store build) | Yalnız PR ile, yalnız `development` ya da `hotfix/*` dalından |
 | `hotfix/*`    | Production'a acil düzeltme (JS ise onaylı OTA)                      | `master`'dan açılır, PR ile `master`'a girer                  |
 
-`master` koruması `master-flow.yml` içindeki **`Master source guard`** check'iyle
-sağlanır: kaynak dal `development` ya da `hotfix/*` değilse (ya da PR bir fork'tan
-geliyorsa) check kırmızı olur. Ruleset'te `master` için zorunlu check olarak
-tanımlı olmalı. Workflow `pull_request_target` ile tetiklenir: dosya PR'dan değil
-**master'dan** okunur, PR guard'ı değiştiremez (job PR kodunu checkout etmez,
-dal adını yalnız `env` ile okur). Bu yüzden guard, `master-flow.yml` master'a
-girdikten sonra devreye girer.
+`master` is protected by the **`Master source guard`** check in `master-flow.yml`:
+it is red when the source branch is neither `development` nor `hotfix/*`, when the
+PR comes from a fork, or when a `hotfix/*` branch was **not cut from master**. A
+hotfix skips the release version check and a JS-only one ships as an OTA, so it may
+not carry unreleased development code: the guard asks the GitHub API for the merge
+base of the hotfix head and `development` and fails unless master already contains
+it (a hotfix cut from development, or one that merged development later, fails).
+It must be a required check for `master` in the ruleset. The workflow runs on
+`pull_request_target`: the file is read from **master**, not from the PR, so a PR
+cannot change the guard (the job checks out no PR code and reads the branch name and
+head sha only through `env`). So the guard takes effect once `master-flow.yml` is on
+master.
 
 ## Uygulamalar
 
@@ -366,7 +371,10 @@ trigger it. Re-running it is safe: an existing tag or Release is left alone.
 
 ## Hotfix
 
-1. `master`'dan `hotfix/<ad>` dalı aç, düzeltmeyi yap.
+1. Cut `hotfix/<name>` **from master** (`git switch -c hotfix/<name> origin/master`)
+   and make the fix (cherry-pick it if it is already on development). A hotfix
+   branch cut from development, or one that merges development, is refused by
+   `Master source guard`.
 2. Open the `hotfix/<name>` -> `master` PR (the guard allows it) and merge it. If
    only JS changed, a production OTA is prepared and **waits for your approval**
    (Actions -> the run -> "Review deployments"). The OTA reaches the binary of the

@@ -1795,3 +1795,155 @@ describe('release-bookkeeping step — tags the released commit and creates its 
     expect(r.creates).toHaveLength(1);
   });
 });
+
+describe('Master source guard step — a hotfix/* must be cut from master', () => {
+  const script = (
+    parse(fs.readFileSync(path.join(ROOT, '.github/workflows/master-flow.yml'), 'utf8')) as {
+      jobs: Record<string, { steps: { run?: string }[] }>;
+    }
+  ).jobs['source-guard'].steps.find((s) => s.run)?.run;
+  // Answers the two compare calls from a real local repo, the way the REST API does:
+  // `.merge_base_commit.sha` is the merge base, `.status` is identical | ahead (head
+  // contains base) | behind | diverged. FAKE_GH_FAIL makes every call fail.
+  const GH_FAKE = [
+    '#!/usr/bin/env bash',
+    'echo "gh $*" >> "$FAKE_GH_LOG"',
+    '[ -z "${FAKE_GH_FAIL:-}" ] || { echo "fake gh: HTTP 502" >&2; exit 1; }',
+    'case "$1 $2 $3" in api\\ repos/*/compare/*\\ --jq) ;; *) echo "fake gh: unexpected $*" >&2; exit 2 ;; esac',
+    'spec="${2#repos/*/compare/}"; a="${spec%%...*}"; b="${spec#*...}"',
+    'g() { git -C "$FAKE_GIT_DIR" "$@"; }',
+    'case "$4" in',
+    '  .merge_base_commit.sha) g merge-base "$a" "$b" ;;',
+    '  .status)',
+    '    ra="$(g rev-parse "$a^{commit}")" || exit 1; rb="$(g rev-parse "$b^{commit}")" || exit 1',
+    '    if [ "$ra" = "$rb" ]; then echo identical',
+    '    elif g merge-base --is-ancestor "$ra" "$rb"; then echo ahead',
+    '    elif g merge-base --is-ancestor "$rb" "$ra"; then echo behind',
+    '    else echo diverged; fi ;;',
+    '  *) echo "fake gh: unexpected jq $4" >&2; exit 2 ;;',
+    'esac',
+    '',
+  ].join('\n');
+
+  let repo: ReturnType<typeof gitRepo>;
+  let tmp: string;
+  beforeEach(() => {
+    // development and master start equal; master then gets a release merge.
+    repo = gitRepo();
+    repo.git(['branch', 'master']);
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'source-guard-'));
+    fs.mkdirSync(path.join(tmp, 'bin'));
+    fs.writeFileSync(path.join(tmp, 'bin/gh'), GH_FAKE, { mode: 0o755 });
+  });
+  afterEach(() => {
+    repo.cleanup();
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  /** Runs the guard for a PR whose head is `ref` (HEAD_SHA = its commit). */
+  const guard = (headRef: string, ref: string, env: Record<string, string> = {}) => {
+    const file = path.join(tmp, 'step.sh');
+    const log = path.join(tmp, 'gh.log');
+    fs.writeFileSync(file, script!);
+    fs.writeFileSync(log, '');
+    const res = spawnSync('bash', ['--noprofile', '--norc', '-eo', 'pipefail', file], {
+      cwd: tmp,
+      env: {
+        ...repo.env,
+        PATH: `${path.join(tmp, 'bin')}:${process.env.PATH}`,
+        GH_TOKEN: 'test-token',
+        HEAD_REF: headRef,
+        HEAD_SHA: repo.git(['rev-parse', ref]),
+        HEAD_REPO: 'tarodan/tarodan-mobile',
+        REPO: 'tarodan/tarodan-mobile',
+        FAKE_GIT_DIR: repo.dir,
+        FAKE_GH_LOG: log,
+        ...env,
+      },
+      encoding: 'utf8',
+    });
+    if (res.error) throw res.error;
+    const gh = fs.readFileSync(log, 'utf8').split('\n').filter(Boolean);
+    return { status: res.status, all: `${res.stdout}\n${res.stderr}`, gh };
+  };
+  /** A branch from `from` with one fix commit; returns its name. */
+  const branchFrom = (name: string, from: string) => {
+    repo.git(['switch', '-q', '-c', name, from]);
+    repo.commit(`fix: ${name}`);
+    repo.git(['switch', '-q', 'development']);
+    return name;
+  };
+  /** Releases development into master with a merge commit, as the release PR does. */
+  const release = () => {
+    repo.git(['switch', '-q', 'master']);
+    repo.git(['merge', '-q', '--no-ff', '-m', 'Merge development', 'development']);
+    repo.git(['switch', '-q', 'development']);
+  };
+
+  it('finds its step in the workflow', () => {
+    expect(script).toContain('case "$HEAD_REF" in');
+  });
+
+  it('a hotfix cut from master passes, also while development holds unreleased commits', () => {
+    repo.commit('feat: released');
+    release();
+    repo.commit('feat: unreleased on development');
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash');
+    expect([r.status, r.all]).toEqual([0, expect.stringContaining('OK: hotfix/crash -> master')]);
+    expect(r.gh).toHaveLength(2);
+  });
+
+  it('a hotfix cut from development with unreleased commits fails (they would ship as an OTA)', () => {
+    repo.commit('feat: released');
+    release();
+    repo.commit('feat: unreleased on development');
+    const r = guard(branchFrom('hotfix/crash', 'development'), 'hotfix/crash');
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('::error::hotfix/crash carries development commits that are not on master');
+  });
+
+  it('a hotfix cut from master that merged development later fails', () => {
+    repo.commit('feat: released');
+    release();
+    repo.commit('feat: unreleased on development');
+    branchFrom('hotfix/crash', 'master');
+    repo.git(['switch', '-q', 'hotfix/crash']);
+    repo.git(['merge', '-q', '--no-ff', '-m', 'Merge development', 'development']);
+    repo.git(['switch', '-q', 'development']);
+    const r = guard('hotfix/crash', 'hotfix/crash');
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('carries development commits that are not on master');
+  });
+
+  it('a hotfix cut from a development that is fully released passes (nothing unreleased)', () => {
+    repo.commit('feat: released');
+    release();
+    const r = guard(branchFrom('hotfix/crash', 'development'), 'hotfix/crash');
+    expect(r.status).toBe(0);
+  });
+
+  it('an API failure fails the guard (closed)', () => {
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_FAIL: '1' });
+    expect(r.status).not.toBe(0);
+    expect(r.all).not.toContain('OK:');
+  });
+
+  it('development passes without any API call', () => {
+    const r = guard('development', 'development');
+    expect(r.status).toBe(0);
+    expect(r.gh).toEqual([]);
+  });
+
+  it.each([['feat/x'], ['hotfix'], ['backmerge/crash-1']])('another source (%s) fails', (ref) => {
+    const r = guard(ref, 'development');
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain("must come from 'development' or a 'hotfix/*' branch");
+    expect(r.gh).toEqual([]);
+  });
+
+  it('a branch from a fork fails, even when named development', () => {
+    const r = guard('development', 'development', { HEAD_REPO: 'someone/tarodan-mobile' });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('must come from a branch of this repository');
+  });
+});
