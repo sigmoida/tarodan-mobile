@@ -2210,7 +2210,27 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     expect(r.gh).toHaveLength(2);
   });
 
-  it('only root commits are compared: a linear hotfix of two commits makes one status call', () => {
+  const sha40 = (c: string) => c.repeat(40);
+  it.each([
+    ['a repeated line hides a missing commit', `${sha40('b')} ${sha40('0')}\n${sha40('b')} ${sha40('0')}\n${sha40('c')} ${sha40('b')} ${sha40('d')}\n`, '3', `listed ${sha40('b')} twice`],
+    ['a commit is its own parent', `${sha40('b')} ${sha40('b')}\n`, '1', `listed ${sha40('b')} with a parent cycle`],
+    ['two commits name each other as parents', `${sha40('b')} ${sha40('c')}\n${sha40('c')} ${sha40('b')}\n`, '2', 'with a parent cycle'],
+    ['a cycle next to a good root', `${sha40('a')} ${sha40('0')}\n${sha40('b')} ${sha40('c')}\n${sha40('c')} ${sha40('b')}\n`, '3', 'with a parent cycle'],
+  ])('a list where %s fails before any status call (closed)', (_case, list, total, message) => {
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_TOTAL: total, FAKE_GH_LIST: list });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain(message);
+    expect(r.all).not.toContain('OK:');
+    expect(r.gh).toHaveLength(2);
+  });
+
+  it('an empty list for a non-zero total names the count it got', () => {
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_TOTAL: '2', FAKE_GH_LIST: '' });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('The API listed 0 of the 2 commits the hotfix adds over master');
+  });
+
+    it('only root commits are compared: a linear hotfix of two commits makes one status call', () => {
     branchFrom('hotfix/crash', 'master');
     repo.git(['switch', '-q', 'hotfix/crash']);
     repo.commit('fix: second part');
@@ -2228,8 +2248,8 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
   });
 
   it('every root is compared: a merged branch adds a root of its own', () => {
-    // feat/side (cut before master's tip, never on development) merged into the hotfix:
-    // two roots, the fix and the side commit, and both are compared.
+    // feat/side (cut from master, never on development) merged into the hotfix: two
+    // roots, the fix and the side commit, and both are compared.
     const side = (() => {
       branchFrom('feat/side', 'master');
       return repo.git(['rev-parse', 'feat/side']);

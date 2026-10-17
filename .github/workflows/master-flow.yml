@@ -88,14 +88,34 @@ jobs:
               list="$(gh api "repos/$REPO/compare/master...$HEAD_SHA?per_page=100" --paginate --jq '.commits[] | ([.sha] + [.parents[].sha]) | join(" ")')"
               if ! roots="$(printf '%s\n' "$list" | awk -v want="$total" '
                 function sha(v) { return v ~ /^[0-9a-f]+$/ && length(v) == 40 }
-                NF { n++; line[n] = $0; listed[$1] = 1; for (i = 1; i <= NF; i++) if (!sha($i)) bad = $i }
+                BEGIN { n = 0 }
+                NF {
+                  for (i = 1; i <= NF; i++) if (!sha($i)) bad = $i
+                  if ($1 in listed) dup = $1
+                  n++; line[n] = $0; listed[$1] = 1
+                }
                 END {
                   if (bad != "") { print "The API listed '\''" bad "'\'' in the commits of the hotfix; it cannot be checked."; exit 1 }
+                  if (dup != "") { print "The API listed " dup " twice in the commits of the hotfix; it cannot be checked."; exit 1 }
                   if (n != want) { print "The API listed " n " of the " want " commits the hotfix adds over master; it cannot be checked."; exit 1 }
+                  # Every commit must reach a root through listed parents (no cycle), or
+                  # its root ancestor would never be compared.
                   for (k = 1; k <= n; k++) {
-                    m = split(line[k], f, " "); root = 1
-                    for (i = 2; i <= m; i++) if (f[i] in listed) root = 0
-                    if (root) print f[1]
+                    m = split(line[k], f, " "); c[k] = f[1]; np[k] = m - 1
+                    for (i = 2; i <= m; i++) p[k, i - 1] = f[i]
+                    root = 1; for (i = 1; i < m; i++) if (p[k, i] in listed) root = 0
+                    if (root) { good[f[1]] = 1; roots++ }
+                  }
+                  do {
+                    changed = 0
+                    for (k = 1; k <= n; k++) if (!(c[k] in good))
+                      for (i = 1; i <= np[k]; i++) if (p[k, i] in good) { good[c[k]] = 1; changed = 1; break }
+                  } while (changed)
+                  for (k = 1; k <= n; k++) if (!(c[k] in good)) { print "The API listed " c[k] " with a parent cycle in the commits of the hotfix; it cannot be checked."; exit 1 }
+                  if (!roots) { print "The API listed no root commit for the hotfix; it cannot be checked."; exit 1 }
+                  for (k = 1; k <= n; k++) {
+                    root = 1; for (i = 1; i <= np[k]; i++) if (p[k, i] in listed) root = 0
+                    if (root) print c[k]
                   }
                 }')"; then
                 echo "::error::$HEAD_REF: $roots"
