@@ -414,8 +414,9 @@ is on and `SENTRY_AUTH_TOKEN` is missing, and on any production build when
 `EXPO_PUBLIC_SENTRY_DSN` is missing. A production build that uploads also stops
 when `sentry-cli` would run in allow-failure mode: `SENTRY_ALLOW_FAILURE` set to
 `true` or `1` (the values `sentry-cli` honours), or `--allow-failure` in
-`SENTRY_CLI_EXTRA_ARGS` or `SENTRY_CLI_RN_XCODE_EXTRA_ARGS` (the source map
-call; the dSYM call ignores failures anyway, see "Known gap" below). `sentry-cli`
+`SENTRY_CLI_EXTRA_ARGS` or `SENTRY_CLI_RN_XCODE_EXTRA_ARGS` (iOS builds only:
+the iOS source map call reads them, Gradle does not; the dSYM call ignores
+failures anyway, see "Known gap" below). `sentry-cli`
 would then exit 0 on a
 failed upload and the binary would ship without symbols, unnoticed. Why fail
 rather than skip: a store binary cannot get its symbols later (the dSYMs and
@@ -433,8 +434,10 @@ purpose (for example during a Sentry outage), set `SENTRY_DISABLE_AUTO_UPLOAD=tr
 in the EAS `production` environment; the build logs a warning. Remove it again
 afterwards. `SENTRY_ALLOW_FAILURE` is not a way to do this: set the opt-out.
 The partial skips `SENTRY_DISABLE_XCODE_DEBUG_UPLOAD` (iOS dSYMs) and
-`SENTRY_DISABLE_NATIVE_DEBUG_UPLOAD` (Android native debug files) are not
-blocked but log a warning on a production build.
+`SENTRY_DISABLE_NATIVE_DEBUG_UPLOAD` (Android: with the Sentry Android Gradle
+Plugin enabled it stops native symbols, the ProGuard/R8 mapping and source
+context, none of which can be uploaded later) are not blocked but log a warning
+on a production build of the platform that reads them.
 
 **Known gap: iOS dSYMs.** The "Upload Debug Symbols to Sentry" phase
 (`@sentry/react-native` `scripts/sentry-xcode-debug-files.sh`) only logs

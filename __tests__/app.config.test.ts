@@ -173,29 +173,61 @@ describe('app.config — Sentry upload guard on EAS builds', () => {
     },
   );
 
-  // sentry-xcode.sh runs the call through `sh -c`, which strips these again.
-  it.each(['"--allow-failure"', "'--allow-failure'", '--allow\\-failure'])(
-    'sees a quoted or escaped flag (%s) the shell would still pass on',
-    (args) => {
-      const env = easBuild('production', { ...secrets, SENTRY_CLI_EXTRA_ARGS: args });
-      expect(() => assertSentryBuildReady(env, jest.fn())).toThrow('sets --allow-failure in SENTRY_CLI_EXTRA_ARGS:');
-    },
-  );
+  // sentry-xcode.sh runs the call through `sh -c`, which strips quotes and
+  // escapes and expands variables; any mention of allow-failure counts.
+  it.each(
+    ['SENTRY_CLI_EXTRA_ARGS', 'SENTRY_CLI_RN_XCODE_EXTRA_ARGS'].flatMap((name) =>
+      ['"--allow-failure"', "'--allow-failure'", '--allow\\-failure', '--allow-failure$UNSET', '--allow-failures'].map(
+        (args) => [name, args],
+      ),
+    ),
+  )('sees a quoted, escaped or expanded flag in %s (%s) the shell could still pass on', (name, args) => {
+    const env = easBuild('production', { ...secrets, [name]: args });
+    expect(() => assertSentryBuildReady(env, jest.fn())).toThrow(`sets --allow-failure in ${name}:`);
+  });
+
+  it('leaves the Xcode-only extra args to an Android build, which never reads them', () => {
+    const env = easBuild('production', {
+      ...secrets,
+      EAS_BUILD_PLATFORM: 'android',
+      SENTRY_CLI_EXTRA_ARGS: '--allow-failure',
+      SENTRY_CLI_RN_XCODE_EXTRA_ARGS: '--allow-failure',
+    });
+    expect(() => assertSentryBuildReady(env, jest.fn())).not.toThrow();
+    const ios = { ...env, EAS_BUILD_PLATFORM: 'ios' };
+    expect(() => assertSentryBuildReady(ios, jest.fn())).toThrow(/--allow-failure in SENTRY_CLI_EXTRA_ARGS/);
+  });
+
+  it.each(['ios', 'android'])('stops a %s build on SENTRY_ALLOW_FAILURE, which sentry-cli reads on both', (platform) => {
+    const env = easBuild('production', { ...secrets, EAS_BUILD_PLATFORM: platform, SENTRY_ALLOW_FAILURE: 'true' });
+    expect(() => assertSentryBuildReady(env, jest.fn())).toThrow(/sets SENTRY_ALLOW_FAILURE=true:/);
+  });
 
   it('ignores --allow-failure on the dSYM call, which never fails the build anyway', () => {
     const env = easBuild('production', { ...secrets, SENTRY_CLI_DEBUG_FILES_UPLOAD_EXTRA_ARGS: '--allow-failure' });
     expect(() => assertSentryBuildReady(env, jest.fn())).not.toThrow();
   });
 
-  it.each(['SENTRY_DISABLE_XCODE_DEBUG_UPLOAD', 'SENTRY_DISABLE_NATIVE_DEBUG_UPLOAD'])(
-    'warns on a production build that skips native symbols with %s=true',
-    (name) => {
-      const warn = jest.fn();
-      expect(() => assertSentryBuildReady(easBuild('production', { ...secrets, [name]: 'true' }), warn)).not.toThrow();
-      expect(warn).toHaveBeenCalledTimes(1);
-      expect(warn).toHaveBeenCalledWith(expect.stringContaining(`${name}=true on a production EAS build`));
-    },
-  );
+  it.each([
+    ['SENTRY_DISABLE_XCODE_DEBUG_UPLOAD', 'ios', 'iOS dSYMs are NOT uploaded'],
+    ['SENTRY_DISABLE_NATIVE_DEBUG_UPLOAD', 'android', 'ProGuard/R8 mapping and source context'],
+  ])('warns when %s=true skips native symbols on a production %s build', (name, platform, what) => {
+    const warn = jest.fn();
+    const env = easBuild('production', { ...secrets, EAS_BUILD_PLATFORM: platform, [name]: 'true' });
+    expect(() => assertSentryBuildReady(env, warn)).not.toThrow();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining(`${name}=true on a production EAS build`));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining(what));
+  });
+
+  it.each([
+    ['SENTRY_DISABLE_XCODE_DEBUG_UPLOAD', 'android'],
+    ['SENTRY_DISABLE_NATIVE_DEBUG_UPLOAD', 'ios'],
+  ])('does not warn about %s on a %s build, which never reads it', (name, platform) => {
+    const warn = jest.fn();
+    assertSentryBuildReady(easBuild('production', { ...secrets, EAS_BUILD_PLATFORM: platform, [name]: 'true' }), warn);
+    expect(warn).not.toHaveBeenCalled();
+  });
 
   it.each(['TRUE', 'true ', '1'])('does not warn on a partial skip the Sentry scripts ignore (%j)', (value) => {
     const warn = jest.fn();
@@ -226,8 +258,8 @@ describe('app.config — Sentry upload guard on EAS builds', () => {
     );
   });
 
-  it.each(['--allow-failures', '--no-allow-failure', '--log-level=info'])(
-    'passes extra sentry-cli args without an exact --allow-failure word (%j)',
+  it.each(['--log-level=info', '--force-foreground', ''])(
+    'passes extra sentry-cli args that do not mention allow-failure (%j)',
     (args) => {
       const env = easBuild('production', { ...secrets, SENTRY_CLI_EXTRA_ARGS: args });
       expect(() => assertSentryBuildReady(env, jest.fn())).not.toThrow();
@@ -322,9 +354,12 @@ describe('app.config — Sentry upload guard on EAS builds', () => {
       'EAS_BUILD',
       'SENTRY_AUTH_TOKEN',
       'SENTRY_DISABLE_AUTO_UPLOAD',
+      'EAS_BUILD_PLATFORM',
       'SENTRY_ALLOW_FAILURE',
       'SENTRY_CLI_EXTRA_ARGS',
       'SENTRY_CLI_RN_XCODE_EXTRA_ARGS',
+      'SENTRY_DISABLE_XCODE_DEBUG_UPLOAD',
+      'SENTRY_DISABLE_NATIVE_DEBUG_UPLOAD',
       'EXPO_PUBLIC_SENTRY_DSN',
     ];
     const saved = keys.map((k) => [k, process.env[k]] as const);

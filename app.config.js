@@ -213,9 +213,16 @@ function withStagingHosts(intentFilters = [], hosts = stagingHosts) {
 // script exits 0 on a failed upload whatever its flags (docs/RELEASE.md).
 const SENTRY_CLI_ARGS_ENV = ['SENTRY_CLI_EXTRA_ARGS', 'SENTRY_CLI_RN_XCODE_EXTRA_ARGS'];
 
-// Partial skip switches of the Sentry scripts (exact "true", like the opt-out):
-// the iOS dSYM phase and the Android native debug file upload.
-const SENTRY_PARTIAL_SKIP_ENV = ['SENTRY_DISABLE_XCODE_DEBUG_UPLOAD', 'SENTRY_DISABLE_NATIVE_DEBUG_UPLOAD'];
+// Partial skip switches of the Sentry build scripts (exact "true", like the
+// opt-out), each read on one platform only, with what it stops uploading.
+const SENTRY_PARTIAL_SKIPS = [
+  { name: 'SENTRY_DISABLE_XCODE_DEBUG_UPLOAD', platform: 'ios', skips: 'iOS dSYMs' },
+  {
+    name: 'SENTRY_DISABLE_NATIVE_DEBUG_UPLOAD',
+    platform: 'android',
+    skips: 'Android native symbols, ProGuard/R8 mapping and source context (Sentry Android Gradle Plugin)',
+  },
+];
 
 /**
  * Fails an EAS build early when it would ship without readable crash reports.
@@ -271,20 +278,22 @@ function assertSentryBuildReady(env = process.env, warn = console.warn) {
   // sentry-cli runs in allow-failure mode: it then exits 0 and the store binary
   // ships without symbols, silently. sentry-cli 2.x turns that mode on for
   // SENTRY_ALLOW_FAILURE of exactly "true" or "1" (checked against the vendored
-  // binary) and for an `--allow-failure` argument, which sentry-xcode.sh takes
-  // from these env vars. It passes them through `sh -c`, so quotes and
-  // backslashes are dropped before the words are compared. The deliberate
-  // opt-out above is the only way to skip.
+  // binary) and for an `--allow-failure` argument, which sentry-xcode.sh (iOS
+  // only) takes from these env vars and passes through `sh -c`. Any mention of
+  // `allow-failure` there counts, once quotes and backslashes are dropped:
+  // stricter than the shell, never looser. The deliberate opt-out above is the
+  // only way to skip. An unknown platform (local `expo prebuild`) checks both.
   // Not covered here: the iOS dSYM phase (sentry-xcode-debug-files.sh) exits 0
   // on a failed upload in any mode; see docs/RELEASE.md.
+  const platform = env.EAS_BUILD_PLATFORM;
+  const onPlatform = (p) => !platform || platform === p;
   if (isProduction && !uploadDisabled) {
     const allowFailure = [];
     if (['true', '1'].includes(env.SENTRY_ALLOW_FAILURE)) {
       allowFailure.push(`SENTRY_ALLOW_FAILURE=${env.SENTRY_ALLOW_FAILURE}`);
     }
-    for (const name of SENTRY_CLI_ARGS_ENV) {
-      const words = (env[name] ?? '').replace(/["'\\]/g, '').split(/\s+/);
-      if (words.includes('--allow-failure')) {
+    for (const name of onPlatform('ios') ? SENTRY_CLI_ARGS_ENV : []) {
+      if ((env[name] ?? '').replace(/["'\\]/g, '').includes('allow-failure')) {
         allowFailure.push(`--allow-failure in ${name}`);
       }
     }
@@ -302,9 +311,10 @@ function assertSentryBuildReady(env = process.env, warn = console.warn) {
         'source maps and dSYMs are NOT uploaded, so Sentry stack traces of this build stay unreadable.',
     );
   } else if (isProduction) {
-    for (const name of SENTRY_PARTIAL_SKIP_ENV.filter((n) => env[n] === 'true')) {
+    for (const skip of SENTRY_PARTIAL_SKIPS) {
+      if (env[skip.name] !== 'true' || !onPlatform(skip.platform)) continue;
       warn(
-        `[app.config] ${name}=true on a production EAS build: native debug symbols are NOT uploaded, ` +
+        `[app.config] ${skip.name}=true on a production EAS build: ${skip.skips} are NOT uploaded, ` +
           'so native Sentry stack traces of this build stay unreadable.',
       );
     }
