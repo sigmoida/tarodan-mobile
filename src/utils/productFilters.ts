@@ -73,17 +73,23 @@ export function keepGeneralAttributeSelections(
  * ("Fiyat (Düşük)"/"Fiyat (Yüksek)") daha AÇIK ("Fiyat (Düşükten Yükseğe)"/
  * "Fiyat (Yüksekten Düşüğe)") — reuse, ayrı bir kısa kopya açmak yerine.
  */
-export const buildSortOptions = (t: TFunction): { value: string; label: string }[] => [
-  { value: 'relevance', label: t('common.recommended') },
-  { value: 'created_desc', label: t('product.sortNewest') },
-  { value: 'created_asc', label: t('product.sortOldest') },
-  { value: 'view_count_desc', label: t('product.sortPopular') },
-  { value: 'price_asc', label: t('product.sortPriceLow') },
-  { value: 'price_desc', label: t('product.sortPriceHigh') },
-  { value: 'rating_desc', label: t('product.sortHighestRating') },
-  { value: 'title_asc', label: t('page.listings.listingstoolbar.aZ') },
-  { value: 'title_desc', label: t('page.listings.listingstoolbar.zA') },
-];
+const SORT_OPTION_KEYS = [
+  ['relevance', 'common.recommended'],
+  ['created_desc', 'product.sortNewest'],
+  ['created_asc', 'product.sortOldest'],
+  ['view_count_desc', 'product.sortPopular'],
+  ['price_asc', 'product.sortPriceLow'],
+  ['price_desc', 'product.sortPriceHigh'],
+  ['rating_desc', 'product.sortHighestRating'],
+  ['title_asc', 'page.listings.listingstoolbar.aZ'],
+  ['title_desc', 'page.listings.listingstoolbar.zA'],
+] as const;
+
+/** Geçerli sıralama değerleri — `buildSortOptions` ile AYNI tek dizi (URL doğrulaması bunu kullanır). */
+const SORT_VALUES: ReadonlySet<string> = new Set(SORT_OPTION_KEYS.map(([value]) => value));
+
+export const buildSortOptions = (t: TFunction): { value: string; label: string }[] =>
+  SORT_OPTION_KEYS.map(([value, key]) => ({ value, label: t(key) }));
 
 /**
  * Web SidebarFilters CONDITIONS ile aynı slug seti — etiketler artık katalogdan
@@ -221,5 +227,47 @@ export function extractMeta(
     page: m?.page ?? page,
     limit: m?.limit ?? limit,
     totalPages: m?.totalPages ?? 1,
+  };
+}
+
+/** URL parametresi: expo-router `useLocalSearchParams` tekrarlı anahtarı dizi verebilir — ilki alınır. */
+type RawParam = string | string[] | undefined;
+const firstParam = (v: RawParam): string => (Array.isArray(v) ? v[0] ?? '' : v ?? '');
+
+/**
+ * Arama ekranının açılış filtreleri — URL parametrelerinden (TEK kaynak). Parametre adları web
+ * `/listings` (`parseListingsFilters`) ile aynı: eski `/listings?…` bağlantıları, reklam/push/derin
+ * bağlantı sorguları ve ana sayfa "Tümünü gör" adresleri `/search`'e AYNEN taşınır. Serbest metin
+ * mobilde `q` (üst bar arama alanı); web adı `search` de kabul edilir. Üretici attribute'ları
+ * web gibi `attr.<grup>=a,b`.
+ */
+export function filtersFromSearchParams(params: Record<string, RawParam>): ProductFilters {
+  const get = (k: string) => firstParam(params[k]).trim();
+  const sortBy = get('sortBy');
+  const customAttributes: Record<string, string[]> = {};
+  for (const key of Object.keys(params)) {
+    if (!key.startsWith('attr.')) continue;
+    const group = key.slice('attr.'.length);
+    const slugs = firstParam(params[key]).split(',').map((s) => s.trim()).filter(Boolean);
+    if (group && slugs.length) customAttributes[group] = slugs;
+  }
+  return {
+    ...EMPTY_FILTERS,
+    search: get('q') || get('search'),
+    brand: get('brand'),
+    brandId: get('brandId'),
+    scale: get('scale'),
+    material: get('material'),
+    condition: get('condition'),
+    minPrice: get('minPrice'),
+    maxPrice: get('maxPrice'),
+    tradeOnly: get('tradeOnly') === 'true',
+    discountOnly: get('discountOnly') === 'true',
+    sortBy: SORT_VALUES.has(sortBy) ? sortBy : EMPTY_FILTERS.sortBy,
+    category: get('category'),
+    categoryId: get('categoryId'),
+    manufacturer: get('manufacturer'),
+    manufacturerId: get('manufacturerId'),
+    customAttributes,
   };
 }

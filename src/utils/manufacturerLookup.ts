@@ -3,7 +3,7 @@
  *
  * İlan filtresi adla eşleştirildiğinde sunucudaki ad önbelleği yüzünden sonuç boş dönebilir;
  * `manufacturerId` ise yazımdan bağımsız. Yalnız adla gelen giriş noktaları (derin bağlantı,
- * push, hero, reklam: `/listings?manufacturer=Hot+Wheels`) `useListings` içinde bununla kimliğe
+ * push, hero, reklam: `/listings?manufacturer=Hot+Wheels`) `useSearchFilterOptions` (arama ekranı) içinde bununla kimliğe
  * çevrilir. Eşleşme bulunamazsa ya da belirsizse `null` döner ve filtre ad ile devam eder.
  */
 

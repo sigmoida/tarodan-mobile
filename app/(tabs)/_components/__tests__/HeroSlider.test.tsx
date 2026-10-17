@@ -101,7 +101,7 @@ describe('HeroSection', () => {
     fireEvent.press(api.getByTestId('hero-cta-s1-1'));
     expect(mockRecordClick).toHaveBeenCalledTimes(1);
     expect(mockRecordClick).toHaveBeenCalledWith('s1', 1);
-    expect(mockPush).toHaveBeenCalledWith('/listings?manufacturer=Hot+Wheels');
+    expect(mockPush).toHaveBeenCalledWith('/search?manufacturer=Hot+Wheels');
   });
 
   it('satın alma hedefli CTA çizilmez ve hiçbir şey açmaz', () => {

@@ -24,20 +24,44 @@ export type SetFilters = (updater: (prev: ProductFilters) => ProductFilters) => 
  * Her çipin "kaldır" davranışı `setFilters(prev => …)` ile bağlanır: çip render'ından sonra
  * gelen başka bir güncelleme (ör. debounce'lu arama metni) ezilmez.
  */
+/** Kimlikten ad çözmek için seçenek listeleri (filtre sayfasının verisi). */
+export type ChipNameOptions = Partial<Pick<ProductFilterOptions, 'categories' | 'brands' | 'manufacturers'>>;
+
+/**
+ * Çip etiketi: filtrenin taşıdığı ad → seçenek listesinden kimlikle bulunan ad → genel etiket
+ * ("Kategori"/"Marka"/"Üretici"; liste henüz yüklenmediyse ya da kimlik listede yoksa). Böylece
+ * yalnız kimlikle gelen filtre (derin bağlantı, `?categoryId=`) de görünür ve kaldırılabilir.
+ */
+const chipName = (
+  name: string,
+  id: string,
+  list: ReadonlyArray<{ id: string; name: string }> | undefined,
+  fallback: string,
+) => name.trim() || list?.find((o) => o.id === id)?.name || fallback;
+
 export function buildActiveChips(
   filters: ProductFilters,
   setFilters: SetFilters,
   t: TFunction,
   attributeGroups: ProductFilterOptions['customAttributes'] = [],
+  names: ChipNameOptions = {},
 ): ActiveChip[] {
   const chips: ActiveChip[] = [];
   const add = (key: string, label: string, patch: (prev: ProductFilters) => Partial<ProductFilters>) =>
     chips.push({ key, label, onRemove: () => setFilters((prev) => ({ ...prev, ...patch(prev) })) });
 
-  if (filters.category) add('cat', filters.category, () => ({ category: '', categoryId: '' }));
-  if (filters.brand) add('brand', filters.brand, () => ({ brand: '', brandId: '' }));
-  if (filters.manufacturer)
-    add('manuf', filters.manufacturer, (prev) => ({
+  if (filters.category || filters.categoryId)
+    add('cat', chipName(filters.category, filters.categoryId, names.categories, t('common.category')), () => ({
+      category: '',
+      categoryId: '',
+    }));
+  if (filters.brand || filters.brandId)
+    add('brand', chipName(filters.brand, filters.brandId, names.brands, t('product.brand')), () => ({
+      brand: '',
+      brandId: '',
+    }));
+  if (filters.manufacturer || filters.manufacturerId)
+    add('manuf', chipName(filters.manufacturer, filters.manufacturerId, names.manufacturers, t('product.manufacturer')), (prev) => ({
       manufacturer: '',
       manufacturerId: '',
       // Üreticiye bağlı grup seçimleri düşer, genel gruplar kalır (filtre sayfasıyla aynı kural).

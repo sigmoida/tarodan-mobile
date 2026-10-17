@@ -11,7 +11,6 @@ import type { ProductDetailData } from './detailQuery';
 export const PRODUCT_LIST_ROOTS: readonly QueryKey[] = [
   qk.products.all,
   qk.products.searchAll,
-  qk.products.listingsAll,
   qk.products.categoryProductsAll,
   qk.products.detailAll,
   qk.products.myListingsAll,

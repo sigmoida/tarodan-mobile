@@ -22,10 +22,10 @@ describe('Keşfet grubu', () => {
   it('web kategori çubuğunun sabit öğeleri ve adresleri', () => {
     const tiles = buildExploreTiles(t);
     expect(tiles.map((x) => [x.label, x.href])).toEqual([
-      ['Tüm İlanlar', '/listings'],
-      ['Yeni Gelenler', '/listings?sortBy=created_desc'],
-      ['Çok Satanlar', '/listings?sortBy=view_count_desc'],
-      ['İndirimler', '/listings?discountOnly=true'],
+      ['Tüm İlanlar', '/search'],
+      ['Yeni Gelenler', '/search?sortBy=created_desc'],
+      ['Çok Satanlar', '/search?sortBy=view_count_desc'],
+      ['İndirimler', '/search?discountOnly=true'],
       ['Koleksiyonlar', '/collections'],
     ]);
     expect(tiles.every((x) => x.visual === 'plain')).toBe(true);
@@ -47,10 +47,10 @@ describe('Kategoriler grubu', () => {
     { id: 'c3', name: 'Boş & Kategori', productCount: 0, children: [] },
   ];
 
-  it('yaprak kutu /listings?categoryId=&category= açar (ad kodlanır)', () => {
+  it('yaprak kutu /search?categoryId=&category= açar (ad kodlanır)', () => {
     const tiles = buildCategoryTiles([{ id: 'x 1', name: 'Boş & Kategori', productCount: 1 }]);
-    expect(tiles[0]!.href).toBe('/listings?categoryId=x%201&category=Bo%C5%9F%20%26%20Kategori');
-    expect(catalogHref.category({ id: 'c1', name: 'Otomobil' })).toBe('/listings?categoryId=c1&category=Otomobil');
+    expect(tiles[0]!.href).toBe('/search?categoryId=x%201&category=Bo%C5%9F%20%26%20Kategori');
+    expect(catalogHref.category({ id: 'c1', name: 'Otomobil' })).toBe('/search?categoryId=c1&category=Otomobil');
   });
 
   it('web gibi HEPSİ gösterilir (0 ilanlı kategori de); alt kategorili kutu alt düzeye iner (href yok, allHref üst kategorinin KENDİ categoryId listesi)', () => {
@@ -58,10 +58,10 @@ describe('Kategoriler grubu', () => {
     expect(tiles.map((x) => x.label)).toEqual(['Otomobil', 'Ticari', 'Boş & Kategori']);
     const ticari = tiles[1]!;
     expect(ticari.href).toBeUndefined();
-    expect(ticari.allHref).toBe('/listings?categoryId=c2&category=Ticari');
+    expect(ticari.allHref).toBe('/search?categoryId=c2&category=Ticari');
     expect(ticari.children!.map((x) => [x.label, x.href])).toEqual([
-      ['Kamyon', '/listings?categoryId=c2a&category=Kamyon'],
-      ['Otobüs', '/listings?categoryId=c2b&category=Otob%C3%BCs'],
+      ['Kamyon', '/search?categoryId=c2a&category=Kamyon'],
+      ['Otobüs', '/search?categoryId=c2b&category=Otob%C3%BCs'],
     ]);
   });
 });
@@ -86,7 +86,7 @@ describe('Üreticiler grubu', () => {
       ['Autoart', 5],
       ['Bburago', 5],
     ]);
-    expect(tiles[0]!.href).toBe('/listings?manufacturer=Hot%20Wheels&manufacturerId=2');
+    expect(tiles[0]!.href).toBe('/search?manufacturer=Hot%20Wheels&manufacturerId=2');
     expect(tiles[0]!.logo).toBe('https://cdn/hw.png');
     expect(tiles[1]!.logo).toBeNull();
   });
@@ -98,11 +98,11 @@ describe('Üreticiler grubu', () => {
 });
 
 describe('Ölçek grubu', () => {
-  it('her ölçek /listings?scale= açar; boş değerler atılır', () => {
+  it('her ölçek /search?scale= açar; boş değerler atılır', () => {
     const tiles = buildScaleTiles(['1:64', ' ', '1:18']);
     expect(tiles.map((x) => [x.label, x.href])).toEqual([
-      ['1:64', '/listings?scale=1%3A64'],
-      ['1:18', '/listings?scale=1%3A18'],
+      ['1:64', '/search?scale=1%3A64'],
+      ['1:18', '/search?scale=1%3A18'],
     ]);
   });
 });

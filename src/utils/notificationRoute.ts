@@ -2,6 +2,7 @@ import { stripLocalePrefix } from '@/lib/deeplinks';
 import { ownWebHosts } from '@/lib/web';
 import { parseStrictUrl } from '@/lib/security/url';
 import { inAppWebHref, resolveRemovedPage } from '@/lib/navigation/removedPages';
+import { listingsToSearchHref } from '@/lib/navigation/searchHref';
 
 /**
  * Backend `link` alanları WEB rotaları için interpole ediliyor (ör.
@@ -136,9 +137,9 @@ export function toMobileRoute(link: string): string | null {
   switch (head) {
     case 'listings': {
       // web: ürün detayı /listings/:id → mobil /product/:id; /listings/:id/edit →
-      // mobil ilan düzenleme; liste → mobil ilan listesi (filtre/sıralama sorgusu korunur:
-      // /listings?discountOnly=true, ?sortBy=…)
-      if (!id) return withQuery('/listings');
+      // mobil ilan düzenleme; liste → ön filtreli arama ekranı (filtre/sıralama sorgusu AYNEN
+      // korunur: /listings?discountOnly=true → /search?discountOnly=true; web parametre adları)
+      if (!id) return listingsToSearchHref(rawQuery);
       // Düzenleme ekranı kimlikle çalışır; detay slug de olabilir.
       if (seg[2] === 'edit') return isIdSegment(id) ? `/listing/${id}/edit` : null;
       return `/product/${id}`;

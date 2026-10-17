@@ -19,17 +19,18 @@ import { useTranslation } from 'react-i18next';
 import { productsApi, searchApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useRecentSearchesStore } from '@/stores/recentSearchesStore';
-import { useProductFilterOptions } from '@/hooks/useProductFilterOptions';
 import {
-  EMPTY_FILTERS,
   buildListParams,
   clearProductFilters,
   countActiveFilters,
   extractListings,
   extractMeta,
+  filtersFromSearchParams,
   flattenUniqueListings,
   type ProductFilters,
 } from '@/utils/productFilters';
+import { useSearchFilterOptions } from './useSearchFilterOptions';
+import { curatedEntryLabelKey } from '@/lib/navigation/searchHref';
 import { buildActiveChips } from '@/utils/activeFilterChips';
 import { PAGE_SIZE } from '../_lib/searchConstants';
 import {
@@ -51,18 +52,9 @@ export function useSearch() {
   const { t } = useTranslation();
   const params = useLocalSearchParams();
 
-  // Filtre state'i (web listings/page.tsx ile aynı shape)
-  const [filters, setFilters] = useState<ProductFilters>(() => ({
-    ...EMPTY_FILTERS,
-    search: (params.q as string) || '',
-    category: (params.category as string) || '',
-    categoryId: (params.categoryId as string) || '',
-    brand: (params.brand as string) || '',
-    brandId: (params.brandId as string) || '',
-    scale: (params.scale as string) || '',
-    manufacturer: (params.manufacturer as string) || '',
-    manufacturerId: (params.manufacturerId as string) || '',
-  }));
+  // Filtre state'i (web listings/page.tsx ile aynı shape) — açılışta URL'den, web `/listings`
+  // parametre adlarıyla (vitrin girişleri `/search?tradeOnly=true`, `?sortBy=view_count_desc` …).
+  const [filters, setFilters] = useState<ProductFilters>(() => filtersFromSearchParams(params));
 
   // Arama kutusunun metni artık BU hook'ta değil: `SearchInputBox` kendi state'ini tutar ve
   // 400ms debounce sonrası `commitQuery` ile onaylanmış sorguyu yazar → her tuşta ekran render olmaz.
@@ -82,6 +74,7 @@ export function useSearch() {
   // Arama artık yığın ekranı: her `router.push('/search?…')` taze bir ekran kurar, bu yüzden
   // filtreler yukarıda URL parametrelerinden bir kez başlatılır (eski `navToken` tekrar-uygulama
   // hilesi gerekmez). `focus=1` (üst bardaki arama alanından gelince) kutuya otomatik odaklanır.
+  // Ön filtreli girişler (`searchHref`) `focus` taşımaz → klavye açılmaz, sonuçlar doğrudan görünür.
   const autoFocusSearch = params.focus === '1';
   useEffect(() => {
     if (params.openFilter) setFilterModalVisible(true);
@@ -89,16 +82,8 @@ export function useSearch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Seçili üreticinin slug'ını çöz ki üreticiye-özel filtreler (HW vb.) yüklensin.
-  const baseOptions = useProductFilterOptions();
-  const manufacturerSlug = useMemo(() => {
-    const list = baseOptions.manufacturers;
-    if (filters.manufacturerId) return list.find((m) => m.id === filters.manufacturerId)?.slug;
-    if (filters.manufacturer)
-      return list.find((m) => m.name.toLowerCase() === filters.manufacturer.toLowerCase())?.slug;
-    return undefined;
-  }, [filters.manufacturerId, filters.manufacturer, baseOptions.manufacturers]);
-  const options = useProductFilterOptions(manufacturerSlug);
+  // Filtre seçenekleri + yalnız adla gelen üreticinin kimliğe çözümü (ürün sorgusu o arada bekler).
+  const { options, waitingForManufacturers } = useSearchFilterOptions(filters, setFilters);
 
   const searches = useRecentSearchesStore((st) => st.searches);
   const addSearch = useRecentSearchesStore((st) => st.addSearch);
@@ -223,6 +208,7 @@ export function useSearch() {
   } = useInfiniteQuery({
     queryKey: searchKey,
     placeholderData: keepPreviousData,
+    enabled: !waitingForManufacturers,
     initialPageParam: 1,
     queryFn: async ({ pageParam }) => {
       const listParams = buildListParams(filters, pageParam as number, PAGE_SIZE);
@@ -308,11 +294,17 @@ export function useSearch() {
     }, 200);
   }, []);
 
-  // Aktif filtre çipleri (web parity: kaldırılabilir) — ilanlar ekranıyla aynı tek kaynak.
+  // Aktif filtre çipleri (web parity: kaldırılabilir). Yalnız kimlikle gelen kategori/marka/üretici
+  // adı seçenek listelerinden çözülür (yoksa genel etiket).
+  const { customAttributes, categories, brands, manufacturers } = options;
   const activeChips = useMemo(
-    () => buildActiveChips(filters, setFilters, t, options.customAttributes),
-    [filters, options.customAttributes, t],
+    () => buildActiveChips(filters, setFilters, t, customAttributes, { categories, brands, manufacturers }),
+    [filters, customAttributes, categories, brands, manufacturers, t],
   );
+  // Vitrin girişi bağlamı ("Takas vitrini", "Popüler ilanlar"…): canlı filtrelerden türer, kullanıcı
+  // filtre/sıralamayı değiştirince kaybolur.
+  const contextLabelKey = curatedEntryLabelKey(filters);
+  const contextLabel = contextLabelKey ? t(contextLabelKey) : null;
 
   // Öneri/geçmiş paneli görünür mü? (X kapat tuşu ve input köşe stilinde kullanılır)
   const recentPanelOpen =
@@ -393,6 +385,8 @@ export function useSearch() {
     autoFocusSearch,
     clearAllFilters,
     activeChips,
+    /** Vitrin girişi bağlam başlığı ("Takas vitrini"…) ya da null. */
+    contextLabel,
     activeFiltersCount,
     // options for the filter sheet
     options,
@@ -421,7 +415,8 @@ export function useSearch() {
     // list query
     products,
     total,
-    isLoading,
+    // Üretici listesi beklenirken de yükleniyor say (sorgu bekletilir; boş sonuç ekranı çıkmasın).
+    isLoading: isLoading || waitingForManufacturers,
     isError,
     isFetching,
     refetch,

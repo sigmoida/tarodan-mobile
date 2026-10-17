@@ -73,7 +73,7 @@ describe('AdBanner — hotspots', () => {
 
     expect(mockRecordClick).toHaveBeenCalledWith('ad-1', 'h-1');
     // Filtre korunur — liste sorgusuz arama sekmesine düşmez.
-    expect(mockPush).toHaveBeenCalledWith('/listings?manufacturer=Hot+Wheels');
+    expect(mockPush).toHaveBeenCalledWith('/search?manufacturer=Hot+Wheels');
     expect(openURL).not.toHaveBeenCalled();
   });
 
@@ -116,7 +116,7 @@ describe('AdBanner — hotspots', () => {
     fireEvent.press(getByTestId('ad-banner-ad-1'));
 
     expect(mockRecordClick).toHaveBeenCalledWith('ad-1');
-    expect(mockPush).toHaveBeenCalledWith('/listings?manufacturer=Hot+Wheels');
+    expect(mockPush).toHaveBeenCalledWith('/search?manufacturer=Hot+Wheels');
   });
 
   it('görsel dışına taşan bölgeyi çizmez', () => {

@@ -2,11 +2,11 @@
  * Akıllı arama yönlendirmesi — web paritesi.
  *
  * Kullanıcı arama kutusuna bir şey yazdığında, metnin belirli desenlere uyması durumunda
- * doğrudan ilan listesine ilgili filtre uygulanmış şekilde yönlendirilir.
+ * doğrudan arama ekranına (`/search`) ilgili filtre uygulanmış şekilde yönlendirilir.
  *
  * Örnekler:
- *   "Porsche" → { category: 'brand', value: 'Porsche' }  → /listings?brand=Porsche
- *   "1:18"    → { category: 'scale', value: '1:18' }    → /listings?scale=1:18
+ *   "Porsche" → { category: 'brand', value: 'Porsche' }  → /search?brand=Porsche
+ *   "1:18"    → { category: 'scale', value: '1:18' }    → /search?scale=1:18
  *   "Hot Wheels" → { category: 'manufacturer', value: 'Hot Wheels' }
  */
 
@@ -15,7 +15,7 @@ export type SmartSearchCategory = 'brand' | 'manufacturer' | 'scale' | 'generic'
 export interface SmartSearchRoute {
   category: SmartSearchCategory;
   value: string;
-  /** `/listings?...` query string (lead karakteri olmadan). */
+  /** `/search?...` query string (web `/listings` parametre adları) (lead karakteri olmadan). */
   query: string;
 }
 
@@ -107,13 +107,4 @@ export function resolveSmartSearch(raw: string): SmartSearchRoute {
     value: input,
     query: `search=${encodeURIComponent(input)}`,
   };
-}
-
-/**
- * Arama sonucuna göre `/listings` URL'si üretir.
- * Kullanım: router.push(buildSmartSearchUrl(q))
- */
-export function buildSmartSearchUrl(raw: string): string {
-  const result = resolveSmartSearch(raw);
-  return result.query ? `/listings?${result.query}` : '/listings';
 }

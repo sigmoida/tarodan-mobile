@@ -346,7 +346,7 @@ describe('J93 · Başarısız ödeme başarı ekranına düşerse başarısız e
     expect(paymentsApi.confirmFailedGuest).toHaveBeenCalledWith('pay-1'); // misafir yolu korunur
     expect(screen.queryByText('Tekrar Dene')).toBeNull();
     fireEvent.press(screen.getByText('İlanlara Dön'));
-    expect(replaceMock).toHaveBeenLastCalledWith('/listings');
+    expect(replaceMock).toHaveBeenLastCalledWith('/search');
     fireEvent.press(screen.getByText('Ana Sayfaya Dön'));
     expect(replaceMock).toHaveBeenLastCalledWith('/');
   });

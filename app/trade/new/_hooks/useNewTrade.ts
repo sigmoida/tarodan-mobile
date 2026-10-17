@@ -112,7 +112,7 @@ export function useNewTrade() {
     queryClient.invalidateQueries({ queryKey: qk.trades.sellerTradeableAll });
     queryClient.invalidateQueries({ queryKey: qk.products.all });
     queryClient.invalidateQueries({ queryKey: qk.products.detailAll });
-    queryClient.invalidateQueries({ queryKey: qk.products.listingsAll });
+    queryClient.invalidateQueries({ queryKey: qk.products.searchAll });
     queryClient.invalidateQueries({ queryKey: qk.products.myListingsAll });
   };
 

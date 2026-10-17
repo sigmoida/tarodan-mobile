@@ -20,6 +20,12 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border.subtle,
   },
+  // Vitrin girişi bağlam başlığı (araç çubuğunun üstünde; çubuk kendi üst boşluğunu korur).
+  contextTitle: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    backgroundColor: colors.surface.DEFAULT,
+  },
   // Ortak araç çubuğu kabuğu (denetimler + sayım + çipler).
   toolbar: {
     paddingHorizontal: spacing[4],

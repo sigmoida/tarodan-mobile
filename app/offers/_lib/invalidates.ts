@@ -11,6 +11,6 @@ export const OFFER_INVALIDATES = [
   qk.offers.detailAll,
   qk.products.all,
   qk.products.detailAll,
-  qk.products.listingsAll,
+  qk.products.searchAll,
   qk.products.myListingsAll,
 ] as const;

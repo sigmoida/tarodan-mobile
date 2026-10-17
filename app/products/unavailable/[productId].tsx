@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Text, theme } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { SimilarProductsCard } from '@/components/product';
+import { searchCategoryHref } from '@/lib/navigation/searchHref';
 import { useUnavailableProduct } from './_hooks/useUnavailableProduct';
 
 const { colors, spacing, radiusRole } = theme;
@@ -42,8 +43,8 @@ export default function ProductUnavailableScreen() {
           <Button fullWidth onPress={() => router.push(`/product/${id}` as any)}>
             {t('stockout.page.viewProduct')}
           </Button>
-        ) : product?.category?.slug ? (
-          <Button fullWidth onPress={() => router.push(`/category/${product.category!.slug}` as any)}>
+        ) : product?.category?.id ? (
+          <Button fullWidth onPress={() => router.push(searchCategoryHref({ id: product.category!.id, name: product.category!.name ?? '' }))}>
             {product.category.name
               ? t('stockout.page.allCategory', { category: product.category.name })
               : t('stockout.page.allCategoryFallback')}

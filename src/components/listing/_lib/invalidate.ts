@@ -19,7 +19,6 @@ export function listingCacheKeys(productId?: string): QueryKey[] {
     productId ? qk.products.detail(productId) : qk.products.detailAll,
     qk.products.all,
     qk.products.searchAll,
-    qk.products.listingsAll,
     qk.products.featuredCollector,
     qk.products.featuredBusiness,
   ];

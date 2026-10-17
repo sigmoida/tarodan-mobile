@@ -103,14 +103,12 @@ export const qk = {
      *  diye ayrı yaprak (o sekme filtresiz tüm listeyi tutar). */
     myListingsForCollection: ["my-listings", "collection-picker"] as const,
     myFeatured: ["my-featured-listings"] as const,
-    listings: (filters?: Filters) => ["listings", filters] as const,
     /** Kategori ekranı ürünleri (arama + sıralama + ölçek). */
     categoryProducts: (categoryId?: string, search?: string, sortBy?: string, scale?: string) =>
       ["category-products", categoryId, search, sortBy, scale] as const,
     /** Prefix root — her kategori ürün listesini yakalar. */
     categoryProductsAll: ["category-products"] as const,
     /** Prefix roots for invalidation (match every filtered variant). */
-    listingsAll: ["listings"] as const,
     myListingsAll: ["my-listings"] as const,
     /** İlan formu: `/products/attribute-groups` (genel özel gruplar, ör. Nadirlik). */
     attributeGroups: ["listing-form-attr-groups"] as const,

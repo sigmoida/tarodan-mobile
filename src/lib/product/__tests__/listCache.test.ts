@@ -40,7 +40,7 @@ describe('findCachedListProduct', () => {
 
   it('görsel dizisi yoksa `imageUrl` galeriye taşınır', () => {
     const qc = client();
-    qc.setQueryData(qk.products.listings({}), { data: [card({ images: [], imageUrl: 'https://x/b.jpg' })] });
+    qc.setQueryData(qk.products.search(undefined, {}), { data: [card({ images: [], imageUrl: 'https://x/b.jpg' })] });
     expect(findCachedListProduct(qc, 'p1')?.images).toEqual(['https://x/b.jpg']);
   });
 

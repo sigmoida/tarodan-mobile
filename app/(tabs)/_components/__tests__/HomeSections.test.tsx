@@ -64,18 +64,24 @@ describe('ürün rayları', () => {
     expect(screen.queryByText('42')).toBeNull();
   });
 
-  it('"Tümünü gör" web hedeflerine gider', () => {
+  it('"Tümünü gör" aramayı web ile aynı ön filtre/sıralamayla açar (ayrı liste rotası yok)', () => {
     render(
       <>
+        <FeaturedRail items={items} isLoading={false} onProductPress={noop} />
         <OnSaleRail items={items} isLoading={false} onProductPress={noop} />
         <TradeRail items={items} isLoading={false} onProductPress={noop} />
+        <PopularRail items={items} isLoading={false} onProductPress={noop} />
       </>,
     );
     const links = screen.getAllByLabelText('Tümünü gör');
     fireEvent.press(links[0]!);
-    expect(router.push).toHaveBeenCalledWith('/listings?discountOnly=true');
+    expect(router.push).toHaveBeenLastCalledWith('/search');
     fireEvent.press(links[1]!);
-    expect(router.push).toHaveBeenCalledWith('/listings?tradeOnly=true');
+    expect(router.push).toHaveBeenLastCalledWith('/search?discountOnly=true');
+    fireEvent.press(links[2]!);
+    expect(router.push).toHaveBeenLastCalledWith('/search?tradeOnly=true');
+    fireEvent.press(links[3]!);
+    expect(router.push).toHaveBeenLastCalledWith('/search?sortBy=view_count_desc');
   });
 
   it('İndirimdekiler başlığında sabit "Fırsat" etiketi yok', () => {
