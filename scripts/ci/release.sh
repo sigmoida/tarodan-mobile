@@ -211,16 +211,15 @@ assert_release_build_env() {
   assert_no_eas_test_hooks "$vars" "$environment" "the $profile build"
 }
 
-# The EAS variables (eas_env_vars output) define none of TEST_HOOK_ENV. Deliberately
-# not anchored to the line start: a fail-closed guard must still match if eas-cli
-# changes its line layout. <what> names what is refused.
+# The EAS variables (eas_env_vars output) define no EXPO_PUBLIC_MAESTRO* variable (the
+# prefix, so a hook added later without updating TEST_HOOK_ENV is caught too).
+# Deliberately not anchored to the line start: a fail-closed guard must still match
+# if eas-cli changes its line layout. <what> names what is refused.
 assert_no_eas_test_hooks() {
-  local vars="$1" environment="$2" what="$3" key
-  for key in $TEST_HOOK_ENV; do
-    if printf '%s\n' "$vars" | grep -Eq "(^|[^A-Z0-9_])$key="; then
-      die "EAS $environment environment defines $key (an EXPO_PUBLIC_MAESTRO* test hook); Maestro/E2E test hooks never go into $what."
-    fi
-  done
+  local vars="$1" environment="$2" what="$3" hit
+  hit="$(printf '%s\n' "$vars" | grep -Eo '(^|[^A-Z0-9_])EXPO_PUBLIC_MAESTRO[A-Z0-9_]*=' | head -n1 | sed -E 's/^[^E]*//; s/=$//')" || true
+  [ -z "$hit" ] \
+    || die "EAS $environment environment defines $hit (an EXPO_PUBLIC_MAESTRO* test hook); Maestro/E2E test hooks never go into $what."
 }
 
 # `NAME=value` lines of an EAS environment, project and account scope together, with
@@ -507,43 +506,66 @@ set_version() {
 # silently replace the value require_public_env just validated), and on the
 # production branch the Sentry DSN (without it the OTA reports nothing).
 assert_ota_eas_env() {
-  local profile="$1" branch="$2" environment="$3" all keys key
+  local profile="$1" branch="$2" environment="$3" all keys key dsn
   all="$(eas_env_vars "$environment" "the $branch OTA")" || exit 1
   assert_no_eas_test_hooks "$all" "$environment" "the $branch OTA"
   keys="$(profile_env "$profile" | sed 's/=.*//')" || die "eas.json build.$profile env could not be read"
   for key in $keys; do
-    if printf '%s\n' "$all" | grep -q "^[[:space:]]*$key="; then
+    # Not anchored either (fail closed): a value that only mentions the name also stops.
+    if printf '%s\n' "$all" | grep -Eq "(^|[^A-Z0-9_])$key="; then
       die "EAS $environment environment defines $key, which eas update --environment would use instead of eas.json build.$profile.env.$key (eas build keeps the eas.json value). Remove it from one of the two."
     fi
   done
-  # The DSN must be readable by eas update: a "secret" EAS variable exists only on
-  # the EAS builders (env:list says so in place of the value) and an empty one is none.
-  if [ "$branch" = production ] && [ -z "${EXPO_PUBLIC_SENTRY_DSN:-}" ] \
-    && ! printf '%s\n' "$all" | grep '^[[:space:]]*EXPO_PUBLIC_SENTRY_DSN=.' | grep -vq 'only be accessed on EAS builder'; then
-    die "EXPO_PUBLIC_SENTRY_DSN is missing, empty or of 'secret' visibility in the EAS $environment environment (eas update cannot read secret variables); a production OTA without it reports nothing to Sentry. Store it as plain text or sensitive."
+  # The DSN must be readable by eas update. Fail closed, per line and over both scopes
+  # (the scope eas update picks is not visible here): every DSN line must be a plain
+  # value or one eas-cli marks "sensitive"; an empty, "secret" (EAS builders only) or
+  # otherwise masked value fails, even if the other scope has a good one.
+  if [ "$branch" = production ] && [ -z "${EXPO_PUBLIC_SENTRY_DSN:-}" ]; then
+    dsn="$(printf '%s\n' "$all" | grep -E '(^|[^A-Z0-9_])EXPO_PUBLIC_SENTRY_DSN=' || true)"
+    [ -n "$dsn" ] && ! printf '%s\n' "$dsn" | node -e '
+      let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
+        const bad = s.split("\n").filter(Boolean).some((l) => {
+          const v = l.slice(l.indexOf("EXPO_PUBLIC_SENTRY_DSN=") + 23).trim();
+          return !v || (v.startsWith("*") && !/sensitive env variable/.test(v));
+        });
+        process.exit(bad ? 0 : 1);
+      });' \
+      || die "EXPO_PUBLIC_SENTRY_DSN is missing, empty or not readable by eas update (e.g. 'secret' visibility, which exists only on EAS builders) in the EAS $environment environment; a production OTA without it reports nothing to Sentry. Store it as plain text or sensitive."
   fi
 }
 
-# sentry-expo-upload-sourcemaps needs a Sentry org and project: SENTRY_ORG /
-# SENTRY_PROJECT, or the `@sentry/react-native/expo` plugin options in the Expo config
-# (the script reads `npx expo config --json`). Checked BEFORE publishing.
+# Mirrors how sentry-expo-upload-sourcemaps resolves its target, BEFORE publishing:
+# with SENTRY_ORG, SENTRY_PROJECT and SENTRY_URL all set it needs nothing else;
+# otherwise it reads `npx expo config --json` and needs the
+# `["@sentry/react-native/expo", {options}]` entry, taking org and project from the
+# env or from those options (the URL falls back to sentry.io).
 assert_sentry_upload_config() {
   local config
-  # The upload script reads the Expo config unless all three are set.
   [ -n "${SENTRY_ORG:-}" ] && [ -n "${SENTRY_PROJECT:-}" ] && [ -n "${SENTRY_URL:-}" ] && return 0
   config="$(npx expo config --json)" \
-    || die "npx expo config failed (see above); the Sentry upload config cannot be checked. Nothing was published."
+    || die "npx expo config failed (see above); the Sentry upload target cannot be checked. Nothing was published."
   printf '%s' "$config" | node -e '
     let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
-      const p = (JSON.parse(s).plugins || []).find((x) => Array.isArray(x) && x[0] === "@sentry/react-native/expo");
+      let c;
+      try { c = JSON.parse(s); } catch (e) {
+        console.error("::error::npx expo config --json printed no valid JSON (" + e.message + "); the Sentry upload target cannot be checked. Nothing was published.");
+        process.exit(1);
+      }
+      const p = (c.plugins || []).find((x) => Array.isArray(x) && x[0] === "@sentry/react-native/expo");
+      const missing = [];
+      if (!p || !p[1]) missing.push("the @sentry/react-native/expo plugin options in app.json");
       const o = (p && p[1]) || {};
-      process.exit(o.organization && o.project ? 0 : 1);
-    });' \
-    || die "No Sentry org/project for the source map upload: the @sentry/react-native/expo plugin options in app.json (organization, project), or SENTRY_ORG + SENTRY_PROJECT + SENTRY_URL. Nothing was published."
+      if (!process.env.SENTRY_ORG && !o.organization) missing.push("organization (plugin option or SENTRY_ORG)");
+      if (!process.env.SENTRY_PROJECT && !o.project) missing.push("project (plugin option or SENTRY_PROJECT)");
+      if (missing.length) {
+        console.error("::error::The Sentry source map upload would fail: missing " + missing.join(", ") + ". Nothing was published.");
+        process.exit(1);
+      }
+    });' || exit 1
 }
 
 publish_ota() {
-  local branch="$1" platform="$2" profile="$3" message="$4" environment
+  local branch="$1" platform="$2" profile="$3" message="$4" environment p
   environment="$(eas_build_environment "$profile")" || die "no EAS environment for build.$profile"
   (
     load_profile_env "$profile"
@@ -561,9 +583,12 @@ publish_ota() {
     eas update --branch "$branch" --platform "$platform" --environment "$environment" \
       --message "$message" --non-interactive
     if [ -n "${SENTRY_AUTH_TOKEN:-}" ]; then
-      # The upload script exits 0 even when it finds no source map; require them.
-      [ -n "$(find dist -name '*.map' -print -quit 2>/dev/null)" ] \
-        || die "The OTA IS published, but eas update wrote no source maps to dist/, so nothing can go to Sentry. Do NOT re-run this job: that publishes a second update."
+      # The upload script exits 0 even when a bundle has no source map; require one
+      # per published platform.
+      for p in $([ "$platform" = all ] && echo "ios android" || echo "$platform"); do
+        [ -n "$(find dist -path "*/$p/*" -name '*.map' -print -quit 2>/dev/null)" ] \
+          || die "The OTA IS published, but eas update wrote no $p source map to dist/, so its stack traces cannot go to Sentry. Do NOT re-run this job: that publishes a second update."
+      done
       npx sentry-expo-upload-sourcemaps dist \
         || die "The OTA IS published, but its source maps were NOT uploaded to Sentry, so its stack traces stay unreadable. Do NOT re-run this job: that publishes a second update. Fix the cause before the next OTA."
     else

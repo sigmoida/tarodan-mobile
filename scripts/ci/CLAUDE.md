@@ -39,8 +39,14 @@ change one:
   source maps (`npx sentry-expo-upload-sourcemaps dist`, `SENTRY_AUTH_TOKEN`;
   required on production, a warning elsewhere). With `--environment`, EAS values
   **override** the shell (unlike `eas build`, where `eas.json` wins), so it first
-  stops on an EAS variable that repeats an `eas.json` profile key, a Maestro hook, or
-  (production) a missing DSN.
+  stops (fail closed) on an EAS variable that repeats an `eas.json` profile key, any
+  `EXPO_PUBLIC_MAESTRO*` variable, or on production a DSN that is missing, empty or
+  not readable by `eas update` (`secret` visibility; use plain text or sensitive).
+  Before publishing it also checks the upload target the way the upload script
+  resolves it (the `@sentry/react-native/expo` plugin options, or `SENTRY_ORG` +
+  `SENTRY_PROJECT` + `SENTRY_URL`); after publishing it requires a source map per
+  platform in `dist/`. A failure after publishing says so: do not re-run (that
+  publishes a second update).
 
 ## Rules
 

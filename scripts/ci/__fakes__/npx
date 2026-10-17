@@ -5,7 +5,7 @@
 //       (the default proves that the profile env was really loaded)
 //   npx expo config [--type public] --json
 //       -> android.package / ios.bundleIdentifier ($FAKE_ANDROID_PACKAGE overrides) and
-//          the Sentry plugin with organization + project ($FAKE_NO_SENTRY_PLUGIN drops it)
+//          the Sentry plugin with organization + project ($FAKE_NO_SENTRY_PLUGIN changes it)
 //   npx sentry-expo-upload-sourcemaps dist
 //       → succeeds (logged); fails with $FAKE_SENTRY_UPLOAD_FAIL
 const fs = require('fs');
@@ -26,9 +26,12 @@ if (args[0] === 'expo-updates' && args[1] === 'fingerprint:generate') {
       name: env === 'preview' ? 'Tarodan (Staging)' : 'Tarodan',
       ios: { bundleIdentifier: id },
       android: { package: process.env.FAKE_ANDROID_PACKAGE || id },
-      plugins: process.env.FAKE_NO_SENTRY_PLUGIN
-        ? ['@sentry/react-native/expo']
-        : [['@sentry/react-native/expo', { organization: 'org', project: 'project' }]],
+      // FAKE_NO_SENTRY_PLUGIN=1: bare plugin string; =url: options without org/project.
+      plugins: process.env.FAKE_NO_SENTRY_PLUGIN === 'url'
+        ? [['@sentry/react-native/expo', { url: 'https://sentry.io/' }]]
+        : process.env.FAKE_NO_SENTRY_PLUGIN
+          ? ['@sentry/react-native/expo']
+          : [['@sentry/react-native/expo', { organization: 'org', project: 'project' }]],
     }),
   );
 } else if (args[0] === 'sentry-expo-upload-sourcemaps') {

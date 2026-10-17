@@ -291,7 +291,7 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     return eas;
   };
   /** A clean EAS production environment with the Sentry DSN (as the real one must be). */
-  const DSN_ENV = { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\n' };
+  const DSN_ENV = { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=https://key@example.invalid/1\n' };
   // By default a ready OTA: the Sentry token is set and the EAS environment has the DSN.
   const ota = (branch: string, profile: string, opts: RunOpts = {}) =>
     run(['publish-ota', branch, 'all', profile, 'msg'], {
@@ -338,7 +338,7 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
 
   it('the DSN may also come from the account scope', () => {
     const r = ota('production', 'production', {
-      fakeFiles: { 'eas-env-production-project.txt': '', 'eas-env-production-account.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\n' },
+      fakeFiles: { 'eas-env-production-project.txt': '', 'eas-env-production-account.txt': 'EXPO_PUBLIC_SENTRY_DSN=https://key@example.invalid/1\n' },
     });
     expect(r.status).toBe(0);
   });
@@ -354,7 +354,7 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     'an EAS variable that would override eas.json (%s) stops the OTA (eas update lets EAS win)',
     (key) => {
       const r = ota('production', 'production', {
-        fakeFiles: { 'eas-env-production-project.txt': `EXPO_PUBLIC_SENTRY_DSN=*****\n${key}=https://staging.example\n` },
+        fakeFiles: { 'eas-env-production-project.txt': `EXPO_PUBLIC_SENTRY_DSN=https://key@example.invalid/1\n${key}=https://staging.example\n` },
       });
       expect(r.status).not.toBe(0);
       expect(r.all).toContain(key);
@@ -378,7 +378,7 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
   it('no Sentry org/project for the upload -> nothing is published', () => {
     const r = ota('production', 'production', { env: { FAKE_NO_SENTRY_PLUGIN: '1' } });
     expect(r.status).not.toBe(0);
-    expect(r.all).toContain('Sentry org/project');
+    expect(r.all).toContain('Sentry source map upload would fail');
     expect(r.easCalls('update')).toHaveLength(0);
   });
 
@@ -406,15 +406,15 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
   });
 
   it('no source map in the export fails the job (the upload script would exit 0)', () => {
-    const r = ota('production', 'production', { env: { FAKE_UPDATE_NO_MAPS: '1' } });
+    const r = ota('production', 'production', { env: { FAKE_UPDATE_NO_MAPS: 'all' } });
     expect(r.status).not.toBe(0);
-    expect(r.all).toContain('wrote no source maps');
+    expect(r.all).toContain('source map to dist/');
     expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
   });
 
   it('a test hook that is not at the line start is still caught (fail closed)', () => {
     const r = ota('production', 'production', {
-      fakeFiles: { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\n  EXPO_PUBLIC_MAESTRO_PASSWORD=x\n' },
+      fakeFiles: { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=https://key@example.invalid/1\n  EXPO_PUBLIC_MAESTRO_PASSWORD=x\n' },
     });
     expect(r.status).not.toBe(0);
     expect(r.all).toContain('EXPO_PUBLIC_MAESTRO_PASSWORD');
@@ -429,11 +429,45 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     expect(r.easCalls('update')).toHaveLength(0);
   });
 
-  it('only variable NAMES are matched, not a value that mentions one', () => {
+  it('the override check fails closed: a value that mentions a profile key also stops the OTA', () => {
     const r = ota('production', 'production', {
-      fakeFiles: { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\nNOTE=see EXPO_PUBLIC_API_URL=x\n' },
+      fakeFiles: { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=https://key@example.invalid/1\nNOTE=see EXPO_PUBLIC_API_URL=x\n' },
     });
-    expect(r.status).toBe(0);
+    expect(r.status).not.toBe(0);
+  });
+
+  it('a hook not in TEST_HOOK_ENV is still caught by its EXPO_PUBLIC_MAESTRO prefix', () => {
+    const r = ota('production', 'production', {
+      fakeFiles: { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=https://key@example.invalid/1\nEXPO_PUBLIC_MAESTRO_SEED=1\n' },
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('EXPO_PUBLIC_MAESTRO_SEED');
+  });
+
+  it('a secret DSN in one scope fails even if the other scope has a readable one', () => {
+    const secret = "EXPO_PUBLIC_SENTRY_DSN=***** (This is a secret env variable that can only be accessed on EAS builder and can't be read in any UI. Learn more.)\n";
+    const r = ota('production', 'production', {
+      fakeFiles: { 'eas-env-production-project.txt': secret, 'eas-env-production-account.txt': 'EXPO_PUBLIC_SENTRY_DSN=https://k@example.invalid/1\n' },
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('a bare masked DSN without the sensitive marker fails (fail closed if eas-cli rewords)', () => {
+    const r = ota('production', 'production', { fakeFiles: { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\n' } });
+    expect(r.status).not.toBe(0);
+  });
+
+  it('SENTRY_ORG + SENTRY_PROJECT with plugin options that lack them pass, as in the upload script', () => {
+    const env = { FAKE_NO_SENTRY_PLUGIN: 'url', SENTRY_ORG: 'org', SENTRY_PROJECT: 'project' };
+    expect(ota('production', 'production', { env }).status).toBe(0);
+    expect(ota('production', 'production', { env: { FAKE_NO_SENTRY_PLUGIN: 'url' } }).status).not.toBe(0);
+  });
+
+  it('a missing map for one of the platforms fails the job', () => {
+    const r = ota('production', 'production', { env: { FAKE_UPDATE_NO_MAPS: 'android' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('no android source map');
   });
 
   it('staging OTA without the token publishes with a warning (no DSN required)', () => {

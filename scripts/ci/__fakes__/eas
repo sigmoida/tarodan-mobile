@@ -97,12 +97,16 @@ switch (args[0]) {
     break;
   }
   case 'update': {
-    // Like the real export: a bundle and its source map under ./dist
-    // (FAKE_UPDATE_NO_MAPS=1 leaves the map out).
-    const out = path.join(process.cwd(), 'dist/_expo/static/js/ios');
-    fs.mkdirSync(out, { recursive: true });
-    fs.writeFileSync(path.join(out, 'index.hbc'), '');
-    if (!process.env.FAKE_UPDATE_NO_MAPS) fs.writeFileSync(path.join(out, 'index.hbc.map'), '{}');
+    // Like the real export: a bundle and its source map per platform under ./dist.
+    // FAKE_UPDATE_NO_MAPS=<platform> leaves that platform's map out ("all": every one).
+    const want = flag('--platform') || 'all';
+    for (const p of want === 'all' ? ['ios', 'android'] : [want]) {
+      const out = path.join(process.cwd(), `dist/_expo/static/js/${p}`);
+      fs.mkdirSync(out, { recursive: true });
+      fs.writeFileSync(path.join(out, 'index.hbc'), '');
+      const skip = process.env.FAKE_UPDATE_NO_MAPS;
+      if (skip !== 'all' && skip !== p) fs.writeFileSync(path.join(out, 'index.hbc.map'), '{}');
+    }
     break;
   }
   case 'submit':
