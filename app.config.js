@@ -208,7 +208,55 @@ function withStagingHosts(intentFilters = [], hosts = stagingHosts) {
   });
 }
 
+/**
+ * Fails an EAS build early when it would ship without readable crash reports.
+ *
+ * With `SENTRY_DISABLE_AUTO_UPLOAD` unset (the `production` profile), the Sentry
+ * Xcode phase and Gradle task upload source maps and dSYMs with
+ * `SENTRY_AUTH_TOKEN`. Without the token they would fail only at the end of a
+ * long native build; here the build stops while the config is read, with a
+ * message that names the fix. A production build also needs
+ * `EXPO_PUBLIC_SENTRY_DSN`: without it `src/services/sentry.ts` is a no-op and
+ * the store binary reports nothing at all.
+ *
+ * Staging and development profiles keep `SENTRY_DISABLE_AUTO_UPLOAD=true` and
+ * pass. Only EAS build workers are checked (`EAS_BUILD`): eas-cli on the CI
+ * runner, `eas update`, `expo start` and the CI fingerprint and app-id checks
+ * read the same config without the secret and must not break. A deliberate production build
+ * without symbols stays possible by setting `SENTRY_DISABLE_AUTO_UPLOAD=true` in
+ * the EAS environment; it is logged as a warning, never silent.
+ * Setup: docs/RELEASE.md, "Sentry source maps and debug symbols".
+ *
+ * `env` and `warn` are parameters for tests only.
+ */
+function assertSentryBuildReady(env = process.env, warn = console.warn) {
+  const flag = (name) => !['', '0', 'false'].includes((env[name] ?? '').trim().toLowerCase());
+  if (!flag('EAS_BUILD')) return;
+  const isProduction = env.EXPO_PUBLIC_ENVIRONMENT === 'production';
+  const uploadDisabled = (env.SENTRY_DISABLE_AUTO_UPLOAD ?? '').trim() === 'true';
+  const missing = [];
+  if (!uploadDisabled && !(env.SENTRY_AUTH_TOKEN ?? '').trim()) missing.push('SENTRY_AUTH_TOKEN');
+  if (isProduction && !(env.EXPO_PUBLIC_SENTRY_DSN ?? '').trim()) missing.push('EXPO_PUBLIC_SENTRY_DSN');
+  if (missing.length > 0) {
+    const profile = env.EAS_BUILD_PROFILE || 'unknown';
+    throw new Error(
+      `[app.config] EAS build profile "${profile}" is missing ${missing.join(' and ')}. ` +
+        'Without them the store binary ships with unreadable (or no) Sentry crash reports. ' +
+        'Create the EAS environment variable(s) for this profile\'s environment, or set ' +
+        'SENTRY_DISABLE_AUTO_UPLOAD=true there to skip the upload on purpose. ' +
+        'See docs/RELEASE.md, "Sentry source maps and debug symbols".',
+    );
+  }
+  if (isProduction && uploadDisabled) {
+    warn(
+      '[app.config] SENTRY_DISABLE_AUTO_UPLOAD=true on a production EAS build: ' +
+        'source maps and dSYMs are NOT uploaded, so Sentry stack traces of this build stay unreadable.',
+    );
+  }
+}
+
 module.exports = ({ config }) => {
+  assertSentryBuildReady();
   const isStaging = process.env.EXPO_PUBLIC_ENVIRONMENT === 'preview';
   if (!isStaging) {
     return config;
@@ -249,3 +297,4 @@ module.exports = ({ config }) => {
 module.exports.resolveStagingGoogleServicesFile = resolveStagingGoogleServicesFile;
 module.exports.isAndroidNativeContext = isAndroidNativeContext;
 module.exports.withStagingHosts = withStagingHosts;
+module.exports.assertSentryBuildReady = assertSentryBuildReady;

@@ -155,9 +155,16 @@ describe('eas.json — Google Android bayrağı', () => {
   });
 });
 
-describe('eas.json — Sentry yükleme bayrağı değişmedi', () => {
-  it.each(['preview', 'staging', 'production'])(
-    '%s: SENTRY_DISABLE_AUTO_UPLOAD=true (auth token yokken build kırılmasın)',
+// Only the store release uploads source maps and dSYMs (it needs SENTRY_AUTH_TOKEN,
+// which app.config.js `assertSentryBuildReady` demands up front). Staging and
+// development builds skip the upload so a missing token never blocks them.
+describe('eas.json — Sentry upload flag', () => {
+  it('production uploads: SENTRY_DISABLE_AUTO_UPLOAD is not set', () => {
+    expect(resolvedEnv('production').SENTRY_DISABLE_AUTO_UPLOAD).toBeUndefined();
+  });
+
+  it.each(['development', 'preview', 'staging', 'maestro'])(
+    '%s skips the upload: SENTRY_DISABLE_AUTO_UPLOAD=true',
     (name) => {
       expect(resolvedEnv(name).SENTRY_DISABLE_AUTO_UPLOAD).toBe('true');
     },

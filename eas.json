@@ -65,7 +65,6 @@
         "autoIncrement": "versionCode"
       },
       "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_ENVIRONMENT": "production",
         "EXPO_PUBLIC_API_URL": "https://tarodan.com.tr/api",
         "EXPO_PUBLIC_WEB_URL": "https://tarodan.com.tr",
