@@ -30,6 +30,7 @@ describe("check-branch-name.sh <name>", () => {
     "fix/offer-counter-lock",
     "hotfix/guest-card-403",
     "integration/wave-4",
+    "build/expo-image-manipulator",
   ])("accepts %s", (name) => {
     expect(run([name])).toBe(0);
   });
@@ -48,6 +49,24 @@ describe("check-branch-name.sh <name>", () => {
 });
 
 describe("check-branch-name.sh as a pre-push hook (stdin)", () => {
+  it("rejects creating a remote worktree-* branch (local-only names)", () => {
+    expect(
+      run(
+        [],
+        line("refs/heads/worktree-agent-x", SHA_A, "refs/heads/worktree-agent-x", ZERO),
+      ),
+    ).toBe(1);
+  });
+
+  it("rejects pushing a worktree-* branch into development", () => {
+    expect(
+      run(
+        [],
+        line("refs/heads/worktree-agent-x", SHA_A, "refs/heads/development", SHA_B),
+      ),
+    ).toBe(1);
+  });
+
   it("rejects creating a badly named remote branch", () => {
     expect(
       run([], line("refs/heads/nav/x", SHA_A, "refs/heads/nav/x", ZERO)),
