@@ -637,6 +637,29 @@ describe('PopupAd — yüzey', () => {
       }
       expect(getByTestId('modal-close')).toBeTruthy();
     });
+
+    // Gövde stili `padding: 0` verip `paddingVertical`'ı sıfırlamıyordu: RN'de `paddingVertical`
+    // `padding`'den özgül olduğundan görselin üstünde/altında 20pt bant kalıyordu.
+    it.each([
+      ['dikey 1:2', 400, 800],
+      ['geniş 2:1', 800, 400],
+    ])('%s: görsel kartın üst/alt kenarına yapışık — kutu ile kart arasında dikey boşluk yok', async (_n, w, h) => {
+      setWindow(390, 844);
+      setAds([{ ...imageAd, width: w, height: h }]);
+      const { getByTestId } = render(<PopupAd />);
+      await flush(POPUP_AD_DELAY_MS + 100);
+
+      const box = getByTestId('ad-image-box-p1');
+      const boxStyle = styleOf(box)!;
+      expect((boxStyle.width as number) / (boxStyle.height as number)).toBeCloseTo(w / h, 5);
+      const chain = chainToSheet(box);
+      expect(chain[chain.length - 1]!.maxWidth).toBe(512);
+      for (const st of chain.slice(1)) {
+        for (const k of ['padding', 'paddingVertical', 'paddingTop', 'paddingBottom', 'margin', 'marginVertical', 'marginTop', 'marginBottom']) {
+          expect([k, st[k] ?? 0]).toEqual([k, 0]);
+        }
+      }
+    });
   });
 
   describe('boyut: ekranı taşırmaz, X her zaman görünür', () => {

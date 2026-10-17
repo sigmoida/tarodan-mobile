@@ -274,8 +274,11 @@ const styles = StyleSheet.create({
   bodyAfterHeader: {
     paddingTop: 0,
   },
+  // `body`'nin `paddingVertical`'ı `padding`'den özgüldür (RN): ikisi de sıfırlanmazsa kenardan
+  // kenara gövdede (popup reklam görseli) üstte/altta 20pt boşluk kalır.
   bodyFlush: {
     padding: 0,
+    paddingVertical: 0,
   },
   mediaClose: {
     position: 'absolute',
