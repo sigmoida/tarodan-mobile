@@ -37,8 +37,9 @@ Proper names stay untranslated; copy near a purchase stays store-neutral.
 node scripts/gen-keys.mjs
 ```
 
-In Claude Code a PostToolUse hook runs this after every catalog edit; run it anyway
-if you edited the catalog another way. Never edit `src/i18n/lib/generated/keys.ts` by
+In Claude Code a PostToolUse hook runs this after every catalog edit and lists keys
+missing from tr.json or en.json (a mismatch is expected only between your two
+edits); run it yourself if you edited the catalog another way. Never edit `src/i18n/lib/generated/keys.ts` by
 hand (a PreToolUse hook blocks it).
 
 ## 4. Use it and test

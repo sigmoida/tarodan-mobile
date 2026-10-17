@@ -20,7 +20,8 @@ generated, never edited by hand.
 1. Add the key to **both** `tr.json` and `en.json` (exact key parity; prefer the
    web's key name and text).
 2. Regenerate the types: `node scripts/gen-keys.mjs` (`pnpm i18n:codegen`). In Claude
-   Code a PostToolUse hook runs it after every catalog edit.
+   Code a PostToolUse hook runs it after every catalog edit and reports keys missing
+   from tr.json or en.json.
 3. Run `pnpm test --maxWorkers=2 src/i18n` (`catalog-integrity` checks tr/en parity
    and that `keys.ts` is fresh; `noRawIcu` checks ICU rendering; `webParityValues`
    pins shared values).

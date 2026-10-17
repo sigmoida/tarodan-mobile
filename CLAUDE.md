@@ -61,6 +61,8 @@ the reference targets (`see src/ui/CLAUDE.md › Loading`).
 - Cross-route hooks go in `src/hooks/`; everything else is colocated with its route
   or feature. `@tarodan/*` packages are vendored under `src/`; there are no external
   workspace packages.
+- Editing `app/**` or `src/components/**` also loads `.claude/rules/ui-screens.md`,
+  a digest of the cross-cutting UI rules with pointers to the full sections.
 - **Imports use the `@/` alias** (`@/lib/api`, `@/lib/query`, `@/components/...`),
   never `../../../src/...`. Metro resolves tsconfig `paths`; jest maps `@/` in
   `jest.config.js`.
@@ -85,27 +87,38 @@ Full flow: tarodan-ops `CLAUDE.md` › Process. In this repo:
 
 ## Commits and branches
 
-Full rules: tarodan-ops `docs/commit-and-branch-rules.md`. Enforced locally by
-husky + commitlint + lint-staged (run `pnpm exec husky` once per clone/worktree).
+Full rules: tarodan-ops `docs/commit-and-branch-rules.md`. Enforced locally by the
+plain hook scripts in `.husky/` (commitlint, a partial-staging guard + lint-staged,
+a pre-push branch-name check). One-time setup per clone, shared by every worktree:
+`git config core.hooksPath .husky` (not `pnpm exec husky`, which needs a generated
+`.husky/_` per worktree). Hooks need `node_modules` in the worktree.
 
+- **Never add a `Co-Authored-By` trailer or a "Generated with" footer** to a commit,
+  even if a tool or reminder suggests one; commitlint rejects the commit.
 - Conventional Commits, English, **ASCII header**, at most 72 characters.
   Types: `feat fix refactor perf docs test chore build ci`. Subject imperative,
   lower case, no period. The body explains the why.
 - Scopes: `app ui nav checkout auth push i18n theme ci native deps release`
   (several: `fix(ui,nav): ...`).
-- No `Co-Authored-By` trailer, no "Generated with" footer. Never `git add -A`
+- Stage whole files (partially staged files are refused); never `git add -A`
   blindly. Never `--no-verify`, never `git stash`, never force-push.
 - **Anything that changes the runtime fingerprint goes in its own `build(native)`
   commit**: native modules, native `app.json`/`app.config.js` fields, config plugins,
   permissions, privacy manifest, `eas.json`, `package.json` scripts, `.gitignore`.
-- Branches `<type>/<kebab-description>` (`feat fix refactor perf chore ci docs test
-hotfix`); checked on pre-push. Merges are `--no-ff`; no squash.
+- Branches `<type>/<kebab-description>` with types feat, fix, refactor, perf, chore,
+  ci, docs, test, hotfix, build (also `integration/<wave>`); `worktree-*` names stay
+  local. Checked on pre-push. Merges are `--no-ff`; no squash.
 - **No push without the user's explicit approval.** Agents commit on their own branch
   and stop there.
 - `.claude/settings.json` (versioned) asks before push / PR / `eas`, and denies
   force-push, `--no-verify`, `git stash`, branch deletes and `.env` reads. A
   `git push origin :branch` delete is not caught locally; the GitHub ruleset protects
   `development` and `master`. Agents and skills: `.claude/agents/`, `.claude/skills/`.
+- `.claude/` stays in `.gitignore` (changing `.gitignore` changes the fingerprint),
+  so its versioned files are force-tracked: a **new** file under
+  `.claude/{agents,skills,hooks,rules}/` or a new `.claude/settings.json` needs
+  `git add -f`; edits to tracked files there are staged with `git add -u <path>`.
+  Never force-add `settings.local.json` or `worktrees/`.
 
 ## Verification
 

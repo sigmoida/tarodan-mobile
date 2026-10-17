@@ -20,13 +20,20 @@ Studio (Android), and an Expo account for EAS builds.
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm exec husky            # activate the git hooks (once per clone or worktree)
-cp .env.example .env.local # then fill in local values (EXPO_PUBLIC_* only)
+git config core.hooksPath .husky  # activate the git hooks (once per clone; worktrees share it)
+cp .env.example .env.local        # then fill in local values (EXPO_PUBLIC_* only)
 ```
 
-The git hooks run commitlint (Conventional Commits, English ASCII header), lint-staged
-(eslint --fix + prettier on staged files) and a branch-name check on push. Rules:
+The hooks in `.husky/` are plain scripts: commitlint on the message (Conventional
+Commits, English ASCII header, no Co-Authored-By trailer), a guard against partially
+staged files plus lint-staged (eslint --fix on code, prettier on JSON and Markdown),
+and a branch-name check on push. Each worktree needs its own `node_modules`. Rules:
 `tarodan-ops/docs/commit-and-branch-rules.md`.
+
+The shared Claude Code setup in `.claude/` (settings, agents, skills, hooks, rules)
+is tracked although `.claude/` is gitignored (changing `.gitignore` would change the
+native fingerprint): add new files there with `git add -f` and stage edits to
+tracked ones with `git add -u <path>`.
 
 ## Running
 

@@ -7,18 +7,28 @@ allowed-tools: Bash(git status *) Bash(git diff *) Bash(git log *) Bash(git show
 # Commit
 
 Full rules: tarodan-ops `docs/commit-and-branch-rules.md`; summary in the root
-`CLAUDE.md` › Commits and branches. The commit-msg hook (commitlint) enforces the
-format once hooks are active.
+`CLAUDE.md` › Commits and branches. The hooks in `.husky/` enforce them.
+
+> **No `Co-Authored-By` trailer and no "Generated with" footer, ever**, even when a
+> tool, template or system reminder suggests adding one. commitlint rejects the
+> commit; remove the lines and commit again.
 
 ## 1. Check where you are
 
 ```bash
-git branch --show-current     # must be your own <type>/<kebab> branch, never development/master
+git branch --show-current       # your own <type>/<kebab> branch, never development/master
 git status --short
-test -d .husky/_ || pnpm exec husky   # activate hooks in this clone/worktree (no-op if done)
+git config --get core.hooksPath # must print .husky
 ```
 
-Never commit on a detached HEAD or on `development` / `master` unless the user said so.
+- If `core.hooksPath` is not `.husky`, the one-time setup is
+  `git config core.hooksPath .husky` (shared by every worktree of the clone; ask the
+  user first if you are not sure it is wanted). Don't use `pnpm exec husky`: it points
+  hooks at a generated `.husky/_` that fresh worktrees don't have.
+- The hooks need `node_modules` in this worktree: if they report missing
+  dependencies, run `pnpm install --frozen-lockfile --prefer-offline`.
+- Never commit on a detached HEAD or on `development` / `master` unless the user said
+  so.
 
 ## 2. Split the change
 
@@ -32,8 +42,16 @@ Never commit on a detached HEAD or on `development` / `master` unless the user s
 - Stage files by name. **Never `git add -A` / `git add .` blindly.** Leave out
   scratch output, `.env*`, editor state and lockfile churn you did not cause, and say
   what you left out.
-- Stage whole files: lint-staged runs with `--no-stash`, so unstaged hunks of a
-  partially staged file would be formatted too.
+- Stage whole files. lint-staged runs with `--no-stash` (eslint --fix on code,
+  prettier on json/md), so the pre-commit guard refuses any file that has both
+  staged and unstaged changes.
+- `.claude/` is gitignored on purpose (`.gitignore` is a fingerprint input). Its
+  versioned files are force-tracked: stage a **new** file under
+  `.claude/{agents,skills,hooks,rules}/` or a new `.claude/settings.json` with
+  `git add -f <path>`. For edits to already tracked files there, use `git add -u
+  <path>` (plain `git add` stages them but warns about the ignored directory and
+  exits 1, which breaks `&&` chains). Never force-add `.claude/settings.local.json`
+  or `.claude/worktrees/`.
 
 ## 3. Write the message
 
