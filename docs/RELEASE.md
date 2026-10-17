@@ -462,6 +462,7 @@ ulaşamaz; production OTA onayı atlanamaz.
 | `SENTRY_AUTH_TOKEN`                                        | EAS env, `production`, **secret** visibility           | Production EAS build: source map + dSYM upload (see "Sentry source maps and debug symbols")     |
 | `EXPO_PUBLIC_SENTRY_DSN`                                   | EAS env, `production`, plaintext                       | Production build and production OTA (`publish-ota` loads the EAS env); without it Sentry is off |
 | `SENTRY_AUTH_TOKEN`                                        | GitHub Environment `production` secret                 | Production OTA source map upload                                                                |
+| `SENTRY_AUTH_TOKEN`                                        | GitHub Environment `staging` secret                    | Staging OTA source map upload (optional: without it the OTA ships with a warning, no maps)      |
 | "Allow GitHub Actions to create and approve pull requests" | Repo ayarı (Settings → Actions → General)              | Hotfix back-merge PR'ı                                                                          |
 
 > ⚠️ Workflow'da adı geçen bir environment yoksa GitHub onu **korumasız**
@@ -591,7 +592,19 @@ readable. `publish_ota` in `scripts/ci/release.sh` therefore passes
 every published source map carries a debugId, and uploads `dist/` with
 `npx sentry-expo-upload-sourcemaps dist` using the `SENTRY_AUTH_TOKEN` secret of
 the GitHub Environment `production`. A production OTA without that token is
-refused before anything is published. Details: `scripts/ci/CLAUDE.md` (publish-ota).
+refused before anything is published. Staging OTAs do the same with the
+`SENTRY_AUTH_TOKEN` secret of the GitHub Environment `staging`; without it they
+publish and only warn. With the token, a staging OTA follows the same checks as
+production: a Sentry upload target that cannot be resolved stops it before
+publishing, and a missing map, a map without a debugId or a failed upload turns the
+job red after publishing (do not re-run it; fix the cause, the next push ships a new
+OTA). Keep `SENTRY_AUTH_TOKEN` an **Environment** secret only (`staging` and
+`production`): a repository secret of the same name would silently fill in for an
+environment that lacks one. Staging **store builds** still upload nothing
+(`SENTRY_DISABLE_AUTO_UPLOAD=true` in the `staging` and `preview` profiles), so
+errors from a staging binary's embedded bundle stay minified until an OTA replaces
+it; turning that on is an `eas.json` (fingerprint) change. Details:
+`scripts/ci/CLAUDE.md` (publish-ota).
 
 ## Kopya kağıdı
 

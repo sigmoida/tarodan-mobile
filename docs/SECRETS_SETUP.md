@@ -115,6 +115,14 @@ sets no `environment`, so EAS builds it with the `production` variables. The
 `maestro` profile uses its own `maestro` environment and stays without a DSN
 unless one is added there.
 
+The Sentry `environment` tag comes from `EXPO_PUBLIC_ENVIRONMENT` through
+`src/services/sentryEnvironment.ts`: `production` stays `production`, `preview`
+(every staging build and OTA) reports as `staging`, anything else as
+`development`, and so do `__DEV__` bundles (Metro, a local dev client) and
+Maestro E2E builds (`EXPO_PUBLIC_MAESTRO=1`, although the `maestro` profile
+extends `preview`). `EXPO_PUBLIC_ENVIRONMENT` itself stays
+`preview` (it selects the `.staging` app id).
+
 Source map and dSYM upload is on for the `production` profile only and needs the
 EAS secret `SENTRY_AUTH_TOKEN`. Setup steps (Sentry project, DSN, token, OTA):
 [`RELEASE.md`](./RELEASE.md), "Sentry source maps and debug symbols".

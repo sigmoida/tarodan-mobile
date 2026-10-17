@@ -224,6 +224,9 @@ jobs:
         env:
           OTA_PLATFORM: ${{ matrix.platform }}
           MSG: ${{ needs.plan.outputs.message }}
+          # Source maps of the update to Sentry (secret of the GitHub Environment
+          # `staging`). Optional here: without it release.sh publishes and warns.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: scripts/ci/release.sh publish-ota staging "$OTA_PLATFORM" preview "$MSG"
 
   build-ios:
@@ -261,6 +264,7 @@ jobs:
         if: steps.recheck.outputs.action == 'ota'
         env:
           MSG: ${{ needs.plan.outputs.message }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}  # as in the ota job
         run: scripts/ci/release.sh publish-ota staging ios preview "$MSG"
       - name: EAS build + submit (iOS, staging → TestFlight)
         if: steps.recheck.outputs.action == 'build'
@@ -302,6 +306,7 @@ jobs:
         if: steps.recheck.outputs.action == 'ota'
         env:
           MSG: ${{ needs.plan.outputs.message }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}  # as in the ota job
         run: scripts/ci/release.sh publish-ota staging android preview "$MSG"
       - name: Verify Android package is com.tarodan.app.staging
         # staging Android build'i ve gönderimi yalnız bu pakete gider. Değilse DUR:

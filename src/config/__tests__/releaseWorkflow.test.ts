@@ -235,6 +235,23 @@ describe('staging', () => {
       expect(bs[w].env?.ANDROID_ENABLED).toBe(androidEnabled);
     }
   });
+
+  it('every staging OTA step gets SENTRY_AUTH_TOKEN from the staging environment (source maps)', () => {
+    // The ota job and the OTA fallback of both build jobs (recheck found a binary).
+    const steps = Object.entries(staging.jobs).flatMap(([id, job]) =>
+      (job.steps ?? [])
+        .filter((s) => (s.run ?? '').includes('release.sh publish-ota staging'))
+        .map((s) => ({ id, env: envName(job), token: s.env?.SENTRY_AUTH_TOKEN })),
+    );
+    expect(steps.map((s) => s.id).sort()).toEqual(['build-android', 'build-ios', 'ota']);
+    for (const step of steps) {
+      expect(step).toEqual({
+        id: step.id,
+        env: 'staging',
+        token: '${{ secrets.SENTRY_AUTH_TOKEN }}',
+      });
+    }
+  });
 });
 
 describe('production', () => {
