@@ -620,6 +620,17 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     expect(r.easCalls('update')).toHaveLength(0);
   });
 
+  it('staging OTA with the token uploads its source maps after publishing', () => {
+    const r = ota('staging', 'preview');
+    expect(r.status).toBe(0);
+    const calls = r.log.map((l) => l.split(' | ')[0]);
+    const update = calls.findIndex((c) => c.startsWith('eas update --branch staging '));
+    const upload = calls.indexOf('npx sentry-expo-upload-sourcemaps dist');
+    expect(update).toBeGreaterThan(-1);
+    expect(upload).toBeGreaterThan(update);
+    expect(r.all).not.toContain('SENTRY_AUTH_TOKEN is not set');
+  });
+
   it('staging OTA without the token publishes with a warning (no DSN required)', () => {
     // The preview environment has no DSN (no fake file): staging does not require one.
     const r = ota('staging', 'preview', { env: { SENTRY_AUTH_TOKEN: '' } });
