@@ -532,8 +532,12 @@ describe('master akışı', () => {
     const step = masterFlow.jobs['source-guard'].steps!.find((s) => s.run)!;
     expect(step.env?.HEAD_SHA).toBe('${{ github.event.pull_request.head.sha }}');
     expect(step.env?.GH_TOKEN).toBe('${{ github.token }}');
-    expect(step.run).toContain('gh api "repos/$REPO/compare/development...$HEAD_SHA" --jq .merge_base_commit.sha');
-    expect(step.run).toContain('gh api "repos/$REPO/compare/$base...master" --jq .status');
+    // The commits the hotfix adds over master (count, then list with parents), then one
+    // check per root commit: no merge base is trusted (there can be several).
+    expect(step.run).toContain('gh api "repos/$REPO/compare/master...$HEAD_SHA?per_page=1" --jq .total_commits');
+    expect(step.run).toContain(`gh api "repos/$REPO/compare/master...$HEAD_SHA?per_page=100" --paginate --jq '.commits[] | ([.sha] + [.parents[].sha]) | join(" ")'`);
+    expect(step.run).toContain('gh api "repos/$REPO/compare/$sha...development?per_page=1" --jq .status');
+    expect(step.run).not.toContain('merge_base_commit');
     // Read-only: the job inherits contents: read and asks for nothing more.
     expect(masterFlow.jobs['source-guard'].permissions).toBeUndefined();
   });

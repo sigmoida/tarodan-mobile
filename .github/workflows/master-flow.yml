@@ -35,7 +35,8 @@ jobs:
     name: Master source guard
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Two API calls plus one per root commit of the hotfix (usually one).
+    timeout-minutes: 10
     # No checkout of PR code (pull_request_target safety; see the file header).
     steps:
       - name: Source branch must be development or a hotfix/* cut from master
@@ -55,24 +56,82 @@ jobs:
             development)
               echo "OK: development -> master" ;;
             hotfix/*)
-              # A hotfix skips check-release-version and its JS-only merge ships as a
-              # production OTA, so it may carry nothing from development that master
-              # does not already have: what it shares with development (their merge
-              # base) must be on master. A hotfix/* cut from development, or one that
-              # merged development later, fails here. Any API error fails (closed).
-              base="$(gh api "repos/$REPO/compare/development...$HEAD_SHA" --jq .merge_base_commit.sha)"
-              if [ -z "$base" ] || [ "$base" = null ]; then
-                echo "::error::Could not find where $HEAD_REF meets development; the hotfix cannot be checked."
+              # THE HOTFIX RULE (docs point here). A hotfix skips check-release-version
+              # and its JS-only merge ships as a production OTA, so none of the commits
+              # it adds over master may be on development: those are unreleased
+              # development code (a hotfix cut from development, or one that merged
+              # development or a branch development already merged). No merge base with
+              # development is trusted (a criss-cross history has several); the added
+              # commits are checked themselves. Checking their roots (listed commits
+              # with no listed parent) is exact: development holding a listed commit
+              # holds that commit's root ancestor in the list too. The rule is checked
+              # on every PR event (open, push, edit). Fails closed: an API error, an
+              # unexpected or incomplete answer, or more than max_commits commits.
+              # (A criss-cross between master and the hotfix can list a commit master
+              # already has; that refuses a hotfix, never admits one.)
+              max_commits=250
+              total="$(gh api "repos/$REPO/compare/master...$HEAD_SHA?per_page=1" --jq .total_commits)"
+              case "$total" in
+                ''|*[!0-9]*)
+                  echo "::error::The API gave '$total' as the number of commits $HEAD_REF adds over master; the hotfix cannot be checked."
+                  exit 1 ;;
+              esac
+              if [ "$total" -eq 0 ]; then
+                echo "::error::The API lists no commits that $HEAD_REF adds over master; the hotfix cannot be checked."
                 exit 1
               fi
-              status="$(gh api "repos/$REPO/compare/$base...master" --jq .status)"
-              case "$status" in
-                identical|ahead)
-                  echo "OK: $HEAD_REF -> master (cut from master; shares $base with development, which master contains)" ;;
-                *)
-                  echo "::error::$HEAD_REF carries development commits that are not on master (merge base with development: $base, compare status: $status). A hotfix must be cut from master: git switch -c hotfix/<name> origin/master, then cherry-pick the fix. Unreleased development code must go through a development -> master release PR. A hotfix merged into development before master also trips this check: cut a hotfix branch with a new name from origin/master, cherry-pick the fix commits onto it, open that PR and ask for this one to be closed; the back-merge carries it into development after the master merge."
-                  exit 1 ;;
-              esac ;;
+              if [ "$total" -gt "$max_commits" ]; then
+                echo "::error::$HEAD_REF adds $total commits over master (more than $max_commits); a hotfix is a small fix cut from master. Unreleased development code must go through a development -> master release PR."
+                exit 1
+              fi
+              # One line per added commit: "<sha> <parent sha>...".
+              list="$(gh api "repos/$REPO/compare/master...$HEAD_SHA?per_page=100" --paginate --jq '.commits[] | ([.sha] + [.parents[].sha]) | join(" ")')"
+              if ! roots="$(printf '%s\n' "$list" | awk -v want="$total" '
+                function sha(v) { return v ~ /^[0-9a-f]+$/ && length(v) == 40 }
+                BEGIN { n = 0 }
+                NF {
+                  for (i = 1; i <= NF; i++) if (!sha($i)) bad = $i
+                  if ($1 in listed) dup = $1
+                  n++; line[n] = $0; listed[$1] = 1
+                }
+                END {
+                  if (bad != "") { print "The API listed '\''" bad "'\'' in the commits of the hotfix; it cannot be checked."; exit 1 }
+                  if (dup != "") { print "The API listed " dup " twice in the commits of the hotfix; it cannot be checked."; exit 1 }
+                  if (n != want) { print "The API listed " n " of the " want " commits the hotfix adds over master; it cannot be checked."; exit 1 }
+                  # Every commit must reach a root through listed parents, or its root
+                  # ancestor would never be compared (a cycle that some member leaves
+                  # through a parent is harmless: that member still reaches a root).
+                  # n == want >= 1, so all commits reaching a root implies a root exists.
+                  for (k = 1; k <= n; k++) {
+                    m = split(line[k], f, " "); c[k] = f[1]; np[k] = m - 1; isroot[k] = 1
+                    for (i = 2; i <= m; i++) { p[k, i - 1] = f[i]; if (f[i] in listed) isroot[k] = 0 }
+                    if (isroot[k]) good[c[k]] = 1
+                  }
+                  do {
+                    changed = 0
+                    for (k = 1; k <= n; k++) if (!(c[k] in good))
+                      for (i = 1; i <= np[k]; i++) if (p[k, i] in good) { good[c[k]] = 1; changed = 1; break }
+                  } while (changed)
+                  for (k = 1; k <= n; k++) if (!(c[k] in good)) { print "The API listed " c[k] ", which does not reach a root commit through the listed parents (a parent cycle); the hotfix cannot be checked."; exit 1 }
+                  for (k = 1; k <= n; k++) if (isroot[k]) print c[k]
+                }')"; then
+                echo "::error::$HEAD_REF: $roots"
+                exit 1
+              fi
+              for sha in $roots; do
+                # identical | ahead: development contains the commit.
+                status="$(gh api "repos/$REPO/compare/$sha...development?per_page=1" --jq .status)"
+                case "$status" in
+                  behind|diverged) ;;
+                  identical|ahead)
+                    echo "::error::$HEAD_REF carries development commits that are not on master ($sha is on development; compare status: $status). A hotfix must be cut from master: git switch -c hotfix/<name> origin/master, then cherry-pick the fix. Unreleased development code must go through a development -> master release PR. A hotfix merged into development before master also trips this check: cut a hotfix branch with a new name from origin/master, cherry-pick the fix commits onto it, open that PR and ask for this one to be closed; the back-merge carries it into development after the master merge."
+                    exit 1 ;;
+                  *)
+                    echo "::error::Could not tell whether development contains $sha (compare status: '$status'); the hotfix cannot be checked."
+                    exit 1 ;;
+                esac
+              done
+              echo "OK: $HEAD_REF -> master (cut from master; none of its $total commits over master is on development)" ;;
             *)
               echo "::error::A PR into master must come from 'development' or a 'hotfix/*' branch (source: '$HEAD_REF'). Merge the change into development, or for an urgent fix cut hotfix/<name> from master."
               exit 1 ;;
