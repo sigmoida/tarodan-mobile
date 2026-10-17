@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import type { HeroSlide } from '@/lib/api/hero';
 import {
+  hasOnlyStoreCtas,
   heroImageUrl,
   heroStoreLinkKind,
   pickLocalized,
@@ -160,11 +161,21 @@ describe('mağaza bağlantılı CTA (App Store / Google Play)', () => {
     }
   });
 
-  it('uygulamada mağaza CTA\'sı çizilmez; tek CTA\'ları mağaza olan slayt butonsuz kalır', () => {
-    const s = slide({ cta1: { label: { tr: 'Android' }, href: ANDROID }, cta2: { label: { tr: 'iOS' }, href: IOS } });
-    expect(visibleSlides([s], 'tr')).toEqual([s]);
-    expect(resolveHeroCta(s.cta1, 'tr')).toBeNull();
-    expect(resolveHeroCta(s.cta2, 'tr')).toBeNull();
-    expect(resolveHeroCta({ label: { tr: 'Gez' }, href: '/listings' }, 'tr')).toEqual({ label: 'Gez', href: '/listings' });
+  it('butonlarının hepsi mağaza bağlantısı olan slayt uygulamada hiç gösterilmez', () => {
+    const promo = slide({ cta1: { label: { tr: 'Android' }, href: ANDROID }, cta2: { label: { tr: 'iOS' }, href: IOS } });
+    const onlyIos = slide({ id: 's2', cta1: { label: { tr: 'iOS' }, href: IOS } });
+    expect(hasOnlyStoreCtas(promo)).toBe(true);
+    expect(hasOnlyStoreCtas(onlyIos)).toBe(true);
+    expect(visibleSlides([promo, onlyIos], 'tr')).toEqual([]);
+  });
+
+  it('mağaza + normal buton: slayt kalır, yalnız mağaza butonu düşer; butonsuz slayt etkilenmez', () => {
+    const mixed = slide({ cta1: { label: { tr: 'iOS' }, href: IOS }, cta2: { label: { tr: 'Gez' }, href: '/listings' } });
+    const plain = slide({ id: 's3' });
+    expect(hasOnlyStoreCtas(mixed)).toBe(false);
+    expect(hasOnlyStoreCtas(plain)).toBe(false);
+    expect(visibleSlides([mixed, plain], 'tr')).toEqual([mixed, plain]);
+    expect(resolveHeroCta(mixed.cta1, 'tr')).toBeNull();
+    expect(resolveHeroCta(mixed.cta2, 'tr')).toEqual({ label: 'Gez', href: '/listings' });
   });
 });

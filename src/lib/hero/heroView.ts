@@ -41,6 +41,16 @@ export function heroStoreLinkKind(href: string | null | undefined): HeroStoreLin
   return null;
 }
 
+/**
+ * Slaytın butonlarının HEPSİ mağaza bağlantısı mı (en az bir buton varsa) — web
+ * `@tarodan/types` `heroHasOnlyStoreCtas` karşılığı. Böyle bir slayt "uygulamayı
+ * indir" çağrısıdır; uygulamada slaytın kendisi gösterilmez (`visibleSlides`).
+ */
+export function hasOnlyStoreCtas(slide: Pick<HeroSlide, 'cta1' | 'cta2'>): boolean {
+  const hrefs = [slide.cta1?.href, slide.cta2?.href].filter((h): h is string => !!h?.trim());
+  return hrefs.length > 0 && hrefs.every((h) => heroStoreLinkKind(h) !== null);
+}
+
 export interface ResolvedHeroCta {
   label: string;
   href: string;
@@ -50,7 +60,8 @@ export interface ResolvedHeroCta {
  * CTA'yı çizilebilir hâle getirir. Bağlantıyı admin yazar: güvensiz şema,
  * satın alma hedefi, mağaza bağlantısı (App Store / Google Play — uygulamadaki
  * kullanıcıya "uygulamayı indir" anlamsız) ya da boş etiket varsa CTA HİÇ
- * çizilmez (`null`). Slaytın tek CTA'ları mağaza bağlantısıysa slayt butonsuz çizilir.
+ * çizilmez (`null`). Butonlarının hepsi mağaza bağlantısı olan slayt zaten hiç
+ * gösterilmez (`visibleSlides`).
  */
 export function resolveHeroCta(
   cta: HeroCta | null | undefined,
@@ -70,6 +81,9 @@ export function resolveHeroCta(
  *   uygulamada (iOS + Android) gizlenir — bayrak adı tarihsel.
  * - Satın almaya (üyelik/boost) giden CTA'sı olan slayt: buton gizlemek yetmez,
  *   slaytın kendisi satış çağrısı (Apple 3.1.1/3.1.3, Play ödeme politikası).
+ * - Butonlarının hepsi mağaza bağlantısı (App Store / Google Play) olan slayt:
+ *   "uygulamayı indir" tanıtımı uygulamanın içinde anlamsız (`hasOnlyStoreCtas`).
+ *   Mağaza butonu + normal buton taşıyan slayt kalır, yalnız mağaza butonu düşer.
  * - Görseli ya da başlığı olmayan (çizilemeyen) slayt.
  * - `platform: 'web'` slayt: sunucu `platform=app` ile zaten süzer; eski/yanlış
  *   yanıta karşı ek güvenlik. Alan yoksa (eski sunucu) slayt gösterilir.
@@ -81,6 +95,7 @@ export function visibleSlides(slides: readonly HeroSlide[] | null | undefined, l
       !!s &&
       !s.hideOnIos &&
       s.platform !== 'web' &&
+      !hasOnlyStoreCtas(s) &&
       !!heroImageUrl(s) &&
       !!pickLocalized(s.title, locale) &&
       !isPurchaseLink(s.cta1?.href) &&
