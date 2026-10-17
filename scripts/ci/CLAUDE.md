@@ -11,9 +11,16 @@ change one:
 
 - `profile-env`, `fingerprint <profile> <ios|android>`: the runtime fingerprint with
   the profile's env loaded from `eas.json` (equals the build's `runtimeVersion`).
-- `build-state`, `last-store-version`, `version-gt`, `app-version`,
-  `bump-version`: binary state per runtime (`available | pending | none`) and the
-  version bookkeeping.
+- `build-state`, `last-store-version`, `version-gt`, `app-version`: binary state per
+  runtime (`available | pending | none`) and the version reads.
+- `latest-release [below]`, `next-version [ref]`, `set-version <X.Y.Z>`: release
+  versioning. The version is computed at release time from the Conventional Commits
+  since the highest `mobile-vX.Y.Z` tag (breaking -> major, `feat` -> minor, else
+  patch; `chore(release)` and merge commits ignored); a higher version already in
+  `app.json` wins (manual override). The tag is looked up repo-wide, not "reachable
+  from ref": release tags sit on master merge commits that development never
+  contains. No tag -> `next-version` fails (no guessed fallback). The release PR
+  flow: `docs/RELEASE.md` › "Release version".
 - `plan <staging|production>`: the single per-platform decision loop
   (`ota | build | wait | skip | blocked`). Production: a `development` merge (or an
   unknown source) is always a store build and never an OTA; `hotfix/*` follows the
@@ -37,7 +44,9 @@ change one:
 - Production steps stay behind the `production` / `production-build` GitHub
   Environments. The production freeze (tarodan-ops ADR 0010) blocks any production
   run until the user lifts it.
-- Tags are `v<version>` today; the hub target is `mobile-v<version>` (backlog).
+- Tags are `mobile-v<version>` (`TAG_PREFIX` in `release.sh`), set by
+  `release-bookkeeping` in `mobile-production.yml` on the released master commit. CI
+  never writes to `development` (no post-release bump).
 
 ## Tests
 

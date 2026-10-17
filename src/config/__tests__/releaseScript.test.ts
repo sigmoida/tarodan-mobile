@@ -953,50 +953,275 @@ describe('release.sh await-binary — staging OTA\'sı derlenen build\'den SONRA
   });
 });
 
-describe('release.sh bump-version — yayın sonrası development bir sonraki yamaya geçer', () => {
-  const bump = (released: string) => run(['bump-version', released], { readFiles: ['app.json'] });
-  const versionOf = (r: ReturnType<typeof bump>) => JSON.parse(r.files['app.json']).expo.version;
-  // Senaryolarda development'taki (geçici kök) sürüm TEST_VERSION'dır.
+describe('release.sh set-version — the release PR sets expo.version', () => {
+  const setVersion = (...args: string[]) => run(['set-version', ...args], { readFiles: ['app.json'] });
+  const versionOf = (r: ReturnType<typeof setVersion>) => JSON.parse(r.files['app.json']).expo.version;
+  // In these scenarios app.json (temporary root) holds TEST_VERSION.
   const original = () => {
     const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
     j.expo.version = TEST_VERSION;
     return `${JSON.stringify(j, null, 2)}\n`;
   };
 
-  it('yayınlanan sürüm development\'takiyle aynıysa → sonraki yama', () => {
-    const r = bump(TEST_VERSION);
+  it('sets a higher version', () => {
+    const r = setVersion('1.1.0');
     expect(r.status).toBe(0);
-    expect(versionOf(r)).toBe('1.0.6');
-    expect(r.outputs).toMatchObject({ bumped: 'true', version: '1.0.6' });
+    expect(versionOf(r)).toBe('1.1.0');
   });
 
-  it('development geride kaldıysa (ör. hotfix sürümü) → yayınlananın sonraki yaması', () => {
-    const r = bump('1.0.9');
-    expect(versionOf(r)).toBe('1.0.10');
+  it('changes only the version line; the rest of the file stays byte for byte', () => {
+    const r = setVersion('2.0.0');
+    expect(r.files['app.json']).toBe(original().replace(`"version": "${TEST_VERSION}"`, '"version": "2.0.0"'));
   });
 
-  it('development zaten ilerideyse (elle 1.1.0 gibi) dokunmaz', () => {
-    const r = bump('1.0.4');
+  it('the same version is a no-op', () => {
+    const r = setVersion(TEST_VERSION);
     expect(r.status).toBe(0);
     expect(r.files['app.json']).toBe(original());
-    expect(r.outputs).toMatchObject({ bumped: 'false', version: TEST_VERSION });
   });
 
-  it('yalnız sürüm alanı değişir, dosyanın geri kalanı aynı kalır', () => {
-    const r = bump(TEST_VERSION);
-    expect(r.files['app.json']).toBe(original().replace(`"version": "${TEST_VERSION}"`, '"version": "1.0.6"'));
+  it('never lowers the version', () => {
+    const r = setVersion('1.0.4');
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('lower');
+    expect(r.files['app.json']).toBe(original());
   });
 
-  it.each([['1.0'], ['abc'], ['1.0.5-beta'], ['1..5'], ['']])('X.Y.Z olmayan sürüm (%s) → durur', (v) => {
-    const r = bump(v);
+  it.each([['1.0'], ['abc'], ['1.0.6-beta'], ['1..6'], ['']])('refuses a version that is not X.Y.Z (%s)', (v) => {
+    const r = setVersion(v);
     expect(r.status).not.toBe(0);
     expect(r.files['app.json']).toBe(original());
   });
+
+  it('no longer offers bump-version (no post-release bump of development)', () => {
+    const r = run(['bump-version', TEST_VERSION]);
+    expect(r.status).not.toBe(0);
+  });
 });
 
-describe('release.sh — CI\'daki gibi çağrı (kopyalanmış script, göreli app.json)', () => {
-  // release-bookkeeping: master'daki script $RUNNER_TEMP'e kopyalanır, development
-  // checkout'unda göreli `app.json` ile çağrılır.
+/**
+ * A throwaway git repository with release.sh and app.json committed, for
+ * next-version / latest-release. Global and system git config are ignored (no
+ * hooks, no signing, no user settings), and so are GIT_* variables of a caller
+ * such as a pre-commit hook.
+ */
+function gitRepo(version = TEST_VERSION) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'release-git-'));
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  for (const k of Object.keys(env)) if (k.startsWith('GIT_')) delete env[k];
+  Object.assign(env, {
+    GIT_CONFIG_GLOBAL: '/dev/null',
+    GIT_CONFIG_NOSYSTEM: '1',
+    GIT_AUTHOR_NAME: 'Test',
+    GIT_AUTHOR_EMAIL: 'test@example.invalid',
+    GIT_COMMITTER_NAME: 'Test',
+    GIT_COMMITTER_EMAIL: 'test@example.invalid',
+  });
+  const git = (args: string[], input?: string, cwd = dir) => {
+    const res = spawnSync('git', args, { cwd, env, input, encoding: 'utf8' });
+    if (res.status !== 0) throw new Error(`git ${args.join(' ')}: ${res.stderr}`);
+    return res.stdout.trim();
+  };
+  const writeVersion = (v: string) => {
+    const appJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
+    appJson.expo.version = v;
+    fs.writeFileSync(path.join(dir, 'app.json'), `${JSON.stringify(appJson, null, 2)}\n`);
+  };
+  git(['init', '-q', '-b', 'development']);
+  fs.mkdirSync(path.join(dir, 'scripts/ci'), { recursive: true });
+  fs.copyFileSync(SCRIPT, path.join(dir, 'scripts/ci/release.sh'));
+  writeVersion(version);
+  git(['add', '.']);
+  git(['commit', '-q', '-m', 'chore: initial']);
+  const repo = {
+    dir,
+    git,
+    /** An empty commit with the full message (header, body, footers). */
+    commit: (message: string) => {
+      git(['commit', '-q', '--allow-empty', '-F', '-'], message);
+      return git(['rev-parse', 'HEAD']);
+    },
+    /** Commits app.json with another expo.version (the release PR's commit). */
+    commitVersion: (v: string, message = `chore(release): ${v}`) => {
+      writeVersion(v);
+      git(['add', 'app.json']);
+      git(['commit', '-q', '-F', '-'], message);
+    },
+    tag: (name: string, ref = 'HEAD') => git(['tag', name, ref]),
+    run: (args: string[], cwd = dir) => {
+      const res = spawnSync('bash', [path.join(cwd, 'scripts/ci/release.sh'), ...args], {
+        cwd,
+        env,
+        encoding: 'utf8',
+      });
+      if (res.error) throw res.error;
+      return { status: res.status, stdout: res.stdout, stderr: res.stderr, all: `${res.stdout}\n${res.stderr}` };
+    },
+    cleanup: () => fs.rmSync(dir, { recursive: true, force: true }),
+  };
+  return repo;
+}
+
+describe('release.sh next-version — computed from Conventional Commits since the last mobile-v tag', () => {
+  let repo: ReturnType<typeof gitRepo>;
+  beforeEach(() => {
+    repo = gitRepo();
+  });
+  afterEach(() => repo.cleanup());
+
+  /** Seed tag on the current commit, then the given commits on top. */
+  const since = (...messages: string[]) => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    for (const m of messages) repo.commit(m);
+    return repo.run(['next-version']);
+  };
+
+  it('fails with a clear message when there is no mobile-v tag (no guessed fallback)', () => {
+    repo.tag('v1.0.5'); // the old prefix does not count
+    repo.commit('feat: x');
+    const r = repo.run(['next-version']);
+    expect(r.status).not.toBe(0);
+    expect(r.stdout).toBe('');
+    expect(r.all).toContain('no mobile-vX.Y.Z tag');
+  });
+
+  it('only fixes and other types -> patch', () => {
+    const r = since('fix: a', 'docs: b', 'refactor(ui): c', 'build(native): d');
+    expect(r.status).toBe(0);
+    expect(r.stdout).toBe('1.0.6\n');
+  });
+
+  it('any feat -> minor', () => {
+    const r = since('fix: a', 'feat(checkout): b', 'chore: c');
+    expect(r.stdout).toBe('1.1.0\n');
+  });
+
+  it.each([['feat!: drop x'], ['fix(api)!: change y'], ['refactor(ui,nav)!: z']])('%s -> major', (m) => {
+    const r = since('feat: a', m);
+    expect(r.stdout).toBe('2.0.0\n');
+  });
+
+  it.each([['BREAKING CHANGE'], ['BREAKING-CHANGE']])('a %s footer -> major', (token) => {
+    const r = since('fix: a', `fix(auth): b\n\nWhy it changed.\n\n${token}: the old token is rejected`);
+    expect(r.stdout).toBe('2.0.0\n');
+  });
+
+  it('a body that only mentions a breaking change (not a footer line) stays minor', () => {
+    const r = since('feat: a\n\nThis is not a BREAKING CHANGE: callers keep working.');
+    expect(r.stdout).toBe('1.1.0\n');
+  });
+
+  it('chore(release) commits are ignored, even with a !', () => {
+    const r = since('fix: a', 'chore(release)!: 1.0.6', 'chore(release): development 1.0.6 (canlıda 1.0.5)');
+    expect(r.stdout).toBe('1.0.6\n');
+  });
+
+  it('fails when nothing but chore(release) was committed since the tag', () => {
+    const r = since('chore(release): 1.0.6');
+    expect(r.status).not.toBe(0);
+    expect(r.stdout).toBe('');
+    expect(r.all).toContain('nothing to release');
+  });
+
+  it('a higher version already in app.json wins (manual override) with a notice', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commit('fix: a');
+    repo.commitVersion('1.3.0');
+    const r = repo.run(['next-version']);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toBe('1.3.0\n');
+    expect(r.stderr).toContain('manual override');
+  });
+
+  it('after set-version to the computed version it prints the same version again', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commit('feat: a');
+    repo.commitVersion('1.1.0');
+    expect(repo.run(['next-version']).stdout).toBe('1.1.0\n');
+  });
+
+  it('merge commits are ignored (only their non-merge commits count)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.git(['switch', '-q', '-c', 'fix/side']);
+    repo.commit('fix: side');
+    repo.git(['switch', '-q', 'development']);
+    repo.git(['merge', '-q', '--no-ff', 'fix/side', '-m', 'feat!: a merge message that must not count']);
+    expect(repo.run(['next-version']).stdout).toBe('1.0.6\n');
+  });
+
+  it('finds the tag on a master merge commit that development does not contain', () => {
+    // Topology of the real repo: release-bookkeeping tags master's merge commit.
+    repo.commit('feat: released in 1.0.5');
+    repo.git(['switch', '-q', '-c', 'master']);
+    repo.git(['merge', '-q', '--no-ff', 'development', '-m', 'Merge branch development into master']);
+    repo.git(['switch', '-q', 'development']);
+    repo.tag(`mobile-v${TEST_VERSION}`, 'master');
+    repo.commit('fix: after the release');
+    const r = repo.run(['next-version']);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toBe('1.0.6\n'); // the feat before the release is not counted again
+  });
+
+  it('counts from the highest mobile-vX.Y.Z tag; pre-release tags are ignored', () => {
+    repo.tag('mobile-v1.0.4');
+    repo.commit('feat: in 1.0.5');
+    repo.tag('mobile-v1.0.5');
+    repo.tag('mobile-v1.2.0-rc.1');
+    repo.commit('fix: a');
+    const r = repo.run(['next-version']);
+    expect(r.stdout).toBe('1.0.6\n');
+    expect(r.stderr).toContain('mobile-v1.0.5..HEAD');
+  });
+
+  it('takes a ref (the range ends there)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    const fixSha = repo.commit('fix: a');
+    repo.commit('feat: b');
+    expect(repo.run(['next-version', fixSha]).stdout).toBe('1.0.6\n');
+    expect(repo.run(['next-version', 'no-such-ref']).status).not.toBe(0);
+  });
+
+  it('refuses a shallow clone (the commit range would be incomplete)', () => {
+    repo.tag(`mobile-v${TEST_VERSION}`);
+    repo.commit('fix: a');
+    repo.commit('feat: b');
+    const shallow = path.join(repo.dir, 'shallow');
+    repo.git(['clone', '-q', '--depth', '1', `file://${repo.dir}`, shallow]);
+    const r = repo.run(['next-version'], shallow);
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('shallow');
+  });
+});
+
+describe('release.sh latest-release — highest released mobile-vX.Y.Z', () => {
+  let repo: ReturnType<typeof gitRepo>;
+  beforeEach(() => {
+    repo = gitRepo();
+  });
+  afterEach(() => repo.cleanup());
+
+  it('prints nothing (and succeeds) when there is no release tag', () => {
+    repo.tag('v1.0.5');
+    const r = repo.run(['latest-release']);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toBe('');
+  });
+
+  it('semver order, not string order; rc and old-prefix tags ignored', () => {
+    for (const t of ['mobile-v1.0.9', 'mobile-v1.0.10', 'mobile-v1.1.0-rc.1', 'v9.9.9']) repo.tag(t);
+    expect(repo.run(['latest-release']).stdout).toBe('1.0.10\n');
+  });
+
+  it('with <below>: the highest release lower than it (the previous release)', () => {
+    for (const t of ['mobile-v1.0.5', 'mobile-v1.1.0', 'mobile-v1.2.0']) repo.tag(t);
+    expect(repo.run(['latest-release', '1.2.0']).stdout).toBe('1.1.0\n');
+    expect(repo.run(['latest-release', '1.0.5']).stdout).toBe('');
+  });
+});
+
+describe('release.sh — called from outside the checkout with a relative app.json', () => {
+  // The script lives elsewhere (e.g. $RUNNER_TEMP) and gets `app.json` relative to
+  // the working directory; it must not resolve it as a package name.
   const ciLike = (args: string[], version = '1.0.6') => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'release-ci-'));
     const repo = path.join(tmp, 'repo');
@@ -1007,28 +1232,24 @@ describe('release.sh — CI\'daki gibi çağrı (kopyalanmış script, göreli a
     const appJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
     appJson.expo.version = version;
     fs.writeFileSync(path.join(repo, 'app.json'), `${JSON.stringify(appJson, null, 2)}\n`);
-    const out = path.join(tmp, 'out');
-    fs.writeFileSync(out, '');
     const res = spawnSync('bash', [path.join(runnerTemp, 'release.sh'), ...args], {
       cwd: repo,
       encoding: 'utf8',
-      env: { ...process.env, GITHUB_OUTPUT: out },
+      env: process.env,
     });
     const result = {
       status: res.status,
       all: `${res.stdout}\n${res.stderr}`,
       version: JSON.parse(fs.readFileSync(path.join(repo, 'app.json'), 'utf8')).expo.version,
-      outputs: fs.readFileSync(out, 'utf8'),
     };
     fs.rmSync(tmp, { recursive: true, force: true });
     return result;
   };
 
-  it('bump-version göreli app.json ile çalışır', () => {
-    const r = ciLike(['bump-version', '1.0.6', 'app.json']);
+  it('set-version works with a relative app.json', () => {
+    const r = ciLike(['set-version', '1.1.0', 'app.json']);
     expect(r.status).toBe(0);
-    expect(r.version).toBe('1.0.7');
-    expect(r.outputs).toContain('bumped=true');
+    expect(r.version).toBe('1.1.0');
   });
 
   it('app-version göreli app.json\'u okur', () => {
@@ -1037,8 +1258,8 @@ describe('release.sh — CI\'daki gibi çağrı (kopyalanmış script, göreli a
     expect(r.all.trim()).toContain('2.3.4');
   });
 
-  it.each([['1.2.4-rc.1'], ['1.2']])('development sürümü X.Y.Z değilse (%s) durur, sessizce atlamaz', (v) => {
-    const r = ciLike(['bump-version', '1.2.3', 'app.json'], v);
+  it.each([['1.2.4-rc.1'], ['1.2']])('stops if the current version is not X.Y.Z (%s), never skips silently', (v) => {
+    const r = ciLike(['set-version', '1.3.0', 'app.json'], v);
     expect(r.status).not.toBe(0);
     expect(r.version).toBe(v);
     expect(r.all).toContain('X.Y.Z');

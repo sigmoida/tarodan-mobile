@@ -28,9 +28,11 @@ name: Mobile Production (CI → release = store build · hotfix = approved OTA)
 #                → eas submit --profile production (track: internal). Production
 #                track'e yükseltme Play Console'da ELLE (kişisel hesap: önce 12
 #                testçi / 14 gün kapalı test şartı).
-#   5. release-bookkeeping  store build'i gönderildiyse: v<sürüm> etiketi + GitHub
-#                Release (otomatik notlar) + development'ı bir sonraki yamaya çekip
-#                staging'i başlatır (development hep yayınlanmamış sürümü taşır).
+#   5. release-bookkeeping  once a store build was submitted: tag mobile-v<version>
+#                on the released commit + a GitHub Release (generated notes since
+#                the previous mobile-v tag). It never writes to development: the next
+#                version is computed at release time (release.sh next-version, the
+#                release PR's `chore(release): X.Y.Z` commit; docs/RELEASE.md).
 #
 # Concurrency: plan iptalsiz; ota matrix'i platform + runtime başına iptalsiz
 # (onay bekleyen bir OTA'yı başka runtime'ın push'u düşürmez); build-* asla
@@ -299,68 +301,63 @@ jobs:
         run: scripts/ci/release.sh build-submit android production production com.tarodan.app
 
   release-bookkeeping:
-    name: After release — tag, GitHub Release, next development version
-    # Bir store build'i master'dan GERÇEKTEN gönderildiyse (build job'ı başarılı VE
-    # build id'si dolu; recheck'in build'siz "skip"i sayılmaz): 1) yayınlanan
-    # commit'e v<sürüm> etiketi, 2) PR'lardan üretilmiş notlarla GitHub Release,
-    # 3) development geride ya da eşitse bir sonraki YAMA sürümüne (1.2.4 → 1.2.5)
-    # çekilir ve staging başlatılır. Diğer platform başarısız ya da takılmış olsa
-    # da çalışır: o sürümün bir binary'si mağazaya gitmiştir. Elle verilmiş daha
-    # büyük sürüme (1.3.0) dokunulmaz; yayınlanmış en büyük etiketten eski bir
-    # sürüm etiketlenmez. Tekrar çalıştırılabilir (etiket/Release varsa, development
-    # zaten ilerideyse hiçbir şey yapmaz). Yalnız OTA olan koşular tetiklemez.
+    name: After release - tag and GitHub Release
+    # Runs only if a store build was really submitted from master (build job
+    # succeeded AND has a build id; a build-less "skip" from recheck does not
+    # count): 1) tag mobile-v<version> on the released commit, 2) a GitHub Release
+    # with notes generated since the previous mobile-v tag. It also runs if the
+    # other platform failed or was blocked: a binary of that version reached a
+    # store. A version not above the highest released tag is not tagged. Safe to
+    # re-run (an existing tag or Release is left alone). OTA-only runs do not
+    # trigger it. Nothing is pushed to development (no post-release bump).
     needs: [plan, build-ios, build-android]
     if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && ((needs.build-ios.result == 'success' && needs.build-ios.outputs.build_id != '') || (needs.build-android.result == 'success' && needs.build-android.outputs.build_id != '')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # EAS token'ı gerekmez (environment yok); yalnız GitHub'a yazar.
+    # No EAS token (no environment); it only writes the tag and the Release.
     permissions:
-      contents: write  # etiket, GitHub Release, development'a sürüm commit'i
-      actions: write   # staging'i workflow_dispatch ile başlatmak
-    # Commit başına: farklı yayınların işleri birbirini kuyrukta düşürmez (GitHub
-    # aynı grupta bekleyen işi yenisi gelince iptal eder); development push'u
-    # yarışırsa aşağıdaki yeniden deneme çözer.
+      contents: write  # tag + GitHub Release
+    # Per commit: jobs of different releases do not cancel each other in the queue
+    # (GitHub cancels a pending job of the same group when a newer one arrives).
     concurrency:
       group: mobile-production-bookkeeping-${{ github.sha }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # all history and tags (latest-release reads the mobile-v tags)
       - name: Tag the released commit + GitHub Release
-        id: tag
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           version="$(scripts/ci/release.sh app-version app.json)"
-          tag="v$version"
+          tag="mobile-v$version"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
             at="$(git rev-parse "$tag^{commit}")"
             if [ "$at" != "$SHA" ]; then
-              # Aynı sürümün yeni build'i (ör. App Review reddi sonrası mode=build):
-              # etiket ilk gönderilen commit'te kalır, taşınmaz.
-              echo "::warning::$tag zaten $at commit'inde; taşınmadı (bu koşu $SHA)."
+              # A new build of the same version (e.g. mode=build after an App Review
+              # rejection): the tag stays on the first submitted commit.
+              echo "::warning::$tag is already on $at; not moved (this run: $SHA)."
             fi
           else
-            # Yalnız X.Y.Z etiketleri (v1.0.6-rc.1 gibi bir etiket sort -V'de 1.0.6'dan
-            # büyük görünüp gerçek sürümü engellemesin).
-            latest="$(git tag -l 'v*' | sed 's/^v//' | { grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || true; } | sort -V | tail -n1)"
+            # Only mobile-vX.Y.Z tags count (release.sh latest-release; an rc tag
+            # would sort above the real version and block it).
+            latest="$(scripts/ci/release.sh latest-release)"
             if [ -n "$latest" ] && ! scripts/ci/release.sh version-gt "$version" "$latest"; then
-              # ör. revert sonrası eski sürümle elle mode=build: canlıdakini yanlış
-              # etiketleme, development'ı da ilerletme.
-              echo "::warning::$version, yayınlanmış en büyük etiketten (v$latest) büyük değil — etiket/Release oluşturulmadı, development'a dokunulmadı."
-              echo "skip=true" >> "$GITHUB_OUTPUT"
+              # e.g. a manual mode=build of an older version after a revert: do not
+              # tag the live version wrongly.
+              echo "::warning::$version is not greater than the highest released tag (mobile-v$latest); no tag or Release created."
               exit 0
             fi
             git tag -a "$tag" "$SHA" -m "Tarodan $version"
             if ! git push origin "refs/tags/$tag" 2>"$RUNNER_TEMP/tag-push.err"; then
-              # Aynı sürümün başka bir koşusu etiketi az önce attıysa sorun değil.
+              # Fine if another run of the same version pushed the tag just now.
               if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
-                echo "::warning::$tag başka bir koşu tarafından zaten oluşturulmuş."
+                echo "::warning::$tag was already created by another run."
               else
                 cat "$RUNNER_TEMP/tag-push.err" >&2
                 exit 1
@@ -368,47 +365,11 @@ jobs:
             fi
           fi
           if ! gh release view "$tag" >/dev/null 2>&1; then
-            gh release create "$tag" --verify-tag --title "Tarodan $version" --generate-notes \
-              || gh release view "$tag" >/dev/null  # eşzamanlı koşu oluşturduysa yeter
+            # Notes start at the previous release tag; without it GitHub would list
+            # the whole history (the seed tag has no Release of its own).
+            notes=(--generate-notes)
+            prev="$(scripts/ci/release.sh latest-release "$version")"
+            if [ -n "$prev" ]; then notes+=(--notes-start-tag "mobile-v$prev"); fi
+            gh release create "$tag" --verify-tag --title "Tarodan $version" "${notes[@]}" \
+              || gh release view "$tag" >/dev/null  # enough if a concurrent run created it
           fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-      - name: Move development to the next patch version
-        id: bump
-        if: steps.tag.outputs.skip != 'true'
-        env:
-          RELEASED: ${{ steps.tag.outputs.version }}
-        run: |
-          set -euo pipefail
-          # master'daki script kullanılır (development'a geçmeden önce kopyalanır).
-          cp scripts/ci/release.sh "$RUNNER_TEMP/release.sh"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          for attempt in 1 2 3; do
-            git fetch -q origin development
-            git switch -q -C bump-development origin/development
-            # Çıktılar yalnız sonuç kesinleşince yazılır (deneme başına değil).
-            GITHUB_OUTPUT=/dev/null "$RUNNER_TEMP/release.sh" bump-version "$RELEASED" app.json
-            if git diff --quiet -- app.json; then
-              echo "bumped=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            next="$("$RUNNER_TEMP/release.sh" app-version app.json)"
-            git add app.json
-            git commit -q -m "chore(release): development $next ($RELEASED yayına gönderildi)"
-            if git push -q origin HEAD:development 2>"$RUNNER_TEMP/push.err"; then
-              { echo "bumped=true"; echo "version=$next"; } >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            # development arada ilerlediyse: yeniden oku, yeniden dene.
-            echo "::warning::development'a push reddedildi (deneme $attempt): $(head -c 300 "$RUNNER_TEMP/push.err")"
-            if [ "$attempt" -lt 3 ]; then sleep $((attempt * 10)); fi
-          done
-          echo "::error::development'ın sürümü $RELEASED sonrasına çekilemedi; elle güncelle."
-          exit 1
-      - name: Start staging for the new development version
-        # GITHUB_TOKEN ile yapılan push başka workflow'ları tetiklemez; staging'i
-        # workflow_dispatch başlatır (sürüm fingerprint'e girer → yeni staging build'i).
-        if: steps.bump.outputs.bumped == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run mobile-staging.yml --ref development

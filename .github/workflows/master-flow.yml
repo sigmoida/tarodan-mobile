@@ -96,21 +96,26 @@ jobs:
           fi
           git push origin "${MERGE_SHA}:refs/heads/${branch}"
 
-          conflict_note="Otomatik birleştirme denemesi temiz."
+          conflict_note="The trial merge was clean."
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch --detach origin/development
           if ! git merge --no-commit --no-ff "$MERGE_SHA" >/dev/null 2>&1; then
-            conflict_note="⚠️ **Çakışma var.** \`${branch}\` dalında çöz (git merge origin/development), sonra merge et."
+            conflict_note="**Conflict.** Resolve it on \`${branch}\` (git merge origin/development), then merge."
           fi
           git merge --abort 2>/dev/null || true
 
-          # Çakışma olsa da PR açılır; insan çözer.
-          gh pr create \
+          # The PR is opened even with a conflict; a person resolves it.
+          # GITHUB_TOKEN may open a PR only if the repo allows it (Settings -> Actions ->
+          # General -> "Allow GitHub Actions to create and approve pull requests").
+          if ! gh pr create \
             --base development \
             --head "$branch" \
-            --title "chore: back-merge ${HOTFIX_REF} (#${HOTFIX_PR}) master → development" \
+            --title "chore: back-merge ${HOTFIX_REF} (#${HOTFIX_PR}) master -> development" \
             --body "$(printf '%s\n\n%s\n\n%s\n' \
-              "Hotfix #${HOTFIX_PR} (\`${HOTFIX_REF}\`) master'a merge edildi; bu PR düzeltmeyi development'a geri taşır." \
+              "Hotfix #${HOTFIX_PR} (\`${HOTFIX_REF}\`) was merged into master; this PR carries the fix back into development." \
               "${conflict_note}" \
-              "Not: GITHUB_TOKEN ile açılan PR'lar workflow tetiklemez — CI için PR'ı kapatıp yeniden aç ya da dala bir commit at.")"
+              "Note: PRs opened with GITHUB_TOKEN do not trigger workflows. For CI, close and reopen the PR or push a commit to the branch.")"; then
+            echo "::error::The back-merge PR was not opened; branch ${branch} is pushed. If GitHub refused PR creation by Actions, enable Settings -> Actions -> General -> 'Allow GitHub Actions to create and approve pull requests', or open it by hand: gh pr create --base development --head ${branch}"
+            exit 1
+          fi

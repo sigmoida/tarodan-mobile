@@ -21,9 +21,21 @@
 #       a > b (semver, sort -V) ise 0, değilse 1 ile çıkar.
 #   release.sh app-version  [app.json]
 #       expo.version'ı basar (göreli/mutlak yol; require() kullanmaz).
-#   release.sh bump-version <yayınlanan-sürüm> [app.json]
-#       Yayın sonrası development'ın sürümünü bir sonraki yamaya çeker (geride ya
-#       da eşitse); daha büyükse dokunmaz. GITHUB_OUTPUT: bumped, version.
+#   release.sh latest-release [below]
+#       The highest released version: the highest mobile-vX.Y.Z tag in the repo
+#       (pre-release tags such as mobile-v1.2.0-rc.1 are ignored). With <below>,
+#       only versions lower than it count. Prints nothing if there is none.
+#   release.sh next-version [ref]
+#       The version of the next release, from the Conventional Commits in
+#       `git log --no-merges mobile-v<latest>..<ref>` (default ref: HEAD): a `!`
+#       after the type/scope or a BREAKING CHANGE / BREAKING-CHANGE footer ->
+#       major, any feat -> minor, anything else -> patch; chore(release) commits
+#       are ignored. Prints X.Y.Z on stdout (the reasoning on stderr). If app.json
+#       at <ref> already holds a higher version, that one wins (manual override)
+#       with a notice. No tag, a shallow clone or nothing to release -> fails.
+#   release.sh set-version <X.Y.Z> [app.json]
+#       Sets expo.version (only that line changes; never lowers it). Used for
+#       the release PR's `chore(release): X.Y.Z` commit.
 #   release.sh publish-ota  <eas-branch> <ios|android|all> <build-profile> <message>
 #       Profil env'ini yükleyip `eas update` yayınlar.
 #   release.sh plan         <staging|production>
@@ -329,36 +341,98 @@ app_version() {
   ' "$file" || die "app.json sürümü okunamadı ($file)"
 }
 
-# Yayın sonrası: development'ın sürümü yayınlanan sürümden büyük değilse onu bir
-# sonraki YAMA sürümüne çeker (1.2.4 yayınlandı → 1.2.5). Elle verilmiş daha büyük
-# bir sürüme (ör. 1.3.0) dokunmaz. Yalnız `expo.version` satırı değişir (dosyanın
-# geri kalanı bayt bayt aynı kalır). İki sürüm de X.Y.Z olmalı; değilse durur
-# (ör. "1.2.4-rc.1", sort -V'de 1.2.4'ten büyük görünüp sessizce atlanmasın).
-# GITHUB_OUTPUT: bumped=true|false, version=<sonuç>.
-bump_version() {
-  local released="$1" file="${2:-$ROOT/app.json}" current next
-  is_xyz "$released" || die "bump-version: yayınlanan sürüm '$released' X.Y.Z biçiminde değil"
+# Tag prefix of mobile releases (release-bookkeeping in mobile-production.yml).
+TAG_PREFIX=mobile-v
+
+# Highest released X.Y.Z (see the header). Deliberately NOT "reachable from a ref":
+# release-bookkeeping tags the master merge commit, which development never
+# contains (master only gets merge commits development does not have).
+latest_release() {
+  local below="${1:-}" tags v best=""
+  if [ -n "$below" ]; then is_xyz "$below" || die "latest-release: '$below' is not X.Y.Z"; fi
+  tags="$(git -C "$ROOT" tag -l "$TAG_PREFIX*")" || die "latest-release: cannot list git tags in $ROOT"
+  for v in $(printf '%s\n' "$tags" | sed "s/^$TAG_PREFIX//" | { grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || true; }); do
+    if [ -n "$below" ] && ! version_gt "$below" "$v"; then continue; fi
+    if [ -z "$best" ] || version_gt "$v" "$best"; then best="$v"; fi
+  done
+  if [ -n "$best" ]; then echo "$best"; fi
+}
+
+# The next release version (see the header). Only stdout carries the version, so
+# `v="$(release.sh next-version)"` works; everything else goes to stderr.
+next_version() {
+  local ref="${1:-HEAD}" base tag counts level major minor patch ignored next current x y z
+  git -C "$ROOT" rev-parse -q --verify "$ref^{commit}" >/dev/null \
+    || die "next-version: '$ref' is not a commit in $ROOT"
+  [ "$(git -C "$ROOT" rev-parse --is-shallow-repository)" != true ] \
+    || die "next-version: shallow clone; the commit range would be incomplete. Run: git fetch --unshallow --tags origin"
+  base="$(latest_release)" || exit 1
+  [ -n "$base" ] \
+    || die "next-version: no ${TAG_PREFIX}X.Y.Z tag in this clone. Run git fetch --tags origin; on the very first run the seed tag (${TAG_PREFIX}<live version> on the released master commit) must be created first, with approval. No version is guessed."
+  tag="$TAG_PREFIX$base"
+  if [ -n "$(git -C "$ROOT" rev-list --no-merges -n 1 "$ref..$tag")" ]; then
+    echo "::notice::next-version: $tag has commits that $ref does not contain (a hotfix not merged back yet?); counting from $tag anyway." >&2
+  fi
+  # %x1e separates the messages; headers and footers are classified in node.
+  counts="$(git -C "$ROOT" log --no-merges --format='%B%x1e' "$tag..$ref" | node -e '
+    let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
+      const n = { major: 0, minor: 0, patch: 0, ignored: 0 };
+      for (const raw of s.split("\x1e")) {
+        const lines = raw.replace(/^\n+/, "").split("\n");
+        const header = lines[0];
+        if (!header.trim()) continue;
+        if (/^chore\(release\)!?:/.test(header)) n.ignored++;
+        else if (/^[a-z]+(\([^)]*\))?!:/.test(header) || lines.slice(1).some((l) => /^BREAKING[ -]CHANGE:/.test(l))) n.major++;
+        else if (/^feat(\([^)]*\))?:/.test(header)) n.minor++;
+        else n.patch++;
+      }
+      const level = n.major ? "major" : n.minor ? "minor" : n.patch ? "patch" : "none";
+      console.log([level, n.major, n.minor, n.patch, n.ignored].join(" "));
+    });')" || die "next-version: cannot read the commits in $tag..$ref"
+  read -r level major minor patch ignored <<< "$counts"
+  [ "$level" != none ] || die "next-version: nothing to release in $tag..$ref (no commits besides chore(release))."
+  IFS=. read -r x y z <<< "$base"
+  case "$level" in
+    major) next="$(( 10#$x + 1 )).0.0" ;;
+    minor) next="$x.$(( 10#$y + 1 )).0" ;;
+    patch) next="$x.$y.$(( 10#$z + 1 ))" ;;
+  esac
+  echo "next-version: $tag..$ref: $major breaking, $minor feat, $patch other, $ignored chore(release) ignored -> $level -> $next" >&2
+  current="$(git -C "$ROOT" show "$ref:app.json" | app_version /dev/stdin)" || die "next-version: cannot read app.json at $ref"
+  is_xyz "$current" || die "next-version: app.json at $ref holds '$current', not X.Y.Z; fix it by hand"
+  if version_gt "$current" "$next"; then
+    echo "::notice::next-version: app.json at $ref already holds $current (> computed $next); the manual override wins." >&2
+    next="$current"
+  fi
+  echo "$next"
+}
+
+# Sets expo.version for the release PR. Only the `"version": "<current>"` line
+# changes (the rest of the file stays byte for byte); both versions must be
+# X.Y.Z (a "1.2.4-rc.1" would sort above 1.2.4 and slip past VERSION-GATE).
+set_version() {
+  local next="${1:-}" file="${2:-$ROOT/app.json}" current
+  is_xyz "$next" || die "set-version: '$next' is not X.Y.Z"
   current="$(app_version "$file")" || exit 1
-  is_xyz "$current" || die "bump-version: development'ın sürümü '$current' X.Y.Z biçiminde değil — elle düzelt"
-  if version_gt "$current" "$released"; then
-    echo "development zaten ileride: $current > $released — dokunulmadı."
-    output bumped=false "version=$current"
+  is_xyz "$current" || die "set-version: $file holds '$current', not X.Y.Z; fix it by hand"
+  if [ "$current" = "$next" ]; then
+    echo "set-version: $file is already at $next."
     return 0
   fi
-  next="${released%.*}.$(( 10#${released##*.} + 1 ))"
+  version_gt "$next" "$current" \
+    || die "set-version: $next is lower than $file ($current); a release never lowers the version. Edit app.json by hand if that is really intended."
   node -e '
     const fs = require("fs");
     const [file, from, to] = process.argv.slice(1);
     const src = fs.readFileSync(file, "utf8");
     const re = new RegExp(`("version"\\s*:\\s*")${from.replace(/\./g, "\\.")}(")`, "g");
     const hits = src.match(re) || [];
-    if (hits.length !== 1) { console.error(`${file}: "version": "${from}" tam bir kez bulunmalı (${hits.length})`); process.exit(1); }
+    if (hits.length !== 1) { console.error(`${file}: "version": "${from}" must occur exactly once (found ${hits.length})`); process.exit(1); }
     const out = src.replace(re, `$1${to}$2`);
-    if (JSON.parse(out).expo.version !== to) { console.error("expo.version güncellenemedi"); process.exit(1); }
+    if (JSON.parse(out).expo.version !== to) { console.error("expo.version was not updated"); process.exit(1); }
     fs.writeFileSync(file, out);
-  ' "$file" "$current" "$next" || die "bump-version: $file güncellenemedi"
-  echo "development sürümü: $current → $next ($released yayına gönderildi)"
-  output bumped=true "version=$next"
+  ' "$file" "$current" "$next" || die "set-version: cannot update $file"
+  echo "set-version: $current -> $next ($file)"
 }
 
 publish_ota() {
@@ -794,7 +868,9 @@ case "$cmd" in
   plan) plan "$@" ;;
   recheck) recheck "$@" ;;
   await-binary) await_binary "$@" ;;
-  bump-version) bump_version "$@" ;;
+  latest-release) latest_release "$@" ;;
+  next-version) next_version "$@" ;;
+  set-version) set_version "$@" ;;
   app-version) app_version "$@" ;;
   build-submit) build_submit "$@" ;;
   *) die "bilinmeyen komut: '$cmd' (bkz. dosya başı)" ;;
