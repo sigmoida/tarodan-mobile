@@ -1,12 +1,13 @@
 /**
- * app.config.js — varyant override'ları.
+ * app.config.js: per-variant overrides and the Sentry build guard.
  *
- * Bu testin asıl işi iOS ile Android'in AYRIŞTIĞINI sabitlemek: preview
- * build'inde iOS bundle id `.staging` suffix'i alır, Android paketi ALMAZ.
- * Gerekçe: docs/superpowers/specs/2026-08-05-staging-apk-dagitimi-design.md §2
- * (suffix, Firebase/FCM + Google Cloud OAuth client olmak üzere iki kayıt
- * istiyor; ikincisi eksikse build geçer ama Google ile giriş sessizce patlar).
- * "Tutarlılık" adına ikisini eşitlemek isteyen bu testi düşürür ve §2'yi okur.
+ * The variant tests pin how the preview (staging) variant diverges from the
+ * production config: the iOS bundle id and the Android package both get the
+ * `.staging` suffix (two-app model, decided 2026-10-13), the Android block keeps
+ * every other field, and the home-screen name is the short "Staging".
+ * Background: docs/superpowers/specs/2026-08-05-staging-apk-dagitimi-design.md
+ * section 2 (the suffix needs a Firebase/FCM and a Google Cloud OAuth client
+ * registration; without the second the build passes but Google sign-in fails).
  */
 import eas from '../eas.json';
 
@@ -31,38 +32,38 @@ const evaluate = (environment: string | undefined) => {
   }
 };
 
-describe('app.config — preview (staging) varyantı', () => {
-  it('iOS bundle id\'sine .staging suffix\'i ekler', () => {
+describe('app.config — preview (staging) variant', () => {
+  it('adds the .staging suffix to the iOS bundle id', () => {
     const result = evaluate('preview');
     expect(result.ios.bundleIdentifier).toBe(
       `${baseConfig.ios.bundleIdentifier}.staging`,
     );
   });
 
-  it('Android paketine de .staging suffix\'i ekler (iki uygulamalı model, 2026-10-13 kararı)', () => {
+  it('adds the .staging suffix to the Android package too (two-app model, 2026-10-13)', () => {
     const result = evaluate('preview');
     expect(result.android.package).toBe(`${baseConfig.android.package}.staging`);
   });
 
-  it('Android bloğunda paket, google-services ve intent filter dışındaki alanları olduğu gibi geçirir', () => {
-    // permissions, adaptiveIcon vb. hiçbir alan spread sırasında düşmemeli. Staging'e
-    // özgü farklar (paket, staging google-services, staging host) ayrıca
-    // src/config/__tests__/androidRelease.test.ts'te sınanıyor.
+  it('passes every Android field except package, google-services and intent filters through unchanged', () => {
+    // No field (permissions, adaptiveIcon, ...) may get lost in the spread. The
+    // staging-only differences (package, staging google-services, staging host) are
+    // covered in src/config/__tests__/androidRelease.test.ts.
     const result = evaluate('preview');
     const omit = ({ package: _p, googleServicesFile: _g, intentFilters: _i, ...rest }: any) => rest;
     expect(omit(result.android)).toEqual(omit(baseConfig.android));
     expect(result.android.googleServicesFile).toBe('./google-services.staging.json');
   });
 
-  it('ana ekran adı kısa "Staging"', () => {
+  it('uses the short home-screen name "Staging"', () => {
     const result = evaluate('preview');
     expect(result.name).toBe('Staging');
   });
 });
 
-describe('app.config — diğer ortamlar', () => {
+describe('app.config — other environments', () => {
   it.each(['production', 'development', undefined])(
-    '%s ortamında config\'i olduğu gibi döndürür',
+    'returns the config unchanged for %s',
     (environment) => {
       const result = evaluate(environment);
       expect(result).toBe(baseConfig);
@@ -112,14 +113,21 @@ describe('app.config — Sentry upload guard on EAS builds', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringMatching(/NOT uploaded/));
   });
 
-  it.each(['preview', 'staging', 'development', 'maestro'])(
+  // `maestro` extends `preview`; its resolved flag is pinned in easProfiles.test.ts.
+  it.each(['preview', 'staging', 'development'])(
     'does not block the %s profile, which has no Sentry token or DSN',
     (profile) => {
-      const maestro = profile === 'maestro' ? builds.preview.env : {};
-      const env = { ...maestro, ...easBuild(profile) };
-      expect(() => assertSentryBuildReady(env, jest.fn())).not.toThrow();
+      expect(() => assertSentryBuildReady(easBuild(profile), jest.fn())).not.toThrow();
     },
   );
+
+  it('does not treat a padded opt-out as disabled, because the Sentry scripts would still upload', () => {
+    const env = easBuild('production', {
+      EXPO_PUBLIC_SENTRY_DSN: secrets.EXPO_PUBLIC_SENTRY_DSN,
+      SENTRY_DISABLE_AUTO_UPLOAD: 'true ',
+    });
+    expect(() => assertSentryBuildReady(env, jest.fn())).toThrow(/SENTRY_AUTH_TOKEN/);
+  });
 
   it.each([undefined, '', 'false', '0'])(
     'does nothing outside an EAS build worker (EAS_BUILD=%s)',

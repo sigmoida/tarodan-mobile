@@ -233,7 +233,9 @@ function assertSentryBuildReady(env = process.env, warn = console.warn) {
   const flag = (name) => !['', '0', 'false'].includes((env[name] ?? '').trim().toLowerCase());
   if (!flag('EAS_BUILD')) return;
   const isProduction = env.EXPO_PUBLIC_ENVIRONMENT === 'production';
-  const uploadDisabled = (env.SENTRY_DISABLE_AUTO_UPLOAD ?? '').trim() === 'true';
+  // Exact match, untrimmed: sentry-xcode.sh and sentry.gradle compare the raw
+  // value to "true", so " true" would pass here and still upload (and fail) later.
+  const uploadDisabled = env.SENTRY_DISABLE_AUTO_UPLOAD === 'true';
   const missing = [];
   if (!uploadDisabled && !(env.SENTRY_AUTH_TOKEN ?? '').trim()) missing.push('SENTRY_AUTH_TOKEN');
   if (isProduction && !(env.EXPO_PUBLIC_SENTRY_DSN ?? '').trim()) missing.push('EXPO_PUBLIC_SENTRY_DSN');
