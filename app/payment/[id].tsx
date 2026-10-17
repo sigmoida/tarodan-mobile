@@ -17,7 +17,7 @@ import {
 import type { DirectFormTarget } from '@/lib/payment/directFormBody';
 
 /**
- * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
+ * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (exception: src/lib/query/CLAUDE.md › Exceptions).
  *
  * Buradaki yükleme saf bir okuma değil: ödeme durumunu okurken bypass açıksa `bypassComplete` ile ödemeyi TAMAMLIYOR ve başarı/başarısızlık rotasına yönlendiriyor. React Query sorguları
  * başarısızlıkta yeniden dener, odaklanmada/yeniden bağlanmada tazeler ve

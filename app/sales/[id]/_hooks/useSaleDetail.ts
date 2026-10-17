@@ -19,7 +19,7 @@ import { statusColor } from '../_lib/status';
 /**
  * Sale-detail controller — owns the order query, refresh, derived display state
  * (cancel-normalized status + colours, shipment tracking/provider) and the
- * call/track Linking handlers. Lifted verbatim from the monolithic screen (§12).
+ * call/track Linking handlers. Lifted verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
  */
 export function useSaleDetail() {
   const { t } = useTranslation();
@@ -58,7 +58,7 @@ export function useSaleDetail() {
   const shipmentSummary = order?.shipment;
   const shipmentProvider = shipmentSummary?.provider ?? shipmentSummary?.carrier;
   const isSurat = (shipmentProvider ?? '').toLowerCase() === 'surat';
-  // İKİ NUMARA tek kaynaktan türetilir (§5): `cargoCode` gerçek Sürat kodu,
+  // İKİ NUMARA tek kaynaktan türetilir (CLAUDE.md › Principles): `cargoCode` gerçek Sürat kodu,
   // `trackingNumber` yalnız şubede verilecek iç referans. Sipariş özeti kodu
   // `cargoCode` adıyla taşıdığı için yedek parametreye de o geçilir.
   const shipmentView = deriveShipmentView(

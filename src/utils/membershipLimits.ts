@@ -150,7 +150,7 @@ export const getUpgradePrompt = (action: FeatureCheck): UpgradePromptType | null
 
 // Get upgrade message based on prompt type. `t` MUST come from a live
 // useTranslation()/schemaT call at the call site — this module is shared and
-// cannot resolve its own translator (see CLAUDE.md §8, membershipLimits is
+// cannot resolve its own translator (see src/i18n/CLAUDE.md › Build labels at call time, membershipLimits is
 // state/logic, not a component/hook).
 export const getUpgradeMessage = (t: TFunction, promptType: UpgradePromptType): { title: string; message: string } => {
   // iOS'ta ücretli kademeden söz edilemez (Guideline 3.1.3 anti-steering +

@@ -40,7 +40,7 @@ export default function OrderGroupDetailScreen() {
           {/*
             Satıcı-bazlı kargo kırılımı (B10) — yalnız 2+ paketli (çok satıcılı)
             grupta. Tek paketli grupta üstteki sipariş satırı zaten aynı kargo
-            bilgisini taşıyor, ayrı kart tekrar olurdu (§5 DRY).
+            bilgisini taşıyor, ayrı kart tekrar olurdu (CLAUDE.md › Principles).
           */}
           {f.group.packages.length > 1 &&
             f.group.packages.map((pkg) => <GroupPackageCard key={pkg.id} pkg={pkg} />)}

@@ -22,7 +22,7 @@ const REASON_KEY = {
  * Bildirim ön-izin sheet'i (kökte bağlı). Değer anında `offerNotificationPrompt` açar.
  *
  * "Bildirimleri Aç": sheet ÖNCE kapanır, sistem izin diyaloğu kapanış tamamlandıktan sonra
- * gelir (`runAfterClose` — açık sheet üstünde ikinci native sunum iOS'u kilitler, CLAUDE.md §12).
+ * gelir (`runAfterClose` — açık sheet üstünde ikinci native sunum iOS'u kilitler, src/ui/CLAUDE.md › iOS modal rule).
  * İzin verilirse token hemen kaydedilir. "Şimdi Değil" bekleme süresini başlatır.
  */
 export function NotificationPrePromptHost() {

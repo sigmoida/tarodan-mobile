@@ -1,6 +1,6 @@
 /**
  * ReportModal — web ile aynı TEK neden listesi; gönderince ÖNCE kapanır (modal mutation
- * beklemez, §12/§14), sonuç toast. Açıklama < 10 karakterse gönderilmez (web ile aynı).
+ * beklemez, src/ui/CLAUDE.md › iOS modal rule), sonuç toast. Açıklama < 10 karakterse gönderilmez (web ile aynı).
  */
 import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';

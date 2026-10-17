@@ -10,7 +10,7 @@ import { buildListingMenuActions } from '../_lib/menu';
 /**
  * İlan eylem menüsü (ActionSheet; sil yıkıcı) + kaldırma nedeni penceresi (silme / pasife alma).
  * Menü satırları sheet TAMAMEN kapandıktan sonra çalışır; kaldırma penceresi / öne çıkar
- * penceresi / kota uyarısı bu yüzden zamanlayıcı olmadan güvenle açılır (§12).
+ * penceresi / kota uyarısı bu yüzden zamanlayıcı olmadan güvenle açılır (src/ui/CLAUDE.md › iOS modal rule).
  */
 export function MyListingsModals({ f }: { f: MyListingsController }) {
   const { t } = useTranslation();

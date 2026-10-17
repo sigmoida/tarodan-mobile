@@ -4,7 +4,7 @@ import { theme } from '@/ui';
 
 const { colors, spacing, radius, radiusRole } = theme;
 
-// Route-local stylesheet (§12) — satır iskeleti ortak `InboxRow`'da; burada yalnız sol kutu içerikleri.
+// Route-local stylesheet (app/CLAUDE.md › Worked examples) — satır iskeleti ortak `InboxRow`'da; burada yalnız sol kutu içerikleri.
 export const styles = StyleSheet.create({
   footerSpinner: { paddingVertical: spacing[4] },
   // Yığın ekranı: alt menü yok; son satır ev göstergesinin üstünde kalsın.

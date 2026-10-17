@@ -42,7 +42,7 @@ interface MakeOfferModalProps {
  * Ürün detayında "Teklif Ver" butonuna tıklayınca açılan modal.
  * Web `apps/web/src/app/listings/[id]/page.tsx:424` ile aynı `offersApi.create({ productId, amount, message })`.
  *
- * §14 "Modals never wait for a mutation": doğrulama hataları modal içinde (ModalMessage) gösterilir;
+ * src/ui/CLAUDE.md › iOS modal rule: doğrulama hataları modal içinde (ModalMessage) gösterilir;
  * geçerli teklifte modal ÖNCE kapanır, mutation sonra çalışır, sonuç toast'a düşer (iOS donma kuralı).
  */
 export default function MakeOfferModal({

@@ -13,7 +13,7 @@ import { buildStatusConfig, formatDate, formatCurrency } from '../_lib/status';
  * Ödeme geçmişi controller'ı — `GET /payments/me`, odakta (bayatsa) tazeleme, çekerek
  * yenileme ve detay uyarısı.
  *
- * React Query'ye taşındı (CLAUDE.md §6): sunucu yanıtı ekran modeline burada
+ * React Query'ye taşındı (src/lib/query/CLAUDE.md › Query hooks): sunucu yanıtı ekran modeline burada
  * çevriliyor, ama önbellek ve yükleme/yenileme durumları artık sorgunun
  * kendisinden geliyor — elle üç ayrı `useState` tutulmuyor.
  */

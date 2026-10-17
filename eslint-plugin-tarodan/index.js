@@ -51,7 +51,7 @@ const noRawStyleValues = {
     },
     schema: [],
     messages: {
-      raw: "Ham '{{key}}: {{value}}' — token kullan ({{hint}}). Bkz. CLAUDE.md §2.",
+      raw: "Ham '{{key}}: {{value}}' — token kullan ({{hint}}). Bkz. src/theme/CLAUDE.md › Using tokens.",
     },
   },
   create(context) {
@@ -146,7 +146,7 @@ const noCustomScreenHeader = {
     schema: [],
     messages: {
       insetsTop:
-        "Doğrudan 'insets.top' — güvenli alan üst boşluğu için useHeaderTopInset() (@/ui) kullan; üst bar için ScreenHeader/PageShell/AppShell. Bkz. CLAUDE.md §14.",
+        "Doğrudan 'insets.top' — güvenli alan üst boşluğu için useHeaderTopInset() (@/ui) kullan; üst bar için ScreenHeader/PageShell/AppShell. Bkz. app/CLAUDE.md › Top bar.",
       safeAreaTop:
         "<SafeAreaView> üst kenarı ('top' ya da edges verilmemiş) — üst bar ve güvenli alanı PageShell/AppShell verir; yalnız alt kenar için edges={['bottom']}.",
       backIcon:
@@ -259,7 +259,7 @@ const noNativeHeader = {
  * Düğmede ikon istisnadır: yalnız işlev ikonları (paylaş, favori, sepet, filtre, sırala, ekle,
  * geri/kapat, arama). Marka logoları (Google/Apple) `leftIcon` düğümüyle verilir ve satır
  * üstü `eslint-disable-next-line tarodan/restrict-button-icon` ile istisna işaretlenir. Bu listede olmayan `icon="..."`,
- * her `leftIcon` / `rightIcon` ve dinamik `icon={...}` UYARI verir (dalga 3, CLAUDE.md §14).
+ * her `leftIcon` / `rightIcon` ve dinamik `icon={...}` UYARI verir (dalga 3, src/ui/CLAUDE.md › Icons).
  */
 const BUTTON_ICON_ALLOWED = new Set([
   'share',
@@ -295,7 +295,7 @@ const restrictButtonIcon = {
     docs: { description: 'Button ikon prop\'ları yalnız izinli işlev ikonları için' },
     schema: [],
     messages: {
-      icon: "Button'da dekoratif ikon yok — '{{name}}' izinli listede değil (paylaş, favori, sepet, filtre, sırala, ekle, geri/kapat). Bkz. CLAUDE.md §14.",
+      icon: "Button'da dekoratif ikon yok — '{{name}}' izinli listede değil (paylaş, favori, sepet, filtre, sırala, ekle, geri/kapat). Bkz. src/ui/CLAUDE.md › Icons.",
       slot: "Button'a '{{prop}}' ile ikon düğümü verme; izinli işlev ikonları için 'icon=\"...\"' kullan.",
       dynamic: "Button 'icon' değeri sabit değil — izinli listeye uyduğu doğrulanamıyor.",
     },
@@ -368,7 +368,7 @@ const emptyStateStandard = {
     docs: { description: 'ListEmptyComponent içinde elle çizilmiş boş durum yerine EmptyState kullan' },
     schema: [],
     messages: {
-      raw: "ListEmptyComponent içinde elle çizilmiş <{{name}}> — boş durum için EmptyState (@/ui: ikon + başlık + alt başlık) kullan. Bkz. CLAUDE.md §14.",
+      raw: "ListEmptyComponent içinde elle çizilmiş <{{name}}> — boş durum için EmptyState (@/ui: ikon + başlık + alt başlık) kullan. Bkz. src/ui/CLAUDE.md › Empty and error states.",
     },
   },
   create(context) {
@@ -390,7 +390,7 @@ const emptyStateStandard = {
 };
 
 /**
- * Query anahtarlarının TEK kaynağı `qk` (`src/lib/query/keys.ts`, CLAUDE.md §6). Satır içi dizi
+ * Query anahtarlarının TEK kaynağı `qk` (`src/lib/query/keys.ts`, src/lib/query/CLAUDE.md › Query keys). Satır içi dizi
  * (`queryKey: ['x', id]`, `invalidates: [['x']]`, `setQueryData(['x'], …)`) sessiz drift'in
  * kaynağıydı (`['sale-order', id]` hiçbir mutasyonun tazelemediği anahtardı). Kayıt defteri
  * dosyası ve testler `.eslintrc.cjs` override'ında muaf.
@@ -414,7 +414,7 @@ const noInlineQueryKey = {
     docs: { description: 'queryKey satır içi dizi olamaz — qk (@/lib/query) kullan' },
     schema: [],
     messages: {
-      inline: "Satır içi query anahtarı — `qk.<domain>.*` (@/lib/query) kullan; yoksa src/lib/query/keys.ts'e ekle. Bkz. CLAUDE.md §6.",
+      inline: "Satır içi query anahtarı — `qk.<domain>.*` (@/lib/query) kullan; yoksa src/lib/query/keys.ts'e ekle. Bkz. src/lib/query/CLAUDE.md › Query keys.",
     },
   },
   create(context) {
@@ -455,7 +455,7 @@ const noRawActivityIndicator = {
     docs: { description: 'RN ActivityIndicator yalnız src/ui/loading/ içinde — LoadingIndicator (@/ui) kullan' },
     schema: [],
     messages: {
-      raw: "Ham 'ActivityIndicator' — tek gösterge LoadingIndicator / Spinner / ScreenLoader ya da Button isLoading (@/ui) kullan. Bkz. CLAUDE.md §14 Loading.",
+      raw: "Ham 'ActivityIndicator' — tek gösterge LoadingIndicator / Spinner / ScreenLoader ya da Button isLoading (@/ui) kullan. Bkz. src/ui/CLAUDE.md › Loading.",
     },
   },
   create(context) {
@@ -533,7 +533,7 @@ const encodedApiPath = {
     schema: [],
     messages: {
       unencoded:
-        "API yolunda kodlanmamış değişken — apiPath`/x/${id}` kullan (`@/lib/api/path`); sorgu değerleri axios `params` ile. Bkz. CLAUDE.md §6.",
+        "API yolunda kodlanmamış değişken — apiPath`/x/${id}` kullan (`@/lib/api/path`); sorgu değerleri axios `params` ile. Bkz. src/lib/api/CLAUDE.md › Paths.",
     },
   },
   create(context) {
@@ -550,7 +550,7 @@ const encodedApiPath = {
 /**
  * `useXxxStore()` — argümansız (tüm store'a abone) çağrı. Store'daki HER yazım bileşeni yeniden
  * render eder; selector (`useAuthStore((s) => s.user)`) ya da çok alanda `useShallow` kullan,
- * callback içinde okuma için `useXxxStore.getState()`. Bkz. CLAUDE.md §8.
+ * callback içinde okuma için `useXxxStore.getState()`. Bkz. src/stores/CLAUDE.md › Selectors.
  * Not: `useSyncExternalStore` her zaman argümanlı olduğundan eşleşmez.
  *
  * @type {import('eslint').Rule.RuleModule}
@@ -562,7 +562,7 @@ const noWholeStoreSubscription = {
     schema: [],
     messages: {
       whole:
-        "'{{name}}()' tüm store'a abone olur (her yazımda render). Selector kullan: {{name}}((s) => s.alan); çok alanda useShallow; callback'te {{name}}.getState(). Bkz. CLAUDE.md §8.",
+        "'{{name}}()' tüm store'a abone olur (her yazımda render). Selector kullan: {{name}}((s) => s.alan); çok alanda useShallow; callback'te {{name}}.getState(). Bkz. src/stores/CLAUDE.md › Selectors.",
     },
   },
   create(context) {

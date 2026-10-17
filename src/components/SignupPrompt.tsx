@@ -87,7 +87,7 @@ const buildPromptConfig = (t: TFunction) => ({
 /**
  * Misafir tanıtımı — `BottomSheet size="fit"`: gövdede ikon + başlık + açıklama + faydalar,
  * sabit footer'da iki düğme (ana eylem + "Şimdilik geç"). Ana eylem / giriş yönlendirmesi sheet
- * TAMAMEN kapandıktan sonra çalışır (`runAfterClose`, §12). Çağıranlar (`visible`/`onDismiss`/`type`)
+ * TAMAMEN kapandıktan sonra çalışır (`runAfterClose`, src/ui/CLAUDE.md › iOS modal rule). Çağıranlar (`visible`/`onDismiss`/`type`)
  * değişmez; sheet kapanış animasyonu için bileşen her zaman bağlıdır.
  */
 export function SignupPrompt({ visible, onDismiss, type }: SignupPromptProps) {

@@ -1,6 +1,6 @@
 /**
  * ModalFooter: web ConfirmDialog düzeni (ana aksiyon üstte, İptal altta). `isLoading` yoktur —
- * modalı mutasyon boyunca açık tutmak iOS ModalFreeze kuralına aykırı (CLAUDE.md §12).
+ * modalı mutasyon boyunca açık tutmak iOS ModalFreeze kuralına aykırı (src/ui/CLAUDE.md › iOS modal rule).
  */
 import React from 'react';
 import { StyleSheet } from 'react-native';

@@ -18,7 +18,7 @@ export type OrderAddressInput = {
  * `POST /orders/quote` yanıtı (2026-07-30 canlı ölçüm — staging).
  * `pricingHash` + `shippingTariffVersion` KÖKTE, `pricing` içinde DEĞİL — order-create
  * uçlarının `expectedPricingHash`/`expectedShippingTariffVersion` zorunlu alanları
- * buradan gelir. `pricing.summary` ekranda basılacak TEK doğru kırılım (§CLAUDE.md
+ * buradan gelir. `pricing.summary` ekranda basılacak TEK doğru kırılım (src/lib/api/CLAUDE.md › Money values:
  * "parayla ilgili hiçbir değeri istemcide hesaplama").
  */
 /**

@@ -40,7 +40,7 @@ type SocialLoginResponse = {
 } | null | undefined;
 
 /**
- * Google / Apple ile devam et — giriş VE kayıt ekranlarının ortak kontrolcüsü (§5: tek kaynak).
+ * Google / Apple ile devam et — giriş VE kayıt ekranlarının ortak kontrolcüsü (CLAUDE.md › Principles: tek kaynak).
  * İki ekran da aynı uçlara gider (`/auth/google`, `/auth/apple` ilk kullanımda hesap açar),
  * başarıda oturumu açıp ana sayfaya geçer; iptal sessiz, diğer hatalar `appAlert` ile gösterilir.
  * Önceden `useLogin` içindeydi; davranış satır satır aynı taşındı.

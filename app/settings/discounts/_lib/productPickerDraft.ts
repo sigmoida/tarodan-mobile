@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 /**
- * Ürün seçici TASLAĞI (route-yerel, yalnız UI durumu — CLAUDE.md §8). İndirim
+ * Ürün seçici TASLAĞI (route-yerel, yalnız UI durumu — src/stores/CLAUDE.md › Client state only). İndirim
  * formu ekranı ile `products` ekranı arasında seçili ürünleri taşır:
  *
  *   form: `open(mevcutIds)` → push('/settings/discounts/products')

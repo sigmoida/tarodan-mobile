@@ -91,7 +91,7 @@ export default function ReportModal({
     onDismiss();
   };
 
-  // §12/§14: modal mutation'ı BEKLEMEZ — önce kapat, sonra gönder; sonuç toast (modal artık kapalı,
+  // src/ui/CLAUDE.md › iOS modal rule: modal mutation'ı BEKLEMEZ — önce kapat, sonra gönder; sonuç toast (modal artık kapalı,
   // toast görünür).
   const handleSubmit = () => {
     if (!reason) return;

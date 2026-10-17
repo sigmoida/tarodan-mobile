@@ -55,7 +55,7 @@ export interface SocialButtonsProps {
  * Google yalnız yapılandırılmışsa, Apple yalnız cihaz/platform destekliyorsa (`appleAvailable`)
  * çizilir — iOS dışı ya da desteksiz cihazda düğme hiç görünmez. Marka logoları dekoratif ikon
  * kuralının istisnasıdır (web aynı yerde logo gösterir). Giriş ve kayıt ekranlarının ortak
- * düğmeleri (§5).
+ * düğmeleri (CLAUDE.md › Principles).
  */
 export function SocialButtons({ social, busy = false, apple = true, testIDPrefix }: SocialButtonsProps) {
   const { t } = useTranslation();

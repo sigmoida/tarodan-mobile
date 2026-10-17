@@ -27,7 +27,7 @@ export function CartSummary({ f }: { f: CartController }) {
         </View>
       ) : f.quoteError || (!f.quoteLoading && f.total == null) ? (
         /* Quote hata verdiyse dört satırı da "—" basıp kullanıcıyı sebepsiz bırakma — checkout
-           ile AYNI çıkış yolu (§11). `total == null` de bu kapıya dahil: sorgu 200 dönüp `total`
+           ile AYNI çıkış yolu (src/ui/CLAUDE.md › Empty and error states). `total == null` de bu kapıya dahil: sorgu 200 dönüp `total`
            boş gelirse `quoteError` false olur ama kullanıcı yalnız "—" görür ve retry kalmazdı.
            ⚠️ `quoteLoading` şart: ilk yüklemede `total` zaten null, o kapı olmadan her sepet
            açılışında hata kartı yanıp sönerdi. */

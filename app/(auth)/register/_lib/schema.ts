@@ -17,7 +17,7 @@ export function maxBirthDate(): Date {
 }
 
 // `usernameSchema` / `USERNAME_PATTERN` tek kaynaktan gelir: `@/utils/validation`
-// (§5). Bir kez belirlenince DEĞİŞTİRİLEMEZ — bkz. RegisterForm'daki uyarı.
+// (CLAUDE.md › Principles). Bir kez belirlenince DEĞİŞTİRİLEMEZ — bkz. RegisterForm'daki uyarı.
 
 /**
  * Fabrika biçimi: zod mesajları şema kurulurken çözülüyor, modül seviyesinde

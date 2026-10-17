@@ -3,7 +3,7 @@ import { theme } from '@/ui';
 
 const { colors, spacing } = theme;
 
-// Route-local stylesheet (§12).
+// Route-local stylesheet (app/CLAUDE.md › Worked examples).
 export const styles = StyleSheet.create({
   headerCount: {
     color: colors.text.muted,

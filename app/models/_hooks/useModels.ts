@@ -8,7 +8,7 @@ import type { Brand, CarModel } from '../_lib/types';
 /**
  * Models-browse controller — owns the car-models query, the search + brand
  * filter state, and the derived brands/filtered/grouped selectors. Lifted
- * verbatim from the monolithic screen (§12).
+ * verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
  */
 export function useModels() {
   const [search, setSearch] = useState('');

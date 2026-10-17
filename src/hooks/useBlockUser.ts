@@ -72,7 +72,7 @@ export function useBlockStatus(targetUserId?: string) {
 
 /**
  * Engelle / engeli kaldır — onay diyaloğu, bildirim ve invalidasyon TEK yerde
- * (CLAUDE.md §6: mutation hook'u snackbar + invalidateQueries sahibidir).
+ * (src/lib/query/CLAUDE.md › Mutation hooks: mutation hook'u snackbar + invalidateQueries sahibidir).
  * `requireAuth` verilmezse giriş kapısı çağıranın sorumluluğundadır.
  */
 export function useBlockUser(options?: {

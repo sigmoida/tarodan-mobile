@@ -6,7 +6,7 @@ import type { Message, MessageThread } from '@/stores/messagesStore';
 import { normalizeThread, sortAndNormalizeMessages } from '@/lib/messaging/normalize';
 
 /**
- * #77: messagesStore'un server-state fetch'leri React Query'ye taşındı (CLAUDE.md §8).
+ * #77: messagesStore'un server-state fetch'leri React Query'ye taşındı (src/stores/CLAUDE.md › Client state only).
  * Reads = query hook (queryKey qk.messaging.*), writes = mutation hook (mutations.ts),
  * socket = setQueryData köprüsü (useMessagingSocket.ts). Store sadece client/UI state.
  */

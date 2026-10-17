@@ -17,7 +17,7 @@ import { useSafeTimeout } from '@/hooks/useSafeTimeout';
 /**
  * New-collection controller — owns the RHF+zod form, cover-image pick, template
  * selection, and the create mutation (JSON create → optional multipart cover
- * upload). Lifted verbatim from the monolithic screen (§12).
+ * upload). Lifted verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
  *
  * `addProductId` route param ("Koleksiyona ekle" sheet'inden "Yeni koleksiyon"): oluşturulan
  * koleksiyona o ürün de eklenir ve kullanıcı ürün sayfasına döner (web'deki modal akışı gibi).

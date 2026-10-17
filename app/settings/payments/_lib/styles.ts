@@ -3,7 +3,7 @@ import { theme } from '@/ui';
 
 const { spacing } = theme;
 
-// Route-local stylesheet (§12) — kartlar web Card.
+// Route-local stylesheet (app/CLAUDE.md › Worked examples) — kartlar web Card.
 export const styles = StyleSheet.create({
   paymentCard: {
     gap: spacing[2],

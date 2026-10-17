@@ -5,7 +5,7 @@
  * kopyalanmıştı: sipariş listesi, sipariş detayı ve sipariş grubu. Üçü bugün
  * aynı ama bir tanesine yeni bir durum eklendiğinde diğer ikisi sessizce
  * eksik kalır — kullanıcı aynı siparişi listede "İade Sürecinde", detayda ham
- * `refund_requested` olarak görür (CLAUDE.md §5).
+ * `refund_requested` olarak görür (CLAUDE.md › Principles).
  *
  * i18n turunda üçünü birden çevirmek yerine tek kaynağa çekildi; çeviri de
  * orada bir kez yapılıyor.

@@ -6,7 +6,7 @@
  *
  * Telefon ayrıştırma paylaşılan `@/utils/validation` + `@/utils/phone`'da — alan
  * formatlayıcısıyla TEK KAYNAK (route-local `_lib/phone.ts` kopyası emekli edildi;
- * aynı girdiye iki farklı cevap veren iki telefon davranışı kalmadı, §5).
+ * aynı girdiye iki farklı cevap veren iki telefon davranışı kalmadı, CLAUDE.md › Principles).
  */
 import { z } from 'zod';
 import type { TFunction } from 'i18next';

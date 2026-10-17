@@ -3,7 +3,7 @@ import { PAGE_GUTTER, PAGE_SECTION_GAP, theme } from '@/ui';
 
 const { colors, spacing } = theme;
 
-// Route-local stylesheet (§12) — D1b referans düzeni: token'lar, sayısal ham değer yok.
+// Route-local stylesheet (app/CLAUDE.md › Worked examples) — D1b referans düzeni: token'lar, sayısal ham değer yok.
 export const styles = StyleSheet.create({
   listContent: {
     flexGrow: 1,

@@ -41,7 +41,7 @@ export type { ToastId, ToastKind, ToastOptions } from '../lib/toastStore';
  * Global toast — web'deki `react-hot-toast`'un karşılığı (`toast(...)`, `toast.success(...)`,
  * `toast.error(...)`, `toast.dismiss(id?)`). Bilgi ve başarı mesajları ile yeniden denenebilir işlem
  * hataları için; onay isteyen ya da kullanıcının bir şey yapması gereken hatalar `appAlert` /
- * `confirm` diyaloğuna gider (CLAUDE.md §14).
+ * `confirm` diyaloğuna gider (src/ui/CLAUDE.md › Feedback).
  *
  * - Durum modül store'unda (`lib/toastStore`): aynı anda tek toast; aynı mesaj tekrar atılırsa süre
  *   yenilenir (dedupe, `{ id }`); farklı mesaj gelirse eskisi çıkış animasyonuyla kalkar, yenisi girer.

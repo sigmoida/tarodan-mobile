@@ -1,5 +1,5 @@
 /**
- * Takas reddet modalı + diğer aksiyonlar — geri bildirim sözleşmesi (CLAUDE.md §12):
+ * Takas reddet modalı + diğer aksiyonlar — geri bildirim sözleşmesi (src/ui/CLAUDE.md › iOS modal rule):
  *  - modal ÖNCE kapanır, mutation SONRA başlar (isPending beklenmez);
  *  - sonuç `toast.success`, hata `toast.error` (nötr `toast()` değil).
  * İtiraz ayrı form ekranı: `dispute-screen.test.tsx`.

@@ -26,7 +26,7 @@ const favoriteKey = (item: WishlistItem) => item.id;
 function FavoritesScreen() {
   const { t } = useTranslation();
   const f = useFavoritesScreen();
-  // Hook sırası sabit kalsın diye erken return'den ÖNCE (CLAUDE.md §12).
+  // Hook sırası sabit kalsın diye erken return'den ÖNCE (app/CLAUDE.md › Thin screens).
   const tabInset = useTabBarInset();
   const initialLoading = f.isLoading && f.items.length === 0;
   // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).

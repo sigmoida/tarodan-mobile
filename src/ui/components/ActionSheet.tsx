@@ -11,7 +11,7 @@ export interface ActionSheetAction {
   key?: string;
   label: string;
   /**
-   * Sheet TAMAMEN kapandıktan sonra çalışır (iOS donma kuralı §12): eylem appAlert, başka bir
+   * Sheet TAMAMEN kapandıktan sonra çalışır (src/ui/CLAUDE.md › iOS modal rule): eylem appAlert, başka bir
    * Modal/sheet, galeri ya da yönlendirme açabilir.
    */
   onPress: () => void;
@@ -39,7 +39,7 @@ const { colors, spacing, controlHeight } = theme;
 
 /**
  * Eylem menüsü — HIG "Action sheet" / M3 "Bottom sheet" karşılığı. appAlert düğmeleriyle menü
- * YAPILMAZ. Satır: etiket (yıkıcıysa kırmızı, pasifse soluk), ikon yok (§14); en altta sabit
+ * YAPILMAZ. Satır: etiket (yıkıcıysa kırmızı, pasifse soluk), ikon yok (src/ui/CLAUDE.md › Icons); en altta sabit
  * [Vazgeç]. Satıra basınca ÖNCE sheet kapanır, eylem kapanış bittikten SONRA çalışır
  * (`useBottomSheet().runAfterClose`).
  */

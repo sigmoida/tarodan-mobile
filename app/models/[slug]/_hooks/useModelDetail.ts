@@ -9,7 +9,7 @@ import type { CarModelDetail } from '../_lib/types';
 /**
  * Model-detail controller — owns the car-model query + its products query,
  * and pull-to-refresh. Lifted verbatim from the
- * monolithic screen (§12).
+ * monolithic screen (app/CLAUDE.md › Worked examples).
  */
 export function useModelDetail() {
   const { slug } = useLocalSearchParams<{ slug: string }>();

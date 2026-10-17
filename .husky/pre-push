@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# Plain script: works with core.hooksPath=.husky (no .husky/_ wrapper needed).
+# Light on purpose: branch-name check only, no tests.
+cd "$(git rev-parse --show-toplevel)" || exit 1
+exec sh scripts/check-branch-name.sh

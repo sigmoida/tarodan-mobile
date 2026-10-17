@@ -14,7 +14,7 @@ import type { User } from '../_lib/types';
  * New-message controller — owns recipient preselect (seller/product/trade
  * context), the optional product query, the message draft (pre-filled from a
  * product), and the createThread send flow. Lifted verbatim from the monolithic
- * screen (§12). NOTE: manuel kullanıcı arama backend'de yok → devre dışı.
+ * screen (app/CLAUDE.md › Worked examples). NOTE: manuel kullanıcı arama backend'de yok → devre dışı.
  */
 export function useNewMessage() {
   const { t } = useTranslation();

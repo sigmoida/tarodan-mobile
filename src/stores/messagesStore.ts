@@ -3,7 +3,7 @@ import i18n from '@/i18n/config';
 import { useAuthStore } from './authStore';
 
 /**
- * #77 (CLAUDE.md §8): mesajlaşmanın server-state'i (threads/messages/unread) artık
+ * #77 (src/stores/CLAUDE.md › Client state only): mesajlaşmanın server-state'i (threads/messages/unread) artık
  * React Query'de — bkz `@/hooks/messaging` (queries/mutations) + `@/lib/messaging`
  * (cache köprüsü, normalize). Bu store SADECE client/UI state tutar:
  *   - `currentThreadId`: açık thread — socket köprüsünün aktif thread'i bilmesi için.

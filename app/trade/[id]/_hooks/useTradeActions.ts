@@ -13,7 +13,7 @@ import { useRequireLegalIdentityFor } from "@/hooks/useLegalIdentity";
  * (`toast.success` / `toast.error` + invalidate) `useAppMutation`'dadır.
  * İtiraz ayrı form ekranı (`../dispute.tsx`); burada yalnız ona geçiş var.
  *
- * Modal kuralı (CLAUDE.md §12): reddet modalı ÖNCE kapanır, mutation SONRA
+ * Modal kuralı (src/ui/CLAUDE.md › iOS modal rule): reddet modalı ÖNCE kapanır, mutation SONRA
  * başlar — modal `isPending` beklemez. Sonuç toast'ı kapalı modalın üstünde görünür.
  */
 export function useTradeActions(id: string) {
@@ -139,7 +139,7 @@ export function useTradeActions(id: string) {
   };
 
   const submitReject = () => {
-    setRejectVisible(false); // §12: önce kapat, sonra gönder.
+    setRejectVisible(false); // src/ui/CLAUDE.md › iOS modal rule: önce kapat, sonra gönder.
     rejectMutation.mutate(rejectReason.trim() || undefined);
   };
 

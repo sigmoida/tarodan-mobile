@@ -3,7 +3,7 @@ import { theme } from '@/ui';
 
 const { colors } = theme;
 
-// Route-local stylesheet (§12). Monolitten kalan kullanılmayan stiller (elle çizilmiş rozet ve
+// Route-local stylesheet (app/CLAUDE.md › Worked examples). Monolitten kalan kullanılmayan stiller (elle çizilmiş rozet ve
 // uyarı kutuları dahil) silindi; uyarılar `Alert`, rozetler `Badge` (@/ui) ile çizilir.
 export const styles = StyleSheet.create({
   body: { gap: theme.spacing[3] },

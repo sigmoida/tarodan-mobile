@@ -11,7 +11,7 @@ import { useUploadRefundEvidence } from './useUploadRefundEvidence';
 
 /**
  * İade talebi EKRANININ controller'ı — eski `RefundRequestModal`'ın form mantığı
- * AYNEN (CLAUDE.md §12 "lift, rewrite değil"): `useZodForm` + şema, neden/adet/
+ * AYNEN (app/CLAUDE.md › Worked examples "lift, rewrite değil"): `useZodForm` + şema, neden/adet/
  * kanıt alanları, galeri seçici, kanıt yükleme → talep. Payload ve doğrulama
  * `_lib/schema.ts`'te, değişmedi.
  *

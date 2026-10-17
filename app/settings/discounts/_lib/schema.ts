@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { Discount } from './types';
 
 /**
- * İndirim formu şeması (colocated, CLAUDE.md §7). Kurallar API ile aynı
+ * İndirim formu şeması (colocated, src/ui/CLAUDE.md › Forms). Kurallar API ile aynı
  * (`assertQuantityTypeShape`): bogo -> al/bedava >= 1; bulk_quantity -> en az
  * adet >= 2 ve yüzde 1-100. Adet koşullu kampanya KODSUZ-otomatiktir.
  *

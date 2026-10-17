@@ -10,7 +10,7 @@ import { EMPTY_FILTERS, buildSortOptions } from '@/utils/productFilters';
 /**
  * Category controller — owns the category-detail query, the filtered products
  * query (search + sort + scale), refresh and the sort-menu/label. Lifted
- * verbatim from the monolithic screen (§12).
+ * verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
  */
 export function useCategory() {
   const { t } = useTranslation();

@@ -3,7 +3,7 @@
  *
  * `groupPackages.test.tsx` `GroupPackageCard`'ın kendi render mantığını
  * kilitliyor; bu dosya ekranın onu NE ZAMAN monte ettiğini kilitliyor — tek
- * paketli grupta kart hiç görünmemeli (§5 DRY: üstteki sipariş satırı zaten
+ * paketli grupta kart hiç görünmemeli (CLAUDE.md › Principles DRY: üstteki sipariş satırı zaten
  * aynı bilgiyi taşıyor), çok paketli grupta her paket için bir kart görünmeli.
  */
 import React from 'react';

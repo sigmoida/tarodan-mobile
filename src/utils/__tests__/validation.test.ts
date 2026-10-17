@@ -44,7 +44,7 @@ describe('J42 · 18 yaş kuralı (isAdult)', () => {
 
 /**
  * `usernameSchema` — kayıt, kurumsal davet ve kullanıcı adı talebi ekranlarının
- * ORTAK kuralı (§5). Sınır testleri register route'undan buraya taşındı; üç
+ * ORTAK kuralı (CLAUDE.md › Principles). Sınır testleri register route'undan buraya taşındı; üç
  * ekranın da davranışı bu tek şemadan türüyor.
  */
 describe('usernameSchema (üç ekranın tek kaynağı)', () => {
@@ -109,7 +109,7 @@ describe('usernameSchema (üç ekranın tek kaynağı)', () => {
 
 /**
  * `toHandle` — register/corporate-invite/settings-username ekranlarının üçünün
- * de kullandığı ortak alan-dönüşümü (§5, önceden 3 kopya `(t) => t.toLowerCase()`).
+ * de kullandığı ortak alan-dönüşümü (CLAUDE.md › Principles, önceden 3 kopya `(t) => t.toLowerCase()`).
  * Bilinçli olarak transliterasyon YAPMAZ — yalnız küçük harfe çevirir.
  */
 describe('toHandle (üç ekranın ortak alan dönüşümü)', () => {

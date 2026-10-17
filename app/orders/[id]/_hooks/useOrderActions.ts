@@ -16,7 +16,7 @@ type SnackVariant = 'success' | 'danger' | 'default';
 /**
  * Sipariş detay controller'ı: iade-iptal/sipariş-iptal/ödeme-başlat mutation'ları
  * + iptal modalının aç/kapa durumu + toast bildirimi. İade talebi ayrı ekran
- * (`../refund.tsx`, form + mutasyon `useRefundForm`'da — CLAUDE.md §6).
+ * (`../refund.tsx`, form + mutasyon `useRefundForm`'da — src/lib/query/CLAUDE.md › Mutation hooks).
  */
 export function useOrderActions(id: string, order: OrderDetail | undefined) {
   const { t } = useTranslation();

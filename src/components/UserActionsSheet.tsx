@@ -36,7 +36,7 @@ export interface UserActionsProps {
  *
  * Menü `ActionSheet`'tir (appAlert düğmeleriyle menü yapılmaz); her satırın eylemi sheet
  * TAMAMEN kapandıktan sonra çalışır — şikayet modalı / engel onayı (appAlert) bu yüzden
- * zamanlayıcı hack'i olmadan güvenle açılır (CLAUDE.md §12, `runAfterClose`).
+ * zamanlayıcı hack'i olmadan güvenle açılır (src/ui/CLAUDE.md › iOS modal rule, `runAfterClose`).
  * Ekran `sheets`'i (menü + şikayet modalı) bir kez render eder.
  */
 export function useUserActionsSheet({

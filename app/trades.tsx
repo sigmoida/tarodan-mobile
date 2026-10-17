@@ -34,7 +34,7 @@ type TradesTabFilter = 'all' | 'pending' | 'shipping' | 'completed' | 'cancelled
 // `getAll({ status, pageSize: 1 }).total` ile tamamlanır → ChipTabs tek kural: sayaç ya HEPSİNDE
 // ya hiçbirinde (hepsi yüklenene dek sayısız etiket).
 // Etiketler katalogdan — module-scope dizi import-zamanı DONMASIN diye
-// `buildFilters(t)` fonksiyonu (CLAUDE.md §2), her render'da yeniden kurulur.
+// `buildFilters(t)` fonksiyonu (src/i18n/CLAUDE.md › Build labels at call time), her render'da yeniden kurulur.
 function buildFilters(t: TFn): {
   value: TradesTabFilter;
   label: string;

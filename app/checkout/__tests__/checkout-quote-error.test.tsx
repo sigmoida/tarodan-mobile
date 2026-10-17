@@ -7,7 +7,7 @@
  * `false`, dolayısıyla `disabled={loading || quoteLoading}` savunması düşüyordu.
  * Basınca guard "Fiyat bilgisi yükleniyor…" diyordu ama hiçbir şey yüklenmiyordu:
  * `retry` tükendikten sonra `refetchOnWindowFocus: false` olduğu için sorgu
- * kendiliğinden tazelenmiyor ve ekranda retry düğmesi yoktu (CLAUDE.md §11).
+ * kendiliğinden tazelenmiyor ve ekranda retry düğmesi yoktu (src/ui/CLAUDE.md › Empty and error states).
  *
  * Beklenen: ErrorState + "Tekrar Dene" (paylaşılan primitive), butonda TUTAR
  * BASILMAZ ve buton devre dışı; retry başarılı olunca ekran normale döner.

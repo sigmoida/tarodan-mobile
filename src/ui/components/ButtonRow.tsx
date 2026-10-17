@@ -34,7 +34,7 @@ const EPS = 0.5;
 /**
  * Yan yana düğme grubu — ekranlarda elle `flexDirection: 'row'` + düğme dizmek yerine bu kullanılır.
  *
- * Kural (CLAUDE.md §14): düğme etiketi ASLA sarmaz ve kısaltılmaz. Düğmeler yan yana eşit
+ * Kural (src/ui/CLAUDE.md › Feedback): düğme etiketi ASLA sarmaz ve kısaltılmaz. Düğmeler yan yana eşit
  * genişlikte durur; en geniş etiket eşit payına sığmazsa grup otomatik alt alta (tam genişlik)
  * dizilir. Doğal genişlikler, görünmez bir ölçüm katmanında (aynı çocukların kopyası; erişilebilirlik
  * ağacında ve testlerde gizli) ölçülür. Ölçüm gelene kadar (en çok 400 ms) satır görünmez yer tutar; bir kez alt alta geçen grup aynı genişlikte yan yana dönmez.

@@ -9,7 +9,7 @@ import type { OrderSummaryLinesProps } from '@/components/orders/OrderSummaryLin
  * Ödeme özeti (web `OrderSummaryLines`'ın checkout kullanımı). Satırlar sepetle ORTAK bileşendedir
  * (`OrderSummaryLines`: sıra, etiketler ve "tutarlar yalnız `pricing.summary`'den" sözleşmesi orada).
  * Burada yalnız quote hata kapısı var: hata verdiyse tutar basma — çıkış yolu ("Tekrar Dene") ver
- * (paylaşılan ErrorState, §11). Kupon indirimi özet satırı DEĞİL, kupon rozetinde bilgilendirmedir.
+ * (paylaşılan ErrorState, src/ui/CLAUDE.md › Empty and error states). Kupon indirimi özet satırı DEĞİL, kupon rozetinde bilgilendirmedir.
  */
 export function OrderSummary({
   isError = false,

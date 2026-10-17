@@ -59,7 +59,7 @@ export function mapServerLimits(dto: ServerLimitsDto | null): ServerLimitsOverri
  * `canPerformAction` / `shouldShowUpgradePrompt` / `getRemainingCount`
  * hiç değişmeden sunucu değerini okur.
  *
- * Fetch'i bu hook yapar, store yalnız sonucu tutar (CLAUDE.md §8).
+ * Fetch'i bu hook yapar, store yalnız sonucu tutar (src/stores/CLAUDE.md › Client state only).
  * Sunucuya ulaşılamazsa override yazılmaz — TIER_LIMITS yedek kalır.
  */
 export function useMembershipLimits() {

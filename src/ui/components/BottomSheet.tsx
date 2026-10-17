@@ -63,7 +63,7 @@ export interface BottomSheetProps {
   /**
    * Sheet TAMAMEN kapandıktan sonra (kapanış animasyonu bitti, native Modal söküldü; iOS'ta
    * `onDismiss`) bir kez çağrılır. appAlert / başka Modal / galeri gibi ikinci bir native sunum
-   * buradan açılır (CLAUDE.md §12 iOS donma kuralı). Sheet içinden: `useBottomSheet().runAfterClose`.
+   * buradan açılır (src/ui/CLAUDE.md › iOS modal rule). Sheet içinden: `useBottomSheet().runAfterClose`.
    */
   onClosed?: () => void;
   /** Başlık (SheetHeader: solda, kapat X sağda). Verilmezse yalnız tutamaç çizilir. */

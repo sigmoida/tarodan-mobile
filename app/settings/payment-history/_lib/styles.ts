@@ -6,7 +6,7 @@ const { colors, spacing, radius, radiusRole } = theme;
 /** Satırdaki görsel / durum ikonu kutusu (pt). */
 const THUMB = 44;
 
-// Route-local stylesheet (§12) — satırlar web Card (bordered, rounded-lg).
+// Route-local stylesheet (app/CLAUDE.md › Worked examples) — satırlar web Card (bordered, rounded-lg).
 export const styles = StyleSheet.create({
   statusIconContainer: {
     width: THUMB,

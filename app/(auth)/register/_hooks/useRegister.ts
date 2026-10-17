@@ -27,7 +27,7 @@ class EmailTakenError extends Error {}
 
 /**
  * Register controller — owns the RHF+zod form, the register mutation and the
- * back handler. Lifted verbatim from the monolithic screen (§12).
+ * back handler. Lifted verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
  */
 export function useRegister() {
   const { t } = useTranslation();

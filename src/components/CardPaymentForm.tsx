@@ -23,7 +23,7 @@ import { formatPriceNumber } from '@/utils/format';
 import { useScreenCaptureProtection } from '@/lib/security/screenCapture';
 
 /**
- * ⚠️ 3DS SONRASI DURUM YOKLAMASI BİLEREK React Query'de DEĞİL (CLAUDE.md §6'nın
+ * ⚠️ 3DS SONRASI DURUM YOKLAMASI BİLEREK React Query'de DEĞİL (exception: src/lib/query/CLAUDE.md › Exceptions;
  * istisnası). Aşağıdaki effect ödeme durumunu sabit aralıklarla sorup nihai
  * sonuca göre yönlendiriyor; React Query'nin yeniden deneme ve odakta tazeleme
  * semantiği bu yoklamayı öngörülemez hâle getirir — ödeme akışında zamanlama

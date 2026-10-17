@@ -12,7 +12,7 @@ import { OPTIMISTIC, type Listing } from '../_lib/types';
  * Add-collection-items controller — owns the user-listings query, the collection
  * picker map query, and the optimistic add/remove toggle (overlay layer +
  * in-flight guard so concurrent toggles don't clobber each other). Lifted
- * VERBATIM from the monolithic screen — the optimistic race logic is delicate (§12).
+ * VERBATIM from the monolithic screen — the optimistic race logic is delicate (app/CLAUDE.md › Worked examples).
  */
 export function useAddItems() {
   const { t } = useTranslation();

@@ -28,7 +28,7 @@ export interface UseAppMutationOptions<TData, TVars> {
  * Web `useWebMutation`'ın mobil karşılığı — yazma işlemlerinin TEK yolu:
  * `useMutation` + sorgu geçersiz kılma + `toast.success` / `toast.error`.
  *
- * Modal formlarında sıra: modalı KAPAT → `mutate` (CLAUDE.md §12, iOS donması);
+ * Modal formlarında sıra: modalı KAPAT → `mutate` (src/ui/CLAUDE.md › iOS modal rule, iOS donması);
  * toast yalnız sonuçla gelir, kapalı modalın üstünde görünür.
  *
  *   const save = useAppMutation((v: Vars) => api.save(v), {

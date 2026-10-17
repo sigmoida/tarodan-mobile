@@ -14,7 +14,7 @@ import { useServerCart } from '@/hooks/useServerCart';
 /**
  * Cart controller — owns the cart store bindings, the
  * buyer-fee quote query, and the totals + quantity/remove handlers. Lifted
- * verbatim from the monolithic screen (§12).
+ * verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
  */
 export function useCart() {
   const items = useCartStore((s) => s.items);
@@ -54,7 +54,7 @@ export function useCart() {
     },
     enabled: selected.length > 0,
     staleTime: 60_000,
-    // 4xx yeniden denenmez — checkout ile AYNI yüklem (tek kaynak, §5). Sepet
+    // 4xx yeniden denenmez — checkout ile AYNI yüklem (tek kaynak, CLAUDE.md › Principles). Sepet
     // ve checkout aynı queryKey'i paylaşıyor; yüklem burada eksik olsaydı aynı
     // sorgu iki ekranda farklı sayıda istek atardı.
     retry: retryUnlessClientError,
@@ -178,7 +178,7 @@ export function useCart() {
     quoteLoading: quoteQuery.isLoading,
     /**
      * Quote hatası — sepet de checkout ile AYNI çıkış yolunu gösterir
-     * (paylaşılan `ErrorState` + "Tekrar Dene", CLAUDE.md §11). Bu olmadan
+     * (paylaşılan `ErrorState` + "Tekrar Dene", src/ui/CLAUDE.md › Empty and error states). Bu olmadan
      * kullanıcı dört satırın da "—" olduğu, sebebi ve çıkışı olmayan bir
      * sepet görüyordu.
      */

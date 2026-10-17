@@ -25,7 +25,7 @@ const { spacing } = theme;
 function CartScreen() {
   const { t } = useTranslation();
   const f = useCart();
-  // Hook sırası sabit kalsın diye erken return'den ÖNCE (CLAUDE.md §12).
+  // Hook sırası sabit kalsın diye erken return'den ÖNCE (app/CLAUDE.md › Thin screens).
   const tabInset = useTabBarInset();
   const tabTop = useTabBarTop();
   const page = usePageScrollValue();

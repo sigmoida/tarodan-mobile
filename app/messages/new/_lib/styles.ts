@@ -3,7 +3,7 @@ import { theme } from '@/ui';
 
 const { colors, spacing, radiusRole } = theme;
 
-// Route-local stylesheet (§12) — bölümler SectionCard, token'lı.
+// Route-local stylesheet (app/CLAUDE.md › Worked examples) — bölümler SectionCard, token'lı.
 export const styles = StyleSheet.create({
   recipientSection: {
     gap: spacing[2],

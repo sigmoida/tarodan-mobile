@@ -1,6 +1,6 @@
 /**
  * BoostModal (BottomSheet): paket/süre seçimi, footer'da toplam fiyat + onay; ödeme ekranına
- * yönlendirme sheet TAMAMEN kapandıktan sonra çalışır (CLAUDE.md §12 iOS donma kuralı).
+ * yönlendirme sheet TAMAMEN kapandıktan sonra çalışır (src/ui/CLAUDE.md › iOS modal rule).
  */
 import React from 'react';
 import { Modal } from 'react-native';

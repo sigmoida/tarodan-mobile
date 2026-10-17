@@ -22,7 +22,7 @@ type SalesPage = PageInfo & { sales: Sale[] };
 /**
  * Sales list controller — owns the seller-orders query, the filter-independent
  * earnings aggregate, filter state, pull-to-refresh and focus refetch. Lifted
- * verbatim from the monolithic screen (§12).
+ * verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
  */
 export function useSales() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);

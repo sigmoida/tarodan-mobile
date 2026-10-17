@@ -84,7 +84,7 @@ it('aktivasyon başarılı olduğunda girişe yönlendirir', async () => {
   await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/(auth)/login'));
 });
 
-// §5 yakınsaması: kural artık `@/utils/validation`'daki tek `usernameSchema`.
+// CLAUDE.md › Principles yakınsaması: kural artık `@/utils/validation`'daki tek `usernameSchema`.
 // ÖNCEDEN bu ekranın şemasında `.toLowerCase()` YOKTU, yani karışık büyük/küçük
 // giriş reddediliyordu — kayıt ekranı ise sessizce kabul ediyordu. Artık ikisi de
 // alanda küçük harfe çevirir; davranış farkı bilinçli bir karara dönüştü.

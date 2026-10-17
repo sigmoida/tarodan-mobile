@@ -35,18 +35,18 @@ const BAN_PAPER = {
             "react-native-paper kaldırıldı. Bunun yerine '@/ui'den component import et. Geçişte sorun olursa .eslintrc.cjs MIGRATION_OVERRIDES'a dosyayı ekle.",
         },
         {
-          // Snackbar emekli (CLAUDE.md §14): tüm geri bildirim `toast` ile.
+          // Snackbar emekli (src/ui/CLAUDE.md › Feedback): tüm geri bildirim `toast` ile.
           name: '@/ui',
           importNames: ['Snackbar'],
           message:
-            "Snackbar kaldırıldı: bilgi/başarı/hata sonucu için toast (toast.success / toast.error), onay için confirm() / appAlert (CLAUDE.md §14).",
+            "Snackbar kaldırıldı: bilgi/başarı/hata sonucu için toast (toast.success / toast.error), onay için confirm() / appAlert (src/ui/CLAUDE.md › Feedback).",
         },
         {
-          // Sistem alert'i temasız ve iOS'ta açık bir RN Modal üstünde donma riski taşır (CLAUDE.md §12).
+          // Sistem alert'i temasız ve iOS'ta açık bir RN Modal üstünde donma riski taşır (src/ui/CLAUDE.md › iOS modal rule).
           name: 'react-native',
           importNames: ['Alert'],
           message:
-            "RN Alert yasak: onay için '@/ui' confirm() / appAlert, bilgi/başarı/hata sonucu için toast (CLAUDE.md §14).",
+            "RN Alert yasak: onay için '@/ui' confirm() / appAlert, bilgi/başarı/hata sonucu için toast (src/ui/CLAUDE.md › Feedback).",
         },
       ],
     },
@@ -161,13 +161,13 @@ module.exports = {
       rules: { 'tarodan/no-raw-activity-indicator': 'warn' },
     },
     {
-      // Query anahtarları yalnız `qk`'dan (CLAUDE.md §6) — kayıt defteri dosyası ve testler muaf.
+      // Query anahtarları yalnız `qk`'dan (src/lib/query/CLAUDE.md › Query keys) — kayıt defteri dosyası ve testler muaf.
       files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
       excludedFiles: [...DESIGN_TEST_FILES, 'src/lib/query/keys.ts'],
       rules: { 'tarodan/no-inline-query-key': 'warn' },
     },
     {
-      // Argümansız use*Store() = tüm store aboneliği (her yazımda render) → selector (CLAUDE.md §8).
+      // Argümansız use*Store() = tüm store aboneliği (her yazımda render) → selector (src/stores/CLAUDE.md › Selectors).
       // Store dosyalarının kendisi ve testler muaf.
       files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
       excludedFiles: [...DESIGN_TEST_FILES, 'src/stores/**'],

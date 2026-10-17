@@ -12,7 +12,7 @@ import type { LikedCollection } from '../_lib/types';
 
 /**
  * Liked-collections controller — owns the list query, unlike action, refresh
- * and stale-only focus refetch. Lifted verbatim from the monolithic screen (§12).
+ * and stale-only focus refetch. Lifted verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
  */
 export function useLikedCollections() {
   const { t } = useTranslation();

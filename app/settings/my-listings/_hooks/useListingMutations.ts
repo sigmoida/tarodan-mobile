@@ -15,7 +15,7 @@ export interface RemovalRequest {
 /**
  * Kaldırma nedeni penceresi `onSubmit`'ten ÖNCE kapanır; ama kapanış animasyonu
  * sürerken (hızlı bir hata yanıtında olduğu gibi) `appAlert` açmak iOS'ta donmaya
- * yol açar (CLAUDE.md §12). Hata uyarısı `alertAfterClose` ile modalın kapanma süresi
+ * yol açar (src/ui/CLAUDE.md › iOS modal rule). Hata uyarısı `alertAfterClose` ile modalın kapanma süresi
  * geçtikten sonra çıkar (kapatma işi çağıranda bittiği için `close` boş); başarı bilgisi
  * diyalog değil toast'tur.
  */

@@ -12,7 +12,7 @@ import { buildTierNames, buildBillingPeriodNames, type MembershipMe } from '../_
 /**
  * Membership-manage controller — owns GET /membership/me, the cancel and
  * auto-renew mutations, derived tier flags, handlers; bildirimler toast. Lifted
- * verbatim from the monolithic screen (§12).
+ * verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
  */
 export function useMembershipManage() {
   const { t } = useTranslation();

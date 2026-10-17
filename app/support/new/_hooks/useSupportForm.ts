@@ -10,7 +10,7 @@ import { UUID_RE } from '../_lib/constants';
 /**
  * Support-ticket controller — owns the ticket form fields + validation (subject
  * ≥5, message ≥10) and the create-ticket submit (order/trade UUID handling).
- * Lifted verbatim from the monolithic screen (§12); feedback is a toast (web react-hot-toast).
+ * Lifted verbatim from the monolithic screen (app/CLAUDE.md › Worked examples); feedback is a toast (web react-hot-toast).
  */
 export function useSupportForm() {
   const { t } = useTranslation();

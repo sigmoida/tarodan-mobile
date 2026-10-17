@@ -57,7 +57,7 @@ export function openLegalIdentityRequest(): Promise<boolean> {
  * ağaçtan sökülür — sökülen Modal'ın `onDismiss`'i gelmez. Bekleyenler aynı
  * tick'te çözülseydi çağıran (ödeme, ilan…) kapı daha kaybolurken devam edip
  * `appAlert` açabilirdi; iOS iki modalı aynı anda sunamaz ve donar
- * (ModalFreeze, CLAUDE.md §12). Bu yüzden ortak `runAfterModalClose`
+ * (ModalFreeze, src/ui/CLAUDE.md › iOS modal rule). Bu yüzden ortak `runAfterModalClose`
  * süresi kadar beklenir. Bu arada açılan yeni bir istek kendi listesine
  * yazılır, bu sonuca karışmaz.
  */
