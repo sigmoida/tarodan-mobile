@@ -280,10 +280,17 @@ Conventional Commits in `git log --no-merges mobile-v<latest>..<ref>`, where
 
 **Release PR commit.** Who: the devops agent under the hub `prod-release mobile`
 skill (or the repo's `/mobile-release-prod`); the user approves the push and the PR.
+First merge any open hotfix back-merge PR: the version is computed on
+`development`, but the required PR check computes it on the merge with master, and
+the two only agree when master holds nothing development lacks
+(`git log --oneline --no-merges origin/development..origin/master` is empty).
+Otherwise the release commit, and its staging store build, has to be redone.
+
 In a worktree of its own (never in the shared checkout), from the repo root:
 
 ```bash
 git fetch origin --tags
+git log --oneline --no-merges origin/development..origin/master   # must be empty
 git worktree add --detach .claude/worktrees/release origin/development
 cd .claude/worktrees/release
 pnpm install --frozen-lockfile --prefer-offline   # the commit hooks need node_modules
@@ -294,6 +301,10 @@ git add app.json
 git commit -m "chore(release): $v"
 cd - && git worktree remove .claude/worktrees/release   # back to the shared checkout
 ```
+
+If a step fails, go back to the repo root and run
+`git worktree remove --force .claude/worktrees/release` before trying again (the
+path is fixed, so a leftover worktree blocks the next `git worktree add`).
 
 Then merge `chore/release-<v>` (dots as dashes) into `development` with `--no-ff`
 (`merge-integration`, from the shared checkout on `development`), push
@@ -318,7 +329,10 @@ manual version passes, as next-version returns it):
 - in the production `plan` after the merge (`mode=auto`), before anything is built.
 
 Hotfixes and `mode=ota|build` skip the check; a re-run of a merge already tagged
-with its version passes.
+with its version passes. Every `development -> master` merge is therefore a release
+with a version commit; a CI- or docs-only change that must reach master without one
+goes through a `hotfix/*` branch (skipped here, and `paths-ignore` keeps the
+production run from starting).
 
 **Seed tag:** `next-version` needs a tag to count from. The first one,
 `mobile-v1.0.5`, is on the last released master commit (1.0.5 build 11); it was

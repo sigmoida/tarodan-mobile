@@ -28,6 +28,7 @@ If the status is not `lifted` or `superseded`, **stop** and tell the user the fr
 git fetch origin --tags
 git log --oneline origin/master..origin/development | head -50
 git show origin/development:app.json | grep '"version"'
+git log --oneline --no-merges origin/development..origin/master   # must be empty (merge back-merge PRs first)
 scripts/ci/release.sh next-version origin/development   # the version this release gets
 ```
 
