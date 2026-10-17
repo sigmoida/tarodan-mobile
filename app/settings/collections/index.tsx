@@ -1,5 +1,5 @@
 import { View, Pressable } from "react-native";
-import { Alert, Badge, EmptyState, FAB, SectionCard, Text, useFabContentInset } from "@/ui";
+import { Alert, Badge, EmptyState, FAB, Text, useFabContentInset } from "@/ui";
 import { router } from "expo-router";
 import { AppImage } from "@/components/AppImage";
 import { AuthGatePage } from "@/components/common/AuthGatePage";
@@ -45,12 +45,6 @@ export default function CollectionsScreen() {
         ) : null
       }
     >
-      <SectionCard title={t("mobile.guestGarageTitle")}>
-        <Text variant="bodySm" tone="muted">
-          {t("collection.garageDesc")}
-        </Text>
-      </SectionCard>
-
       {/* Premium Notice if not premium — başlığı ve açıklaması Premium'a özel
           olduğunu söylüyor, salt düğmeyi gizlemek yetmez; kart bütünüyle
           iOS'ta kapanır (Guideline 3.1.1/3.1.3). */}
