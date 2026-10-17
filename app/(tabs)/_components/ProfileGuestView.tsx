@@ -28,9 +28,6 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
 
   const quickLinks: { label: string; to: string; icon: IconName }[] = [
-    { label: t('mobile.guestBrowseListings'), to: '/search', icon: 'magnifying-glass' },
-    { label: t('collection.exploreCollections'), to: '/collections', icon: 'rectangle-stack' },
-    { label: t('cart.myCart'), to: '/cart', icon: 'shopping-cart' },
     { label: t('mobile.guestOrderTrack'), to: '/order-track', icon: 'truck' },
   ];
 

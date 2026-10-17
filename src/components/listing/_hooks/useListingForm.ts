@@ -356,18 +356,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const [manufacturerSearch, setManufacturerSearch] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
 
-  // -----------------------------------------------------------------------
-  // Auth gate (create only — edit is always reached authenticated)
-  // -----------------------------------------------------------------------
-  useEffect(() => {
-    if (authLoading || isEdit) return;
-    if (!isAuthenticated) {
-      appAlert(t('listing.loginRequiredTitle'), t('product.loginRequiredToCreate'), [
-        { text: t('common.login'), onPress: () => router.push('/(auth)/login') },
-        { text: t('common.cancel'), style: 'cancel' },
-      ]);
-    }
-  }, [isAuthenticated, authLoading, isEdit, t]);
+  // Misafir: giriş kapısı ekranın kendisi (`ListingGates` "Giriş Yapın" sayfası + buton);
+  // üstüne aynı mesajlı ikinci bir uyarı açılmaz.
 
   // -----------------------------------------------------------------------
   // Initial data loading — katalog ve kota React Query'de (yukarıda); burada yalnız kullanıcı
