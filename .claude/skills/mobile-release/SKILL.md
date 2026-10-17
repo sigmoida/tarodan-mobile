@@ -56,8 +56,12 @@ tarodan-ops `qa/device-checklist.md` before the store build).
 - `development -> master` PR = a release = **always a store build**, never an OTA.
   **VERSION-GATE:** `app.json` `expo.version` must be greater than the last finished
   production build, per platform, or that platform is `blocked`.
-- `development` always carries the next version; `release-bookkeeping` tags, writes
-  the GitHub Release and bumps `development` after a submitted store build.
+- The version is computed at release time: `scripts/ci/release.sh next-version`
+  (Conventional Commits since the highest `mobile-vX.Y.Z` tag: breaking -> major,
+  `feat` -> minor, else patch), set by the release PR commit `chore(release): X.Y.Z`
+  (`set-version`; a higher manual version wins). After a submitted store build
+  `release-bookkeeping` tags `mobile-v<version>` and writes the GitHub Release; it
+  never bumps `development` (`docs/RELEASE.md` › "Release version").
 - A production OTA ships **only from a `hotfix/*` merge** into `master` (JS-only),
   after approval in the `production` GitHub Environment. "Submitted" is not
   "released": an OTA reaches only the runtime that is live.

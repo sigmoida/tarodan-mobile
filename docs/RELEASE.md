@@ -7,11 +7,11 @@ onaylar ve Android durumu. Workflow'lar: `mobile-staging.yml`,
 
 ## Dallar
 
-| Dal           | Rol                                              | Nasıl girilir                                       |
-| ------------- | ------------------------------------------------ | --------------------------------------------------- |
-| `development` | Varsayılan dal; **staging**                      | Doğrudan push serbest (PR de olur)                  |
+| Dal           | Rol                                                                 | Nasıl girilir                                                 |
+| ------------- | ------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `development` | Varsayılan dal; **staging**                                         | Doğrudan push serbest (PR de olur)                            |
 | `master`      | **Production** — `development`'tan merge = yeni sürüm (store build) | Yalnız PR ile, yalnız `development` ya da `hotfix/*` dalından |
-| `hotfix/*`    | Production'a acil düzeltme (JS ise onaylı OTA)   | `master`'dan açılır, PR ile `master`'a girer        |
+| `hotfix/*`    | Production'a acil düzeltme (JS ise onaylı OTA)                      | `master`'dan açılır, PR ile `master`'a girer                  |
 
 `master` koruması `master-flow.yml` içindeki **`Master source guard`** check'iyle
 sağlanır: kaynak dal `development` ya da `hotfix/*` değilse (ya da PR bir fork'tan
@@ -23,11 +23,11 @@ girdikten sonra devreye girer.
 
 ## Uygulamalar
 
-| Ortam       | iOS                                                 | Android                                                   | API                       | EAS profili / kanalı |
-| ----------- | --------------------------------------------------- | --------------------------------------------------------- | ------------------------- | -------------------- |
-| Production  | **Tarodan** `com.tarodan.app`                       | `com.tarodan.app` (Play, internal track)                  | `tarodan.com.tr`          | `production` / `production` |
-| Staging     | **Tarodan (Staging)** `com.tarodan.app.staging`     | `com.tarodan.app.staging` (ayrı Play uygulaması, internal testing) | `staging.tarodan.com.tr`  | `staging` / `staging` |
-| Ad-hoc APK  | —                                                   | `preview` profili, EAS internal distribution (Play'siz)  | `staging.tarodan.com.tr`  | `preview` / `staging` |
+| Ortam      | iOS                                             | Android                                                            | API                      | EAS profili / kanalı        |
+| ---------- | ----------------------------------------------- | ------------------------------------------------------------------ | ------------------------ | --------------------------- |
+| Production | **Tarodan** `com.tarodan.app`                   | `com.tarodan.app` (Play, internal track)                           | `tarodan.com.tr`         | `production` / `production` |
+| Staging    | **Tarodan (Staging)** `com.tarodan.app.staging` | `com.tarodan.app.staging` (ayrı Play uygulaması, internal testing) | `staging.tarodan.com.tr` | `staging` / `staging`       |
+| Ad-hoc APK | —                                               | `preview` profili, EAS internal distribution (Play'siz)            | `staging.tarodan.com.tr` | `preview` / `staging`       |
 
 `.staging` kimliği `app.config.js`'te `EXPO_PUBLIC_ENVIRONMENT=preview` iken eklenir.
 Android'in `.staging` paketi ve `eas.json`'daki `staging` Android profili /
@@ -59,7 +59,7 @@ Workflow her yayın öncesi, platform başına:
      runtime'a onay istenmez; uyarı basar.
    - **none** — hata, iptal, gönderimi başarısız ya da hiç gönderilmemiş →
      **build**
-   Belirsiz her şey (tanınmayan CLI JSON'u dahil) "binary var" sayılmaz.
+     Belirsiz her şey (tanınmayan CLI JSON'u dahil) "binary var" sayılmaz.
 3. Build kararı otomatikse iki koruma uygulanır (aşağıda "Build korumaları").
 
 Fingerprint'e girenler (doğrulandı): `app.config.js`'in **çıktısı**
@@ -159,10 +159,10 @@ onayıyla kurulur. Sonraki JS değişiklikleri bu APK'ya da OTA ile iner (kanal
 `com.tarodan.app`). master'a yalnız PR ile ve yalnız iki daldan girilir; **hangi
 daldan geldiği ne olacağını belirler**:
 
-| Merge | Ne olur |
-| --- | --- |
-| **`development` → `master` (sürüm)** | **Her zaman store build'i** (iOS → App Store Connect, Android → Play internal). `expo.version` artırılmamışsa build alınmaz, koşu kırmızı olur. Yalnız JS değişmiş olsa da production OTA'sı **çıkmaz**. |
-| **`hotfix/*` → `master` (acil düzeltme)** | Yalnız JS değiştiyse **onaylı OTA** hazırlanır (senin onayın olmadan çıkmaz). Native değiştiyse store build'i (sürüm artmış olmalı). |
+| Merge                                     | Ne olur                                                                                                                                                                                                  |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`development` → `master` (sürüm)**      | **Her zaman store build'i** (iOS → App Store Connect, Android → Play internal). `expo.version` artırılmamışsa build alınmaz, koşu kırmızı olur. Yalnız JS değişmiş olsa da production OTA'sı **çıkmaz**. |
+| **`hotfix/*` → `master` (acil düzeltme)** | Yalnız JS değiştiyse **onaylı OTA** hazırlanır (senin onayın olmadan çıkmaz). Native değiştiyse store build'i (sürüm artmış olmalı).                                                                     |
 
 ```
 ci
@@ -188,11 +188,12 @@ build'inin `appVersion`'ından büyük** olmalı (`sort -V`). Değilse o platfor
 çıkar, ve tersi); koşu sonda kırmızı olur:
 
 > `ios: sürüm merge'ü (kaynak: development) ama app.json expo.version (1.0.6) son
-> production build'inin sürümünden (1.0.6) büyük değil — store build ALINMADI …`
+production build'inin sürümünden (1.0.6) büyük değil — store build ALINMADI …`
 
 Çıkış yolları (hata mesajında da yazar):
 
-- **Yeni sürüm:** `development`'ta `expo.version`'ı artır, yeni PR aç.
+- **New version:** set it on `development` with the release PR commit
+  (`next-version` + `set-version`, see "Release version" below), then open a new PR.
 - **Aynı sürümün yeni build'i** (ör. App Review reddetti, sürüm henüz yayınlanmadı):
   `gh workflow run mobile-production.yml --ref master -f mode=build -f platform=ios`
   (`mode=build` kapıyı yalnız uyarıya çevirir).
@@ -248,58 +249,103 @@ gh workflow run mobile-production.yml --ref master -f mode=build -f platform=ios
 Başka bir ref'ten tetiklenirse `plan` durur (`release.sh guard-ref`; ayrıca
 `production-build` / `production` environment'ları yalnız master'a açık).
 
-### Sürüm numarası: development hep bir sonraki sürümü taşır
+### Release version: computed at release time
 
-Canlıda 1.2.3 varken staging'de yapılan her şey **1.2.4**'tür; testçi TestFlight'ta
-"1.2.4 (n)" görür ve canlıdakiyle karıştırmaz. Build numarası ayrıdır, EAS'te
-otomatik artar ve sürüm değişince sıfırlanmaz.
+There is no post-release bump. `development` keeps the last released version until
+the release PR sets the next one, so staging builds in between show the live
+version with a higher build number (EAS increments the build number automatically,
+`appVersionSource: remote`, and never resets it; do not touch `ios.buildNumber`).
 
-| Sürüm parçası | Ne zaman | Kim |
-| --- | --- | --- |
-| Yama (1.2.**4**) | Her yayından sonra | **Otomatik** (aşağıda) |
-| Ara (1.**3**.0) / ana (**2**.0.0) | Özellik grubu / büyük değişiklik | Elle: development'ta `app.json` → `expo.version` |
+`scripts/ci/release.sh next-version [ref]` computes the next version from the
+Conventional Commits in `git log --no-merges mobile-v<latest>..<ref>`, where
+`<latest>` is the highest `mobile-vX.Y.Z` tag in the repo:
 
-### Yayın sonrası (otomatik): etiket, sürüm notu, sonraki sürüm
+| Commits since the last `mobile-v` tag                                                                        | Next version (from 1.2.4) |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------- |
+| a `!` after the type/scope (`feat!:`, `fix(api)!:`) or a `BREAKING CHANGE:` / `BREAKING-CHANGE:` footer line | major: **2.0.0**          |
+| any `feat`                                                                                                   | minor: **1.3.0**          |
+| anything else (`fix`, `refactor`, `build`, ...)                                                              | patch: **1.2.5**          |
 
-`release-bookkeeping` job'ı, master'dan bir store build'i başarıyla
-gönderildiğinde (sürüm ya da sürümü artırılmış hotfix) koşar:
+- Merge commits and `chore(release)` commits are ignored.
+- The tag is looked up repo-wide, not "reachable from the ref": the release tag sits
+  on master's merge commit, which `development` never contains. The range still
+  counts only what is new since that release.
+- It fails (it never guesses) when there is no `mobile-v` tag in the clone (run
+  `git fetch --tags origin`), in a shallow clone, or when nothing but
+  `chore(release)` commits came after the tag.
+- **Manual override:** a higher `expo.version` already committed in `app.json` wins
+  (with a notice). Set it in the release PR commit instead of the computed one, e.g.
+  `scripts/ci/release.sh set-version 2.0.0`. `set-version` never lowers the version,
+  and VERSION-GATE still requires it to be above the last production build.
 
-1. Yayınlanan commit'e **`v<sürüm>`** git etiketi atar (`v1.2.4`). "Canlıda hangi
-   kod var?" sorusunun cevabı ve hotfix'in başlayacağı nokta budur. Aynı sürümün
-   ikinci build'inde (ör. App Review reddi sonrası `mode=build`) etiket taşınmaz.
-2. PR başlıklarından üretilmiş notlarla bir **GitHub Release** açar (depo herkese
-   açık olduğu için Release'ler de açıktır).
-3. development'ın sürümü yayınlananınkinden büyük değilse onu **bir sonraki
-   yamaya** çeker (`release.sh bump-version`; 1.2.4 → 1.2.5), development'a
-   `chore(release): development 1.2.5 (1.2.4 yayına gönderildi)` commit'ini atar ve
-   staging'i başlatır (sürüm fingerprint'e girer → yeni staging build'i). Elle
-   verilmiş daha büyük bir sürüme (1.3.0) dokunmaz.
+**Release PR commit.** Who: the devops agent under the hub `prod-release mobile`
+skill (or the repo's `/mobile-release-prod`); the user approves the push and the PR.
+On an up-to-date clone with tags:
 
-Yalnız OTA olan hotfix'ler, takılan (blocked) ya da build'i başarısız koşular bu
-adımı tetiklemez. Adım tekrar çalıştırılabilir: etiket/Release varsa ve
-development zaten ilerideyse hiçbir şey yapmaz.
+```bash
+git fetch origin --tags
+git switch --detach origin/development
+v="$(scripts/ci/release.sh next-version)"   # e.g. 1.1.0; the reasoning goes to stderr
+git switch -c "chore/release-$v"
+scripts/ci/release.sh set-version "$v"      # or a higher manual version
+git add app.json
+git commit -m "chore(release): $v"
+```
 
-### Sürüm akışı (özet)
+Then merge `chore/release-<v>` into `development` with `--no-ff`
+(`merge-integration`), push `development` (approval). The version is part of the
+fingerprint, so staging takes a new store build of `<v>` (it counts against the EAS
+quota and `STAGING_MAX_BUILDS_PER_DAY`). The commit touches only `app.json` and is
+its own commit, as the fingerprint rule requires; its type stays `chore(release)` so
+`next-version` ignores it. Then open the `development -> master` PR and merge it with
+**"Create a merge commit"** (never squash or rebase: the tag goes on that merge
+commit and the next `next-version` counts from it).
 
-1. development zaten bir sonraki sürümdedir (otomatik). Ara/ana sürüm istiyorsan
-   `app.json` → `expo.version`'ı elle değiştir (ör. `1.2.5` → `1.3.0`).
-2. `development` → `master` PR'ı aç; CI + `Master source guard` yeşil olunca merge et.
-3. `mobile-production.yml` iOS ve (açıksa) Android store build'ini alıp gönderir;
-   ardından etiketi, Release'i ve development'ın sonraki sürümünü ayarlar.
-4. App Store Connect'te build'i test et, **incelemeye elle gönder**; Play'de
-   internal'dan ileri kanallara **elle** terfi et.
+**First run:** `next-version` needs a seed tag on the last released master commit
+(1.0.5 build 11). It is created by hand, with the user's approval:
+`git tag -a mobile-v1.0.5 <master sha> -m "Tarodan 1.0.5"` and
+`git push origin refs/tags/mobile-v1.0.5`.
+
+### After the release (automatic): tag and GitHub Release
+
+When a store build was submitted from master (a release, or a hotfix with a new
+version), the `release-bookkeeping` job:
+
+1. Tags the released commit **`mobile-v<version>`** (`mobile-v1.2.4`). It answers
+   "which code is live?" and is where a hotfix starts and `next-version` counts
+   from. A second build of the same version (e.g. `mode=build` after an App Review
+   rejection) does not move the tag. A version not above the highest released tag is
+   not tagged.
+2. Opens a **GitHub Release** with notes generated since the previous `mobile-v`
+   tag (the repo is public, so Releases are public too).
+
+It never writes to `development`. OTA-only hotfixes and blocked or failed runs do not
+trigger it. Re-running it is safe: an existing tag or Release is left alone.
+
+### Version flow (summary)
+
+1. On `development`, the release PR commit `chore(release): X.Y.Z` (above).
+2. Open the `development -> master` PR; merge (merge commit) once CI and
+   `Master source guard` are green.
+3. `mobile-production.yml` builds and submits iOS and (if enabled) Android, then
+   sets the tag and the Release.
+4. Test the build in App Store Connect and **submit it for review by hand**; on
+   Play, promote beyond internal **by hand**.
 
 ## Hotfix
 
 1. `master`'dan `hotfix/<ad>` dalı aç, düzeltmeyi yap.
-2. `hotfix/<ad>` → `master` PR'ı aç (guard izin verir), merge et. Yalnız JS
-   değiştiyse production OTA'sı hazırlanır ve **onayını bekler** (Actions →
-   koşu → "Review deployments"). Native değiştiyse sürümü artır; store build'i alınır.
-   OTA, master'daki sürümün binary'sine iner: master'da henüz yayınlanmamış bir
-   sürüm varsa canlı kullanıcılara ulaşmaz (yukarıda "Gönderilmiş ≠ yayınlanmış").
-   Hotfix sürümü artırdıysa (ör. 1.2.5) ve development de 1.2.5'teyse, yayın
-   sonrası adım development'ı 1.2.6'ya çeker; back-merge PR'ında `app.json`
-   sürüm satırı çakışırsa **development'ınkini (büyük olanı)** tut.
+2. Open the `hotfix/<name>` -> `master` PR (the guard allows it) and merge it. If
+   only JS changed, a production OTA is prepared and **waits for your approval**
+   (Actions -> the run -> "Review deployments"). The OTA reaches the binary of the
+   version on master: if master holds a version that is not live yet, live users do
+   not get it (see "Gönderilmiş ≠ yayınlanmış" above).
+   If native code changed, the merge takes a store build, so set a new version on
+   the hotfix branch **before** opening the PR:
+   `v="$(scripts/ci/release.sh next-version)"` (it counts from the last release tag
+   on master, usually a patch such as 1.2.5), `scripts/ci/release.sh set-version "$v"`,
+   commit `chore(release): $v`. The back-merge PR carries that version into `development`;
+   if the `app.json` version line conflicts there, keep **the higher one**.
 3. Merge sonrası `master-flow.yml` → **`Hotfix back-merge PR (master → development)`**
    job'ı master'ın merge commit'inden `backmerge/<ad>-<PR no>` dalını açar ve
    `development`'a PR açar. **Çakışma olsa da PR açılır**; çakışmayı o dalda
@@ -307,6 +353,10 @@ development zaten ilerideyse hiçbir şey yapmaz.
    düzeltmeyi içeriyorsa PR açılmaz.
    - `GITHUB_TOKEN` ile açılan PR'lar workflow tetiklemez: CI için PR'ı
      kapatıp yeniden aç ya da dala bir commit at.
+   - Opening the PR needs Settings -> Actions -> General -> "Allow GitHub Actions to
+     create and approve pull requests". Without it the job pushes the
+     `backmerge/*` branch, fails, and prints the `gh pr create` command to run by
+     hand.
 
 ## Android durumu
 
@@ -350,21 +400,21 @@ dolmadan production track'e geçilemez.
 bağlıdır. Başka bir daldaki workflow ya da environment'sız bir job token'a
 ulaşamaz; production OTA onayı atlanamaz.
 
-| Environment        | Deployment branch                          | Onay        | Kullanan job'lar |
-| ------------------ | ------------------------------------------ | ----------- | ---------------- |
-| `staging`          | `development` (+ `vars.STAGING_APK_BRANCHES`) | yok      | staging plan / ota / build-ios / build-android / apk, `mobile-build.yml` |
-| `production-build` | yalnız `master`                            | yok         | production plan, build-ios, build-android (store build + submit) |
-| `production`       | yalnız `master`                            | **required reviewers** | yalnız production `ota` |
+| Environment        | Deployment branch                             | Onay                   | Kullanan job'lar                                                         |
+| ------------------ | --------------------------------------------- | ---------------------- | ------------------------------------------------------------------------ |
+| `staging`          | `development` (+ `vars.STAGING_APK_BRANCHES`) | yok                    | staging plan / ota / build-ios / build-android / apk, `mobile-build.yml` |
+| `production-build` | yalnız `master`                               | yok                    | production plan, build-ios, build-android (store build + submit)         |
+| `production`       | yalnız `master`                               | **required reviewers** | yalnız production `ota`                                                  |
 
-| Ad                                 | Tür                         | Kullanan                                  |
-| ---------------------------------- | --------------------------- | ----------------------------------------- |
-| `EXPO_TOKEN`                       | **Environment secret** (yukarıdaki üçünde de) | EAS job'ları. Yoksa o job no-op |
-| `ANDROID_RELEASE_ENABLED`          | Repo variable (`true` ile açılır) | Android build/submit job'ları        |
-| `STAGING_MAX_BUILDS_PER_DAY`       | Repo variable (isteğe bağlı, varsayılan 2) | Staging otomatik build kotası |
-| `STAGING_APK_BRANCHES`             | Repo variable (isteğe bağlı, varsayılan `development`) | Ad-hoc APK'nın izinli dalları |
-| App Store Connect API key          | EAS sunucusunda (`eas credentials`) | `eas submit` iOS                  |
-| Google Play service account JSON   | EAS sunucusunda (`eas credentials`) | `eas submit` Android              |
-| "Allow GitHub Actions to create and approve pull requests" | Repo ayarı (Settings → Actions → General) | Hotfix back-merge PR'ı |
+| Ad                                                         | Tür                                                    | Kullanan                        |
+| ---------------------------------------------------------- | ------------------------------------------------------ | ------------------------------- |
+| `EXPO_TOKEN`                                               | **Environment secret** (yukarıdaki üçünde de)          | EAS job'ları. Yoksa o job no-op |
+| `ANDROID_RELEASE_ENABLED`                                  | Repo variable (`true` ile açılır)                      | Android build/submit job'ları   |
+| `STAGING_MAX_BUILDS_PER_DAY`                               | Repo variable (isteğe bağlı, varsayılan 2)             | Staging otomatik build kotası   |
+| `STAGING_APK_BRANCHES`                                     | Repo variable (isteğe bağlı, varsayılan `development`) | Ad-hoc APK'nın izinli dalları   |
+| App Store Connect API key                                  | EAS sunucusunda (`eas credentials`)                    | `eas submit` iOS                |
+| Google Play service account JSON                           | EAS sunucusunda (`eas credentials`)                    | `eas submit` Android            |
+| "Allow GitHub Actions to create and approve pull requests" | Repo ayarı (Settings → Actions → General)              | Hotfix back-merge PR'ı          |
 
 > ⚠️ Workflow'da adı geçen bir environment yoksa GitHub onu **korumasız**
 > oluşturur. Üç environment'ı (branch kuralı + `production` onayı) bu workflow'lar
@@ -388,11 +438,11 @@ Submit kimlik bilgileri EAS sunucularında durur, repoya girmez. Ayrıntı:
 JS düzeltmesi → staging          development'a push (otomatik OTA)
 Native değişiklik → staging      development'a push (otomatik build + TestFlight/Play internal)
 Ad-hoc APK                       gh workflow run mobile-staging.yml --ref development -f mode=apk
-Production sürümü                development → master PR → merge
-                                 → otomatik store build (iOS + açıksa Android) + etiket + Release
-                                 → development otomatik bir sonraki yamaya geçer
-                                 → App Store Connect'te incelemeye ELLE gönder
-Ara/ana sürüm (1.3.0)            development'ta app.json expo.version'ı elle değiştir
+Production release               on development: next-version + set-version -> chore(release): X.Y.Z
+                                 development -> master PR -> merge commit
+                                 -> store build (iOS + Android if enabled) + mobile-v tag + Release
+                                 -> submit for App Store review BY HAND
+Manual version (e.g. 2.0.0)      set-version 2.0.0 in the release PR commit (never lower)
 Acil JS düzeltmesi → production  hotfix/<ad> → master PR → merge → OTA'yı onayla (Review deployments)
                                  → otomatik back-merge PR'ını merge et
 Aynı sürümün yeni build'i        gh workflow run mobile-production.yml --ref master -f mode=build -f platform=ios

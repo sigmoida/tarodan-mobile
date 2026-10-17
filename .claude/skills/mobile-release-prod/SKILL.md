@@ -25,15 +25,28 @@ If the status is not `lifted` or `superseded`, **stop** and tell the user the fr
 ## 1. Preconditions
 
 ```bash
-git fetch origin
+git fetch origin --tags
 git log --oneline origin/master..origin/development | head -50
-node -p "require('./app.json').expo.version"
+git show origin/development:app.json | grep '"version"'
+scripts/ci/release.sh next-version origin/development   # the version this release gets
 ```
 
 - CI green on `development`; `/code-review` important findings resolved.
-- Release: `expo.version` is greater than the last production build (VERSION-GATE).
-  If not, bump it on `development` first (`chore(release): ...`, a fingerprint
-  change -> its own commit).
+- Release: `origin/development`'s `expo.version` equals `next-version` (or a higher
+  manual version) and is greater than the last production build (VERSION-GATE). If
+  not, make the release PR commit first (`docs/RELEASE.md` › "Release version"):
+
+  ```bash
+  git switch --detach origin/development
+  v="$(scripts/ci/release.sh next-version)"
+  git switch -c "chore/release-$v"
+  scripts/ci/release.sh set-version "$v"
+  git add app.json && git commit -m "chore(release): $v"
+  ```
+
+  Merge it into `development` (`merge-integration`, `--no-ff`), push with the user's
+  approval, and let staging build that version. `next-version` fails without a
+  `mobile-v` tag: the seed tag is created only with the user's approval.
 - Store notes (tr + en) exist in tarodan-ops `releases/store-notes/<version>.md`.
 - tarodan-ops `qa/device-checklist.md` and the Maestro critical flows ran on the
   staging build.
@@ -43,16 +56,19 @@ node -p "require('./app.json').expo.version"
 
 1. Ask the user to confirm, then open the PR (permission-gated):
    `gh pr create --base master --head development --title "release: mobile <version>"`.
-2. The user merges after CI + `Master source guard`. `mobile-production.yml` builds
-   and submits both stores; App Store review is submitted by hand in App Store
-   Connect; Play promotion beyond internal is manual.
+2. The user merges with **"Create a merge commit"** (never squash or rebase) after
+   CI + `Master source guard`. `mobile-production.yml` builds and submits both
+   stores, then tags `mobile-v<version>` and writes the GitHub Release; App Store
+   review is submitted by hand in App Store Connect; Play promotion beyond internal
+   is manual.
 
 ## 2b. Hotfix (JS only -> production OTA)
 
 1. `hotfix/<name>` is cut from `master`; the fix is reviewed.
 2. PR `hotfix/<name>` -> `master` (user-confirmed). After merge, the OTA job waits for
    the user's approval in the `production` environment ("Review deployments").
-3. A native hotfix needs a version bump and a store build instead.
+3. A native hotfix needs a new version and a store build instead: before the PR,
+   `next-version` + `set-version` + `chore(release): <v>` on the hotfix branch.
 4. Merge the automatic back-merge PR into `development`.
 
 ## 3. After
