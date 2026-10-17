@@ -131,13 +131,13 @@ export function useCartMergeOnLogin() {
       if (online) fire();
     });
     const track = createForegroundTracker();
-    const appState = AppState.addEventListener('change', (next) => {
+    const appState = AppState?.addEventListener?.('change', (next) => {
       if (track(next) === 'foreground') fire();
     });
     return () => {
       if (timer) clearTimeout(timer);
       stopOnline();
-      appState.remove();
+      appState?.remove();
     };
   }, [waiting]);
 }

@@ -616,14 +616,14 @@ function armRetry(delay: number, fire: () => void): { cancel: () => void } {
     if (online) fire();
   });
   const track = createForegroundTracker();
-  const appState = AppState.addEventListener("change", (next) => {
+  const appState = AppState?.addEventListener?.("change", (next) => {
     if (track(next) === "foreground") fire();
   });
   return {
     cancel: () => {
       clearTimeout(timer);
       stopOnline();
-      appState.remove();
+      appState?.remove();
     },
   };
 }

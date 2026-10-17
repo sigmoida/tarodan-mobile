@@ -10,7 +10,8 @@ import { focusManager } from '@tanstack/react-query';
  * bunlarda yeniden çekmek girişte aynı isteğin iki kez gitmesine yol açıyordu.
  * Yalnız araya `background` girmişse ön plana dönüş sayılır.
  */
-export function createForegroundTracker(initial: AppStateStatus = AppState.currentState) {
+// `AppState?.` — bazı testler `react-native`'i AppState'siz taklit eder; modül yine çökmemeli.
+export function createForegroundTracker(initial: AppStateStatus = AppState?.currentState ?? 'active') {
   let wentToBackground = initial === 'background';
   return (next: AppStateStatus): 'background' | 'foreground' | null => {
     if (next === 'background') {
@@ -39,7 +40,7 @@ export function installFocusManager(): void {
   focusManager.setEventListener((handleFocus) => {
     const track = createForegroundTracker();
     // Soğuk açılış arka planda olduysa (ör. bildirim) yoklama baştan duraklı başlasın.
-    if (AppState.currentState === 'background') handleFocus(false);
+    if (AppState?.currentState === 'background') handleFocus(false);
     const sub = AppState.addEventListener('change', (next) => {
       const transition = track(next);
       if (transition === 'background') handleFocus(false);
