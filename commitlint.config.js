@@ -1,0 +1,37 @@
+// Conventional Commits: `type(scope): subject`. Single source for the rules:
+// tarodan-ops docs/commit-and-branch-rules.md. Runs in the husky commit-msg hook
+// only; CI does not lint history.
+const TYPES = ['feat', 'fix', 'refactor', 'perf', 'docs', 'test', 'chore', 'build', 'ci'];
+const SCOPES = ['app', 'ui', 'nav', 'checkout', 'auth', 'push', 'i18n', 'theme', 'ci', 'native', 'deps', 'release'];
+
+module.exports = {
+  extends: ['@commitlint/config-conventional'],
+  plugins: [
+    {
+      rules: {
+        // English only: reject non-ASCII in the header (Turkish characters, emoji, ...).
+        'header-ascii-only': ({ header }) => [
+          /^[\x00-\x7F]*$/.test(header || ''),
+          'commit header must be English ASCII: no Turkish characters or emoji',
+        ],
+        // Commits carry no Co-Authored-By trailer and no "Generated with" footer.
+        'no-generated-trailers': ({ raw }) => [
+          !/^(co-authored-by:|.*generated with \[?claude code)/im.test(raw || ''),
+          'remove the Co-Authored-By trailer / "Generated with" footer',
+        ],
+      },
+    },
+  ],
+  rules: {
+    'header-ascii-only': [2, 'always'],
+    'no-generated-trailers': [2, 'always'],
+    'header-max-length': [2, 'always', 72],
+    'type-enum': [2, 'always', TYPES],
+    // Scope is optional (repo-wide changes); several scopes join with a comma: fix(ui,nav).
+    'scope-enum': [2, 'always', SCOPES],
+    // Lower-case subject start; acronyms inside the subject (OTA, API) stay allowed.
+    'subject-case': [2, 'never', ['sentence-case', 'start-case', 'pascal-case', 'upper-case']],
+    'body-max-line-length': [0],
+    'footer-max-line-length': [0],
+  },
+};

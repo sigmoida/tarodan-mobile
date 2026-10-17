@@ -1,0 +1,11 @@
+# Generated or tool-owned files: never reformat (see the folder CLAUDE.md files).
+node_modules/
+.expo/
+pnpm-lock.yaml
+src/i18n/lib/generated/
+docs/wellknown/
+src/ui/icons/icon-paths.generated.ts
+# Hand-formatted config read by tooling and the release pipeline.
+app.json
+eas.json
+src/lib/deeplinks/paths.json

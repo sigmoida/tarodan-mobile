@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# Light on purpose: branch-name check only, no tests.
+sh scripts/check-branch-name.sh
