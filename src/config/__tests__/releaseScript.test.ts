@@ -2242,6 +2242,16 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     expect(r.gh.filter((l) => l.endsWith('--jq .status'))).toHaveLength(1);
   });
 
+  it.each([
+    ['a cycle that a member leaves through a parent', `${sha40('a')} ${sha40('0')}\n${sha40('b')} ${sha40('a')} ${sha40('c')}\n${sha40('c')} ${sha40('b')}\n`, '3'],
+    ['a commit that lists itself and a real root', `${sha40('a')} ${sha40('0')}\n${sha40('b')} ${sha40('b')} ${sha40('a')}\n`, '2'],
+  ])('%s passes when its root is not on development', (_case, list, total) => {
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_TOTAL: total, FAKE_GH_LIST: list, FAKE_GH_STATUS: 'diverged' });
+    expect(r.status).toBe(0);
+    expect(r.all).toContain(`OK: hotfix/crash -> master (cut from master; none of its ${total} commits over master is on development)`);
+    expect(r.gh.filter((l) => l.endsWith('--jq .status'))).toEqual([expect.stringContaining(`/compare/${sha40('a')}...development`)]);
+  });
+
   it('only root commits are compared: a linear hotfix of two commits makes one status call', () => {
     branchFrom('hotfix/crash', 'master');
     repo.git(['switch', '-q', 'hotfix/crash']);
