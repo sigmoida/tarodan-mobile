@@ -70,7 +70,7 @@ jobs:
                 identical|ahead)
                   echo "OK: $HEAD_REF -> master (cut from master; shares $base with development, which master contains)" ;;
                 *)
-                  echo "::error::$HEAD_REF carries development commits that are not on master (merge base with development: $base, compare status: $status). A hotfix must be cut from master: git switch -c hotfix/<name> origin/master, then cherry-pick the fix. Unreleased development code must go through a development -> master release PR."
+                  echo "::error::$HEAD_REF carries development commits that are not on master (merge base with development: $base, compare status: $status). A hotfix must be cut from master: git switch -c hotfix/<name> origin/master, then cherry-pick the fix. Unreleased development code must go through a development -> master release PR. A hotfix merged into development before master also trips this check: let the back-merge carry it into development after the master merge."
                   exit 1 ;;
               esac ;;
             *)

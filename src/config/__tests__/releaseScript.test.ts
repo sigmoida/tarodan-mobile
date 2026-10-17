@@ -1940,6 +1940,16 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     expect(r.gh).toHaveLength(2);
   });
 
+  it('a hotfix merged into development before master fails, and the message says why', () => {
+    // Its own commit is then shared with development but not on master yet; ancestry
+    // cannot tell it from development code, so the guard stays closed.
+    branchFrom('hotfix/crash', 'master');
+    repo.git(['merge', '-q', '--no-ff', '-m', 'Merge hotfix/crash', 'hotfix/crash']);
+    const r = guard('hotfix/crash', 'hotfix/crash');
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('let the back-merge carry it into development after the master merge');
+  });
+
   it('a hotfix cut from development with unreleased commits fails (they would ship as an OTA)', () => {
     repo.commit('feat: released');
     release();
