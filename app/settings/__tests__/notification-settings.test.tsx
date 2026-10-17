@@ -1,17 +1,16 @@
 /**
- * B-1.11 · Bildirim ayarları kaydı hatayı yutmuyor.
+ * Bildirim ayarları — web `/profile` `NotificationsSection` ile aynı: Kaydet düğmesi yok, her
+ * anahtar değiştiği anda tek anahtarlık PATCH gider (iyimser), başarıda toast, hatada geri alınır.
  *
- * Eskiden `api.patch(...).catch(() => null)` başarısız kaydı başarıya çeviriyor
- * ve kullanıcı "Bildirim ayarları kaydedildi" görüyordu. Artık hata durumunda
- * sunucu mesajı (yoksa `settings.settingUpdateFailed`) gösterilir.
- *
- * Yükleme de hatayı yutmuyor: GET düşerse varsayılanlar gösterilip gerçek
- * tercihlerin üzerine yazılmasın diye ErrorState + yeniden dene, kaydetme kapalı.
+ * B-1.11: hata yutulmaz — başarısız yazma "güncellendi" demez, sunucu mesajı (yoksa
+ * `settings.settingUpdateFailed`) gösterilir. Yükleme de hatayı yutmaz: GET düşerse varsayılanlar
+ * gösterilip gerçek tercihlerin üzerine yazılmasın diye ErrorState + yeniden dene.
  */
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { appAlert, toast } from '@/ui';
+import { qk } from '@/lib/query';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 
@@ -28,7 +27,7 @@ jest.mock('@/stores/authStore', () => ({
 
 jest.mock('@/lib/api', () => ({
   api: {
-    get: jest.fn(() => Promise.resolve({ data: { pushNotifications: true } })),
+    get: jest.fn(),
     patch: jest.fn(),
   },
 }));
@@ -38,38 +37,77 @@ const get = api.get as jest.Mock;
 
 import NotificationSettingsScreen from '../notifications';
 
+const PUSH = 'notification.pushEnableLabel';
+const SMS = 'notification.smsLabel';
+
 beforeEach(() => {
   patch.mockReset();
   get.mockReset();
-  get.mockResolvedValue({ data: { pushNotifications: true } });
+  get.mockResolvedValue({ data: { pushNotifications: true, smsNotifications: false } });
 });
 
-const save = async () => {
-  renderWithProviders(<NotificationSettingsScreen />);
-  // Tercihler yüklenmeden kaydetme kapalı — önce yüklemeyi bekle.
-  await waitFor(() =>
-    expect(screen.getByTestId('notification-settings-save')).not.toBeDisabled(),
-  );
-  fireEvent.press(screen.getByText('mobile.save'));
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+const checked = (label: string) => screen.getByLabelText(label).props.accessibilityState?.checked;
+
+const renderLoaded = async () => {
+  const utils = renderWithProviders(<NotificationSettingsScreen />);
+  await screen.findByLabelText(PUSH);
+  return utils;
 };
 
-describe('B-1.11 · bildirim ayarları kaydı', () => {
-  it('başarılı kayıt → "kaydedildi" toast olur (diyalog değil)', async () => {
-    const success = jest.spyOn(toast, 'success').mockImplementation(() => 1);
-    patch.mockResolvedValue({ data: {} });
-    await save();
-    await waitFor(() => expect(success).toHaveBeenCalledWith('settings.notificationSettingsSaved'));
-    expect(appAlert).not.toHaveBeenCalled();
-    success.mockRestore();
-    expect(patch).toHaveBeenCalledWith('/users/me/settings', expect.any(Object));
+describe('bildirim ayarları · anahtar başına otomatik kayıt (web paritesi)', () => {
+  it('Kaydet düğmesi çizilmez', async () => {
+    await renderLoaded();
+    expect(screen.queryByTestId('notification-settings-save')).toBeNull();
+    expect(screen.queryByText('mobile.save')).toBeNull();
   });
 
-  it('sunucu hatası → hata toast olur, "kaydedildi" DENMEZ', async () => {
+  it('anahtar → tek anahtarlık PATCH, iyimser güncelleme, başarı toast; yanıt önbelleğe yazılır', async () => {
+    const success = jest.spyOn(toast, 'success').mockImplementation(() => 1);
+    patch.mockResolvedValue({ data: { pushNotifications: true, smsNotifications: true } });
+    const { queryClient } = await renderLoaded();
+    expect(checked(SMS)).toBe(false);
+
+    fireEvent.press(screen.getByLabelText(SMS));
+    // İyimser: istek dönmeden önce açık görünür.
+    await waitFor(() => expect(checked(SMS)).toBe(true));
+
+    await waitFor(() => expect(success).toHaveBeenCalledWith('settings.settingUpdated'));
+    expect(patch).toHaveBeenCalledTimes(1);
+    expect(patch).toHaveBeenCalledWith('/users/me/settings', { smsNotifications: true });
+    expect(appAlert).not.toHaveBeenCalled();
+    expect(queryClient.getQueryData<{ smsNotifications?: boolean }>(qk.user.notificationSettings)?.smsNotifications).toBe(true);
+    expect(checked(SMS)).toBe(true);
+    success.mockRestore();
+  });
+
+  it('kaydedilen değer yeniden açılışta (aynı önbellekle) görünür', async () => {
+    jest.spyOn(toast, 'success').mockImplementation(() => 1);
+    patch.mockResolvedValue({ data: { pushNotifications: false } });
+    const { queryClient, unmount } = await renderLoaded();
+    fireEvent.press(screen.getByLabelText(PUSH));
+    await waitFor(() => expect(patch).toHaveBeenCalledWith('/users/me/settings', { pushNotifications: false }));
+    unmount();
+
+    // Sunucu artık kaydedilmiş değeri döner.
+    get.mockResolvedValue({ data: { pushNotifications: false } });
+    renderWithProviders(<NotificationSettingsScreen />, { queryClient });
+    await screen.findByLabelText(PUSH);
+    await waitFor(() => expect(checked(PUSH)).toBe(false));
+  });
+
+  it('sunucu hatası → değer geri alınır, hata toast olur, "güncellendi" DENMEZ', async () => {
     const error = jest.spyOn(toast, 'error').mockImplementation(() => 1);
     const success = jest.spyOn(toast, 'success').mockImplementation(() => 1);
     patch.mockRejectedValue({ response: { status: 500, data: {} } });
-    await save();
+    await renderLoaded();
+
+    fireEvent.press(screen.getByLabelText(SMS));
     await waitFor(() => expect(error).toHaveBeenCalledWith('settings.settingUpdateFailed'));
+    expect(checked(SMS)).toBe(false);
     expect(success).not.toHaveBeenCalled();
     expect(appAlert).not.toHaveBeenCalled();
     error.mockRestore();
@@ -79,49 +117,44 @@ describe('B-1.11 · bildirim ayarları kaydı', () => {
   it('sunucu mesajı varsa o gösterilir', async () => {
     const error = jest.spyOn(toast, 'error').mockImplementation(() => 1);
     patch.mockRejectedValue({ response: { status: 400, data: { message: ['geçersiz alan'] } } });
-    await save();
+    await renderLoaded();
+    fireEvent.press(screen.getByLabelText(SMS));
     await waitFor(() => expect(error).toHaveBeenCalledWith('geçersiz alan'));
     error.mockRestore();
   });
-});
 
-describe('hata metni · apiErrorMessage', () => {
   it('boş mesaj dizisi → yedek metin (boş uyarı gösterilmez)', async () => {
     const error = jest.spyOn(toast, 'error').mockImplementation(() => 1);
     patch.mockRejectedValue({ response: { status: 400, data: { message: [] } } });
-    await save();
+    await renderLoaded();
+    fireEvent.press(screen.getByLabelText(SMS));
     await waitFor(() => expect(error).toHaveBeenCalledWith('settings.settingUpdateFailed'));
     error.mockRestore();
   });
 });
 
 describe('bildirim ayarları yüklemesi', () => {
-  it('GET düşerse ErrorState görünür, Kaydet hiç çizilmez ve PATCH gitmez', async () => {
+  it('GET düşerse ErrorState görünür, anahtarlar çizilmez ve PATCH gitmez', async () => {
     get.mockRejectedValue({ response: { status: 500, data: {} } });
     renderWithProviders(<NotificationSettingsScreen />);
 
     expect(await screen.findByText('settings.notificationSettingsLoadFailed')).toBeTruthy();
-    expect(screen.queryByTestId('notification-settings-save')).toBeNull();
+    expect(screen.queryByLabelText(PUSH)).toBeNull();
     expect(patch).not.toHaveBeenCalled();
   });
 
-  it('yeniden dene başarılı olunca ayarlar görünür ve kaydetme açılır', async () => {
+  it('yeniden dene başarılı olunca ayarlar görünür ve anahtar kaydeder', async () => {
+    jest.spyOn(toast, 'success').mockImplementation(() => 1);
     get.mockRejectedValueOnce({ response: { status: 500, data: {} } });
     renderWithProviders(<NotificationSettingsScreen />);
 
     fireEvent.press(await screen.findByText('mobile.errorRetry'));
-    await waitFor(() =>
-      expect(screen.queryByText('settings.notificationSettingsLoadFailed')).toBeNull(),
-    );
-    expect(screen.getByTestId('notification-settings-save')).not.toBeDisabled();
+    await screen.findByLabelText(PUSH);
 
     patch.mockResolvedValue({ data: {} });
-    fireEvent.press(screen.getByTestId('notification-settings-save'));
+    fireEvent.press(screen.getByLabelText(PUSH));
     await waitFor(() =>
-      expect(patch).toHaveBeenCalledWith(
-        '/users/me/settings',
-        expect.objectContaining({ pushNotifications: true }),
-      ),
+      expect(patch).toHaveBeenCalledWith('/users/me/settings', { pushNotifications: false }),
     );
   });
 });

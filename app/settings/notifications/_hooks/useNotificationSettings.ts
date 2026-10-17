@@ -1,90 +1,106 @@
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
-import { qk, useAppMutation } from '@/lib/query';
+import { apiErrorMessage } from '@/lib/api/errorText';
+import { qk } from '@/lib/query';
+import { toast } from '@/ui';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { useAuthStore } from '@/stores/authStore';
 import { DEFAULT_SETTINGS, type NotificationSettings } from '../_lib/types';
 
+const KEY = qk.user.notificationSettings;
+
+type ToggleVars = { key: keyof NotificationSettings; value: boolean };
+
 /**
- * Notification-settings controller — owns the local settings state synced from
- * GET /users/me/settings, the PATCH save mutation, per-key toggle and stale-only focus
- * refetch. Lifted verbatim from the monolithic screen (§12).
+ * Bildirim tercihleri — web `/profile` `NotificationsSection` ile aynı davranış: Kaydet düğmesi YOK,
+ * her anahtar değiştiği anda TEK anahtarlık `PATCH /users/me/settings` gider (iyimser; önbellek
+ * hemen güncellenir), başarıda `toast.success`, hatada geri alınır + hata toast'ı.
+ *
+ * - Tek kaynak React Query önbelleği (`qk.user.notificationSettings`): ekran yerel kopya tutmaz, bu
+ *   yüzden yeniden açılışta / yenilemede gösterilen her zaman sunucunun (ya da bekleyen iyimser
+ *   yazmanın) değeridir.
+ * - Yazmalar sıralı (`scope`): sunucu JSON'u oku-birleştir-yaz ile günceller; hızlı art arda iki
+ *   anahtar paralel gitseydi biri diğerini ezebilirdi. Sunucu yanıtı (güncel tam nesne) yalnız
+ *   kuyrukta başka yazma kalmadığında önbelleğe yazılır — sıradaki iyimser değer geri sıçramasın.
+ * - Yükleme hatası yutulmaz: veri yoksa ErrorState + yeniden dene (varsayılanlar gösterilip
+ *   gerçek tercihlerin üzerine yazılmaz).
  */
 export function useNotificationSettings() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
 
-  // Yükleme hatası YUTULMAZ: eskiden `.catch(() => null)` ile ekran
-  // DEFAULT_SETTINGS gösteriyor, Kaydet de gerçek tercihlerin üzerine
-  // varsayılanları yazıyordu. Artık hata → ErrorState + yeniden dene, ve
-  // tercihler bir kez yüklenmeden kaydetme kapalı (`canSave`).
-  const {
-    data: settingsData,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery({
-    queryKey: qk.user.notificationSettings,
-    queryFn: async () => {
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: KEY,
+    queryFn: async (): Promise<NotificationSettings> => {
       const response = await api.get('/users/me/settings');
-      return (response?.data ?? {}) as Partial<NotificationSettings>;
+      return { ...DEFAULT_SETTINGS, ...((response?.data ?? {}) as Partial<NotificationSettings>) };
     },
     enabled: isAuthenticated,
   });
-  const loaded = settingsData !== undefined;
   /** Hiç yüklenemedi (önbellekte veri yok) → ekran ErrorState gösterir. */
-  const loadFailed = isError && !loaded;
+  const loadFailed = isError && data === undefined;
 
   const { refreshing, onRefresh } = useRefresh(refetch);
 
-  useEffect(() => {
-    if (settingsData) {
-      setSettings((prev) => ({ ...prev, ...settingsData }));
-    }
-  }, [settingsData]);
-
   // Ekrana dönüşte yalnız bayatsa tazele (her odakta değil; ilk açılışta ikinci istek yok).
-  useRefetchStaleOnFocus([qk.user.notificationSettings], isAuthenticated);
+  useRefetchStaleOnFocus([KEY], isAuthenticated);
 
-  // Anahtarlar PATCH /users/me/settings (UpdateNotificationSettingsDto) ile birebir;
-  // backend bu tercihleri gönderim yollarında uygular (Bulgu #9 fix).
-  // B-1.11: hata artık yutulmuyor — eskiden `.catch(() => null)` başarısız
-  // kaydı başarı sayıp "kaydedildi" diyordu. Yerel seçimler korunur, kullanıcı
-  // yeniden deneyebilir.
-  const saveMutation = useAppMutation(
-    async (newSettings: NotificationSettings) => api.patch('/users/me/settings', newSettings),
-    {
-      invalidates: [qk.user.notificationSettings],
-      success: t('settings.notificationSettingsSaved'),
-      error: t('settings.settingUpdateFailed'),
+  const updateMutation = useMutation({
+    mutationKey: KEY,
+    scope: { id: 'notification-settings' },
+    mutationFn: async ({ key, value }: ToggleVars) => {
+      const response = await api.patch('/users/me/settings', { [key]: value });
+      return (response?.data ?? null) as Partial<NotificationSettings> | null;
     },
-  );
+    onMutate: async ({ key, value }) => {
+      await queryClient.cancelQueries({ queryKey: KEY });
+      const prev = queryClient.getQueryData<NotificationSettings>(KEY);
+      queryClient.setQueryData<NotificationSettings>(KEY, (old) => ({
+        ...(old ?? DEFAULT_SETTINGS),
+        [key]: value,
+      }));
+      return { prev, key };
+    },
+    onSuccess: (saved) => {
+      // Bu yazma hâlâ "pending" sayılır; 1 = kuyrukta yalnız bu var.
+      if (saved && queryClient.isMutating({ mutationKey: KEY }) <= 1) {
+        queryClient.setQueryData<NotificationSettings>(KEY, (old) => ({
+          ...(old ?? DEFAULT_SETTINGS),
+          ...saved,
+        }));
+      }
+      toast.success(t('settings.settingUpdated'));
+    },
+    onError: (e, { key }, ctx) => {
+      // Yalnız bu anahtarı geri al (aradaki diğer iyimser değişiklikler korunur).
+      if (ctx?.prev) {
+        const prevValue = ctx.prev[key];
+        queryClient.setQueryData<NotificationSettings>(KEY, (old) => ({
+          ...(old ?? ctx.prev!),
+          [key]: prevValue,
+        }));
+      }
+      toast.error(apiErrorMessage(e, t('settings.settingUpdateFailed')));
+    },
+  });
 
   const handleToggle = (key: keyof NotificationSettings) => {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const handleSave = () => {
-    if (!loaded) return;
-    saveMutation.mutate(settings);
+    if (!data) return;
+    updateMutation.mutate({ key, value: !data[key] });
   };
 
   return {
     isAuthenticated,
-    settings,
+    settings: data ?? DEFAULT_SETTINGS,
     isLoading,
     loadFailed,
-    canSave: loaded && !saveMutation.isPending,
     retryLoad: () => refetch(),
     refreshing,
     onRefresh,
-    saveMutation,
     handleToggle,
-    handleSave,
   };
 }
 

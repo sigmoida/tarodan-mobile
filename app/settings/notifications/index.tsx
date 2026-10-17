@@ -1,5 +1,4 @@
 import { router } from "expo-router";
-import { Button } from "@/ui";
 import { PageShell } from "@/components/common/PageShell";
 import { useTranslation } from "react-i18next";
 import { useNotificationSettings } from "./_hooks/useNotificationSettings";
@@ -7,8 +6,9 @@ import { NotificationCards } from "./_components/NotificationCards";
 import { NotificationSettingsSkeleton } from "./_components/NotificationSettingsSkeleton";
 
 /**
- * Bildirim tercihleri — PageShell (Skeleton / hata / çekip yenileme) + SectionCard bölümleri,
- * sabit alt barda tek "Kaydet". Mantık `useNotificationSettings`'de.
+ * Bildirim tercihleri — PageShell (Skeleton / hata / çekip yenileme) + SectionCard bölümleri.
+ * Web gibi Kaydet düğmesi yok: her anahtar değiştiği anda kaydedilir (iyimser + toast).
+ * Mantık `useNotificationSettings`'de.
  */
 export default function NotificationSettingsScreen() {
   const { t } = useTranslation();
@@ -44,18 +44,6 @@ export default function NotificationSettingsScreen() {
       onRetry={f.retryLoad}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
-      footer={
-        <Button
-          testID="notification-settings-save"
-          variant="primary"
-          size="lg"
-          fullWidth
-          title={t("mobile.save")}
-          onPress={f.handleSave}
-          disabled={!f.canSave}
-          isLoading={f.saveMutation.isPending}
-        />
-      }
     >
       <NotificationCards f={f} />
     </PageShell>
