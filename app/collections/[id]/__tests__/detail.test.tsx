@@ -18,7 +18,7 @@ let mockParams: Record<string, string> = { id: 'col-1' };
 const mockPush = jest.fn();
 const mockBack = jest.fn();
 jest.mock('expo-router', () => ({
-  router: { push: mockPush, replace: jest.fn(), back: mockBack, canGoBack: jest.fn(() => false) },
+  router: { push: (...a: unknown[]) => mockPush(...a), replace: jest.fn(), back: mockBack, canGoBack: jest.fn(() => false) },
   useLocalSearchParams: () => mockParams,
 }));
 
@@ -26,7 +26,7 @@ jest.mock('@/lib/api', () => ({
   api: { get: jest.fn() },
   collectionsApi: { like: jest.fn(), unlike: jest.fn() },
 }));
-import { api, collectionsApi } from '@/lib/api';
+import { api } from '@/lib/api';
 
 let mockAuth: Record<string, unknown> = {
   isAuthenticated: true,
@@ -119,13 +119,20 @@ describe('J106 · Sahiplik kontrolü (düzenle butonu)', () => {
     mockParams = { id: 'col-1' };
   });
 
-  it('J106.1 sahip ise "Ürün Ekle" kontrolü görünür', async () => {
+  it('J106.1 sahip ise üst barda düzenle (kalem) + ürün ekle (artı) görünür, içerikte düğme yok', async () => {
     mockAuth = { isAuthenticated: true, user: { id: 'owner-1', membershipTier: 'free' } };
     const items = [{ id: 'i1', productId: 'p1', productTitle: 'Ferrari F40', productPrice: 100 }];
     getMock.mockResolvedValue({ data: { data: collectionFixture({ userId: 'owner-1', items }) } });
     renderWithProviders(<CollectionDetailScreen />);
-    await waitFor(() => expect(screen.getByText('Ürün Ekle')).toBeOnTheScreen());
-    expect(screen.getByText('Düzenle')).toBeOnTheScreen();
+    const edit = await screen.findByTestId('collection-edit-button');
+    const add = screen.getByTestId('collection-add-items-button');
+    expect(screen.queryByText('Ürün Ekle')).toBeNull();
+    expect(screen.queryByText('Düzenle')).toBeNull();
+    expect(screen.queryByTestId('collection-like-button')).toBeNull();
+    fireEvent.press(edit);
+    expect(mockPush).toHaveBeenCalledWith('/collections/col-1/edit');
+    fireEvent.press(add);
+    expect(mockPush).toHaveBeenCalledWith('/collections/col-1/add-items');
   });
 
   it('J106.2 yabancı kullanıcıda sahip kontrolleri gizli', async () => {
@@ -133,8 +140,8 @@ describe('J106 · Sahiplik kontrolü (düzenle butonu)', () => {
     getMock.mockResolvedValue({ data: { data: collectionFixture({ userId: 'owner-1' }) } });
     renderWithProviders(<CollectionDetailScreen />);
     await waitFor(() => expect(screen.getByText('Ferrari Koleksiyonum')).toBeOnTheScreen());
-    expect(screen.queryByText('Ürün Ekle')).toBeNull();
-    expect(screen.queryByText('Düzenle')).toBeNull();
+    expect(screen.queryByTestId('collection-edit-button')).toBeNull();
+    expect(screen.queryByTestId('collection-add-items-button')).toBeNull();
   });
 
   it('başkasının koleksiyonundaki kendi ilanım için kart kalbi çizilmez; diğer kalemlerde durur', async () => {

@@ -31,7 +31,8 @@ function toCardProduct(item: any, fallbackTitle: string) {
 
 /**
  * Üst barın sağ grubu (PageShell `right`) — ürün detayıyla aynı düzen ve sıra (cam daireler, 44pt):
- * paylaş herkese; beğen (dolu = danger) ve şikayet bayrağı yalnız sahibi olmayana.
+ * paylaş herkese; sahibine düzenle (kalem) + ürün ekle (artı); sahibi olmayana beğen (dolu = danger)
+ * ve şikayet bayrağı.
  */
 export function CollectionTopActions({ f, onReport }: { f: CollectionDetailController; onReport: () => void }) {
   const { t } = useTranslation();
@@ -43,7 +44,22 @@ export function CollectionTopActions({ f, onReport }: { f: CollectionDetailContr
         accessibilityLabel={t('collection.share')}
         onPress={f.handleShare}
       />
-      {!f.isOwner ? (
+      {f.isOwner ? (
+        <>
+          <GlassIconButton
+            testID="collection-edit-button"
+            icon="pencil"
+            accessibilityLabel={t('collection.edit')}
+            onPress={() => router.push(`/collections/${f.id}/edit`)}
+          />
+          <GlassIconButton
+            testID="collection-add-items-button"
+            icon="plus"
+            accessibilityLabel={t('collection.addProduct')}
+            onPress={() => router.push(`/collections/${f.id}/add-items`)}
+          />
+        </>
+      ) : (
         <>
           <GlassIconButton
             testID="collection-like-button"
@@ -61,7 +77,7 @@ export function CollectionTopActions({ f, onReport }: { f: CollectionDetailContr
             onPress={onReport}
           />
         </>
-      ) : null}
+      )}
     </View>
   );
 }
@@ -122,15 +138,6 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
             </Text>
           </View>
         </View>
-
-        {f.isOwner ? (
-          <View style={styles.ownerActions}>
-            <Button variant="secondary" title={t('collection.edit')} onPress={() => router.push(`/collections/${id}/edit`)} />
-            {items.length > 0 ? (
-              <Button title={t('collection.addProduct')} onPress={() => router.push(`/collections/${id}/add-items`)} />
-            ) : null}
-          </View>
-        ) : null}
       </View>
 
       <SectionCard title={t('collection.contentsTitle')} testID="collection-items">

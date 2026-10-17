@@ -11,7 +11,7 @@ const { colors, iconSize } = theme;
 
 /**
  * Tek beğenilen koleksiyon kartı — kapak (sağ üstte cam daire içinde dolu kırmızı kalp =
- * beğenildi; basınca beğeni kalkar), ad, sahibi, "12 araç · ♥ 9".
+ * beğenildi; basınca beğeni kalkar), ad, sahibi, "12 araç · ♥ 9" (kalp ürün kartıyla aynı danger-500).
  */
 export function LikedCollectionCard({
   collection,
@@ -64,7 +64,7 @@ export function LikedCollectionCard({
             accessible
             accessibilityLabel={t('collection.likeCountSuffix', { count: likeCount })}
           >
-            <Icon name="heart" variant="solid" size={iconSize.sm} color={colors.text.muted} />
+            <Icon name="heart" variant="solid" size={iconSize.sm} color={colors.danger[500]} />
             <Text variant="bodySm" tone="muted">
               {likeCount}
             </Text>

@@ -9,7 +9,7 @@ import { Button, EmptyState, IconButton, SectionCard, Switch, Text, Input, Texta
 import { styles } from '../_lib/collectionEditStyles';
 import type { CollectionEditController } from '../_hooks/useCollectionEdit';
 
-/** Kapak seçici, bilgi/gizlilik formu, öğe listesi ve silme bölümü (SectionCard'lar). */
+/** Kapak seçici, bilgi/gizlilik formu, öğe listesi (SectionCard'lar). Silme sabit alt barda (`edit.tsx`). */
 export function CollectionEditBody({ f }: { f: CollectionEditController }) {
   const { t } = useTranslation();
   const { collection, coverImage, id } = f;
@@ -118,13 +118,6 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
             </View>
           ))
         )}
-      </SectionCard>
-
-      <SectionCard title={t('collection.dangerZoneTitle')} bodyStyle={styles.fields}>
-        <Text variant="bodySm" tone="muted">
-          {t('collection.irreversibleAction')}
-        </Text>
-        <Button variant="danger" title={t('collection.deleteCollection')} onPress={f.handleDelete} fullWidth />
       </SectionCard>
     </>
   );

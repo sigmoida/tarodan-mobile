@@ -34,7 +34,6 @@ export const styles = StyleSheet.create({
   },
   counters: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing[4] },
   counter: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
-  ownerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
   itemsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing[3] },
   itemCell: { width: '48%' },
 });

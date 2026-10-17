@@ -120,6 +120,7 @@ export const Modal: React.FC<ModalProps> = ({
         styles.body,
         hasHeader && !title && styles.bodyAfterHeader,
         flush && styles.bodyFlush,
+        media && styles.bodyMedia,
         // Kaydırmasız gövde (çağıranın kendi ScrollView'ı): küçülme zinciri burada da sürmeli, aksi
         // halde içteki ScrollView klavye açıkken alt şeridin üstüne taşar.
         !scrollable && styles.bodyShrink,
@@ -276,6 +277,11 @@ const styles = StyleSheet.create({
   },
   bodyFlush: {
     padding: 0,
+  },
+  // `media`: görsel kartın tamamı. `body`'nin `paddingVertical`'ı `padding`'den özgüldür (RN), yalnız
+  // `bodyFlush` görselin üstünde/altında 20pt bant bırakırdı. `flushBody` (metin popup) dikey boşluğunu korur.
+  bodyMedia: {
+    paddingVertical: 0,
   },
   mediaClose: {
     position: 'absolute',

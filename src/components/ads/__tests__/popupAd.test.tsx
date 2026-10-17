@@ -82,6 +82,7 @@ import { PopupAd } from '../PopupAd';
 import { POPUP_AD_DELAY_MS, POPUP_LINK_RETURN_WINDOW_MS } from '@/lib/ads/usePopupAd';
 import { POPUP_AD_STORAGE_KEY, resetPopupFrequencyMemoryForTests } from '@/lib/ads/popupFrequency';
 import { NAVIGATE_AFTER_CLOSE_MS } from '../AdCreative';
+import { theme } from '@/ui';
 
 const popupAd = {
   id: 'p1',
@@ -519,6 +520,8 @@ describe('PopupAd — yüzey', () => {
     expect(sheet?.maxWidth).toBe(512); // lg
     expect(sheet?.width).toBe('100%'); // metin reklam kartın tam genişliği
     expect(body?.padding).toBe(0);
+    // Metin popup önceki alt boşluğunu korur (dikey sıfırlama yalnız görselli media kartında).
+    expect(body?.paddingBottom ?? body?.paddingVertical).toBe(theme.spacing[5]);
     expect(getByLabelText('Kapat')).toBe(getByTestId('modal-close'));
     let inside = false;
     for (let n = getByTestId('modal-close').parent; n; n = n.parent) {
@@ -636,6 +639,29 @@ describe('PopupAd — yüzey', () => {
         expect([undefined, 'auto', boxStyle.width]).toContain(st.width);
       }
       expect(getByTestId('modal-close')).toBeTruthy();
+    });
+
+    // Gövde stili `padding: 0` verip `paddingVertical`'ı sıfırlamıyordu: RN'de `paddingVertical`
+    // `padding`'den özgül olduğundan görselin üstünde/altında 20pt bant kalıyordu.
+    it.each([
+      ['dikey 1:2', 400, 800],
+      ['geniş 2:1', 800, 400],
+    ])('%s: görsel kartın üst/alt kenarına yapışık — kutu ile kart arasında dikey boşluk yok', async (_n, w, h) => {
+      setWindow(390, 844);
+      setAds([{ ...imageAd, width: w, height: h }]);
+      const { getByTestId } = render(<PopupAd />);
+      await flush(POPUP_AD_DELAY_MS + 100);
+
+      const box = getByTestId('ad-image-box-p1');
+      const boxStyle = styleOf(box)!;
+      expect((boxStyle.width as number) / (boxStyle.height as number)).toBeCloseTo(w / h, 5);
+      const chain = chainToSheet(box);
+      expect(chain[chain.length - 1]!.maxWidth).toBe(512);
+      for (const st of chain.slice(1)) {
+        for (const k of ['padding', 'paddingVertical', 'paddingTop', 'paddingBottom', 'margin', 'marginVertical', 'marginTop', 'marginBottom']) {
+          expect([k, st[k] ?? 0]).toEqual([k, 0]);
+        }
+      }
     });
   });
 
