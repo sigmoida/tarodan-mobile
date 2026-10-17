@@ -39,10 +39,13 @@ export function initSentry(): void {
   initialized = true;
   Sentry.init({
     dsn,
-    // `preview` (every staging build and OTA) reports as `staging`, Maestro E2E builds as
-    // `development`; see ./sentryEnvironment.
+    // `preview` (every staging build and OTA) reports as `staging`; `__DEV__` and Maestro
+    // E2E bundles as `development`; see ./sentryEnvironment.
     // The `process.env.EXPO_PUBLIC_*` access stays direct: Metro inlines it at build time.
-    environment: sentryEnvironment(process.env.EXPO_PUBLIC_ENVIRONMENT, IS_MAESTRO),
+    environment: sentryEnvironment(process.env.EXPO_PUBLIC_ENVIRONMENT, {
+      isDev: __DEV__,
+      isE2E: IS_MAESTRO,
+    }),
     tracesSampleRate: 0.1,
     enableNative: true,
     // IP / çerez / istek gövdesi gibi varsayılan kişisel veriler SDK tarafından eklenmez.

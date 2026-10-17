@@ -13,16 +13,17 @@
  *
  * Everything else reports as `development`, so it never pollutes the production
  * or staging alerts: the `development` profile, a local release build without the
- * variable, an unknown value, and Maestro E2E builds (`eas.json` `maestro` extends
- * `preview`, but its errors are provoked by the test run).
+ * variable, an unknown value, a `__DEV__` bundle (Metro or a dev client run
+ * locally with `preview` to reach staging), and Maestro E2E builds (`eas.json`
+ * `maestro` extends `preview`, but its errors are provoked by the test run).
  */
-export type SentryEnvironment = "production" | "staging" | "development";
+type SentryEnvironment = "production" | "staging" | "development";
 
 export function sentryEnvironment(
   appEnvironment: string | undefined,
-  isE2E: boolean,
+  build: { isDev: boolean; isE2E: boolean },
 ): SentryEnvironment {
-  if (isE2E) return "development";
+  if (build.isDev || build.isE2E) return "development";
   switch (appEnvironment) {
     case "production":
       return "production";

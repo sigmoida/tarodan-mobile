@@ -600,7 +600,11 @@ publishing, and a missing map, a map without a debugId or a failed upload turns 
 job red after publishing (do not re-run it; fix the cause, the next push ships a new
 OTA). Keep `SENTRY_AUTH_TOKEN` an **Environment** secret only (`staging` and
 `production`): a repository secret of the same name would silently fill in for an
-environment that lacks one. Details: `scripts/ci/CLAUDE.md` (publish-ota).
+environment that lacks one. Staging **store builds** still upload nothing
+(`SENTRY_DISABLE_AUTO_UPLOAD=true` in the `staging` and `preview` profiles), so
+errors from a staging binary's embedded bundle stay minified until an OTA replaces
+it; turning that on is an `eas.json` (fingerprint) change. Details:
+`scripts/ci/CLAUDE.md` (publish-ota).
 
 ## Kopya kağıdı
 

@@ -23,27 +23,37 @@ const profileEnv = (profile: string, key: string): string | undefined => {
   return p?.env?.[key] ?? (p?.extends ? profileEnv(p.extends, key) : undefined);
 };
 
+/** A store / staging release bundle: not `__DEV__`, not a Maestro E2E build. */
+const RELEASE = { isDev: false, isE2E: false };
+
 describe('sentryEnvironment', () => {
   it.each([
     ['production', 'production'],
     ['preview', 'staging'],
     ['development', 'development'],
   ])('maps EXPO_PUBLIC_ENVIRONMENT=%s to %s', (appEnvironment, expected) => {
-    expect(sentryEnvironment(appEnvironment, false)).toBe(expected);
+    expect(sentryEnvironment(appEnvironment, RELEASE)).toBe(expected);
   });
 
   // `staging` too: app.config.js gives such a build the production app id.
   it.each([[undefined], [''], ['staging'], ['Production'], ['prod'], ['maestro']])(
     'never reports %p as production or staging',
     (appEnvironment) => {
-      expect(sentryEnvironment(appEnvironment, false)).toBe('development');
+      expect(sentryEnvironment(appEnvironment, RELEASE)).toBe('development');
     },
   );
 
   it.each([['preview'], ['production']])(
     'reports a Maestro E2E build as development (EXPO_PUBLIC_ENVIRONMENT=%s)',
     (appEnvironment) => {
-      expect(sentryEnvironment(appEnvironment, true)).toBe('development');
+      expect(sentryEnvironment(appEnvironment, { isDev: false, isE2E: true })).toBe('development');
+    },
+  );
+
+  it.each([['preview'], ['production']])(
+    'reports a __DEV__ bundle as development (EXPO_PUBLIC_ENVIRONMENT=%s)',
+    (appEnvironment) => {
+      expect(sentryEnvironment(appEnvironment, { isDev: true, isE2E: false })).toBe('development');
     },
   );
 
@@ -55,7 +65,9 @@ describe('sentryEnvironment', () => {
     ['development', 'development'],
   ])('eas.json profile %s reports as %s', (profile, expected) => {
     const isE2E = profileEnv(profile, 'EXPO_PUBLIC_MAESTRO') === '1';
-    expect(sentryEnvironment(profileEnv(profile, 'EXPO_PUBLIC_ENVIRONMENT'), isE2E)).toBe(expected);
+    expect(
+      sentryEnvironment(profileEnv(profile, 'EXPO_PUBLIC_ENVIRONMENT'), { isDev: false, isE2E }),
+    ).toBe(expected);
   });
 
   it('covers every eas.json build profile', () => {
@@ -66,10 +78,12 @@ describe('sentryEnvironment', () => {
 });
 
 describe('initSentry', () => {
+  const g = globalThis as unknown as { __DEV__: boolean };
   const saved = {
     dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
     environment: process.env.EXPO_PUBLIC_ENVIRONMENT,
     maestro: process.env.EXPO_PUBLIC_MAESTRO,
+    dev: g.__DEV__,
   };
   const restore = (key: string, value: string | undefined) => {
     if (value === undefined) delete process.env[key];
@@ -80,10 +94,12 @@ describe('initSentry', () => {
     restore('EXPO_PUBLIC_SENTRY_DSN', saved.dsn);
     restore('EXPO_PUBLIC_ENVIRONMENT', saved.environment);
     restore('EXPO_PUBLIC_MAESTRO', saved.maestro);
+    g.__DEV__ = saved.dev;
   });
 
   /** Loads src/services/sentry with a fresh module state and returns the init options. */
-  const initOptions = (appEnvironment: string | undefined, maestro?: string) => {
+  const initOptions = (appEnvironment: string | undefined, maestro?: string, dev = false) => {
+    g.__DEV__ = dev;
     process.env.EXPO_PUBLIC_SENTRY_DSN = 'https://key@example.invalid/1';
     restore('EXPO_PUBLIC_ENVIRONMENT', appEnvironment);
     restore('EXPO_PUBLIC_MAESTRO', maestro);
@@ -112,5 +128,9 @@ describe('initSentry', () => {
 
   it('a Maestro E2E build (EXPO_PUBLIC_MAESTRO=1) initialises Sentry with environment development', () => {
     expect(initOptions('preview', '1').environment).toBe('development');
+  });
+
+  it('a __DEV__ bundle initialises Sentry with environment development', () => {
+    expect(initOptions('preview', undefined, true).environment).toBe('development');
   });
 });
