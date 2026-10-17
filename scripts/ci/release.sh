@@ -684,7 +684,7 @@ plan() {
       gated=true
       last="$(last_store_version "$p" "$BUILD_PROFILE" "$sha")"
       if [ -n "$last" ] && ! version_gt "$version" "$last"; then
-        echo "::error::$p: sürüm merge'ü (kaynak: ${source:-bilinmiyor}) ama app.json expo.version ($version) son production build'inin sürümünden ($last) büyük değil — store build ALINMADI, OTA da yok. New version: make the release commit on development (scripts/ci/release.sh next-version + set-version, chore(release): X.Y.Z; docs/RELEASE.md) and open a new PR. Aynı sürümün yeni build'i (ör. App Review reddi, sürüm henüz yayınlanmadıysa): gh workflow run mobile-production.yml --ref master -f mode=build -f platform=$p. DİKKAT: master artık yayınlanmamış kod içeriyor; buradan çıkacak bir OTA (hotfix/* ya da mode=ota) o kodu da canlıya taşır. Merge yalnız uygulamaya girmeyen dosyaları (test, CI, belge) değiştirdiyse bu hata yok sayılabilir."
+        echo "::error::$p: release merge (source: ${source:-unknown}) but app.json expo.version ($version) is not greater than the last production build ($last). No store build and no OTA. New version: make the release commit on development (scripts/ci/release.sh next-version + set-version, chore(release): X.Y.Z; docs/RELEASE.md) and open a new PR. A new build of the same version (e.g. after an App Review rejection, version not released yet): gh workflow run mobile-production.yml --ref master -f mode=build -f platform=$p. CAUTION: master now holds unreleased code; an OTA from here (hotfix/* or mode=ota) takes that code live too. If the merge changed only files that do not go into the app (tests, CI, docs), this error can be ignored."
         decision=blocked
       else
         case "${state%% *}" in
@@ -748,7 +748,7 @@ plan() {
     if [ "$decision" = build ] && [ "$env" = production ] && [ "$gated" != true ]; then
       last="$(last_store_version "$p" "$BUILD_PROFILE" "$sha")"
       if [ -n "$last" ] && ! version_gt "$version" "$last"; then
-        text="$p: native değişti (fingerprint $fp için production build'i yok) ama app.json expo.version ($version) son production build'inin sürümünden ($last) büyük değil. Set a new version in this merge (scripts/ci/release.sh next-version + set-version, chore(release): X.Y.Z; docs/RELEASE.md)."
+        text="$p: native code changed (no production build for fingerprint $fp) but app.json expo.version ($version) is not greater than the last production build ($last). Set a new version in this merge (scripts/ci/release.sh next-version + set-version, chore(release): X.Y.Z; docs/RELEASE.md)."
         if [ "$mode" = build ]; then
           echo "::warning::$text — mode=build ile elle istendi, devam ediliyor."
         else

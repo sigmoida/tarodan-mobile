@@ -21,8 +21,9 @@ change one:
   from ref": release tags sit on master merge commits that development never
   contains. No tag -> `next-version` fails (no guessed fallback). The release PR
   flow: `docs/RELEASE.md` › "Release version".
-- `check-release-version`: production `plan` gate for a release merge
-  (`mode=auto`, source not `hotfix/*`): `expo.version` must equal `next-version`.
+- `check-release-version`: release gate (`mode=auto`, source not `hotfix/*`):
+  `expo.version` must equal `next-version`. Runs in `ci.yml` on PRs into master
+  (merge ref, required check) and in the production `plan` after the merge.
 - `plan <staging|production>`: the single per-platform decision loop
   (`ota | build | wait | skip | blocked`). Production: a `development` merge (or an
   unknown source) is always a store build and never an OTA; `hotfix/*` follows the

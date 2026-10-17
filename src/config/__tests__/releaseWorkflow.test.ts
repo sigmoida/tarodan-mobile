@@ -327,6 +327,17 @@ describe('production', () => {
     expect(steps.find((s) => (s.uses ?? '').startsWith('actions/checkout'))?.with).toEqual({ 'fetch-depth': 0 });
   });
 
+  it('the release version is checked on the PR (required CI job), before the merge', () => {
+    const steps = ci.jobs.check.steps!;
+    const step = steps.find((s) => (s.run ?? '').includes('release.sh check-release-version'));
+    expect(step?.if).toBe("github.event_name == 'pull_request' && github.base_ref == 'master'");
+    expect(step?.env).toEqual({ MODE: 'auto', SOURCE_REF: '${{ github.head_ref }}' });
+    expect(step?.run).toContain('git fetch -q --unshallow origin');
+    expect(step?.run).toContain('git fetch -q --tags origin');
+    expect(ci.jobs.check.name).toBe('Lint + Typecheck + Test'); // the ruleset's required check
+    expect(steps.indexOf(step!)).toBeLessThan(steps.findIndex((s) => s.name === 'Install'));
+  });
+
   it('bookkeeping validates the version (latest-release) before it pushes a tag', () => {
     const all = runs(production.jobs['release-bookkeeping']);
     expect(all.indexOf('latest-release "$version"')).toBeGreaterThan(-1);

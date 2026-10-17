@@ -31,6 +31,21 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
+      - name: Release version matches the commits (PRs into master)
+        # Before the merge, on the PR's merge ref (= the future master merge commit):
+        # a development -> master PR must carry the version next-version computes
+        # (the chore(release) commit, docs/RELEASE.md). This job is the required
+        # check, so a PR without it cannot merge. hotfix/* sources are skipped by
+        # release.sh; mobile-production.yml repeats the check after the merge.
+        if: github.event_name == 'pull_request' && github.base_ref == 'master'
+        env:
+          MODE: auto
+          SOURCE_REF: ${{ github.head_ref }}
+        run: |
+          # The default checkout is shallow and has no tags.
+          if [ "$(git rev-parse --is-shallow-repository)" = true ]; then git fetch -q --unshallow origin; fi
+          git fetch -q --tags origin
+          scripts/ci/release.sh check-release-version
       - name: Install
         run: pnpm install --frozen-lockfile
       - name: Lint

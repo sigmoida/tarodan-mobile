@@ -567,11 +567,11 @@ describe('release.sh plan — production: sürüm merge\'ü her zaman store buil
       const r = plan('production', { env: { PLATFORM: 'ios', SOURCE_REF: source }, builds: [live.b], submissions: [live.s] });
       expect(r.status).toBe(0);
       expect(r.outputs).toMatchObject({ ios: 'blocked', ota_matrix: '[]', blocked: 'ios', decided: 'true' });
-      expect(r.all).toContain("::error::ios: sürüm merge'ü");
+      expect(r.all).toContain('::error::ios: release merge');
       expect(r.all).toContain('mode=build');
       // master artık yayınlanmamış kod taşır: OTA önerilmez, aksine uyarılır.
       expect(r.all).not.toContain('-f mode=ota');
-      expect(r.all).toContain('DİKKAT');
+      expect(r.all).toContain('CAUTION');
     },
   );
 
@@ -648,7 +648,7 @@ describe('release.sh plan — production: sürüm merge\'ü her zaman store buil
       builds: [build({ id: 'x', profile: 'production', runtime: 'eski' })],
     });
     expect(r.outputs.ios).toBe('blocked');
-    expect(r.all).toContain('::error::ios: native değişti');
+    expect(r.all).toContain('::error::ios: native code changed');
   });
 
   it('hotfix: sürüm artırılmış native düzeltme → build', () => {
@@ -687,7 +687,7 @@ describe('release.sh plan — VERSION-GATE platform başına', () => {
       blocked: 'ios',
       decided: 'true',
     });
-    expect(r.all).toContain('::error::ios: native değişti');
+    expect(r.all).toContain('::error::ios: native code changed');
   });
 
   it('iki platform da takılırsa ikisi de blocked, OTA yok', () => {
@@ -709,7 +709,7 @@ describe('release.sh plan — VERSION-GATE platform başına', () => {
   it('mode=build kapıyı uyarıya çevirir', () => {
     const r = plan('production', { env: { PLATFORM: 'ios', MODE: 'build' }, builds: [iosOld] });
     expect(r.outputs).toMatchObject({ ios: 'build', blocked: '' });
-    expect(r.all).toContain('::warning::ios: native değişti');
+    expect(r.all).toContain('::warning::ios: native code changed');
   });
 
   it('decided=true en son yazılır; hata olursa hiç yazılmaz', () => {
@@ -1239,6 +1239,31 @@ describe('release.sh check-release-version — a release merge carries the compu
     const r = check();
     expect(r.status).toBe(0);
     expect(r.all).toContain('already tagged mobile-v1.1.0');
+  });
+
+  it('real topology: tag on the master merge, a hotfix not merged back still counts on the next release merge', () => {
+    // development: feat (1.1.0 released via master merge M1, tagged there).
+    repo.commitVersion('1.1.0');
+    repo.git(['switch', '-q', '-c', 'master']);
+    repo.git(['merge', '-q', '--no-ff', 'development', '-m', 'Merge pull request #1 from x/development']);
+    repo.tag('mobile-v1.1.0');
+    // A JS-only hotfix on master (OTA, no tag) with a feat; not merged back yet.
+    repo.git(['switch', '-q', '-c', 'hotfix/x']);
+    repo.commit('feat(push): hotfix that is also a feature');
+    repo.git(['switch', '-q', 'master']);
+    repo.git(['merge', '-q', '--no-ff', 'hotfix/x', '-m', 'Merge pull request #2 from x/hotfix/x']);
+    // development: only a fix and the release commit for 1.1.1.
+    repo.git(['switch', '-q', 'development']);
+    repo.commit('fix: a');
+    repo.commitVersion('1.1.1');
+    expect(check().status).toBe(0); // on development the range has only the fix
+    // The release merge (= the PR's merge ref) also contains the hotfix feat.
+    repo.git(['switch', '-q', 'master']);
+    repo.git(['merge', '-q', '--no-ff', 'development', '-m', 'Merge pull request #3 from x/development']);
+    const r = check();
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('call for 1.2.0');
+    expect(r.all).not.toContain('Merge pull request'); // merge commits never count
   });
 
   it.each([
