@@ -82,6 +82,7 @@ import { PopupAd } from '../PopupAd';
 import { POPUP_AD_DELAY_MS, POPUP_LINK_RETURN_WINDOW_MS } from '@/lib/ads/usePopupAd';
 import { POPUP_AD_STORAGE_KEY, resetPopupFrequencyMemoryForTests } from '@/lib/ads/popupFrequency';
 import { NAVIGATE_AFTER_CLOSE_MS } from '../AdCreative';
+import { theme } from '@/ui';
 
 const popupAd = {
   id: 'p1',
@@ -519,6 +520,8 @@ describe('PopupAd — yüzey', () => {
     expect(sheet?.maxWidth).toBe(512); // lg
     expect(sheet?.width).toBe('100%'); // metin reklam kartın tam genişliği
     expect(body?.padding).toBe(0);
+    // Metin popup önceki alt boşluğunu korur (dikey sıfırlama yalnız görselli media kartında).
+    expect(body?.paddingBottom ?? body?.paddingVertical).toBe(theme.spacing[5]);
     expect(getByLabelText('Kapat')).toBe(getByTestId('modal-close'));
     let inside = false;
     for (let n = getByTestId('modal-close').parent; n; n = n.parent) {

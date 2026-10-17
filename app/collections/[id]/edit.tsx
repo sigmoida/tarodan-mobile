@@ -18,7 +18,8 @@ export default function EditCollectionScreen() {
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
   const notOwner = !!f.collection && !!f.user && f.collection.userId !== f.user.id;
   const gate = !f.isLoading && (!f.collection || notOwner);
-  const busy = f.updateMutation.isPending || f.deleteMutation.isPending;
+  // Başarılı silmeden sonra da kilitli kalır: geri gezinme bitene dek ikinci dokunuş olmasın.
+  const busy = f.updateMutation.isPending || f.deleteMutation.isPending || f.deleteMutation.isSuccess;
 
   return (
     <PageShell

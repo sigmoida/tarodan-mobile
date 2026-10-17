@@ -26,7 +26,7 @@ jest.mock('@/lib/api', () => ({
   api: { get: jest.fn() },
   collectionsApi: { like: jest.fn(), unlike: jest.fn() },
 }));
-import { api, collectionsApi } from '@/lib/api';
+import { api } from '@/lib/api';
 
 let mockAuth: Record<string, unknown> = {
   isAuthenticated: true,

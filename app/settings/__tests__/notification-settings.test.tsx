@@ -1,6 +1,7 @@
 /**
- * Bildirim ayarları — web `/profile` `NotificationsSection` ile aynı: Kaydet düğmesi yok, her
- * anahtar değiştiği anda tek anahtarlık PATCH gider (iyimser), başarıda toast, hatada geri alınır.
+ * Bildirim ayarları — web `/profile` `NotificationsSection` ile aynı: aynı 6 anahtar aynı sırada,
+ * Kaydet düğmesi yok, her anahtar değiştiği anda tek anahtarlık PATCH gider (iyimser, sıralı),
+ * kuyruk boşalınca tek başarı toast'ı + sunucu doğrusu yeniden çekilir, hatada geri alınır.
  *
  * B-1.11: hata yutulmaz — başarısız yazma "güncellendi" demez, sunucu mesajı (yoksa
  * `settings.settingUpdateFailed`) gösterilir. Yükleme de hatayı yutmaz: GET düşerse varsayılanlar
@@ -38,12 +39,12 @@ const get = api.get as jest.Mock;
 import NotificationSettingsScreen from '../notifications';
 
 const PUSH = 'notification.pushEnableLabel';
-const SMS = 'notification.smsLabel';
+const MKT = 'notification.marketingLabel';
 
 beforeEach(() => {
   patch.mockReset();
   get.mockReset();
-  get.mockResolvedValue({ data: { pushNotifications: true, smsNotifications: false } });
+  get.mockResolvedValue({ data: { pushNotifications: true, marketingEmails: false } });
 });
 
 afterEach(() => {
@@ -58,42 +59,114 @@ const renderLoaded = async () => {
   return utils;
 };
 
-describe('bildirim ayarları · anahtar başına otomatik kayıt (web paritesi)', () => {
-  it('Kaydet düğmesi çizilmez', async () => {
-    await renderLoaded();
-    expect(screen.queryByTestId('notification-settings-save')).toBeNull();
-    expect(screen.queryByText('mobile.save')).toBeNull();
+/** Elle çözülen istek (kuyruk sırasını denetlemek için). */
+function deferred<T>() {
+  let resolve!: (v: T) => void;
+  let reject!: (e: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
   });
+  return { promise, resolve, reject };
+}
 
-  it('anahtar → tek anahtarlık PATCH, iyimser güncelleme, başarı toast; yanıt önbelleğe yazılır', async () => {
+describe('bildirim ayarları · web ile aynı anahtarlar', () => {
+  it('web sırasıyla 6 anahtar; SMS ve yeni ilan anahtarı çizilmez; Kaydet yok', async () => {
+    await renderLoaded();
+    const labels = screen.getAllByRole('switch').map((n) => n.props.accessibilityLabel);
+    expect(labels).toEqual([
+      'notification.emailEnableLabel',
+      'notification.pushEnableLabel',
+      'notification.orderUpdatesLabel',
+      'notification.messagesLabel',
+      'notification.priceDropLabel',
+      'notification.marketingLabel',
+    ]);
+    expect(screen.queryByText('notification.smsLabel')).toBeNull();
+    expect(screen.queryByText('notification.newListingsLabel')).toBeNull();
+    expect(screen.queryByTestId('notification-settings-save')).toBeNull();
+  });
+});
+
+describe('bildirim ayarları · anahtar başına otomatik kayıt (web paritesi)', () => {
+  it('anahtar → tek anahtarlık PATCH, iyimser güncelleme, tek başarı toast; sunucu doğrusu çekilir', async () => {
     const success = jest.spyOn(toast, 'success').mockImplementation(() => 1);
-    patch.mockResolvedValue({ data: { pushNotifications: true, smsNotifications: true } });
+    patch.mockResolvedValue({ data: { pushNotifications: true, marketingEmails: true } });
     const { queryClient } = await renderLoaded();
-    expect(checked(SMS)).toBe(false);
+    expect(checked(MKT)).toBe(false);
 
-    fireEvent.press(screen.getByLabelText(SMS));
+    get.mockResolvedValue({ data: { pushNotifications: true, marketingEmails: true } });
+    fireEvent.press(screen.getByLabelText(MKT));
     // İyimser: istek dönmeden önce açık görünür.
-    await waitFor(() => expect(checked(SMS)).toBe(true));
+    await waitFor(() => expect(checked(MKT)).toBe(true));
 
     await waitFor(() => expect(success).toHaveBeenCalledWith('settings.settingUpdated'));
+    expect(success).toHaveBeenCalledTimes(1);
     expect(patch).toHaveBeenCalledTimes(1);
-    expect(patch).toHaveBeenCalledWith('/users/me/settings', { smsNotifications: true });
+    expect(patch).toHaveBeenCalledWith('/users/me/settings', { marketingEmails: true });
     expect(appAlert).not.toHaveBeenCalled();
-    expect(queryClient.getQueryData<{ smsNotifications?: boolean }>(qk.user.notificationSettings)?.smsNotifications).toBe(true);
-    expect(checked(SMS)).toBe(true);
-    success.mockRestore();
+    // Kuyruk boşalınca sorgu bir kez yeniden çekilir (ilk yükleme + 1).
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+    expect(
+      queryClient.getQueryData<{ marketingEmails?: boolean }>(qk.user.notificationSettings)?.marketingEmails,
+    ).toBe(true);
+    expect(checked(MKT)).toBe(true);
+  });
+
+  it('art arda dokunuşlar sıralı gider ve kuyruk boşalınca TEK başarı toast\'ı', async () => {
+    const success = jest.spyOn(toast, 'success').mockImplementation(() => 1);
+    const first = deferred<{ data: object }>();
+    patch.mockReturnValueOnce(first.promise).mockResolvedValueOnce({ data: { pushNotifications: false, marketingEmails: true } });
+    await renderLoaded();
+
+    fireEvent.press(screen.getByLabelText(MKT));
+    await waitFor(() => expect(checked(MKT)).toBe(true));
+    fireEvent.press(screen.getByLabelText(PUSH));
+    await waitFor(() => expect(checked(PUSH)).toBe(false));
+    // İkinci yazma birincisi bitmeden gitmez (sunucu oku-birleştir-yaz).
+    expect(patch).toHaveBeenCalledTimes(1);
+
+    get.mockResolvedValue({ data: { pushNotifications: false, marketingEmails: true } });
+    first.resolve({ data: { pushNotifications: true, marketingEmails: true } });
+    await waitFor(() => expect(patch).toHaveBeenCalledTimes(2));
+    expect(patch).toHaveBeenNthCalledWith(2, '/users/me/settings', { pushNotifications: false });
+    await waitFor(() => expect(success).toHaveBeenCalledTimes(1));
+    // Ara yanıt (push hâlâ açık) sıradaki iyimser değeri geri sıçratmaz.
+    expect(checked(PUSH)).toBe(false);
+    expect(checked(MKT)).toBe(true);
+  });
+
+  it('aynı anahtar kuyrukta düşerse son ONAYLI sunucu değerine döner, sunucu doğrusu çekilir', async () => {
+    const error = jest.spyOn(toast, 'error').mockImplementation(() => 1);
+    const success = jest.spyOn(toast, 'success').mockImplementation(() => 1);
+    const first = deferred<{ data: object }>();
+    patch.mockReturnValueOnce(first.promise).mockRejectedValueOnce({ response: { status: 500, data: {} } });
+    await renderLoaded();
+
+    fireEvent.press(screen.getByLabelText(MKT)); // false → true
+    await waitFor(() => expect(checked(MKT)).toBe(true));
+    fireEvent.press(screen.getByLabelText(MKT)); // true → false
+    await waitFor(() => expect(checked(MKT)).toBe(false));
+
+    get.mockResolvedValue({ data: { pushNotifications: true, marketingEmails: true } });
+    first.reject({ response: { status: 500, data: {} } });
+    await waitFor(() => expect(patch).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+    // Sunucu doğrusu (true) kazanır; ara geri almalar değil.
+    await waitFor(() => expect(checked(MKT)).toBe(true));
+    expect(error).toHaveBeenCalledWith('settings.settingUpdateFailed', { id: 'notification-settings-error' });
+    expect(success).not.toHaveBeenCalled();
   });
 
   it('kaydedilen değer yeniden açılışta (aynı önbellekle) görünür', async () => {
     jest.spyOn(toast, 'success').mockImplementation(() => 1);
     patch.mockResolvedValue({ data: { pushNotifications: false } });
     const { queryClient, unmount } = await renderLoaded();
+    get.mockResolvedValue({ data: { pushNotifications: false } });
     fireEvent.press(screen.getByLabelText(PUSH));
     await waitFor(() => expect(patch).toHaveBeenCalledWith('/users/me/settings', { pushNotifications: false }));
     unmount();
 
-    // Sunucu artık kaydedilmiş değeri döner.
-    get.mockResolvedValue({ data: { pushNotifications: false } });
     renderWithProviders(<NotificationSettingsScreen />, { queryClient });
     await screen.findByLabelText(PUSH);
     await waitFor(() => expect(checked(PUSH)).toBe(false));
@@ -105,40 +178,40 @@ describe('bildirim ayarları · anahtar başına otomatik kayıt (web paritesi)'
     patch.mockRejectedValue({ response: { status: 500, data: {} } });
     await renderLoaded();
 
-    fireEvent.press(screen.getByLabelText(SMS));
-    await waitFor(() => expect(error).toHaveBeenCalledWith('settings.settingUpdateFailed'));
-    expect(checked(SMS)).toBe(false);
+    fireEvent.press(screen.getByLabelText(MKT));
+    await waitFor(() =>
+      expect(error).toHaveBeenCalledWith('settings.settingUpdateFailed', expect.anything()),
+    );
+    await waitFor(() => expect(checked(MKT)).toBe(false));
     expect(success).not.toHaveBeenCalled();
     expect(appAlert).not.toHaveBeenCalled();
-    error.mockRestore();
-    success.mockRestore();
   });
 
   it('sunucu mesajı varsa o gösterilir', async () => {
     const error = jest.spyOn(toast, 'error').mockImplementation(() => 1);
     patch.mockRejectedValue({ response: { status: 400, data: { message: ['geçersiz alan'] } } });
     await renderLoaded();
-    fireEvent.press(screen.getByLabelText(SMS));
-    await waitFor(() => expect(error).toHaveBeenCalledWith('geçersiz alan'));
-    error.mockRestore();
+    fireEvent.press(screen.getByLabelText(MKT));
+    await waitFor(() => expect(error).toHaveBeenCalledWith('geçersiz alan', expect.anything()));
   });
 
   it('boş mesaj dizisi → yedek metin (boş uyarı gösterilmez)', async () => {
     const error = jest.spyOn(toast, 'error').mockImplementation(() => 1);
     patch.mockRejectedValue({ response: { status: 400, data: { message: [] } } });
     await renderLoaded();
-    fireEvent.press(screen.getByLabelText(SMS));
-    await waitFor(() => expect(error).toHaveBeenCalledWith('settings.settingUpdateFailed'));
-    error.mockRestore();
+    fireEvent.press(screen.getByLabelText(MKT));
+    await waitFor(() =>
+      expect(error).toHaveBeenCalledWith('settings.settingUpdateFailed', expect.anything()),
+    );
   });
 });
 
 describe('bildirim ayarları yüklemesi', () => {
-  it('GET düşerse ErrorState görünür, anahtarlar çizilmez ve PATCH gitmez', async () => {
+  it('GET düşerse ErrorState görünür (Kaydet adımından söz etmez), anahtarlar çizilmez ve PATCH gitmez', async () => {
     get.mockRejectedValue({ response: { status: 500, data: {} } });
     renderWithProviders(<NotificationSettingsScreen />);
 
-    expect(await screen.findByText('settings.notificationSettingsLoadFailed')).toBeTruthy();
+    expect(await screen.findByText('settings.notificationPreferencesLoadFailed')).toBeTruthy();
     expect(screen.queryByLabelText(PUSH)).toBeNull();
     expect(patch).not.toHaveBeenCalled();
   });

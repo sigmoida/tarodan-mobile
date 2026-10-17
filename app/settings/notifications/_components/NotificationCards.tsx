@@ -1,11 +1,27 @@
 import { useTranslation } from 'react-i18next';
-import { Divider, SectionCard, Text } from '@/ui';
-import { styles } from '../_lib/styles';
+import { SectionCard, Text } from '@/ui';
+import type { MessageKey } from '@/i18n/lib/generated/keys';
 import { SettingItem } from './SettingItem';
 import { DevicePermissionCard } from './DevicePermissionCard';
 import type { NotificationSettingsController } from '../_hooks/useNotificationSettings';
+import type { NotificationSettings } from '../_lib/types';
 
-/** Anlık bildirim + bildirim türleri + e-posta/SMS bölümleri (SectionCard) + bilgi notu. */
+/**
+ * Web `/profile` `NotificationsSection` ile aynı 6 anahtar, aynı sırada (tek SectionCard).
+ * `smsNotifications` / `newListingAlerts` sözleşmede (tip + varsayılan) durur ama çizilmez:
+ * sunucu yeni ilan bildirimi göndermiyor, SMS çağıranı da kullanılmıyor — anahtarlar hiçbir şeyi
+ * yönetmiyordu (web de göstermiyor).
+ */
+const ROWS = [
+  { key: 'emailNotifications', label: 'notification.emailEnableLabel', desc: 'settings.emailNotificationsDesc' },
+  { key: 'pushNotifications', label: 'notification.pushEnableLabel', desc: 'notification.pushEnableDesc' },
+  { key: 'orderUpdates', label: 'notification.orderUpdatesLabel', desc: 'notification.orderUpdatesDesc' },
+  { key: 'messageAlerts', label: 'notification.messagesLabel', desc: 'notification.messagesDesc' },
+  { key: 'priceDropAlerts', label: 'notification.priceDropLabel', desc: 'notification.priceDropDesc' },
+  { key: 'marketingEmails', label: 'notification.marketingLabel', desc: 'notification.marketingDesc' },
+] as const satisfies ReadonlyArray<{ key: keyof NotificationSettings; label: MessageKey; desc: MessageKey }>;
+
+/** Cihaz izni kartı + bildirim tercihleri (web sırası) + bilgi notu. */
 export function NotificationCards({ f }: { f: NotificationSettingsController }) {
   const { t } = useTranslation();
   const { settings, handleToggle } = f;
@@ -15,65 +31,16 @@ export function NotificationCards({ f }: { f: NotificationSettingsController }) 
       {/* Cihaz (işletim sistemi) bildirim izni — kapalıysa aşağıdaki tercihler push üretmez. */}
       <DevicePermissionCard />
 
-      {/* Push Notifications */}
-      <SectionCard title={t('notification.pushSection')}>
-        <SettingItem
-          label={t('notification.pushEnableLabel')}
-          description={t('notification.pushEnableDesc')}
-          value={settings.pushNotifications}
-          onToggle={() => handleToggle('pushNotifications')}
-        />
-      </SectionCard>
-
-      {/* Notification Categories (apply to push + in-app + email) */}
-      <SectionCard title={t('notification.typesSection')}>
-        <SettingItem
-          label={t('notification.orderUpdatesLabel')}
-          description={t('notification.orderUpdatesDesc')}
-          value={settings.orderUpdates}
-          onToggle={() => handleToggle('orderUpdates')}
-        />
-        <SettingItem
-          label={t('notification.messagesLabel')}
-          description={t('notification.messagesDesc')}
-          value={settings.messageAlerts}
-          onToggle={() => handleToggle('messageAlerts')}
-        />
-        <SettingItem
-          label={t('notification.priceDropLabel')}
-          description={t('notification.priceDropDesc')}
-          value={settings.priceDropAlerts}
-          onToggle={() => handleToggle('priceDropAlerts')}
-        />
-        <SettingItem
-          label={t('notification.newListingsLabel')}
-          description={t('notification.newListingsDesc')}
-          value={settings.newListingAlerts}
-          onToggle={() => handleToggle('newListingAlerts')}
-        />
-        <SettingItem
-          label={t('notification.marketingLabel')}
-          description={t('notification.marketingDesc')}
-          value={settings.marketingEmails}
-          onToggle={() => handleToggle('marketingEmails')}
-        />
-      </SectionCard>
-
-      {/* Email & SMS channels */}
-      <SectionCard title={t('notification.emailSmsSection')}>
-        <SettingItem
-          label={t('notification.emailEnableLabel')}
-          description={t('notification.emailDesc')}
-          value={settings.emailNotifications}
-          onToggle={() => handleToggle('emailNotifications')}
-        />
-        <Divider style={styles.divider} />
-        <SettingItem
-          label={t('notification.smsLabel')}
-          description={t('notification.smsDesc')}
-          value={settings.smsNotifications}
-          onToggle={() => handleToggle('smsNotifications')}
-        />
+      <SectionCard title={t('settings.notificationPreferences')}>
+        {ROWS.map((row) => (
+          <SettingItem
+            key={row.key}
+            label={t(row.label)}
+            description={t(row.desc)}
+            value={settings[row.key]}
+            onToggle={() => handleToggle(row.key)}
+          />
+        ))}
       </SectionCard>
 
       <Text variant="bodySm" tone="muted">

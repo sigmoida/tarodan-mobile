@@ -40,7 +40,7 @@ export default function NotificationSettingsScreen() {
       loading={f.isLoading}
       loadingFallback={<NotificationSettingsSkeleton />}
       error={f.loadFailed ? true : undefined}
-      errorMessage={t("settings.notificationSettingsLoadFailed")}
+      errorMessage={t("settings.notificationPreferencesLoadFailed")}
       onRetry={f.retryLoad}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
