@@ -95,22 +95,29 @@ iOS prod + staging'i yan yana tutabilir.
 `EXPO_PUBLIC_API_URL` staging değeri hem `eas.json` `preview.env` bloğunda hem de
 (EAS env kullanıyorsanız) yukarıdaki §3 komutuyla set edilir.
 
-## 3c) Sentry (hata izleme + kaynak haritası)
+## 3c) Sentry (error tracking and source maps)
 
-`src/services/sentry.ts` DSN'i **yalnız** `EXPO_PUBLIC_SENTRY_DSN`'den okur; değişken
-yoksa Sentry sessizce kapalıdır. `eas.json` profilleri DSN taşımaz (secret/ortam
-değeri); EAS ortamında tanımlanır:
+`src/services/sentry.ts` reads the DSN **only** from `EXPO_PUBLIC_SENTRY_DSN`;
+without it Sentry is silently off. The `eas.json` profiles do not carry the DSN;
+it is an EAS environment variable (plaintext), and a production EAS build stops
+when it is missing:
 
 ```bash
-eas env:create --environment production --name EXPO_PUBLIC_SENTRY_DSN --value "<dsn>" --visibility plaintext
-eas env:create --environment preview    --name EXPO_PUBLIC_SENTRY_DSN --value "<dsn>" --visibility plaintext
+# No --value: paste the DSN at the prompt (same habit as for the secret token).
+eas env:create --environment production --name EXPO_PUBLIC_SENTRY_DSN --visibility plaintext --scope project
+eas env:create --environment preview    --name EXPO_PUBLIC_SENTRY_DSN --visibility plaintext --scope project
 ```
 
-`eas.json` profillerinde `SENTRY_DISABLE_AUTO_UPLOAD=true` var: kaynak haritası
-yüklenmez, yani crash'ler **okunamayan stack** ile gelir. Yüklemeyi açmak için
-(sırayla): `SENTRY_AUTH_TOKEN` (secret), `SENTRY_ORG`, `SENTRY_PROJECT` EAS
-ortamına eklenir, **sonra** `eas.json`'dan `SENTRY_DISABLE_AUTO_UPLOAD` kaldırılır.
-Token olmadan kaldırmak build'i kırar — bu yüzden ikisi birlikte yapılır.
+The `preview` value covers the `preview` profile's internal-distribution builds
+(iOS ad-hoc and Android APK), and staging OTAs once `publish-ota` passes
+`--environment`; without it those run with Sentry off. The `staging` store profile
+sets no `environment`, so EAS builds it with the `production` variables. The
+`maestro` profile uses its own `maestro` environment and stays without a DSN
+unless one is added there.
+
+Source map and dSYM upload is on for the `production` profile only and needs the
+EAS secret `SENTRY_AUTH_TOKEN`. Setup steps (Sentry project, DSN, token, OTA):
+[`RELEASE.md`](./RELEASE.md), "Sentry source maps and debug symbols".
 
 ## 4) GitHub Actions secret'ları
 

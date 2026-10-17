@@ -209,7 +209,121 @@ function withStagingHosts(intentFilters = [], hosts = stagingHosts) {
   });
 }
 
+// Env vars whose value sentry-xcode.sh appends to the source map upload call.
+// SENTRY_CLI_DEBUG_FILES_UPLOAD_EXTRA_ARGS is left out on purpose: the dSYM
+// script exits 0 on a failed upload whatever its flags (docs/RELEASE.md).
+const SENTRY_CLI_ARGS_ENV = ['SENTRY_CLI_EXTRA_ARGS', 'SENTRY_CLI_RN_XCODE_EXTRA_ARGS'];
+
+// Partial skip switches of the Sentry build scripts (exact "true", like the
+// opt-out), each read on one platform only, with what it stops uploading.
+const SENTRY_PARTIAL_SKIPS = [
+  { name: 'SENTRY_DISABLE_XCODE_DEBUG_UPLOAD', platform: 'ios', skips: 'iOS dSYMs' },
+  {
+    name: 'SENTRY_DISABLE_NATIVE_DEBUG_UPLOAD',
+    platform: 'android',
+    skips: 'Android native symbols, ProGuard/R8 mapping and source context (Sentry Android Gradle Plugin)',
+  },
+];
+
+/**
+ * Fails an EAS build early when it would ship without readable crash reports.
+ *
+ * With `SENTRY_DISABLE_AUTO_UPLOAD` unset (the `production` profile), the Sentry
+ * Xcode phase and Gradle task upload source maps and dSYMs with
+ * `SENTRY_AUTH_TOKEN`. Without the token they would fail only at the end of a
+ * long native build; here the build stops while the config is read, with a
+ * message that names the fix. A production build also needs
+ * `EXPO_PUBLIC_SENTRY_DSN`: without it `src/services/sentry.ts` is a no-op and
+ * the store binary reports nothing at all. A production build that uploads also
+ * stops when sentry-cli runs in allow-failure mode, because it would then
+ * swallow a failed upload and the binary would ship without symbols unnoticed.
+ *
+ * Staging and development profiles keep `SENTRY_DISABLE_AUTO_UPLOAD=true` and
+ * pass. Only EAS build workers are checked (`EAS_BUILD`): eas-cli on the CI
+ * runner, `eas update`, `expo start` and the CI fingerprint and app-id checks
+ * read the same config without the secret and must not break. A deliberate production build
+ * without symbols stays possible by setting `SENTRY_DISABLE_AUTO_UPLOAD=true` in
+ * the EAS environment; it is logged as a warning, never silent. The partial
+ * skips (`SENTRY_DISABLE_XCODE_DEBUG_UPLOAD`, `SENTRY_DISABLE_NATIVE_DEBUG_UPLOAD`)
+ * are logged the same way.
+ * Setup: docs/RELEASE.md, "Sentry source maps and debug symbols".
+ *
+ * `env` and `warn` are parameters for tests only.
+ */
+function assertSentryBuildReady(env = process.env, warn = console.warn) {
+  const flag = (name) => !['', '0', 'false'].includes((env[name] ?? '').trim().toLowerCase());
+  if (!flag('EAS_BUILD')) return;
+  const isProduction = env.EXPO_PUBLIC_ENVIRONMENT === 'production';
+  // Exact match, untrimmed: sentry-xcode.sh and sentry.gradle compare the raw
+  // value to "true", so " true" would pass here and still upload (and fail) later.
+  const uploadDisabled = env.SENTRY_DISABLE_AUTO_UPLOAD === 'true';
+  const profile = env.EAS_BUILD_PROFILE || 'unknown';
+  const fail = (problem, fix) => {
+    throw new Error(
+      `[app.config] EAS build profile "${profile}" ${problem} ` +
+        `${fix}, or set SENTRY_DISABLE_AUTO_UPLOAD=true there to skip the upload on purpose. ` +
+        'See docs/RELEASE.md, "Sentry source maps and debug symbols".',
+    );
+  };
+  const missing = [];
+  if (!uploadDisabled && !(env.SENTRY_AUTH_TOKEN ?? '').trim()) missing.push('SENTRY_AUTH_TOKEN');
+  if (isProduction && !(env.EXPO_PUBLIC_SENTRY_DSN ?? '').trim()) missing.push('EXPO_PUBLIC_SENTRY_DSN');
+  if (missing.length > 0) {
+    fail(
+      `is missing ${missing.join(' and ')}. ` +
+        'Without them the store binary ships with unreadable (or no) Sentry crash reports.',
+      "Create the EAS environment variable(s) for this profile's environment",
+    );
+  }
+  // A failed source map upload fails the Xcode phase and the Gradle task, unless
+  // sentry-cli runs in allow-failure mode: it then exits 0 and the store binary
+  // ships without symbols, silently. sentry-cli 2.x turns that mode on for
+  // SENTRY_ALLOW_FAILURE of exactly "true" or "1" (checked against the vendored
+  // binary) and for an `--allow-failure` argument, which sentry-xcode.sh (iOS
+  // only) takes from these env vars and passes through `sh -c`. Any mention of
+  // `allow-failure` there counts, once quotes and backslashes are dropped:
+  // stricter than the shell, never looser. The deliberate opt-out above is the
+  // only way to skip. An unknown platform (local `expo prebuild`) checks both.
+  // Not covered here: the iOS dSYM phase (sentry-xcode-debug-files.sh) exits 0
+  // on a failed upload in any mode; see docs/RELEASE.md.
+  const platform = env.EAS_BUILD_PLATFORM;
+  const onPlatform = (p) => !platform || platform === p;
+  if (isProduction && !uploadDisabled) {
+    const allowFailure = [];
+    if (['true', '1'].includes(env.SENTRY_ALLOW_FAILURE)) {
+      allowFailure.push(`SENTRY_ALLOW_FAILURE=${env.SENTRY_ALLOW_FAILURE}`);
+    }
+    for (const name of onPlatform('ios') ? SENTRY_CLI_ARGS_ENV : []) {
+      if ((env[name] ?? '').replace(/["'\\]/g, '').includes('allow-failure')) {
+        allowFailure.push(`--allow-failure in ${name}`);
+      }
+    }
+    if (allowFailure.length > 0) {
+      fail(
+        `sets ${allowFailure.join(' and ')}: a failed Sentry upload would pass silently ` +
+          'and the store binary would ship with unreadable crash reports.',
+        "Remove it from this profile's environment",
+      );
+    }
+  }
+  if (isProduction && uploadDisabled) {
+    warn(
+      '[app.config] SENTRY_DISABLE_AUTO_UPLOAD=true on a production EAS build: ' +
+        'source maps and dSYMs are NOT uploaded, so Sentry stack traces of this build stay unreadable.',
+    );
+  } else if (isProduction) {
+    for (const skip of SENTRY_PARTIAL_SKIPS) {
+      if (env[skip.name] !== 'true' || !onPlatform(skip.platform)) continue;
+      warn(
+        `[app.config] ${skip.name}=true on a production EAS build: ${skip.skips} are NOT uploaded, ` +
+          'so native Sentry stack traces of this build stay unreadable.',
+      );
+    }
+  }
+}
+
 module.exports = ({ config }) => {
+  assertSentryBuildReady();
   const isStaging = process.env.EXPO_PUBLIC_ENVIRONMENT === 'preview';
   if (!isStaging) {
     return config;
@@ -250,3 +364,4 @@ module.exports = ({ config }) => {
 module.exports.resolveStagingGoogleServicesFile = resolveStagingGoogleServicesFile;
 module.exports.isAndroidNativeContext = isAndroidNativeContext;
 module.exports.withStagingHosts = withStagingHosts;
+module.exports.assertSentryBuildReady = assertSentryBuildReady;

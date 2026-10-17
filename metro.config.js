@@ -1,7 +1,12 @@
 const path = require('path');
-const { getDefaultConfig } = require('expo/metro-config');
+const { getSentryExpoConfig } = require('@sentry/react-native/metro');
 
-const config = getDefaultConfig(__dirname);
+// Expo's default Metro config plus Sentry's serializer plugin, which writes a
+// Debug ID into every bundle and its source map. Sentry matches an event to its
+// uploaded source map by that id, so EAS builds and `eas update` bundles
+// symbolicate without release/dist bookkeeping (docs/RELEASE.md, "Sentry source
+// maps and debug symbols"). JS-only: it does not change the runtime fingerprint.
+const config = getSentryExpoConfig(__dirname);
 
 // `@ide/backoff` (transitive of expo-notifications) require'lar Node
 // built-in `assert` modülünü; Metro RN için bunu polyfill etmiyor.

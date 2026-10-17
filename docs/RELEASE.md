@@ -357,15 +357,18 @@ ulaşamaz; production OTA onayı atlanamaz.
 | `production-build` | yalnız `master`                               | yok                    | production plan, build-ios, build-android (store build + submit)         |
 | `production`       | yalnız `master`                               | **required reviewers** | yalnız production `ota`                                                  |
 
-| Ad                                                         | Tür                                                    | Kullanan                        |
-| ---------------------------------------------------------- | ------------------------------------------------------ | ------------------------------- |
-| `EXPO_TOKEN`                                               | **Environment secret** (yukarıdaki üçünde de)          | EAS job'ları. Yoksa o job no-op |
-| `ANDROID_RELEASE_ENABLED`                                  | Repo variable (`true` ile açılır)                      | Android build/submit job'ları   |
-| `STAGING_MAX_BUILDS_PER_DAY`                               | Repo variable (isteğe bağlı, varsayılan 2)             | Staging otomatik build kotası   |
-| `STAGING_APK_BRANCHES`                                     | Repo variable (isteğe bağlı, varsayılan `development`) | Ad-hoc APK'nın izinli dalları   |
-| App Store Connect API key                                  | EAS sunucusunda (`eas credentials`)                    | `eas submit` iOS                |
-| Google Play service account JSON                           | EAS sunucusunda (`eas credentials`)                    | `eas submit` Android            |
-| "Allow GitHub Actions to create and approve pull requests" | Repo ayarı (Settings → Actions → General)              | Hotfix back-merge PR'ı          |
+| Ad                                                         | Tür                                                         | Kullanan                                                                                    |
+| ---------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `EXPO_TOKEN`                                               | **Environment secret** (yukarıdaki üçünde de)               | EAS job'ları. Yoksa o job no-op                                                             |
+| `ANDROID_RELEASE_ENABLED`                                  | Repo variable (`true` ile açılır)                           | Android build/submit job'ları                                                               |
+| `STAGING_MAX_BUILDS_PER_DAY`                               | Repo variable (isteğe bağlı, varsayılan 2)                  | Staging otomatik build kotası                                                               |
+| `STAGING_APK_BRANCHES`                                     | Repo variable (isteğe bağlı, varsayılan `development`)      | Ad-hoc APK'nın izinli dalları                                                               |
+| App Store Connect API key                                  | EAS sunucusunda (`eas credentials`)                         | `eas submit` iOS                                                                            |
+| Google Play service account JSON                           | EAS sunucusunda (`eas credentials`)                         | `eas submit` Android                                                                        |
+| `SENTRY_AUTH_TOKEN`                                        | EAS env, `production`, **secret** visibility                | Production EAS build: source map + dSYM upload (see "Sentry source maps and debug symbols") |
+| `EXPO_PUBLIC_SENTRY_DSN`                                   | EAS env, `production`, plaintext                            | Production build (and OTA once `publish-ota` loads the EAS env); without it Sentry is off   |
+| `SENTRY_AUTH_TOKEN`                                        | GitHub Environment `production` secret (pending, see below) | Production OTA source map upload                                                            |
+| "Allow GitHub Actions to create and approve pull requests" | Repo ayarı (Settings → Actions → General)                   | Hotfix back-merge PR'ı                                                                      |
 
 > ⚠️ Workflow'da adı geçen bir environment yoksa GitHub onu **korumasız**
 > oluşturur. Üç environment'ı (branch kuralı + `production` onayı) bu workflow'lar
@@ -382,6 +385,122 @@ ulaşamaz; production OTA onayı atlanamaz.
 
 Submit kimlik bilgileri EAS sunucularında durur, repoya girmez. Ayrıntı:
 [`SECRETS_SETUP.md`](./SECRETS_SETUP.md), OTA: [`EAS_UPDATE_OTA.md`](./EAS_UPDATE_OTA.md).
+
+## Sentry source maps and debug symbols
+
+Production crash reports are only readable when Sentry has the source maps (JS)
+and dSYMs (iOS native) of the exact binary or update that crashed. How it is wired:
+
+- `metro.config.js` uses `getSentryExpoConfig`: every bundle and its source map
+  carry the same Debug ID, so Sentry matches maps to events without release/dist
+  bookkeeping. This holds for EAS builds and for `eas update` bundles.
+- `app.json` configures the `@sentry/react-native/expo` plugin with
+  `organization: tarodan` and `project: tarodan-mobile`. The auth token is
+  **never** in the repo; the plugin and `sentry-cli` read `SENTRY_AUTH_TOKEN`
+  from the environment. `SENTRY_ORG` / `SENTRY_PROJECT` in the EAS environment
+  override the plugin values if the Sentry slugs ever differ.
+- `eas.json`: only the `production` profile uploads. `development`, `preview`,
+  `staging` and `maestro` keep `SENTRY_DISABLE_AUTO_UPLOAD=true`, so a missing
+  token never blocks staging.
+- During a production EAS build the "Bundle React Native code and images" phase
+  (iOS) and the `*_SentryUpload_*` task that `sentry.gradle` chains after the
+  release JS bundle task (Android) upload the Hermes source map; the "Upload Debug
+  Symbols to Sentry" phase uploads the iOS dSYMs. Android has no R8/ProGuard
+  mapping today (`android.enableMinifyInReleaseBuilds` is off), so there is
+  nothing else to upload there.
+
+**Fail-safe.** On an EAS build worker (`EAS_BUILD`), `app.config.js`
+(`assertSentryBuildReady`) stops the build while the config is read when upload
+is on and `SENTRY_AUTH_TOKEN` is missing, and on any production build when
+`EXPO_PUBLIC_SENTRY_DSN` is missing. A production build that uploads also stops
+when `sentry-cli` would run in allow-failure mode: `SENTRY_ALLOW_FAILURE` set to
+`true` or `1` (the values `sentry-cli` honours), or `--allow-failure` in
+`SENTRY_CLI_EXTRA_ARGS` or `SENTRY_CLI_RN_XCODE_EXTRA_ARGS` (iOS builds only:
+the iOS source map call reads them, Gradle does not; the dSYM call ignores
+failures anyway, see "Known gap" below). `sentry-cli`
+would then exit 0 on a
+failed upload and the binary would ship without symbols, unnoticed. Why fail
+rather than skip: a store binary cannot get its symbols later (the dSYMs and
+Hermes maps exist only inside that build), so a silent skip would ship 1.1.0
+with unreadable crashes. Failing at the "Read app config" step, a few minutes in
+and with the fix in the message, is cheaper than failing at the end of the
+native build, which is what a failed Hermes source map upload does on its own
+(iOS and Android). Staging and development builds are never blocked (they keep
+`SENTRY_DISABLE_AUTO_UPLOAD=true` and need no DSN). Note that the `staging` store
+profile sets no `environment`, so EAS builds it with the **`production`**
+variables: it receives the production DSN and sees `SENTRY_AUTH_TOKEN` (unused
+there), and any change to the `production` environment reaches staging store
+builds too. To ship a production build without symbols on
+purpose (for example during a Sentry outage), set `SENTRY_DISABLE_AUTO_UPLOAD=true`
+in the EAS `production` environment; the build logs a warning. Remove it again
+afterwards. `SENTRY_ALLOW_FAILURE` is not a way to do this: set the opt-out.
+The partial skips `SENTRY_DISABLE_XCODE_DEBUG_UPLOAD` (iOS dSYMs) and
+`SENTRY_DISABLE_NATIVE_DEBUG_UPLOAD` (Android: with the Sentry Android Gradle
+Plugin enabled it stops native symbols, the ProGuard/R8 mapping and source
+context, none of which can be uploaded later) are not blocked but log a warning
+on a production build of the platform that reads them.
+
+**Known gap: iOS dSYMs.** The "Upload Debug Symbols to Sentry" phase
+(`@sentry/react-native` `scripts/sentry-xcode-debug-files.sh`) only logs
+`error: sentry-cli - ...` when the dSYM upload fails and still exits 0, so a
+green production iOS build does **not** prove its dSYMs reached Sentry. After
+every production iOS build, search the EAS build log for `error: sentry-cli` and
+check Debug Files in Sentry (step 5 below). If they are missing, fix the cause
+and ship a new build before that binary is released; its own native crashes
+stay unsymbolicated.
+
+### One-time setup (user)
+
+1. **Sentry project.** In org `tarodan`, create (or confirm) a React Native project
+   with the slug `tarodan-mobile`. If it already exists under another slug, either
+   rename it or add `SENTRY_PROJECT=<slug>` to the EAS `production` environment
+   (plaintext).
+2. **DSN.** Project Settings -> Client Keys (DSN). Add it to EAS:
+
+   ```bash
+   eas env:create --environment production --name EXPO_PUBLIC_SENTRY_DSN \
+     --visibility plaintext --scope project
+   ```
+
+   Add the same DSN to the `preview` environment too (`docs/SECRETS_SETUP.md`
+   section 3c) so internal builds report as well.
+
+3. **Auth token.** Sentry -> Settings -> Developer Settings -> **Organization
+   Tokens** -> "Create New Token" (name it e.g. `eas-tarodan-mobile`). Organization
+   tokens carry the CI scope Sentry needs for source maps and debug files; prefer
+   them over a personal token. Store it as an EAS **secret** (not readable outside
+   EAS servers):
+
+   ```bash
+   eas env:create --environment production --name SENTRY_AUTH_TOKEN \
+     --visibility secret --scope project
+   ```
+
+   Run both commands without `--value` and paste the value at the prompt, so it
+   never lands in shell history. Never put the token in `eas.json`, `app.json`,
+   `.env*` files or a commit.
+
+4. **Check names only:** `eas env:list production --format short` must list
+   `EXPO_PUBLIC_SENTRY_DSN` and `SENTRY_AUTH_TOKEN` (the secret shows masked), and
+   `eas env:list preview --format short` must list `EXPO_PUBLIC_SENTRY_DSN`.
+5. **After the first production build** (and the dSYM check after every
+   production iOS build, see "Known gap: iOS dSYMs"): in Sentry, Project
+   Settings -> Source Maps shows an artifact bundle with the build's Debug ID,
+   and Debug Files shows the iOS dSYMs. Trigger a test error on a TestFlight build and confirm the stack
+   shows `src/...` file names and line numbers.
+
+### Production OTA (hotfix)
+
+`eas update` runs on the GitHub runner, where EAS **secret** variables are not
+readable, and without `--environment` it loads no EAS variables at all. Two
+changes in `scripts/ci/release.sh` (`publish_ota`) and `mobile-production.yml`
+(`ota` job) are therefore needed and are tracked with the CI release work:
+pass `--environment` to `eas update` (so `EXPO_PUBLIC_SENTRY_DSN` reaches the OTA
+bundle), and upload `dist/` with `npx sentry-expo-upload-sourcemaps dist` using a
+`SENTRY_AUTH_TOKEN` secret in the GitHub Environment `production`. Until both
+land, a production OTA ships without uploaded source maps. A manual upload is
+possible right after a manual `eas update`, from the same checkout:
+`SENTRY_AUTH_TOKEN=... npx sentry-expo-upload-sourcemaps dist`.
 
 ## Kopya kağıdı
 

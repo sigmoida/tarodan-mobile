@@ -364,7 +364,13 @@
         }
       ],
       "./plugins/withGoogleSigninPods.js",
-      "@sentry/react-native/expo"
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "tarodan",
+          "project": "tarodan-mobile"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
