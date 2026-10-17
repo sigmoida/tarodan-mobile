@@ -122,14 +122,14 @@ describe('J74 · Ödeme başarısız navigasyon wiring', () => {
     }
   });
 
-  it('J74.5 misafir: "Tekrar Dene" yok (retry JWT ister), web gibi "İlanlara Dön" → /listings', async () => {
+  it('J74.5 misafir: "Tekrar Dene" yok (retry JWT ister), web gibi "İlanlara Dön" → /search', async () => {
     mockParams = { paymentId: 'pay-1', guest: '1' };
     (paymentsApi.getStatusLightGuest as jest.Mock).mockResolvedValue({
       data: { data: infoFixture() },
     });
     renderWithProviders(<PaymentFailScreen />);
     fireEvent.press(await screen.findByText('İlanlara Dön'));
-    expect(replaceMock).toHaveBeenCalledWith('/listings');
+    expect(replaceMock).toHaveBeenCalledWith('/search');
     expect(screen.queryByText('Tekrar Dene')).toBeNull();
     expect(screen.getByText('Ana Sayfaya Dön')).toBeOnTheScreen();
     expect(retryMock).not.toHaveBeenCalled();

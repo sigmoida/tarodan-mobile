@@ -1,6 +1,6 @@
 /**
  * Kategoriler ekranı: sol ray (gruplar; boş grup gizli, ilk açılışta ilk dolu grup seçili) + sağ
- * 2 sütunlu ızgara; her grup doğru `/listings` parametreleriyle açar; alt kategori inişi (kırıntıyla
+ * 2 sütunlu ızgara; her grup doğru `/search` parametreleriyle açar; alt kategori inişi (kırıntıyla
  * geri; katalog yenilenince yol sıfırlanır); iskelet / grup bazında hata + tekrar dene / çekip yenile.
  */
 import React from 'react';
@@ -92,10 +92,10 @@ describe('Kategoriler ekranı — hedefler', () => {
   it('Keşfet kutuları web ile aynı adresleri açar', () => {
     render(<CategoriesScreen />);
     const cases: Array<[string, string]> = [
-      ['explore:all', '/listings'],
-      ['explore:new', '/listings?sortBy=created_desc'],
-      ['explore:best', '/listings?sortBy=view_count_desc'],
-      ['explore:sale', '/listings?discountOnly=true'],
+      ['explore:all', '/search'],
+      ['explore:new', '/search?sortBy=created_desc'],
+      ['explore:best', '/search?sortBy=view_count_desc'],
+      ['explore:sale', '/search?discountOnly=true'],
       ['explore:collections', '/collections'],
     ];
     for (const [id, href] of cases) {
@@ -105,12 +105,12 @@ describe('Kategoriler ekranı — hedefler', () => {
     }
   });
 
-  it('Kategoriler: HEPSİ gösterilir (0 ilanlı da, web gibi); yaprak kutu /listings?categoryId&category açar', () => {
+  it('Kategoriler: HEPSİ gösterilir (0 ilanlı da, web gibi); yaprak kutu /search?categoryId&category açar', () => {
     render(<CategoriesScreen />);
     selectGroup('categories');
     expect(screen.getByTestId('categories-tile-category:c3')).toBeTruthy();
     fireEvent.press(screen.getByTestId('categories-tile-category:c1'));
-    expect(pushMock).toHaveBeenCalledWith('/listings?categoryId=c1&category=Otomobil');
+    expect(pushMock).toHaveBeenCalledWith('/search?categoryId=c1&category=Otomobil');
   });
 
   it('alt kategorisi olan kutu alt düzeye iner: kırıntı "‹ Kategoriler", "Tümü" + tüm alt kutular; kırıntı ile döner', () => {
@@ -123,10 +123,10 @@ describe('Kategoriler ekranı — hedefler', () => {
     const crumb = screen.getByTestId('categories-parent-crumb');
     expect(crumb.props.accessibilityLabel).toBe('Üst kategoriye dön: Kategoriler');
     fireEvent.press(screen.getByTestId('categories-tile-category:c2:all'));
-    expect(pushMock).toHaveBeenLastCalledWith('/listings?categoryId=c2&category=Ticari');
+    expect(pushMock).toHaveBeenLastCalledWith('/search?categoryId=c2&category=Ticari');
     unlock();
     fireEvent.press(screen.getByTestId('categories-tile-category:c2a'));
-    expect(pushMock).toHaveBeenLastCalledWith('/listings?categoryId=c2a&category=Kamyon');
+    expect(pushMock).toHaveBeenLastCalledWith('/search?categoryId=c2a&category=Kamyon');
 
     fireEvent.press(crumb);
     expect(screen.getByTestId('categories-tile-category:c1')).toBeTruthy();
@@ -161,7 +161,7 @@ describe('Kategoriler ekranı — hedefler', () => {
     expect(labels).toEqual(['Hot Wheels', 'Bburago']);
     expect(grid.getByText('12 ürün')).toBeTruthy();
     fireEvent.press(screen.getByTestId('categories-tile-manufacturer:m2'));
-    expect(pushMock).toHaveBeenLastCalledWith('/listings?manufacturer=Hot%20Wheels&manufacturerId=m2');
+    expect(pushMock).toHaveBeenLastCalledWith('/search?manufacturer=Hot%20Wheels&manufacturerId=m2');
     unlock();
     const link = screen.getByTestId('categories-footer-link');
     expect(link.props.accessibilityLabel).toBe('Tüm Üreticiler');
@@ -169,14 +169,14 @@ describe('Kategoriler ekranı — hedefler', () => {
     expect(pushMock).toHaveBeenLastCalledWith('/ureticiler');
   });
 
-  it('Ölçek: kutu /listings?scale= açar', () => {
+  it('Ölçek: kutu /search?scale= açar', () => {
     render(<CategoriesScreen />);
     selectGroup('scales');
     fireEvent.press(screen.getByTestId('categories-tile-scale:1:64'));
-    expect(pushMock).toHaveBeenCalledWith('/listings?scale=1%3A64');
+    expect(pushMock).toHaveBeenCalledWith('/search?scale=1%3A64');
   });
 
-  it('çift dokunuş tek /listings açar', () => {
+  it('çift dokunuş tek /search açar', () => {
     render(<CategoriesScreen />);
     fireEvent.press(screen.getByTestId('categories-tile-explore:all'));
     fireEvent.press(screen.getByTestId('categories-tile-explore:new'));

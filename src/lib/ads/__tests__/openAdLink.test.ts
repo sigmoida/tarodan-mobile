@@ -44,10 +44,10 @@ describe('resolveAdLink — mobil karşılığı olan web yolları', () => {
 
   it('ilan listesi sorgusu (filtre) düşmez', () => {
     expect(resolveAdLink('/listings?manufacturer=Hot+Wheels')).toEqual(
-      route('/listings?manufacturer=Hot+Wheels'),
+      route('/search?manufacturer=Hot+Wheels'),
     );
     expect(resolveAdLink('https://tarodan.com.tr/listings?manufacturer=Hot+Wheels')).toEqual(
-      route('/listings?manufacturer=Hot+Wheels'),
+      route('/search?manufacturer=Hot+Wheels'),
     );
   });
 });

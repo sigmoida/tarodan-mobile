@@ -7,6 +7,7 @@ import { isOtherEnvironmentHost, isOwnWebUrl as isOwnSiteUrl, ownWebHosts, ownWe
 import { looksAbsoluteHttpUrl, parseStrictUrl } from '@/lib/security/url';
 import { LEGAL_WEB_DOCS } from '@/lib/legal/webDocs';
 import { IN_APP_WEB_ROUTE, inAppWebHref, resolveRemovedPage } from '@/lib/navigation/removedPages';
+import { listingsToSearchHref } from '@/lib/navigation/searchHref';
 import { isPurchasePath } from './purchasePath';
 import { safeAdHref } from './safeAdHref';
 
@@ -125,10 +126,9 @@ export function resolveAdLink(linkUrl: string | null | undefined): AdLinkTarget 
   const removed = resolveRemovedPage(path);
   if (removed) return removed.kind === 'route' ? { kind: 'route', route: removed.route } : removed;
 
-  // İlan listesi eşleyiciye VERİLMEZ: `toMobileRoute` `/listings`'i sorgusuz
-  // arama sekmesine çeviriyor, reklamın filtresi (`?manufacturer=…`) düşerdi.
-  // Mobil `app/listings` web ile aynı sorgu parametrelerini okuyor.
-  if (barePath === '/listings') return { kind: 'route', route: `${barePath}${query}` };
+  // İlan listesi → ön filtreli arama ekranı; reklamın filtresi (`?manufacturer=…`) AYNEN taşınır
+  // (arama ekranı web `/listings` parametre adlarını okur). Locale öneki yukarıda soyuldu.
+  if (barePath === '/listings') return { kind: 'route', route: listingsToSearchHref(query) };
 
   const seg = barePath.split('/').filter(Boolean);
   const renamed = renamedRoute(seg);

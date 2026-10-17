@@ -7,20 +7,20 @@ jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 import { resolveAdLink } from '../openAdLink';
 
 describe('resolveAdLink — locale öneki', () => {
-  it('/en/listings?… → /listings?… (filtre korunur)', () => {
+  it('/en/listings?… → /search?… (filtre korunur)', () => {
     expect(resolveAdLink('/en/listings?manufacturer=Hot+Wheels')).toEqual({
       kind: 'route',
-      route: '/listings?manufacturer=Hot+Wheels',
+      route: '/search?manufacturer=Hot+Wheels',
     });
     expect(resolveAdLink('https://tarodan.com.tr/en/listings?manufacturer=Hot+Wheels&sort=new')).toEqual({
       kind: 'route',
-      route: '/listings?manufacturer=Hot+Wheels&sort=new',
+      route: '/search?manufacturer=Hot+Wheels&sort=new',
     });
   });
 
   it('sorgusuz /en/listings ve sondaki slash', () => {
-    expect(resolveAdLink('/en/listings')).toEqual({ kind: 'route', route: '/listings' });
-    expect(resolveAdLink('/en/listings/')).toEqual({ kind: 'route', route: '/listings' });
+    expect(resolveAdLink('/en/listings')).toEqual({ kind: 'route', route: '/search' });
+    expect(resolveAdLink('/en/listings/')).toEqual({ kind: 'route', route: '/search' });
   });
 
   it('locale önekli diğer yollar da mobil rotaya çıkar', () => {

@@ -26,6 +26,12 @@ describe('redirectSystemPath — web yolu → mobil rota', () => {
     expect(call('https://tarodan.com.tr/listings/123')).toBe('/product/123');
   });
 
+  it('ilan listesi (takas vitrini, popüler…) ön filtreli aramaya gider, sorgu korunur', () => {
+    expect(call('https://tarodan.com.tr/listings?tradeOnly=true')).toBe('/search?tradeOnly=true');
+    expect(call('tarodan://listings?sortBy=view_count_desc')).toBe('/search?sortBy=view_count_desc');
+    expect(call('https://tarodan.com.tr/en/listings')).toBe('/search');
+  });
+
   it('sorgu taşıyan yolu sorgusuyla birlikte çevirir', () => {
     expect(call('https://tarodan.com.tr/verify-email?token=abc')).toBe(
       '/verify-email?token=abc',

@@ -19,17 +19,18 @@ import { useTranslation } from 'react-i18next';
 import { productsApi, searchApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useRecentSearchesStore } from '@/stores/recentSearchesStore';
-import { useProductFilterOptions } from '@/hooks/useProductFilterOptions';
 import {
-  EMPTY_FILTERS,
   buildListParams,
   clearProductFilters,
   countActiveFilters,
   extractListings,
   extractMeta,
+  filtersFromSearchParams,
   flattenUniqueListings,
+  hasBrowseIntent,
   type ProductFilters,
 } from '@/utils/productFilters';
+import { useSearchFilterOptions } from './useSearchFilterOptions';
 import { buildActiveChips } from '@/utils/activeFilterChips';
 import { PAGE_SIZE } from '../_lib/searchConstants';
 import {
@@ -51,18 +52,9 @@ export function useSearch() {
   const { t } = useTranslation();
   const params = useLocalSearchParams();
 
-  // Filtre state'i (web listings/page.tsx ile aynı shape)
-  const [filters, setFilters] = useState<ProductFilters>(() => ({
-    ...EMPTY_FILTERS,
-    search: (params.q as string) || '',
-    category: (params.category as string) || '',
-    categoryId: (params.categoryId as string) || '',
-    brand: (params.brand as string) || '',
-    brandId: (params.brandId as string) || '',
-    scale: (params.scale as string) || '',
-    manufacturer: (params.manufacturer as string) || '',
-    manufacturerId: (params.manufacturerId as string) || '',
-  }));
+  // Filtre state'i (web listings/page.tsx ile aynı shape) — açılışta URL'den, web `/listings`
+  // parametre adlarıyla (vitrin girişleri `/search?tradeOnly=true`, `?sortBy=view_count_desc` …).
+  const [filters, setFilters] = useState<ProductFilters>(() => filtersFromSearchParams(params));
 
   // Arama kutusunun metni artık BU hook'ta değil: `SearchInputBox` kendi state'ini tutar ve
   // 400ms debounce sonrası `commitQuery` ile onaylanmış sorguyu yazar → her tuşta ekran render olmaz.
@@ -82,23 +74,17 @@ export function useSearch() {
   // Arama artık yığın ekranı: her `router.push('/search?…')` taze bir ekran kurar, bu yüzden
   // filtreler yukarıda URL parametrelerinden bir kez başlatılır (eski `navToken` tekrar-uygulama
   // hilesi gerekmez). `focus=1` (üst bardaki arama alanından gelince) kutuya otomatik odaklanır.
-  const autoFocusSearch = params.focus === '1';
+  // Ön filtreyle açılış (vitrin "Tümünü gör", kategori kutusu…) yazma niyeti değil, göz atmadır:
+  // `focus=1` gelse bile klavye açılmaz, sonuçlar doğrudan görünür.
+  const autoFocusSearch = useRef(params.focus === '1' && !hasBrowseIntent(filters)).current;
   useEffect(() => {
     if (params.openFilter) setFilterModalVisible(true);
     // yalnız ilk açılışta
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Seçili üreticinin slug'ını çöz ki üreticiye-özel filtreler (HW vb.) yüklensin.
-  const baseOptions = useProductFilterOptions();
-  const manufacturerSlug = useMemo(() => {
-    const list = baseOptions.manufacturers;
-    if (filters.manufacturerId) return list.find((m) => m.id === filters.manufacturerId)?.slug;
-    if (filters.manufacturer)
-      return list.find((m) => m.name.toLowerCase() === filters.manufacturer.toLowerCase())?.slug;
-    return undefined;
-  }, [filters.manufacturerId, filters.manufacturer, baseOptions.manufacturers]);
-  const options = useProductFilterOptions(manufacturerSlug);
+  // Filtre seçenekleri + yalnız adla gelen üreticinin kimliğe çözümü (ürün sorgusu o arada bekler).
+  const { options, waitingForManufacturers } = useSearchFilterOptions(filters, setFilters);
 
   const searches = useRecentSearchesStore((st) => st.searches);
   const addSearch = useRecentSearchesStore((st) => st.addSearch);
@@ -223,6 +209,7 @@ export function useSearch() {
   } = useInfiniteQuery({
     queryKey: searchKey,
     placeholderData: keepPreviousData,
+    enabled: !waitingForManufacturers,
     initialPageParam: 1,
     queryFn: async ({ pageParam }) => {
       const listParams = buildListParams(filters, pageParam as number, PAGE_SIZE);
@@ -421,7 +408,8 @@ export function useSearch() {
     // list query
     products,
     total,
-    isLoading,
+    // Üretici listesi beklenirken de yükleniyor say (sorgu bekletilir; boş sonuç ekranı çıkmasın).
+    isLoading: isLoading || waitingForManufacturers,
     isError,
     isFetching,
     refetch,

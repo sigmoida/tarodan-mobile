@@ -194,7 +194,7 @@ describe('AdBanner — iki API şekli', () => {
     const { getByTestId } = render(<AdBanner />);
     fireEvent.press(getByTestId('ad-banner-ad-1'));
     expect(mockRecordClick).toHaveBeenCalledWith('ad-1');
-    expect(mockPush).toHaveBeenCalledWith('/listings?manufacturer=Hot+Wheels');
+    expect(mockPush).toHaveBeenCalledWith('/search?manufacturer=Hot+Wheels');
   });
 
   it('development şekli: görselli reklam linkUrl:null + hotspots[] → yalnız bölgeler tıklanır', () => {

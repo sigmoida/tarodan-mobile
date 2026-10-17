@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Button, ErrorState, SectionCard, Text } from '@/ui';
 import { OrderSummaryLines } from '@/components/orders/OrderSummaryLines';
+import { searchEntryHref } from '@/lib/navigation/searchHref';
 import { styles } from '../_lib/styles';
 import type { CartController } from '../_hooks/useCart';
 
@@ -63,7 +64,7 @@ export function CartSummary({ f }: { f: CartController }) {
           variant="ghost"
           title={t('cart.continueShopping')}
           fullWidth
-          onPress={() => router.push('/listings' as any)}
+          onPress={() => router.push(searchEntryHref('all'))}
         />
       </View>
     </SectionCard>

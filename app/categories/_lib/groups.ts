@@ -1,10 +1,16 @@
 /**
  * Kategoriler ekranının grupları ve hedefleri — TEK kaynak (web `nav/config.ts`
  * `categoryBarItems` + `navHref`'in mobil karşılığı). Saf fonksiyonlar: veri → grup/kutu listesi,
- * kutu → `/listings` adresi. Ekran/hook bunları çağırır, adresi elle kurmaz.
+ * kutu → `/search?…` adresi. Ekran/hook bunları çağırır, adresi elle kurmaz.
  */
 import type { TFunction } from 'i18next';
 import { listingCount } from '@/utils/catalogListings';
+import {
+  searchCategoryHref,
+  searchEntryHref,
+  searchManufacturerHref,
+  searchScaleHref,
+} from '@/lib/navigation/searchHref';
 import type { MessageKey } from '@/i18n/lib';
 
 export type CategoryGroupKey = 'explore' | 'categories' | 'manufacturers' | 'scales';
@@ -61,19 +67,20 @@ export interface CategoryGroup {
 /** Web `NAV_MANUFACTURER_LIMIT`: menü bir "en popülerler" vitrini; tam liste ayrı ekranda. */
 export const CATEGORIES_MANUFACTURER_LIMIT = 40;
 
-/** Hedef adresler — web `navHref` ile aynı parametre adları (mobil `/listings` bunları okur). */
+/**
+ * Hedef adresler — filtreli listeler arama ekranıdır (`/search?…`, web `navHref` ile aynı parametre
+ * adları; tek kaynak `@/lib/navigation/searchHref`).
+ */
 export const catalogHref = {
-  allListings: '/listings',
-  newArrivals: '/listings?sortBy=created_desc',
-  bestSellers: '/listings?sortBy=view_count_desc',
-  onSale: '/listings?discountOnly=true',
+  allListings: searchEntryHref('all'),
+  newArrivals: searchEntryHref('newArrivals'),
+  bestSellers: searchEntryHref('popular'),
+  onSale: searchEntryHref('onSale'),
   collections: '/collections',
   allManufacturers: '/ureticiler',
-  category: (cat: { id: string; name: string }) =>
-    `/listings?categoryId=${encodeURIComponent(cat.id)}&category=${encodeURIComponent(cat.name)}`,
-  manufacturer: (m: { id: string; name: string }) =>
-    `/listings?manufacturer=${encodeURIComponent(m.name)}&manufacturerId=${encodeURIComponent(m.id)}`,
-  scale: (scale: string) => `/listings?scale=${encodeURIComponent(scale)}`,
+  category: searchCategoryHref,
+  manufacturer: searchManufacturerHref,
+  scale: searchScaleHref,
 } as const;
 
 /** Keşfet grubu: web kategori çubuğunun sabit öğeleri (Üreticiler/Kategoriler/Ölçek kendi gruplarıdır). */

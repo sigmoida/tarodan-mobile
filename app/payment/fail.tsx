@@ -6,6 +6,7 @@ import { paymentsApi } from '@/lib/api';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability';
 import { PageShell } from '@/components/common/PageShell';
+import { searchEntryHref } from '@/lib/navigation/searchHref';
 import { useHardwareBackToHome } from '@/hooks/useBlockHardwareBack';
 import { PaymentResultCard } from '@/components/payment/PaymentResultCard';
 
@@ -109,7 +110,7 @@ export default function PaymentFailScreen() {
                 variant="primary"
                 title={t('seller.backToListings')}
                 fullWidth
-                onPress={() => router.replace('/listings')}
+                onPress={() => router.replace(searchEntryHref('all'))}
               />
             ) : (
               <Button

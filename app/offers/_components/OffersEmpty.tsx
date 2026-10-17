@@ -2,6 +2,7 @@ import React from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { EmptyState } from '@/ui';
+import { searchEntryHref } from '@/lib/navigation/searchHref';
 import type { TabType } from '../_lib/types';
 
 /** Boş teklif listesi — metni sekmeye göre değişir; eylem ilanlara götürür. */
@@ -14,7 +15,7 @@ export function OffersEmpty({ tab }: { tab: TabType }) {
       title={received ? t('offer.emptyReceivedTitle') : t('offer.emptySentTitle')}
       subtitle={received ? t('offer.emptyReceivedSubtitle') : t('offer.emptySentSubtitle')}
       actionLabel={t('mobile.guestBrowseListings')}
-      onAction={() => router.push('/listings')}
+      onAction={() => router.push(searchEntryHref('all'))}
     />
   );
 }

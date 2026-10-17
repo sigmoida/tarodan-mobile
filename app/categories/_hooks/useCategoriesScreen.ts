@@ -8,7 +8,7 @@ import { useCategoriesCatalog } from './useCategoriesCatalog';
 /**
  * Kategoriler ekranının kontrolcüsü: veri → gruplar (`buildGroups`), seçili grup (ilk açılışta ilk
  * dolu grup), "Kategoriler" grubunda alt kategoriye iniş yolu (geri dönüşlü) ve kutu dokunuşu
- * (`/listings` itmesi — kilitli, çift dokunuş tek açılış).
+ * (`/search?…` itmesi — kilitli, çift dokunuş tek açılış).
  */
 export function useCategoriesScreen() {
   const { t } = useTranslation();

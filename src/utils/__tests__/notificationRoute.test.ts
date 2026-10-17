@@ -84,9 +84,9 @@ describe('kimlik biçimi doğrulaması', () => {
 
 describe('toMobileRoute — derin bağlantı yolları', () => {
   it('web ilan listesi filtre/sıralama sorgusuyla mobil ilan listesine gider', () => {
-    expect(toMobileRoute('/listings')).toBe('/listings');
+    expect(toMobileRoute('/listings')).toBe('/search');
     expect(toMobileRoute('/tr/listings?discountOnly=true&sortBy=price_asc')).toBe(
-      '/listings?discountOnly=true&sortBy=price_asc',
+      '/search?discountOnly=true&sortBy=price_asc',
     );
     expect(toMobileRoute('/listings/42')).toBe('/product/42');
   });

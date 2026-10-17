@@ -93,7 +93,7 @@ describe("J52 · Stok-yok ekranı", () => {
 
     const cta = await screen.findByText("Tüm Giyim ürünleri");
     fireEvent.press(cta);
-    expect(pushMock).toHaveBeenCalledWith("/category/giyim");
+    expect(pushMock).toHaveBeenCalledWith("/search?categoryId=c1&category=Giyim");
   });
 
   it('J52.3 tekrar stokta → kutlama başlığı + "Ürünü Gör" butonu push eder', async () => {

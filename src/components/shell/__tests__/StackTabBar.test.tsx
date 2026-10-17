@@ -118,9 +118,9 @@ describe('menü yalnız İlanlar ve Kategori yığın ekranlarında', () => {
   walk(appDir);
   const rel = (f: string) => path.relative(appDir, f).split(path.sep).join('/');
 
-  it('withStackTabBar kullananlar: listings + category/[slug] (arama, ürün detayı vb. YOK)', () => {
+  it('withStackTabBar kullananlar: yalnız category/[slug] (eski /listings artık aramaya yönlendirme; arama, ürün detayı vb. YOK)', () => {
     const users = files.filter((f) => fs.readFileSync(f, 'utf8').includes('withStackTabBar(')).map(rel).sort();
-    expect(users).toEqual(['category/[slug]/index.tsx', 'listings/index.tsx']);
+    expect(users).toEqual(['category/[slug]/index.tsx']);
   });
 
   it('AppTabBar yalnız sekme layout\'unda bağlı', () => {

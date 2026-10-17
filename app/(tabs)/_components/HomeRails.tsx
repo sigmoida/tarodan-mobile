@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { EmptyState, SectionCard, SectionCardAction, SkeletonCard } from '@/ui';
 import { ProductCard, type ProductCardProduct } from '@/components/product';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
+import { searchEntryHref } from '@/lib/navigation/searchHref';
 import { homeStyles as styles } from '../_lib/homeStyles';
 
 type RailProps = {
@@ -75,7 +76,7 @@ export function FeaturedRail(props: RailProps) {
       {...props}
       testID="home-featured"
       title={t('home.featuredRailTitle')}
-      onSeeAll={() => router.push('/listings')}
+      onSeeAll={() => router.push(searchEntryHref('all'))}
     />
   );
 }
@@ -87,7 +88,7 @@ export function OnSaleRail(props: RailProps) {
       {...props}
       testID="home-on-sale"
       title={t('product.onSale')}
-      onSeeAll={() => router.push('/listings?discountOnly=true')}
+      onSeeAll={() => router.push(searchEntryHref('onSale'))}
     />
   );
 }
@@ -99,7 +100,7 @@ export function TradeRail(props: RailProps) {
       {...props}
       testID="home-trade"
       title={t('nav.tradeShowcase')}
-      onSeeAll={() => router.push('/listings?tradeOnly=true')}
+      onSeeAll={() => router.push(searchEntryHref('tradeShowcase'))}
     />
   );
 }
@@ -111,7 +112,7 @@ export function PopularRail(props: RailProps) {
       {...props}
       testID="home-popular"
       title={t('home.popularListings')}
-      onSeeAll={() => router.push('/listings?sortBy=view_count_desc')}
+      onSeeAll={() => router.push(searchEntryHref('popular'))}
       emptyState={
         <EmptyState placement="inline"
           icon="tag"

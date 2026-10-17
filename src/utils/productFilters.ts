@@ -223,3 +223,62 @@ export function extractMeta(
     totalPages: m?.totalPages ?? 1,
   };
 }
+
+/** URL parametresi: expo-router `useLocalSearchParams` tekrarlı anahtarı dizi verebilir — ilki alınır. */
+type RawParam = string | string[] | undefined;
+const firstParam = (v: RawParam): string => (Array.isArray(v) ? v[0] ?? '' : v ?? '');
+
+/** Bilinen sıralama değerleri (`buildSortOptions` ile aynı küme); bilinmeyen URL değeri yok sayılır. */
+const SORT_VALUES = new Set([
+  'relevance',
+  'created_desc',
+  'created_asc',
+  'view_count_desc',
+  'price_asc',
+  'price_desc',
+  'rating_desc',
+  'title_asc',
+  'title_desc',
+]);
+
+/**
+ * Arama ekranının açılış filtreleri — URL parametrelerinden (TEK kaynak). Parametre adları web
+ * `/listings` (`parseListingsFilters`) ile aynı: eski `/listings?…` bağlantıları, reklam/push/derin
+ * bağlantı sorguları ve ana sayfa "Tümünü gör" adresleri `/search`'e AYNEN taşınır. Serbest metin
+ * mobilde `q` (üst bar arama alanı); web adı `search` de kabul edilir. Üretici attribute'ları
+ * web gibi `attr.<grup>=a,b`.
+ */
+export function filtersFromSearchParams(params: Record<string, RawParam>): ProductFilters {
+  const get = (k: string) => firstParam(params[k]).trim();
+  const sortBy = get('sortBy');
+  const customAttributes: Record<string, string[]> = {};
+  for (const key of Object.keys(params)) {
+    if (!key.startsWith('attr.')) continue;
+    const group = key.slice('attr.'.length);
+    const slugs = firstParam(params[key]).split(',').map((s) => s.trim()).filter(Boolean);
+    if (group && slugs.length) customAttributes[group] = slugs;
+  }
+  return {
+    ...EMPTY_FILTERS,
+    search: get('q') || get('search'),
+    brand: get('brand'),
+    brandId: get('brandId'),
+    scale: get('scale'),
+    material: get('material'),
+    condition: get('condition'),
+    minPrice: get('minPrice'),
+    maxPrice: get('maxPrice'),
+    tradeOnly: get('tradeOnly') === 'true',
+    discountOnly: get('discountOnly') === 'true',
+    sortBy: SORT_VALUES.has(sortBy) ? sortBy : EMPTY_FILTERS.sortBy,
+    category: get('category'),
+    categoryId: get('categoryId'),
+    manufacturer: get('manufacturer'),
+    manufacturerId: get('manufacturerId'),
+    customAttributes,
+  };
+}
+
+/** Açılış filtreleri bir "göz atma" niyeti mi taşıyor (filtre ya da varsayılan dışı sıralama)? */
+export const hasBrowseIntent = (f: ProductFilters): boolean =>
+  countActiveFilters(f) > 0 || f.sortBy !== EMPTY_FILTERS.sortBy;
