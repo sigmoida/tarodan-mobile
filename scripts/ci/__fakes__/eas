@@ -103,7 +103,9 @@ switch (args[0]) {
     // FAKE_UPDATE_NO_DEBUGID, FAKE_UPDATE_SNAKE_DEBUGID and FAKE_UPDATE_BAD_MAP
     // (each <platform|all>) write that map without a debugId, with `debug_id`
     // instead (FAKE_UPDATE_NUMERIC_DEBUGID adds a non-string debugId next to it),
-    // or as invalid JSON.
+    // or as invalid JSON. FAKE_UPDATE_MAP_BODY is the raw text of every map written
+    // (overrides the above); FAKE_UPDATE_EXTRA_MAP=<platform|all> adds a second map
+    // without a debugId next to that platform's good one.
     const want = flag('--platform') || 'all';
     const hit = (v, p) => v === 'all' || v === p;
     for (const p of want === 'all' ? ['ios', 'android'] : [want]) {
@@ -118,7 +120,12 @@ switch (args[0]) {
           ? { debug_id: id, ...(process.env.FAKE_UPDATE_NUMERIC_DEBUGID ? { debugId: 1 } : {}) }
           : { debugId: id };
       const bad = hit(process.env.FAKE_UPDATE_BAD_MAP, p);
-      fs.writeFileSync(path.join(out, 'index.hbc.map'), bad ? '{"version": 3,' : JSON.stringify(map));
+      const body = process.env.FAKE_UPDATE_MAP_BODY;
+      fs.writeFileSync(
+        path.join(out, 'index.hbc.map'),
+        body !== undefined ? body : bad ? '{"version": 3,' : JSON.stringify(map),
+      );
+      if (hit(process.env.FAKE_UPDATE_EXTRA_MAP, p)) fs.writeFileSync(path.join(out, 'extra.js.map'), '{"version":3}');
     }
     break;
   }
