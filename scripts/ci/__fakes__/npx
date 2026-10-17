@@ -5,6 +5,8 @@
 //       (varsayılan değer, profil env'inin gerçekten yüklendiğini test edilebilir kılar)
 //   npx expo config --type public --json
 //       → android.package / ios.bundleIdentifier ($FAKE_ANDROID_PACKAGE ile ezilebilir)
+//   npx sentry-expo-upload-sourcemaps dist
+//       → succeeds (logged); fails with $FAKE_SENTRY_UPLOAD_FAIL
 const fs = require('fs');
 const path = require('path');
 const args = process.argv.slice(2);
@@ -25,6 +27,12 @@ if (args[0] === 'expo-updates' && args[1] === 'fingerprint:generate') {
       android: { package: process.env.FAKE_ANDROID_PACKAGE || id },
     }),
   );
+} else if (args[0] === 'sentry-expo-upload-sourcemaps') {
+  // FAKE_SENTRY_UPLOAD_FAIL=1 makes the upload fail.
+  if (process.env.FAKE_SENTRY_UPLOAD_FAIL) {
+    console.error('fake npx: sentry upload failed (FAKE)');
+    process.exit(1);
+  }
 } else {
   console.error(`fake npx: beklenmeyen komut ${args.join(' ')}`);
   process.exit(2);

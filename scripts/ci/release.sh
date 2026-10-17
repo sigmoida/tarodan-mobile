@@ -40,7 +40,9 @@
 #       Sets expo.version (only that line changes; never lowers it). Used for
 #       the release PR's `chore(release): X.Y.Z` commit.
 #   release.sh publish-ota  <eas-branch> <ios|android|all> <build-profile> <message>
-#       Profil env'ini yükleyip `eas update` yayınlar.
+#       Loads the profile env, checks the EAS environment of that profile (the one
+#       its builds use), publishes `eas update --environment <it>` and uploads the
+#       source maps to Sentry (SENTRY_AUTH_TOKEN; required on production).
 #   release.sh plan         <staging|production>
 #       Platform başına karar (fingerprint → OTA / build / skip). Girdiler env'den:
 #       MODE (auto|ota|build|apk), PLATFORM (all|ios|android), ANDROID_ENABLED,
@@ -474,14 +476,57 @@ set_version() {
   echo "set-version: $current -> $next ($file)"
 }
 
+# `eas update --environment <env>` loads that EAS environment's variables (e.g.
+# EXPO_PUBLIC_SENTRY_DSN) and lets them OVERRIDE the shell, both for the app config
+# (runtime version) and for the bundle: eas-cli 24.x passes {...process.env,
+# ...serverEnv}. `eas build` is the other way round (eas.json wins). So before an
+# OTA the EAS variables are checked here (project and account scope; unreadable ->
+# stop): no Maestro/E2E test hook, no key of eas.json build.<profile>.env (it would
+# silently replace the value require_public_env just validated), and on the
+# production branch the Sentry DSN (without it the OTA reports nothing).
+assert_ota_eas_env() {
+  local profile="$1" branch="$2" environment="$3" scope vars all="" keys key
+  for scope in project account; do
+    vars="$(FORCE_COLOR=0 eas env:list "$environment" --scope "$scope" --format short)" \
+      || die "EAS $environment environment variables ($scope scope) could not be read; no OTA without checking them."
+    all="$all$vars"$'\n'
+  done
+  if printf '%s\n' "$all" | grep -Eq '(^|[^A-Z_])EXPO_PUBLIC_MAESTRO'; then
+    die "EAS $environment environment defines an EXPO_PUBLIC_MAESTRO* variable; Maestro/E2E test hooks never go into an OTA."
+  fi
+  keys="$(profile_env "$profile" | sed 's/=.*//')" || die "eas.json build.$profile env could not be read"
+  for key in $keys; do
+    if printf '%s\n' "$all" | grep -Eq "(^|[^A-Z0-9_])$key="; then
+      die "EAS $environment environment defines $key, which eas update --environment would use instead of eas.json build.$profile.env.$key (eas build keeps the eas.json value). Remove it from one of the two."
+    fi
+  done
+  if [ "$branch" = production ] && [ -z "${EXPO_PUBLIC_SENTRY_DSN:-}" ] \
+    && ! printf '%s\n' "$all" | grep -Eq '(^|[^A-Z0-9_])EXPO_PUBLIC_SENTRY_DSN='; then
+    die "EXPO_PUBLIC_SENTRY_DSN is not set in the EAS $environment environment; a production OTA without it reports nothing to Sentry."
+  fi
+}
+
 publish_ota() {
-  local branch="$1" platform="$2" profile="$3" message="$4"
+  local branch="$1" platform="$2" profile="$3" message="$4" environment
+  environment="$(eas_build_environment "$profile")" || die "no EAS environment for build.$profile"
   (
     load_profile_env "$profile"
     require_public_env "$profile" "$branch"
+    assert_ota_eas_env "$profile" "$branch" "$environment"
+    if [ "$branch" = production ] && [ -z "${SENTRY_AUTH_TOKEN:-}" ]; then
+      die "SENTRY_AUTH_TOKEN is empty: a production OTA needs its source maps in Sentry (secret in the GitHub Environment 'production'). Nothing was published."
+    fi
     cd "$ROOT"
-    eas update --branch "$branch" --platform "$platform" \
+    # The upload reads ./dist; start empty so only this export is uploaded.
+    rm -rf dist
+    eas update --branch "$branch" --platform "$platform" --environment "$environment" \
       --message "$message" --non-interactive
+    if [ -n "${SENTRY_AUTH_TOKEN:-}" ]; then
+      npx sentry-expo-upload-sourcemaps dist \
+        || die "The OTA is published, but its source maps were NOT uploaded to Sentry: re-run this job's upload by hand (npx sentry-expo-upload-sourcemaps dist after the same eas update export) or the stack traces of this update stay unreadable."
+    else
+      echo "::warning::SENTRY_AUTH_TOKEN is not set: the $branch OTA was published without source maps in Sentry."
+    fi
   )
 }
 

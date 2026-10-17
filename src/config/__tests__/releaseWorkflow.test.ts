@@ -344,6 +344,16 @@ describe('production', () => {
     expect(all.indexOf('latest-release "$version"')).toBeLessThan(all.indexOf('git tag -a'));
   });
 
+  it('production OTA gets SENTRY_AUTH_TOKEN from the production environment (source maps)', () => {
+    const job = production.jobs.ota;
+    expect(envName(job)).toBe('production');
+    const step = job.steps!.find((s) => (s.run ?? '').includes('publish-ota production'));
+    expect(step?.env?.SENTRY_AUTH_TOKEN).toBe('${{ secrets.SENTRY_AUTH_TOKEN }}');
+    const sh = shCode();
+    expect(sh).toContain('--environment "$environment"');
+    expect(sh).toContain('npx sentry-expo-upload-sourcemaps dist');
+  });
+
   it('release.sh and the workflow use the same tag prefix (mobile-v)', () => {
     expect(shCode()).toMatch(/^TAG_PREFIX=mobile-v$/m);
     expect(runs(production.jobs['release-bookkeeping'])).toContain('"mobile-v$');

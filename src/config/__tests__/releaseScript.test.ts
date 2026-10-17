@@ -107,7 +107,9 @@ function run(args: string[], opts: RunOpts = {}) {
   for (const k of Object.keys(base)) {
     if (k.startsWith('EXPO_PUBLIC_') || k.startsWith('GITHUB_')) delete base[k];
   }
-  for (const k of ['MODE', 'PLATFORM', 'ANDROID_ENABLED', 'COMMIT_MSG', 'SHA', 'FP', 'SOURCE_REF']) delete base[k];
+  for (const k of ['MODE', 'PLATFORM', 'ANDROID_ENABLED', 'COMMIT_MSG', 'SHA', 'FP', 'SOURCE_REF', 'SENTRY_AUTH_TOKEN']) {
+    delete base[k];
+  }
 
   // Script HER ZAMAN geçici bir kök dizinden koşar: build-submit eas-build.json'u
   // kökte yazar; testler repoya asla dosya bırakmamalı.
@@ -288,17 +290,97 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     eas.build[profile] = { ...eas.build[profile], env };
     return eas;
   };
+  /** A clean EAS production environment with the Sentry DSN (as the real one must be). */
+  const DSN_ENV = { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\n' };
+  // By default a ready OTA: the Sentry token is set and the EAS environment has the DSN.
   const ota = (branch: string, profile: string, opts: RunOpts = {}) =>
-    run(['publish-ota', branch, 'all', profile, 'msg'], opts);
+    run(['publish-ota', branch, 'all', profile, 'msg'], {
+      ...opts,
+      env: { SENTRY_AUTH_TOKEN: 'test-token', ...opts.env },
+      fakeFiles: { ...DSN_ENV, ...opts.fakeFiles },
+    });
 
   it('production OTA eas.json\'daki production env\'iyle yayınlanır', () => {
     const r = ota('production', 'production');
     expect(r.status).toBe(0);
     expect(r.easCalls('update')).toEqual([
       expect.stringContaining(
-        '--branch production --platform all --message msg --non-interactive | EXPO_PUBLIC_ENVIRONMENT=production EXPO_PUBLIC_API_URL=https://tarodan.com.tr/api',
+        '--branch production --platform all --environment production --message msg --non-interactive | EXPO_PUBLIC_ENVIRONMENT=production EXPO_PUBLIC_API_URL=https://tarodan.com.tr/api',
       ),
     ]);
+  });
+
+  it('production OTA: EAS variables of the production environment are checked first, then the source maps go to Sentry', () => {
+    const r = ota('production', 'production');
+    const calls = r.log.map((l) => l.split(' | ')[0]);
+    const envList = calls.indexOf('eas env:list production --scope project --format short');
+    const update = calls.findIndex((c) => c.startsWith('eas update '));
+    const upload = calls.indexOf('npx sentry-expo-upload-sourcemaps dist');
+    expect(calls).toContain('eas env:list production --scope account --format short');
+    expect(envList).toBeGreaterThan(-1);
+    expect(envList).toBeLessThan(update);
+    expect(update).toBeLessThan(upload);
+  });
+
+  it('production OTA without SENTRY_AUTH_TOKEN is not published', () => {
+    const r = ota('production', 'production', { env: { SENTRY_AUTH_TOKEN: '' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('SENTRY_AUTH_TOKEN');
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('production OTA without the Sentry DSN in the EAS environment is not published', () => {
+    const r = ota('production', 'production', { fakeFiles: { 'eas-env-production-project.txt': '' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('EXPO_PUBLIC_SENTRY_DSN');
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('the DSN may also come from the account scope', () => {
+    const r = ota('production', 'production', {
+      fakeFiles: { 'eas-env-production-project.txt': '', 'eas-env-production-account.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\n' },
+    });
+    expect(r.status).toBe(0);
+  });
+
+  it('a failed source map upload fails the job (the OTA is already out, so it says so)', () => {
+    const r = ota('production', 'production', { env: { FAKE_SENTRY_UPLOAD_FAIL: '1' } });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(1);
+    expect(r.all).toContain('source maps were NOT uploaded');
+  });
+
+  it.each([['EXPO_PUBLIC_API_URL'], ['EXPO_PUBLIC_ENVIRONMENT']])(
+    'an EAS variable that would override eas.json (%s) stops the OTA (eas update lets EAS win)',
+    (key) => {
+      const r = ota('production', 'production', {
+        fakeFiles: { 'eas-env-production-project.txt': `EXPO_PUBLIC_SENTRY_DSN=*****\n${key}=https://staging.example\n` },
+      });
+      expect(r.status).not.toBe(0);
+      expect(r.all).toContain(key);
+      expect(r.easCalls('update')).toHaveLength(0);
+    },
+  );
+
+  it.each(['project', 'account'])('an unreadable EAS environment (%s scope) stops the OTA', (scope) => {
+    const r = ota('production', 'production', { env: { FAKE_EAS_FAIL_ENV_LIST_SCOPE: scope } });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('a Maestro test hook in the EAS environment stops the OTA', () => {
+    const r = ota('staging', 'preview', { fakeFiles: { 'eas-env-preview-account.txt': 'EXPO_PUBLIC_MAESTRO=1\n' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('EXPO_PUBLIC_MAESTRO');
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('staging OTA without the token publishes with a warning (no DSN required)', () => {
+    const r = ota('staging', 'preview', { env: { SENTRY_AUTH_TOKEN: '' }, fakeFiles: { 'eas-env-production-project.txt': '' } });
+    expect(r.status).toBe(0);
+    expect(r.easCalls('update')[0]).toContain('--environment preview');
+    expect(r.all).toContain('::warning::SENTRY_AUTH_TOKEN is not set');
+    expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
   });
 
   it('profil yoksa durur (process substitution hatası artık yutulmuyor)', () => {

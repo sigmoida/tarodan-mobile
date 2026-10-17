@@ -34,6 +34,13 @@ change one:
 - `guard-ref`, `assert-app-id`, `build-submit`, `publish-ota`: ref guard (production
   only from `master`), package/bundle id checks, submit by build id (never
   `--latest`), OTA env validation, the Maestro/E2E hook ban in release builds.
+- `publish-ota` runs `eas update --environment <the profile's EAS environment>` so
+  EAS variables such as `EXPO_PUBLIC_SENTRY_DSN` reach the bundle, then uploads the
+  source maps (`npx sentry-expo-upload-sourcemaps dist`, `SENTRY_AUTH_TOKEN`;
+  required on production, a warning elsewhere). With `--environment`, EAS values
+  **override** the shell (unlike `eas build`, where `eas.json` wins), so it first
+  stops on an EAS variable that repeats an `eas.json` profile key, a Maestro hook, or
+  (production) a missing DSN.
 
 ## Rules
 

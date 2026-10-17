@@ -231,6 +231,8 @@ jobs:
         env:
           OTA_PLATFORM: ${{ matrix.platform }}
           MSG: ${{ needs.plan.outputs.message }}
+          # Source maps of the update to Sentry; release.sh refuses a production OTA without it.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: scripts/ci/release.sh publish-ota production "$OTA_PLATFORM" production "$MSG"
 
   build-ios:
