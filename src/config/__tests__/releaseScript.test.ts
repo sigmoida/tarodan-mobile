@@ -498,6 +498,8 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     expect(r.status).not.toBe(0);
     expect(r.easCalls('update')).toHaveLength(1);
     expect(r.all).toContain(`::error::The OTA IS published, but its ${p} source map`);
+    expect(r.all).toMatch(/::error::\S+index\.hbc\.map has no debugId\./);
+    expect(r.all).not.toContain('is not a readable source map');
     expect(r.all).toContain('has no readable debugId');
     expect(r.all).toContain('Do NOT re-run this job');
     expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
@@ -511,10 +513,15 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
   });
 
-  it('a map with debug_id (the form the upload script writes) counts', () => {
+  it('a map with debug_id counts (Sentry accepts either key)', () => {
     const r = otaOne('ios', { FAKE_UPDATE_SNAKE_DEBUGID: 'ios' });
     expect(r.status).toBe(0);
     expect(r.log.filter((l) => l.startsWith('npx sentry-expo-upload-sourcemaps dist'))).toHaveLength(1);
+  });
+
+  it('a non-string debugId does not hide a valid debug_id (each key is checked on its own)', () => {
+    const r = otaOne('ios', { FAKE_UPDATE_SNAKE_DEBUGID: 'ios', FAKE_UPDATE_NUMERIC_DEBUGID: '1' });
+    expect(r.status).toBe(0);
   });
 
   it('one platform without a debugId fails an all-platform OTA too', () => {
@@ -1937,7 +1944,7 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     repo.git(['merge', '-q', '--no-ff', '-m', 'Merge hotfix/crash', 'hotfix/crash']);
     const r = guard('hotfix/crash', 'hotfix/crash');
     expect(r.status).not.toBe(0);
-    expect(r.all).toContain('cut a new hotfix/<name> from origin/master, cherry-pick the fix commits onto it');
+    expect(r.all).toContain('cut a hotfix branch with a new name from origin/master, cherry-pick the fix commits onto it');
   });
 
   it('a hotfix cut from development with unreleased commits fails (they would ship as an OTA)', () => {

@@ -581,8 +581,8 @@ assert_map_debug_id() {
       console.error("::error::" + f + " is not a readable source map (" + e.message + ").");
       process.exit(1);
     }
-    const id = m && (m.debugId || m.debug_id);
-    if (typeof id !== "string" || !id) {
+    const str = (v) => typeof v === "string" && v.length > 0;
+    if (!m || !(str(m.debugId) || str(m.debug_id))) {
       console.error("::error::" + f + " has no debugId.");
       process.exit(1);
     }' "$1"
