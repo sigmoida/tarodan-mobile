@@ -80,8 +80,6 @@ type RunOpts = {
   readFiles?: string[];
   /** Sahte eas'in okuyacağı ek dosyalar ($FAKE_DIR'e yazılır; ör. `eas-env-production-account.txt`). */
   fakeFiles?: Record<string, string>;
-  /** true: link the real node_modules (publish-ota with a token runs a Sentry package script). */
-  nodeModules?: boolean;
 };
 
 function run(args: string[], opts: RunOpts = {}) {
@@ -125,9 +123,6 @@ function run(args: string[], opts: RunOpts = {}) {
   const appJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
   appJson.expo.version = TEST_VERSION;
   fs.writeFileSync(path.join(root, 'app.json'), `${JSON.stringify(appJson, null, 2)}\n`);
-  // Only where asked: the other runs stay sealed off from real packages. rmSync below
-  // removes the link, not its target.
-  if (opts.nodeModules) fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(root, 'node_modules'));
   const eas = opts.easJson ? opts.easJson(realEasJson()) : realEasJson();
   fs.writeFileSync(path.join(root, 'eas.json'), typeof eas === 'string' ? eas : JSON.stringify(eas));
 
@@ -301,7 +296,6 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
   // By default a ready OTA: the Sentry token is set and the EAS environment has the DSN.
   const ota = (branch: string, profile: string, opts: RunOpts = {}) =>
     run(['publish-ota', branch, 'all', profile, 'msg'], {
-      nodeModules: true,
       ...opts,
       env: { SENTRY_AUTH_TOKEN: 'test-token', ...opts.env },
       fakeFiles: { ...DSN_ENV, ...opts.fakeFiles },
@@ -481,7 +475,6 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
   // path is `publish-ota production <ios|android>`, never `all`.
   const otaOne = (p: string, env: Record<string, string> = {}) =>
     run(['publish-ota', 'production', p, 'production', 'msg'], {
-      nodeModules: true,
       env: { SENTRY_AUTH_TOKEN: 'test-token', ...env },
       fakeFiles: DSN_ENV,
     });
@@ -510,11 +503,18 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
   });
 
-  it('an unreadable map fails with the cause visible, not only "no debugId"', () => {
-    const r = otaOne('ios', { FAKE_UPDATE_NO_DEBUGID: 'ios', FAKE_UPDATE_BAD_MAP: '1' });
+  it('an unreadable map fails with its own cause, not only "no debugId"', () => {
+    const r = otaOne('ios', { FAKE_UPDATE_BAD_MAP: 'ios' });
     expect(r.status).not.toBe(0);
-    expect(r.all).toContain('was unable to be read');
+    expect(r.all).toMatch(/::error::\S+index\.hbc\.map is not a readable source map \(/);
+    expect(r.all).toContain('has no readable debugId (cause above)');
     expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
+  });
+
+  it('a map with debug_id (the form the upload script writes) counts', () => {
+    const r = otaOne('ios', { FAKE_UPDATE_SNAKE_DEBUGID: 'ios' });
+    expect(r.status).toBe(0);
+    expect(r.log.filter((l) => l.startsWith('npx sentry-expo-upload-sourcemaps dist'))).toHaveLength(1);
   });
 
   it('one platform without a debugId fails an all-platform OTA too', () => {
@@ -523,16 +523,6 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     expect(r.all).toContain('android source map');
     expect(r.all).toContain('has no readable debugId');
     expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
-  });
-
-  it('without the Sentry debugId check script nothing is published', () => {
-    const r = run(['publish-ota', 'production', 'ios', 'production', 'msg'], {
-      env: { SENTRY_AUTH_TOKEN: 'test-token' },
-      fakeFiles: DSN_ENV,
-    });
-    expect(r.status).not.toBe(0);
-    expect(r.all).toContain('has-sourcemap-debugid.js cannot be found');
-    expect(r.easCalls('update')).toHaveLength(0);
   });
 
   it('a single-platform production OTA without its source map fails after publishing and says not to re-run', () => {
@@ -1947,7 +1937,7 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     repo.git(['merge', '-q', '--no-ff', '-m', 'Merge hotfix/crash', 'hotfix/crash']);
     const r = guard('hotfix/crash', 'hotfix/crash');
     expect(r.status).not.toBe(0);
-    expect(r.all).toContain('let the back-merge carry it into development after the master merge');
+    expect(r.all).toContain('cut a new hotfix/<name> from origin/master, cherry-pick the fix commits onto it');
   });
 
   it('a hotfix cut from development with unreleased commits fails (they would ship as an OTA)', () => {

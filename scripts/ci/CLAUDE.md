@@ -48,10 +48,10 @@ change one:
   not readable by `eas update` (`secret` visibility; use plain text or sensitive).
   Before publishing it also checks the upload target the way the upload script
   resolves it (the `@sentry/react-native/expo` plugin options, or `SENTRY_ORG` +
-  `SENTRY_PROJECT` + `SENTRY_URL`) and that `@sentry/react-native`'s
-  `scripts/has-sourcemap-debugid.js` is installed; after publishing it requires a
-  source map per platform in `dist/`, each with a `debugId` (Sentry matches bundle
-  and map by it; a map without one uploads but never resolves). A failure after
+  `SENTRY_PROJECT` + `SENTRY_URL`); after publishing it requires a source map per
+  platform in `dist/`, each with a `debugId` (`assert_map_debug_id`, the rule of
+  `@sentry/react-native`'s `has-sourcemap-debugid.js`; Sentry matches bundle and map
+  by it, and a map without one uploads but never resolves). A failure after
   publishing says so: do not re-run (that publishes a second update).
 
 ## Rules

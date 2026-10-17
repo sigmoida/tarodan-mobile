@@ -100,8 +100,9 @@ switch (args[0]) {
     // Like the real export: a bundle and its source map (with the debugId the Expo
     // serializer writes) per platform under ./dist.
     // FAKE_UPDATE_NO_MAPS=<platform> leaves that platform's map out ("all": every one);
-    // FAKE_UPDATE_NO_DEBUGID=<platform|all> writes that map without a debugId
-    // (with FAKE_UPDATE_BAD_MAP as invalid JSON).
+    // FAKE_UPDATE_NO_DEBUGID, FAKE_UPDATE_SNAKE_DEBUGID and FAKE_UPDATE_BAD_MAP
+    // (each <platform|all>) write that map without a debugId, with `debug_id`
+    // instead, or as invalid JSON.
     const want = flag('--platform') || 'all';
     const hit = (v, p) => v === 'all' || v === p;
     for (const p of want === 'all' ? ['ios', 'android'] : [want]) {
@@ -109,8 +110,11 @@ switch (args[0]) {
       fs.mkdirSync(out, { recursive: true });
       fs.writeFileSync(path.join(out, 'index.hbc'), '');
       if (hit(process.env.FAKE_UPDATE_NO_MAPS, p)) continue;
-      const map = hit(process.env.FAKE_UPDATE_NO_DEBUGID, p) ? {} : { debugId: `00000000-0000-4000-8000-00000000000${p.length}` };
-      const bad = process.env.FAKE_UPDATE_BAD_MAP && hit(process.env.FAKE_UPDATE_NO_DEBUGID, p);
+      const id = `00000000-0000-4000-8000-00000000000${p.length}`;
+      const map = hit(process.env.FAKE_UPDATE_NO_DEBUGID, p)
+        ? {}
+        : hit(process.env.FAKE_UPDATE_SNAKE_DEBUGID, p) ? { debug_id: id } : { debugId: id };
+      const bad = hit(process.env.FAKE_UPDATE_BAD_MAP, p);
       fs.writeFileSync(path.join(out, 'index.hbc.map'), bad ? '{"version": 3,' : JSON.stringify(map));
     }
     break;

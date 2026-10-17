@@ -568,13 +568,28 @@ assert_sentry_upload_config() {
     });' || exit 1
 }
 
-# The Sentry package's own check that a source map carries a debugId (the id the
-# bundle and its map are matched by in Sentry; a map without one never resolves),
-# resolved the way Node resolves the package from the repo root.
-SENTRY_DEBUGID_CHECK="@sentry/react-native/scripts/has-sourcemap-debugid.js"
+# Fails unless the source map file $1 carries a debugId: the id Sentry matches a
+# bundle and its map by (a map without one uploads but never resolves). Same rule as
+# @sentry/react-native's scripts/has-sourcemap-debugid.js (`debugId` or `debug_id`, a
+# non-empty string), kept here because that internal script exits non-zero only
+# through a typo and is not part of the package's public surface.
+assert_map_debug_id() {
+  node -e '
+    const f = process.argv[1];
+    let m;
+    try { m = JSON.parse(require("fs").readFileSync(f, "utf8")); } catch (e) {
+      console.error("::error::" + f + " is not a readable source map (" + e.message + ").");
+      process.exit(1);
+    }
+    const id = m && (m.debugId || m.debug_id);
+    if (typeof id !== "string" || !id) {
+      console.error("::error::" + f + " has no debugId.");
+      process.exit(1);
+    }' "$1"
+}
 
 publish_ota() {
-  local branch="$1" platform="$2" profile="$3" message="$4" environment p maps map debugid_check
+  local branch="$1" platform="$2" profile="$3" message="$4" environment p maps map
   environment="$(eas_build_environment "$profile")" || die "no EAS environment for build.$profile"
   (
     load_profile_env "$profile"
@@ -586,12 +601,7 @@ publish_ota() {
     cd "$ROOT"
     # The upload runs after publishing; what can be checked beforehand is checked here
     # (org and project, as sentry-expo-upload-sourcemaps resolves them).
-    if [ -n "${SENTRY_AUTH_TOKEN:-}" ]; then
-      assert_sentry_upload_config
-      debugid_check="$(node -p 'require.resolve(process.argv[1], { paths: [process.argv[2]] })' \
-        "$SENTRY_DEBUGID_CHECK" "$ROOT" 2>/dev/null)" \
-        || die "$SENTRY_DEBUGID_CHECK cannot be found (dependencies not installed, or @sentry/react-native moved it); the source maps cannot be checked. Nothing was published."
-    fi
+    if [ -n "${SENTRY_AUTH_TOKEN:-}" ]; then assert_sentry_upload_config; fi
     # The upload reads ./dist; start empty so only this export is uploaded.
     rm -rf dist
     eas update --branch "$branch" --platform "$platform" --environment "$environment" \
@@ -605,9 +615,8 @@ publish_ota() {
         [ -n "$maps" ] \
           || die "The OTA IS published, but eas update wrote no $p source map to dist/, so its stack traces cannot go to Sentry. Do NOT re-run this job: that publishes a second update."
         while IFS= read -r map; do
-          # Its output stays visible: it names the cause (no debugId, unreadable JSON).
-          node "$debugid_check" "$map" \
-            || die "The OTA IS published, but its $p source map $map has no readable debugId (see above), so Sentry cannot match it to the bundle and its stack traces stay unreadable. Nothing was uploaded. Do NOT re-run this job: that publishes a second update. Fix the cause (a missing debugId: the Metro serializer) before the next OTA."
+          assert_map_debug_id "$map" \
+            || die "The OTA IS published, but its $p source map $map has no readable debugId (cause above), so Sentry cannot match it to the bundle and its stack traces stay unreadable. Nothing was uploaded. Do NOT re-run this job: that publishes a second update. Fix the cause (a missing debugId: the Metro serializer) before the next OTA."
         done <<EOF
 $maps
 EOF
