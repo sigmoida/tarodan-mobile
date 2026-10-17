@@ -3,7 +3,7 @@ name: mobile-release-prod
 description: Production release of tarodan-mobile (development -> master release PR, or a hotfix/* OTA). User-invoked only; stops while the production freeze is active.
 disable-model-invocation: true
 argument-hint: "[release | hotfix <branch>]"
-allowed-tools: Bash(git status *) Bash(git diff *) Bash(git log *) Bash(git show *) Bash(git rev-parse *) Bash(git branch --show-current)
+allowed-tools: Bash(git status *) Bash(git diff *) Bash(git log *) Bash(git show *) Bash(git rev-parse *) Bash(git branch --show-current) Bash(git fetch origin *) Bash(scripts/ci/release.sh next-version *) Bash(scripts/ci/release.sh latest-release *)
 ---
 
 # Mobile production release (user only)
@@ -37,8 +37,9 @@ scripts/ci/release.sh next-version origin/development   # the version this relea
   not, make the release PR commit first, exactly as in `docs/RELEASE.md` › "Release
   version" (own worktree, `next-version`, `set-version`, `chore(release): <v>`),
   merge it into `development` (`merge-integration`, `--no-ff`), push with the user's
-  approval and let staging build that version. The production `plan` refuses a
-  release merge without it (`check-release-version`).
+  approval and let staging build that version. The required CI check on the PR
+  and the production `plan` refuse a release merge without it
+  (`check-release-version`).
 - Store notes (tr + en) exist in tarodan-ops `releases/store-notes/<version>.md`.
 - tarodan-ops `qa/device-checklist.md` and the Maestro critical flows ran on the
   staging build.

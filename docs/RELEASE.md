@@ -288,14 +288,16 @@ git worktree add --detach .claude/worktrees/release origin/development
 cd .claude/worktrees/release
 pnpm install --frozen-lockfile --prefer-offline   # the commit hooks need node_modules
 v="$(scripts/ci/release.sh next-version)"   # e.g. 1.1.0; the reasoning goes to stderr
-git switch -c "chore/release-$v"
+git switch -c "chore/release-${v//./-}"     # e.g. chore/release-1-1-0 (kebab case)
 scripts/ci/release.sh set-version "$v"      # or a higher manual version
 git add app.json
 git commit -m "chore(release): $v"
+cd - && git worktree remove .claude/worktrees/release   # back to the shared checkout
 ```
 
-Then merge `chore/release-<v>` into `development` with `--no-ff`
-(`merge-integration`), push `development` (approval). The version is part of the
+Then merge `chore/release-<v>` (dots as dashes) into `development` with `--no-ff`
+(`merge-integration`, from the shared checkout on `development`), push
+`development` (approval). The version is part of the
 fingerprint, so staging takes a new store build of `<v>` (it counts against the EAS
 quota and `STAGING_MAX_BUILDS_PER_DAY`). The commit touches only `app.json` and is
 its own commit, as the fingerprint rule requires; its type stays `chore(release)` so
@@ -304,12 +306,19 @@ its own commit, as the fingerprint rule requires; its type stays `chore(release)
 commit and the next `next-version` counts from it; the master ruleset allows merge
 commits only).
 
-**CI enforces it.** On a release merge (`development -> master`, `mode=auto`) the
-production `plan` runs `release.sh check-release-version` before anything is built:
-`expo.version` must equal `next-version` for the merge commit (a higher manual
-version passes, as next-version returns it). A PR without the release commit fails
-there with the `set-version` command to run. Hotfixes and `mode=ota|build` skip the
-check; a re-run of a merge already tagged with its version passes.
+**CI enforces it, before and after the merge.** `release.sh check-release-version`
+requires `expo.version` to equal `next-version` for the merge commit (a higher
+manual version passes, as next-version returns it):
+
+- on the PR into master, in the required `Lint + Typecheck + Test` job, on the PR's
+  merge ref (the future merge commit, so master-only commits such as a hotfix not
+  yet merged back count too). A PR without a correct release commit cannot merge;
+  the error names the `set-version` command. A new `feat` pushed to development
+  while the PR is open turns it red again until the version is redone.
+- in the production `plan` after the merge (`mode=auto`), before anything is built.
+
+Hotfixes and `mode=ota|build` skip the check; a re-run of a merge already tagged
+with its version passes.
 
 **Seed tag:** `next-version` needs a tag to count from. The first one,
 `mobile-v1.0.5`, is on the last released master commit (1.0.5 build 11); it was
@@ -322,8 +331,7 @@ When a store build was submitted from master (a release, or a hotfix with a new
 version), the `release-bookkeeping` job:
 
 1. Tags the released commit **`mobile-v<version>`** (`mobile-v1.2.4`). It answers
-   "which code is live?" and is where a hotfix starts and `next-version` counts
-   from. A second build of the same version (e.g. `mode=build` after an App Review
+   which code shipped as that version, and `next-version` counts from it. A second build of the same version (e.g. `mode=build` after an App Review
    rejection) does not move the tag. A version not above the highest released tag is
    not tagged.
 2. Opens a **GitHub Release** with notes generated since the previous `mobile-v`
