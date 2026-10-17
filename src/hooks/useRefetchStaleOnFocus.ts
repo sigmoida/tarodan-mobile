@@ -23,8 +23,16 @@ export const FOCUS_LIST_STALE_MS = 30_000;
  * - Çekip-yenile göstergesi buna bağlı DEĞİL (o, kullanıcının elle tetiklediği `useRefresh`).
  *
  * Anahtarlar önek olarak eşleşir (`qk.orders.all` tüm sipariş listelerini kapsar).
+ *
+ * `maxAgeMs`: uzun `staleTime`'lı ama başkasının değiştirebildiği veri (ürün detayı: fiyat / stok /
+ * durum) — bayat OLMASA da verisi bu süreden eskiyse dönüşte yine tazelenir.
  */
-export function useRefetchStaleOnFocus(queryKeys: readonly QueryKey[], enabled = true): void {
+export function useRefetchStaleOnFocus(
+  queryKeys: readonly QueryKey[],
+  enabled = true,
+  options: { maxAgeMs?: number } = {},
+): void {
+  const { maxAgeMs } = options;
   const queryClient = useQueryClient();
   // Anahtarlar çoğu zaman her render'da yeni dizi (`qk.x.detail(id)`) — odak etkisini yeniden
   // tetiklemesinler diye son değer ref'te tutulur.
@@ -43,10 +51,16 @@ export function useRefetchStaleOnFocus(queryKeys: readonly QueryKey[], enabled =
       }
       for (const queryKey of latestKeys.current) {
         void queryClient.refetchQueries(
-          { queryKey, stale: true, type: 'active' },
+          maxAgeMs == null
+            ? { queryKey, stale: true, type: 'active' }
+            : {
+                queryKey,
+                type: 'active',
+                predicate: (q) => q.isStale() || Date.now() - q.state.dataUpdatedAt > maxAgeMs,
+              },
           { cancelRefetch: false },
         );
       }
-    }, [enabled, queryClient]),
+    }, [enabled, queryClient, maxAgeMs]),
   );
 }

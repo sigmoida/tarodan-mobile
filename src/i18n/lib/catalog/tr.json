@@ -2067,6 +2067,7 @@
     "isPrivate": "Gizli",
     "addToCollection": "Koleksiyona Ekle",
     "removeFromCollection": "Koleksiyondan Çıkar",
+    "openProductHint": "Ürün sayfasını açar",
     "noCollections": "Henüz koleksiyonunuz yok",
     "collectionCreated": "Koleksiyon oluşturuldu!",
     "collectionUpdated": "Koleksiyon güncellendi!",

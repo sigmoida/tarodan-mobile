@@ -12,5 +12,9 @@ export const styles = StyleSheet.create({
     borderRadius: radiusRole.productCard,
     backgroundColor: colors.surface.alt,
   },
-  rowInfo: { flex: 1, gap: spacing[0.5] },
+  rowInfo: { flex: 1, minWidth: 0, gap: spacing[0.5] },
+  // Seçim kutusu yuvası: kutu boyutunda, satırın orta çizgisinde (ListRowCard `alignItems: center`).
+  toggle: { alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  // Bekleme göstergesi kutuyla aynı 20pt yuvada: satır zıplamaz.
+  toggleSlot: { width: spacing[5], height: spacing[5], alignItems: 'center', justifyContent: 'center' },
 });

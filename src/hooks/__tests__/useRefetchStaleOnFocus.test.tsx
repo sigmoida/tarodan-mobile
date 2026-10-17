@@ -24,7 +24,7 @@ const refocus = () => act(() => latestFocusCb?.());
 // notifyManager bildirimleri setTimeout(0) ile toplar — act içinde bir tur bekle.
 const flush = () => act(() => new Promise<void>((r) => setTimeout(r, 0)));
 
-function setup(opts: { staleTime?: number; enabled?: boolean } = {}) {
+function setup(opts: { staleTime?: number; enabled?: boolean; maxAgeMs?: number } = {}) {
   const client = makeTestQueryClient();
   const target = jest.fn(() => Promise.resolve('ok'));
   const other = jest.fn(() => Promise.resolve('other'));
@@ -35,7 +35,7 @@ function setup(opts: { staleTime?: number; enabled?: boolean } = {}) {
     ({ enabled }: { enabled: boolean }) => {
       useQuery({ queryKey: ['target', 'list'], queryFn: target, staleTime: opts.staleTime ?? 0, enabled });
       useQuery({ queryKey: ['other'], queryFn: other, staleTime: 0 });
-      useRefetchStaleOnFocus([['target']], enabled);
+      useRefetchStaleOnFocus([['target']], enabled, { maxAgeMs: opts.maxAgeMs });
     },
     { wrapper, initialProps: { enabled: opts.enabled ?? true } },
   );
@@ -91,5 +91,23 @@ describe('useRefetchStaleOnFocus', () => {
     refocus();
     await flush();
     expect(target).toHaveBeenCalledTimes(2);
+  });
+
+  it('maxAgeMs: taze (staleTime içinde) ama süreden eski veri dönüşte tazelenir; yeni veri tazelenmez', async () => {
+    const { target } = setup({ staleTime: 5 * 60_000, maxAgeMs: 30_000 });
+    await flush();
+    refocus();
+    await flush();
+    expect(target).toHaveBeenCalledTimes(1);
+
+    const realNow = Date.now();
+    const spy = jest.spyOn(Date, 'now').mockReturnValue(realNow + 31_000);
+    try {
+      refocus();
+      await flush();
+      expect(target).toHaveBeenCalledTimes(2);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
