@@ -73,17 +73,23 @@ export function keepGeneralAttributeSelections(
  * ("Fiyat (Düşük)"/"Fiyat (Yüksek)") daha AÇIK ("Fiyat (Düşükten Yükseğe)"/
  * "Fiyat (Yüksekten Düşüğe)") — reuse, ayrı bir kısa kopya açmak yerine.
  */
-export const buildSortOptions = (t: TFunction): { value: string; label: string }[] => [
-  { value: 'relevance', label: t('common.recommended') },
-  { value: 'created_desc', label: t('product.sortNewest') },
-  { value: 'created_asc', label: t('product.sortOldest') },
-  { value: 'view_count_desc', label: t('product.sortPopular') },
-  { value: 'price_asc', label: t('product.sortPriceLow') },
-  { value: 'price_desc', label: t('product.sortPriceHigh') },
-  { value: 'rating_desc', label: t('product.sortHighestRating') },
-  { value: 'title_asc', label: t('page.listings.listingstoolbar.aZ') },
-  { value: 'title_desc', label: t('page.listings.listingstoolbar.zA') },
-];
+const SORT_OPTION_KEYS = [
+  ['relevance', 'common.recommended'],
+  ['created_desc', 'product.sortNewest'],
+  ['created_asc', 'product.sortOldest'],
+  ['view_count_desc', 'product.sortPopular'],
+  ['price_asc', 'product.sortPriceLow'],
+  ['price_desc', 'product.sortPriceHigh'],
+  ['rating_desc', 'product.sortHighestRating'],
+  ['title_asc', 'page.listings.listingstoolbar.aZ'],
+  ['title_desc', 'page.listings.listingstoolbar.zA'],
+] as const;
+
+/** Geçerli sıralama değerleri — `buildSortOptions` ile AYNI tek dizi (URL doğrulaması bunu kullanır). */
+const SORT_VALUES: ReadonlySet<string> = new Set(SORT_OPTION_KEYS.map(([value]) => value));
+
+export const buildSortOptions = (t: TFunction): { value: string; label: string }[] =>
+  SORT_OPTION_KEYS.map(([value, key]) => ({ value, label: t(key) }));
 
 /**
  * Web SidebarFilters CONDITIONS ile aynı slug seti — etiketler artık katalogdan
@@ -228,19 +234,6 @@ export function extractMeta(
 type RawParam = string | string[] | undefined;
 const firstParam = (v: RawParam): string => (Array.isArray(v) ? v[0] ?? '' : v ?? '');
 
-/** Bilinen sıralama değerleri (`buildSortOptions` ile aynı küme); bilinmeyen URL değeri yok sayılır. */
-const SORT_VALUES = new Set([
-  'relevance',
-  'created_desc',
-  'created_asc',
-  'view_count_desc',
-  'price_asc',
-  'price_desc',
-  'rating_desc',
-  'title_asc',
-  'title_desc',
-]);
-
 /**
  * Arama ekranının açılış filtreleri — URL parametrelerinden (TEK kaynak). Parametre adları web
  * `/listings` (`parseListingsFilters`) ile aynı: eski `/listings?…` bağlantıları, reklam/push/derin
@@ -278,7 +271,3 @@ export function filtersFromSearchParams(params: Record<string, RawParam>): Produ
     customAttributes,
   };
 }
-
-/** Açılış filtreleri bir "göz atma" niyeti mi taşıyor (filtre ya da varsayılan dışı sıralama)? */
-export const hasBrowseIntent = (f: ProductFilters): boolean =>
-  countActiveFilters(f) > 0 || f.sortBy !== EMPTY_FILTERS.sortBy;

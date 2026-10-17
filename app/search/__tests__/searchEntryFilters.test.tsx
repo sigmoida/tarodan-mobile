@@ -68,11 +68,24 @@ describe('arama · ön filtreli açılış', () => {
     );
   });
 
-  it('filtreyle açılışta focus=1 gelse de klavye odaklanmaz; filtresiz focus=1 odaklanır', () => {
-    expect(renderSearch({ focus: '1', discountOnly: 'true' }).result.current.autoFocusSearch).toBe(false);
-    expect(renderSearch({ focus: '1', sortBy: 'created_desc' }).result.current.autoFocusSearch).toBe(false);
-    expect(renderSearch({ focus: '1' }).result.current.autoFocusSearch).toBe(true);
+  it('ön filtreli giriş (focus yok) klavyeyi açmaz; yalnız üst bar araması (focus=1) odaklanır', () => {
     expect(renderSearch({ tradeOnly: 'true' }).result.current.autoFocusSearch).toBe(false);
+    expect(renderSearch({ focus: '1' }).result.current.autoFocusSearch).toBe(true);
+  });
+
+  it('vitrin bağlam başlığı: ön ayar aynen etkinken görünür, sıralama değişince kaybolur', () => {
+    const { result } = renderSearch({ sortBy: 'view_count_desc' });
+    expect(result.current.contextLabel).toBe('Popüler İlanlar');
+    act(() => result.current.setSortBy('price_asc'));
+    expect(result.current.contextLabel).toBeNull();
+  });
+
+  it('yalnız kimlikle gelen kategori de kaldırılabilir çip olur (genel etiket)', () => {
+    const { result } = renderSearch({ categoryId: 'c-unknown' });
+    const chip = result.current.activeChips.find((c) => c.key === 'cat')!;
+    expect(chip).toBeTruthy();
+    act(() => chip.onRemove());
+    expect(result.current.filters.categoryId).toBe('');
   });
 
   it('yalnız adla gelen üretici kimliğe çözülür; istek kimlikle atılır (ad-only istek yok)', async () => {

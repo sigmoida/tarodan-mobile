@@ -27,10 +27,10 @@ import {
   extractMeta,
   filtersFromSearchParams,
   flattenUniqueListings,
-  hasBrowseIntent,
   type ProductFilters,
 } from '@/utils/productFilters';
 import { useSearchFilterOptions } from './useSearchFilterOptions';
+import { curatedEntryLabelKey } from '@/lib/navigation/searchHref';
 import { buildActiveChips } from '@/utils/activeFilterChips';
 import { PAGE_SIZE } from '../_lib/searchConstants';
 import {
@@ -74,9 +74,8 @@ export function useSearch() {
   // Arama artık yığın ekranı: her `router.push('/search?…')` taze bir ekran kurar, bu yüzden
   // filtreler yukarıda URL parametrelerinden bir kez başlatılır (eski `navToken` tekrar-uygulama
   // hilesi gerekmez). `focus=1` (üst bardaki arama alanından gelince) kutuya otomatik odaklanır.
-  // Ön filtreyle açılış (vitrin "Tümünü gör", kategori kutusu…) yazma niyeti değil, göz atmadır:
-  // `focus=1` gelse bile klavye açılmaz, sonuçlar doğrudan görünür.
-  const autoFocusSearch = useRef(params.focus === '1' && !hasBrowseIntent(filters)).current;
+  // Ön filtreli girişler (`searchHref`) `focus` taşımaz → klavye açılmaz, sonuçlar doğrudan görünür.
+  const autoFocusSearch = params.focus === '1';
   useEffect(() => {
     if (params.openFilter) setFilterModalVisible(true);
     // yalnız ilk açılışta
@@ -295,11 +294,17 @@ export function useSearch() {
     }, 200);
   }, []);
 
-  // Aktif filtre çipleri (web parity: kaldırılabilir) — ilanlar ekranıyla aynı tek kaynak.
+  // Aktif filtre çipleri (web parity: kaldırılabilir). Yalnız kimlikle gelen kategori/marka/üretici
+  // adı seçenek listelerinden çözülür (yoksa genel etiket).
+  const { customAttributes, categories, brands, manufacturers } = options;
   const activeChips = useMemo(
-    () => buildActiveChips(filters, setFilters, t, options.customAttributes),
-    [filters, options.customAttributes, t],
+    () => buildActiveChips(filters, setFilters, t, customAttributes, { categories, brands, manufacturers }),
+    [filters, customAttributes, categories, brands, manufacturers, t],
   );
+  // Vitrin girişi bağlamı ("Takas vitrini", "Popüler ilanlar"…): canlı filtrelerden türer, kullanıcı
+  // filtre/sıralamayı değiştirince kaybolur.
+  const contextLabelKey = curatedEntryLabelKey(filters);
+  const contextLabel = contextLabelKey ? t(contextLabelKey) : null;
 
   // Öneri/geçmiş paneli görünür mü? (X kapat tuşu ve input köşe stilinde kullanılır)
   const recentPanelOpen =
@@ -380,6 +385,8 @@ export function useSearch() {
     autoFocusSearch,
     clearAllFilters,
     activeChips,
+    /** Vitrin girişi bağlam başlığı ("Takas vitrini"…) ya da null. */
+    contextLabel,
     activeFiltersCount,
     // options for the filter sheet
     options,

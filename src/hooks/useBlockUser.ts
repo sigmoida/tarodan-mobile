@@ -21,7 +21,6 @@ const BLOCK_INVALIDATES = [
   // görünmeye devam ediyordu — Apple'ın "akıştan anında kalksın" şartını tam
   // buradan deliyordu.
   qk.products.detailAll,
-  qk.products.listingsAll,
   qk.products.searchAll,
   qk.products.featuredBusiness,
   qk.products.featuredCollector,

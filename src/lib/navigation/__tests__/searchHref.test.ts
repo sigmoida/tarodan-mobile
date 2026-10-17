@@ -5,6 +5,7 @@
  */
 import {
   SEARCH_ENTRIES,
+  curatedEntryLabelKey,
   listingsToSearchHref,
   searchCategoryHref,
   searchEntryHref,
@@ -12,7 +13,7 @@ import {
   searchManufacturerHref,
   searchScaleHref,
 } from '../searchHref';
-import { EMPTY_FILTERS, filtersFromSearchParams, hasBrowseIntent } from '@/utils/productFilters';
+import { EMPTY_FILTERS, buildSortOptions, filtersFromSearchParams } from '@/utils/productFilters';
 import { buildActiveChips } from '@/utils/activeFilterChips';
 
 const t = ((k: string) => k) as never;
@@ -144,10 +145,56 @@ describe('filtersFromSearchParams — web /listings parametre adları', () => {
     expect(filtersFromSearchParams({ scale: ['1:64', '1:43'] }).scale).toBe('1:64');
   });
 
-  it('hasBrowseIntent: filtre ya da varsayılan dışı sıralama', () => {
-    expect(hasBrowseIntent(EMPTY_FILTERS)).toBe(false);
-    expect(hasBrowseIntent({ ...EMPTY_FILTERS, search: 'x' })).toBe(false);
-    expect(hasBrowseIntent({ ...EMPTY_FILTERS, sortBy: 'view_count_desc' })).toBe(true);
-    expect(hasBrowseIntent({ ...EMPTY_FILTERS, tradeOnly: true })).toBe(true);
+  it('sıralama doğrulaması buildSortOptions ile aynı tek diziden', () => {
+    for (const { value } of buildSortOptions(t)) {
+      expect(filtersFromSearchParams({ sortBy: value }).sortBy).toBe(value);
+    }
+  });
+});
+
+describe('curatedEntryLabelKey — vitrin bağlam başlığı', () => {
+  it.each([
+    ['popular', 'home.popularListings'],
+    ['newArrivals', 'nav.newArrivals'],
+    ['onSale', 'product.onSale'],
+    ['tradeShowcase', 'nav.tradeShowcase'],
+  ] as const)('%s ön ayarı aynen etkinken → %s', (entry, key) => {
+    expect(curatedEntryLabelKey(filtersFromSearchParams(paramsOf(searchEntryHref(entry))))).toBe(key);
+  });
+
+  it('kullanıcı filtre/sıralama/metin değiştirince başlık kaybolur; filtresiz arama başlıksız', () => {
+    const trade = filtersFromSearchParams(paramsOf(searchEntryHref('tradeShowcase')));
+    expect(curatedEntryLabelKey(EMPTY_FILTERS)).toBeNull();
+    expect(curatedEntryLabelKey({ ...trade, sortBy: 'price_asc' })).toBeNull();
+    expect(curatedEntryLabelKey({ ...trade, scale: '1:64' })).toBeNull();
+    expect(curatedEntryLabelKey({ ...trade, search: 'ferrari' })).toBeNull();
+    expect(curatedEntryLabelKey({ ...trade, customAttributes: { rarity: [] } })).toBe('nav.tradeShowcase');
+  });
+});
+
+describe('yalnız kimlikli filtre çipi', () => {
+  const names = {
+    categories: [{ id: 'c1', name: 'Otomobil', slug: 'otomobil' }],
+    brands: [{ id: 'b1', name: 'Ferrari', slug: 'ferrari' }],
+    manufacturers: [{ id: 'm1', name: 'Hot Wheels', slug: 'hot-wheels' }],
+  };
+  it('ad seçenek listesinden çözülür, bulunamazsa genel etiket; kaldırılabilir', () => {
+    const f = filtersFromSearchParams({ categoryId: 'c1', brandId: 'b1', manufacturerId: 'mX' });
+    const set = jest.fn();
+    const chips = buildActiveChips(f, set, t, [], names);
+    expect(chips.map((c) => [c.key, c.label])).toEqual([
+      ['cat', 'Otomobil'],
+      ['brand', 'Ferrari'],
+      ['manuf', 'product.manufacturer'],
+    ]);
+    chips[0]!.onRemove();
+    const updater = set.mock.calls[0]![0] as (p: typeof f) => typeof f;
+    expect(updater(f)).toMatchObject({ category: '', categoryId: '' });
+    // Liste henüz yokken de çip var (genel etiket).
+    expect(buildActiveChips(f, set, t).map((c) => c.label)).toEqual([
+      'common.category',
+      'product.brand',
+      'product.manufacturer',
+    ]);
   });
 });

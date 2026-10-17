@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
+import { Text } from '@/ui';
 import { ProductListToolbar } from '@/components/product';
 import { buildSortOptions } from '@/utils/productFilters';
 import { styles } from '../_lib/searchStyles';
@@ -20,6 +21,8 @@ export interface SearchBarsProps {
   total: number;
   chips: SearchController['activeChips'];
   onClearFilters: () => void;
+  /** Vitrin girişi bağlamı ("Takas vitrini", "Popüler ilanlar"…); null → çizilmez. */
+  contextLabel?: string | null;
 }
 
 /**
@@ -41,6 +44,7 @@ function SearchBarsBase({
   total,
   chips,
   onClearFilters,
+  contextLabel,
 }: SearchBarsProps) {
   const { t } = useTranslation();
   const sortOptions = useMemo(() => buildSortOptions(t), [t]);
@@ -48,6 +52,19 @@ function SearchBarsBase({
   const barsStyle = useMemo(() => [styles.collapsibleBars, slideStyle], [slideStyle]);
   return (
     <Animated.View testID="search-collapsible-bars" style={barsStyle} onLayout={onBarsLayout}>
+      {/* Web `/listings` sayfa başlığının karşılığı — yalnız vitrin ön ayarı aynen etkinken. */}
+      {contextLabel ? (
+        <Text
+          variant="h3"
+          weight="bold"
+          numberOfLines={1}
+          accessibilityRole="header"
+          style={styles.contextTitle}
+          testID="search-context-title"
+        >
+          {contextLabel}
+        </Text>
+      ) : null}
       <ProductListToolbar
         style={styles.toolbar}
         sortLabel={sortOptions.find((s) => s.value === sortBy)?.label || t('common.sort')}

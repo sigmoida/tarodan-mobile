@@ -165,6 +165,7 @@ export default function SearchScreen() {
             total={f.total}
             chips={f.activeChips}
             onClearFilters={f.clearAllFilters}
+            contextLabel={f.contextLabel}
           />
 
           {/* Öneri / son aramalar: üst barın hemen altında, çubukların ve sonuçların üstünde. */}

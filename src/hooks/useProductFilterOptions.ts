@@ -2,6 +2,7 @@
  * Web SidebarFilters'ın yaptığı gibi /products/filters + /categories'ten filtre
  * seçeneklerini yükler. Tüm filtre ekranları bu hook'u paylaşır.
  */
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, categoriesApi } from '@/lib/api';
 import { unwrapList } from '@/lib/api/unwrap';
@@ -38,6 +39,9 @@ export type ProductFilterOptions = {
   refetch?: () => void;
 };
 
+/** Yanıt yokken kararlı boş liste (her render'da yeni `[]` memo'ları bozmasın). */
+const NO_OPTIONS: never[] = [];
+
 export function useProductFilterOptions(manufacturerSlug?: string): ProductFilterOptions {
   const filtersQuery = useQuery({
     queryKey: qk.products.filterOptions(manufacturerSlug ?? ''),
@@ -62,22 +66,20 @@ export function useProductFilterOptions(manufacturerSlug?: string): ProductFilte
 
   const data = filtersQuery.data;
 
-  // /products/filters categories: { value, label, slug } → { id, name, slug }
-  const categoriesFromFilters: FilterCategory[] = (data?.categories ?? []).map((c) => ({
-    id: c.value,
-    name: c.label,
-    slug: c.slug,
-  }));
-
-  const categories: FilterCategory[] =
-    categoriesQuery.data && categoriesQuery.data.length > 0
-      ? categoriesQuery.data.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))
-      : categoriesFromFilters;
+  // Kimliği kararlı: tüketiciler (arama çipleri) bunu memo bağımlılığı olarak kullanır.
+  const categories: FilterCategory[] = useMemo(
+    () =>
+      categoriesQuery.data && categoriesQuery.data.length > 0
+        ? categoriesQuery.data.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))
+        : // /products/filters categories: { value, label, slug } → { id, name, slug }
+          (data?.categories ?? []).map((c) => ({ id: c.value, name: c.label, slug: c.slug })),
+    [categoriesQuery.data, data?.categories],
+  );
 
   return {
     categories,
-    brands: data?.brands ?? [],
-    manufacturers: data?.manufacturers ?? [],
+    brands: data?.brands ?? NO_OPTIONS,
+    manufacturers: data?.manufacturers ?? NO_OPTIONS,
     // Sunucu 16'lık sabit ölçek listesini KALDIRDI: boş dizi artık meşru bir
     // yanıt ("katalogda ölçek yok"), hata değil. Eskiden boş görünce istemci
     // listesi konuyordu ve kullanıcı katalogda karşılığı olmayan bir ölçekle
