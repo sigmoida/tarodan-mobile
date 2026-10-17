@@ -150,8 +150,8 @@ describe('app.config — Sentry upload guard on EAS builds', () => {
     } catch (e) {
       message = (e as Error).message;
     }
-    expect(message).toContain('EAS build profile "production" sets SENTRY_ALLOW_FAILURE=true');
-    expect(message).toContain('Remove SENTRY_ALLOW_FAILURE');
+    expect(message).toContain('EAS build profile "production" sets SENTRY_ALLOW_FAILURE=true:');
+    expect(message).toContain("Remove it from this profile's environment, or set SENTRY_DISABLE_AUTO_UPLOAD=true");
     expect(message).toContain('SENTRY_DISABLE_AUTO_UPLOAD=true');
     expect(message).toContain('docs/RELEASE.md, "Sentry source maps and debug symbols"');
   });
@@ -163,6 +163,33 @@ describe('app.config — Sentry upload guard on EAS builds', () => {
       const env = easBuild('production', { ...secrets, SENTRY_ALLOW_FAILURE: value });
       expect(() => assertSentryBuildReady(env, warn)).not.toThrow();
       expect(warn).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['SENTRY_CLI_EXTRA_ARGS', 'SENTRY_CLI_RN_XCODE_EXTRA_ARGS', 'SENTRY_CLI_DEBUG_FILES_UPLOAD_EXTRA_ARGS'])(
+    'stops a production build that passes --allow-failure to sentry-cli through %s',
+    (name) => {
+      const env = easBuild('production', { ...secrets, [name]: '--log-level=info  --allow-failure' });
+      expect(() => assertSentryBuildReady(env, jest.fn())).toThrow(`sets --allow-failure in ${name}:`);
+    },
+  );
+
+  it('names every allow-failure source it finds', () => {
+    const env = easBuild('production', {
+      ...secrets,
+      SENTRY_ALLOW_FAILURE: '1',
+      SENTRY_CLI_EXTRA_ARGS: '--allow-failure',
+    });
+    expect(() => assertSentryBuildReady(env, jest.fn())).toThrow(
+      'sets SENTRY_ALLOW_FAILURE=1 and --allow-failure in SENTRY_CLI_EXTRA_ARGS:',
+    );
+  });
+
+  it.each(['--allow-failures', '--no-allow-failure', '--log-level=info'])(
+    'passes extra sentry-cli args without an exact --allow-failure word (%j)',
+    (args) => {
+      const env = easBuild('production', { ...secrets, SENTRY_CLI_EXTRA_ARGS: args });
+      expect(() => assertSentryBuildReady(env, jest.fn())).not.toThrow();
     },
   );
 
@@ -185,9 +212,14 @@ describe('app.config — Sentry upload guard on EAS builds', () => {
     },
   );
 
-  it('leaves SENTRY_ALLOW_FAILURE to a non-production profile that uploads', () => {
+  it('leaves allow-failure to a non-production profile that uploads', () => {
     const { SENTRY_DISABLE_AUTO_UPLOAD: _optOut, ...uploading } = easBuild('staging');
-    const env = { ...uploading, SENTRY_AUTH_TOKEN: secrets.SENTRY_AUTH_TOKEN, SENTRY_ALLOW_FAILURE: 'true' };
+    const env = {
+      ...uploading,
+      SENTRY_AUTH_TOKEN: secrets.SENTRY_AUTH_TOKEN,
+      SENTRY_ALLOW_FAILURE: 'true',
+      SENTRY_CLI_EXTRA_ARGS: '--allow-failure',
+    };
     expect(() => assertSentryBuildReady(env, jest.fn())).not.toThrow();
   });
 
@@ -250,6 +282,9 @@ describe('app.config — Sentry upload guard on EAS builds', () => {
       'SENTRY_AUTH_TOKEN',
       'SENTRY_DISABLE_AUTO_UPLOAD',
       'SENTRY_ALLOW_FAILURE',
+      'SENTRY_CLI_EXTRA_ARGS',
+      'SENTRY_CLI_RN_XCODE_EXTRA_ARGS',
+      'SENTRY_CLI_DEBUG_FILES_UPLOAD_EXTRA_ARGS',
       'EXPO_PUBLIC_SENTRY_DSN',
     ];
     const saved = keys.map((k) => [k, process.env[k]] as const);

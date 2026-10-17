@@ -412,14 +412,26 @@ and dSYMs (iOS native) of the exact binary or update that crashed. How it is wir
 (`assertSentryBuildReady`) stops the build while the config is read when upload
 is on and `SENTRY_AUTH_TOKEN` is missing, and on any production build when
 `EXPO_PUBLIC_SENTRY_DSN` is missing. A production build that uploads also stops
-when `SENTRY_ALLOW_FAILURE` is `true` or `1` (the values `sentry-cli` honours):
-`sentry-cli` would then exit 0 on a failed upload and the binary would ship
-without symbols, unnoticed. Why fail rather than skip: a store binary
-cannot get its symbols later (the dSYMs and Hermes maps exist only inside that
-build), so a silent skip would ship 1.1.0 with unreadable crashes. Failing at
-the "Read app config" step, a few minutes in and with the fix in the message, is
-cheaper than failing at the end of the native build, which is what `sentry-cli`
-does on its own. Staging and development builds are never blocked (they keep
+when `sentry-cli` would run in allow-failure mode: `SENTRY_ALLOW_FAILURE` set to
+`true` or `1` (the values `sentry-cli` honours), or `--allow-failure` in
+`SENTRY_CLI_EXTRA_ARGS`, `SENTRY_CLI_RN_XCODE_EXTRA_ARGS` or
+`SENTRY_CLI_DEBUG_FILES_UPLOAD_EXTRA_ARGS`. `sentry-cli` would then exit 0 on a
+failed upload and the binary would ship without symbols, unnoticed. Why fail
+rather than skip: a store binary cannot get its symbols later (the dSYMs and
+Hermes maps exist only inside that build), so a silent skip would ship 1.1.0
+with unreadable crashes. Failing at the "Read app config" step, a few minutes in
+and with the fix in the message, is cheaper than failing at the end of the
+native build, which is what a failed Hermes source map upload does on its own
+(iOS and Android).
+
+**Known gap: iOS dSYMs.** The "Upload Debug Symbols to Sentry" phase
+(`@sentry/react-native` `scripts/sentry-xcode-debug-files.sh`) only logs
+`error: sentry-cli - ...` when the dSYM upload fails and still exits 0, so a
+green production iOS build does **not** prove its dSYMs reached Sentry. After
+every production iOS build, search the EAS build log for `error: sentry-cli` and
+check Debug Files in Sentry (step 5 below). If they are missing, fix the cause
+and ship a new build before that binary is released; its own native crashes
+stay unsymbolicated. Staging and development builds are never blocked (they keep
 `SENTRY_DISABLE_AUTO_UPLOAD=true` and need no DSN). Note that the `staging` store
 profile sets no `environment`, so EAS builds it with the **`production`**
 variables: it receives the production DSN and sees `SENTRY_AUTH_TOKEN` (unused
@@ -463,9 +475,10 @@ afterwards. `SENTRY_ALLOW_FAILURE` is not a way to do this: set the opt-out.
 4. **Check names only:** `eas env:list production --format short` must list
    `EXPO_PUBLIC_SENTRY_DSN` and `SENTRY_AUTH_TOKEN` (the secret shows masked), and
    `eas env:list preview --format short` must list `EXPO_PUBLIC_SENTRY_DSN`.
-5. **After the first production build:** in Sentry, Project Settings -> Source Maps
-   shows an artifact bundle with the build's Debug ID, and Debug Files shows the
-   iOS dSYMs. Trigger a test error on a TestFlight build and confirm the stack
+5. **After the first production build** (and the dSYM check after every
+   production iOS build, see "Known gap: iOS dSYMs"): in Sentry, Project
+   Settings -> Source Maps shows an artifact bundle with the build's Debug ID,
+   and Debug Files shows the iOS dSYMs. Trigger a test error on a TestFlight build and confirm the stack
    shows `src/...` file names and line numbers.
 
 ### Production OTA (hotfix)
