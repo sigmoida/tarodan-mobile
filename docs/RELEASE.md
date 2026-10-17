@@ -594,7 +594,13 @@ every published source map carries a debugId, and uploads `dist/` with
 the GitHub Environment `production`. A production OTA without that token is
 refused before anything is published. Staging OTAs do the same with the
 `SENTRY_AUTH_TOKEN` secret of the GitHub Environment `staging`; without it they
-publish and only warn. Details: `scripts/ci/CLAUDE.md` (publish-ota).
+publish and only warn. With the token, a staging OTA follows the same checks as
+production: a Sentry upload target that cannot be resolved stops it before
+publishing, and a missing map, a map without a debugId or a failed upload turns the
+job red after publishing (do not re-run it; fix the cause, the next push ships a new
+OTA). Keep `SENTRY_AUTH_TOKEN` an **Environment** secret only (`staging` and
+`production`): a repository secret of the same name would silently fill in for an
+environment that lacks one. Details: `scripts/ci/CLAUDE.md` (publish-ota).
 
 ## Kopya kağıdı
 

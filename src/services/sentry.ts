@@ -5,6 +5,7 @@
  */
 import Constants from "expo-constants";
 import * as Sentry from "@sentry/react-native";
+import { IS_MAESTRO } from "@/config/maestro";
 import { sentryEnvironment } from "./sentryEnvironment";
 import { scrubBreadcrumb, scrubEvent, sentryUser } from "./sentryScrub";
 
@@ -38,9 +39,10 @@ export function initSentry(): void {
   initialized = true;
   Sentry.init({
     dsn,
-    // `preview` (every staging build and OTA) reports as `staging`; see ./sentryEnvironment.
+    // `preview` (every staging build and OTA) reports as `staging`, Maestro E2E builds as
+    // `development`; see ./sentryEnvironment.
     // The `process.env.EXPO_PUBLIC_*` access stays direct: Metro inlines it at build time.
-    environment: sentryEnvironment(process.env.EXPO_PUBLIC_ENVIRONMENT),
+    environment: sentryEnvironment(process.env.EXPO_PUBLIC_ENVIRONMENT, IS_MAESTRO),
     tracesSampleRate: 0.1,
     enableNative: true,
     // IP / çerez / istek gövdesi gibi varsayılan kişisel veriler SDK tarafından eklenmez.
