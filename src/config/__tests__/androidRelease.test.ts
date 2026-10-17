@@ -356,7 +356,7 @@ describe('docs/ANDROID_RELEASE.md', () => {
   it.each([
     'com.tarodan.app.staging',
     'tarodan-staging',
-    'tarodan-c1290',
+    'tarodan-prod',
     '243308404313',
     'GOOGLE_SERVICES_JSON_STAGING',
     'ANDROID_RELEASE_ENABLED',

@@ -58,14 +58,14 @@ zaten setli; üstüne yazmıyoruz.
 ekiyle türetir ve ana ekran adını "Staging" yapar. Böylece tester aynı cihazda
 iOS prod + staging'i yan yana tutabilir.
 
-| Alan                   | Production                 | Preview / Staging                     |
-| ---------------------- | -------------------------- | ------------------------------------- |
-| iOS `bundleIdentifier` | `com.tarodan.app`          | `com.tarodan.app.staging`             |
-| Android `package`      | `com.tarodan.app`          | `com.tarodan.app.staging`             |
-| Uygulama adı (ana ekran) | Tarodan                  | Staging                               |
-| iOS `associatedDomains`| `applinks:tarodan.com.tr`  | yok (AASA `.staging` appID'sini talep etmiyor) |
-| Android App Links      | `tarodan.com.tr`           | yalnız `staging.tarodan.com.tr`       |
-| `EXPO_PUBLIC_API_URL`  | `https://tarodan.com.tr/api` | `https://staging.tarodan.com.tr/api` |
+| Alan                     | Production                   | Preview / Staging                              |
+| ------------------------ | ---------------------------- | ---------------------------------------------- |
+| iOS `bundleIdentifier`   | `com.tarodan.app`            | `com.tarodan.app.staging`                      |
+| Android `package`        | `com.tarodan.app`            | `com.tarodan.app.staging`                      |
+| Uygulama adı (ana ekran) | Tarodan                      | Staging                                        |
+| iOS `associatedDomains`  | `applinks:tarodan.com.tr`    | yok (AASA `.staging` appID'sini talep etmiyor) |
+| Android App Links        | `tarodan.com.tr`             | yalnız `staging.tarodan.com.tr`                |
+| `EXPO_PUBLIC_API_URL`    | `https://tarodan.com.tr/api` | `https://staging.tarodan.com.tr/api`           |
 
 > **Android da iOS gibi `.staging` alır** (`com.tarodan.app.staging`): iki ayrı Play
 > uygulaması, iki ayrı Firebase projesi, aynı cihazda yan yana kurulum. Android
@@ -184,15 +184,15 @@ Mobil monorepo'dan bu ayrı repoya (`sigmoida/tarodan-mobile`) taşındı. Aşa�
 CI/pipeline'ın çalışması için gerekli — kod değil, ops. `EXPO_TOKEN` yoksa TÜM
 mobile workflow'ları sessiz no-op olur (guard).
 
-| Ön koşul | Kimde | Not |
-|---|---|---|
-| `EXPO_TOKEN` (repo secret) | EAS hesabı | Yoksa TÜM mobile workflow'lar no-op (pipeline'ın hiç çalışmamasının asıl nedeni) |
-| `MAESTRO_CLOUD_API_KEY` + `MAESTRO_CLOUD_PROJECT_ID` | Maestro Cloud | e2e (`maestro-cloud.yml`) |
-| GitHub `production` Environment | repo ayarı | TestFlight onay kapısı (`mobile-testflight.yml`) |
-| Apple ASC API key / Google Play service account | Apple + Google (imza Murat) | `eas submit` (`eas credentials`) |
-| Firebase `google-services.json` (`com.tarodan.app`) | Firebase konsolu | Production: repoda, proje `tarodan-c1290`. Staging Android (`com.tarodan.app.staging`) ayrı projede (`tarodan-staging`); dosyası repoda `google-services.staging.json` (EAS `preview` ortamında aynı içerikli `GOOGLE_SERVICES_JSON_STAGING` yedeği). Bkz. [`docs/ANDROID_RELEASE.md`](./ANDROID_RELEASE.md). |
-| App Store Connect "Tarodan (Staging)" app | Apple (imza Murat) | Anında açılır, beta review YOK (internal TestFlight) |
-| `api.staging.tarodan.shop` teyidi | Coolify | `eas.json` preview env'deki adres gerçek staging domain mi? (teyit edilmedi) |
+| Ön koşul                                             | Kimde                       | Not                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `EXPO_TOKEN` (repo secret)                           | EAS hesabı                  | Yoksa TÜM mobile workflow'lar no-op (pipeline'ın hiç çalışmamasının asıl nedeni)                                                                                                                                                                                                                             |
+| `MAESTRO_CLOUD_API_KEY` + `MAESTRO_CLOUD_PROJECT_ID` | Maestro Cloud               | e2e (`maestro-cloud.yml`)                                                                                                                                                                                                                                                                                    |
+| GitHub `production` Environment                      | repo ayarı                  | TestFlight onay kapısı (`mobile-testflight.yml`)                                                                                                                                                                                                                                                             |
+| Apple ASC API key / Google Play service account      | Apple + Google (imza Murat) | `eas submit` (`eas credentials`)                                                                                                                                                                                                                                                                             |
+| Firebase `google-services.json` (`com.tarodan.app`)  | Firebase konsolu            | Production: repoda, proje `tarodan-prod`. Staging Android (`com.tarodan.app.staging`) ayrı projede (`tarodan-staging`); dosyası repoda `google-services.staging.json` (EAS `preview` ortamında aynı içerikli `GOOGLE_SERVICES_JSON_STAGING` yedeği). Bkz. [`docs/ANDROID_RELEASE.md`](./ANDROID_RELEASE.md). |
+| App Store Connect "Tarodan (Staging)" app            | Apple (imza Murat)          | Anında açılır, beta review YOK (internal TestFlight)                                                                                                                                                                                                                                                         |
+| `api.staging.tarodan.shop` teyidi                    | Coolify                     | `eas.json` preview env'deki adres gerçek staging domain mi? (teyit edilmedi)                                                                                                                                                                                                                                 |
 
 Branch modeli: `develop` → staging (OTA/preview), `main` + `mobile-v*` tag → prod.
 runtimeVersion politikası `fingerprint` (uyumsuz OTA'yı engeller).
@@ -202,13 +202,13 @@ runtimeVersion politikası `fingerprint` (uyumsuz OTA'yı engeller).
 Branch modeli: **main = staging → Tarodan Staging (yeni ASC app)**, **master = prod → mevcut Tarodan app**.
 (Backend monorepo `master`=prod ile uyumlu; mobil `main`, backend `development` staging rolünü oynar.)
 
-| Ön koşul | Kimde | Kritiklik |
-|---|---|---|
-| ASC'de "Tarodan Staging" app (`com.tarodan.app.staging`) + ascAppId → `eas.json` `submit.staging.ios.ascAppId` (`REPLACE_WITH_TARODAN_STAGING_ASC_APP_ID`) | Apple (Murat) | Zorunlu (staging submit) |
-| Staging backend `staging.tarodan.com.tr`'a deploy + DNS | Backend/ops | **Zorunlu — yoksa staging app API'ye ulaşamaz** |
-| `EXPO_TOKEN` GitHub secret | EAS hesabı | Zorunlu (yoksa tüm workflow'lar no-op) |
-| `master` branch'i `main`'den açılır | Sen | Prod tetikleyici |
-| Testçiler "Tarodan Staging" internal tester | Apple (Murat) | İlk staging build sonrası |
+| Ön koşul                                                                                                                                                   | Kimde         | Kritiklik                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ----------------------------------------------- |
+| ASC'de "Tarodan Staging" app (`com.tarodan.app.staging`) + ascAppId → `eas.json` `submit.staging.ios.ascAppId` (`REPLACE_WITH_TARODAN_STAGING_ASC_APP_ID`) | Apple (Murat) | Zorunlu (staging submit)                        |
+| Staging backend `staging.tarodan.com.tr`'a deploy + DNS                                                                                                    | Backend/ops   | **Zorunlu — yoksa staging app API'ye ulaşamaz** |
+| `EXPO_TOKEN` GitHub secret                                                                                                                                 | EAS hesabı    | Zorunlu (yoksa tüm workflow'lar no-op)          |
+| `master` branch'i `main`'den açılır                                                                                                                        | Sen           | Prod tetikleyici                                |
+| Testçiler "Tarodan Staging" internal tester                                                                                                                | Apple (Murat) | İlk staging build sonrası                       |
 
 **Staging** (`main` push): JS/asset-only → `eas update` (OTA, staging channel); native → `eas build --profile staging --platform ios` (store dist) + `eas submit --profile staging` → Tarodan Staging TestFlight.
 **Prod** (`master` push): `app.json` `version` DEĞİŞTİYSE → `eas build --profile production --platform all` + iOS submit (mevcut app TF) + Android submit (Play internal). Version değişmezse skip. `workflow_dispatch` ile elle de tetiklenebilir.
