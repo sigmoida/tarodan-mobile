@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "575470440212",
-    "project_id": "tarodan-c1290",
-    "storage_bucket": "tarodan-c1290.firebasestorage.app"
+    "project_number": "431066159968",
+    "project_id": "tarodan-prod",
+    "storage_bucket": "tarodan-prod.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:575470440212:android:c7232a9556b91bad5cfc01",
+        "mobilesdk_app_id": "1:431066159968:android:ea6f60cacda90592b85c05",
         "android_client_info": {
           "package_name": "com.tarodan.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAVbtqlJ70jZOPThihz0c5Dfi1hh-5yUw4"
+          "current_key": "AIzaSyA-WuCbmPJJMHfEV9uCwdl_YIwToqizApY"
         }
       ],
       "services": {

@@ -7,11 +7,11 @@ onaylar ve Android durumu. Workflow'lar: `mobile-staging.yml`,
 
 ## Dallar
 
-| Dal           | Rol                                              | Nasıl girilir                                       |
-| ------------- | ------------------------------------------------ | --------------------------------------------------- |
-| `development` | Varsayılan dal; **staging**                      | Doğrudan push serbest (PR de olur)                  |
+| Dal           | Rol                                                                 | Nasıl girilir                                                 |
+| ------------- | ------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `development` | Varsayılan dal; **staging**                                         | Doğrudan push serbest (PR de olur)                            |
 | `master`      | **Production** — `development`'tan merge = yeni sürüm (store build) | Yalnız PR ile, yalnız `development` ya da `hotfix/*` dalından |
-| `hotfix/*`    | Production'a acil düzeltme (JS ise onaylı OTA)   | `master`'dan açılır, PR ile `master`'a girer        |
+| `hotfix/*`    | Production'a acil düzeltme (JS ise onaylı OTA)                      | `master`'dan açılır, PR ile `master`'a girer                  |
 
 `master` koruması `master-flow.yml` içindeki **`Master source guard`** check'iyle
 sağlanır: kaynak dal `development` ya da `hotfix/*` değilse (ya da PR bir fork'tan
@@ -23,11 +23,11 @@ girdikten sonra devreye girer.
 
 ## Uygulamalar
 
-| Ortam       | iOS                                                 | Android                                                   | API                       | EAS profili / kanalı |
-| ----------- | --------------------------------------------------- | --------------------------------------------------------- | ------------------------- | -------------------- |
-| Production  | **Tarodan** `com.tarodan.app`                       | `com.tarodan.app` (Play, internal track)                  | `tarodan.com.tr`          | `production` / `production` |
-| Staging     | **Tarodan (Staging)** `com.tarodan.app.staging`     | `com.tarodan.app.staging` (ayrı Play uygulaması, internal testing) | `staging.tarodan.com.tr`  | `staging` / `staging` |
-| Ad-hoc APK  | —                                                   | `preview` profili, EAS internal distribution (Play'siz)  | `staging.tarodan.com.tr`  | `preview` / `staging` |
+| Ortam      | iOS                                             | Android                                                            | API                      | EAS profili / kanalı        |
+| ---------- | ----------------------------------------------- | ------------------------------------------------------------------ | ------------------------ | --------------------------- |
+| Production | **Tarodan** `com.tarodan.app`                   | `com.tarodan.app` (Play, internal track)                           | `tarodan.com.tr`         | `production` / `production` |
+| Staging    | **Tarodan (Staging)** `com.tarodan.app.staging` | `com.tarodan.app.staging` (ayrı Play uygulaması, internal testing) | `staging.tarodan.com.tr` | `staging` / `staging`       |
+| Ad-hoc APK | —                                               | `preview` profili, EAS internal distribution (Play'siz)            | `staging.tarodan.com.tr` | `preview` / `staging`       |
 
 `.staging` kimliği `app.config.js`'te `EXPO_PUBLIC_ENVIRONMENT=preview` iken eklenir.
 Android'in `.staging` paketi ve `eas.json`'daki `staging` Android profili /
@@ -59,14 +59,15 @@ Workflow her yayın öncesi, platform başına:
      runtime'a onay istenmez; uyarı basar.
    - **none** — hata, iptal, gönderimi başarısız ya da hiç gönderilmemiş →
      **build**
-   Belirsiz her şey (tanınmayan CLI JSON'u dahil) "binary var" sayılmaz.
+     Belirsiz her şey (tanınmayan CLI JSON'u dahil) "binary var" sayılmaz.
 3. Build kararı otomatikse iki koruma uygulanır (aşağıda "Build korumaları").
 
-Fingerprint'e girenler (doğrulandı): `app.config.js`'in **çıktısı**
-(çözümlenmiş expo config — `.staging` kimliği dahil; app.config.js'te çıktıyı
-değiştirmeyen düzenleme build tetiklemez), `app.json` alanları — **`expo.version`
-dahil**, `eas.json`, config plugin'leri (`plugins/`), native autolinking,
-`package.json` script'leri, ikon/splash dosyaları. Sonuç:
+Fingerprint inputs (verified): the **output** of `app.config.js` (the resolved
+expo config, including the `.staging` identity; an edit that does not change the
+output triggers no build), the `app.json` fields **including `expo.version`**,
+`eas.json`, config plugins (`plugins/`), native autolinking, `package.json`
+scripts, icon/splash files, and the **content** of `android.googleServicesFile`
+(`google-services.json`, Android fingerprint only). As a result:
 
 - **`expo.version` artışı her zaman yeni build'dir.**
 - **`eas.json`'daki her değişiklik** (yalnız `submit` bloğu bile) yeni build'dir.
@@ -159,10 +160,10 @@ onayıyla kurulur. Sonraki JS değişiklikleri bu APK'ya da OTA ile iner (kanal
 `com.tarodan.app`). master'a yalnız PR ile ve yalnız iki daldan girilir; **hangi
 daldan geldiği ne olacağını belirler**:
 
-| Merge | Ne olur |
-| --- | --- |
-| **`development` → `master` (sürüm)** | **Her zaman store build'i** (iOS → App Store Connect, Android → Play internal). `expo.version` artırılmamışsa build alınmaz, koşu kırmızı olur. Yalnız JS değişmiş olsa da production OTA'sı **çıkmaz**. |
-| **`hotfix/*` → `master` (acil düzeltme)** | Yalnız JS değiştiyse **onaylı OTA** hazırlanır (senin onayın olmadan çıkmaz). Native değiştiyse store build'i (sürüm artmış olmalı). |
+| Merge                                     | Ne olur                                                                                                                                                                                                  |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`development` → `master` (sürüm)**      | **Her zaman store build'i** (iOS → App Store Connect, Android → Play internal). `expo.version` artırılmamışsa build alınmaz, koşu kırmızı olur. Yalnız JS değişmiş olsa da production OTA'sı **çıkmaz**. |
+| **`hotfix/*` → `master` (acil düzeltme)** | Yalnız JS değiştiyse **onaylı OTA** hazırlanır (senin onayın olmadan çıkmaz). Native değiştiyse store build'i (sürüm artmış olmalı).                                                                     |
 
 ```
 ci
@@ -188,7 +189,7 @@ build'inin `appVersion`'ından büyük** olmalı (`sort -V`). Değilse o platfor
 çıkar, ve tersi); koşu sonda kırmızı olur:
 
 > `ios: sürüm merge'ü (kaynak: development) ama app.json expo.version (1.0.6) son
-> production build'inin sürümünden (1.0.6) büyük değil — store build ALINMADI …`
+production build'inin sürümünden (1.0.6) büyük değil — store build ALINMADI …`
 
 Çıkış yolları (hata mesajında da yazar):
 
@@ -254,9 +255,9 @@ Canlıda 1.2.3 varken staging'de yapılan her şey **1.2.4**'tür; testçi TestF
 "1.2.4 (n)" görür ve canlıdakiyle karıştırmaz. Build numarası ayrıdır, EAS'te
 otomatik artar ve sürüm değişince sıfırlanmaz.
 
-| Sürüm parçası | Ne zaman | Kim |
-| --- | --- | --- |
-| Yama (1.2.**4**) | Her yayından sonra | **Otomatik** (aşağıda) |
+| Sürüm parçası                     | Ne zaman                         | Kim                                              |
+| --------------------------------- | -------------------------------- | ------------------------------------------------ |
+| Yama (1.2.**4**)                  | Her yayından sonra               | **Otomatik** (aşağıda)                           |
 | Ara (1.**3**.0) / ana (**2**.0.0) | Özellik grubu / büyük değişiklik | Elle: development'ta `app.json` → `expo.version` |
 
 ### Yayın sonrası (otomatik): etiket, sürüm notu, sonraki sürüm
@@ -350,21 +351,21 @@ dolmadan production track'e geçilemez.
 bağlıdır. Başka bir daldaki workflow ya da environment'sız bir job token'a
 ulaşamaz; production OTA onayı atlanamaz.
 
-| Environment        | Deployment branch                          | Onay        | Kullanan job'lar |
-| ------------------ | ------------------------------------------ | ----------- | ---------------- |
-| `staging`          | `development` (+ `vars.STAGING_APK_BRANCHES`) | yok      | staging plan / ota / build-ios / build-android / apk, `mobile-build.yml` |
-| `production-build` | yalnız `master`                            | yok         | production plan, build-ios, build-android (store build + submit) |
-| `production`       | yalnız `master`                            | **required reviewers** | yalnız production `ota` |
+| Environment        | Deployment branch                             | Onay                   | Kullanan job'lar                                                         |
+| ------------------ | --------------------------------------------- | ---------------------- | ------------------------------------------------------------------------ |
+| `staging`          | `development` (+ `vars.STAGING_APK_BRANCHES`) | yok                    | staging plan / ota / build-ios / build-android / apk, `mobile-build.yml` |
+| `production-build` | yalnız `master`                               | yok                    | production plan, build-ios, build-android (store build + submit)         |
+| `production`       | yalnız `master`                               | **required reviewers** | yalnız production `ota`                                                  |
 
-| Ad                                 | Tür                         | Kullanan                                  |
-| ---------------------------------- | --------------------------- | ----------------------------------------- |
-| `EXPO_TOKEN`                       | **Environment secret** (yukarıdaki üçünde de) | EAS job'ları. Yoksa o job no-op |
-| `ANDROID_RELEASE_ENABLED`          | Repo variable (`true` ile açılır) | Android build/submit job'ları        |
-| `STAGING_MAX_BUILDS_PER_DAY`       | Repo variable (isteğe bağlı, varsayılan 2) | Staging otomatik build kotası |
-| `STAGING_APK_BRANCHES`             | Repo variable (isteğe bağlı, varsayılan `development`) | Ad-hoc APK'nın izinli dalları |
-| App Store Connect API key          | EAS sunucusunda (`eas credentials`) | `eas submit` iOS                  |
-| Google Play service account JSON   | EAS sunucusunda (`eas credentials`) | `eas submit` Android              |
-| "Allow GitHub Actions to create and approve pull requests" | Repo ayarı (Settings → Actions → General) | Hotfix back-merge PR'ı |
+| Ad                                                         | Tür                                                    | Kullanan                        |
+| ---------------------------------------------------------- | ------------------------------------------------------ | ------------------------------- |
+| `EXPO_TOKEN`                                               | **Environment secret** (yukarıdaki üçünde de)          | EAS job'ları. Yoksa o job no-op |
+| `ANDROID_RELEASE_ENABLED`                                  | Repo variable (`true` ile açılır)                      | Android build/submit job'ları   |
+| `STAGING_MAX_BUILDS_PER_DAY`                               | Repo variable (isteğe bağlı, varsayılan 2)             | Staging otomatik build kotası   |
+| `STAGING_APK_BRANCHES`                                     | Repo variable (isteğe bağlı, varsayılan `development`) | Ad-hoc APK'nın izinli dalları   |
+| App Store Connect API key                                  | EAS sunucusunda (`eas credentials`)                    | `eas submit` iOS                |
+| Google Play service account JSON                           | EAS sunucusunda (`eas credentials`)                    | `eas submit` Android            |
+| "Allow GitHub Actions to create and approve pull requests" | Repo ayarı (Settings → Actions → General)              | Hotfix back-merge PR'ı          |
 
 > ⚠️ Workflow'da adı geçen bir environment yoksa GitHub onu **korumasız**
 > oluşturur. Üç environment'ı (branch kuralı + `production` onayı) bu workflow'lar
@@ -425,7 +426,7 @@ token'ın `aud`'u **web** client ID'sidir (`243308404313-kdc77bd36…`). Bu ID
 yanıltıcıdır: Google akışı başarılı olur, sonra `POST /auth/google` 401 döner
 ("kod: `ERR_BAD_REQUEST`"); API logu
 `Wrong recipient, payload audience != requiredAudience` der. Ortam değişikliği
-için konteyner **yeniden deploy** edilmeli (restart yetmez). Üç Google Cloud
-projesi hâlâ kullanımda (web `1048836099670`, mobil `243308404313`,
-`google-services.json` `575470440212`); birleştirmek güvenli (hesap eşleşmesi
-Google `sub`'ına bağlı).
+için konteyner **yeniden deploy** edilmeli (restart yetmez). Three Google Cloud
+projects are in use (web `1048836099670`, mobile `243308404313`, production
+`google-services.json` Firebase `tarodan-prod` `431066159968`); merging them is
+safe (account matching is keyed on the Google `sub`).

@@ -221,19 +221,19 @@ describe('staging android.googleServicesFile seçimi', () => {
     expect(pkgs).not.toContain(deepLinkConfig.androidPackage);
   });
 
-  it('production dosyası staging projesine ait değil (iki dosya karışmadı)', () => {
+  it('production file belongs to the tarodan-prod project, not staging (the two files are not mixed up)', () => {
     const json = JSON.parse(
       fs.readFileSync(path.resolve(__dirname, '../../../google-services.json'), 'utf8'),
     );
-    expect(json.project_info.project_id).toBe('tarodan-c1290');
+    expect(json.project_info.project_id).toBe('tarodan-prod');
   });
 
-  it('repoda google-services.json hâlâ yalnız production paketini içerir', () => {
+  it('google-services.json in the repo still holds only the production package', () => {
     const json = JSON.parse(
       fs.readFileSync(path.resolve(__dirname, '../../../google-services.json'), 'utf8'),
     );
     const pkgs = json.client.map((c: any) => c.client_info.android_client_info.package_name);
-    expect(pkgs).toContain('com.tarodan.app');
+    expect(pkgs).toEqual(['com.tarodan.app']);
     expect(pkgs).not.toContain(STAGING);
   });
 });
@@ -356,7 +356,7 @@ describe('docs/ANDROID_RELEASE.md', () => {
   it.each([
     'com.tarodan.app.staging',
     'tarodan-staging',
-    'tarodan-c1290',
+    'tarodan-prod',
     '243308404313',
     'GOOGLE_SERVICES_JSON_STAGING',
     'ANDROID_RELEASE_ENABLED',

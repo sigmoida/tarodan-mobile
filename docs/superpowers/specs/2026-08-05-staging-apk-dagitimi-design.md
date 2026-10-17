@@ -11,16 +11,16 @@ link), üretim kanalı mevcut `mobile-staging.yml` workflow'u.
 
 ## 1. Ölçülen durum (2026-08-05)
 
-| Kontrol | Sonuç |
-| --- | --- |
-| `eas.json` → `preview` profili | hazır: `buildType: apk`, `distribution: internal`, staging URL'leri, `channel: staging` |
-| EAS Android build geçmişi (`eas build:list -p android`) | **boş** — bu projeden hiç Android build alınmamış |
-| `credentials/` | yalnız `debug.keystore`; release keystore yok |
-| `app.config.js` (preview) | Android paketini `com.tarodan.app.staging` yapıyor |
-| `google-services.json` | yalnız `com.tarodan.app` kayıtlı; `oauth_client` dizisi **boş**; proje `tarodan-c1290` |
-| `mobile-staging.yml` → `build` job | yalnız iOS (`--profile staging` → TestFlight) |
-| `assetlinks.json` (staging alanı) | yayında yok |
-| Android prod yayını | yok — Play Console'a hiçbir şey gitmemiş |
+| Kontrol                                                 | Sonuç                                                                                                                                    |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `eas.json` → `preview` profili                          | hazır: `buildType: apk`, `distribution: internal`, staging URL'leri, `channel: staging`                                                  |
+| EAS Android build geçmişi (`eas build:list -p android`) | **boş** — bu projeden hiç Android build alınmamış                                                                                        |
+| `credentials/`                                          | yalnız `debug.keystore`; release keystore yok                                                                                            |
+| `app.config.js` (preview)                               | Android paketini `com.tarodan.app.staging` yapıyor                                                                                       |
+| `google-services.json`                                  | yalnız `com.tarodan.app` kayıtlı; `oauth_client` dizisi **boş**; project `tarodan-c1290` when written (production is now `tarodan-prod`) |
+| `mobile-staging.yml` → `build` job                      | yalnız iOS (`--profile staging` → TestFlight)                                                                                            |
+| `assetlinks.json` (staging alanı)                       | yayında yok                                                                                                                              |
+| Android prod yayını                                     | yok — Play Console'a hiçbir şey gitmemiş                                                                                                 |
 
 **EAS ücretsiz plan kotası platform başına ayrı: 15 Android + 15 iOS**, ortak
 havuz değil ([expo.dev/pricing](https://expo.dev/pricing)). `mobile-staging.yml`
@@ -86,11 +86,11 @@ isteyen kişinin bulması gereken bilgiyi taşıyor.
 `app.config.js` şu an test edilmiyor. Üç senaryo için saf bir birim testi eklenir
 (dosya bir fonksiyon export ediyor, ağ/dosya bağımlılığı yok):
 
-| `EXPO_PUBLIC_ENVIRONMENT` | `ios.bundleIdentifier` | `android.package` | `name` |
-| --- | --- | --- | --- |
-| `preview` | `com.tarodan.app.staging` | `com.tarodan.app` | `... (Staging)` |
-| `production` | `com.tarodan.app` | `com.tarodan.app` | değişmez |
-| `development` | `com.tarodan.app` | `com.tarodan.app` | değişmez |
+| `EXPO_PUBLIC_ENVIRONMENT` | `ios.bundleIdentifier`    | `android.package` | `name`          |
+| ------------------------- | ------------------------- | ----------------- | --------------- |
+| `preview`                 | `com.tarodan.app.staging` | `com.tarodan.app` | `... (Staging)` |
+| `production`              | `com.tarodan.app`         | `com.tarodan.app` | değişmez        |
+| `development`             | `com.tarodan.app`         | `com.tarodan.app` | değişmez        |
 
 Testin asıl işi ikinci sütun ile üçüncü sütunun **ayrıştığını** sabitlemek: biri
 suffix alır, diğeri almaz. İleride biri "tutarlılık" adına ikisini eşitlemeye
@@ -123,9 +123,9 @@ Android `preview` profilini (apk → internal) kullanıyor. `staging` profilinde
 
 ```yaml
 platform:
-  description: 'Which platform to build'
+  description: "Which platform to build"
   required: true
-  default: 'android'
+  default: "android"
   type: choice
   options: [android, ios, all]
 ```

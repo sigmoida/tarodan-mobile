@@ -15,18 +15,18 @@ Genel yayın akışı: [`RELEASE.md`](./RELEASE.md) · EAS hesap/secret kurulumu
 
 ## 1. İki uygulamalı model
 
-| | Production | Staging |
-| --- | --- | --- |
-| Paket adı | `com.tarodan.app` | `com.tarodan.app.staging` |
-| Uygulama adı (ana ekran) | Tarodan | Staging |
-| Play'de | Ayrı uygulama | Ayrı uygulama |
-| EAS build profili | `production` (AAB) | `staging` (AAB) · `preview` (ad-hoc APK) |
-| Play kanalı | internal → closed → open → production | **yalnız internal** |
-| Firebase projesi | `tarodan-c1290` | `tarodan-staging` |
-| `google-services.json` | repoda `./google-services.json` | repoda `./google-services.staging.json` |
-| API | `https://tarodan.com.tr/api` | `https://staging.tarodan.com.tr/api` |
-| App Links host'u | `tarodan.com.tr` | `staging.tarodan.com.tr` |
-| `assetlinks` dosyası | `assetlinks.json` | `assetlinks.staging.json` |
+|                          | Production                            | Staging                                  |
+| ------------------------ | ------------------------------------- | ---------------------------------------- |
+| Paket adı                | `com.tarodan.app`                     | `com.tarodan.app.staging`                |
+| Uygulama adı (ana ekran) | Tarodan                               | Staging                                  |
+| Play'de                  | Ayrı uygulama                         | Ayrı uygulama                            |
+| EAS build profili        | `production` (AAB)                    | `staging` (AAB) · `preview` (ad-hoc APK) |
+| Play kanalı              | internal → closed → open → production | **yalnız internal**                      |
+| Firebase projesi         | `tarodan-prod`                        | `tarodan-staging`                        |
+| `google-services.json`   | repoda `./google-services.json`       | repoda `./google-services.staging.json`  |
+| API                      | `https://tarodan.com.tr/api`          | `https://staging.tarodan.com.tr/api`     |
+| App Links host'u         | `tarodan.com.tr`                      | `staging.tarodan.com.tr`                 |
+| `assetlinks` dosyası     | `assetlinks.json`                     | `assetlinks.staging.json`                |
 
 Paket adını `app.config.js` seçer: `EXPO_PUBLIC_ENVIRONMENT=preview` olan her build
 (`preview`, `staging`, `maestro` profilleri) `.staging` alır; `production` ve
@@ -49,12 +49,12 @@ yüklemek gerekmez.
 
 ## 2. Play test kanalları
 
-| Kanal | Kim kurar | Sınır | İnceleme | Tarodan'da kullanım |
-| --- | --- | --- | --- | --- |
-| **Internal testing** | E-posta listesindeki testçiler | 100 kişi | Genelde yok, dakikalar içinde | Staging (hep), Production (ilk doğrulama) |
-| **Closed testing** | Liste / Google Grubu ile davet | Davet edilen listeler | Var | Production — **12 testçi / 14 gün** kuralı için |
-| **Open testing** | Play'de bağlantıyı bulan herkes | Sınırsız | Var | İsteğe bağlı, ön yayın |
-| **Production** | Herkes | — | Var | Production, kuralı geçtikten sonra |
+| Kanal                | Kim kurar                       | Sınır                 | İnceleme                      | Tarodan'da kullanım                             |
+| -------------------- | ------------------------------- | --------------------- | ----------------------------- | ----------------------------------------------- |
+| **Internal testing** | E-posta listesindeki testçiler  | 100 kişi              | Genelde yok, dakikalar içinde | Staging (hep), Production (ilk doğrulama)       |
+| **Closed testing**   | Liste / Google Grubu ile davet  | Davet edilen listeler | Var                           | Production — **12 testçi / 14 gün** kuralı için |
+| **Open testing**     | Play'de bağlantıyı bulan herkes | Sınırsız              | Var                           | İsteğe bağlı, ön yayın                          |
+| **Production**       | Herkes                          | —                     | Var                           | Production, kuralı geçtikten sonra              |
 
 `eas.json` submit hedefleri: `submit.production.android` ve
 `submit.staging.android` → ikisi de `track: internal`. Daha ileri kanallara
@@ -88,20 +88,20 @@ başvurusu yapılır ve Google yanıt verir.
 
 ## 4. Adım adım kurulum (sıra önemli)
 
-| # | İş | Kim |
-| --- | --- | --- |
-| 1 | Play Console'da iki uygulama oluştur: "Tarodan" (`com.tarodan.app`) ve "Tarodan (Staging)" (`com.tarodan.app.staging`). Paket adı **sonradan değişmez**. | Kullanıcı |
-| 2 | Firebase'de staging projesi + Android uygulaması (Bölüm 7); `google-services.staging.json` repoda (yapıldı) | Kullanıcı |
-| 3 | Play service account + EAS'e yükleme (Bölüm 6) | Kullanıcı |
-| 3b | `com.tarodan.app.staging` için EAS Android keystore'unu **bir kez etkileşimli** oluştur (Bölüm 5, Adım 0) — CI bunu yapamaz | **Orkestratör / Kullanıcı** (CI değil) |
-| 4 | Her paket için ilk AAB'yi **elle** yükle (Bölüm 5) | Kullanıcı |
-| 5 | Play App Signing parmak izlerini al, `fingerprints.json`'ı doldur (Bölüm 10) | Kullanıcı |
-| 6 | Mağaza kayıt formları (Bölüm 11) | Kullanıcı |
-| 7 | FCM V1 anahtarlarını EAS'e yükle (Bölüm 8) | Kullanıcı |
-| 8 | Google girişi: OAuth istemcileri → bayrağı aç (Bölüm 9) | Kullanıcı |
-| 9 | `assetlinks` dosyalarını web'de yayınla | Kullanıcı üretir (`pnpm wellknown:gen`), web/infra yayınlar |
-| 10 | `ANDROID_RELEASE_ENABLED` değişkenini aç (Bölüm 12) | Kullanıcı; sonrası CI |
-| 11 | Closed test → 12 testçi / 14 gün → production başvurusu | Kullanıcı |
+| #   | İş                                                                                                                                                       | Kim                                                         |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| 1   | Play Console'da iki uygulama oluştur: "Tarodan" (`com.tarodan.app`) ve "Tarodan (Staging)" (`com.tarodan.app.staging`). Paket adı **sonradan değişmez**. | Kullanıcı                                                   |
+| 2   | Firebase'de staging projesi + Android uygulaması (Bölüm 7); `google-services.staging.json` repoda (yapıldı)                                              | Kullanıcı                                                   |
+| 3   | Play service account + EAS'e yükleme (Bölüm 6)                                                                                                           | Kullanıcı                                                   |
+| 3b  | `com.tarodan.app.staging` için EAS Android keystore'unu **bir kez etkileşimli** oluştur (Bölüm 5, Adım 0) — CI bunu yapamaz                              | **Orkestratör / Kullanıcı** (CI değil)                      |
+| 4   | Her paket için ilk AAB'yi **elle** yükle (Bölüm 5)                                                                                                       | Kullanıcı                                                   |
+| 5   | Play App Signing parmak izlerini al, `fingerprints.json`'ı doldur (Bölüm 10)                                                                             | Kullanıcı                                                   |
+| 6   | Mağaza kayıt formları (Bölüm 11)                                                                                                                         | Kullanıcı                                                   |
+| 7   | FCM V1 anahtarlarını EAS'e yükle (Bölüm 8)                                                                                                               | Kullanıcı                                                   |
+| 8   | Google girişi: OAuth istemcileri → bayrağı aç (Bölüm 9)                                                                                                  | Kullanıcı                                                   |
+| 9   | `assetlinks` dosyalarını web'de yayınla                                                                                                                  | Kullanıcı üretir (`pnpm wellknown:gen`), web/infra yayınlar |
+| 10  | `ANDROID_RELEASE_ENABLED` değişkenini aç (Bölüm 12)                                                                                                      | Kullanıcı; sonrası CI                                       |
+| 11  | Closed test → 12 testçi / 14 gün → production başvurusu                                                                                                  | Kullanıcı                                                   |
 
 ---
 
@@ -127,6 +127,7 @@ benzeri hatayla düşer. Bu iş her paket için bir kez yapılır.
    Sonra upload keystore'unun SHA-256'sını `fingerprints.json` →
    `staging_eas_upload_keystore`'a yaz (Bölüm 10). `com.tarodan.app` (production)
    keystore'u zaten var; bu adım yalnız staging paketi içindir.
+
 1. AAB'yi üret (**Kullanıcı**, yerel terminalde; ilk çalıştırmada EAS Android
    keystore'unu soruyla oluşturur — etkileşimli olmalı):
 
@@ -138,6 +139,7 @@ benzeri hatayla düşer. Bu iş her paket için bir kez yapılır.
    Staging için repo kökündeki `google-services.staging.json` kullanılır (Bölüm 7);
    dosya (ve yedek EAS değişkeni) yoksa `app.config.js` build'i **açık bir hatayla**
    durdurur, production dosyasına sessizce düşmez.
+
 2. EAS build sayfasından `.aab` dosyasını indir.
 3. Play Console → ilgili uygulama → **Test and release → Testing → Internal
    testing → Create new release** → AAB'yi yükle. Karşılaşılan ilk istekte
@@ -175,8 +177,8 @@ Anahtar **repoya konmaz**; EAS sunucusunda durur (`eas.json`'da
 3. **Kullanıcı** — service account → **Keys → Add key → JSON** → dosyayı indir.
 4. **Kullanıcı** — Play Console → **Users and permissions → Invite new users** →
    service account e-postasını gir → **her iki uygulama için** şu izinleri ver:
-   *Release apps to testing tracks*, *Release to production, exclude devices, and
-   use Play App Signing*, *View app information and download bulk reports*.
+   _Release apps to testing tracks_, _Release to production, exclude devices, and
+   use Play App Signing_, _View app information and download bulk reports_.
 5. **Kullanıcı** — EAS'e yükle (iki paket için aynı anahtar kullanılabilir, her
    birine ayrı atanır):
 
@@ -199,9 +201,9 @@ Play Console API izinleri bazen yayılması ~dakikalar sürer; ilk `eas submit`
 
 Staging ve production **ayrı Firebase projelerindedir**:
 
-| Paket | Firebase projesi |
-| --- | --- |
-| `com.tarodan.app` | `tarodan-c1290` |
+| Paket                     | Firebase projesi  |
+| ------------------------- | ----------------- |
+| `com.tarodan.app`         | `tarodan-prod`    |
 | `com.tarodan.app.staging` | `tarodan-staging` |
 
 Gradle google-services eklentisi, `google-services.json` içinde derlenen paketin
@@ -252,9 +254,11 @@ düşük hassasiyetlidir); (b) EAS build'leri `.gitignore`'u dikkate alarak arş
 çıkarır, ignore edilen dosya bulutta görünmez; (c) `.gitignore` değişikliği runtime
 fingerprint'ine girer.
 
-**Not (OTA / CI):** `.github/workflows/mobile-staging.yml` içindeki `native_re` listesi
-bugün yalnız `google-services.json` içeriyor; `google-services.staging.json` de
-eklenmeli ki dosya değişince OTA "native değişti" uyarısı versin (CI sahibine iletildi).
+**Note (OTA / CI):** the release pipeline decides OTA vs build by runtime
+fingerprint, not by a file list. The content of the `android.googleServicesFile`
+the profile resolves is a fingerprint input, so changing `google-services.json`
+(production) or `google-services.staging.json` (staging) means a new Android store
+build for that profile; an OTA does not reach it.
 
 ---
 
@@ -264,10 +268,10 @@ Android push bildirimi (expo-notifications) için EAS'e her paketin FCM V1
 service account anahtarı gerekir. Anahtar paketin **kendi Firebase projesinden**
 alınır:
 
-| Paket | Anahtarın alındığı proje |
-| --- | --- |
-| `com.tarodan.app.staging` | `tarodan-staging` |
-| `com.tarodan.app` | `tarodan-c1290` |
+| Paket                     | Anahtarın alındığı proje |
+| ------------------------- | ------------------------ |
+| `com.tarodan.app.staging` | `tarodan-staging`        |
+| `com.tarodan.app`         | `tarodan-prod`           |
 
 1. **Kullanıcı** — Firebase Console → ilgili proje → **Project settings → Service
    accounts → Generate new private key** (JSON).
@@ -276,7 +280,7 @@ alınır:
    ```bash
    eas credentials --platform android
    # build profili: staging  → Google Service Account → FCM V1 key → Set up → tarodan-staging JSON'u
-   # build profili: production → aynısı, tarodan-c1290 JSON'u
+   # build profili: production → aynısı, tarodan-prod JSON'u
    ```
 
 3. Anahtarları repoya koymayın (`*-firebase-adminsdk-*.json` `.gitignore`'da).
@@ -295,10 +299,10 @@ Bu istemciler Firebase projelerinde **değil**, mobil web client ID'nin bulundu�
 **GCP projesinde (`243308404313`)** oluşturulur — iki paket için ayrı ayrı
 (Firebase'de otomatik oluşan istemciler buna sayılmaz):
 
-| OAuth Android istemcisi | Paket | SHA-1'ler |
-| --- | --- | --- |
-| #1 | `com.tarodan.app` | upload (EAS) + Play App Signing |
-| #2 | `com.tarodan.app.staging` | upload (EAS, staging'e ait) + Play App Signing |
+| OAuth Android istemcisi | Paket                     | SHA-1'ler                                      |
+| ----------------------- | ------------------------- | ---------------------------------------------- |
+| #1                      | `com.tarodan.app`         | upload (EAS) + Play App Signing                |
+| #2                      | `com.tarodan.app.staging` | upload (EAS, staging'e ait) + Play App Signing |
 
 Her paket için **iki** SHA-1 gerekir (bir istemciye birden çok SHA-1 eklenemez;
 her SHA-1 için ayrı Android istemcisi oluşturulur):
@@ -335,19 +339,19 @@ Signing SHA-1 hazır olmadan açmayın. Bayrak değişince native değil JS olsa
 Üretim: `pnpm wellknown:gen` (tek kaynak `scripts/gen-wellknown.mjs`; girdi
 `docs/wellknown/fingerprints.json`). İki dosya çıkar:
 
-| Dosya | Yayın yeri | Paket |
-| --- | --- | --- |
-| `docs/wellknown/assetlinks.json` | `https://tarodan.com.tr/.well-known/assetlinks.json` | `com.tarodan.app` |
+| Dosya                                    | Yayın yeri                                                   | Paket                     |
+| ---------------------------------------- | ------------------------------------------------------------ | ------------------------- |
+| `docs/wellknown/assetlinks.json`         | `https://tarodan.com.tr/.well-known/assetlinks.json`         | `com.tarodan.app`         |
 | `docs/wellknown/assetlinks.staging.json` | `https://staging.tarodan.com.tr/.well-known/assetlinks.json` | `com.tarodan.app.staging` |
 
 `fingerprints.json` alanları (SHA-**256**, büyük harf hex, `:` ayrılmış):
 
-| Alan | Paket | Durum | Nereden |
-| --- | --- | --- | --- |
-| `eas_upload_keystore` | `com.tarodan.app` | **dolu** | `eas credentials -p android` |
-| `play_app_signing` | `com.tarodan.app` | **boş (bilerek)** | Play Console → App integrity → App signing key SHA-256 |
-| `staging_eas_upload_keystore` | `com.tarodan.app.staging` | **boş (bilerek)** | ilk staging build'inden sonra `eas credentials` |
-| `staging_play_app_signing` | `com.tarodan.app.staging` | **boş (bilerek)** | Play Console (Staging) → App integrity |
+| Alan                          | Paket                     | Durum             | Nereden                                                |
+| ----------------------------- | ------------------------- | ----------------- | ------------------------------------------------------ |
+| `eas_upload_keystore`         | `com.tarodan.app`         | **dolu**          | `eas credentials -p android`                           |
+| `play_app_signing`            | `com.tarodan.app`         | **boş (bilerek)** | Play Console → App integrity → App signing key SHA-256 |
+| `staging_eas_upload_keystore` | `com.tarodan.app.staging` | **boş (bilerek)** | ilk staging build'inden sonra `eas credentials`        |
+| `staging_play_app_signing`    | `com.tarodan.app.staging` | **boş (bilerek)** | Play Console (Staging) → App integrity                 |
 
 Kurallar:
 
@@ -412,8 +416,8 @@ APK'lara (`preview`) OTA olarak iner.
    yüklendi **ve internal testing'de yayınlandı** (Bölüm 5), service account EAS'te
    iki paket için de (Bölüm 6), `google-services.staging.json` repoda (Bölüm 7),
    FCM anahtarları (Bölüm 8).
-2. **Kullanıcı** — GitHub → repo → *Settings → Secrets and variables → Actions →
-   **Variables*** → `ANDROID_RELEASE_ENABLED` = `true`
+2. **Kullanıcı** — GitHub → repo → _Settings → Secrets and variables → Actions →
+   **Variables**_ → `ANDROID_RELEASE_ENABLED` = `true`
    (`gh variable set ANDROID_RELEASE_ENABLED --body true`). `EXPO_TOKEN` zaten secret olarak gerekli.
 3. **CI** — staging: `development`'a her push → yalnız JS ise OTA, native ise
    `eas build --profile staging --platform android` → `eas submit --profile staging`
@@ -422,7 +426,7 @@ APK'lara (`preview`) OTA olarak iner.
    sayılmaz).
    production: `development` → `master` merge'ü (sürüm) → `expo.version` artmışsa
    `eas build --profile production --platform android` → `eas submit --profile
-   production` (Play internal, `com.tarodan.app`); artmamışsa build yok, koşu
+production` (Play internal, `com.tarodan.app`); artmamışsa build yok, koşu
    kırmızı. `hotfix/*` merge'ü yalnız JS ise onaylı OTA. Closed/open/production
    terfisi yine Console'dan **Kullanıcı**.
 4. `versionCode` EAS'te uzaktan, paket başına artar (`appVersionSource: remote`).
