@@ -7,11 +7,11 @@ onaylar ve Android durumu. Workflow'lar: `mobile-staging.yml`,
 
 ## Dallar
 
-| Dal           | Rol                                              | Nasıl girilir                                       |
-| ------------- | ------------------------------------------------ | --------------------------------------------------- |
-| `development` | Varsayılan dal; **staging**                      | Doğrudan push serbest (PR de olur)                  |
+| Dal           | Rol                                                                 | Nasıl girilir                                                 |
+| ------------- | ------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `development` | Varsayılan dal; **staging**                                         | Doğrudan push serbest (PR de olur)                            |
 | `master`      | **Production** — `development`'tan merge = yeni sürüm (store build) | Yalnız PR ile, yalnız `development` ya da `hotfix/*` dalından |
-| `hotfix/*`    | Production'a acil düzeltme (JS ise onaylı OTA)   | `master`'dan açılır, PR ile `master`'a girer        |
+| `hotfix/*`    | Production'a acil düzeltme (JS ise onaylı OTA)                      | `master`'dan açılır, PR ile `master`'a girer                  |
 
 `master` koruması `master-flow.yml` içindeki **`Master source guard`** check'iyle
 sağlanır: kaynak dal `development` ya da `hotfix/*` değilse (ya da PR bir fork'tan
@@ -23,11 +23,11 @@ girdikten sonra devreye girer.
 
 ## Uygulamalar
 
-| Ortam       | iOS                                                 | Android                                                   | API                       | EAS profili / kanalı |
-| ----------- | --------------------------------------------------- | --------------------------------------------------------- | ------------------------- | -------------------- |
-| Production  | **Tarodan** `com.tarodan.app`                       | `com.tarodan.app` (Play, internal track)                  | `tarodan.com.tr`          | `production` / `production` |
-| Staging     | **Tarodan (Staging)** `com.tarodan.app.staging`     | `com.tarodan.app.staging` (ayrı Play uygulaması, internal testing) | `staging.tarodan.com.tr`  | `staging` / `staging` |
-| Ad-hoc APK  | —                                                   | `preview` profili, EAS internal distribution (Play'siz)  | `staging.tarodan.com.tr`  | `preview` / `staging` |
+| Ortam      | iOS                                             | Android                                                            | API                      | EAS profili / kanalı        |
+| ---------- | ----------------------------------------------- | ------------------------------------------------------------------ | ------------------------ | --------------------------- |
+| Production | **Tarodan** `com.tarodan.app`                   | `com.tarodan.app` (Play, internal track)                           | `tarodan.com.tr`         | `production` / `production` |
+| Staging    | **Tarodan (Staging)** `com.tarodan.app.staging` | `com.tarodan.app.staging` (ayrı Play uygulaması, internal testing) | `staging.tarodan.com.tr` | `staging` / `staging`       |
+| Ad-hoc APK | —                                               | `preview` profili, EAS internal distribution (Play'siz)            | `staging.tarodan.com.tr` | `preview` / `staging`       |
 
 `.staging` kimliği `app.config.js`'te `EXPO_PUBLIC_ENVIRONMENT=preview` iken eklenir.
 Android'in `.staging` paketi ve `eas.json`'daki `staging` Android profili /
@@ -59,7 +59,7 @@ Workflow her yayın öncesi, platform başına:
      runtime'a onay istenmez; uyarı basar.
    - **none** — hata, iptal, gönderimi başarısız ya da hiç gönderilmemiş →
      **build**
-   Belirsiz her şey (tanınmayan CLI JSON'u dahil) "binary var" sayılmaz.
+     Belirsiz her şey (tanınmayan CLI JSON'u dahil) "binary var" sayılmaz.
 3. Build kararı otomatikse iki koruma uygulanır (aşağıda "Build korumaları").
 
 Fingerprint'e girenler (doğrulandı): `app.config.js`'in **çıktısı**
@@ -159,10 +159,10 @@ onayıyla kurulur. Sonraki JS değişiklikleri bu APK'ya da OTA ile iner (kanal
 `com.tarodan.app`). master'a yalnız PR ile ve yalnız iki daldan girilir; **hangi
 daldan geldiği ne olacağını belirler**:
 
-| Merge | Ne olur |
-| --- | --- |
-| **`development` → `master` (sürüm)** | **Her zaman store build'i** (iOS → App Store Connect, Android → Play internal). `expo.version` artırılmamışsa build alınmaz, koşu kırmızı olur. Yalnız JS değişmiş olsa da production OTA'sı **çıkmaz**. |
-| **`hotfix/*` → `master` (acil düzeltme)** | Yalnız JS değiştiyse **onaylı OTA** hazırlanır (senin onayın olmadan çıkmaz). Native değiştiyse store build'i (sürüm artmış olmalı). |
+| Merge                                     | Ne olur                                                                                                                                                                                                  |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`development` → `master` (sürüm)**      | **Her zaman store build'i** (iOS → App Store Connect, Android → Play internal). `expo.version` artırılmamışsa build alınmaz, koşu kırmızı olur. Yalnız JS değişmiş olsa da production OTA'sı **çıkmaz**. |
+| **`hotfix/*` → `master` (acil düzeltme)** | Yalnız JS değiştiyse **onaylı OTA** hazırlanır (senin onayın olmadan çıkmaz). Native değiştiyse store build'i (sürüm artmış olmalı).                                                                     |
 
 ```
 ci
@@ -188,7 +188,7 @@ build'inin `appVersion`'ından büyük** olmalı (`sort -V`). Değilse o platfor
 çıkar, ve tersi); koşu sonda kırmızı olur:
 
 > `ios: sürüm merge'ü (kaynak: development) ama app.json expo.version (1.0.6) son
-> production build'inin sürümünden (1.0.6) büyük değil — store build ALINMADI …`
+production build'inin sürümünden (1.0.6) büyük değil — store build ALINMADI …`
 
 Çıkış yolları (hata mesajında da yazar):
 
@@ -254,9 +254,9 @@ Canlıda 1.2.3 varken staging'de yapılan her şey **1.2.4**'tür; testçi TestF
 "1.2.4 (n)" görür ve canlıdakiyle karıştırmaz. Build numarası ayrıdır, EAS'te
 otomatik artar ve sürüm değişince sıfırlanmaz.
 
-| Sürüm parçası | Ne zaman | Kim |
-| --- | --- | --- |
-| Yama (1.2.**4**) | Her yayından sonra | **Otomatik** (aşağıda) |
+| Sürüm parçası                     | Ne zaman                         | Kim                                              |
+| --------------------------------- | -------------------------------- | ------------------------------------------------ |
+| Yama (1.2.**4**)                  | Her yayından sonra               | **Otomatik** (aşağıda)                           |
 | Ara (1.**3**.0) / ana (**2**.0.0) | Özellik grubu / büyük değişiklik | Elle: development'ta `app.json` → `expo.version` |
 
 ### Yayın sonrası (otomatik): etiket, sürüm notu, sonraki sürüm
@@ -350,21 +350,24 @@ dolmadan production track'e geçilemez.
 bağlıdır. Başka bir daldaki workflow ya da environment'sız bir job token'a
 ulaşamaz; production OTA onayı atlanamaz.
 
-| Environment        | Deployment branch                          | Onay        | Kullanan job'lar |
-| ------------------ | ------------------------------------------ | ----------- | ---------------- |
-| `staging`          | `development` (+ `vars.STAGING_APK_BRANCHES`) | yok      | staging plan / ota / build-ios / build-android / apk, `mobile-build.yml` |
-| `production-build` | yalnız `master`                            | yok         | production plan, build-ios, build-android (store build + submit) |
-| `production`       | yalnız `master`                            | **required reviewers** | yalnız production `ota` |
+| Environment        | Deployment branch                             | Onay                   | Kullanan job'lar                                                         |
+| ------------------ | --------------------------------------------- | ---------------------- | ------------------------------------------------------------------------ |
+| `staging`          | `development` (+ `vars.STAGING_APK_BRANCHES`) | yok                    | staging plan / ota / build-ios / build-android / apk, `mobile-build.yml` |
+| `production-build` | yalnız `master`                               | yok                    | production plan, build-ios, build-android (store build + submit)         |
+| `production`       | yalnız `master`                               | **required reviewers** | yalnız production `ota`                                                  |
 
-| Ad                                 | Tür                         | Kullanan                                  |
-| ---------------------------------- | --------------------------- | ----------------------------------------- |
-| `EXPO_TOKEN`                       | **Environment secret** (yukarıdaki üçünde de) | EAS job'ları. Yoksa o job no-op |
-| `ANDROID_RELEASE_ENABLED`          | Repo variable (`true` ile açılır) | Android build/submit job'ları        |
-| `STAGING_MAX_BUILDS_PER_DAY`       | Repo variable (isteğe bağlı, varsayılan 2) | Staging otomatik build kotası |
-| `STAGING_APK_BRANCHES`             | Repo variable (isteğe bağlı, varsayılan `development`) | Ad-hoc APK'nın izinli dalları |
-| App Store Connect API key          | EAS sunucusunda (`eas credentials`) | `eas submit` iOS                  |
-| Google Play service account JSON   | EAS sunucusunda (`eas credentials`) | `eas submit` Android              |
-| "Allow GitHub Actions to create and approve pull requests" | Repo ayarı (Settings → Actions → General) | Hotfix back-merge PR'ı |
+| Ad                                                         | Tür                                                         | Kullanan                                                                                    |
+| ---------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `EXPO_TOKEN`                                               | **Environment secret** (yukarıdaki üçünde de)               | EAS job'ları. Yoksa o job no-op                                                             |
+| `ANDROID_RELEASE_ENABLED`                                  | Repo variable (`true` ile açılır)                           | Android build/submit job'ları                                                               |
+| `STAGING_MAX_BUILDS_PER_DAY`                               | Repo variable (isteğe bağlı, varsayılan 2)                  | Staging otomatik build kotası                                                               |
+| `STAGING_APK_BRANCHES`                                     | Repo variable (isteğe bağlı, varsayılan `development`)      | Ad-hoc APK'nın izinli dalları                                                               |
+| App Store Connect API key                                  | EAS sunucusunda (`eas credentials`)                         | `eas submit` iOS                                                                            |
+| Google Play service account JSON                           | EAS sunucusunda (`eas credentials`)                         | `eas submit` Android                                                                        |
+| `SENTRY_AUTH_TOKEN`                                        | EAS env, `production`, **secret** visibility                | Production EAS build: source map + dSYM upload (see "Sentry source maps and debug symbols") |
+| `EXPO_PUBLIC_SENTRY_DSN`                                   | EAS env, `production`, plaintext                            | Production build (and OTA once `publish-ota` loads the EAS env); without it Sentry is off   |
+| `SENTRY_AUTH_TOKEN`                                        | GitHub Environment `production` secret (pending, see below) | Production OTA source map upload                                                            |
+| "Allow GitHub Actions to create and approve pull requests" | Repo ayarı (Settings → Actions → General)                   | Hotfix back-merge PR'ı                                                                      |
 
 > ⚠️ Workflow'da adı geçen bir environment yoksa GitHub onu **korumasız**
 > oluşturur. Üç environment'ı (branch kuralı + `production` onayı) bu workflow'lar
@@ -381,6 +384,90 @@ ulaşamaz; production OTA onayı atlanamaz.
 
 Submit kimlik bilgileri EAS sunucularında durur, repoya girmez. Ayrıntı:
 [`SECRETS_SETUP.md`](./SECRETS_SETUP.md), OTA: [`EAS_UPDATE_OTA.md`](./EAS_UPDATE_OTA.md).
+
+## Sentry source maps and debug symbols
+
+Production crash reports are only readable when Sentry has the source maps (JS)
+and dSYMs (iOS native) of the exact binary or update that crashed. How it is wired:
+
+- `metro.config.js` uses `getSentryExpoConfig`: every bundle and its source map
+  carry the same Debug ID, so Sentry matches maps to events without release/dist
+  bookkeeping. This holds for EAS builds and for `eas update` bundles.
+- `app.json` configures the `@sentry/react-native/expo` plugin with
+  `organization: tarodan` and `project: tarodan-mobile`. The auth token is
+  **never** in the repo; the plugin and `sentry-cli` read `SENTRY_AUTH_TOKEN`
+  from the environment. `SENTRY_ORG` / `SENTRY_PROJECT` in the EAS environment
+  override the plugin values if the Sentry slugs ever differ.
+- `eas.json`: only the `production` profile uploads. `development`, `preview`,
+  `staging` and `maestro` keep `SENTRY_DISABLE_AUTO_UPLOAD=true`, so a missing
+  token never blocks staging.
+- During a production EAS build the "Bundle React Native code and images" phase
+  (iOS) and the `*_SentryUpload_*` task that `sentry.gradle` chains after the
+  release JS bundle task (Android) upload the Hermes source map; the "Upload Debug
+  Symbols to Sentry" phase uploads the iOS dSYMs. Android has no R8/ProGuard
+  mapping today (`android.enableMinifyInReleaseBuilds` is off), so there is
+  nothing else to upload there.
+
+**Fail-safe.** On an EAS build worker (`EAS_BUILD`), `app.config.js`
+(`assertSentryBuildReady`) stops the build while the config is read when upload
+is on and `SENTRY_AUTH_TOKEN` is missing, and on any production build when
+`EXPO_PUBLIC_SENTRY_DSN` is missing. Why fail rather than skip: a store binary
+cannot get its symbols later (the dSYMs and Hermes maps exist only inside that
+build), so a silent skip would ship 1.1.0 with unreadable crashes. Failing in
+the first minute, with the fix in the message, is cheaper than failing at the
+end of the native build, which is what `sentry-cli` does on its own. Staging
+profiles are not affected. To ship a production build without symbols on
+purpose (for example during a Sentry outage), set `SENTRY_DISABLE_AUTO_UPLOAD=true`
+in the EAS `production` environment; the build logs a warning. Remove it again
+afterwards.
+
+### One-time setup (user)
+
+1. **Sentry project.** In org `tarodan`, create (or confirm) a React Native project
+   with the slug `tarodan-mobile`. If it already exists under another slug, either
+   rename it or add `SENTRY_PROJECT=<slug>` to the EAS `production` environment
+   (plaintext).
+2. **DSN.** Project Settings -> Client Keys (DSN). Add it to EAS:
+
+   ```bash
+   eas env:create --environment production --name EXPO_PUBLIC_SENTRY_DSN \
+     --visibility plaintext --scope project
+   ```
+
+3. **Auth token.** Sentry -> Settings -> Developer Settings -> **Organization
+   Tokens** -> "Create New Token" (name it e.g. `eas-tarodan-mobile`). Organization
+   tokens carry the CI scope Sentry needs for source maps and debug files; prefer
+   them over a personal token. Store it as an EAS **secret** (not readable outside
+   EAS servers):
+
+   ```bash
+   eas env:create --environment production --name SENTRY_AUTH_TOKEN \
+     --visibility secret --scope project
+   ```
+
+   Run both commands without `--value` and paste the value at the prompt, so it
+   never lands in shell history. Never put the token in `eas.json`, `app.json`,
+   `.env*` files or a commit.
+
+4. **Check names only:** `eas env:list production --format short` must list
+   `EXPO_PUBLIC_SENTRY_DSN` and `SENTRY_AUTH_TOKEN` (the secret shows masked).
+5. **After the first production build:** in Sentry, Project Settings -> Source Maps
+   shows an artifact bundle with the build's Debug ID, and Debug Files shows the
+   iOS dSYMs. Trigger a test error on a TestFlight build and confirm the stack
+   shows `src/...` file names and line numbers.
+
+### Production OTA (hotfix)
+
+`eas update` runs on the GitHub runner, where EAS **secret** variables are not
+readable, and without `--environment` it loads no EAS variables at all. Two
+changes in `scripts/ci/release.sh` (`publish_ota`) and `mobile-production.yml`
+(`ota` job) are therefore needed and are tracked with the CI release work:
+pass `--environment` to `eas update` (so `EXPO_PUBLIC_SENTRY_DSN` reaches the OTA
+bundle), and upload `dist/` with `npx sentry-expo-upload-sourcemaps dist` using a
+`SENTRY_AUTH_TOKEN` secret in the GitHub Environment `production`. Until both
+land, a production OTA ships without uploaded source maps. A manual upload is
+possible right after a manual `eas update`, from the same checkout:
+`SENTRY_AUTH_TOKEN=... npx sentry-expo-upload-sourcemaps dist`.
 
 ## Kopya kağıdı
 
