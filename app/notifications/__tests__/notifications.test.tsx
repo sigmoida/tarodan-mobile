@@ -1,0 +1,384 @@
+/**
+ * J38 · Bildirim listesi/okunmamış sayaç/boş durum.
+ * J113 · "Tümünü Okundu" butonu + bildirime tıklayınca navigasyon wiring.
+ *
+ * Sadece MOBİL-UI: liste render, okunmamış rozet/sayaç, boş durum metni,
+ * giriş yapılmadı durumu, mark-all butonu görünürlüğü/çağrısı, item press
+ * router.push wiring. Backend işaretleme mantığı (kalıcılık, push, soketler)
+ * backend-only.
+ */
+import React from 'react';
+import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { renderWithProviders } from '@/test-utils';
+import { resetRouterMocks, pushMock, routerMock } from '@/test-utils/router-mock';
+
+// useFocusEffect mount'ta callback'i bir kez çalıştırsın (gerçek davranış).
+// Testler odak dönüşünü taklit edebilsin diye son callback saklanır.
+let mockFocusCb: (() => void) | null = null;
+jest.mock('expo-router', () => ({
+  ...require('@/test-utils/router-mock').routerMock,
+  useFocusEffect: (cb: () => void) => {
+    const React = require('react');
+    mockFocusCb = cb;
+    React.useEffect(cb, []);
+  },
+}));
+
+jest.mock('@/lib/api', () => ({
+  notificationsApi: {
+    getAll: jest.fn(),
+    getUnreadCount: jest.fn(),
+    markAsRead: jest.fn(),
+    markAllAsRead: jest.fn(),
+  },
+}));
+import { notificationsApi } from '@/lib/api';
+
+let mockAuthed = true;
+jest.mock('@/stores/authStore', () => ({
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = ({ isAuthenticated: mockAuthed });
+    return sel ? sel(state) : state;
+  },
+}));
+
+// Kabuk sayaçları (sepet deposu vb.) bu süitin konusu değil.
+jest.mock('@/components/shell/useShellCounts', () => ({
+  useShellCounts: () => ({ cartCount: 0, notificationCount: 0, messageCount: 0 }),
+}));
+
+import NotificationsScreen from '..';
+
+const getAll = notificationsApi.getAll as jest.Mock;
+const getUnreadCount = notificationsApi.getUnreadCount as jest.Mock;
+const markAsRead = notificationsApi.markAsRead as jest.Mock;
+const markAllAsRead = notificationsApi.markAllAsRead as jest.Mock;
+
+const sample = [
+  {
+    id: 'n1',
+    type: 'order_created',
+    title: 'Yeni Sipariş',
+    message: 'Siparişin oluşturuldu',
+    isRead: false,
+    createdAt: new Date().toISOString(),
+    data: { orderId: 'o1' },
+  },
+  {
+    id: 'n2',
+    type: 'new_message',
+    title: 'Yeni Mesaj',
+    message: 'Bir mesajın var',
+    isRead: true,
+    createdAt: new Date().toISOString(),
+  },
+];
+
+beforeEach(() => {
+  mockAuthed = true;
+  resetRouterMocks();
+  getAll.mockReset();
+  getUnreadCount.mockReset();
+  markAsRead.mockReset().mockResolvedValue({});
+  markAllAsRead.mockReset().mockResolvedValue({});
+  getUnreadCount.mockResolvedValue({ data: { count: 0 } });
+});
+
+describe('J38 · bildirim listesi ve okunmamış sayaç', () => {
+  it('J38.1 liste render: başlık ve mesajlar görünür', async () => {
+    getAll.mockResolvedValue({ data: { notifications: sample } });
+    getUnreadCount.mockResolvedValue({ data: { count: 1 } });
+    renderWithProviders(<NotificationsScreen />);
+
+    expect(await screen.findByText('Yeni Sipariş')).toBeOnTheScreen();
+    expect(screen.getByText('Yeni Mesaj')).toBeOnTheScreen();
+  });
+
+  it('J38.2 okunmamış sayaç rozeti backend count ile gösterilir', async () => {
+    getAll.mockResolvedValue({ data: { notifications: sample } });
+    getUnreadCount.mockResolvedValue({ data: { count: 3 } });
+    renderWithProviders(<NotificationsScreen />);
+
+    expect(await screen.findByText('3')).toBeOnTheScreen();
+  });
+
+  it('J38.3 boş durum: bildirim yoksa boş metin görünür', async () => {
+    getAll.mockResolvedValue({ data: { notifications: [] } });
+    getUnreadCount.mockResolvedValue({ data: { count: 0 } });
+    renderWithProviders(<NotificationsScreen />);
+
+    expect(await screen.findByText('Henüz bildirim yok')).toBeOnTheScreen();
+  });
+
+  it('J38.3b liste alınamazsa "bildirim yok" değil, ErrorState + yeniden dene', async () => {
+    getAll.mockRejectedValueOnce(new Error('Network Error'));
+    getUnreadCount.mockResolvedValue({ data: { count: 0 } });
+    renderWithProviders(<NotificationsScreen />);
+
+    expect(await screen.findByTestId('error-state')).toBeOnTheScreen();
+    expect(screen.queryByText('Henüz bildirim yok')).toBeNull();
+
+    getAll.mockResolvedValue({ data: { notifications: [] } });
+    fireEvent.press(screen.getByText('Tekrar Dene'));
+    expect(await screen.findByText('Henüz bildirim yok')).toBeOnTheScreen();
+  });
+
+  it('J38.4 giriş yapılmadıysa giriş yap boş durumu gösterilir', async () => {
+    mockAuthed = false;
+    renderWithProviders(<NotificationsScreen />);
+    expect(
+      await screen.findByText('Bildirimleri görmek için giriş yapın'),
+    ).toBeOnTheScreen();
+    expect(getAll).not.toHaveBeenCalled();
+  });
+});
+
+describe('Bildirimler · yığın ekranı kabuğu (PageShell)', () => {
+  it('başlık "Bildirimler" + geri oku (üst bardaki zil düğmesinden açılan yığın ekranı)', async () => {
+    getAll.mockResolvedValue({ data: { notifications: sample } });
+    renderWithProviders(<NotificationsScreen />);
+
+    await screen.findByText('Yeni Sipariş');
+    expect(screen.getByText('Bildirimler')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Geri')).toBeOnTheScreen();
+    // Sekme kökü kabuğu (☰ + mesaj/bildirim düğmeleri) burada yok.
+    expect(screen.queryByTestId('app-shell-menu')).toBeNull();
+    expect(screen.queryByTestId('app-shell-notifications')).toBeNull();
+  });
+
+  it('liste kaydırma kenarı sinyalini taşır; alt menü yok (sekme kökü değil)', async () => {
+    getAll.mockResolvedValue({ data: { notifications: sample } });
+    renderWithProviders(<NotificationsScreen />);
+
+    await screen.findByText('Yeni Sipariş');
+    const list = screen.getByTestId('notifications-list');
+    expect(list.props.onScroll).toBeDefined();
+    expect(list.props.refreshing).toBe(false);
+    expect(typeof list.props.onRefresh).toBe('function');
+  });
+
+  it('misafir: başlık + giriş boş durumu, geri oku var', () => {
+    mockAuthed = false;
+    renderWithProviders(<NotificationsScreen />);
+    expect(screen.getByText('Bildirimler')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Geri')).toBeOnTheScreen();
+  });
+});
+
+describe('J113 · tümünü okundu butonu ve navigasyon wiring', () => {
+  it('J113.1 okunmamış varken "Tümünü Okundu" butonu görünür ve çağrılır', async () => {
+    getAll.mockResolvedValue({ data: { notifications: sample } });
+    getUnreadCount.mockResolvedValue({ data: { count: 1 } });
+    renderWithProviders(<NotificationsScreen />);
+
+    // Sağ eylem: okunmamış sayısı rozetli tek cam ikon (metin hapı değil).
+    const btn = await screen.findByTestId('notifications-mark-all-read');
+    fireEvent.press(btn);
+    await waitFor(() => expect(markAllAsRead).toHaveBeenCalledTimes(1));
+  });
+
+  it('J113.2 okunmamış yoksa "Tümünü Okundu" butonu görünmez', async () => {
+    getAll.mockResolvedValue({
+      data: { notifications: [{ ...sample[1] }] },
+    });
+    getUnreadCount.mockResolvedValue({ data: { count: 0 } });
+    renderWithProviders(<NotificationsScreen />);
+
+    await screen.findByText('Yeni Mesaj');
+    expect(screen.queryByTestId('notifications-mark-all-read')).toBeNull();
+  });
+
+  it('J113.3 bildirime tıklayınca ilgili rotaya push edilir', async () => {
+    getAll.mockResolvedValue({ data: { notifications: sample } });
+    getUnreadCount.mockResolvedValue({ data: { count: 1 } });
+    renderWithProviders(<NotificationsScreen />);
+
+    fireEvent.press(await screen.findByText('Yeni Sipariş'));
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/orders/o1'));
+  });
+
+  it('J113.4 okunmamış bildirime tıklayınca markAsRead çağrılır', async () => {
+    getAll.mockResolvedValue({ data: { notifications: sample } });
+    getUnreadCount.mockResolvedValue({ data: { count: 1 } });
+    renderWithProviders(<NotificationsScreen />);
+
+    fireEvent.press(await screen.findByText('Yeni Sipariş'));
+    await waitFor(() => expect(markAsRead).toHaveBeenCalledWith('n1'));
+  });
+});
+
+/**
+ * P2 #17 — bildirim listesinde sayfalama.
+ *
+ * Ekran `GET /notifications`'ı parametresiz çağırıyordu; sunucu varsayılanı 20.
+ * 2026-08-11 ölçümünde hesapta 36 kayıt vardı (`pagination.pages: 2`), yani
+ * 16'sı kullanıcıya HİÇ görünmüyordu — üstelik listenin dibinde bir "devamı
+ * var" işareti de yoktu, sessiz bir kesme.
+ */
+describe('P2 #17 · bildirim sayfalaması', () => {
+  const page = (ids: string[], p: number, pages: number) => ({
+    data: {
+      notifications: ids.map((id) => ({
+        id,
+        type: 'order_created',
+        title: `Başlık ${id}`,
+        message: `Mesaj ${id}`,
+        isRead: true,
+        createdAt: new Date().toISOString(),
+        data: { orderId: `o-${id}` },
+      })),
+      pagination: { page: p, limit: 20, total: 36, pages },
+      unreadCount: 0,
+    },
+  });
+
+  it('ilk sayfa isteği sayfa parametresiyle gider', async () => {
+    getAll.mockResolvedValue(page(['a1'], 1, 1));
+    renderWithProviders(<NotificationsScreen />);
+
+    await waitFor(() => expect(getAll).toHaveBeenCalled());
+    expect(getAll).toHaveBeenCalledWith(expect.objectContaining({ page: 1 }));
+  });
+
+  it('listenin sonuna gelince sonraki sayfa yüklenir ve satırlar birleşir', async () => {
+    getAll.mockImplementation((params: any) =>
+      Promise.resolve(params?.page === 2 ? page(['b1'], 2, 2) : page(['a1'], 1, 2)),
+    );
+    renderWithProviders(<NotificationsScreen />);
+
+    expect(await screen.findByText('Mesaj a1')).toBeOnTheScreen();
+    // İkinci sayfa henüz istenmedi.
+    expect(screen.queryByText('Mesaj b1')).toBeNull();
+
+    fireEvent(screen.getByTestId('notifications-list'), 'endReached');
+
+    expect(await screen.findByText('Mesaj b1')).toBeOnTheScreen();
+    // Birinci sayfa da ekranda kalır — sayfalar değişmez, birikir.
+    expect(screen.getByText('Mesaj a1')).toBeOnTheScreen();
+  });
+
+  it('son sayfadayken yeni istek atılmaz', async () => {
+    getAll.mockResolvedValue(page(['a1'], 1, 1));
+    renderWithProviders(<NotificationsScreen />);
+
+    expect(await screen.findByText('Mesaj a1')).toBeOnTheScreen();
+    const before = getAll.mock.calls.length;
+
+    fireEvent(screen.getByTestId('notifications-list'), 'endReached');
+    fireEvent(screen.getByTestId('notifications-list'), 'endReached');
+
+    await waitFor(() => expect(getAll.mock.calls.length).toBe(before));
+  });
+
+  it('ikinci sayfadaki bildirim okundu işaretlenebilir', async () => {
+    getAll.mockImplementation((params: any) =>
+      Promise.resolve(
+        params?.page === 2
+          ? {
+              data: {
+                notifications: [
+                  {
+                    id: 'b1',
+                    type: 'order_created',
+                    title: 'Başlık b1',
+                    message: 'Mesaj b1',
+                    isRead: false,
+                    createdAt: new Date().toISOString(),
+                    data: { orderId: 'o-b1' },
+                  },
+                ],
+                pagination: { page: 2, limit: 20, total: 36, pages: 2 },
+                unreadCount: 1,
+              },
+            }
+          : page(['a1'], 1, 2),
+      ),
+    );
+    renderWithProviders(<NotificationsScreen />);
+
+    expect(await screen.findByText('Mesaj a1')).toBeOnTheScreen();
+    fireEvent(screen.getByTestId('notifications-list'), 'endReached');
+    expect(await screen.findByText('Mesaj b1')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Mesaj b1'));
+
+    await waitFor(() => expect(markAsRead).toHaveBeenCalledWith('b1'));
+  });
+});
+
+describe('Bildirimler · tek satır okundu işaretleme', () => {
+  it('liste yeniden çekilmez (önbellek iyimser düzeltilir), yalnız rozet sorgusu tazelenir', async () => {
+    getAll.mockResolvedValue({ data: { notifications: sample, pagination: { page: 1, pages: 1 } } });
+    renderWithProviders(<NotificationsScreen />);
+    await screen.findByText('Yeni Sipariş');
+    const before = getAll.mock.calls.length;
+
+    fireEvent.press(screen.getByText('Yeni Sipariş'));
+    await waitFor(() => expect(markAsRead).toHaveBeenCalledWith('n1'));
+    // onSettled mikro görevleri otursun.
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(getAll.mock.calls.length).toBe(before);
+  });
+});
+
+/**
+ * Sekmeye her girişte görünür otomatik yenileme olmasın: odak dönüşü ve arka plan
+ * tazelemeleri sessiz; gösterge yalnız kullanıcı çekip-yenilediğinde.
+ */
+describe('Bildirimler · sessiz tazeleme (spinner yalnız elle çekince)', () => {
+  const ok = { data: { notifications: sample, pagination: { page: 1, pages: 1 } } };
+
+  it('taze veride odak dönüşü yeni istek atmaz', async () => {
+    getAll.mockResolvedValue(ok);
+    renderWithProviders(<NotificationsScreen />);
+    await screen.findByText('Yeni Sipariş');
+    const before = getAll.mock.calls.length;
+
+    await act(async () => {
+      mockFocusCb?.();
+    });
+
+    expect(getAll.mock.calls.length).toBe(before);
+  });
+
+  it('arka plan tazelemesi (geçersiz kılma) sırasında refreshing false kalır', async () => {
+    getAll.mockResolvedValueOnce(ok);
+    const { queryClient } = renderWithProviders(<NotificationsScreen />);
+    await screen.findByText('Yeni Sipariş');
+
+    let release!: (v: unknown) => void;
+    getAll.mockReturnValueOnce(new Promise((r) => (release = r)));
+    act(() => {
+      void queryClient.invalidateQueries({ queryKey: ['notifications', 'list'] });
+    });
+    await waitFor(() => expect(getAll).toHaveBeenCalledTimes(2));
+
+    expect(screen.getByTestId('notifications-list').props.refreshing).toBe(false);
+    await act(async () => release(ok));
+    expect(screen.getByTestId('notifications-list').props.refreshing).toBe(false);
+  });
+
+  it('elle çekip-yenileme göstergeyi açar ve işlem bitince kapatır', async () => {
+    getAll.mockResolvedValueOnce(ok);
+    renderWithProviders(<NotificationsScreen />);
+    await screen.findByText('Yeni Sipariş');
+
+    let release!: (v: unknown) => void;
+    getAll.mockReturnValueOnce(new Promise((r) => (release = r)));
+    const list = screen.getByTestId('notifications-list');
+    act(() => {
+      list.props.onRefresh();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('notifications-list').props.refreshing).toBe(true),
+    );
+
+    await act(async () => release(ok));
+    await waitFor(() =>
+      expect(screen.getByTestId('notifications-list').props.refreshing).toBe(false),
+    );
+  });
+});

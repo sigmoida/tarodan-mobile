@@ -1,16 +1,24 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { FlatList, Platform } from 'react-native';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { FlatList } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, toast, type ActionSheetAction } from '@/ui';
 import { useMessagesStore } from '@/stores/messagesStore';
 import { useAuthStore } from '@/stores/authStore';
-import { useThreadQuery, useMessagesQuery, useSendMessage, useMarkAsRead } from '@/hooks/messaging';
+import {
+  useThreadQuery,
+  useMessagesQuery,
+  useSendMessage,
+  useMarkAsRead,
+  useDailyMessageLimit,
+} from '@/hooks/messaging';
 import { detectViolations, embedImageInMessage, getViolationMessage } from '@/utils/contentFilter';
-import { mediaApi, errorText } from '@/lib/api';
+import { fromPickerAsset, pickerQuality, type LocalImageFile } from '@/lib/media';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { getSocket } from '@/services/socket';
 import { groupMessagesByDate } from '../_lib/helpers';
+import { uploadMessageAttachment } from '../_lib/uploadAttachment';
 import { useBlockStatus, useBlockUser } from '@/hooks/useBlockUser';
 import { useTypingIndicator } from './useTypingIndicator';
 import { useAutoScroll } from './useAutoScroll';
@@ -18,14 +26,13 @@ import { useAutoScroll } from './useAutoScroll';
 /**
  * Message-thread controller — thread/messages artık React Query (#77), send/markRead
  * mutation hook'ları. Aktif thread `setCurrentThreadId` ile store'a yazılır (socket
- * köprüsü açık/kapalı ayrımı için). getOtherParticipant + canSendMessage client store.
+ * köprüsü açık/kapalı ayrımı için). getOtherParticipant client store; günlük hak sunucudan (useDailyMessageLimit).
  */
 export function useMessageThread() {
   const { t } = useTranslation();
   const { threadId } = useLocalSearchParams<{ threadId: string }>();
-  const { user, limits } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const getOtherParticipant = useMessagesStore((s) => s.getOtherParticipant);
-  const canSendMessage = useMessagesStore((s) => s.canSendMessage);
   const setCurrentThreadId = useMessagesStore((s) => s.setCurrentThreadId);
   const { data: currentThread = null } = useThreadQuery(threadId);
   const { data: messages = [], isLoading: isLoadingMessages } = useMessagesQuery(threadId);
@@ -33,20 +40,29 @@ export function useMessageThread() {
   const markAsRead = useMarkAsRead();
   const typing = useTypingIndicator(threadId);
 
-  const [inputText, setInputText] = useState('');
+  // Yazılan metin BURADA değil, `MessageInputBar`'ın kendi state'inde: her tuş vuruşu yalnız
+  // input barını yeniden çizer (controller + mesaj listesi değil). Gönderimde `handleSend(text)`.
   const [sending, setSending] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   // Seçilen foto gönderilmeden önce input üstünde önizlenir; kullanıcı onaylayınca gönderilir.
-  const [pendingImage, setPendingImage] = useState<{ uri: string; name: string; type: string } | null>(null);
+  const [pendingImage, setPendingImage] = useState<LocalImageFile | null>(null);
   const [filterWarning, setFilterWarning] = useState<string | null>(null);
+  // İçerik filtresi uyarısını 5 sn sonra gizleyen zamanlayıcı — yeni uyarıda ve unmount'ta temizlenir.
+  const filterWarningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (filterWarningTimer.current) clearTimeout(filterWarningTimer.current);
+    },
+    [],
+  );
   const [showReportModal, setShowReportModal] = useState(false);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   // İlk açılışta liste en alta konumlanana dek gizli tutulur (zıplama görünmesin).
   const [isPositioned, setIsPositioned] = useState(false);
   const scrollViewRef = useRef<FlatList>(null);
 
-  const messageLimit = limits?.maxMessagesPerDay || 50;
-  const isUnlimited = messageLimit === -1;
-  const canSend = canSendMessage();
+  // Sunucu sayımı (GET /messages/daily-limit); bilinmiyorsa engellenmez.
+  const { limit: messageLimit, canSend, refetch: refetchDailyLimit } = useDailyMessageLimit();
 
   // Thread/messages query'leri enabled:threadId ile kendiliğinden çeker. Focus'ta:
   // aktif thread'i işaretle (socket köprüsü için), okundu yap, socket odasına gir.
@@ -54,7 +70,7 @@ export function useMessageThread() {
     useCallback(() => {
       if (threadId) {
         setCurrentThreadId(threadId);
-        markAsRead.mutate(threadId);
+        markAsRead(threadId);
         getSocket()?.emit('join:thread', { threadId });
       }
       return () => {
@@ -65,6 +81,15 @@ export function useMessageThread() {
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [threadId])
+  );
+
+  // Ekrana her dönüşte hak tazelenir: gece yarısını (UTC) aşıp açık kalan ya da arka
+  // plandan dönen thread bayat "hak bitti" ile kilitli kalmasın. `cancelRefetch:false`:
+  // ilk açılıştaki sorgu zaten uçuştaysa ikinci istek atılmaz.
+  useFocusEffect(
+    useCallback(() => {
+      void refetchDailyLimit({ cancelRefetch: false });
+    }, [refetchDailyLimit]),
   );
 
   // Thread değişince ilk konumlama sıfırlanır
@@ -90,36 +115,29 @@ export function useMessageThread() {
   const handleAttachImage = async () => {
     if (!threadId || uploadingImage || sending || !canSend) return;
 
-    // İzin iste
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      appAlert(t('order.permissionRequired'), t('order.galleryPermissionBody'));
-      return;
-    }
-
+    // İzin İSTENMEZ: iOS PHPicker ve Android Photo Picker galeriye erişim izni gerektirmez
+    // (avatar / koleksiyon kapağı seçicileri de istemiyor). Eski istek reddedilince seçici hiç
+    // açılmıyordu — gereksiz bir çıkmaz.
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: false,
-      quality: 0.8,
+      quality: pickerQuality(),
     });
 
     if (result.canceled || !result.assets?.[0]) return;
 
     const asset = result.assets[0];
-    const filename = asset.uri.split('/').pop() || `image_${Date.now()}.jpg`;
-    const match = /\.(\w+)$/.exec(filename);
-    const type = asset.mimeType || (match ? `image/${match[1]}` : 'image/jpeg');
-
-    setPendingImage({
-      uri: Platform.OS === 'ios' ? asset.uri.replace('file://', '') : asset.uri,
-      name: filename,
-      type,
-    });
+    // Önizleme yerel URI'yle; küçültme ve iOS FormData biçimi gönderim anında.
+    setPendingImage(fromPickerAsset(asset, asset.uri.split('/').pop() || `image_${Date.now()}.jpg`));
   };
 
-  const handleSend = async () => {
+  /**
+   * Metni (input barının state'i) gönderir. `true` → gönderildi, input bar metni temizler;
+   * `false` → gönderilmedi (filtre, hata, koşul), metin olduğu gibi kalır.
+   */
+  const handleSend = async (inputText: string): Promise<boolean> => {
     const trimmed = inputText.trim();
-    if ((!trimmed && !pendingImage) || !threadId || sending || uploadingImage || !canSend) return;
+    if ((!trimmed && !pendingImage) || !threadId || sending || uploadingImage || !canSend) return false;
 
     typing.stopTyping();
 
@@ -128,8 +146,12 @@ export function useMessageThread() {
       const violations = detectViolations(trimmed);
       if (violations.length > 0) {
         setFilterWarning(getViolationMessage(violations));
-        setTimeout(() => setFilterWarning(null), 5000);
-        return;
+        if (filterWarningTimer.current) clearTimeout(filterWarningTimer.current);
+        filterWarningTimer.current = setTimeout(() => {
+          filterWarningTimer.current = null;
+          setFilterWarning(null);
+        }, 5000);
+        return false;
       }
     }
 
@@ -142,15 +164,14 @@ export function useMessageThread() {
       if (pendingImage) {
         setUploadingImage(true);
         try {
-          const response = await mediaApi.uploadMessageImage(pendingImage as any);
-          const url = (response.data as any)?.url ?? (response.data as any)?.data?.url;
+          const url = await uploadMessageAttachment(pendingImage);
           if (!url) throw new Error(t('message.imageUploadedNoUrl'));
           // İşaret formatının TEK kaynağı `embedImageInMessage` — burada elle
           // kurmak `parseMessageContent` ile sessizce birbirinden ayrılabilirdi.
           content = embedImageInMessage(trimmed, url);
         } catch (e: any) {
-          appAlert(t('common.error'), e?.response?.data?.message || t('message.imageSendFailed'));
-          return;
+          toast.error(apiErrorMessage(e, t('message.imageSendFailed')));
+          return false;
         } finally {
           setUploadingImage(false);
         }
@@ -158,21 +179,24 @@ export function useMessageThread() {
 
       try {
         await sendMessage.mutateAsync({ threadId, content });
-        setInputText('');
         setPendingImage(null);
         // Kullanıcının kendi mesajı: konumdan bağımsız HER ZAMAN dibe kaydır.
         forceScrollToBottom();
+        return true;
       } catch (e: any) {
         // Sunucu mesajı önce: `e.message` axios'un ham "Request failed with
         // status code 400" metni idi.
-        appAlert(t('message.sendFailed'), errorText(e, t('message.tryAgainBody')));
+        toast.error(apiErrorMessage(e, t('message.sendFailed')));
+        return false;
       }
     } finally {
       setSending(false);
     }
   };
 
-  const groupedMessages = groupMessagesByDate(messages, t);
+  // Referans kararlı: controller başka bir state yüzünden render olduğunda liste satırları
+  // (MessageList `rows` useMemo'su) yeniden türetilmesin.
+  const groupedMessages = useMemo(() => groupMessagesByDate(messages, t), [messages, t]);
   const other = currentThread ? getOtherParticipant(currentThread) : null;
 
   // Engelleme/şikayet paylaşılan hook'ta: onay, bildirim ve invalidasyon TEK
@@ -182,31 +206,33 @@ export function useMessageThread() {
     onBlocked: () => (router.canGoBack() ? router.back() : router.replace('/(tabs)')),
   });
 
+  // Başlık menüsü (ActionSheet): her eylem sheet TAMAMEN kapandıktan sonra çalışır, bu yüzden
+  // şikayet modalı / engel onayı (appAlert) zamanlayıcı hack'i olmadan açılır (src/ui/CLAUDE.md › iOS modal rule).
   const handleHeaderMenu = () => {
-    if (!other) return;
-    appAlert(other.displayName, undefined, [
-      { text: t('message.viewProfile'), onPress: () => router.push(`/seller/${other.id}`) },
-      // iOS'ta alert modalı kapanırken yeni bir native Modal açılırsa görünmeyebilir; kapanışı bekle.
-      { text: t('profile.report'), onPress: () => setTimeout(() => setShowReportModal(true), 300) },
-      isBlocked
-        ? { text: t('profile.unblock'), onPress: () => requestUnblock(other.id, other.displayName) }
-        : {
-            text: t('profile.block'),
-            style: 'destructive' as const,
-            onPress: () => requestBlock(other.id, other.displayName),
-          },
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
+    if (other) setHeaderMenuOpen(true);
   };
+  const closeHeaderMenu = () => setHeaderMenuOpen(false);
+  const headerMenuActions: ActionSheetAction[] = other
+    ? [
+        { key: 'profile', label: t('message.viewProfile'), onPress: () => router.push(`/seller/${other.id}`) },
+        { key: 'report', label: t('profile.report'), onPress: () => setShowReportModal(true) },
+        isBlocked
+          ? { key: 'unblock', label: t('profile.unblock'), onPress: () => requestUnblock(other.id, other.displayName) }
+          : {
+              key: 'block',
+              label: t('profile.block'),
+              destructive: true,
+              onPress: () => requestBlock(other.id, other.displayName),
+            },
+      ]
+    : [];
 
   return {
     user,
     currentThread,
     messages,
     isLoadingMessages,
-    // input state
-    inputText,
-    setInputText,
+    // input state (metin MessageInputBar'da)
     sending,
     uploadingImage,
     pendingImage,
@@ -218,7 +244,6 @@ export function useMessageThread() {
     scrollViewRef,
     // limit
     messageLimit,
-    isUnlimited,
     canSend,
     // derived
     groupedMessages,
@@ -232,6 +257,9 @@ export function useMessageThread() {
     handleAttachImage,
     handleSend,
     handleHeaderMenu,
+    headerMenuOpen,
+    closeHeaderMenu,
+    headerMenuActions,
   };
 }
 

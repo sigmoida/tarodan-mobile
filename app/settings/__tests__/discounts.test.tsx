@@ -1,13 +1,12 @@
 /**
- * J114 · Satıcı indirim yönetimi — mobil UI dilimi.
- * Yalnız MOBİL-UI: satıcı/giriş gate, kendi indirimleri liste render + değer rozeti,
- * boş durum, indirim formu açılışı, form validasyonu (ad zorunlu, negatif/0 değer reddi,
- * yüzde>100 reddi) Alert üzerinden. Kupon oluşturma/iş kuralları (kullanım limiti
- * uygulanması, stacking, escrow) backendOnly.
+ * J114 · Satıcı indirim yönetimi — mobil UI dilimi (LİSTE ekranı).
+ * Satıcı/giriş gate, kendi indirimleri liste render + değer rozeti, boş durum,
+ * form ekranlarına yönlendirme, silme onayı. Form validasyonu (J114.6-12) ayrı
+ * ekranlarda: `app/settings/discounts/__tests__/discount-form.test.tsx`.
+ * Kupon iş kuralları (kullanım limiti, stacking, escrow) backendOnly.
  */
 import React from 'react';
-import { appAlert } from '@/ui';
-import { TextInput } from 'react-native';
+import { appAlert, toast } from '@/ui';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { resetRouterMocks, pushMock } from '@/test-utils/router-mock';
@@ -74,6 +73,7 @@ describe('J114 · indirim yönetimi (settings/discounts)', () => {
     mockGetAll.mockResolvedValue({ data: { items: [discountFixture()] } });
     mockGetListings.mockResolvedValue({ data: { data: [] } });
     alertSpy = (appAlert as jest.Mock).mockImplementation(() => {});
+    (discountsApi.create as jest.Mock).mockClear();
   });
 
   afterEach(() => {
@@ -108,52 +108,34 @@ describe('J114 · indirim yönetimi (settings/discounts)', () => {
     expect(screen.getByText('Satıcı Olun')).toBeOnTheScreen();
   });
 
-  it('J114.5 form açılır (Yeni İndirim alanları görünür)', async () => {
+  it('J114.5 FAB → yeni indirim EKRANI itilir (modal yok)', async () => {
     renderWithProviders(<DiscountsScreen />);
     await waitFor(() => expect(screen.getByText('Yaz İndirimi')).toBeOnTheScreen());
     fireEvent.press(screen.getByLabelText('Yeni indirim oluştur'));
-    await waitFor(() =>
-      expect(screen.getByText('İndirim Adı *')).toBeOnTheScreen(),
-    );
+    expect(pushMock).toHaveBeenCalledWith('/settings/discounts/new');
+    expect(screen.queryByText('İndirim Adı *')).toBeNull();
   });
 
-  it('J114.6 ad boşken Oluştur → eksik Alert, create çağrılmaz', async () => {
+  it('J114.5b kartta düzenle → /settings/discounts/<id>/edit', async () => {
     renderWithProviders(<DiscountsScreen />);
     await waitFor(() => expect(screen.getByText('Yaz İndirimi')).toBeOnTheScreen());
-    fireEvent.press(screen.getByLabelText('Yeni indirim oluştur'));
-    await waitFor(() => expect(screen.getByText('İndirim Adı *')).toBeOnTheScreen());
-
-    fireEvent.press(screen.getByText('Oluştur'));
-    expect(alertSpy).toHaveBeenCalledWith('Eksik', 'İndirim adı gerekli.');
-    expect(discountsApi.create).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByLabelText('İndirimi Düzenle'));
+    expect(pushMock).toHaveBeenCalledWith('/settings/discounts/d1/edit');
   });
 
-  it('J114.7 değer 0/negatif → geçerli değer Alert (negatif değer reddi)', async () => {
+  it('J114.5c silme: mevcut appAlert onayı; sunucu hatası toast.error (appAlert değil)', async () => {
+    (discountsApi.delete as jest.Mock).mockRejectedValue({
+      response: { status: 409, data: { message: 'Kullanımda olan indirim silinemez' } },
+    });
+    const errorToast = jest.spyOn(toast, 'error').mockImplementation(() => 1);
     renderWithProviders(<DiscountsScreen />);
     await waitFor(() => expect(screen.getByText('Yaz İndirimi')).toBeOnTheScreen());
-    fireEvent.press(screen.getByLabelText('Yeni indirim oluştur'));
-    await waitFor(() => expect(screen.getByText('İndirim Adı *')).toBeOnTheScreen());
-
-    // İlk TextInput = İndirim Adı (label Text ayrı node olduğu için type ile bul).
-    const inputs = screen.UNSAFE_getAllByType(TextInput);
-    fireEvent.changeText(inputs[0], 'Test');
-    fireEvent.changeText(screen.getByDisplayValue('10'), '-5');
-    fireEvent.press(screen.getByText('Oluştur'));
-    expect(alertSpy).toHaveBeenCalledWith('Eksik', 'Geçerli bir indirim değeri girin.');
-    expect(discountsApi.create).not.toHaveBeenCalled();
-  });
-
-  it('J114.8 yüzde değer 100 üstü → hata Alert', async () => {
-    renderWithProviders(<DiscountsScreen />);
-    await waitFor(() => expect(screen.getByText('Yaz İndirimi')).toBeOnTheScreen());
-    fireEvent.press(screen.getByLabelText('Yeni indirim oluştur'));
-    await waitFor(() => expect(screen.getByText('İndirim Adı *')).toBeOnTheScreen());
-
-    const inputs = screen.UNSAFE_getAllByType(TextInput);
-    fireEvent.changeText(inputs[0], 'Test');
-    fireEvent.changeText(screen.getByDisplayValue('10'), '150');
-    fireEvent.press(screen.getByText('Oluştur'));
-    expect(alertSpy).toHaveBeenCalledWith('Hata', "Yüzde indirim 100'den büyük olamaz.");
-    expect(discountsApi.create).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByLabelText('İndirimi Sil'));
+    expect(alertSpy).toHaveBeenCalledTimes(1);
+    const [, , buttons] = alertSpy.mock.calls[0];
+    buttons.find((b: { style?: string }) => b.style === 'destructive').onPress();
+    await waitFor(() => expect(errorToast).toHaveBeenCalledWith('Kullanımda olan indirim silinemez'));
+    expect(alertSpy).toHaveBeenCalledTimes(1);
+    errorToast.mockRestore();
   });
 });

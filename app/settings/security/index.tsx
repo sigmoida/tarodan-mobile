@@ -1,34 +1,23 @@
-import { useEffect } from 'react';
-import { View } from 'react-native';
-import { ScreenHeader } from '@/ui';
-import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { PageShell } from '@/components/common/PageShell';
 
-import { styles } from './_lib/styles';
-import { useSecurity } from './_hooks/useSecurity';
+import { useSecurityAuthGate } from './_hooks/useSecurityAuthGate';
+import { useSecurityHub } from './_hooks/useSecurityHub';
 import { SecuritySections } from './_components/SecuritySections';
-import { SecurityDialogs } from './_components/SecurityDialogs';
 
 /**
- * Security settings — THIN screen. The `useSecurity` controller owns all state,
- * the 2FA/password/phone flows, and the 4 modal-message instances; this file
- * composes the header, the setting cards, and the dialogs.
+ * Güvenlik ayarları — THIN hub. Şifre değiştirme, 2FA ve telefon doğrulama web'deki gibi ayrı
+ * akışlar (`password` / `two-factor` / `phone` ekranları); burada yalnız durumlar ve girişler.
  */
 export default function SecuritySettingsScreen() {
-  const f = useSecurity();
-
-  // Yönlendirmeyi render sırasında değil effect'te yap; render içinde router.replace
-  // "Cannot update a component while rendering another" uyarısına yol açıyordu.
-  useEffect(() => {
-    if (!f.isAuthenticated) router.replace('/(auth)/login');
-  }, [f.isAuthenticated]);
-  if (!f.isAuthenticated) return null;
+  const { t } = useTranslation();
+  const isAuthenticated = useSecurityAuthGate();
+  const hub = useSecurityHub();
+  if (!isAuthenticated) return null;
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={f.t('mobile.settingsSecurity')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
-
-      <SecuritySections f={f} />
-      <SecurityDialogs f={f} />
-    </View>
+    <PageShell title={t('mobile.settingsSecurity')}>
+      <SecuritySections f={hub} />
+    </PageShell>
   );
 }

@@ -22,3 +22,13 @@ export const appConfigApi = {
       params: { platform, appVersion },
     }),
 };
+
+/**
+ * `GET /admin/settings/public` (public, oturum gerekmez) — admin'in herkese açık
+ * sayısal ayarları (mesaj uzunluğu, üyelik fiyatları, ilan fiyat sınırları…).
+ * Düz bir sayı nesnesi; boş bırakılan ayar yanıtta YOKTUR. Ham gövde döner,
+ * ayrıştırma `@/lib/shared/priceLimits` ile (eksik/sayı olmayan = sınır yok).
+ */
+export const publicSettingsApi = {
+  getPublicSettings: () => guestApi.get<Record<string, unknown>>("/admin/settings/public"),
+};

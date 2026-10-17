@@ -1,43 +1,87 @@
-import { View, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Text, theme } from '@/ui';
+import React from 'react';
+import { View, Pressable } from 'react-native';
+import { AppImage } from '@/components/AppImage';
+import {
+  CheckboxIndicator,
+  ListRowCard,
+  LoadingIndicator,
+  Text,
+  androidRipple,
+  pressedStyle,
+  showPressedStyle,
+  theme,
+} from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { Listing } from '../_lib/types';
-import type { AddItemsController } from '../_hooks/useAddItems';
+import { formatPrice } from '@/utils/format';
 
-const { colors } = theme;
+/**
+ * Tek ilan satırı — foto/başlık/fiyat + sağda seçim kutusu (optimistic Ekle / Çıkar). Kutu, çoklu
+ * seçim listeleriyle aynı `CheckboxIndicator` (SelectSheet `multiple`, sepet): 20pt, satırın orta
+ * çizgisinde; dokunma alanı `hitSlop` ile ≥ 44pt (görsel sağ boşluk kartın 16pt dolgusu kalır).
+ * Sol blok (foto + metin) ürüne gider. Memo'lu: `added` / `busy`
+ * ekran tarafından satır için hesaplanıp boolean geçilir, `onToggle` kararlı referanstır → bir
+ * satırın durumu değişince diğer satırlar yeniden çizilmez.
+ */
+/** Standart `md` kutu (20pt) + 44pt dokunma alanına tamamlayan boşluk. */
+const CHECKBOX_SIZE = 20;
+const TOGGLE_HIT_SLOP = (theme.minTouchTarget - CHECKBOX_SIZE) / 2;
 
-/** Tek ilan satırı — foto/başlık/fiyat + ekle/çıkar toggle (optimistic). */
-export function ListingPickerRow({ listing, f }: { listing: Listing; f: AddItemsController }) {
+export const ListingPickerRow = React.memo(function ListingPickerRow({
+  listing,
+  added,
+  busy,
+  onToggle,
+}: {
+  listing: Listing;
+  added: boolean;
+  busy: boolean;
+  onToggle: (listing: Listing) => void;
+}) {
   const { t } = useTranslation();
-  const added = !!f.effectiveItemId(listing.id);
-  const busy = !!f.pending[listing.id];
 
   return (
-    <View style={styles.row}>
-      <TouchableOpacity style={styles.rowContent} onPress={() => router.push(`/product/${listing.id}`)}>
-        <Image source={{ uri: resolveImageUrl(listing.images) }} style={styles.thumb} />
-        <View style={styles.rowInfo}>
-          <Text style={styles.rowTitle} numberOfLines={2}>{listing.title}</Text>
-          <Text style={styles.rowPrice}>₺{(listing.price ?? 0).toLocaleString('tr-TR')}</Text>
-        </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.toggleBtn, added && styles.toggleBtnAdded]}
-        onPress={() => f.toggle(listing)}
-        disabled={busy}
-        accessibilityLabel={added ? t('collection.removeFromCollection') : t('collection.addToCollection')}
+    <ListRowCard>
+      <Pressable
+        style={styles.rowContent}
+        onPress={() => router.push(`/product/${listing.id}`)}
+        accessibilityRole="button"
+        accessibilityLabel={listing.title}
+        accessibilityHint={t('collection.openProductHint')}
       >
+        <AppImage source={listing.images} recyclingKey={String(listing.id)} style={styles.thumb} />
+        <View style={styles.rowInfo}>
+          <Text variant="bodySm" weight="semibold" numberOfLines={2}>
+            {listing.title}
+          </Text>
+          <Text variant="bodySm" weight="bold" tone="primary">
+            {formatPrice(listing.price)}
+          </Text>
+        </View>
+      </Pressable>
+
+      <Pressable
+        testID={`add-items-toggle-${listing.id}`}
+        onPress={() => onToggle(listing)}
+        disabled={busy}
+        hitSlop={TOGGLE_HIT_SLOP}
+        android_ripple={androidRipple({ borderless: true, radius: theme.minTouchTarget / 2 })}
+        style={({ pressed }) => [styles.toggle, showPressedStyle(pressed) && pressedStyle]}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: added, disabled: busy, busy }}
+        accessibilityLabel={`${t('collection.addToCollection')}: ${listing.title}`}
+      >
+        {/* Bekleyen istek: kutu yerine aynı yuvada küçük gösterge — yok sayılan dokunuş anlaşılır. */}
         {busy ? (
-          <ActivityIndicator size="small" color={added ? colors.white : colors.primary[600]!} />
+          <View style={styles.toggleSlot}>
+            <LoadingIndicator size="sm" accessibilityLabel={t('common.loading')} />
+          </View>
         ) : (
-          <Ionicons name={added ? 'checkmark' : 'add'} size={22} color={added ? colors.white : colors.primary[600]!} />
+          <CheckboxIndicator checked={added} size={CHECKBOX_SIZE} />
         )}
-      </TouchableOpacity>
-    </View>
+      </Pressable>
+    </ListRowCard>
   );
-}
+});

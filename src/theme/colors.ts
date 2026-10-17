@@ -124,6 +124,19 @@ export const border = {
 } as const;
 
 /**
+ * Üçüncü taraf MARKA renkleri — logo/işaret çizimi için (UI rolü değil, yeniden temalanmaz).
+ * Google "G" resmi dört renkli işaret; marka yönergesi renklerin değişmemesini ister.
+ */
+export const brand = {
+  google: {
+    blue: '#4285F4',
+    green: '#34A853',
+    yellow: '#FBBC05',
+    red: '#EA4335',
+  },
+} as const;
+
+/**
  * Flat map used by RN (StyleSheet can't consume nested Tailwind-style color palettes directly).
  */
 export const colors = {
@@ -136,6 +149,7 @@ export const colors = {
   text,
   surface,
   border,
+  brand,
   white: '#FFFFFF',
   black: '#000000',
   transparent: 'transparent',

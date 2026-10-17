@@ -1,67 +1,75 @@
-// TANI/WORKAROUND (gecici): screens 4.16 + New Architecture tab bar'i bozuk
-// ciziyor; native ekranlari kapatinca duz RN view ile dogru cizilir.
-import { enableScreens } from "react-native-screens";
-enableScreens(false);
 
 import { useEffect, useState } from "react";
+import { StyleSheet } from "react-native";
+import { logger, safeError } from "@/services/logger";
 import { Stack } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import * as SplashScreen from "expo-splash-screen";
 import Constants from "expo-constants";
-import { theme, AlertDialogHost } from "@/ui";
+import { useFonts } from "expo-font";
+import { useBrandFontSession } from "@/hooks/useBrandFontSession";
+// Noto Sans (web ile aynı aile ve ağırlıklar). Alt yoldan import: paket kökü 18 dosyanın
+// hepsini paketlerdi; yalnız kullanılan 4 ağırlık bundle'a girer.
+import { NotoSans_400Regular } from "@expo-google-fonts/noto-sans/400Regular";
+import { NotoSans_500Medium } from "@expo-google-fonts/noto-sans/500Medium";
+import { NotoSans_600SemiBold } from "@expo-google-fonts/noto-sans/600SemiBold";
+import { NotoSans_700Bold } from "@expo-google-fonts/noto-sans/700Bold";
+import { AlertDialogHost, BrandFontProvider, ToastHost } from "@/ui";
 import { useAuthStore } from "@/stores/authStore";
+import { prepareSecureSession } from "@/stores/secureSessionSetup";
 import { useCartMergeOnLogin } from '@/hooks/useServerCart';
 import { useMembershipLimits } from '@/hooks/useMembershipLimits';
 import { useMessagingSocket } from "@/hooks/messaging";
 // Paylaşılan QueryClient — logout'ta resetUserStores aynı örneği temizler.
 import { queryClient } from "@/lib/queryClient";
-import {
-  registerForPushNotifications,
-  setupPushNotificationRouting,
-} from "@/services/push";
+import { queryPersistOptions } from "@/lib/query/persist";
+import { setupPushNotificationRouting } from "@/services/push";
+import { usePushRegistration } from "@/hooks/usePushRegistration";
+import { useAppBadgeSync } from "@/hooks/useAppBadgeSync";
+import { NotificationPrePromptHost } from "@/components/notifications/NotificationPrePromptHost";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { initSentry } from "@/services/sentry";
 import AnimatedSplash from "@/components/AnimatedSplash";
 import BusinessMembershipGuard from "@/components/BusinessMembershipGuard";
 import ForceUpdateGate from "@/components/ForceUpdateGate";
+import RequiredStepsGate from "@/components/required-steps/RequiredStepsGate";
+import { useFullScreenGateShown } from "@/components/common/FullScreenGate";
 import { ErrorBoundary, RouteTracker } from "@/components/ErrorBoundary";
+import { stackScreenOptions } from "@/lib/navigation/screenOptions";
+import { NetworkMonitor } from "@/lib/network";
 
-const { colors } = theme;
 
 // Initialize Sentry as early as possible. No-ops in Expo Go or when
 // EXPO_PUBLIC_SENTRY_DSN is unset (see services/sentry.ts guard); real
 // reporting requires a dev/production build with a DSN configured.
 initSentry();
 
-// Conditionally import notifications - only in development builds, not Expo Go
-let Notifications: any = null;
-const isExpoGo = Constants.executionEnvironment === "storeClient";
+// Güvenli depo hazırlığı (yeniden kurulumda bayat anahtar zinciri oturumunu silme + iOS
+// erişilebilirlik göçü) modül yüklenirken, HİÇBİR ekran AsyncStorage'a yazmadan önce başlar:
+// yeniden kurulum "boş AsyncStorage" ile saptanıyor. `loadToken` bunu bekler. Fırlatmaz.
+const secureSessionReady = prepareSecureSession();
 
-if (!isExpoGo) {
-  try {
-    Notifications = require("expo-notifications");
-  } catch (e) {
-    console.log("⚠️ expo-notifications not available");
-  }
-}
+const isExpoGo = Constants.executionEnvironment === "storeClient";
 
 // Prevent splash screen from hiding
 SplashScreen.preventAutoHideAsync();
 
-// Configure notifications (only in development builds, not Expo Go)
-if (!isExpoGo && Notifications) {
-  try {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-      }),
-    });
-  } catch (e) {
-    console.log("⚠️ Notification handler setup failed (normal in Expo Go)");
-  }
+// Ön plan bildirim sunumu (`setNotificationHandler`) BURADA DEĞİL: tek tanım
+// `@/services/push` (shouldShowBanner/shouldShowList). Buradaki ikinci kopya kullanımdan
+// kalkmış `shouldShowAlert` ile onu eziyordu.
+
+/**
+ * Push kaydı (izin verilmişse sessizce; yeniden deneme / ön plan / token yenilenmesi) + uygulama
+ * simgesi rozeti. QueryClientProvider'ın ALTINDA (rozet okunmamış sayısı sorgusunu izler).
+ * Kayıt, önceki çıkışın bekleyen push iptalini bekler (`syncPushRegistration`).
+ */
+function PushBridge() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  usePushRegistration(isAuthenticated, !isExpoGo);
+  useAppBadgeSync(isAuthenticated);
+  return null;
 }
 
 /** QueryClientProvider'ın altında çalışması gereken global mesaj socket köprüsü (#77). */
@@ -78,44 +86,55 @@ function CartMergeBridge() {
 }
 
 export default function RootLayout() {
-  const { loadToken, isAuthenticated } = useAuthStore();
+  const loadToken = useAuthStore((s) => s.loadToken);
   // appReady: hazırlık bitti. splashDone: animasyonlu splash çıkışını tamamladı.
   // Native splash'i AnimatedSplash kapatır (onLayout) → beyaz parlama olmaz.
   const [appReady, setAppReady] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
+  // Tam ekran kapı (zorunlu güncelleme / zorunlu adım) açıkken temalı uyarı
+  // ertelenir: kapının üstüne binmesin, iOS'ta modal üstüne modal kilitlenmesin.
+  const gateShown = useFullScreenGateShown();
+  // Marka fontu. Yüklenene kadar splash kalır (appReady'ye katılır). Hata olursa sistem
+  // fontuyla devam edilir: BrandFontProvider `false` kalır, hiçbir metin kayıtsız aile adı
+  // almaz. Anahtar adları `brandFontFiles` (src/theme/typography.ts) ile aynı olmalı.
+  const [fontsLoaded, fontError] = useFonts({
+    NotoSans_400Regular,
+    NotoSans_500Medium,
+    NotoSans_600SemiBold,
+    NotoSans_700Bold,
+  });
+  // Emniyet: yükleme hiç sonuçlanmazsa splash sonsuza dek kalmasın — süre dolunca sistem
+  // fontuyla açılır ve bu OTURUM sistem fontunda kalır (sonradan geçiş tüm metni kaydırırdı).
+  const { settled: fontsSettled, enabled: brandFontEnabled } = useBrandFontSession(
+    fontsLoaded,
+    fontError,
+  );
+  useEffect(() => {
+    if (fontError) logger.warn("Brand font load failed", { err: safeError(fontError) });
+  }, [fontError]);
 
   useEffect(() => {
+    // Açılış ağı BEKLEMEZ: `loadToken` yalnız SecureStore'u okur (token + saklı kullanıcı
+    // görüntüsü), oturumu hemen açar; profil doğrulaması arka planda sürer. Yalnız görüntüsü
+    // olmayan eski kurulumun İLK açılışı profili bekler (bkz. authStore.loadToken).
     async function prepare() {
       try {
+        await secureSessionReady;
         await loadToken();
-        // Only register for push notifications in development builds, not Expo Go
-        if (isAuthenticated && !isExpoGo) {
-          try {
-            await registerForPushNotifications();
-          } catch (e) {
-            console.log(
-              "⚠️ Push notification registration skipped (normal in Expo Go)",
-            );
-          }
-        }
       } catch (e) {
-        console.warn(e);
+        logger.warn('App bootstrap failed', { err: safeError(e) });
       } finally {
         setAppReady(true);
       }
     }
     prepare();
-  }, []);
+    // `loadToken` store eylemi — referansı sabit, efekt yalnız mount'ta çalışır.
+  }, [loadToken]);
 
-  // Token kaydını isAuthenticated değişimine de bağla: kullanıcı uygulamayı
-  // çıkışlı açıp SONRA login olursa (isAuthenticated mount'tan sonra true olur),
-  // yukarıdaki []-bağımlı prepare() tekrar çalışmaz ve token hiç kaydolmazdı.
-  // registerToken upsert olduğu için açılışta + login'de çift çağrı zararsız.
-  useEffect(() => {
-    if (isAuthenticated && !isExpoGo) {
-      registerForPushNotifications().catch(() => {});
-    }
-  }, [isAuthenticated]);
+  // Push token kaydının TEK yeri: <PushBridge/> (`usePushRegistration`). Açılışta oturum açıksa
+  // da, çıkışlı açılıp sonra girişte de `isAuthenticated` true'ya döner; kayıt önceki çıkışın
+  // bekleyen push iptalini bekler (≤ 5 sn) ve İZİN İSTEMEZ — izin değer anında ön-izin
+  // sheet'iyle istenir (<NotificationPrePromptHost/>).
 
   // Global mesaj socket köprüsü (#77) QueryClientProvider'ın ALTINDA çalışmalı
   // (useQueryClient) → <MessagingSocketBridge/> olarak provider içinde render edilir.
@@ -134,39 +153,60 @@ export default function RootLayout() {
   // router.push daha yapılırsa aynı ekran iki kez açılır.
 
   return (
+    <GestureHandlerRootView style={styles.root}>
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+      {/* Kalıcı önbellek: yalnız herkese açık katalog sorguları diske yazılır (izin listesi,
+          `@/lib/query/persist`); geri yükleme bitene kadar sorgular ağa çıkmaz. */}
+      <PersistQueryClientProvider client={queryClient} persistOptions={queryPersistOptions}>
         <LocaleProvider>
-          <StatusBar style="auto" />
+        <BrandFontProvider ready={brandFontEnabled}>
+          {/* Yığın ekranları beyaz üst bar: koyu içerik. Turuncu marka barlı sekme kökleri (AppShell)
+              odaktayken açık içeriğe çevirir. */}
+          <StatusBar style="dark" />
           <RouteTracker />
-          <Stack
-            screenOptions={{
-              headerStyle: { backgroundColor: colors.primary[600]! },
-              headerTintColor: colors.white,
-              headerTitleStyle: { fontWeight: "bold" },
-              headerShown: false,
-            }}
-          >
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          {/* Native header HİÇ açılmaz (üst bar JS'te, tek bileşen); geçiş animasyonu tüm Stack'lerde
+              aynı (`stackScreenOptions`). Ölü headerStyle/headerTintColor seçenekleri kaldırıldı:
+              biri native header'ı açarsa sessizce turuncu/beyaz native başlık çıkarıyordu. */}
+          <Stack screenOptions={stackScreenOptions}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(auth)" />
           </Stack>
           {/* Global mesaj socket köprüsü (#77) — provider altında setQueryData için. */}
           <MessagingSocketBridge />
           <CartMergeBridge />
+          <PushBridge />
+          {/* Bildirim ön-izin sheet'i: değer anında (mesaj / teklif / sipariş) açılır. */}
+          <NotificationPrePromptHost />
           {/* Kurumsal hesap business üyelik yoksa üyelik sayfasına yönlendirir (web ile aynı). */}
           <BusinessMembershipGuard />
-          {/* Native Alert.alert yerine temalı dialog — appAlert() bu host'u kullanır. */}
-          <AlertDialogHost />
+          {/* Native Alert.alert yerine temalı dialog — appAlert() bu host'u kullanır.
+              Host HEP bağlı: kapı açıkken yalnız askıya alınır (alert'ler kuyrukta bekler, kapı
+              kapanınca çıkar). Eskiden kapıya bağlı koşullu bağlanıyordu; söküm, kapanma
+              zamanlayıcısını temizleyip basılan düğmenin `onPress`'ini kaybettiriyordu. */}
+          <AlertDialogHost suspended={gateShown} />
+          {/* Global toast (web react-hot-toast karşılığı): toast.success / toast.error / toast(). */}
+          <ToastHost />
+          {/* İnternet yoksa tek diyalog ("Lütfen internet bağlantınızı kontrol ediniz.") + onlineManager. */}
+          <NetworkMonitor ready={splashDone && !gateShown} />
+          {/* Zorunlu adımlar (bekleyen sözleşme onayı): girişte + ön plana gelişte kapatılamaz ekran. */}
+          {/* Kapılar native Modal: soğuk açılışta splash bitmeden gösterilmez (ready). */}
+          <RequiredStepsGate ready={splashDone} />
           {/* Min desteklenen sürümün altındaki build'leri tam ekran bloklar (#233). */}
-          <ForceUpdateGate />
+          <ForceUpdateGate ready={splashDone} />
           {!splashDone && (
             <AnimatedSplash
-              appReady={appReady}
+              appReady={appReady && fontsSettled}
               onFinish={() => setSplashDone(true)}
             />
           )}
+        </BrandFontProvider>
         </LocaleProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});

@@ -1,38 +1,61 @@
-import { useMemo, useState, useEffect } from 'react';
+import { logger } from '@/services/logger';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { appAlert } from '@/ui';
+import { toast } from '@/ui';
+import { useZodForm } from '@/ui/form';
 import { CAN_BUY_DIGITAL, limitAlert } from '@/lib/purchases';
 import { authApi } from '@/lib/api';
-import { signInWithGoogle } from '@/services/googleSignin';
-import { signInWithApple, isAppleAvailable } from '@/services/appleSignin';
+import { useAppMutation } from '@/lib/query';
+import { useSocialSignIn } from '@/hooks/useSocialSignIn';
 import { useAuthStore } from '@/stores/authStore';
+import { usePendingAuthEmailStore } from '@/stores/pendingAuthEmailStore';
 import { buildLoginSchema, TWO_FACTOR_CODE_PATTERN, type LoginForm } from '../_lib/schema';
+import { IS_MAESTRO } from '@/config/maestro';
 
 /**
- * Login controller — owns the RHF form (zod), the login + resend-verification
- * mutations, Google/Apple social sign-in, guest-continue, and the Maestro
- * fallback submit. Lifted verbatim from the monolithic LoginScreen.
+ * Web `useLoginFlow` ile aynı adımlar: `email` (e-posta + sosyal giriş) → `password`
+ * (kayıtlı + şifreli hesap) ya da `googleOnly` (kayıtlı ama şifresiz, Google ile açılmış).
+ * Geçiş sunucudaki `POST /auth/check-email` yanıtına göre yapılır (istemci tarafı tahmin yok).
+ */
+export type LoginStep = 'email' | 'password' | 'googleOnly';
+
+/**
+ * Login controller — owns the RHF form (zod), the two-step identify flow, the login +
+ * resend-verification mutations, Google/Apple social sign-in, guest-continue, and the
+ * Maestro fallback submit. Parola girişinin kendisi (2FA, doğrulanmamış e-posta, kurumsal
+ * yükseltme) önceki sürümden değişmeden taşındı; yalnız adım durumu eklendi.
  */
 export function useLogin() {
   const { t } = useTranslation();
-  const { login } = useAuthStore();
+  const login = useAuthStore((s) => s.login);
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
+  const [step, setStep] = useState<LoginStep>('email');
+  const [notRegistered, setNotRegistered] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [requires2FA, setRequires2FA] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [appleLoading, setAppleLoading] = useState(false);
-  const [appleAvailable, setAppleAvailable] = useState(false);
+  // 2FA'lı hesap Google/Apple ile açılamaz: parola girişinin e-posta adımına dönülür, kod
+  // parola adımında istenir (`useSocialSignIn`). `back` aşağıda tanımlı — çağrı anında hazır.
+  const social = useSocialSignIn({ onPasswordLoginRequired: () => back() });
+  const { googleLoading, appleLoading, appleAvailable, handleGoogle, handleApple } = social;
 
   // Dil değişince şema yeniden kurulur — aksi halde hata metni ilk dilde donar.
   const schema = useMemo(() => buildLoginSchema(t), [t]);
-  const form = useForm<LoginForm>({
-    resolver: zodResolver(schema),
+  // Kayıt / e-posta doğrulama sonrası girişe taşınan adres: bellek içi store (URL'de e-posta/PII yok).
+  // Giriş başarısında ve çıkışta store temizlenir (authStore).
+  const prefillEmail = usePendingAuthEmailStore((st) => st.email) ?? '';
+  const form = useZodForm(schema, {
+    defaultValues: { email: prefillEmail, password: '', twoFactorCode: '' },
   });
-  const { handleSubmit, getValues, setError } = form;
+  const { handleSubmit, getValues, setError, setValue, trigger, clearErrors } = form;
+
+  // Ekran zaten açıkken (yığındaki login'e `dismissTo`) adres sonradan gelebilir; kullanıcının
+  // yazdığı e-postanın üzerine yazılmaz.
+  useEffect(() => {
+    if (prefillEmail && !getValues('email')) setValue('email', prefillEmail);
+  }, [prefillEmail, getValues, setValue]);
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginForm) =>
@@ -66,23 +89,11 @@ export function useLogin() {
       // Doğrulanmamış e-posta banner'ı yalnızca login HATASI ('verify/doğrula')
       // ile tetiklenir (onError); başarılı login her zaman doğrulanmış kullanıcıdandır.
       // Kurumsal yükseltme kontrolü web gibi /users/me'den okunur (login response'unda
-      // companyName/taxId/membership yok).
+      // companyName/taxId/membership yok). `refreshUserData`, girişin başlattığı tam profil
+      // çekimiyle AYNI isteği paylaşır (ikinci istek yok) ve sonucu store'a yazar.
       try {
-        const profileResponse = (await authApi.getProfile()).data as {
-          user?: Record<string, unknown>;
-        } & Record<string, unknown>;
-        const currentUser = (profileResponse?.user ?? profileResponse) as {
-          companyName?: string | null;
-          taxId?: string | null;
-          membershipTier?: string | null;
-          membership?: { tier?: { type?: string; name?: string } | null } | null;
-        };
-        const membershipTier =
-          currentUser?.membership?.tier?.type ||
-          currentUser?.membership?.tier?.name ||
-          currentUser?.membershipTier ||
-          'free';
-        const isBusinessTier = String(membershipTier).toLowerCase().includes('business');
+        const currentUser = await refreshUserData();
+        const isBusinessTier = currentUser?.membershipTier === 'business';
         const hasBusinessInfo = !!(currentUser?.companyName && currentUser?.taxId);
         if (hasBusinessInfo && !isBusinessTier) {
           // iOS'ta bu uyarı yalnız kurumsal üyeliğe satış yapmak için var;
@@ -109,11 +120,21 @@ export function useLogin() {
       router.replace('/' as never);
     },
     onError: (error: unknown) => {
-      const e = error as { response?: { data?: { message?: string } }; message?: string };
+      const e = error as {
+        response?: { data?: { message?: string; errorCode?: string } };
+        message?: string;
+      };
       const msg = e?.response?.data?.message || e?.message || t('auth.loginFailed');
-      console.log('❌ Login hatası:', msg);
+      logger.debug('Login hatası', { msg });
       const lower = msg.toLowerCase();
-      if (lower.includes('doğrula') || lower.includes('verify') || lower.includes('doğrulanmadı')) {
+      // Önce sunucunun dilden bağımsız kodu (`EMAIL_NOT_VERIFIED`); metin kontrolü yalnız
+      // kodu göndermeyen eski API yanıtları için yedek.
+      const unverified =
+        e?.response?.data?.errorCode === 'EMAIL_NOT_VERIFIED' ||
+        lower.includes('doğrula') ||
+        lower.includes('verify') ||
+        lower.includes('doğrulanmadı');
+      if (unverified) {
         setUnverifiedEmail(getValues('email'));
         setErrorMessage(null);
       } else {
@@ -122,78 +143,58 @@ export function useLogin() {
     },
   });
 
-  const resendVerificationMutation = useMutation({
-    mutationFn: () => authApi.resendVerification(unverifiedEmail ?? getValues('email')),
-    onSuccess: () => {
-      appAlert(t('auth.verificationResentTitle'), t('auth.verificationResentBody'));
+  const resendVerificationMutation = useAppMutation(
+    () => authApi.resendVerification(unverifiedEmail ?? getValues('email')),
+    {
+      success: t('auth.verificationResentBody'),
+      error: t('auth.verificationResendFailed'),
     },
-    onError: (e: unknown) => {
-      const err = e as { response?: { data?: { message?: string } } };
-      appAlert(t('common.error'), err?.response?.data?.message || t('auth.verificationResendFailed'));
-    },
+  );
+
+  // Adım 1 → 2: e-posta kayıtlı mı, şifresi var mı (web `identify`).
+  const checkEmailMutation = useMutation({
+    mutationFn: (email: string) => authApi.checkEmail(email),
   });
 
-  useEffect(() => {
-    isAppleAvailable().then(setAppleAvailable);
-  }, []);
-
-  const handleGoogle = async () => {
-    if (googleLoading) return;
-    setGoogleLoading(true);
+  const identify = async () => {
+    setNotRegistered(false);
+    // Maestro tap akışında RHF doğrulaması sessizce düşebiliyor (aşağıdaki fallback ile aynı
+    // gerekçe); test derlemesinde e-posta biçimi elle denetlenir. Production'da dead-code.
+    const valid = IS_MAESTRO
+      ? /\S+@\S+/.test(getValues('email') ?? '')
+      : await trigger('email');
+    if (!valid) return;
     try {
-      const idToken = await signInWithGoogle();
-      const response = await authApi.loginWithGoogle(idToken);
-      const data = response.data as any;
-      const accessToken = data.tokens?.accessToken || data.accessToken;
-      const refreshToken = data.tokens?.refreshToken || data.refreshToken;
-      const user = data.user;
-      if (!accessToken) {
-        appAlert(t('common.error'), t('auth.unexpectedLoginResponse'));
+      const res = await checkEmailMutation.mutateAsync(getValues('email'));
+      if (!res.data?.exists) {
+        setNotRegistered(true);
         return;
       }
-      await login(accessToken, user, refreshToken);
-      router.push('/' as never);
-    } catch (e: any) {
-      // İptal sessiz geçilir; diğer her hata KULLANICIYA gösterilir (önceden
-      // sessiz yutuluyordu → "takılıyor" görüntüsü). Native status code'u da
-      // ekle: DEVELOPER_ERROR → Google Cloud'da Android OAuth client/SHA-1 eksik.
-      if (e?.code === 'SIGN_IN_CANCELLED' || e?.code === '-5') return;
-      const apiMsg = e?.response?.data?.message;
-      const detail = apiMsg || e?.message || t('common.unknownError');
-      const code = e?.code ? ` (${t('common.errorCodeSuffix', { code: e.code })})` : '';
-      appAlert(t('auth.googleSignInFailedTitle'), `${detail}${code}`);
-    } finally {
-      setGoogleLoading(false);
+      setStep(res.data.hasPassword ? 'password' : 'googleOnly');
+    } catch {
+      toast.error(t('error.somethingWrongDesc'));
     }
   };
 
-  const handleApple = async () => {
-    if (appleLoading) return;
-    setAppleLoading(true);
-    try {
-      const { identityToken, fullName } = await signInWithApple();
-      const response = await authApi.loginWithApple(identityToken, fullName);
-      const data = response.data as any;
-      const accessToken = data.tokens?.accessToken || data.accessToken;
-      const refreshToken = data.tokens?.refreshToken || data.refreshToken;
-      const user = data.user;
-      if (!accessToken) {
-        appAlert(t('common.error'), t('auth.unexpectedLoginResponse'));
-        return;
-      }
-      await login(accessToken, user, refreshToken);
-      router.push('/' as never);
-    } catch (e: any) {
-      // Kullanıcı iptali sessiz geçilir.
-      if (e?.code === 'ERR_REQUEST_CANCELED') return;
-      const apiMsg = e?.response?.data?.message;
-      const detail = apiMsg || e?.message || t('common.unknownError');
-      const code = e?.code ? ` (${t('common.errorCodeSuffix', { code: e.code })})` : '';
-      appAlert(t('auth.appleSignInFailedTitle'), `${detail}${code}`);
-    } finally {
-      setAppleLoading(false);
-    }
+  /** "Farklı e-posta kullan": 1. adıma dön, şifre/2FA/hata durumunu sıfırla (e-posta kalır). */
+  const back = () => {
+    setStep('email');
+    setNotRegistered(false);
+    setRequires2FA(false);
+    setUnverifiedEmail(null);
+    setErrorMessage(null);
+    loginMutation.reset();
+    setValue('password', '');
+    setValue('twoFactorCode', '');
+    clearErrors(['password', 'twoFactorCode']);
   };
+
+  // Google ile açılmış (şifresiz) hesap için şifre belirleme bağlantısı (web `sendSetPassword`).
+  const setPasswordMutation = useMutation({
+    mutationFn: (email: string) => authApi.forgotPassword(email),
+    onSuccess: () => toast.success(t('auth.setPasswordEmailSent')),
+    onError: () => toast.error(t('auth.couldNotSendEmail')),
+  });
 
   const onSubmit = (data: LoginForm) => {
     setErrorMessage(null);
@@ -216,10 +217,10 @@ export function useLogin() {
   /**
    * Maestro fallback: hook-form handleSubmit bazen Maestro tap akışında
    * silently fail oluyor. Test ortamında getValues() ile direkt mutate.
-   * Production'da EXPO_PUBLIC_MAESTRO unset → branch dead-code.
+   * Production'da IS_MAESTRO derlemede false → branch dead-code.
    */
   const handleLoginPress = () => {
-    if (process.env.EXPO_PUBLIC_MAESTRO === '1') {
+    if (IS_MAESTRO) {
       const v = getValues();
       // Maestro tap akışı RHF handleSubmit'i atlar; ama 2FA kodu yine de burada
       // doğrulanmalı — aksi halde geçersiz kod (örn. "12") sunucuya gider.
@@ -239,14 +240,24 @@ export function useLogin() {
     handleSubmit(onSubmit)();
   };
 
-  const errorBannerVisible = errorMessage || loginMutation.isError;
+  // Doğrulanmamış e-posta kendi uyarı kutusunu gösterir; üstüne "Giriş başarısız" yazılmaz.
+  const errorBannerVisible = errorMessage || (loginMutation.isError && !unverifiedEmail);
 
   return {
     form,
+    step,
+    email: form.watch('email'),
+    notRegistered,
+    identify,
+    identifying: checkEmailMutation.isPending,
+    back,
+    sendSetPassword: () => setPasswordMutation.mutate(getValues('email')),
+    settingPassword: setPasswordMutation.isPending,
     unverifiedEmail,
     setUnverifiedEmail,
     errorMessage,
     requires2FA,
+    social,
     googleLoading,
     appleLoading,
     appleAvailable,

@@ -14,6 +14,11 @@ import React from 'react';
 import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
+// B4: kimlik kapısı bu testin konusu değil — geçti say (kapı testi ayrı dosyada).
+jest.mock('@/hooks/useLegalIdentity', () =>
+  require('@/test-utils/legalIdentity').legalIdentityGatePassMock,
+);
+
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
@@ -91,13 +96,10 @@ const line = (productId: string, title: string) => ({
 async function payThrough() {
   await waitFor(() => expect(screen.getByText('Ali Veli')).toBeOnTheScreen());
   fireEvent.press(screen.getByText('Ali Veli'));
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+  await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
   acceptDistanceSales();
   await act(async () => {
-    fireEvent.press(screen.getByText(/Onayla ve Öde/));
+    fireEvent.press(screen.getByText('Ödeme Yap'));
   });
 }
 
@@ -130,15 +132,12 @@ describe('Checkout · seçili satırlar ve ödeme sonrası sepet', () => {
     renderWithProviders(<CheckoutScreen />);
     await waitFor(() => expect(screen.getByText('Ali Veli')).toBeOnTheScreen());
     fireEvent.press(screen.getByText('Ali Veli'));
-    fireEvent.press(screen.getByText('Devam Et'));
-    await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
-    fireEvent.press(screen.getByText('Devam Et'));
-    await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
     // eslint-disable-next-line no-console
 
     acceptDistanceSales();
     await act(async () => {
-      fireEvent.press(screen.getByText(/Onayla ve Öde/));
+      fireEvent.press(screen.getByText('Ödeme Yap'));
     });
 
     await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalled());
@@ -159,5 +158,27 @@ describe('Checkout · seçili satırlar ve ödeme sonrası sepet', () => {
     await payThrough();
 
     await waitFor(() => expect(useCartStore.getState().items.map((i) => i.productId)).toEqual([P2]));
+  });
+
+  it('"Hemen Al": yalnız o ürün ödenir; ödendiğinde sepetteki satırı da düşer, kalanlar durur', async () => {
+    const er = require('expo-router');
+    const original = er.useLocalSearchParams;
+    er.useLocalSearchParams = () => ({ buyNow: '1' });
+    try {
+      // Ürün detayı "Hemen Al" ürünü sepete de ekler (web paritesi) ve buyNowItem'ı kurar.
+      useCartStore.setState({ buyNowItem: { ...line(P3, 'Üçüncü'), id: 'buynow-1' } } as any);
+      renderWithProviders(<CheckoutScreen />);
+      await payThrough();
+
+      await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalled());
+      const payload = jest.mocked(ordersApi.checkout).mock.calls[0]![0] as any;
+      expect(payload.items.map((i: any) => i.productId)).toEqual([P3]);
+      await waitFor(() =>
+        expect(useCartStore.getState().items.map((i) => i.productId)).toEqual([P1, P2]),
+      );
+      expect(useCartStore.getState().buyNowItem).toBeNull();
+    } finally {
+      er.useLocalSearchParams = original;
+    }
   });
 });

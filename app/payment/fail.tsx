@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Button, Spinner, Text, theme } from '@/ui';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Alert, Button, Spinner } from '@/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '@/lib/api';
+import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
+import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability';
+import { PageShell } from '@/components/common/PageShell';
+import { searchEntryHref } from '@/lib/navigation/searchHref';
+import { useHardwareBackToHome } from '@/hooks/useBlockHardwareBack';
+import { PaymentResultCard } from '@/components/payment/PaymentResultCard';
 
 /**
- * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (CLAUDE.md §6'nın istisnası).
+ * ⚠️ BU EKRAN BİLEREK React Query'ye TAŞINMADI (exception: src/lib/query/CLAUDE.md › Exceptions).
  *
  * Buradaki yükleme saf bir okuma değil: `confirmFailed` çağrısıyla stok rezervasyonunu SERBEST BIRAKIYOR. React Query sorguları
  * başarısızlıkta yeniden dener, odaklanmada/yeniden bağlanmada tazeler ve
@@ -19,8 +22,6 @@ import { paymentsApi } from '@/lib/api';
  * Akış `resolvedRef` gibi tek-sefer korumalarıyla elle yazıldı ve öyle
  * kalmalı. Buraya "tutarlılık için" sorgu eklemeyin.
  */
-
-const { colors } = theme;
 
 interface PaymentInfo {
   id: string;
@@ -43,17 +44,27 @@ export default function PaymentFailScreen() {
   const [loading, setLoading] = useState(true);
   const [info, setInfo] = useState<PaymentInfo | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
+  const isGuest = guest === '1';
+  // Sonuç ekranı: donanım geri tuşu ödeme formuna/sepete DÖNMEZ — ana sayfaya; tekrar deneme düğmede.
+  useHardwareBackToHome();
 
   useEffect(() => {
     const load = async () => {
       if (!paymentId) { setLoading(false); return; }
       try {
-        // Rezervasyonu serbest bırak
-        await paymentsApi.confirmFailed(paymentId).catch(() => null);
+        // Rezervasyonu serbest bırak. Misafir `guestApi`'den (Bearer yok, 401'de çıkış yok).
+        const release = guest === '1' ? paymentsApi.confirmFailedGuest : paymentsApi.confirmFailed;
+        await release(paymentId).catch(() => null);
+        // Üye de `/status` (public + yetki belirteci): oturum 3DS sırasında
+        // düştüyse JWT'li `GET /payments/:id` gibi 401 → çıkış → login yok.
         const response = guest === '1'
           ? await paymentsApi.getStatusLightGuest(paymentId)
-          : await paymentsApi.getStatus(paymentId);
-        setInfo(response.data?.data ?? response.data ?? null);
+          : await paymentsApi.getStatusLight(paymentId);
+        const data = response.data?.data ?? response.data ?? null;
+        setInfo(data);
+        // confirm-failed ve durum okuması bitti; ödeme kesinse belirteci sil.
+        void forgetPaymentCapabilityIfFinal(paymentId, data?.status);
       } catch {
         // Sessiz
       } finally {
@@ -63,8 +74,13 @@ export default function PaymentFailScreen() {
     load();
   }, [paymentId, guest]);
 
+  // Yalnız üye: `POST /payments/:id/retry` JwtAuthGuard'lı ve `api`'den gider.
+  // Misafir 401 → çıkış + login ekranına düşerdi; misafire düğme gösterilmez.
   const handleRetry = async () => {
-    if (!paymentId) return;
+    if (!paymentId || isGuest) return;
+    // B4: yeniden deneme yeni bir ödeme başlatır — önce yasal kimlik.
+    // Vazgeçerse istek gitmez. Misafirde Tekrar Dene yok (web ile aynı).
+    if (!(await requireIdentity())) return;
     try {
       setRetrying(true);
       await paymentsApi.retry(paymentId);
@@ -81,116 +97,54 @@ export default function PaymentFailScreen() {
   const reason = queryError || info?.failureReason || t('payment.failedReasonDefault');
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollBody}>
-        <View style={styles.iconWrap}>
-          <Ionicons name="close-circle" size={96} color={colors.danger[600]!} />
-        </View>
-
-        <Text style={styles.title}>{t('payment.failedTitle')}</Text>
-        <Text style={styles.subtitle}>{reason}</Text>
-
-        {loading ? (
-          <View style={{ marginTop: theme.spacing[6] }}>
-            <Spinner size="md" />
-          </View>
-        ) : null}
-
-        <View style={styles.hintCard}>
-          <Ionicons name="information-circle-outline" size={18} color={colors.info[600]!} />
-          <Text style={styles.hintText}>
-            {t('payment.failedHint')}
-          </Text>
-        </View>
-
-        <View style={styles.actions}>
-          <Button
-            variant="primary"
-            title={t('payment.retry')}
-            fullWidth
-            onPress={handleRetry}
-            isLoading={retrying}
-            disabled={retrying || !paymentId}
-            style={styles.btn}
-          />
-          {tradeId ? (
-            <Button
-              variant="outline"
-              title={t('trade.backToTrade')}
-              fullWidth
-              onPress={() => router.replace(`/trade/${tradeId}` as any)}
-              style={styles.btn}
-            />
-          ) : orderId && guest !== '1' ? (
-            <Button
-              variant="outline"
-              title={t('payment.goToOrderDetail')}
-              fullWidth
-              onPress={() => router.replace(`/orders/${orderId}` as any)}
-              style={styles.btn}
-            />
-          ) : null}
-          <Button
-            variant="ghost"
-            title={t('auth.goToHome')}
-            fullWidth
-            onPress={() => router.replace('/')}
-          />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <PageShell title={t('checkout.title')} showBack={false}>
+      <PaymentResultCard
+        tone="danger"
+        title={t('payment.failedTitle')}
+        description={reason}
+        actions={
+          <>
+            {isGuest ? (
+              // Web misafir başarısız akışı (`PaymentFailClient`): yalnız "İlanlara Dön".
+              <Button
+                variant="primary"
+                title={t('seller.backToListings')}
+                fullWidth
+                onPress={() => router.replace(searchEntryHref('all'))}
+              />
+            ) : (
+              <Button
+                variant="primary"
+                title={t('payment.retry')}
+                fullWidth
+                onPress={handleRetry}
+                isLoading={retrying || checkingIdentity}
+                disabled={retrying || checkingIdentity || !paymentId}
+                testID="payment-retry-button"
+              />
+            )}
+            {tradeId ? (
+              <Button
+                variant="outline"
+                title={t('trade.backToTrade')}
+                fullWidth
+                onPress={() => router.replace(`/trade/${tradeId}` as any)}
+              />
+            ) : orderId && !isGuest ? (
+              <Button
+                variant="outline"
+                title={t('payment.goToOrderDetail')}
+                fullWidth
+                onPress={() => router.replace(`/orders/${orderId}` as any)}
+              />
+            ) : null}
+            <Button variant="ghost" title={t('auth.goToHome')} fullWidth onPress={() => router.replace('/')} />
+          </>
+        }
+      >
+        {loading ? <Spinner size="md" /> : null}
+        <Alert variant="warning">{t('payment.failedHint')}</Alert>
+      </PaymentResultCard>
+    </PageShell>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  scrollBody: {
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: theme.spacing[6],
-    gap: theme.spacing[2.5],
-  },
-  iconWrap: {
-    marginBottom: theme.spacing[2],
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: colors.text.heading,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.text.muted,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  hintCard: {
-    flexDirection: 'row',
-    gap: theme.spacing[2],
-    alignItems: 'flex-start',
-    width: '100%',
-    backgroundColor: colors.info[50]!,
-    borderRadius: theme.radius['2xl'],
-    padding: theme.spacing[3],
-    marginTop: theme.spacing[4],
-  },
-  hintText: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.info[600]!,
-    lineHeight: 18,
-  },
-  actions: {
-    width: '100%',
-    marginTop: theme.spacing[6],
-    gap: theme.spacing[2.5],
-  },
-  btn: {
-    borderRadius: theme.radius['2xl'],
-  },
-});

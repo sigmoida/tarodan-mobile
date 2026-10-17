@@ -1,30 +1,29 @@
-import { useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { qk } from '@/lib/query';
 import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
+import { useRefresh } from '@/hooks/useRefresh';
+import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { paymentsApi } from '@/lib/api';
 import type { Payment } from '../_lib/types';
 import { buildStatusConfig, formatDate, formatCurrency } from '../_lib/status';
 
 /**
- * Ödeme geçmişi controller'ı — `GET /payments/me`, odakta tazeleme, çekerek
+ * Ödeme geçmişi controller'ı — `GET /payments/me`, odakta (bayatsa) tazeleme, çekerek
  * yenileme ve detay uyarısı.
  *
- * React Query'ye taşındı (CLAUDE.md §6): sunucu yanıtı ekran modeline burada
+ * React Query'ye taşındı (src/lib/query/CLAUDE.md › Query hooks): sunucu yanıtı ekran modeline burada
  * çevriliyor, ama önbellek ve yükleme/yenileme durumları artık sorgunun
  * kendisinden geliyor — elle üç ayrı `useState` tutulmuyor.
  */
 export function usePaymentHistory() {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const queryClient = useQueryClient();
   const statusConfig = buildStatusConfig(t);
 
   const query = useQuery({
-    queryKey: qk.payments.mine,
+    queryKey: qk.payments.history,
     enabled: isAuthenticated,
     queryFn: async (): Promise<Payment[]> => {
       // Web ile aynı kaynak: GET /payments/me. Yanıt alanları (orderNumber,
@@ -46,11 +45,12 @@ export function usePaymentHistory() {
     },
   });
 
-  useFocusEffect(
-    useCallback(() => {
-      if (isAuthenticated) queryClient.invalidateQueries({ queryKey: qk.payments.mine });
-    }, [isAuthenticated, queryClient]),
-  );
+  // Ekrana dönüşte yalnız bayatsa tazele (eskiden her odakta invalidate → istek).
+  useRefetchStaleOnFocus([qk.payments.history], isAuthenticated);
+
+  // Çekip-yenile göstergesi yalnız KULLANICI çektiğinde; `isRefetching` arka plan
+  // tazelemelerinde de true olup göstergeyi kendiliğinden döndürüyordu.
+  const { refreshing, onRefresh } = useRefresh(query.refetch);
 
   const handlePaymentPress = (payment: Payment) => {
     appAlert(
@@ -72,8 +72,10 @@ export function usePaymentHistory() {
     isAuthenticated,
     payments: query.data ?? [],
     isLoading: query.isLoading,
-    isRefreshing: query.isRefetching,
-    fetchPayments: () => query.refetch(),
+    /** Geçmiş alınamadı (önbellekte de yok) — "geçmiş yok" değil, ErrorState + yeniden dene. */
+    loadFailed: query.isError && !query.data,
+    isRefreshing: refreshing,
+    fetchPayments: onRefresh,
     handlePaymentPress,
   };
 }

@@ -1,8 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Text, Divider, theme } from '@/ui';
+import { Alert, SectionCard, Text, StatusBadge, theme } from '@/ui';
+import { useOrderStatusConfig } from '@/lib/shared/orderStatus';
 import { isAwaitingDropoff, shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
 
 import { styles } from '../_lib/styles';
@@ -14,145 +14,108 @@ import {
   CLOSED_TRACK_HINT_KEYS,
   type OrderStatus,
 } from '../_lib/status';
+import { formatPrice } from '@/utils/format';
 
-const { colors } = theme;
+const TIMELINE = ['pending_payment', 'paid', 'preparing', 'shipped', 'delivered'];
 
-/** Result card: header status, product, price, shipping, and timeline. */
+function Row({ label, value, testID, mono }: { label: string; value: string; testID?: string; mono?: boolean }) {
+  return (
+    <View style={styles.row}>
+      <Text variant="bodySm" tone="muted">{label}</Text>
+      <Text variant="bodySm" weight={mono ? 'semibold' : 'medium'} testID={testID}>{value}</Text>
+    </View>
+  );
+}
+
+/** Sonuç kartları: sipariş + ürün/tutar, kargo, sipariş durumu zaman çizelgesi. */
 export function OrderTrackResult({ order }: { order: OrderStatus }) {
   const { t } = useTranslation();
+  const statusConfig = useOrderStatusConfig();
   // Liste `@/lib/shipping/shipmentStatus`'te tek yerde; alıcı sipariş detayı da
   // aynı kapıyı kullanıyor (iki kopya sessizce ayrılırdı).
   const awaitingDropoff = isAwaitingDropoff(order.shipment?.status);
+  const closed = CLOSED_TRACK_STATUSES.includes(order.status);
+  const closedInfo = closed ? getStatusInfo(order.status, t) : null;
 
   return (
-    <View style={styles.resultCard}>
-      <View style={styles.resultHeader}>
-        <View style={styles.resultHeaderInfo}>
-          <Text style={styles.orderNumber}>{order.orderNumber}</Text>
-          <Text style={styles.orderDate}>{formatTrackDate(order.createdAt)}</Text>
+    <>
+      <SectionCard bodyStyle={styles.stack}>
+        <View style={styles.resultHead}>
+          <View style={{ flex: 1 }}>
+            <Text variant="body" weight="semibold" tone="heading">{order.orderNumber}</Text>
+            <Text variant="caption" tone="muted">{formatTrackDate(order.createdAt)}</Text>
+          </View>
+          <StatusBadge status={order.status} config={statusConfig} />
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusInfo(order.status, t).color }]}>
-          <Ionicons name={getStatusInfo(order.status, t).icon as any} size={16} color={colors.white} />
-          <Text style={styles.statusText}>{getStatusInfo(order.status, t).label}</Text>
+
+        {/* Sunucunun çözdüğü diğer numaralar — kargo/grup oluşmadıysa gelmezler. */}
+        {order.groupNumber ? <Row label={t('order.groupNumberLabel')} value={order.groupNumber} mono /> : null}
+        {order.packageNumber ? <Row label={t('order.packageNumber')} value={order.packageNumber} mono /> : null}
+
+        <View style={styles.rule} />
+        <Text variant="bodySm" tone="muted">{t('order.product')}</Text>
+        <Text variant="body" weight="medium" tone="heading">{order.product.title}</Text>
+
+        {/* Price Info — guest-track yanıtında yalnızca toplam tutar var (kırılım yok) */}
+        <View style={styles.row}>
+          <Text variant="h3" tone="heading">{t('common.total')}</Text>
+          <Text variant="h3" weight="bold" style={{ color: theme.priceColor.detail }}>
+            {formatPrice(order.totalAmount)}
+          </Text>
         </View>
-      </View>
-
-      <Divider style={{ marginVertical: theme.spacing[4] }} />
-
-      {/* Sunucunun çözdüğü diğer numaralar — kargo/grup oluşmadıysa gelmezler. */}
-      {(order.groupNumber || order.packageNumber) && (
-        <View style={styles.shippingInfo}>
-          {order.groupNumber ? (
-            <View style={styles.shippingRow}>
-              <Text style={styles.shippingLabel}>{t('order.groupNumberLabel')}</Text>
-              <Text style={[styles.shippingValue, styles.trackingNumber]}>{order.groupNumber}</Text>
-            </View>
-          ) : null}
-          {order.packageNumber ? (
-            <View style={styles.shippingRow}>
-              <Text style={styles.shippingLabel}>{t('order.packageNumber')}</Text>
-              <Text style={[styles.shippingValue, styles.trackingNumber]}>
-                {order.packageNumber}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      )}
-
-      {/* Product Info */}
-      <View style={styles.productSection}>
-        <Text style={styles.sectionTitle}>{t('order.product')}</Text>
-        <Text style={styles.productTitle}>{order.product.title}</Text>
-      </View>
-
-      {/* Price Info — guest-track yanıtında yalnızca toplam tutar var (kırılım yok) */}
-      <View style={styles.priceSection}>
-        <View style={styles.priceRow}>
-          <Text style={styles.totalLabel}>{t('common.total')}</Text>
-          <Text style={styles.totalValue}>₺{(order.totalAmount ?? 0).toLocaleString('tr-TR')}</Text>
-        </View>
-      </View>
+      </SectionCard>
 
       {/* Shipping Info */}
       {order.shipment && (
-        <View style={styles.shippingSection}>
-          <Text style={styles.sectionTitle}>{t('order.shippingInfo')}</Text>
-          <View style={styles.shippingInfo}>
-            <View style={styles.shippingRow}>
-              <Text style={styles.shippingLabel}>{t('order.shippingCompany')}</Text>
-              <Text style={styles.shippingValue}>
-                {order.shipment.provider === 'surat' ? 'Sürat Kargo' : order.shipment.provider}
-              </Text>
-            </View>
-            {/* Takip numarası GÖSTERİLMEZ: uç yalnız iç referansı (`PKG-…`)
-                gönderiyor ve Sürat onu tanımaz. Yerine kargo durumu. */}
-            <View style={styles.shippingRow}>
-              <Text style={styles.shippingLabel}>{t('trade.shippingStatus.title')}</Text>
-              <Text testID="track-shipment-status" style={styles.shippingValue}>
-                {shipmentStatusLabel(order.shipment.status, t)}
-              </Text>
-            </View>
-            {order.shipment.estimatedDelivery && (
-              <View style={styles.shippingRow}>
-                <Text style={styles.shippingLabel}>{t('payment.estimatedDelivery')}</Text>
-                <Text style={styles.shippingValue}>
-                  {formatTrackDate(order.shipment.estimatedDelivery)}
-                </Text>
-              </View>
-            )}
-          </View>
+        <SectionCard title={t('order.shippingInfo')} bodyStyle={styles.stack}>
+          <Row
+            label={t('order.shippingCompany')}
+            value={order.shipment.provider === 'surat' ? 'Sürat Kargo' : order.shipment.provider}
+          />
+          {/* Takip numarası GÖSTERİLMEZ: uç yalnız iç referansı (`PKG-…`)
+              gönderiyor ve Sürat onu tanımaz. Yerine kargo durumu. */}
+          <Row
+            label={t('trade.shippingStatus.title')}
+            testID="track-shipment-status"
+            value={shipmentStatusLabel(order.shipment.status, t)}
+          />
+          {order.shipment.estimatedDelivery && (
+            <Row label={t('payment.estimatedDelivery')} value={formatTrackDate(order.shipment.estimatedDelivery)} />
+          )}
           {awaitingDropoff ? (
-            <Text style={styles.shippingLabel}>{t('order.shipmentPreparingBuyer')}</Text>
+            <Text variant="caption" tone="muted">{t('order.shipmentPreparingBuyer')}</Text>
           ) : null}
-        </View>
+        </SectionCard>
       )}
 
       {/* Timeline */}
-      <View style={styles.timelineSection}>
-        <Text style={styles.sectionTitle}>{t('order.orderStatusSectionTitle')}</Text>
-        {CLOSED_TRACK_STATUSES.includes(order.status) ? (
-          <View style={styles.closedState}>
-            <View style={[styles.closedIcon, { backgroundColor: getStatusInfo(order.status, t).color }]}>
-              <Ionicons name={getStatusInfo(order.status, t).icon as any} size={22} color={colors.white} />
-            </View>
-            <Text style={styles.closedLabel}>{getStatusInfo(order.status, t).label}</Text>
-            <Text style={styles.closedHint}>
-              {CLOSED_TRACK_HINT_KEYS[order.status] ? t(CLOSED_TRACK_HINT_KEYS[order.status]!) : ''}
-            </Text>
-          </View>
+      <SectionCard title={t('order.orderStatusSectionTitle')}>
+        {closedInfo ? (
+          <Alert
+            variant={order.status === 'cancelled' ? 'danger' : order.status === 'refund_requested' ? 'warning' : 'info'}
+            title={closedInfo.label}
+          >
+            {CLOSED_TRACK_HINT_KEYS[order.status] ? t(CLOSED_TRACK_HINT_KEYS[order.status]!) : ''}
+          </Alert>
         ) : (
           <View style={styles.timeline}>
-            {['pending_payment', 'paid', 'preparing', 'shipped', 'delivered'].map((status, index) => {
+            {TIMELINE.map((status, index) => {
               const statusInfo = getStatusInfo(status, t);
               const isActive = getStatusSteps(order.status) >= index;
               const isCurrent = order.status === status;
-
               return (
                 <View key={status} style={styles.timelineItem}>
-                  <View style={[
-                    styles.timelineDot,
-                    isActive && { backgroundColor: colors.primary[600]! },
-                    isCurrent && styles.timelineDotCurrent,
-                  ]}>
-                    {isActive && (
-                      <Ionicons
-                        name={isCurrent ? statusInfo.icon as any : 'checkmark'}
-                        size={12}
-                        color={colors.white}
-                      />
+                  <View style={styles.timelineRail}>
+                    <View style={[styles.timelineDot, isActive && styles.timelineDotActive]} />
+                    {index < TIMELINE.length - 1 && (
+                      <View style={[styles.timelineLine, isActive && styles.timelineLineActive]} />
                     )}
                   </View>
-                  {index < 4 && (
-                    <View style={[
-                      styles.timelineLine,
-                      isActive && { backgroundColor: colors.primary[600]! },
-                    ]} />
-                  )}
-                  <Text style={[
-                    styles.timelineLabel,
-                    isActive && styles.timelineLabelActive,
-                    isCurrent && styles.timelineLabelCurrent,
-                  ]}>
+                  <Text
+                    variant="bodySm"
+                    weight={isCurrent ? 'bold' : isActive ? 'medium' : 'regular'}
+                    tone={isActive ? 'heading' : 'subtle'}
+                  >
                     {statusInfo.label}
                   </Text>
                 </View>
@@ -160,7 +123,7 @@ export function OrderTrackResult({ order }: { order: OrderStatus }) {
             })}
           </View>
         )}
-      </View>
-    </View>
+      </SectionCard>
+    </>
   );
 }

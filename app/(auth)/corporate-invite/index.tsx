@@ -1,17 +1,11 @@
-import { View, ScrollView } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import {
-  Text,
-  Button,
-  Card,
-  Alert,
-  ScreenHeader,
-  ScreenLoader,
-  theme,
-} from '@/ui';
+import { Text, Button, Alert, ScreenLoader, theme } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
 import { toHandle } from '@/utils/validation';
+import { passwordHint } from '@/utils/passwordPolicy';
+import { AuthShell } from '@/components/auth/AuthShell';
 import { useCorporateInvite } from './_hooks/useCorporateInvite';
 
 /**
@@ -22,36 +16,47 @@ import { useCorporateInvite } from './_hooks/useCorporateInvite';
 export default function CorporateInviteScreen() {
   const { t } = useTranslation();
   const f = useCorporateInvite();
+  const toLogin = () => router.replace('/(auth)/login' as never);
+  const password = f.form.watch('password');
 
-  if (f.isLoading) return <ScreenLoader />;
+  // Yüklenirken de standart kabuk: üst bar + geri oku görünür, kullanıcı sıkışmaz.
+  if (f.isLoading) {
+    return (
+      <AuthShell title={t('auth.corporateInviteTitle')} onBack={toLogin}>
+        <ScreenLoader fullscreen={false} />
+      </AuthShell>
+    );
+  }
 
   if (f.isInvalid) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.colors.surface.DEFAULT }}>
-        <ScreenHeader title={t('auth.corporateInviteTitle')} onBack={() => router.replace('/(auth)/login' as never)} />
-        <View testID="invite-invalid" style={{ padding: theme.spacing[4], gap: theme.spacing[4] }}>
+      <AuthShell
+        title={t('auth.corporateInviteTitle')}
+        onBack={toLogin}
+      >
+        <View testID="invite-invalid" style={styles.stack}>
           <Alert variant="danger" title={t('auth.corporateInviteInvalid')}>
             {t('auth.corporateInviteInvalidDesc')}
           </Alert>
-          <Button onPress={() => router.replace('/(auth)/login' as never)}>{t('auth.backToLogin')}</Button>
+          <Button onPress={toLogin}>{t('auth.backToLogin')}</Button>
         </View>
-      </View>
+      </AuthShell>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.surface.DEFAULT }}>
-      <ScreenHeader title={t('auth.corporateActivateTitle')} onBack={() => router.replace('/(auth)/login' as never)} />
-      <ScrollView
-        contentContainerStyle={{ padding: theme.spacing[4], gap: theme.spacing[4] }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Card>
+    <AuthShell
+      title={t('auth.corporateActivateTitle')}
+      hero="auth_default"
+      onBack={toLogin}
+    >
+      <View style={styles.stack}>
+        <View style={styles.company}>
           <Text variant="h3">{f.invitation?.companyTitle}</Text>
-          <Text variant="caption" style={{ color: theme.colors.text.muted }}>
+          <Text variant="caption" tone="muted">
             {f.invitation?.companyEmail}
           </Text>
-        </Card>
+        </View>
 
         <Alert variant="info" title={t('auth.usernamePermanentTitle')}>
           {t('settings.usernamePermanentWarningBody')}
@@ -75,7 +80,8 @@ export default function CorporateInviteScreen() {
             name="password"
             label={t('auth.password')}
             secureTextEntry
-            helperText={t('auth.corporatePasswordHelp')}
+            // Boşken kuralın tamamı; yazarken yalnız eksik kurallar (tek kaynak `passwordHint`).
+            helperText={password ? passwordHint(password, t) : t('auth.corporatePasswordHelp')}
           />
           <FormInput
             testID="invite-password-confirm"
@@ -88,7 +94,12 @@ export default function CorporateInviteScreen() {
         <Button testID="invite-submit" onPress={f.onSubmit} isLoading={f.isSubmitting}>
           {t('auth.corporateActivateSubmit')}
         </Button>
-      </ScrollView>
-    </View>
+      </View>
+    </AuthShell>
   );
 }
+
+const styles = StyleSheet.create({
+  stack: { gap: theme.spacing[4] },
+  company: { gap: theme.spacing[1] },
+});

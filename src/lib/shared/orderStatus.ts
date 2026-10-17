@@ -1,40 +1,32 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { BadgeVariant } from '@/ui';
-import type { MessageKey } from '@/i18n/lib';
+import { orderStatusConfig, type StatusConfig, type StatusConfigDef } from './status-configs';
 
 /**
- * Sipariş durumu → rozet varyantı + KATALOG ANAHTARI. **Tek kaynak.**
+ * Sipariş durumu → rozet varyantı + KATALOG ANAHTARI. **Tek kaynak: web.**
  *
- * Bu harita üç ayrı rotada (liste, detay, grup) birebir kopyalanmıştı. Üçü
- * aynıyken bile tehlikeliydi: bir durum eklendiğinde diğer iki kopya sessizce
- * eksik kalır ve kullanıcı aynı siparişi bir ekranda etiketli, diğerinde ham
- * durum koduyla görürdü.
+ * Değerler web `orderStatusConfig`'ten (`@/lib/shared/status-configs`) gelir;
+ * burada yalnız mobil arayüz durum adlarının (`apiStatusToUi`) web adlarına
+ * eşlemesi ve web'de bulunmayan tek durum (`mixed`, çok satıcılı grup) durur.
+ * Hem mobil arayüz adları (`pending`, `processing`, `awaiting_confirmation`)
+ * hem de ham API/web adları (`pending_payment`, `preparing`,
+ * `awaiting_buyer_confirmation`) aynı etiketi çözer.
  *
- * Etiketler burada sabit metin DEĞİL, katalog anahtarıdır — modül saf olduğu
- * için `useTranslation` çağıramaz; çeviri `useOrderStatusConfig` ile render
- * anında yapılır. Varyant (semantik renk) çeviriden bağımsız olduğu için
- * burada kalır.
+ * Etiketler sabit metin DEĞİL, katalog anahtarıdır — modül saf olduğu için
+ * `useTranslation` çağıramaz; çeviri `useOrderStatusConfig` ile render
+ * anında yapılır.
  */
-export const uiOrderStatusMeta: Record<
-  string,
-  { labelKey: MessageKey; variant: BadgeVariant }
-> = {
-  pending: { labelKey: 'order.statusPendingPayment', variant: 'warning' },
-  paid: { labelKey: 'order.statusPaid', variant: 'info' },
-  processing: { labelKey: 'order.statusProcessing', variant: 'info' },
-  shipped: { labelKey: 'order.statusShipped', variant: 'primary' },
-  delivered: { labelKey: 'order.statusDelivered', variant: 'success' },
-  awaiting_confirmation: { labelKey: 'order.statusAwaitingConfirmation', variant: 'warning' },
-  completed: { labelKey: 'order.statusCompleted', variant: 'success' },
-  cancelled: { labelKey: 'order.statusCancelled', variant: 'danger' },
-  refunded: { labelKey: 'order.statusRefunded', variant: 'secondary' },
-  refund_requested: { labelKey: 'order.statusRefundInProgress', variant: 'danger' },
-  mixed: { labelKey: 'order.statusMixed', variant: 'info' },
+export const uiOrderStatusMeta: Record<string, StatusConfigDef> = {
+  ...orderStatusConfig,
+  pending: orderStatusConfig.pending_payment!,
+  processing: orderStatusConfig.preparing!,
+  awaiting_confirmation: orderStatusConfig.awaiting_buyer_confirmation!,
+  // Web'de yok: çok satıcılı grupta paketlerin durumu birbirinden farklı.
+  mixed: { labelKey: 'order.statusMixed', variant: 'default' },
 };
 
 /** `StatusBadge`'in beklediği, çevrilmiş config. */
-export function useOrderStatusConfig(): Record<string, { label: string; variant: BadgeVariant }> {
+export function useOrderStatusConfig(): Record<string, StatusConfig> {
   const { t } = useTranslation();
   return useMemo(
     () =>

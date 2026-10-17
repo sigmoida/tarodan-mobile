@@ -1,6 +1,8 @@
+import { logger, safeError } from '@/services/logger';
 import { useCallback, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { api } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import i18n from '@/i18n/config';
 import { canGuestCancel, type OrderStatus } from '../_lib/status';
 import { useGuestOrderCancel } from './useGuestOrderCancel';
@@ -27,20 +29,6 @@ export function useOrderTrack() {
   const [error, setError] = useState('');
   const [order, setOrder] = useState<OrderStatus | null>(null);
 
-  const [snackbar, setSnackbar] = useState<{
-    visible: boolean;
-    message: string;
-    variant: 'success' | 'danger';
-  }>({ visible: false, message: '', variant: 'success' });
-  const notify = useCallback(
-    (message: string, variant: 'success' | 'danger') =>
-      setSnackbar({ visible: true, message, variant }),
-    [],
-  );
-  const dismissSnackbar = useCallback(
-    () => setSnackbar((s) => ({ ...s, visible: false })),
-    [],
-  );
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
 
   /**
@@ -71,11 +59,11 @@ export function useOrderTrack() {
 
       setOrder(response.data);
     } catch (err: any) {
-      console.error('Track order error:', err);
+      logger.error('Track order error', { err: safeError(err) });
       if (err.response?.status === 404) {
         setError(i18n.t('order.notFoundCheckDetails'));
       } else {
-        setError(err.response?.data?.message || i18n.t('order.trackQueryFailed'));
+        setError(apiErrorMessage(err, i18n.t('order.trackQueryFailed')));
       }
     } finally {
       setLoading(false);
@@ -86,7 +74,6 @@ export function useOrderTrack() {
     orderNumber,
     email,
     onDone: handleTrack,
-    notify,
   });
 
   const onChangeOrderNumber = (text: string) => {
@@ -107,8 +94,6 @@ export function useOrderTrack() {
     error,
     order,
     handleTrack,
-    snackbar,
-    dismissSnackbar,
     /**
      * Misafir iptali. Kapı `canGuestCancel` — kargoya verilmiş siparişte sunucu
      * zaten 400 atıyor, butonu göstermek kullanıcıyı o hataya yürütmek olurdu.

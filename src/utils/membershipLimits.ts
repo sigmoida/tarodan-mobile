@@ -6,6 +6,7 @@
 import type { TFunction } from 'i18next';
 import { theme } from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
+import { SERVER_MAX_ADDRESSES } from '@/lib/addressLimit';
 import { useAuthStore, MembershipTier, MembershipLimits } from '../stores/authStore';
 
 const { colors } = theme;
@@ -14,7 +15,7 @@ const { colors } = theme;
 export const FREE_MEMBER_LIMITS = {
   maxListings: 10,
   maxImagesPerListing: 5,
-  maxAddresses: 10,
+  maxAddresses: SERVER_MAX_ADDRESSES, // sunucu tüm katmanlarda 3 (bkz. @/lib/addressLimit)
   maxSavedSearches: 5,
   maxMessagesPerDay: 50,
   listingExpireDays: 60,
@@ -33,7 +34,7 @@ export const FREE_MEMBER_LIMITS = {
 export const PREMIUM_MEMBER_LIMITS = {
   maxListings: -1, // Unlimited
   maxImagesPerListing: 15,
-  maxAddresses: 10,
+  maxAddresses: SERVER_MAX_ADDRESSES, // sunucu tüm katmanlarda 3 (bkz. @/lib/addressLimit)
   maxSavedSearches: -1, // Unlimited
   maxMessagesPerDay: -1, // Unlimited
   listingExpireDays: -1, // Never expire
@@ -149,7 +150,7 @@ export const getUpgradePrompt = (action: FeatureCheck): UpgradePromptType | null
 
 // Get upgrade message based on prompt type. `t` MUST come from a live
 // useTranslation()/schemaT call at the call site — this module is shared and
-// cannot resolve its own translator (see CLAUDE.md §8, membershipLimits is
+// cannot resolve its own translator (see src/i18n/CLAUDE.md › Build labels at call time, membershipLimits is
 // state/logic, not a component/hook).
 export const getUpgradeMessage = (t: TFunction, promptType: UpgradePromptType): { title: string; message: string } => {
   // iOS'ta ücretli kademeden söz edilemez (Guideline 3.1.3 anti-steering +

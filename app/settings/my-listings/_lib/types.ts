@@ -1,19 +1,21 @@
 import type { MessageKey } from '@/i18n/lib';
-import { theme } from '@/ui';
-
-const { colors } = theme;
+import { productStatusConfig, type StatusConfigDefMap } from '@/lib/shared/status-configs';
+import { statusVariantSolid } from '@/lib/shared/status-colors';
 
 export interface Listing {
   id: string;
   title: string;
   price: number;
+  /** İndirim öncesi fiyat (varsa; üstü çizili gösterilir — `@/utils/productPrice`). */
+  oldPrice?: number | string | null;
+  originalPrice?: number | string | null;
+  isOnSale?: boolean;
   status: 'active' | 'pending' | 'sold' | 'inactive' | 'reserved' | 'rejected' | 'deleted' | 'suspended';
   viewCount: number;
   likeCount?: number;
   images: Array<{ url: string }>;
   createdAt: string;
   updatedAt: string;
-  expiresAt?: string;
   condition: string;
   category?: { name: string };
   boostedUntil?: string | null;
@@ -27,24 +29,66 @@ export interface Listing {
    * kutu, gerekçe yokmuş gibi değil "bir şey bozuk" gibi görünür).
    */
   rejectionReason?: string | null;
+  /**
+   * Pasif ilanın davranış işareti (`GET /products/my`): `expired` (süresi doldu,
+   * yenilenebilir) ya da `return_quarantine` (iade stoğu geri yükledi). Statüsü
+   * `inactive` olmayan ilanda boştur. Bkz. `product-common.service.ts`.
+   */
+  inactiveReason?: string | null;
 }
 
 export type FilterType =
-  | 'all' | 'active' | 'pending' | 'sold' | 'reserved' | 'inactive' | 'rejected' | 'deleted';
+  | 'all' | 'active' | 'pending' | 'sold' | 'reserved' | 'inactive' | 'expired' | 'rejected' | 'deleted';
 
-export const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'active': return colors.success[600]!;
-    case 'sold': return colors.info[600]!;
-    case 'pending': return colors.warning[600]!;
-    case 'rejected': return colors.danger[600]!;
-    case 'reserved': return colors.primary[600]!;
-    case 'inactive': return colors.text.subtle;
-    case 'deleted': return colors.danger[600]!;
-    case 'suspended': return colors.warning[700]!;
-    default: return colors.text.muted;
-  }
+/** Sekme değeri "Süresi dolan" (sunucuda `status=inactive` + `inactiveReason=expired`). */
+export const EXPIRED_FILTER = 'expired' as const;
+
+/** İlanın süresi dolmuş mu (pasif + neden `expired`)? Tek yüklem — sekme, rozet ve menü bunu okur. */
+export const isExpiredListing = (listing: Pick<Listing, 'status' | 'inactiveReason'>): boolean =>
+  listing.status === 'inactive' && listing.inactiveReason === EXPIRED_FILTER;
+
+/** Rozet/etiket için etkin durum: süresi dolan ilan "expired" gösterilir (web `listingStatusKey`). */
+export const effectiveStatus = (listing: Pick<Listing, 'status' | 'inactiveReason'>): string =>
+  isExpiredListing(listing) ? EXPIRED_FILTER : listing.status;
+
+/** `GET /products/my` sorgu parametreleri — sekme değerinden (web `listingFilterParams`). */
+export function listingFilterParams(filter: FilterType): Record<string, string> {
+  if (filter === EXPIRED_FILTER) return { status: 'inactive', inactiveReason: 'expired' };
+  return filter === 'all' ? {} : { status: filter };
+}
+
+/** İstemci tarafı sekme eşlemesi (liste zaten sunucuda süzülür; yarış anında yanlış ilan görünmesin). */
+export const matchesFilter = (listing: Listing, filter: FilterType): boolean => {
+  if (filter === 'all') return true;
+  if (filter === EXPIRED_FILTER) return isExpiredListing(listing);
+  return listing.status === filter;
 };
+
+/**
+ * Pasif ilanın NEDEN pasif olduğunu açıklayan katalog anahtarı (kartta ipucu).
+ * `expired` yenileme çağrısı taşır; `return_quarantine` bekleme açıklamasıdır.
+ */
+export const inactiveHintKey = (
+  listing: Pick<Listing, 'status' | 'inactiveReason'>,
+): MessageKey | null => {
+  if (listing.status !== 'inactive') return null;
+  if (listing.inactiveReason === EXPIRED_FILTER) return 'profile.expiredListings.cardHint';
+  if (listing.inactiveReason === 'return_quarantine') return 'status.listingRemoval.reason.return_quarantine';
+  return null;
+};
+
+/**
+ * İlan durumu: renk + etiket web `productStatusConfig` ile AYNI
+ * (`@/lib/shared/status-configs`). Mobilin eklediği tek durum `expired`
+ * (pasif + süresi dolmuş; web'de ayrı durum değil).
+ */
+const LISTING_STATUS_META: StatusConfigDefMap = {
+  ...productStatusConfig,
+  expired: { labelKey: 'profile.listingStatus.expired', variant: 'warning' },
+};
+
+export const getStatusColor = (status: string) =>
+  statusVariantSolid(LISTING_STATUS_META[status]?.variant ?? 'outline');
 
 /**
  * Durumun katalog ANAHTARI — çözülmüş metin değil.
@@ -53,29 +97,10 @@ export const getStatusColor = (status: string) => {
  * dondururdu. Tanınmayan bir durum `null` döner, çağıran ham kodu basar (ekranda
  * boş bir satır kalmasın).
  */
-export const statusTextKey = (status: string): MessageKey | null => {
-  switch (status) {
-    case 'active': return 'listing.filterActive';
-    case 'sold': return 'listing.filterSold';
-    case 'pending': return 'listing.statusPendingApproval';
-    case 'rejected': return 'listing.filterRejected';
-    case 'reserved': return 'listing.filterReserved';
-    case 'inactive': return 'listing.filterInactive';
-    case 'deleted': return 'listing.statusDeleted';
-    case 'suspended': return 'listing.statusSuspended';
-    default: return null;
-  }
-};
+export const statusTextKey = (status: string): MessageKey | null =>
+  LISTING_STATUS_META[status]?.labelKey ?? null;
 
 export const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   return date.toLocaleDateString('tr-TR');
-};
-
-export const getDaysUntilExpiry = (expiresAt?: string) => {
-  if (!expiresAt) return null;
-  const expires = new Date(expiresAt);
-  const now = new Date();
-  const diff = expires.getTime() - now.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
 };

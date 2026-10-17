@@ -1,7 +1,20 @@
 import {
   colors as baseColors,
+  controlHeight,
+  counterBadgeColor,
+  duration,
+  headerBottomPad,
+  headerHeight,
+  iconSize,
+  inactiveIconColor,
+  loading,
+  minTouchTarget,
+  nativeShadows,
+  priceColor,
   radius,
+  radiusRole,
   spacing,
+  tabBarLabel,
   typography,
   type ColorScale,
 } from '@/theme';
@@ -11,6 +24,7 @@ import {
  * Lint hex/rgba yasağı bu wrap'lı sabitlerle aşılır.
  */
 const overlay = {
+  white0: 'rgba(255,255,255,0)',
   white05: 'rgba(255,255,255,0.05)',
   white10: 'rgba(255,255,255,0.10)',
   white20: 'rgba(255,255,255,0.20)',
@@ -41,12 +55,30 @@ const colors = {
 
 /**
  * Native theme — flattened tokens optimised for StyleSheet.
+ *
+ * Rol token'ları (bkz. `src/theme/roles.ts`): `iconSize`, `controlHeight`, `minTouchTarget`,
+ * `headerHeight` (üst bar içerik yüksekliği, 52), `radiusRole`, `priceColor`, `counterBadgeColor`, `inactiveIconColor` (alt menü pasif ikonu = üst bar sekme-kökü ikonları), `tabBarLabel` (alt menü sekme etiketi, ölçekten bağımsız sabit); RN gölge preset'leri `shadow`
+ * (`{ ...theme.shadow.soft }`); hareket süreleri `duration` (ms, sayı).
  */
 export const theme = {
   colors,
   radius,
   spacing,
   typography,
+  shadow: nativeShadows,
+  duration,
+  iconSize,
+  controlHeight,
+  minTouchTarget,
+  headerHeight,
+  headerBottomPad,
+  radiusRole,
+  priceColor,
+  counterBadgeColor,
+  inactiveIconColor,
+  tabBarLabel,
+  /** Yükleme sistemi (gösterge, iskelet animasyonu, gecikme) — bkz. `src/ui/loading/`. */
+  loading,
 } as const;
 
 export type Theme = typeof theme;

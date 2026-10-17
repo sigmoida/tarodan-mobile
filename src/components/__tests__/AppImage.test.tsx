@@ -21,6 +21,9 @@ import { render, act } from '@testing-library/react-native';
 import { Image } from 'expo-image';
 import { AppImage } from '../AppImage';
 
+// API kökü sabit: bearer yalnız bu origin'deki `/media/message-attachment/<id>` ucuna gider.
+jest.mock('@/lib/api/baseUrl', () => ({ resolveApiBaseUrl: () => 'https://api.tarodan.com/api' }));
+
 jest.mock('@/stores/authStore', () => {
   const { create } = require('zustand');
   return { useAuthStore: create(() => ({ token: null })) };
@@ -114,11 +117,48 @@ describe('AppImage — authenticated opt-in yükleme (task 4)', () => {
 });
 
 /**
+ * Token sızıntısı (HIGH) — `authenticated` açıkken bearer HER URL'e ekleniyordu;
+ * mesaj gövdesindeki `[IMG:https://saldirgan/…]` alıcının access token'ını yabancı
+ * hosta taşıyordu. Header artık yalnız API origin'i + mesaj eki yoluna gider.
+ */
+describe('AppImage — bearer yalnız kendi mesaj eki ucuna', () => {
+  beforeEach(() => {
+    (useAuthStore as any).setState({ token: 'victim-token' });
+  });
+
+  const foreign = [
+    'https://evil.example/api/media/message-attachment/xyz',
+    'https://api.tarodan.com@evil.example/api/media/message-attachment/xyz',
+    'https://api.tarodan.com.evil.example/api/media/message-attachment/xyz',
+    'http://api.tarodan.com/api/media/message-attachment/xyz',
+    'https://api.tarodan.com/api/users/me',
+    'https://api.tarodan.com/api/media/message-attachment/../../users/me',
+    'https://api.tarodan.com/api/media/message-attachment/xyz?redirect=https://evil.example',
+  ];
+
+  it.each(foreign)('%s → Authorization header YOK', (uri) => {
+    const { UNSAFE_getByType } = render(<AppImage source={uri} authenticated />);
+    const img = UNSAFE_getByType(Image);
+    expect(img.props.source.headers).toBeUndefined();
+    expect(JSON.stringify(img.props.source)).not.toContain('victim-token');
+  });
+
+  it('kendi mesaj eki ucu → Authorization header VAR', () => {
+    const { UNSAFE_getByType } = render(
+      <AppImage source="https://api.tarodan.com/api/media/message-attachment/xyz" authenticated />,
+    );
+    expect(UNSAFE_getByType(Image).props.source.headers).toEqual({
+      Authorization: 'Bearer victim-token',
+    });
+  });
+});
+
+/**
  * I2 — authenticated bir yükleme başarısız olduğunda sessizce gri kutuya
- * düşmesin. Log YALNIZ `__DEV__` altında ve token/URL/query İÇERMEZ.
+ * düşmesin. Log `logger.debug` ile yazılır (release'te düşer) ve token/URL/query İÇERMEZ.
  */
 describe('AppImage — başarısız bearer yüklemesi görünür olur (I2)', () => {
-  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  const warn = jest.spyOn(console, 'log').mockImplementation(() => {});
 
   beforeEach(() => {
     warn.mockClear();
@@ -127,17 +167,17 @@ describe('AppImage — başarısız bearer yüklemesi görünür olur (I2)', () 
 
   afterAll(() => warn.mockRestore());
 
-  it('authenticated yükleme hatası DEV altında uyarı basar (token/URL sızdırmadan)', () => {
+  it('authenticated yükleme hatası debug günlüğü basar (token/URL sızdırmadan)', () => {
     (useAuthStore as any).setState({ token: 'secret-token-value' });
     const { UNSAFE_getByType } = render(
-      <AppImage source="https://api.tarodan.com/api/media/message-attachment/xyz?sig=SECRET" authenticated />
+      <AppImage source="https://api.tarodan.com/api/media/message-attachment/xyzSECRET" authenticated />
     );
 
     act(() => UNSAFE_getByType(Image).props.onError());
 
     expect(warn).toHaveBeenCalledTimes(1);
-    const logged = String(warn.mock.calls[0][0]);
-    expect(logged).toContain('hasToken=true');
+    const logged = JSON.stringify(warn.mock.calls[0]);
+    expect(logged).toContain('"hasToken":true');
     expect(logged).not.toContain('secret-token-value');
     expect(logged).not.toContain('message-attachment');
     expect(logged).not.toContain('SECRET');
@@ -150,7 +190,7 @@ describe('AppImage — başarısız bearer yüklemesi görünür olur (I2)', () 
 
     act(() => UNSAFE_getByType(Image).props.onError());
 
-    expect(String(warn.mock.calls[0][0])).toContain('hasToken=false');
+    expect(JSON.stringify(warn.mock.calls[0])).toContain('"hasToken":false');
   });
 
   it('public görselin hatası log basmaz (gürültü yok) ama onError yine çağrılır', () => {
@@ -163,5 +203,49 @@ describe('AppImage — başarısız bearer yüklemesi görünür olur (I2)', () 
 
     expect(warn).not.toHaveBeenCalled();
     expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it('recyclingKey expo-image\'e geçer (FlashList hücre geri dönüşümü)', () => {
+    const { UNSAFE_getByType } = render(
+      <AppImage source="https://cdn.example.com/product.jpg" recyclingKey="p1" />
+    );
+    expect(UNSAFE_getByType(Image).props.recyclingKey).toBe('p1');
+  });
+});
+
+describe('AppImage — hata yer tutucusu, cihaz URI, varyant', () => {
+  beforeEach(() => {
+    (useAuthStore as any).setState({ token: null });
+  });
+
+  it('yükleme hatasında sade gri yer tutucuya düşer; kaynak değişince yeniden dener', () => {
+    const { UNSAFE_getByType, rerender } = render(<AppImage source="https://cdn.example.com/a.jpg" />);
+    act(() => UNSAFE_getByType(Image).props.onError());
+    expect(UNSAFE_getByType(Image).props.source.uri).toMatch(/^data:image\/png/);
+
+    rerender(<AppImage source="https://cdn.example.com/b.jpg" />);
+    expect(UNSAFE_getByType(Image).props.source).toEqual({ uri: 'https://cdn.example.com/b.jpg' });
+  });
+
+  it('cihaz-yerel URI varsayılan reddedilir; allowDeviceUris ile geçer', () => {
+    const { UNSAFE_getByType, rerender } = render(<AppImage source="file:///var/cover.jpg" />);
+    expect(UNSAFE_getByType(Image).props.source.uri).toMatch(/^data:image\/png/);
+    rerender(<AppImage source="file:///var/cover.jpg" allowDeviceUris />);
+    expect(UNSAFE_getByType(Image).props.source).toEqual({ uri: 'file:///var/cover.jpg' });
+  });
+
+  it('varyant: kart küçük (cardUrl), detay büyük (detailUrl) görseli seçer; cache memory-disk', () => {
+    const src = { cardUrl: 'https://x/card.jpg', detailUrl: 'https://x/detail.jpg' };
+    const { UNSAFE_getByType, rerender } = render(<AppImage source={src} />);
+    expect(UNSAFE_getByType(Image).props.source.uri).toBe('https://x/card.jpg');
+    expect(UNSAFE_getByType(Image).props.cachePolicy).toBe('memory-disk');
+    rerender(<AppImage source={src} variant="detail" />);
+    expect(UNSAFE_getByType(Image).props.source.uri).toBe('https://x/detail.jpg');
+  });
+
+  it('accessibilityLabel verilirse erişilebilir görsel olur', () => {
+    const { UNSAFE_getByType } = render(<AppImage source="https://x/a.jpg" accessibilityLabel="Ürün" />);
+    expect(UNSAFE_getByType(Image).props.accessible).toBe(true);
+    expect(UNSAFE_getByType(Image).props.accessibilityLabel).toBe('Ürün');
   });
 });

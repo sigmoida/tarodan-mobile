@@ -6,6 +6,15 @@
  * ödeme dönüşünün yönlendirilmemesi. Fark: artık `router.push` gözlenmiyor —
  * kanca saf bir fonksiyon, dönüş değeri expo-router'a verilen yoldur.
  */
+const mockDismissTo = jest.fn();
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({
+  router: {
+    dismissTo: (...a: unknown[]) => mockDismissTo(...a),
+    push: (...a: unknown[]) => mockPush(...a),
+  },
+}));
+
 import fs from 'fs';
 import nodePath from 'path';
 import { redirectSystemPath } from '../+native-intent';
@@ -15,6 +24,12 @@ const call = (path: string, initial = true) => redirectSystemPath({ path, initia
 describe('redirectSystemPath — web yolu → mobil rota', () => {
   it('https universal link\'i mobil rotaya çevirir', () => {
     expect(call('https://tarodan.com.tr/listings/123')).toBe('/product/123');
+  });
+
+  it('ilan listesi (takas vitrini, popüler…) ön filtreli aramaya gider, sorgu korunur', () => {
+    expect(call('https://tarodan.com.tr/listings?tradeOnly=true')).toBe('/search?tradeOnly=true');
+    expect(call('tarodan://listings?sortBy=view_count_desc')).toBe('/search?sortBy=view_count_desc');
+    expect(call('https://tarodan.com.tr/en/listings')).toBe('/search');
   });
 
   it('sorgu taşıyan yolu sorgusuyla birlikte çevirir', () => {
@@ -46,6 +61,27 @@ describe('redirectSystemPath — web yolu → mobil rota', () => {
   });
 });
 
+describe('redirectSystemPath — e-posta doğrulama bağlantısı (token korunur)', () => {
+  // Soğuk açılış (initial: true) VE uygulama açıkken (initial: false) aynı sonuç; `token`
+  // sorgusu düşmez, `/en/` locale öneki soyulur, custom scheme de çalışır.
+  it.each([
+    ['https://tarodan.com.tr/verify-email?token=abc123', '/verify-email?token=abc123'],
+    ['https://tarodan.com.tr/en/verify-email?token=abc123', '/verify-email?token=abc123'],
+    ['https://tarodan.com.tr/tr/verify-email?token=abc123', '/verify-email?token=abc123'],
+    ['https://www.tarodan.com.tr/verify-email?token=abc123', '/verify-email?token=abc123'],
+    ['tarodan://verify-email?token=abc123', '/verify-email?token=abc123'],
+  ])('%s → %s', (url, expected) => {
+    expect(call(url, true)).toBe(expected);
+    expect(call(url, false)).toBe(expected);
+  });
+
+  it('uygulama açıkken sekme gezinmesi tetiklemez (doğrulama ekranı yığına itilir)', () => {
+    mockDismissTo.mockClear();
+    call('https://tarodan.com.tr/verify-email?token=abc123', false);
+    expect(mockDismissTo).not.toHaveBeenCalled();
+  });
+});
+
 describe('redirectSystemPath — dokunulmayanlar', () => {
   it('yolsuz kök URL\'i olduğu gibi bırakır (bağlantısız açılış)', () => {
     expect(call('tarodan:///')).toBe('tarodan:///');
@@ -60,8 +96,8 @@ describe('redirectSystemPath — dokunulmayanlar', () => {
     // çıkarımı sessizce eziyor. Girdiyi döndürmek "kanca yokmuş gibi davran"
     // demek; expo-router kendi ağacında arar ve `tarodan://cart` yine çalışır.
     expect(call('tarodan://cart')).toBe('tarodan://cart');
-    expect(call('https://tarodan.com.tr/sayfa/hakkimizda')).toBe(
-      'https://tarodan.com.tr/sayfa/hakkimizda',
+    expect(call('https://tarodan.com.tr/kampanya/yaz')).toBe(
+      'https://tarodan.com.tr/kampanya/yaz',
     );
   });
 
@@ -112,5 +148,32 @@ describe('checkout: AASA dışında ama custom scheme ile AÇILIR', () => {
 
   it('checkout ekranı GERÇEKTEN var — engellenirse ölür', () => {
     expect(fs.existsSync(nodePath.join(__dirname, '../checkout/index.tsx'))).toBe(true);
+  });
+});
+
+describe('redirectSystemPath — uygulama açıkken sekme hedefi', () => {
+  beforeEach(() => {
+    mockDismissTo.mockClear();
+    mockPush.mockClear();
+  });
+
+  it('tarodan://cart (açık uygulama): ikinci (tabs) itilmez — dismissTo + gezinme yok', () => {
+    expect(call('tarodan://cart', false)).toBe('');
+    expect(mockDismissTo).toHaveBeenCalledWith('/(tabs)/cart');
+  });
+
+  it('https://…/favorites (açık uygulama): dismissTo favoriler sekmesi', () => {
+    expect(call('https://tarodan.com.tr/favorites', false)).toBe('');
+    expect(mockDismissTo).toHaveBeenCalledWith('/(tabs)/favorites');
+  });
+
+  it('soğuk başlatmada sekme hedefi expo-router\'a olduğu gibi verilir', () => {
+    expect(call('tarodan://cart', true)).toBe('tarodan://cart');
+    expect(mockDismissTo).not.toHaveBeenCalled();
+  });
+
+  it('yığın hedefi açık uygulamada da yol olarak döner (dismissTo yok)', () => {
+    expect(call('https://tarodan.com.tr/listings/123', false)).toBe('/product/123');
+    expect(mockDismissTo).not.toHaveBeenCalled();
   });
 });

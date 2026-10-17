@@ -8,6 +8,7 @@ import React from "react";
 import { TextInput } from "react-native";
 import { screen, fireEvent, waitFor } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
+import { ToastHost } from "@/ui";
 
 jest.mock("@/lib/api", () => ({
   supportApi: { createTicket: jest.fn() },
@@ -39,6 +40,15 @@ jest.mock("react-i18next", () => ({
 
 import SupportScreen from "../support/new";
 
+/** Geri bildirim toast olduğu için ekranın yanında global ToastHost de bağlanır (kökteki gibi). */
+const renderSupport = () =>
+  renderWithProviders(
+    <>
+      <SupportScreen />
+      <ToastHost />
+    </>,
+  );
+
 describe("J20 · Destek talebi (support)", () => {
   beforeEach(() => {
     mockPush.mockReset();
@@ -51,26 +61,26 @@ describe("J20 · Destek talebi (support)", () => {
 
   it('J20.1 giriş yapılmamışsa "Giriş Gerekli" + login navigasyonu', () => {
     mockAuth = { isAuthenticated: false, user: null };
-    renderWithProviders(<SupportScreen />);
+    renderSupport();
     expect(screen.getByText("auth.loginRequired")).toBeOnTheScreen();
     fireEvent.press(screen.getByText("common.login"));
     expect(mockPush).toHaveBeenCalledWith("/(auth)/login");
   });
 
   it("J20.2 kimliği doğrulanmış kullanıcıya form ve iletişim bilgisi gösterilir", () => {
-    renderWithProviders(<SupportScreen />);
+    renderSupport();
     expect(screen.getByText("support.new.selectCategory")).toBeOnTheScreen();
     expect(screen.getByText("ayse@test.com")).toBeOnTheScreen();
     expect(screen.getByText("Ayşe")).toBeOnTheScreen();
   });
 
   it('J20.3 zorunlu alanlar boşken "Talep Oluştur" butonu disable', () => {
-    renderWithProviders(<SupportScreen />);
+    renderSupport();
     expect(screen.getByText("support.createTicket")).toBeDisabled();
   });
 
   it("J20.4 kategori+konu+açıklama dolunca buton aktifleşir", () => {
-    renderWithProviders(<SupportScreen />);
+    renderSupport();
     // kategori seç
     fireEvent.press(screen.getByText("support.new.category.account"));
     // alanları doldur (Konu, Açıklama) — bu kategoride orderId input'u yok
@@ -82,7 +92,7 @@ describe("J20 · Destek talebi (support)", () => {
 
   it("J20.5 submit gerçek API çağrısı yapar (createTicket) ve başarı mesajı gösterir", async () => {
     mockCreateTicket.mockResolvedValueOnce({ data: { ticketNumber: "TKT-1" } });
-    renderWithProviders(<SupportScreen />);
+    renderSupport();
     fireEvent.press(screen.getByText("support.new.category.account"));
     const inputs = screen.UNSAFE_getAllByType(TextInput);
     fireEvent.changeText(inputs[0], "Hesabıma giremiyorum");
@@ -102,7 +112,7 @@ describe("J20 · Destek talebi (support)", () => {
 
   it("J20.6 API hatasında kullanıcıya hata mesajı gösterilir", async () => {
     mockCreateTicket.mockRejectedValueOnce(new Error("network"));
-    renderWithProviders(<SupportScreen />);
+    renderSupport();
     fireEvent.press(screen.getByText("support.new.category.account"));
     const inputs = screen.UNSAFE_getAllByType(TextInput);
     fireEvent.changeText(inputs[0], "Hesabıma giremiyorum");

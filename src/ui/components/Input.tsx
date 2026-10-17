@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import {
   Pressable,
   StyleSheet,
-  Text,
-  TextInput,
   View,
   type StyleProp,
+  type TextInput,
   type TextInputProps,
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { theme } from '../lib/theme';
-
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+import { RawTextInput } from './RawTextInput';
+import { Icon, RefIcon, type IconRef } from '../icons';
+import { FieldMessage, Label } from './Label';
+import { fieldBoxStyle, fieldSizeStyle } from '../lib/fieldSurface';
 
 /**
  * Not: `style` dış sarmalayıcıya (container) uygulanır — margin/yerleşim için.
@@ -22,15 +22,17 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
  */
 export interface InputProps extends TextInputProps {
   label?: string;
+  /** Etiketin sonuna kırmızı `*` (web `Label required`). */
+  required?: boolean;
   error?: string;
   helperText?: string;
   /** Pass a custom node. Takes precedence over `leftIconName`. */
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-  /** Convenience: Ionicon by name on the left. */
-  leftIconName?: IoniconName;
-  /** Convenience: Ionicon by name on the right. */
-  rightIconName?: IoniconName;
+  /** Convenience: Heroicons adı, solda (geçiş: Ionicons adları da çözülür). */
+  leftIconName?: IconRef;
+  /** Convenience: Heroicons adı, sağda. */
+  rightIconName?: IconRef;
   /** When true and `secureTextEntry`, show a tap-to-toggle visibility eye on the right. */
   togglePasswordVisibility?: boolean;
   inputSize?: 'sm' | 'md' | 'lg';
@@ -38,20 +40,15 @@ export interface InputProps extends TextInputProps {
   /** Style merged into the bordered field wrapper (e.g. to square corners). */
   fieldStyle?: StyleProp<ViewStyle>;
   inputStyle?: TextStyle;
+  /** İçteki TextInput'un ref'i (programatik odak: ör. geçiş animasyonu bitince `focus()`). */
+  inputRef?: React.Ref<TextInput>;
 }
 
-const { colors, radius, spacing, typography } = theme;
-
-const sizeStyle = {
-  sm: { height: 36, font: typography.fontSize.sm },
-  md: { height: 44, font: typography.fontSize.base },
-  lg: { height: 52, font: typography.fontSize.lg },
-} as const;
-
-const iconSizePx = 20;
+const { colors, spacing, iconSize } = theme;
 
 export const Input: React.FC<InputProps> = ({
   label,
+  required,
   error,
   helperText,
   leftIcon,
@@ -68,23 +65,20 @@ export const Input: React.FC<InputProps> = ({
   multiline,
   onFocus,
   onBlur,
+  editable,
+  inputRef,
   ...rest
 }) => {
   const { t } = useTranslation();
   const [focused, setFocused] = useState(false);
   const [passwordHidden, setPasswordHidden] = useState(true);
-  const ss = sizeStyle[inputSize];
-
-  const borderColor = error
-    ? colors.danger[600]!
-    : focused
-      ? colors.primary[600]!
-      : colors.border.DEFAULT;
+  const ss = fieldSizeStyle[inputSize];
+  const disabled = editable === false;
 
   const resolvedLeftIcon =
     leftIcon ??
     (leftIconName ? (
-      <Ionicons name={leftIconName} size={iconSizePx} color={colors.text.muted} />
+      <RefIcon icon={leftIconName} size={iconSize.md} color={colors.text.subtle} />
     ) : null);
 
   const showEye = togglePasswordVisibility && secureTextEntry;
@@ -93,44 +87,43 @@ export const Input: React.FC<InputProps> = ({
     (showEye ? (
       <Pressable
         onPress={() => setPasswordHidden((v) => !v)}
-        hitSlop={8}
+        hitSlop={12}
         accessibilityRole="button"
         accessibilityLabel={passwordHidden ? t('common.showPassword') : t('common.hidePassword')}
       >
-        <Ionicons
-          name={passwordHidden ? 'eye-outline' : 'eye-off-outline'}
-          size={iconSizePx}
-          color={colors.text.muted}
+        <Icon
+          name={passwordHidden ? 'eye' : 'eye-slash'}
+          size={iconSize.md}
+          color={colors.text.subtle}
         />
       </Pressable>
     ) : rightIconName ? (
-      <Ionicons name={rightIconName} size={iconSizePx} color={colors.text.muted} />
+      <RefIcon icon={rightIconName} size={iconSize.md} color={colors.text.subtle} />
     ) : null);
 
   const effectiveSecure = secureTextEntry ? passwordHidden : false;
 
   return (
     <View style={[styles.container, containerStyle, style as StyleProp<ViewStyle>]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label ? <Label required={required}>{label}</Label> : null}
       <View
         style={[
-          styles.field,
-          multiline
-            ? { minHeight: ss.height, paddingVertical: spacing[2], alignItems: 'flex-start' }
-            : { height: ss.height },
-          { borderColor, backgroundColor: colors.white },
+          fieldBoxStyle({ size: inputSize, focused, error, disabled }),
+          multiline ? styles.fieldMultiline : null,
           fieldStyle,
         ]}
       >
         {resolvedLeftIcon && <View style={styles.iconLeft}>{resolvedLeftIcon}</View>}
-        <TextInput
+        <RawTextInput
+          ref={inputRef}
           style={[
             styles.input,
-            { fontSize: ss.font, color: colors.text.heading },
+            { fontSize: ss.font, color: colors.text.body },
             multiline ? styles.inputMultiline : null,
             inputStyle,
           ]}
           multiline={multiline}
+          editable={editable}
           placeholderTextColor={colors.text.subtle}
           secureTextEntry={effectiveSecure}
           onFocus={(e) => {
@@ -145,32 +138,23 @@ export const Input: React.FC<InputProps> = ({
         />
         {resolvedRightIcon && <View style={styles.iconRight}>{resolvedRightIcon}</View>}
       </View>
-      {(error || helperText) && (
-        <Text style={[styles.helper, error ? styles.errorText : null]}>
-          {error || helperText}
-        </Text>
-      )}
+      <FieldMessage error={error} helperText={helperText} />
     </View>
   );
 };
+
+/** Web Textarea `min-h-[80px]`. */
+const MULTILINE_MIN_HEIGHT = 80;
 
 const styles = StyleSheet.create({
   container: {
     width: '100%',
     marginBottom: spacing[2],
   },
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    color: colors.text.heading,
-    marginBottom: spacing[1.5],
-  },
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    paddingHorizontal: spacing[3],
+  fieldMultiline: {
+    minHeight: MULTILINE_MIN_HEIGHT,
+    paddingVertical: spacing[2],
+    alignItems: 'flex-start',
   },
   input: {
     flex: 1,
@@ -184,12 +168,4 @@ const styles = StyleSheet.create({
   },
   iconLeft: { marginRight: spacing[2] },
   iconRight: { marginLeft: spacing[2] },
-  helper: {
-    marginTop: spacing[1],
-    fontSize: typography.fontSize.xs,
-    color: colors.text.muted,
-  },
-  errorText: {
-    color: colors.danger[600]!,
-  },
 });

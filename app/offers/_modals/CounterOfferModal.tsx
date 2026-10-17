@@ -1,29 +1,38 @@
 import React, { useEffect, useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Modal, Button, theme } from '@/ui';
+import { Modal, ModalFooter } from '@/ui';
 import { useZodForm, Form, FormInput } from '@/ui/form';
+import { usePriceLimits } from '@/hooks/usePriceLimits';
+import { offerPriceFloor } from '@/lib/shared/priceLimits';
 import { sellerCounterSchema } from '../_lib/schema';
 import { useDoCounterOffer } from '../_hooks/useDoCounterOffer';
-import type { Offer } from '../_lib/types';
 
-const { spacing } = theme;
+/** Modalın okuduğu asgari alanlar — liste ve detay ekranlarının farklı `Offer` DTO'ları ikisi de uyar. */
+export interface CounterTarget {
+  id: string;
+  amount: number;
+  product?: { price: number } | null;
+}
 
 /** Satıcının karşı teklifi. Kendi form + mutation'ını taşır; ekran sadece açar/kapatır. */
 export function CounterOfferModal({
   offer,
   onClose,
 }: {
-  offer: Offer | null;
+  offer: CounterTarget | null;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const refAmount = Number(offer?.amount) || 0;
   const maxPrice = Number(offer?.product?.price) || 0;
 
+  // Admin fiyat tabanı: ilan fiyatı tabana eşit/üstüyse karşı teklif tabanın altına inemez.
+  const { minPrice } = usePriceLimits();
+  const floor = offerPriceFloor(minPrice, maxPrice);
+
   const schema = useMemo(
-    () => sellerCounterSchema(refAmount, maxPrice, t),
-    [refAmount, maxPrice, t],
+    () => sellerCounterSchema(refAmount, maxPrice, t, floor),
+    [refAmount, maxPrice, t, floor],
   );
   const form = useZodForm(schema, { defaultValues: { amount: '' } });
   const counter = useDoCounterOffer();
@@ -43,7 +52,19 @@ export function CounterOfferModal({
   });
 
   return (
-    <Modal isOpen={!!offer} onClose={onClose} title={t('offer.counterOffer')}>
+    <Modal
+      isOpen={!!offer}
+      onClose={onClose}
+      title={t('offer.counterOffer')}
+      footer={
+        <ModalFooter
+          onCancel={onClose}
+          onConfirm={onSubmit}
+          cancelLabel={t('trade.dispute.cancelCta')}
+          confirmLabel={t('common.submit')}
+        />
+      }
+    >
       <Form form={form}>
         <FormInput
           name="amount"
@@ -52,24 +73,7 @@ export function CounterOfferModal({
           keyboardType="numeric"
           autoFocus
         />
-        <View style={styles.actions}>
-          <Button variant="secondary" onPress={onClose} title={t('trade.dispute.cancelCta')} />
-          <Button
-            variant="primary"
-            onPress={onSubmit}
-            isLoading={counter.isPending}
-            title={t('common.submit')}
-          />
-        </View>
       </Form>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  actions: {
-    flexDirection: 'row',
-    gap: spacing[3],
-    marginTop: spacing[4],
-  },
-});

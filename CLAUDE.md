@@ -1,277 +1,172 @@
-# Mobile — UI & Architecture Principles
+# tarodan-mobile
 
-Guidance for building the `apps/mobile` app (Expo + expo-router) — the native
-marketplace client. Read this before adding routes, screens, components, or
-hooks. It is the **native mirror** of `apps/web/CLAUDE.md`: same "thin screens,
-logic in hooks", same single server-state, same design-token and DRY discipline —
-adapted from Next.js App Router to expo-router and from `@tarodan/ui` to
-`@tarodan/ui-native`. When a rule isn't native-specific, it means "same as web".
+The native Tarodan marketplace client: Expo SDK 54, expo-router, TanStack Query,
+zustand. Cross-repo rules (process, freeze, agents, contracts, parity) live in the
+private hub **tarodan-ops** (`CLAUDE.md` and `docs/`). This file summarises what
+applies here and must stand alone for the essentials. Engineering detail lives in
+the folder `CLAUDE.md` files mapped under "Architecture"; their stable headings are
+the reference targets (`see src/ui/CLAUDE.md › Loading`).
 
-Web → mobile mapping:
+## Language
 
-| Web (`apps/web`)                     | Mobile (`apps/mobile`)                       |
-| ------------------------------------ | -------------------------------------------- |
-| `@tarodan/ui`                        | `@/ui` (vendored `@tarodan/ui-native`)       |
-| `@tarodan/ui/form` (RHF+zod)         | `@/ui/form` (vendored; `useZodForm`)         |
-| App Router route groups + `_folders` | expo-router route groups + `_folders`        |
-| Server Components / `generateMetadata` | (drops — native has no SSR/SEO)            |
-| TanStack Query + `lib/api/*` by domain | **same** (`src/lib/query`, `src/lib/api/*`) |
-| Tailwind semantic token classes      | `@/theme` (re-exported via `@/ui`)           |
+- All new content is English: code, comments, commits, branches, docs, CLAUDE.md,
+  skills, agents. Replies to the user are in **Turkish**.
+- Existing Turkish comments may stay until you edit them; translate what you edit.
 
-**Note:** `@tarodan/*` packages are vendored into this standalone repo under `src/` — there are no external package dependencies. Import from `@/ui` and `@/theme` (aliased to `src/ui` and `src/theme`).
+## Product principles
 
-## 1. Base components come from `@tarodan/ui-native`
+- **Web at phone width (< 640 px) is the visual and behavioural reference.** Sizes,
+  colour roles, copy, ordering and states come from the web app (`tarodan-app/apps/web`).
+- Native-only deviations are platform idioms: bottom tab bar, native stack + back
+  arrow, bottom sheets, infinite scroll, pull-to-refresh, safe areas.
+- **Web parity by default.** Mobile differs only when an App Store / Play rule forces
+  it; every such deviation has an ADR in tarodan-ops `decisions/` (e.g. digital sales
+  off on mobile). A deviation from web found in review is an IMPORTANT finding.
+- This repo is the native mirror of tarodan-app `apps/web/CLAUDE.md`: a rule here that
+  isn't native-specific means "same as web".
 
-Never rebuild a primitive that already exists (`Input`, `Textarea`, `Checkbox`,
-`Switch`, `Card`, `Badge`, `Alert`, `Modal`, `Spinner`, `Avatar`, `StatusBadge`,
-`Stack`/`VStack`/`HStack`, `Divider`, `ProgressBar`, `EmptyState`, `ErrorState`).
-Import from `@/ui` (vendored `@tarodan/ui-native`; source lives in `src/ui`).
+## Principles
 
-- Need a variant/state that doesn't exist? Add it to `@tarodan/ui-native`
-  (shared), don't fork a local copy.
-- Marketplace composites built _from_ primitives (`ProductCard`, `ListingRow`, …)
-  live in `src/components/<feature>/`, not at the components root.
+- SOLID, DRY, KISS, YAGNI. **One source of truth** for every rule, value, type,
+  status map, label, query key and copy. About to copy a block? Extract it
+  (component, hook or constant). Duplicated config (status maps, filter tabs,
+  labels) is the most dangerous kind: it drifts silently.
+- Follow official current Expo / React Native / expo-router practice. Non-route code
+  lives in `src/`; small route-local helpers may live in `_` folders under `app/`.
+- One design system with web: tokens come from tarodan-app `packages/design-tokens`
+  (mobile `src/theme` is a synced copy); `@/ui` mirrors `@tarodan/ui` naming and
+  variants. No ad-hoc colours, sizes or variants; add missing pieces to the shared
+  layer first.
+- **Fix what you touch.** Violations in the area you change are fixed in the same
+  change; anything bigger goes to the tarodan-ops `backlog.md`.
+- Definition of Done: tarodan-ops `docs/definition-of-done.md` (every change, UI,
+  feature, money/payment, mobile native change).
 
-## 2. Everything flows from design tokens
+## Architecture
 
-Colors, spacing, radius, and typography come from the `theme` export, re-exported
-from `@/ui` (`@/theme` only exports the raw tokens — there is no `theme` export
-there):
+| Layer                                              | Where                                            | Rule file                     |
+| -------------------------------------------------- | ------------------------------------------------ | ----------------------------- |
+| Routes (thin screens, `_hooks`, `_lib`, `_modals`) | `app/`                                           | `app/CLAUDE.md`               |
+| Primitives, loading, sheets, feedback, forms       | `src/ui` (`@/ui`, vendored `@tarodan/ui-native`) | `src/ui/CLAUDE.md`            |
+| Design tokens (synced copy) and role tokens        | `src/theme` (`theme` via `@/ui`)                 | `src/theme/CLAUDE.md`         |
+| Axios surface by domain                            | `src/lib/api` (`@/lib/api`)                      | `src/lib/api/CLAUDE.md`       |
+| Server state, query keys, mutations                | `src/lib/query` (`@/lib/query`)                  | `src/lib/query/CLAUDE.md`     |
+| Client/UI state only                               | `src/stores`                                     | `src/stores/CLAUDE.md`        |
+| Feature composites (`ProductCard`, shells, ...)    | `src/components/<feature>`                       | `src/components/CLAUDE.md`    |
+| Message catalog (tr + en)                          | `src/i18n`                                       | `src/i18n/CLAUDE.md`          |
+| Deep-link path table, well-known files             | `src/lib/deeplinks`                              | `src/lib/deeplinks/CLAUDE.md` |
+| Release pipeline helpers                           | `scripts/ci`                                     | `scripts/ci/CLAUDE.md`        |
+| E2E flows                                          | `maestro/`                                       | `maestro/README.md`           |
 
-```ts
-import { theme } from '@/ui';
-const s = StyleSheet.create({
-  card: { backgroundColor: theme.colors.surface.DEFAULT, padding: theme.spacing[4],
-          borderRadius: theme.radius.lg },
-});
-```
+- Cross-route hooks go in `src/hooks/`; everything else is colocated with its route
+  or feature. `@tarodan/*` packages are vendored under `src/`; there are no external
+  workspace packages.
+- Editing `app/**` or `src/components/**` also loads `.claude/rules/ui-screens.md`,
+  a digest of the cross-cutting UI rules with pointers to the full sections.
+- **Imports use the `@/` alias** (`@/lib/api`, `@/lib/query`, `@/components/...`),
+  never `../../../src/...`. Metro resolves tsconfig `paths`; jest maps `@/` in
+  `jest.config.js`.
+- Web -> mobile mapping: `@tarodan/ui` -> `@/ui`; `@tarodan/ui/form` -> `@/ui/form`;
+  App Router groups + `_folders` -> expo-router groups + `_folders`; TanStack Query +
+  `lib/api/*` -> the same; Tailwind token classes -> `theme` from `@/ui`. Server
+  Components / `generateMetadata` have no native equivalent.
 
-- `spacing` keys are **numeric**, not named (`theme.spacing[4]` = 16pt, `[2]` = 8pt,
-  `[1]` = 4pt — there is no `spacing.md`/`spacing.sm`/`spacing.xs`). `radius` keys
-  (`sm`, `DEFAULT`, `md`, `lg`, `xl`, `2xl`, `3xl`, `full`) and top-level `colors`
-  keys (`primary`, `danger`, `success`, `info`, `warning`, `gray`, `text`, `surface`,
-  `border`, `white`, `black`, `transparent` — no `background`) are real; confirm
-  exact names in `src/theme/` before using one you haven't seen in surrounding code.
-- **No hardcoded hex / rgba** in screens or components. Need a translucent
-  overlay? Use `theme.colors.overlay.*`, not a raw `rgba(...)`.
-- **`src/theme/colors.ts` (`TarodanColors`) is legacy and banned** — it is a
-  hardcoded hex palette that predates design tokens. Do not import it. Migrate any
-  remaining importer to `theme.colors.*`.
+## Process
 
-## 3. One screen = one concern (route groups)
+Full flow: tarodan-ops `CLAUDE.md` › Process. In this repo:
 
-Separate concerns with **route groups** (`(auth)`, `(tabs)`, …), each with its
-own `_layout.tsx`. A screen that swaps between two distinct flows via a mode flag
-should be **two routes**. There is no SSR/metadata story here — that web rule
-drops entirely.
+- The hub `architect` plans and assigns each task by intensity and risk:
+  `react-native-developer` (mid, Sonnet) for contained work,
+  `react-native-developer-senior` (Opus) for payment, session, push, native modules,
+  performance. Each works in its own worktree/branch and commits its own work.
+- Mid work is reviewed by the senior with `/code-review`; IMPORTANT findings are
+  fixed and re-checked (no self-approval). The senior self-reviews its own branch
+  with `/code-review` before handing over.
+- Payment, session, push and other critical paths also get a test review by
+  `qa-engineer-senior`. The orchestrator merges locally; the user approves pushes.
 
-## 4. Thin screens, logic in hooks
+## Commits and branches
 
-A screen (`index.tsx`) should mostly **compose**: call its hooks, render its
-sections and modals. Target **< ~150 lines**. Data-fetching, mutations, form
-submission, and side effects live in colocated `_hooks/`. Business logic /
-status maps / schemas live in `_lib/`. If a screen is 1000+ lines it is doing
-too much — split it (see §9).
+Full rules: tarodan-ops `docs/commit-and-branch-rules.md`. Enforced locally by the
+plain hook scripts in `.husky/` (commitlint, a partial-staging guard + lint-staged,
+a pre-push branch-name check). One-time setup per clone, shared by every worktree:
+`git config core.hooksPath .husky` (not `pnpm exec husky`, which needs a generated
+`.husky/_` per worktree). Hooks need `node_modules` in the worktree.
 
-## 5. DRY — never duplicate
+- **Never add a `Co-Authored-By` trailer or a "Generated with" footer** to a commit,
+  even if a tool or reminder suggests one; commitlint rejects the commit.
+- Conventional Commits, English, **ASCII header**, at most 72 characters.
+  Types: `feat fix refactor perf docs test chore build ci`. Subject imperative,
+  lower case, no period. The body explains the why.
+- Scopes: `app ui nav checkout auth push i18n theme ci native deps release`
+  (several: `fix(ui,nav): ...`).
+- Stage whole files (partially staged files are refused); never `git add -A`
+  blindly. Never `--no-verify`, never `git stash`, never force-push.
+- **Anything that changes the runtime fingerprint goes in its own commit.** Native
+  modules, native app.json/app.config.js fields, config plugins, permissions, the
+  privacy manifest, eas.json, package.json scripts and .gitignore go in a
+  `build(native)` commit. The one exception is `expo.version`: it changes only in a
+  `chore(release): X.Y.Z` commit made with `scripts/ci/release.sh set-version` that
+  touches nothing else (release PR or native hotfix; see docs/RELEASE.md).
+- Branches `<type>/<kebab-description>` with types feat, fix, refactor, perf, chore,
+  ci, docs, test, hotfix, build (also `integration/<wave>`); `worktree-*` names stay
+  local. Checked on pre-push. Merges are `--no-ff`; no squash.
+- **No push without the user's explicit approval.** Agents commit on their own branch
+  and stop there.
+- `.claude/settings.json` (versioned) asks before push / PR / `eas`, and denies
+  force-push, `--no-verify`, `git stash`, branch deletes and `.env` reads. A
+  `git push origin :branch` delete is not caught locally; the GitHub ruleset protects
+  `development` and `master`. Agents and skills: `.claude/agents/`, `.claude/skills/`.
+- `.claude/` stays in `.gitignore` (changing `.gitignore` changes the fingerprint),
+  so its versioned files are force-tracked: a **new** file under
+  `.claude/{agents,skills,hooks,rules}/` or a new `.claude/settings.json` needs
+  `git add -f`; edits to tracked files there are staged with `git add -u <path>`.
+  Never force-add `settings.local.json` or `worktrees/`.
 
-If you're about to copy a block, extract it (component, hook, or constant).
-Duplicated config (status maps, filter tabs, labels) is the most dangerous kind —
-it drifts silently. Keep **one source of truth** in `_lib/status.ts` (route-local)
-or a shared package. Query keys have a single source: `@/lib/query` (§7).
+## Verification
 
-## 6. Data & fetching — one discipline (TanStack Query)
+Run from the repo root, one at a time (16 GB machines, parallel agents):
 
-**Never** `useState` + `useEffect` + `api` by hand, and **never** fetch inside a
-zustand store. React Query is the **single server-state**.
+- `npx tsc --noEmit`: 0 errors. Typed routes (`.expo/types`) regenerate when Metro
+  starts; never edit them.
+- `pnpm lint`: 0 errors and no new warnings. Design-discipline rules
+  (`eslint-plugin-tarodan`) are warnings today and become errors; write new code
+  warning-free.
+- `pnpm test --maxWorkers=2 <paths>`: only the tests for what you touched; the full
+  suite runs in CI or once at the end.
+- Exercise the changed flow in the app (Metro, simulator); behaviour unchanged.
 
-- **Lists / reads** → a **query hook** in the route's `_hooks/`
-  (`useXxx.ts` → `{ data, isLoading, ... }`). It owns the `queryKey` (from the
-  central registry) and `queryFn` (calling `@/lib/api/*`).
-- **Writes** → a **mutation hook** (`useDoXxx.ts`) that owns the snackbar/toast +
-  `invalidateQueries`. This is the **only** way to mutate — so lists refresh
-  automatically, no manual `refetch()`.
-- Every dialog/modal is its **own** component in `_modals/`, owning its
-  `useZodForm` + zod schema + mutation. The screen holds only open/close state.
+## Release
 
-### Query keys — central registry
-All `queryKey`s come from `@/lib/query` (`qk.<domain>.detail(id)`, `qk.products.all`).
-Never hand-write `['product', id]` inline — that is how `my-collections` vs
-`myCollections` drift crept in. Add new keys to `src/lib/query/keys.ts`.
+Details: `docs/RELEASE.md`, `docs/EAS_UPDATE_OTA.md`, `scripts/ci/CLAUDE.md`.
 
-### The API layer
-`src/lib/api/*` is the axios surface, **split by domain** (`auth`, `products`,
-`catalog`, `orders`, `checkout`, `membership`, `messaging`, `trades`, `user`,
-`media`) behind a thin `client.ts` (axios instance + interceptors). Import domain
-APIs from `@/lib/api`. (`src/services/api.ts` is a backward-compat barrel that
-re-exports `@/lib/api`; new code imports from `@/lib/api` directly.)
+- `runtimeVersion.policy` is `fingerprint`: a JS-only change ships as an **OTA**; a
+  fingerprint change needs a **store build**. `expo.version` is part of the
+  fingerprint.
+- `development` push -> staging (automatic OTA or build). `development -> master`
+  PR = a release = always a store build, gated by **VERSION-GATE** (the version must
+  be bumped). A production OTA ships **only from a `hotfix/*` merge** (a branch cut
+  from master; `Master source guard` refuses any other), with approval.
+- Deploy order across repos: a needed mobile OTA first, then API, web and admin
+  together from one tarodan-app release, then mobile store builds, flags last.
+- **The production freeze was lifted on 2026-10-17** (tarodan-ops ADR 0010): every
+  production action (master merge, production OTA, build or submit) still needs the
+  user's approval.
 
-## 7. Forms — one abstraction (`@/ui/form`)
+## Contracts and parity
 
-All forms use `useZodForm` + `Form`/`FormInput`/`FormError` from
-`@/ui/form` (vendored `@tarodan/ui-native/form`). **No manual `useState`-per-field forms.** Colocate the
-zod schema in the route's `_lib/schema.ts`.
+- Read the relevant contract deltas (tarodan-ops `contracts/deltas/`, older ones in
+  `docs/mobile-parity/`) before using or changing an endpoint. `src/types` is a
+  vendored copy of tarodan-app `packages/types`.
+- When mobile implements a delta, add a contract fixture test and mark the delta.
+- Parity status lives in tarodan-ops `parity/matrix.md`; a one-sided feature needs an
+  ADR.
 
-```ts
-import { useZodForm, Form, FormInput } from '@/ui/form';
-import { offerSchema } from './_lib/schema';
-const form = useZodForm(offerSchema);
-```
+## Security
 
-## 8. State (zustand) is client/UI-only
-
-Stores hold **only client/UI state** (auth token, cart, filters, drafts). A store
-must **never fetch** — server data belongs in React Query. (Migrating
-`favoritesStore`/`messagesStore` fetches to query hooks is Faz 1.)
-
-## 9. Folder shape per route (mirror web)
-
-`_`-prefixed folders are hidden from expo-router's route tree (same as
-`__tests__`), so colocate freely:
-
-```
-app/<group>/<route>/
-  index.tsx        # THIN screen: hooks + sections + modals composition (< ~150 lines)
-  _lib/
-    types.ts       # route DTO types
-    schema.ts      # zod schema (colocated)
-    status.ts      # status map / filter tabs / labels (single source)
-  _hooks/
-    useXxx.ts      # query hook → { data, isLoading }
-    useDoXxx.ts    # mutation hook (snackbar + invalidateQueries owner)
-  _sections/       # large screen sections / steps
-  _components/     # route-local cards / rows
-  _modals/         # dialogs; each owns its useZodForm + mutation
-  [id]/            # dynamic segment; same shape
-```
-
-Shared, cross-route code:
-
-```
-src/
-  lib/
-    query/ { client.ts, keys.ts }   # QueryClient + central query-key registry
-    api/   { client.ts, <domain>.ts } # axios surface split by domain
-  hooks/     # ONLY cross-route hooks
-  stores/    # zustand: client/UI state only (NO fetch)
-  components/ { <feature>/ }
-```
-
-## 10. Imports — use the `@/` alias
-
-Use `@/…` (→ `src/…`) instead of brittle `../../../src/…`. Metro (Expo SDK 54)
-resolves tsconfig `paths` at runtime; jest maps `@/` in `jest.config.js`. Prefer
-`@/lib/api`, `@/lib/query`, `@/components/...` over deep relative paths.
-
-## 11. Loading / empty / error states
-
-Use the shared `Spinner`/`ScreenLoader`, `EmptyState`, and `ErrorState` primitives
-consistently — don't hand-roll per-screen loaders or empty views.
-
-## 12. Canonical example — `app/offers/`
-
-The offers screen is the **reference implementation** of this whole doc — copy its
-shape when splitting any bloated screen. It went from one 1179-line file to a
-< ~130-line `index.tsx` that only composes:
-
-```
-app/offers/
-  index.tsx                 # THIN: hooks + <OffersTabs/> + <FlatList><OfferCard/></> + modals
-  _lib/
-    types.ts                # Offer / TabType / OfferStatus DTOs
-    status.ts               # STATUS_CONFIG + formatPrice/getTimeRemaining/... (single source)
-    schema.ts               # sellerCounterSchema / buyerCounterSchema (zod factories, dynamic bounds)
-  _hooks/
-    useOffers.ts            # query hook → list by tab (qk.offers.list)
-    useCommissionPreview.ts # query hook → net-estimate map (replaces a useEffect+fetch)
-    useOfferActions.ts      # accept/reject/cancel mutations (owns appAlert + invalidate)
-    useDoCounterOffer.ts    # mutation, owned by CounterOfferModal
-    useDoBuyerCounter.ts    # mutation, owned by BuyerCounterModal
-    useInvalidateOffers.ts  # shared invalidation set (DRY — one source)
-  _components/
-    OffersAuthGate.tsx  OffersTabs.tsx  OffersEmpty.tsx  OfferCard.tsx
-  _modals/
-    CounterOfferModal.tsx   # owns its useZodForm + schema + mutation
-    BuyerCounterModal.tsx
-```
-
-Patterns to copy:
-- **Query hooks own the `queryKey`** (from `qk`) + `queryFn` (from `@/lib/api`); the
-  screen never calls `api` or writes a key inline.
-- **Mutation hooks own `appAlert` + `invalidateQueries`** — no manual `refetch()`.
-  Per-item spinner comes from `mutation.variables` (`pendingOfferId`), not a
-  `useState`.
-- **Modals own their form + mutation**; the screen holds only `useState<Offer | null>`
-  open/close state.
-- **⚠️ Close the modal _before_ the mutation fires** — a mutation's `appAlert`
-  (success or error) while a `ui-native` Modal is open freezes iOS. See §1 note and
-  the `onSubmit` in `CounterOfferModal`.
-- All feedback strings, status colors, and formatting live in `_lib/status.ts`, not
-  scattered in JSX.
-
-**Second worked example — `app/product/[id]/` (heavy screen).** Same shape applied
-to a 1530-line screen (→ ~215-line `index.tsx`): query hooks with side effects
-(`useProduct` owns the view-count POST + list invalidation), a `useProductActions`
-hook that centralizes the snackbar + every handler (cart/offer/trade/report/share),
-and presentational `_components` (`ProductInfo`, `SellerCard`, `ProductBottomBar`,
-`ProductGallery`, …). Note two patterns for scale: hooks are called
-**unconditionally before** the `isLoading` / not-found early returns (never
-conditionally), and `useProductActions` accepts a nullable product with guarded
-handlers so the hook order is stable while the screen is still loading. A
-route-local loose `Product` DTO (`_lib/types.ts`) with an index signature keeps the
-gradual `any` migration (Faz 4) from blocking the split.
-
-**Third worked example — `app/trade/[id]/` (status machine).** The 1830-line trade
-detail (→ ~170-line `index.tsx`) shows the pattern on a status-driven screen: a
-single `useTradeActions` controller hook owns all 6 mutations + snackbar + both
-modals' UI state; a pure `_lib/derive.ts` computes every derived value (party,
-totals, shipment selectors, cash) once so JSX never re-derives; and the huge
-status-conditional JSX splits into `TradeStatusHeader` / `TradeShippingSection` /
-`TradeActions` etc., each rendering `null` when its status branch is inactive.
-`_lib/status.ts` is the single source for the status maps, step flow, and countdown
-helpers. `[id].tsx` became the folder `[id]/index.tsx` (expo-router resolves the
-directory) — colocated tests importing `../[id]` keep working.
-
-**Fourth worked example — `app/orders/[id]/` (many small cards + derived-heavy).**
-The 1709-line order detail (→ ~145-line `index.tsx`) shows the pattern when a screen
-is a long stack of small status-gated cards. A pure `_lib/derive.ts` computes the
-~15 derived booleans/dates (isPaid, isPostShipment, isCancelled, showTrackingCard,
-payoutReleaseDate, isPastRefundWindow, …) once; each presentational card
-**self-gates** (returns `null` when its condition is false) so `index.tsx` is a flat
-list of `<Order*Card>`s with no inline conditionals. Related tiny cards are grouped
-per file (`OrderInfoCards`, `OrderActionCards`, `OrderInvoiceCards`) rather than one
-file each. `useOrderActions` is the controller (refund/cancel/pay mutations + refund
-modal form state + evidence picker + snackbar); `useOrderInvoices` owns the two
-invoice queries + download handlers.
-
-**Fifth worked example — `app/(tabs)/index.tsx` (display-heavy, huge stylesheet).**
-The 1774-line home screen (→ ~103-line `index.tsx`) is display-only (8 queries, no
-mutations, many sections). Two techniques for this shape: (1) the ~890-line
-`StyleSheet` was moved **verbatim** to `_lib/styles.ts` and imported by every
-section (a shared route-local stylesheet — the one place we don't colocate styles
-per-component, because it's a single cohesive sheet and re-typing it per section
-is pure transcription risk); (2) data lives in focused query hooks (`useHomeData`
-= the 6 content queries, `useHomeBadges` = cart/fav/msg/notif counts + store
-effects, `useHomeGuestPrompt`), navigation in `_lib/nav.ts`, and the JSX splits
-into section components (`HomeHeader`, `HomeSections` exporting Hero/Categories/
-Brands/Scales/FeaturedCollector/BoostedRail/PopularProducts/ProductsGrid/
-Collections, plus `CompanyOfWeekSection`), each self-gating on its data.
-
-**Sixth worked example — `app/checkout/` (multi-step form, payment flow).** The
-1376-line checkout (→ ~105-line `index.tsx`) is a 3-step guest/auth checkout with
-OTP, idempotency, and a delicate PayTR/bypass/stockout branch. The key discipline:
-the payment-critical logic (`proceedCheckout`, guest-OTP, validation, payload
-builders) was **extracted verbatim** into one controller hook (`useCheckout`) — a
-lift, never a rewrite — and the screen just composes step sections
-(`Step1Address`/`Step2Payment`/`Step3Confirm`), `CheckoutProgress`, `OrderSummary`,
-`AddressSelector`, `OtpModal`. Pure helpers live in `_lib/{validation,constants,
-types}`. When a flow is this risky, prefer one big verbatim controller hook over
-clever re-decomposition of the logic itself.
-
-## 13. Verification
-
-- `npx tsc --noEmit` introduces **no new errors** beyond the tracked baseline.
-- `pnpm --filter @tarodan/mobile lint` clean — no hardcoded hex/rgba, no
-  `src/theme/colors` import, no raw manual forms where `useZodForm` fits.
-- `pnpm --filter @tarodan/mobile test` green for touched routes.
-- Exercise the changed flow in the app (Metro) — behavior unchanged.
+- **This repo is PUBLIC.** Never commit secrets, tokens, real env values, customer
+  data, signing material (`.p8`, `.p12`, keystores, service-account JSON) or
+  production dumps. Secrets live in EAS and GitHub Environments.
+- Logs and Sentry events carry ids, never PII (no tokens, TCKN, IBAN, card data,
+  addresses or phone numbers). Mobile reports only 5xx and network errors.
+- Policy: tarodan-ops `docs/security-policy.md`, `docs/observability.md`.

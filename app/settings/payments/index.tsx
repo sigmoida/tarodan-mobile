@@ -1,65 +1,54 @@
-import { View, ScrollView, RefreshControl } from 'react-native';
-import { Chip, Snackbar, Spinner, theme } from '@/ui';
-import { router } from 'expo-router';
+import { ChipTabs, EmptyState, ErrorState } from '@/ui';
 import { useTranslation } from 'react-i18next';
-import { ScreenHeader, EmptyState } from '@/components/common';
+import { AuthGatePage } from '@/components/common/AuthGatePage';
+import { PageShell } from '@/components/common/PageShell';
+import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { usePayments } from './_hooks/usePayments';
-import { styles } from './_lib/styles';
 import { buildStatusOptions } from './_lib/status';
 import { PaymentCard } from './_components/PaymentCard';
 
-const { colors } = theme;
-
+/**
+ * Ödemelerim — PageShell (Skeleton, çekip yenileme) + durum filtre çipleri + ödeme kartları.
+ * Sorgu/filtre/iptal `usePayments`, yeniden deneme `useDoRetryPayment`'ta; bilgi mesajları toast.
+ */
 export default function PaymentsScreen() {
   const { t } = useTranslation();
   const f = usePayments();
   const statusOptions = buildStatusOptions(t);
+  const title = t('mobile.settingsPayments');
 
   if (!f.isAuthenticated) {
     return (
-      <View style={styles.container}>
-        <ScreenHeader title={t('mobile.settingsPayments')} />
-        <EmptyState
-          icon="lock-closed-outline"
-          title={t('listing.loginRequiredTitle')}
-          subtitle={t('payment.myPaymentsLoginSubtitle')}
-          actionLabel={t('common.login')}
-          onAction={() => router.push('/(auth)/login' as any)}
-        />
-      </View>
+      <AuthGatePage
+        title={title}
+        icon="lock-closed"
+        subtitle={t('payment.myPaymentsLoginSubtitle')}
+      />
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('mobile.settingsPayments')} />
-
+    <PageShell
+      title={title}
+      loading={f.paymentsQuery.isLoading}
+      loadingFallback={<RowListSkeleton rows={4} />}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
+    >
       {/* Status filtresi */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-        style={styles.filterScroll}
-      >
-        {statusOptions.map((opt) => (
-          <Chip
-            key={opt.value || 'all'}
-            label={opt.label}
-            variant="primary"
-            selected={f.statusFilter === opt.value}
-            onPress={() => f.setStatusFilter(opt.value)}
-            style={styles.filterChip}
-          />
-        ))}
-      </ScrollView>
+      <ChipTabs
+        testID="payment-filters"
+        value={f.statusFilter}
+        onChange={f.setStatusFilter}
+        items={statusOptions.map((opt) => ({ key: opt.value, label: opt.label }))}
+      />
 
-      {f.paymentsQuery.isLoading ? (
-        <View style={styles.loading}>
-          <Spinner size="lg" />
-        </View>
+      {f.paymentsQuery.isError && f.payments.length === 0 ? (
+        // Hata "ödeme yok" gibi görünmesin; filtre çipleri yerinde kalır.
+        <ErrorState onRetry={() => f.paymentsQuery.refetch()} />
       ) : f.payments.length === 0 ? (
         <EmptyState
-          icon="card-outline"
+          icon="credit-card"
           title={t('payment.noPaymentsTitle')}
           subtitle={
             f.statusFilter
@@ -68,31 +57,8 @@ export default function PaymentsScreen() {
           }
         />
       ) : (
-        <ScrollView
-          style={styles.list}
-          contentContainerStyle={{ padding: theme.spacing[4], paddingBottom: theme.spacing[8] }}
-          refreshControl={
-            <RefreshControl
-              refreshing={f.paymentsQuery.isFetching}
-              onRefresh={() => f.paymentsQuery.refetch()}
-              colors={[colors.primary[600]!]}
-            />
-          }
-        >
-          {f.payments.map((p) => (
-            <PaymentCard key={p.id} p={p} f={f} />
-          ))}
-        </ScrollView>
+        f.payments.map((p) => <PaymentCard key={p.id} p={p} f={f} />)
       )}
-
-      <Snackbar
-        visible={f.snackbar.visible}
-        onDismiss={() => f.setSnackbar({ visible: false, message: '' })}
-        duration={2000}
-        variant="success"
-      >
-        {f.snackbar.message}
-      </Snackbar>
-    </View>
+    </PageShell>
   );
 }

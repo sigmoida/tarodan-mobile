@@ -1,14 +1,11 @@
-import { View, Image, Pressable } from 'react-native';
-import { Text, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Pressable } from 'react-native';
+import { SectionCard, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { formatPrice, formatOfferStatus, formatRelativeDate } from '@/utils/format';
-import { transformImageUrl } from '@/utils/imageUrl';
+import { AppImage } from '@/components/AppImage';
 import { styles } from '../_lib/styles';
 import type { OfferDetailController } from '../_hooks/useOfferDetail';
-
-const { colors } = theme;
 
 /** Ürün + statü + tutar + mesaj + taraflar kartları (detay gövdesi). */
 export function OfferDetailCards({ f }: { f: OfferDetailController }) {
@@ -19,70 +16,73 @@ export function OfferDetailCards({ f }: { f: OfferDetailController }) {
   return (
     <>
       {/* Product */}
-      <Pressable
-        style={({ pressed }) => [styles.productCard, pressed && { opacity: 0.85 }]}
-        onPress={() => offer.product?.id && router.push(`/product/${offer.product.id}`)}
-      >
-        <Image source={{ uri: transformImageUrl(firstImg) }} style={styles.productImage} />
-        <View style={styles.productBody}>
-          <Text style={styles.productTitle} numberOfLines={2}>
-            {offer.product?.title || t('order.product')}
-          </Text>
-          {offer.product?.price ? (
-            <Text style={styles.listPrice}>
-              {t('product.listPriceLine')}: {formatPrice(offer.product.price)}
+      <SectionCard>
+        <Pressable
+          style={styles.productCard}
+          onPress={() => offer.product?.id && router.push(`/product/${offer.product.id}`)}
+          accessibilityRole="button"
+        >
+          <AppImage source={firstImg} variant="card" style={styles.productImage} />
+          <View style={styles.productBody}>
+            <Text variant="body" weight="semibold" tone="heading" numberOfLines={2}>
+              {offer.product?.title || t('order.product')}
             </Text>
-          ) : null}
-        </View>
-      </Pressable>
+            {offer.product?.price ? (
+              <Text variant="bodySm" tone="muted">
+                {t('product.listPriceLine')}: {formatPrice(offer.product.price)}
+              </Text>
+            ) : null}
+          </View>
+        </Pressable>
+      </SectionCard>
 
       {/* Status */}
       <View style={[styles.statusBanner, { backgroundColor: color.bg }]}>
-        <Ionicons name="information-circle" size={18} color={color.fg} />
-        <Text style={[styles.statusBannerText, { color: color.fg }]}>
+        <Text variant="body" weight="bold" style={{ color: color.fg }}>
           {formatOfferStatus(offer.status, i18n.language)}
         </Text>
       </View>
 
       {/* Amount */}
-      <View style={styles.amountCard}>
-        <Text style={styles.amountLabel}>{t('offer.offerAmount')}</Text>
-        <Text style={styles.amountValue}>{formatPrice(offer.amount)}</Text>
+      <SectionCard title={t('offer.offerAmount')} bodyStyle={styles.amount}>
+        <Text variant="h1" weight="bold" style={{ color: theme.priceColor.detail }}>
+          {formatPrice(offer.amount)}
+        </Text>
         {offer.counterAmount ? (
           <>
             <View style={styles.divider} />
-            <Text style={styles.amountLabel}>{t('offer.counterOffer')}</Text>
-            <Text style={styles.counterValue}>{formatPrice(offer.counterAmount)}</Text>
+            <Text variant="bodySm" tone="muted">{t('offer.counterOffer')}</Text>
+            <Text variant="h2" weight="bold" style={{ color: theme.colors.info[600]! }}>
+              {formatPrice(offer.counterAmount)}
+            </Text>
           </>
         ) : null}
-      </View>
+      </SectionCard>
 
       {/* Message */}
       {offer.message ? (
-        <View style={styles.messageCard}>
-          <Text style={styles.sectionTitle}>{t('common.message')}</Text>
-          <Text style={styles.messageText}>{offer.message}</Text>
-        </View>
+        <SectionCard title={t('common.message')}>
+          <Text variant="body" tone="heading">{offer.message}</Text>
+        </SectionCard>
       ) : null}
 
       {/* Parties */}
-      <View style={styles.partyCard}>
+      <SectionCard bodyStyle={styles.party}>
         <View style={styles.partyRow}>
-          <Ionicons name="person-circle-outline" size={18} color={colors.text.muted} />
-          <Text style={styles.partyLabel}>{t('order.buyer')}:</Text>
-          <Text style={styles.partyName}>{offer.buyer?.displayName || '—'}</Text>
+          <Text variant="bodySm" tone="muted">{t('order.buyer')}</Text>
+          <Text variant="bodySm" weight="semibold" tone="heading">{offer.buyer?.displayName || '—'}</Text>
         </View>
         <View style={styles.partyRow}>
-          <Ionicons name="person-circle-outline" size={18} color={colors.text.muted} />
-          <Text style={styles.partyLabel}>{t('product.seller')}:</Text>
-          <Text style={styles.partyName}>{offer.seller?.displayName || '—'}</Text>
+          <Text variant="bodySm" tone="muted">{t('product.seller')}</Text>
+          <Text variant="bodySm" weight="semibold" tone="heading">{offer.seller?.displayName || '—'}</Text>
         </View>
         <View style={styles.partyRow}>
-          <Ionicons name="time-outline" size={18} color={colors.text.muted} />
-          <Text style={styles.partyLabel}>{t('offer.createdAtLabel')}</Text>
-          <Text style={styles.partyName}>{formatRelativeDate(offer.createdAt, i18n.language)}</Text>
+          <Text variant="bodySm" tone="muted">{t('offer.createdAtLabel')}</Text>
+          <Text variant="bodySm" weight="semibold" tone="heading">
+            {formatRelativeDate(offer.createdAt, i18n.language)}
+          </Text>
         </View>
-      </View>
+      </SectionCard>
     </>
   );
 }

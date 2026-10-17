@@ -1,32 +1,44 @@
-import { useState, useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { logger, safeError } from '@/services/logger';
+import { goBackOrHome } from '@/components/common/goBackOrHome';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { router } from 'expo-router';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { useZodForm } from '@/ui/form';
 import { buildListingFormSchema, emptyListingFormValues } from '../_lib/schema';
 import { firstListingValidationError } from '../_lib/validate';
+import { BANK_ACCOUNT_FROM_LISTING_HREF, listingGateView } from '../_lib/gates';
 import { buildColorAndBoxPayload, serverErrorMessage } from '../_lib/payload';
 import { MAX_COLORS } from '../_lib/schema';
 import { globalCustomGroups, requiredGlobalGroups } from '../_lib/attributeGroups';
 import { toFormValues } from '../_lib/editMapper';
+import { imageSubmitBlocker, imagesFromMapped } from '../_lib/images';
+import { useListingImageUpload } from './useListingImageUpload';
+import { activatedStatus, activationMessageKey } from '../_lib/activation';
+import { useDispatchAddress } from './useDispatchAddress';
+import { invalidateListingCaches as invalidateListingCachesShared } from '../_lib/invalidate';
+import { useDeleteListing } from './useDeleteListing';
+import { defaultSaleDates, salePayload } from '../_lib/sale';
+import { priceLimitHint, type PriceBaseline } from '../_lib/priceRules';
+import { usePriceLimits } from '@/hooks/usePriceLimits';
+import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
+import { useLatestRef } from '@/hooks/useLatestRef';
+import { useStableCallback } from '@/hooks/useStableCallback';
+import { useListingCatalog } from './useListingCatalog';
+import { useListingQuota } from './useListingQuota';
 
 import { useAuthStore } from '../../../stores/authStore';
-import { api, productsApi, categoriesApi, bankAccountApi, shippingApi } from '@/lib/api';
+import { api, productsApi, bankAccountApi, shippingApi, type ListingRemovalPayload } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { qk } from '@/lib/query';
-import { FALLBACK_SCALES, buildMaterials, BRAND_SLUGS, SCALE_SLUGS , MIN_IMAGE_BYTES } from '../_lib/constants';
 import type {
   Category,
   Brand,
   CarModel,
   Manufacturer,
-  MaterialOption,
-  ColorOption,
-  ListingLimits,
-  CommissionPreview,
   AttrGroup,
   ListingFormProps,
   MyProductResponse,
@@ -38,21 +50,47 @@ import type { MappedListing } from '../_lib/editMapper';
  * Lifted verbatim from the monolithic component (RHF migration deferred): all
  * state, effects, API calls, image upload, submit/delete/reactivate handlers and
  * derived values live here so the screen only composes sections + modals.
+ *
+ * Performans: serbest metin alanları (başlık, açıklama, model kodu, set adedi) controller'da
+ * İZLENMEZ — `FormTextField` (useController) kendi alanını çizer, değerler gönderimde
+ * `getValues()` ile okunur. Fiyat/adet de İZLENMEZ: türetmeleri (fiyat hatası, indirim yüzdesi,
+ * komisyon önizlemesi) yaprakta `useListingPricing` hesaplar. Yalnız mantığı süren alanlar
+ * `useWatch` ile izlenir (kategori, marka, üretici, seçimler). Bölümlere giden işleyiciler
+ * referans-kararlı; bölümler `memoSection` ile yalnız okudukları alan değişince çizilir.
  */
+// Sabit boş dizi: `?? []` her render'da yeni referans üretip memo'lu kargo bölümünü çizdirirdi.
+const NO_TIERS: never[] = [];
+
 export function useListingForm({ mode, productId }: ListingFormProps) {
   const isEdit = mode === 'edit';
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
 
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const authLoading = useAuthStore((s) => s.isLoading);
+  const user = useAuthStore((s) => s.user);
+  const limits = useAuthStore((s) => s.limits);
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
+
+  // IBAN kapısı (yalnız yeni ilan; web `BankGate`): hesap yoksa form GÖSTERİLMEZ.
+  // Anahtar Banka Hesabım ekranıyla ORTAK (`qk.user.bankAccount`): orada kaydedilince
+  // sorgu tazelenir ve kapı kendiliğinden açılır.
   const bankAccountQuery = useQuery({
-    queryKey: ['bank-account'],
+    queryKey: qk.user.bankAccount,
     queryFn: async () => {
       const res = await bankAccountApi.get();
       return res.data || null;
     },
-    enabled: !isEdit,
+    enabled: !isEdit && isAuthenticated,
   });
   const hasBankAccount = isEdit || !!bankAccountQuery.data;
+  const bankAccountLoading = bankAccountQuery.isLoading;
+  // Okunamadı (ve elde eski veri yok): durum BİLİNMİYOR, "hesap yok" değil.
+  const bankAccountError = bankAccountQuery.isError && bankAccountQuery.data === undefined;
+  const refetchBankAccount = () => {
+    void bankAccountQuery.refetch();
+  };
 
   /**
    * Kargo paket kademesi tarifesi. Kartların etiketi ve örnek ölçüsü buradan
@@ -70,108 +108,168 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     },
     staleTime: 5 * 60 * 1000,
   });
-  const packageTiers = packageTiersQuery.data?.tiers ?? [];
+  const packageTiers = packageTiersQuery.data?.tiers ?? NO_TIERS;
   const packageTiersLoading = packageTiersQuery.isLoading;
   const packageTiersError = packageTiersQuery.isError;
 
+  // Kargo çıkış adresi kapısı (yalnız yeni ilan): adresi/cep numarası geçersiz
+  // satıcının siparişinde koli açılamaz. Kural `_lib/dispatchAddress.ts`'te.
   const {
-    isAuthenticated,
-    isLoading: authLoading,
-    user,
-    limits,
-    refreshUserData,
-  } = useAuthStore();
+    hasDispatchAddress,
+    needsFix: dispatchAddressNeedsFix,
+    isLoading: dispatchAddressLoading,
+    isError: dispatchAddressError,
+    refetch: refetchDispatchAddress,
+  } = useDispatchAddress(!isEdit && isAuthenticated);
 
-  // İlan listesi/detay ekranlarının bayat kalmaması için ilgili cache'leri temizler.
-  const invalidateListingCaches = () => {
-    queryClient.invalidateQueries({ queryKey: ['my-listings'] });
-    queryClient.invalidateQueries({ queryKey: ['products'] });
-    queryClient.invalidateQueries({ queryKey: ['products-search'] });
-    if (productId) queryClient.invalidateQueries({ queryKey: ['product', productId] });
-  };
+  // İlan listesi/detay/ana sayfa ekranlarının bayat kalmaması için ilgili cache'leri
+  // temizler — İlanlarım ile ORTAK küme (`_lib/invalidate`).
+  const invalidateListingCaches = () => invalidateListingCachesShared(queryClient, productId);
 
   // #81 (hibrit): text alanları useZodForm'da; watch/setValue köprüsüyle mevcut
   // f.title/f.setTitle sözleşmesi korunur (section'lar değişmez), zod validasyon
   // submit'te form.trigger() ile devreye girer. Diğer alanlar useState kalır.
   const form = useZodForm(buildListingFormSchema(t), { defaultValues: emptyListingFormValues });
-  const title = form.watch('title');
-  const setTitle = (v: string) => form.setValue('title', v);
-  const description = form.watch('description');
-  const setDescription = (v: string) => form.setValue('description', v);
-  const price = form.watch('price');
-  const setPrice = (v: string) => form.setValue('price', v);
-  const quantity = form.watch('quantity');
-  const setQuantity = (v: string) => form.setValue('quantity', v);
+  const { control, setValue, getValues } = form;
+  /**
+   * YALNIZ mantığı süren alanlar izlenir (`useWatch`): seçimler dokunuşla değişir. Başlık/
+   * açıklama/model kodu/set adedi ve fiyat/adet İZLENMEZ — tuş vuruşu controller'ı ve formun
+   * geri kalanını yeniden çizmesin diye alanlar kendi değerini okur (`FormTextField`,
+   * `useListingPricing`); gönderimde `getValues()`.
+   */
+  const [
+    categoryId,
+    condition,
+    brandId,
+    carModelId,
+    scale,
+    material,
+    manufacturerId,
+    year,
+    isTradeEnabled,
+    isSet,
+    colors,
+    isBoxed,
+    status,
+    isPreorder,
+    shippingPackageTier,
+  ] = useWatch({
+    control,
+    name: [
+      'categoryId',
+      'condition',
+      'brandId',
+      'carModelId',
+      'scale',
+      'material',
+      'manufacturerId',
+      'year',
+      'isTradeEnabled',
+      'isSet',
+      'colors',
+      'isBoxed',
+      'status',
+      'isPreorder',
+      'shippingPackageTier',
+    ],
+  });
   // Aktif takas/sipariş rezervasyonu (quantity − availableQuantity); alıcıların
   // gördüğü "satışta" sayısının fiziksel stoktan neden düşük olduğunu açıklar.
   const [reservedQty, setReservedQty] = useState(0);
-  // #81: tüm form alanları useZodForm'da; watch/setValue köprüsü mevcut sözleşmeyi korur.
-  const categoryId = form.watch('categoryId');
-  const setCategoryId = (v: string) => form.setValue('categoryId', v);
-  const condition = form.watch('condition');
-  const setCondition = (v: string) => form.setValue('condition', v);
-  const brandId = form.watch('brandId');
-  const setBrandId = (v: string) => form.setValue('brandId', v);
-  const carModelId = form.watch('carModelId');
-  const setCarModelId = (v: string) => form.setValue('carModelId', v);
-  const scale = form.watch('scale');
-  const setScale = (v: string) => form.setValue('scale', v);
-  const material = form.watch('material');
-  const setMaterial = (v: string) => form.setValue('material', v);
-  const manufacturerId = form.watch('manufacturerId');
-  const setManufacturerId = (v: string) => form.setValue('manufacturerId', v);
-  const modelCode = form.watch('modelCode');
-  const setModelCode = (v: string) => form.setValue('modelCode', v);
-  const year = form.watch('year');
-  const setYear = (v: string) => form.setValue('year', v);
-  const isTradeEnabled = form.watch('isTradeEnabled');
-  const setIsTradeEnabled = (v: boolean) => form.setValue('isTradeEnabled', v);
-  const isSet = form.watch('isSet');
-  const setIsSet = (v: boolean) => form.setValue('isSet', v);
-  const bundleSize = form.watch('bundleSize');
-  const setBundleSize = (v: string) => form.setValue('bundleSize', v);
-  // Renk (çoklu, en fazla MAX_COLORS) ve kutu durumu — sunucuda zorunlu.
-  const colors = form.watch('colors');
-  const toggleColor = (slug: string) => {
-    const current = form.getValues('colors');
-    if (current.includes(slug)) {
-      form.setValue('colors', current.filter((c) => c !== slug));
-    } else if (current.length < MAX_COLORS) {
-      form.setValue('colors', [...current, slug]);
-    }
-  };
-  const isBoxed = form.watch('isBoxed');
-  const setIsBoxed = (v: 'boxed' | 'unboxed') => form.setValue('isBoxed', v);
+  // Setter'lar referans-kararlı (`setValue` RHF'de sabit): memo'lu bölümler boşa çizilmesin.
+  const setters = useMemo(
+    () => ({
+      setTitle: (v: string) => setValue('title', v),
+      setDescription: (v: string) => setValue('description', v),
+      setPrice: (v: string) => setValue('price', v),
+      setQuantity: (v: string) => setValue('quantity', v),
+      setCategoryId: (v: string) => setValue('categoryId', v),
+      setCondition: (v: string) => setValue('condition', v),
+      setBrandId: (v: string) => setValue('brandId', v),
+      setCarModelId: (v: string) => setValue('carModelId', v),
+      setScale: (v: string) => setValue('scale', v),
+      setMaterial: (v: string) => setValue('material', v),
+      setManufacturerId: (v: string) => setValue('manufacturerId', v),
+      setModelCode: (v: string) => setValue('modelCode', v),
+      setYear: (v: string) => setValue('year', v),
+      setIsTradeEnabled: (v: boolean) => setValue('isTradeEnabled', v),
+      setIsSet: (v: boolean) => setValue('isSet', v),
+      setBundleSize: (v: string) => setValue('bundleSize', v),
+      setIsBoxed: (v: 'boxed' | 'unboxed') => setValue('isBoxed', v),
+      setStatus: (v: string) => setValue('status', v),
+      setIsPreorder: (v: boolean) => setValue('isPreorder', v),
+      setShippingPackageTier: (v: string) => setValue('shippingPackageTier', v),
+      // Renk (çoklu, en fazla MAX_COLORS) ve kutu durumu — sunucuda zorunlu.
+      toggleColor: (slug: string) => {
+        const current = getValues('colors');
+        if (current.includes(slug)) {
+          setValue('colors', current.filter((c) => c !== slug));
+        } else if (current.length < MAX_COLORS) {
+          setValue('colors', [...current, slug]);
+        }
+      },
+    }),
+    [setValue, getValues],
+  );
+  const {
+    setTitle,
+    setDescription,
+    setPrice,
+    setQuantity,
+    setCategoryId,
+    setCondition,
+    setBrandId,
+    setCarModelId,
+    setScale,
+    setMaterial,
+    setManufacturerId,
+    setModelCode,
+    setYear,
+    setIsTradeEnabled,
+    setIsSet,
+    setBundleSize,
+    setIsBoxed,
+    setStatus,
+    setIsPreorder,
+    setShippingPackageTier,
+    toggleColor,
+  } = setters;
 
   // Edit-only state
-  const status = form.watch('status');
-  const setStatus = (v: string) => form.setValue('status', v);
-  const isPreorder = form.watch('isPreorder');
-  const setIsPreorder = (v: boolean) => form.setValue('isPreorder', v);
-  const shippingPackageTier = form.watch('shippingPackageTier');
-  const setShippingPackageTier = (v: string) =>
-    form.setValue('shippingPackageTier', v);
   const [salePrice, setSalePrice] = useState('');
-  const [saleStartDate, setSaleStartDate] = useState('');
-  const [saleEndDate, setSaleEndDate] = useState('');
+  // Yeni ilanda web gibi bugün → +7 gün önerilir; indirimli fiyat girilmedikçe
+  // payload'a girmez. Düzenlemede sunucudaki değerler (`applyMappedListing`).
+  const [saleStartDate, setSaleStartDate] = useState(() =>
+    isEdit ? '' : defaultSaleDates().saleStartDate,
+  );
+  const [saleEndDate, setSaleEndDate] = useState(() =>
+    isEdit ? '' : defaultSaleDates().saleEndDate,
+  );
   const [reactivateQuantity, setReactivateQuantity] = useState('');
   const [reactivating, setReactivating] = useState(false);
+  const [removalOpen, setRemovalOpen] = useState(false);
   const [productLoading, setProductLoading] = useState(isEdit);
   const [productNotFound, setProductNotFound] = useState(false);
 
-  // Images: local URIs for display + server keys for submission
-  const [imageUris, setImageUris] = useState<string[]>([]);
-  const [imageKeys, setImageKeys] = useState<Array<{ cardKey: string; detailKey: string }>>([]);
-  const [uploadingImages, setUploadingImages] = useState(false);
+  // Görseller: TEK liste (ekran sırası = payload sırası, ilk = kapak); seçme, dosya başına
+  // kuyruklu yükleme, sıralama ve çevirme `useListingImageUpload`'ta. Payload anahtarları
+  // (`imageKeys`) yalnız sunucu anahtarlı kalemlerden türetilir.
+  const imageUpload = useListingImageUpload({ maxImages: limits?.maxImagesPerListing });
+  const { images, imageKeys, replaceImages, imagesRef } = imageUpload;
 
-  // Data from API
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [models, setModels] = useState<CarModel[]>([]);
-  const [scaleList, setScaleList] = useState<string[]>([]);
-  const [materialList, setMaterialList] = useState<MaterialOption[]>([]);
-  const [colorList, setColorList] = useState<ColorOption[]>([]);
-  const [manufacturerList, setManufacturerList] = useState<Manufacturer[]>([]);
+  // Katalog (kategori ağacı, filtre seçenekleri, markaya göre modeller) — React Query, ortak
+  // `qk` anahtarları (bkz. `useListingCatalog`).
+  const {
+    flatCategories,
+    brands,
+    manufacturerList,
+    colorList,
+    effectiveScales,
+    effectiveMaterials,
+    brandsLoading,
+    models,
+    modelsLoading,
+  } = useListingCatalog({ enabled: isAuthenticated && !authLoading, brandId });
 
   // Manufacturer-scoped extra attributes. groupSlug -> selected attribute slugs.
   const [customAttributes, setCustomAttributes] = useState<Record<string, string[]>>({});
@@ -189,17 +287,23 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     },
     staleTime: 5 * 60 * 1000,
   });
-  const globalAttrGroups = globalCustomGroups(attrGroupsQuery.data ?? []);
+  const globalAttrGroups = useMemo(
+    () => globalCustomGroups(attrGroupsQuery.data ?? []),
+    [attrGroupsQuery.data],
+  );
   const globalAttrGroupsFailed = attrGroupsQuery.isError;
   const [globalAttributes, setGlobalAttributes] = useState<Record<string, string[]>>({});
   /** Tek seçim: aynı seçeneğe tekrar dokunmak seçimi kaldırır. */
-  const setGlobalAttribute = (groupSlug: string, attrSlug: string) =>
-    setGlobalAttributes((prev) => {
-      const next = { ...prev };
-      if (next[groupSlug]?.[0] === attrSlug) delete next[groupSlug];
-      else next[groupSlug] = [attrSlug];
-      return next;
-    });
+  const setGlobalAttribute = useCallback(
+    (groupSlug: string, attrSlug: string) =>
+      setGlobalAttributes((prev) => {
+        const next = { ...prev };
+        if (next[groupSlug]?.[0] === attrSlug) delete next[groupSlug];
+        else next[groupSlug] = [attrSlug];
+        return next;
+      }),
+    [],
+  );
   const [manufacturerAttrGroups, setManufacturerAttrGroups] = useState<AttrGroup[]>([]);
   const [showAttrGroupPicker, setShowAttrGroupPicker] = useState<string | null>(null);
   // Holds prefilled manufacturer attributes (edit) until the groups finish loading,
@@ -212,17 +316,32 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const prevBrandIdRef = useRef<string | null>(null);
 
   // Loading flags
-  const [brandsLoading, setBrandsLoading] = useState(true);
-  const [modelsLoading, setModelsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [limitsLoading, setLimitsLoading] = useState(!isEdit);
 
-  // Listing limits (create only)
-  const [listingLimits, setListingLimits] = useState<ListingLimits | null>(null);
+  // Listing limits (create only) — tek sorgu (`useListingQuota`): eskiden kullanıcı tazelemesi
+  // bittikten SONRA ve `[user, limits]` efektiyle BİR KEZ DAHA sırayla çekiliyordu.
+  const { listingLimits, limitsLoading } = useListingQuota({
+    enabled: !isEdit && isAuthenticated && !authLoading,
+    user,
+    limits,
+  });
 
-  // Commission preview
-  const [commissionPreview, setCommissionPreview] = useState<CommissionPreview | null>(null);
-  const [commissionLoading, setCommissionLoading] = useState(false);
+  // İndirim alanları + GÜNCEL fiyat (fiyat izlenmez → gönderim anında formdan okunur).
+  const currentSaleFields = () => ({ price: getValues('price'), salePrice, saleStartDate, saleEndDate });
+
+  // Admin fiyat sınırları (yüklenemezse / boşsa kural yok — form asla bloklanmaz). Düzenlemede
+  // yüklenen ilk fiyatlar taban altındaysa DEĞİŞTİRİLMEDİKÇE hata verilmez (eski kayıt muafiyeti).
+  const { minPrice, maxPrice } = usePriceLimits();
+  // Referans-kararlı: fiyat bölümünün memo anahtarı (`useListingPricing`).
+  const priceLimits = useMemo(() => ({ minPrice, maxPrice }), [minPrice, maxPrice]);
+  const [priceBaseline, setPriceBaseline] = useState<PriceBaseline | null>(null);
+  // Limit hatası yazarken kırmızı yanmaz: alan terk edilince (blur) ya da gönderim denenince görünür
+  // (ipucu satırı HEP görünür). Gönderim kapısı (`validate`) bundan bağımsız, her zaman çalışır.
+  const [priceBlurred, setPriceBlurred] = useState(false);
+  const [salePriceBlurred, setSalePriceBlurred] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  // Fiyat hatası / indirim yüzdesi / komisyon önizlemesi yaprakta: `useListingPricing`.
+  const priceHint = priceLimitHint(t, priceLimits);
 
   // Picker modal visibility
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
@@ -237,36 +356,21 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const [manufacturerSearch, setManufacturerSearch] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
 
-  const commissionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Misafir: giriş kapısı ekranın kendisi (`ListingGates` "Giriş Yapın" sayfası + buton);
+  // üstüne aynı mesajlı ikinci bir uyarı açılmaz.
 
   // -----------------------------------------------------------------------
-  // Auth gate (create only — edit is always reached authenticated)
+  // Initial data loading — katalog ve kota React Query'de (yukarıda); burada yalnız kullanıcı
+  // tazelemesi (üyelik/hak). Kota sorgusu bununla PARALEL gider; üyelik değişirse kendi
+  // anahtarıyla yeniden sorar.
   // -----------------------------------------------------------------------
   useEffect(() => {
-    if (authLoading || isEdit) return;
-    if (!isAuthenticated) {
-      appAlert(t('listing.loginRequiredTitle'), t('product.loginRequiredToCreate'), [
-        { text: t('common.login'), onPress: () => router.push('/(auth)/login') },
-        { text: t('common.cancel'), style: 'cancel' },
-      ]);
-    }
-  }, [isAuthenticated, authLoading, isEdit, t]);
-
-  // -----------------------------------------------------------------------
-  // Initial data loading
-  // -----------------------------------------------------------------------
-  useEffect(() => {
-    if (!isAuthenticated || authLoading) return;
-    fetchCategories();
-    fetchFilters();
-    if (!isEdit) {
-      refreshUserData().then(() => updateListingLimits());
-    }
+    if (!isAuthenticated || authLoading || isEdit) return;
+    refreshUserData().catch((e) =>
+      logger.warn('[listing] kullanıcı tazelemesi başarısız', { err: safeError(e) }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, authLoading]);
-
-  useEffect(() => {
-    if (!isEdit && user && limits) updateListingLimits();
-  }, [user, limits]);
 
   // -----------------------------------------------------------------------
   // Edit: fetch product and prefill the form
@@ -283,9 +387,9 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const applyMappedListing = (mapped: MappedListing) => {
     form.reset(mapped.values);
     setReservedQty(mapped.reservedQty);
-    setImageKeys(mapped.images.keys);
-    setImageUris(mapped.images.uris);
+    replaceImages(imagesFromMapped(mapped.images));
     setSalePrice(mapped.sale.salePrice);
+    setPriceBaseline(mapped.storedPrices);
     setSaleStartDate(mapped.sale.saleStartDate);
     setSaleEndDate(mapped.sale.saleEndDate);
     // YALNIZ üretici-kapsamlı nitelikler: `scale`/`material` gibi
@@ -334,7 +438,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   }, [isEdit, productId]);
 
   // -----------------------------------------------------------------------
-  // Fetch models when brand changes
+  // Brand change — modeller `useListingCatalog`'ta markaya göre sorgulanır
   // -----------------------------------------------------------------------
   useEffect(() => {
     // Marka GERÇEKTEN değiştiyse (prefill'in '' → id geçişi değil) eski
@@ -344,14 +448,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       editLabelsRef.current = { ...editLabelsRef.current, carModelName: '' };
     }
     prevBrandIdRef.current = brandId;
-
-    if (brandId) {
-      const selected = brands.find((b) => b.id === brandId);
-      if (selected) fetchModels(selected.slug);
-    } else {
-      setModels([]);
-    }
-  }, [brandId, brands]);
+  }, [brandId]);
 
   // -----------------------------------------------------------------------
   // Fetch manufacturer-scoped attribute groups when manufacturer changes
@@ -380,7 +477,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
           setCustomAttributes({});
         }
       } catch (error) {
-        if (__DEV__) console.error('Failed to fetch manufacturer attribute groups:', error);
+        logger.error('Failed to fetch manufacturer attribute groups', { err: safeError(error) });
         if (!cancelled) {
           setManufacturerAttrGroups([]);
           if (!initialCustomAttrsRef.current) setCustomAttributes({});
@@ -393,251 +490,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   }, [manufacturerId, manufacturerList]);
 
   // -----------------------------------------------------------------------
-  // Commission preview when price changes
+  // Category helpers (düzleştirilmiş liste `useListingCatalog`'ta, memo'lu)
   // -----------------------------------------------------------------------
-  useEffect(() => {
-    if (commissionTimer.current) clearTimeout(commissionTimer.current);
-
-    const amount = Number(price);
-    if (isNaN(amount) || amount <= 0) {
-      setCommissionPreview(null);
-      return;
-    }
-
-    commissionTimer.current = setTimeout(() => {
-      setCommissionLoading(true);
-      api
-        .get('/orders/commission-preview', {
-          params: {
-            amount: price,
-            categoryId: categoryId || undefined,
-            // Geçilmezse sunucu `small` varsayar → satıcıya HER ZAMAN en küçük
-            // paketin net kazancı gösterilirdi. Seçim yoksa alanı hiç koyma.
-            packageTier: shippingPackageTier || undefined,
-          },
-        })
-        .then((res) => {
-          if (res.data) {
-            setCommissionPreview({
-              sellerFeeAmount: Number(res.data.sellerFeeAmount ?? 0),
-              sellerNetAmount: Number(res.data.sellerNetAmount ?? 0),
-            });
-          }
-        })
-        .catch(() => setCommissionPreview(null))
-        .finally(() => setCommissionLoading(false));
-    }, 500);
-
-    return () => {
-      if (commissionTimer.current) clearTimeout(commissionTimer.current);
-    };
-    // Kademe değişince net kazanç yeniden sorulur — satıcı seçiminin etkisini
-    // anında görür.
-  }, [price, categoryId, shippingPackageTier]);
-
-  // -----------------------------------------------------------------------
-  // API Calls
-  // -----------------------------------------------------------------------
-  const fetchCategories = async () => {
-    try {
-      const res = await categoriesApi.getAll();
-      const cats = res.data?.data || res.data || [];
-      setCategories(cats);
-    } catch {
-      appAlert(t('common.error'), t('listing.categoriesLoadFailed'));
-    }
-  };
-
-  const fetchFilters = async () => {
-    setBrandsLoading(true);
-    try {
-      const res = await api.get('/products/filters');
-      const data = res.data as {
-        scales?: string[];
-        materials?: MaterialOption[];
-        colors?: ColorOption[];
-        brands?: Brand[];
-        manufacturers?: Manufacturer[];
-      };
-      if (data.scales?.length) setScaleList(data.scales);
-      if (data.materials?.length) setMaterialList(data.materials);
-      if (data.colors?.length) setColorList(data.colors);
-      if (data.brands?.length) setBrands(data.brands);
-      if (data.manufacturers?.length) setManufacturerList(data.manufacturers);
-    } catch {
-      appAlert(t('common.error'), t('listing.filtersLoadFailed'));
-    } finally {
-      setBrandsLoading(false);
-    }
-  };
-
-  const fetchModels = async (brandSlug: string) => {
-    setModelsLoading(true);
-    setModels([]);
-    try {
-      const res = await api.get('/car-models', { params: { brand: brandSlug } });
-      const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      setModels(data);
-    } catch {
-      appAlert(t('common.error'), t('listing.modelsLoadFailed'));
-    } finally {
-      setModelsLoading(false);
-    }
-  };
-
-  const updateListingLimits = async () => {
-    setLimitsLoading(true);
-    try {
-      const res = await api.get('/products/my/stats', { params: { _t: Date.now() } });
-      const stats = res.data;
-      const tierName = stats.limits?.tierName || 'Free';
-      const tierType = stats.limits?.tierType || 'free';
-      const isPremium = tierType === 'premium' || tierType === 'business';
-      const maxListings = stats.summary?.max || 10;
-      const used = stats.summary?.used || 0;
-      const remaining = stats.summary?.remaining || 0;
-      const canCreate = stats.summary?.canCreate ?? true;
-
-      setListingLimits({
-        currentCount: used,
-        maxListings,
-        canCreateListing: canCreate,
-        isPremium,
-        membershipTier: tierName,
-        remainingListings: remaining,
-      });
-    } catch {
-      // Stats çekilemezse: yanıltıcı sayı GÖSTERME ve kullanıcıyı BLOKLAMA.
-      // (user.listingCount ömür-boyu toplamdır, kotayı yanlış şişirir.) Sunucu POST'ta zaten doğrular.
-      const membershipTier = user?.membershipTier || 'free';
-      const isPremium = membershipTier === 'premium' || membershipTier === 'business';
-
-      setListingLimits({
-        currentCount: 0,
-        maxListings: -1,
-        canCreateListing: true,
-        isPremium,
-        membershipTier,
-        remainingListings: -1,
-      });
-    } finally {
-      setLimitsLoading(false);
-    }
-  };
-
-  // -----------------------------------------------------------------------
-  // Image picker & upload
-  // -----------------------------------------------------------------------
-  const pickImages = async () => {
-    const maxImages = limits?.maxImagesPerListing || 5;
-    const remaining = maxImages - imageKeys.length;
-    if (remaining <= 0) {
-      appAlert(t('listing.imageLimitTitle'), t('product.maxImagesReached'));
-      return;
-    }
-
-    const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permResult.granted) {
-      appAlert(t('order.permissionRequired'), t('order.galleryPermissionBody'));
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      selectionLimit: remaining,
-      quality: 0.8,
-    });
-
-    if (result.canceled || result.assets.length === 0) return;
-
-    /**
-     * 1 KB altı dosyalar elenir — boş/bozuk kayıtlar ve galeri yer tutucuları
-     * buradan geliyor.
-     *
-     * ⚠️ Bu YALNIZCA istemci kuralı: sunucuda alt sınır YOK (`media.service.ts`
-     * yalnız 10 MB üst sınırına bakar), yani burada elenen bir dosya teknik
-     * olarak yüklenebilirdi. Sınır kalite için; 1 KB altında anlamlı bir ürün
-     * fotoğrafı pratikte yok. Web aynı kuralı 2026-08-15'te koydu.
-     *
-     * `fileSize` her platformda gelmiyor; GELMEYEN dosya elenmez — bilmediğimiz
-     * için reddetmek, kullanıcının geçerli fotoğrafını sessizce düşürmek olurdu.
-     */
-    const picked = result.assets.slice(0, remaining);
-    const assets = picked.filter(
-      (a) => typeof a.fileSize !== 'number' || a.fileSize >= MIN_IMAGE_BYTES,
-    );
-    const skipped = picked.length - assets.length;
-    if (assets.length === 0) {
-      appAlert(t('listing.imageTooSmallTitle'), t('listing.imageAllTooSmall'));
-      return;
-    }
-    if (skipped > 0) {
-      appAlert(t('listing.imageTooSmallTitle'), t('listing.imageTooSmallBody', { count: skipped }));
-    }
-    setUploadingImages(true);
-
-    try {
-      const formData = new FormData();
-      assets.forEach((asset, idx) => {
-        const uri = asset.uri;
-        const filename = asset.fileName || `image_${idx}.jpg`;
-        const type = asset.mimeType || 'image/jpeg';
-        formData.append('images', {
-          uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
-          name: filename,
-          type,
-        } as any);
-      });
-
-      const res = await api.post('/media/upload/product', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      const uploaded = Array.isArray(res.data) ? res.data : [res.data];
-
-      const usable = uploaded.filter((r: any) => r?.cardKey && r?.detailKey);
-      if (usable.length !== uploaded.length) {
-        appAlert(t('common.error'), t('product.imageUploadIncomplete'));
-      }
-      const newKeys = usable.map((r: any) => ({
-        cardKey: r.cardKey,
-        detailKey: r.detailKey,
-      }));
-      const newPreviewUrls = usable.map((r: any) => r.cardUrl || r.detailUrl || '');
-
-      setImageKeys((prev) => [...prev, ...newKeys]);
-      // API'nin döndürdüğü URL esastır; yerel geçici URI'yi saklamak, kaydetme
-      // anında sunucuda karşılığı olmayan bir görselin "yüklenmiş" görünmesine
-      // yol açar (delta 18 §2d).
-      setImageUris((prev) => [...prev, ...newPreviewUrls]);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || t('listing.imageUploadFailed');
-      appAlert(t('common.error'), msg);
-    } finally {
-      setUploadingImages(false);
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setImageKeys((prev) => prev.filter((_, i) => i !== index));
-    setImageUris((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  // -----------------------------------------------------------------------
-  // Category helpers
-  // -----------------------------------------------------------------------
-  const flattenCategories = (cats: Category[]): Category[] => {
-    const result: Category[] = [];
-    cats.forEach((cat) => {
-      result.push(cat);
-      if (cat.children?.length) result.push(...flattenCategories(cat.children));
-    });
-    return result;
-  };
-
-  const flatCategories = flattenCategories(categories).filter(
-    (c) => !BRAND_SLUGS.includes(c.slug) && !SCALE_SLUGS.includes(c.slug)
-  );
   /**
    * Etiket yedeği YALNIZ ilgili liste HENÜZ YÜKLENMEMİŞKEN (`length === 0`)
    * devrededir.
@@ -670,21 +524,14 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       manufacturerId,
       editLabelsRef.current?.manufacturerName,
     );
-  const effectiveScales = scaleList.length > 0 ? scaleList : FALLBACK_SCALES;
-  const effectiveMaterials = materialList.length > 0 ? materialList : buildMaterials(t);
   const selectedMaterial = effectiveMaterials.find((m) => m.slug === material);
-
-  const listPriceNum = Number(price) || 0;
-  const salePriceNum = Number(salePrice) || 0;
-  const discountPercent =
-    listPriceNum > 0 && salePriceNum > 0 && salePriceNum < listPriceNum
-      ? Math.round((1 - salePriceNum / listPriceNum) * 100)
-      : 0;
 
   // -----------------------------------------------------------------------
   // Submit
   // -----------------------------------------------------------------------
   const buildBasePayload = () => {
+    // İzlenmeyen metin alanları gönderim anında formdan (bkz. `FormTextField`).
+    const { title, description, modelCode, bundleSize } = getValues();
     const customAttributeSlugs = [
       ...Object.values(customAttributes),
       ...Object.values(globalAttributes),
@@ -692,7 +539,7 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     return {
       title,
       description: description || undefined,
-      price: Number(price),
+      price: Number(getValues('price')),
       categoryId,
       condition,
       brandId: brandId || undefined,
@@ -712,7 +559,11 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       shippingPackageTier,
       bundleSize: isSet && Number(bundleSize) >= 2 ? Number(bundleSize) : undefined,
       images: imageKeys.length > 0 ? imageKeys : undefined,
-      attributes: customAttributeSlugs.length > 0 ? customAttributeSlugs : undefined,
+      // Düzenlemede boş liste `[]` GİDER: sunucu `PATCH` + `attributes` ile tüm
+      // özel grup bağlarını listeyle değiştirir; `undefined` (alanı hiç
+      // göndermemek) kullanıcının temizlediği seçimi sunucuda bırakırdı
+      // (delta 19). Oluşturmada boş liste gereksiz, alan atlanır.
+      attributes: isEdit || customAttributeSlugs.length > 0 ? customAttributeSlugs : undefined,
       ...buildColorAndBoxPayload({ colors, isBoxed }),
     } as Record<string, any>;
   };
@@ -723,27 +574,20 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
    * `salePrice < max(originalPrice, price)` ise ürünü indirimli açar, aksi
    * halde indirim alanlarını yok sayar. Etkin fiyatı İSTEMCİ TÜRETMEZ.
    */
-  const buildSalePayload = (): Record<string, unknown> => {
-    const formPrice = Number(price);
-    const sale = salePrice ? Number(salePrice) : 0;
-    const hasSale = sale > 0 && formPrice > sale && sale !== formPrice;
-    if (!hasSale) {
-      return {
-        originalPrice: null,
-        salePrice: null,
-        saleStartDate: null,
-        saleEndDate: null,
-      };
-    }
-    return {
-      originalPrice: formPrice,
-      salePrice: sale,
-      saleStartDate: saleStartDate ? new Date(saleStartDate).toISOString() : null,
-      saleEndDate: saleEndDate ? new Date(saleEndDate).toISOString() : null,
-    };
-  };
+  const buildSalePayload = (): Record<string, unknown> => ({ ...salePayload(currentSaleFields()) });
 
   const validate = (): boolean => {
+    setSubmitAttempted(true);
+    // Görsel yüklemesi/çevirmesi sürerken ya da yüklenemeyen görsel varken kaydedilen ilan,
+    // ekrandakinden farklı (eksik ya da çevrilmemiş) görselle giderdi — payload yalnız sunucu
+    // anahtarlı kalemleri taşır (web `imageSubmitBlocker`). Güncel liste ref'ten okunur.
+    const imageBlocker = imageSubmitBlocker(imagesRef.current);
+    if (imageBlocker) {
+      toast.error(
+        t(imageBlocker === 'pending' ? 'product.imageUpload.blockerPending' : 'product.imageUpload.blockerFailed'),
+      );
+      return false;
+    }
     // Kurallar ve SIRALARI tek yerde (`_lib/validate.ts`) — kullanıcıya
     // gösterilecek tek mesajı o sıra belirliyor.
     const error = firstListingValidationError(t, {
@@ -753,24 +597,89 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       isEdit,
       requiredGlobalGroups: requiredGlobalGroups(globalAttrGroups),
       attributeSelections: { ...customAttributes, ...globalAttributes },
+      priceLimits,
+      sale: { salePrice, saleStartDate, saleEndDate },
+      priceBaseline,
     });
     if (error) {
-      appAlert(t('common.error'), error);
+      toast.error(error);
       return false;
     }
     return true;
   };
 
+  /**
+   * Gönderim re-entry guard'ı. `isSubmitting` state'i bir sonraki render'a kadar güncellenmez:
+   * aynı karede gelen iki dokunuş ikisi de `false` görüp `productsApi.create`'i iki kez
+   * çağırır (çift ilan). Ref senkron okunur, ikinci çağrı daha girişte kesilir.
+   */
+  const submitInFlightRef = useRef(false);
   const handleSubmit = async () => {
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
+    try {
+      await submitListing();
+    } finally {
+      submitInFlightRef.current = false;
+    }
+  };
+
+  const submitListing = async () => {
     if (!validate()) return;
 
-    if (!isEdit && !hasBankAccount) {
+    // GÖNDERİM KAPISI — `ListingRequirementGate` ile AYNI kaynak (`listingGateView`), iki guard
+    // aynı semantiği izler. Form normalde bu durumda gizli; bu blok kapıyı aşan her yolu
+    // (hızlı çift dokunma, gecikmiş sorgu) sunucuya gitmeden keser:
+    //  - durum BİLİNMİYOR (yükleniyor / hata): gönderim engellenir ama "IBAN/adres ekle" DENMEZ;
+    //    "doğrulanıyor / tekrar dene" gösterilir (hata ise yeniden dene düğmesiyle).
+    //  - KESİN eksik: ekleme istemi (önce IBAN, sonra adres).
+    const gate = listingGateView({
+      isEdit,
+      hasBankAccount,
+      bankAccountLoading,
+      bankAccountError,
+      hasDispatchAddress,
+      dispatchAddressLoading,
+      dispatchAddressError,
+    });
+    if (gate.view === 'error') {
+      appAlert(t('listing.requirementsErrorTitle'), t('listing.requirementsErrorBody'), [
+        { text: t('listing.dismiss'), style: 'cancel' },
+        {
+          text: t('common.tryAgain'),
+          onPress: () => {
+            if (gate.bank === 'error') refetchBankAccount();
+            if (gate.address === 'error') refetchDispatchAddress();
+          },
+        },
+      ]);
+      return;
+    }
+    if (gate.view === 'loading') {
+      appAlert(t('listing.requirementsPendingTitle'), t('listing.requirementsPendingBody'));
+      return;
+    }
+    if (gate.bank === 'missing') {
       appAlert(
         t('listing.bankAccountRequiredTitle'),
         t('listing.bankAccountRequiredBody'),
         [
           { text: t('listing.dismiss'), style: 'cancel' },
-          { text: t('listing.addIban'), onPress: () => router.push('/settings/bank-account') },
+          { text: t('listing.addIban'), onPress: () => router.push(BANK_ACCOUNT_FROM_LISTING_HREF) },
+        ],
+      );
+      return;
+    }
+    if (gate.address === 'missing') {
+      appAlert(
+        t(dispatchAddressNeedsFix ? 'listing.dispatchAddressFixTitle' : 'listing.dispatchAddressRequiredTitle'),
+        t('address.dispatchPromptDesc'),
+        [
+          { text: t('listing.dismiss'), style: 'cancel' },
+          {
+            text: t(dispatchAddressNeedsFix ? 'address.dispatchFixButton' : 'address.dispatchAddButton'),
+            onPress: () => router.push('/settings/addresses'),
+          },
         ],
       );
       return;
@@ -789,7 +698,34 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       return;
     }
 
+    // B-2.4: yeni ilan yayımlanmadan yasal kimlik; vazgeçerse ilan gönderilmez.
+    // Düzenlemede sorulmaz (ilan zaten verildi).
+    if (!isEdit) {
+      if (!(await requireIdentity())) return;
+      // Kapı dakikalarca açık kalabilir (bu arada görsel yüklemesi biter, alan
+      // değişir): payload bu closure'dan DEĞİL, son commit'in durumundan kurulur.
+      await publishAfterGateRef.current();
+      return;
+    }
+    await publish();
+  };
+
+  /**
+   * Kimlik kapısından sonra, SON commit'in form durumuyla: kurallar yeniden
+   * koşar (kapı açıkken değişen durum geçersiz olabilir), sonra gönderim.
+   */
+  const publishAfterGate = async () => {
+    if (!validate()) return;
+    await publish();
+  };
+  // useEvent kalıbı — atama `useLayoutEffect`'te, render sırasında değil.
+  const publishAfterGateRef = useLatestRef(publishAfterGate);
+
+  /** Gönderim: oluşturma (`POST`) ya da düzenleme (`PATCH`) + sonuç uyarısı. */
+  const publish = async () => {
     setIsSubmitting(true);
+    // Adet izlenmez (yaprak alanı) → gönderim anında formdan.
+    const quantity = getValues('quantity');
     try {
       if (!isEdit) {
         await productsApi.create({
@@ -800,18 +736,18 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
           quantity: quantity ? Number(quantity) : 1,
         });
 
-        appAlert(t('common.success'), t('product.listingCreated'), [
-          {
-            text: t('common.ok'),
-            onPress: () => {
-              resetForm();
-              router.push('/settings/my-listings');
-            },
-          },
-        ]);
         invalidateListingCaches();
-        await refreshUserData();
-        await updateListingLimits();
+        // Önce ekran değişir, sonra toast — "Tamam" bekletme yok. Kalan istekler (yetki / limit
+        // tazeleme) ekran değiştikten sonra sürer.
+        resetForm();
+        router.push('/settings/my-listings');
+        toast.success(t('product.listingCreated'));
+        // İlan oluştu: tazeleme hatası "oluşturulamadı" uyarısına düşmesin (form zaten sıfır →
+        // kullanıcı yinelenen ilan göndermesin). Yalnız günlüğe. Kota kartı ayrıca çekilmez:
+        // `invalidateListingCaches` `myListingsStats` önekini (kota sorgusu dahil) tazeledi.
+        refreshUserData().catch((e) =>
+          logger.warn('[listing] create sonrası tazeleme başarısız', { err: safeError(e) }),
+        );
       } else {
         const payload: Record<string, any> = {
           ...buildBasePayload(),
@@ -824,9 +760,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
         await productsApi.update(productId!, payload);
         invalidateListingCaches();
 
-        appAlert(t('common.success'), t('product.listingUpdated'), [
-          { text: t('common.ok'), onPress: () => router.back() },
-        ]);
+        goBackOrHome();
+        toast.success(t('product.listingUpdated'));
       }
     } catch (err: any) {
       // İyimser kilit / atomik görsel yazımı çakışması (delta 18 §2d).
@@ -859,49 +794,31 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
   const handleReactivate = async () => {
     const qty = Number(reactivateQuantity);
     if (!qty || qty < 1) {
-      appAlert(t('common.error'), t('listing.invalidQuantity'));
+      toast.error(t('listing.invalidQuantity'));
       return;
     }
     setReactivating(true);
     try {
-      await productsApi.update(productId!, { status: 'active', quantity: qty });
-      setStatus('pending');
+      const response = await productsApi.update(productId!, { status: 'active', quantity: qty });
+      // API'nin gerçekten döndürdüğü statü: çoğu ilan `pending`, iade
+      // karantinasındaki ilan doğrudan `active` (bkz. listing/_lib/activation).
+      setStatus(activatedStatus(response));
       setQuantity(String(qty));
       invalidateListingCaches();
-      appAlert(t('common.success'), t('listing.sentForReview'));
+      toast.success(t(activationMessageKey(response)));
     } catch (err: any) {
-      const msg = err.response?.data?.message || t('listing.reactivateFailed');
-      appAlert(t('common.error'), msg);
+      toast.error(apiErrorMessage(err, t('listing.reactivateFailed')));
     } finally {
       setReactivating(false);
     }
   };
 
-  const handleDelete = () => {
-    appAlert(t('product.deleteListing'), t('listing.deleteConfirmBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          setIsSubmitting(true);
-          try {
-            await productsApi.delete(productId!);
-            invalidateListingCaches();
-            await refreshUserData();
-            appAlert(t('listing.deletedTitle'), t('listing.deleted'), [
-              { text: t('common.ok'), onPress: () => router.back() },
-            ]);
-          } catch (err: any) {
-            const msg = err.response?.data?.message || t('listing.deleteFailed');
-            appAlert(t('common.error'), msg);
-          } finally {
-            setIsSubmitting(false);
-          }
-        },
-      },
-    ]);
-  };
+  // Silme önce NEDEN sorar (web ile aynı; `ListingRemovalModal`). Onay metni pencerenin kendisidir.
+  const handleDelete = () => setRemovalOpen(true);
+
+  /** Pencere kapandıktan SONRA çağrılır; mutasyon + uyarı `useDeleteListing`te. */
+  const deleteListing = useDeleteListing(productId);
+  const deleteWithReason = (removal: ListingRemovalPayload) => deleteListing.mutate(removal);
 
   const resetForm = () => {
     setTitle('');
@@ -922,10 +839,35 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     form.setValue('colors', []);
     form.setValue('isBoxed', '');
     setGlobalAttributes({});
-    setImageUris([]);
-    setImageKeys([]);
-    setCommissionPreview(null);
+    replaceImages([]);
+    setSalePrice('');
+    const sale = defaultSaleDates();
+    setSaleStartDate(sale.saleStartDate);
+    setSaleEndDate(sale.saleEndDate);
   };
+
+  // Bölümlere giden işleyiciler referans-kararlı (useEvent kalıbı: her zaman SON commit'in
+  // closure'ını çağırır) — memo'lu bölümler controller her render olduğunda yeniden çizilmesin.
+  const stableHandleSubmit = useStableCallback(handleSubmit);
+  const stableHandleReactivate = useStableCallback(handleReactivate);
+  const stableHandleDelete = useStableCallback(handleDelete);
+  const stableDeleteWithReason = useStableCallback(deleteWithReason);
+  const closeRemoval = useCallback(() => setRemovalOpen(false), []);
+  const onPriceBlur = useCallback(() => setPriceBlurred(true), []);
+  const onSalePriceBlur = useCallback(() => setSalePriceBlurred(true), []);
+  const pickImages = useStableCallback(imageUpload.pickImages);
+  const retryImage = useStableCallback(imageUpload.retryImage);
+  const removeImage = useStableCallback(imageUpload.removeImage);
+  const moveImage = useStableCallback(imageUpload.moveImage);
+  const shiftImage = useStableCallback(imageUpload.shiftImage);
+  const makeCoverImage = useStableCallback(imageUpload.makeCoverImage);
+  const rotateImage = useStableCallback(imageUpload.rotateImage);
+  const blockerReason = imageUpload.submitBlocker?.reason;
+  const blockerMessage = imageUpload.submitBlocker?.message;
+  const imageSubmitBlockerValue = useMemo(
+    () => (blockerReason && blockerMessage ? { reason: blockerReason, message: blockerMessage } : null),
+    [blockerReason, blockerMessage],
+  );
 
   return {
     // mode
@@ -938,14 +880,27 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     productNotFound,
     hasBankAccount,
     bankAccountQuery,
+    bankAccountLoading,
+    bankAccountError,
+    refetchBankAccount,
+    hasDispatchAddress,
+    dispatchAddressNeedsFix,
+    dispatchAddressLoading,
+    dispatchAddressError,
+    refetchDispatchAddress,
     // limits
     limitsLoading,
     listingLimits,
-    // shared fields
-    title, setTitle,
-    description, setDescription,
-    price, setPrice,
-    quantity, setQuantity,
+    // RHF formu — serbest metin alanları (`FormTextField`) buna bağlanır.
+    form,
+    // shared fields (başlık/açıklama/model kodu/set adedi izlenmez: `FormTextField`)
+    setTitle,
+    setDescription,
+    setPrice,
+    priceHint, onPriceBlur,
+    // Fiyat türetmelerinin girdileri (`useListingPricing` yaprakta okur).
+    priceLimits, priceBaseline, priceBlurred, salePriceBlurred, submitAttempted,
+    setQuantity,
     reservedQty,
     categoryId, setCategoryId,
     condition, setCondition,
@@ -954,11 +909,11 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     scale, setScale,
     material, setMaterial,
     manufacturerId, setManufacturerId,
-    modelCode, setModelCode,
+    setModelCode,
     year, setYear,
     isTradeEnabled, setIsTradeEnabled,
     isSet, setIsSet,
-    bundleSize, setBundleSize,
+    setBundleSize,
     colors, toggleColor, colorList,
     isBoxed, setIsBoxed,
     // edit-only fields
@@ -966,17 +921,26 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     isPreorder, setIsPreorder,
     shippingPackageTier, setShippingPackageTier,
     packageTiers, packageTiersLoading, packageTiersError,
-    salePrice, setSalePrice,
+    salePrice, setSalePrice, onSalePriceBlur,
     saleStartDate, setSaleStartDate,
     saleEndDate, setSaleEndDate,
     reactivateQuantity, setReactivateQuantity,
     reactivating,
-    // images
-    imageUris,
+    // images (`useListingImageUpload`)
+    images,
     imageKeys,
-    uploadingImages,
+    maxImages: imageUpload.maxImages,
+    uploadingImages: imageUpload.uploadingImages,
+    imageSubmitBlocker: imageSubmitBlockerValue,
     pickImages,
+    retryImage,
     removeImage,
+    moveImage,
+    shiftImage,
+    makeCoverImage,
+    rotateImage,
+    imageDragActive: imageUpload.imageDragActive,
+    setImageDragActive: imageUpload.setImageDragActive,
     // data
     brands,
     models,
@@ -990,10 +954,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     // loading flags
     brandsLoading,
     modelsLoading,
-    isSubmitting,
-    // commission
-    commissionPreview,
-    commissionLoading,
+    // Kimlik kontrolü/kapısı süresince de devre dışı (ikinci basış yok).
+    isSubmitting: isSubmitting || checkingIdentity || deleteListing.isPending,
     // picker visibility
     showCategoryPicker, setShowCategoryPicker,
     showBrandPicker, setShowBrandPicker,
@@ -1014,11 +976,13 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     effectiveScales,
     effectiveMaterials,
     selectedMaterial,
-    discountPercent,
     // handlers
-    handleSubmit,
-    handleReactivate,
-    handleDelete,
+    handleSubmit: stableHandleSubmit,
+    handleReactivate: stableHandleReactivate,
+    handleDelete: stableHandleDelete,
+    removalOpen,
+    closeRemoval,
+    deleteWithReason: stableDeleteWithReason,
   };
 }
 

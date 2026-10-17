@@ -14,27 +14,30 @@ import React from 'react';
 import { act } from 'react';
 import { renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { makeTestQueryClient } from '../../../test-utils';
+import { uploadResponder } from '@/test-utils/listingUpload';
+
+// B4: kimlik kapısı bu testin konusu değil — geçti say (kapı testi ayrı dosyada).
+jest.mock('@/hooks/useLegalIdentity', () =>
+  require('@/test-utils/legalIdentity').legalIdentityGatePassMock,
+);
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
   useLocalSearchParams: () => ({}),
 }));
 
-jest.mock('expo-image-picker', () => ({
-  requestMediaLibraryPermissionsAsync: jest.fn(async () => ({ granted: true })),
-  launchImageLibraryAsync: jest.fn(async () => ({
-    canceled: false,
-    assets: [{ uri: 'file:///tmp/photo.jpg', fileName: 'photo.jpg', mimeType: 'image/jpeg' }],
-  })),
-  MediaTypeOptions: { Images: 'Images' },
-}));
+jest.mock('expo-image-picker', () =>
+  jest.requireActual<typeof import('@/test-utils/listingUpload')>('@/test-utils/listingUpload').imagePickerMock(3),
+);
 
 const mockGet = jest.fn();
 const mockPost = jest.fn();
+const mockUpload = jest.fn();
 jest.mock('@/lib/api', () => ({
   api: { get: (...a: any[]) => mockGet(...a), post: (...a: any[]) => mockPost(...a), patch: jest.fn() },
+  mediaApi: { uploadProductImage: (...a: unknown[]) => mockUpload(...a) },
   productsApi: {
     create: jest.fn(async () => ({ data: {} })),
     update: jest.fn(),
@@ -44,6 +47,11 @@ jest.mock('@/lib/api', () => ({
     delete: jest.fn(),
   },
   categoriesApi: { getAll: jest.fn(async () => ({ data: { data: [] } })) },
+  addressesApi: {
+    getAll: jest.fn(async () => ({
+      data: [{ id: 'a1', isDefault: true, phone: '+905321234567', city: 'İstanbul', district: 'Kadıköy', address: 'Moda Cd. 1' }],
+    })),
+  },
   shippingApi: { getPackageTiers: () => mockGet('/shipping/package-tiers') },
   bankAccountApi: {
     get: jest.fn(async () => ({
@@ -141,15 +149,8 @@ describe('oluşturmada indirim payload', () => {
     mockGet.mockReset();
     mockPost.mockReset();
     wireApi();
-    // Sunucu en az 3 fotoğraf istiyor — yükleme 3 görsel döndürür.
-    mockPost.mockResolvedValue({
-      data: [1, 2, 3].map((n) => ({
-        cardKey: `card-${n}`,
-        detailKey: `detail-${n}`,
-        cardUrl: `https://example.com/card-${n}.jpg`,
-        detailUrl: `https://example.com/detail-${n}.jpg`,
-      })),
-    });
+    // Dosya başına bir yükleme: N. istek → card-N (en az 3 fotoğraf).
+    mockUpload.mockImplementation(uploadResponder());
     (productsApi.create as jest.Mock).mockClear();
     (appAlert as jest.Mock).mockImplementation(() => {});
   });
@@ -191,14 +192,8 @@ describe('oluşturmada renk ve kutu durumu', () => {
     mockGet.mockReset();
     mockPost.mockReset();
     wireApi();
-    mockPost.mockResolvedValue({
-      data: [1, 2, 3].map((n) => ({
-        cardKey: `card-${n}`,
-        detailKey: `detail-${n}`,
-        cardUrl: `https://example.com/card-${n}.jpg`,
-        detailUrl: `https://example.com/detail-${n}.jpg`,
-      })),
-    });
+    // Dosya başına bir yükleme: N. istek → card-N (en az 3 fotoğraf).
+    mockUpload.mockImplementation(uploadResponder());
     (productsApi.create as jest.Mock).mockReset();
     (productsApi.create as jest.Mock).mockResolvedValue({ data: {} });
     (appAlert as jest.Mock).mockClear();
@@ -252,6 +247,7 @@ describe('oluşturmada renk ve kutu durumu', () => {
  * seçilmeden gönderilmez; seçim `attributes[]` içinde gider.
  */
 describe('oluşturmada nadirlik (genel özel grup)', () => {
+  let toastError: jest.SpyInstance;
   const RARITY = {
     slug: 'nadirlik-bulunabilirlik', name: 'Nadirlik/Bulunabilirlik', manufacturerSlug: null, isRequired: true,
     attributes: [{ slug: 'chase', label: 'Chase' }, { slug: 'bulunabilir', label: 'Bulunabilir' }],
@@ -265,17 +261,15 @@ describe('oluşturmada nadirlik (genel özel grup)', () => {
     mockGet.mockImplementation((url: string, ...rest: any[]) =>
       url === '/products/attribute-groups' ? Promise.resolve({ data: [RARITY] }) : base(url, ...rest),
     );
-    mockPost.mockResolvedValue({
-      data: [1, 2, 3].map((n) => ({
-        cardKey: `card-${n}`, detailKey: `detail-${n}`,
-        cardUrl: `https://example.com/card-${n}.jpg`, detailUrl: `https://example.com/detail-${n}.jpg`,
-      })),
-    });
+    // Dosya başına bir yükleme: N. istek → card-N (en az 3 fotoğraf).
+    mockUpload.mockImplementation(uploadResponder());
     (productsApi.create as jest.Mock).mockReset();
     (productsApi.create as jest.Mock).mockResolvedValue({ data: {} });
     (appAlert as jest.Mock).mockClear();
     (appAlert as jest.Mock).mockImplementation(() => {});
+    toastError = jest.spyOn(toast, 'error').mockImplementation(() => 1);
   });
+  afterEach(() => toastError.mockRestore());
 
   it('nadirlik seçilmeden gönderilmez', async () => {
     const { result } = renderForm();
@@ -285,7 +279,7 @@ describe('oluşturmada nadirlik (genel özel grup)', () => {
       await result.current.handleSubmit();
     });
     expect(productsApi.create).not.toHaveBeenCalled();
-    expect(appAlert).toHaveBeenCalledWith('Hata', 'Lütfen Nadirlik/Bulunabilirlik seçin.');
+    expect(toastError).toHaveBeenCalledWith('Lütfen Nadirlik/Bulunabilirlik seçin.');
   });
 
   it('seçilen nadirlik attributes içinde gider', async () => {

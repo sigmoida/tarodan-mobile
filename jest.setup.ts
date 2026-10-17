@@ -10,9 +10,12 @@
 // kurunca testler kullanıcının GÖRDÜĞÜ metni doğrulamaya devam ediyor.
 // (Anahtar kullanımını kanıtlamak isteyen testler `react-i18next`'i kendi
 // dosyasında mock'lamaya devam edebilir — o mock bunu ezer.)
-import i18n from '@/i18n/config';
+import i18n, { ensureLocaleLoaded } from '@/i18n/config';
 
 // Cihaz dili jest ortamında `en-US` çözülüyor; testler Türkçe metne bakıyor.
+// Testler iki dili de kullanıyor (changeLanguage('en')) — lazy yüklemeyi baştan tamamla.
+ensureLocaleLoaded('tr');
+ensureLocaleLoaded('en');
 i18n.changeLanguage('tr');
 
 // Test modu: register birthDate öndolu (1990-01-01), şifre alanları maskesiz.
@@ -69,10 +72,49 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
 
 // appAlert: native Alert.alert yerine geçen temalı dialog (AlertDialogHost testte
 // mount edilmez) → global jest.fn mock. Testler `appAlert as jest.Mock` ile erişir.
-jest.mock('@/ui', () => ({
-  ...jest.requireActual('@/ui'),
-  appAlert: jest.fn(),
+// `confirm()` aynı mock üstünden çalışır: testler onu da `appAlert` çağrısı olarak görür ve
+// düğmelerin `onPress`'iyle (iptal → false, onay → true) çözer.
+// usePreventRemove (taslak koruması): gerçeği navigator dışında atar → kayıt tutan eş
+// (`emitBeforeRemove()` ile çıkış taklit edilir; bkz. src/test-utils/router-mock.ts).
+jest.mock('@react-navigation/native', () => ({
+  ...jest.requireActual('@react-navigation/native'),
+  usePreventRemove: (...args: [boolean, (o: { data: { action: unknown } }) => void]) =>
+    // eslint-disable-next-line @typescript-eslint/no-var-requires -- jest.mock fabrikası içi
+    require('@/test-utils/router-mock').usePreventRemoveMock(...args),
 }));
+
+jest.mock('@/ui', () => {
+  const actual = jest.requireActual('@/ui');
+  const { confirmWith } = jest.requireActual('@/ui/components/AlertDialog');
+  const appAlert = jest.fn();
+  return {
+    ...actual,
+    appAlert,
+    confirm: (options: unknown) => confirmWith(appAlert, options),
+  };
+});
+
+// NetInfo: native modül (RNCNetInfo) testte yok → paketin kendi jest mock'u (bağlantı var).
+jest.mock('@react-native-community/netinfo', () =>
+  jest.requireActual('@react-native-community/netinfo/jest/netinfo-mock.js'),
+);
+
+// FlashList v2: jest'te yerel ölçüm yok → ebeveyn/hücre ölçümlerini sabitle (liste hücreleri render olsun).
+// NOT: paketin kendi `jestSetup.js`'i 2.0.2'de çalışmıyor (var olmayan `RecyclerView` export'unu
+// FlashList yerine koyuyor) — yalnız ölçüm modülünü mock'luyoruz, gerçek FlashList kullanılır.
+jest.mock('@shopify/flash-list/dist/recyclerview/utils/measureLayout', () => ({
+  ...jest.requireActual('@shopify/flash-list/dist/recyclerview/utils/measureLayout'),
+  measureParentSize: jest.fn(() => ({ x: 0, y: 0, width: 400, height: 900 })),
+  measureFirstChildLayout: jest.fn(() => ({ x: 0, y: 0, width: 400, height: 900 })),
+  measureItemLayout: jest.fn(() => ({ x: 0, y: 0, width: 100, height: 100 })),
+}));
+
+// react-native-gesture-handler: `GestureHandlerRootView` (BottomSheet'in Modal içi kökü) bağlanırken
+// native modülün `install`ünü çağırıyor; jest'te TurboModule yok → paketin kendi jest mock'u
+// (yalnız native modül; GestureDetector/jest-utils davranışı aynı kalır).
+jest.mock('react-native-gesture-handler/lib/commonjs/RNGestureHandlerModule', () =>
+  jest.requireActual('react-native-gesture-handler/lib/commonjs/mocks/mocks'),
+);
 
 // Her testte appAlert çağrı geçmişini sıfırla (testler arası sızıntı olmasın).
 beforeEach(() => {

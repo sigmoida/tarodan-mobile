@@ -5,7 +5,14 @@
  * göstermiyordu; sunucu zorunlu olanı istediği için ilan oluşturma "nadirlik
  * eklemediniz" hatası veriyordu (2026-09-30).
  */
-import { globalCustomGroups, requiredGlobalGroups, isGlobalCustomAttributeGroup } from '../attributeGroups';
+import {
+  COLOR_LABEL_SEPARATOR,
+  DEDICATED_GROUP_SLUGS,
+  HIDDEN_GROUP_SLUGS,
+  globalCustomGroups,
+  requiredGlobalGroups,
+  isGlobalCustomAttributeGroup,
+} from '../attributeGroups';
 
 // 2026-09-30 production `GET /products/attribute-groups` ölçümü (kısaltılmış).
 const LIVE = [
@@ -35,5 +42,13 @@ describe('globalCustomGroups / requiredGlobalGroups', () => {
       { slug: 'bos-zorunlu', name: 'Boş', manufacturerSlug: null, isRequired: true, attributes: [] },
     ] as any[];
     expect(requiredGlobalGroups(groups).map((g) => g.slug)).toEqual(['nadirlik-bulunabilirlik']);
+  });
+});
+
+describe('grup sabitleri (tek kaynak; @tarodan/types ile aynı)', () => {
+  it('sabit üçlü ve gizli gruplar dışa açıktır', () => {
+    expect([...DEDICATED_GROUP_SLUGS]).toEqual(['scale', 'material', 'color']);
+    expect([...HIDDEN_GROUP_SLUGS]).toEqual(['vehicle_type']);
+    expect(COLOR_LABEL_SEPARATOR).toBe(', ');
   });
 });

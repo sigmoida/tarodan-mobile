@@ -1,20 +1,21 @@
-# D-05: Mesajlar tab smoke — login → Mesajlar tab → ekran yüklenir.
+# D-05: Mesajlar smoke — login → üst bardaki Mesajlar düğmesi (yığın ekranı) → ekran yüklenir.
 # Yeni thread + mesaj gönderme akışı iki kullanıcı gerektirir, bu flow sadece
 # mesaj listesinin render olduğunu doğrular.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 - tapOn:
-    text: "Mesajlar"
+    id: "app-shell-messages"
 - waitForAnimationToEnd
 - assertNotVisible: ".*Network Error.*"
 - assertNotVisible: ".*Bir hata oluştu.*"

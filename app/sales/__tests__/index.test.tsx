@@ -6,7 +6,7 @@
  * Backend durum geçişi (markAsPreparing, shipment) backend-only.
  */
 import React from "react";
-import { screen, waitFor } from "@testing-library/react-native";
+import { fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
 
 jest.mock("expo-router", () => ({
@@ -113,8 +113,8 @@ describe("J63 · Satışlarım listesi", () => {
       expect(screen.getByText("#ORD-3001000000")).toBeOnTheScreen(),
     );
     expect(screen.queryByText("Hazırlanıyor Olarak İşaretle")).toBeNull();
-    // pending_payment → 'Ödeme Bekliyor' rozeti
-    expect(screen.getByText("Ödeme Bekliyor")).toBeOnTheScreen();
+    // pending_payment → web `orderStatusConfig` etiketi 'Ödeme Bekleniyor'
+    expect(screen.getByText("Ödeme Bekleniyor")).toBeOnTheScreen();
   });
 
   it('J63.13 processing durumda "Kargoya Ver" butonu görünür (hazırlanıyor butonu yok)', async () => {
@@ -148,5 +148,29 @@ describe("J63 · Satışlarım listesi", () => {
     );
     // "İade Edildi" (refunded ham etiketi) gösterilmemeli
     expect(screen.queryByText("İade Edildi")).toBeNull();
+  });
+
+  it("sayfalama: liste sonuna gelince sonraki sayfa istenir, satırlar eklenir", async () => {
+    getAllMock.mockImplementation((params: { page: number }) =>
+      Promise.resolve({
+        data: {
+          data: [
+            saleFixture(
+              params.page === 1
+                ? { id: "s-p1", orderNumber: "ORD-PAGE-1" }
+                : { id: "s-p2", orderNumber: "ORD-PAGE-2" },
+            ),
+          ],
+          meta: { total: 2, page: params.page, limit: 20, totalPages: 2 },
+        },
+      }),
+    );
+    renderWithProviders(<SalesScreen />);
+    expect(await screen.findByText("#ORD-PAGE-1")).toBeOnTheScreen();
+    expect(getAllMock).toHaveBeenCalledWith(expect.objectContaining({ role: "seller", page: 1, limit: 20 }));
+
+    fireEvent(screen.getByTestId("sales-list"), "endReached");
+    expect(await screen.findByText("#ORD-PAGE-2")).toBeOnTheScreen();
+    expect(screen.getByText("#ORD-PAGE-1")).toBeOnTheScreen();
   });
 });

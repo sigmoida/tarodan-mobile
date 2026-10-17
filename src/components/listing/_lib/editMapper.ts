@@ -5,7 +5,7 @@ import type {
   MyProductResponse,
 } from './types';
 import { emptyListingFormValues, type ListingFormValues } from './schema';
-import { isGlobalCustomAttributeGroup } from './attributeGroups';
+import { HIDDEN_GROUP_SLUGS, isGlobalCustomAttributeGroup } from './attributeGroups';
 
 export type MappedListing = {
   values: ListingFormValues;
@@ -31,6 +31,11 @@ export type MappedListing = {
    */
   globalAttrs: Record<string, string[]>;
   sale: { salePrice: string; saleStartDate: string; saleEndDate: string };
+  /**
+   * İlanda SAKLI fiyatlar (fiyat, eski/orijinal fiyat, indirimli fiyat) — sunucu bunlardan
+   * birine eşit aday fiyatı taban/tavan denetiminden muaf tutar (eski kayıt muafiyeti).
+   */
+  storedPrices: string[];
   reservedQty: number;
   isPreorder: boolean;
   labels: {
@@ -81,7 +86,12 @@ export function toFormValues(p: MyProductResponse): MappedListing | null {
   const globalAttrs: Record<string, string[]> = {};
   for (const [group, list] of Object.entries(raw)) {
     attrs[group] = list.map((a) => a.slug);
-    const scoped = list.filter((a) => a.manufacturerSlug != null).map((a) => a.slug);
+    // Gizli gruplar (`vehicle_type`) formda hiç sunulmaz ve web `customAttributesOf` gibi
+    // payload'a GİRMEZ. Sunucu düzenlemede bu grupların bağlarına dokunmaz
+    // (`NON_CUSTOM_GROUP_SLUGS` sıfırlama dışında), yani `attributes: []` onları SİLMEZ.
+    const scoped = HIDDEN_GROUP_SLUGS.includes(group)
+      ? []
+      : list.filter((a) => a.manufacturerSlug != null).map((a) => a.slug);
     if (scoped.length) manufacturerAttrs[group] = scoped;
     const global = list
       .filter((a) => isGlobalCustomAttributeGroup({ slug: group, manufacturerSlug: a.manufacturerSlug }))
@@ -151,6 +161,7 @@ export function toFormValues(p: MyProductResponse): MappedListing | null {
       saleStartDate: onSale ? day(e.saleStartDate) : '',
       saleEndDate: onSale ? day(e.saleEndDate) : '',
     },
+    storedPrices: [e.price, e.oldPrice, e.salePrice].filter((v) => v != null).map(String),
     reservedQty:
       quantity != null && available != null
         ? Math.max(0, Number(quantity) - Number(available))

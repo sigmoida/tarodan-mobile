@@ -4,9 +4,10 @@ import {
   displayNameSchema,
   emailSchema,
   isAdult,
-  strongPasswordSchema,
+  optionalTrPhoneSchema,
   usernameSchema,
 } from '@/utils/validation';
+import { passwordSchema, refinePasswordMatch } from '@/utils/passwordPolicy';
 
 /** En geç seçilebilir doğum tarihi (bugün - 18 yıl) — 18+'ı seçici seviyesinde kısıtlar. */
 export function maxBirthDate(): Date {
@@ -16,7 +17,7 @@ export function maxBirthDate(): Date {
 }
 
 // `usernameSchema` / `USERNAME_PATTERN` tek kaynaktan gelir: `@/utils/validation`
-// (§5). Bir kez belirlenince DEĞİŞTİRİLEMEZ — bkz. RegisterForm'daki uyarı.
+// (CLAUDE.md › Principles). Bir kez belirlenince DEĞİŞTİRİLEMEZ — bkz. RegisterForm'daki uyarı.
 
 /**
  * Fabrika biçimi: zod mesajları şema kurulurken çözülüyor, modül seviyesinde
@@ -28,6 +29,9 @@ export const buildRegisterSchema = (t: TFunction) =>
       username: usernameSchema(t),
       displayName: displayNameSchema(t),
       email: emailSchema(t),
+      // Telefon OPSİYONEL (web aynı: etiketsiz/yıldızsız). Dolduysa E.164'e normalize edilir
+      // (`+905XXXXXXXXX`, sunucu `IsTrPhone`); boş → `undefined` (payload'a hiç girmez).
+      phone: optionalTrPhoneSchema(t),
       // Doğum tarihi OPSİYONEL — App Store Review 5.1.1(v) (16 Tem 2026): pazar
       // yerinin çekirdek işlevi için gerekli olmayan kişisel veri zorunlu
       // tutulamaz. Boş bırakılabilir; girilirse hâlâ geçerli ve 18+ olmalı.
@@ -40,13 +44,15 @@ export const buildRegisterSchema = (t: TFunction) =>
           t('validation.birthDateInvalid'),
         )
         .refine((v) => !v || isAdult(v), t('validation.minAge18')),
-      password: strongPasswordSchema(t),
+      password: passwordSchema(t),
       confirmPassword: z.string(),
       acceptTerms: z.boolean().refine((val) => val, t('validation.acceptTerms')),
+      // KVKK aydınlatma metni AYRI kutu (web ile aynı; delta 22). Sunucuya
+      // `acceptedConsents` olarak gider, bkz. `registrationConsentDocuments`.
+      acceptKvkk: z.boolean().refine((val) => val, t('auth.mustAcceptKvkk')),
+      // Pazarlama e-postası izni — zorunlu değil (web `acceptsMarketingEmails`).
+      acceptsMarketingEmails: z.boolean().optional(),
     })
-    .refine((data) => data.password === data.confirmPassword, {
-      message: t('validation.passwordMatch'),
-      path: ['confirmPassword'],
-    });
+    .superRefine(refinePasswordMatch(t, 'password', 'confirmPassword'));
 
 export type RegisterForm = z.infer<ReturnType<typeof buildRegisterSchema>>;

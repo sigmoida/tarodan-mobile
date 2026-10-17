@@ -128,6 +128,21 @@ describe('authStore — mapApiUserToUser kullanıcı adı alanları', () => {
     expect(user?.username).toBe('kaan.merakli');
     expect(user?.usernameClaimed).toBe(true);
   });
+
+  // `GET /users/me` `usernameClaimed` bool'u değil ham `usernameClaimedAt` döner.
+  it('usernameClaimedAt doluysa usernameClaimed true, null ise false olur', async () => {
+    (userApi.getProfile as jest.Mock).mockResolvedValueOnce({
+      data: { ...baseUser, username: 'kaan', usernameClaimedAt: '2026-08-14T18:41:56.421Z' },
+    });
+    await useAuthStore.getState().refreshUserData();
+    expect(useAuthStore.getState().user?.usernameClaimed).toBe(true);
+
+    (userApi.getProfile as jest.Mock).mockResolvedValueOnce({
+      data: { ...baseUser, username: 'kaan-abc', usernameClaimedAt: null },
+    });
+    await useAuthStore.getState().refreshUserData();
+    expect(useAuthStore.getState().user?.usernameClaimed).toBe(false);
+  });
 });
 
 /**
@@ -144,10 +159,20 @@ describe('authStore — loadToken sessiz refresh sonrası taze token yazar', () 
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    (SecureStore.getItemAsync as jest.Mock).mockImplementation(() => Promise.resolve(null));
+  });
+
+  /** `accessToken` okumaları sırayla verilen değerleri döner; kullanıcı görüntüsü yok (eski yol). */
+  const accessTokenReads = (...values: string[]) => {
+    const queue = [...values];
+    (SecureStore.getItemAsync as jest.Mock).mockImplementation((key: string) =>
+      Promise.resolve(key === 'accessToken' ? (queue.shift() ?? null) : null),
+    );
+  };
+
   it('getProfile sırasında token yenilendiyse store TAZE token’ı tutar', async () => {
-    (SecureStore.getItemAsync as jest.Mock)
-      .mockResolvedValueOnce('expired-token') // ilk okuma: süresi dolmuş
-      .mockResolvedValueOnce('refreshed-token'); // getProfile sonrası: yenilenmiş
+    accessTokenReads('expired-token', 'refreshed-token'); // ilk okuma süresi dolmuş, sonra yenilenmiş
     (userApi.getProfile as jest.Mock).mockResolvedValueOnce({ data: baseUser });
 
     await useAuthStore.getState().loadToken();
@@ -157,9 +182,7 @@ describe('authStore — loadToken sessiz refresh sonrası taze token yazar', () 
   });
 
   it('refresh olmadıysa (token aynı) davranış değişmez', async () => {
-    (SecureStore.getItemAsync as jest.Mock)
-      .mockResolvedValueOnce('valid-token')
-      .mockResolvedValueOnce('valid-token');
+    accessTokenReads('valid-token', 'valid-token');
     (userApi.getProfile as jest.Mock).mockResolvedValueOnce({ data: baseUser });
 
     await useAuthStore.getState().loadToken();

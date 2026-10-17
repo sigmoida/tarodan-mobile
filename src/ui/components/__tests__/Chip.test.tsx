@@ -1,0 +1,71 @@
+import React from 'react';
+import { StyleSheet } from 'react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import { Chip, theme } from '@/ui';
+
+const { colors } = theme;
+const boxStyle = () => {
+  const style = screen.getByTestId('chip').props.style;
+  return StyleSheet.flatten(typeof style === 'function' ? style({ pressed: false }) : style);
+};
+
+describe('Chip (web @tarodan/ui)', () => {
+  it('seçili: primary tonu çerçeve + metin; rounded-full, asgari h28', () => {
+    render(<Chip testID="chip" label="Tümü" selected onPress={jest.fn()} />);
+    expect(boxStyle()).toMatchObject({
+      // Sabit yükseklik yerine asgari (büyük yazı ölçeğinde etiket kırpılmaz).
+      minHeight: 28,
+      borderRadius: theme.radius.full,
+      borderColor: colors.primary[200],
+      backgroundColor: colors.primary[50],
+    });
+    expect(StyleSheet.flatten(screen.getByText('Tümü').props.style).color).toBe(colors.primary[600]);
+    expect(screen.getByRole('button')).toBeSelected();
+  });
+
+  it('seçili değil: border-border, muted metin, zeminsiz', () => {
+    render(<Chip testID="chip" label="Yeni" active={false} onPress={jest.fn()} />);
+    expect(boxStyle()).toMatchObject({ borderColor: colors.border.DEFAULT, backgroundColor: 'transparent' });
+    expect(StyleSheet.flatten(screen.getByText('Yeni').props.style).color).toBe(colors.text.muted);
+  });
+
+  it('etiket modu (seçim yok) varyant tonunu korur; köşe rozet köşesi', () => {
+    render(<Chip testID="chip" label="Ödendi" variant="success" />);
+    expect(boxStyle().backgroundColor).toBe(colors.success[50]);
+    expect(boxStyle().borderRadius).toBe(theme.radiusRole.badge);
+  });
+
+  it('shape="badge": seçilebilir çip rozet satırında rozet köşesini alır', () => {
+    render(<Chip testID="chip" label="Herkese açık" shape="badge" selected onPress={jest.fn()} />);
+    expect(boxStyle().borderRadius).toBe(theme.radiusRole.badge);
+    expect(screen.getByRole('button')).toBeSelected();
+  });
+
+  it('count: etiketin yanında küçük sayaç rozeti; a11y etiketi "Etiket (n)"', () => {
+    render(<Chip testID="chip" label="İlanlar" count={20} selected onPress={jest.fn()} />);
+    expect(screen.getByText('İlanlar')).toBeTruthy();
+    const badge = StyleSheet.flatten(screen.getByTestId('chip-count').props.style);
+    // Sayaç köşesi çiple aynı (tam yuvarlak).
+    expect(badge).toMatchObject({ borderRadius: theme.radiusRole.chip, backgroundColor: colors.primary[600] });
+    expect(screen.getByText('20')).toBeTruthy();
+    expect(screen.getByLabelText('İlanlar (20)')).toBeTruthy();
+  });
+
+  it('dikeyde gerilmez: boy tavanlı (maxHeight) ve ebeveyn hizası (alignSelf) ezilmez', () => {
+    render(<Chip testID="chip" label="Tümü" selected onPress={jest.fn()} />);
+    const box = boxStyle();
+    // stretch edilen bir satırda bile çip tavanı aşmaz; tavan asgari boydan küçük olamaz.
+    expect(box.maxHeight).toBeGreaterThanOrEqual(box.minHeight as number);
+    // Tavan sınırlı: büyük yazıda en fazla control tavanı (1.2x) + küçük pay.
+    expect(box.maxHeight).toBeLessThanOrEqual(Math.ceil(28 * 1.2) + theme.spacing[1]);
+    // Ebeveynin alignItems (center / flex-start) hizasını bozmamak için alignSelf verilmez.
+    expect(box.alignSelf).toBeUndefined();
+  });
+
+  it('basılır', () => {
+    const onPress = jest.fn();
+    render(<Chip label="1:18" selected={false} onPress={onPress} />);
+    fireEvent.press(screen.getByText('1:18'));
+    expect(onPress).toHaveBeenCalled();
+  });
+});

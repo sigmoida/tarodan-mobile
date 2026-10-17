@@ -1,6 +1,7 @@
 import {
   asLabel,
   formatOrderStatus,
+  formatLongDate,
   formatPrice,
   formatPriceNumber,
   formatRelativeDate,
@@ -170,34 +171,66 @@ describe('formatOrderStatus', () => {
 });
 
 /**
- * Bilinen kusur (2026-08-29 tespit): formatPrice/formatPriceNumber `'tr-TR'`i
- * SABİT kullanıyordu — İngilizce kullanıcı bile binlik/ondalık ayracı Türkçe
- * görüyordu. PARA BİRİMİ hep TL kalır (bu bir TL pazaryeri); yalnız SAYI
- * biçimi aktif dile göre değişir. `formatRelativeDate`'in `locale` varsayılanı
- * da aynı sınıf kusur taşıyordu (sabit `'tr'`) — artık aktif dile düşer.
+ * Para biçimi web (`packages/shared/src/money.ts`) ile birebir: aktif dilden
+ * BAĞIMSIZ, her zaman tr-TR ayraçları + 2 ondalık + " TL" (₺ yok). Eski
+ * (2026-08-29) davranış İngilizce arayüzde en-US ayracı basıyordu; web'de
+ * böyle bir ayrım yok, iki istemci aynı tutarı aynı yazmalı.
+ * `formatRelativeDate` ise hâlâ aktif dile düşer.
  */
-describe('locale-duyarlı biçimlendirme (aktif dile göre, TL sabit kalır)', () => {
+describe('formatPrice: web ile aynı, dilden bağımsız', () => {
   afterEach(async () => {
     await i18n.changeLanguage('tr');
   });
 
-  it('formatPrice: en aktifken en-US binlik/ondalık ayracı kullanır, TL eki değişmez', async () => {
-    expect(formatPrice(1234.5)).toBe('1.234,50 TL');
-    await i18n.changeLanguage('en');
-    expect(formatPrice(1234.5)).toBe('1,234.50 TL');
+  it.each([
+    [1234.5, '1.234,50 TL'],
+    [0, '0,00 TL'],
+    [12.3, '12,30 TL'],
+    [1234567.891, '1.234.567,89 TL'],
+    ['99.9', '99,90 TL'],
+    [null, '0,00 TL'],
+    [undefined, '0,00 TL'],
+    ['abc', '0,00 TL'],
+  ])('formatPrice(%p) = %s', (input, out) => {
+    expect(formatPrice(input as never)).toBe(out);
   });
 
-  it('formatPriceNumber aynı locale kuralını TL eki olmadan izler', async () => {
+  it('en aktifken de tr-TR ayraçları ve TL eki değişmez', async () => {
     await i18n.changeLanguage('en');
-    expect(formatPriceNumber(1234.5)).toBe('1,234.50');
+    expect(formatPrice(1234.5)).toBe('1.234,50 TL');
+    expect(formatPriceNumber(1234.5)).toBe('1.234,50');
+  });
+
+  it('₺ simgesi basılmaz', () => {
+    expect(formatPrice(100)).not.toContain('₺');
   });
 
   it('formatRelativeDate: locale verilmezse aktif dile düşer (7+ gün önce → tam tarih)', async () => {
     const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const trOut = formatRelativeDate(old); // ör. "30 Temmuz 2026" (tam ay adı)
     await i18n.changeLanguage('en');
-    const enOut = formatRelativeDate(old); // ör. "Jul 30, 2026" (kısaltılmış ay adı)
+    const enOut = formatRelativeDate(old); // ör. "July 30, 2026" (formatLongDate ile aynı uzun biçim)
     expect(enOut).not.toBe(trOut);
-    expect(enOut).toMatch(/^[A-Za-z]{3} \d{1,2}, \d{4}$/);
+    expect(enOut).toMatch(/^[A-Za-z]+ \d{1,2}, \d{4}$/);
+    expect(enOut).toBe(formatLongDate(old, 'en-US'));
+  });
+});
+
+describe('formatLongDate', () => {
+  it('ISO tarihi uzun biçimde yazar (gün ay yıl)', () => {
+    expect(formatLongDate('2026-10-12T09:30:00.000Z', 'tr-TR')).toMatch(/12 Ekim 2026/);
+    expect(formatLongDate(new Date('2026-10-12T09:30:00.000Z'), 'en-US')).toMatch(/October/);
+  });
+
+  it('boş ya da geçersiz tarih için null döner', () => {
+    expect(formatLongDate(undefined, 'tr-TR')).toBeNull();
+    expect(formatLongDate(null, 'tr-TR')).toBeNull();
+    expect(formatLongDate('', 'tr-TR')).toBeNull();
+    expect(formatLongDate('bu bir tarih değil', 'tr-TR')).toBeNull();
+    expect(formatLongDate(new Date(NaN), 'tr-TR')).toBeNull();
+  });
+
+  it('geçersiz yerel etiket çökmez, varsayılan yerele düşer', () => {
+    expect(formatLongDate('2026-10-12T09:30:00.000Z', 'not a locale!!')).toEqual(expect.any(String));
   });
 });

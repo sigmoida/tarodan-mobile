@@ -1,31 +1,31 @@
 /**
- * Web `apps/web/src/components/SidebarFilters.tsx` paritesi — mobil filtre modalı.
- * Bölümler: Araç Türü, Marka, Model (markaya bağlı), Ölçek, Malzeme, Üretici,
- * Durum, Fiyat, Seçenekler (takas/indirim/ön sipariş/limited/set).
+ * Web `apps/web/src/components/SidebarFilters.tsx` paritesi — mobil filtre paneli.
+ * Bölümler: Araç Türü, Marka, Ölçek, Malzeme, Üretici,
+ * Durum, Fiyat, Seçenekler (takas/indirim).
+ *
+ * Alttan açılan `BottomSheet` (`size="large"`): [Temizle] [N Sonuç Göster] gövdenin DIŞINDA
+ * sabit footer'da — güvenli alan (home indicator / gezinti çubuğu) kadar alt boşluklu, klavye
+ * açılınca klavyenin üstünde; `ButtonRow` ile etiket asla sarmaz (sığmazsa alt alta).
+ * İçerik yalnız panel açıkken bağlanır (`FilterSheetBody`).
  */
-import { useMemo, useState } from 'react';
-import {
-  View,
-  ScrollView,
-  Modal,
-  StyleSheet,
-  Pressable,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useMemo } from 'react';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import {
+  BottomSheet,
   Button,
+  ButtonRow,
   Checkbox,
   Chip,
   Divider,
-  IconButton,
   Input,
-  Radio,
   Text,
   theme,
+  Icon,
 } from '@/ui';
+import { FilterOptionList, type FilterOption } from '@/components/filters/FilterOptionList';
 import type { ProductFilters } from '../utils/productFilters';
-import { buildConditionOptions } from '../utils/productFilters';
+import { buildConditionOptions, keepGeneralAttributeSelections } from '../utils/productFilters';
 import type { ProductFilterOptions } from '../hooks/useProductFilterOptions';
 
 const { colors, spacing } = theme;
@@ -42,34 +42,11 @@ type Props = {
 };
 
 const PRICE_PRESETS: { label: string; min: string; max: string }[] = [
-  { label: '₺0-100', min: '0', max: '100' },
-  { label: '₺100-500', min: '100', max: '500' },
-  { label: '₺500-1K', min: '500', max: '1000' },
-  { label: '₺1K+', min: '1000', max: '' },
+  { label: '0 - 100 TL', min: '0', max: '100' },
+  { label: '100 - 500 TL', min: '100', max: '500' },
+  { label: '500 - 1.000 TL', min: '500', max: '1000' },
+  { label: '1.000+ TL', min: '1000', max: '' },
 ];
-
-/** Tek-seçim radyo satırı (web'deki radio list görünümü). */
-function RadioRow({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.radioRow, selected && styles.radioRowSelected]}
-    >
-      <Radio checked={selected} onChange={onPress} />
-      <Text variant="body" style={{ flex: 1 }} numberOfLines={1}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
 
 function SectionTitle({ children }: { children: string }) {
   return (
@@ -90,43 +67,79 @@ export default function ProductFilterSheet({
   countLoading,
 }: Props) {
   const { t } = useTranslation();
+  return (
+    <BottomSheet
+      isOpen={visible}
+      onClose={onClose}
+      title={t('product.filters')}
+      closeLabel={t('common.close')}
+      size="large"
+      testID="product-filter-sheet"
+      footer={
+        <ButtonRow testID="product-filter-footer">
+          <Button
+            key="clear"
+            variant="outline"
+            title={t('common.clear')}
+            onPress={onClear}
+            testID="product-filter-clear"
+          />
+          <Button
+            key="apply"
+            variant="primary"
+            title={countLoading ? t('filter.resultsLoading') : t('filter.showResultsCount', { count: resultCount })}
+            onPress={onClose}
+            testID="product-filter-apply"
+          />
+        </ButtonRow>
+      }
+    >
+      <FilterSheetBody filters={filters} onChange={onChange} options={options} />
+    </BottomSheet>
+  );
+}
+
+/** Panel gövdesi — yalnız açıkken bağlanır (BottomSheet içeriği). */
+function FilterSheetBody({
+  filters,
+  onChange,
+  options,
+}: Pick<Props, 'filters' | 'onChange' | 'options'>) {
+  const { t } = useTranslation();
   const conditionOptions = useMemo(() => buildConditionOptions(t), [t]);
-  const [brandSearch, setBrandSearch] = useState('');
-  const [modelSearch, setModelSearch] = useState('');
-  const [manufacturerSearch, setManufacturerSearch] = useState('');
 
   // --- Handlers (web SidebarFilters ile birebir) ---
-  const selectCategory = (id: string, name: string) =>
+  const selectCategory = (o: FilterOption) =>
     onChange(
-      filters.categoryId === id
+      filters.categoryId === o.id
         ? { ...filters, categoryId: '', category: '' }
-        : { ...filters, categoryId: id, category: name },
+        : { ...filters, categoryId: o.id, category: o.label },
     );
 
-  const selectBrand = (id: string, name: string) => {
-    const isSel = filters.brandId === id;
-    // marka değişince modeli sıfırla (web handleBrandChange)
+  const selectBrand = (o: FilterOption) => {
+    const isSel = filters.brandId === o.id;
     onChange(
-      isSel
-        ? { ...filters, brandId: '', brand: '', carModelId: '', carModel: '' }
-        : { ...filters, brandId: id, brand: name, carModelId: '', carModel: '' },
+      isSel ? { ...filters, brandId: '', brand: '' } : { ...filters, brandId: o.id, brand: o.label },
     );
   };
 
-  const selectModel = (id: string, name: string) =>
+  const selectManufacturer = (o: FilterOption) =>
+    // Üretici değişince YALNIZ üreticiye-özel attribute seçimlerini sıfırla (web ile
+    // parite) — başka üreticinin attribute'ları yeni üreticide anlamsız; genel gruplar kalır.
     onChange(
-      filters.carModelId === id
-        ? { ...filters, carModelId: '', carModel: '' }
-        : { ...filters, carModelId: id, carModel: name },
-    );
-
-  const selectManufacturer = (id: string, name: string) =>
-    // Üretici değişince üreticiye-özel attribute seçimlerini sıfırla (web ile parite) —
-    // başka üreticinin attribute'ları yeni üreticide anlamsız.
-    onChange(
-      filters.manufacturerId === id
-        ? { ...filters, manufacturerId: '', manufacturer: '', customAttributes: {} }
-        : { ...filters, manufacturerId: id, manufacturer: name, customAttributes: {} },
+      filters.manufacturerId === o.id
+        ? {
+            ...filters,
+            manufacturerId: '',
+            manufacturer: '',
+            customAttributes: keepGeneralAttributeSelections(filters.customAttributes, options.customAttributes),
+          }
+        : {
+            ...filters,
+            manufacturerId: o.id,
+            manufacturer: o.label,
+            customAttributes: keepGeneralAttributeSelections(filters.customAttributes, options.customAttributes),
+          },
     );
 
   const toggleCustomAttribute = (groupSlug: string, attrSlug: string) => {
@@ -146,370 +159,229 @@ export default function ProductFilterSheet({
   const toggleMaterial = (slug: string) =>
     onChange({ ...filters, material: filters.material === slug ? '' : slug });
 
-  const toggleCondition = (value: string) =>
-    onChange({ ...filters, condition: filters.condition === value ? '' : value });
+  const toggleCondition = (o: FilterOption) =>
+    onChange({ ...filters, condition: filters.condition === o.id ? '' : o.id });
 
-  const lc = (s: string) => s.toLowerCase();
-  const filteredBrands = options.brands.filter((b) =>
-    lc(b.name).includes(lc(brandSearch)),
+  const categoryOptions = useMemo(
+    () => options.categories.map((c) => ({ id: c.id, label: c.name })),
+    [options.categories],
   );
-  // Model listesi seçili markaya göre daralır (web modelsForBrand)
-  const modelsForBrand = options.carModels.filter(
-    (m) =>
-      (!filters.brandId || m.brandId === filters.brandId) &&
-      lc(m.name).includes(lc(modelSearch)),
+  const brandOptions = useMemo(
+    () => options.brands.map((b) => ({ id: b.id, label: b.name })),
+    [options.brands],
   );
-  const filteredManufacturers = options.manufacturers.filter((m) =>
-    lc(m.name).includes(lc(manufacturerSearch)),
+  const manufacturerOptions = useMemo(
+    () => options.manufacturers.map((m) => ({ id: m.id, label: m.name })),
+    [options.manufacturers],
+  );
+  const conditionList = useMemo(
+    () => conditionOptions.map((c) => ({ id: c.value, label: c.label })),
+    [conditionOptions],
   );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text variant="h2">{t('product.filters')}</Text>
-          <IconButton icon="close" accessibilityLabel={t('common.close')} size="md" onPress={onClose} />
+    <>
+      {/* Arama */}
+      <View style={styles.firstSection}>
+        <SectionTitle>{t('filter.searchSectionTitle')}</SectionTitle>
+        <Input
+          placeholder={t('search.placeholderLong')}
+          value={filters.search}
+          onChangeText={(v) => onChange({ ...filters, search: v })}
+          leftIconName="magnifying-glass"
+          rightIcon={
+            filters.search ? (
+              <Pressable
+                onPress={() => onChange({ ...filters, search: '' })}
+                hitSlop={spacing[3]}
+                accessibilityRole="button"
+                accessibilityLabel={t('filter.clearSearchLabel')}
+              >
+                <Icon name="x-circle" variant="solid" size={theme.iconSize.md} color={colors.text.muted} />
+              </Pressable>
+            ) : undefined
+          }
+        />
+      </View>
+
+      {/* Araç Türü */}
+      {categoryOptions.length > 0 && (
+        <>
+          <Divider style={styles.divider} />
+          <View style={styles.section}>
+            <SectionTitle>{t('product.vehicleType')}</SectionTitle>
+            <FilterOptionList
+              options={categoryOptions}
+              selectedId={filters.categoryId}
+              onSelect={selectCategory}
+              testID="filter-category"
+            />
+          </View>
+        </>
+      )}
+
+      <Divider style={styles.divider} />
+
+      {/* Marka */}
+      <View style={styles.section}>
+        <SectionTitle>{t('product.brand')}</SectionTitle>
+        <FilterOptionList
+          options={brandOptions}
+          selectedId={filters.brandId}
+          onSelect={selectBrand}
+          searchPlaceholder={t('brands.searchPlaceholder')}
+          testID="filter-brand"
+        />
+      </View>
+
+      <Divider style={styles.divider} />
+
+      {/* Ölçek */}
+      <View style={styles.section}>
+        <SectionTitle>{t('product.scale')}</SectionTitle>
+        <View style={styles.chipGrid}>
+          {options.scales.map((s) => (
+            <Chip key={s} label={s} selected={filters.scale === s} onPress={() => toggleScale(s)} />
+          ))}
         </View>
+      </View>
 
-        <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-          {/* Arama */}
+      <Divider style={styles.divider} />
+
+      {/* Malzeme */}
+      <View style={styles.section}>
+        <SectionTitle>{t('product.material')}</SectionTitle>
+        <View style={styles.chipGrid}>
+          {options.materials.map((m) => (
+            <Chip
+              key={m.slug}
+              label={m.label}
+              selected={filters.material === m.slug}
+              onPress={() => toggleMaterial(m.slug)}
+            />
+          ))}
+        </View>
+      </View>
+
+      <Divider style={styles.divider} />
+
+      {/* Üretici */}
+      <View style={styles.section}>
+        <SectionTitle>{t('product.manufacturer')}</SectionTitle>
+        <FilterOptionList
+          options={manufacturerOptions}
+          selectedId={filters.manufacturerId}
+          onSelect={selectManufacturer}
+          searchPlaceholder={t('product.searchManufacturers')}
+          testID="filter-manufacturer"
+        />
+      </View>
+
+      {/* Özel attribute filtreleri: genel gruplar (örn Nadirlik) üretici seçmeden de gelir;
+          üreticiye-özel olanlar (örn Hot Wheels: Segment...) üretici seçilince eklenir. Web SidebarFilters paritesi. */}
+      {options.customAttributes.map((group) => (
+        <View key={group.slug}>
+          <Divider style={styles.divider} />
           <View style={styles.section}>
-            <SectionTitle>{t('filter.searchSectionTitle')}</SectionTitle>
-            <Input
-              placeholder={t('search.placeholderLong')}
-              value={filters.search}
-              onChangeText={(v) => onChange({ ...filters, search: v })}
-              leftIconName="search"
-              rightIcon={
-                filters.search ? (
-                  <Pressable
-                    onPress={() => onChange({ ...filters, search: '' })}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('filter.clearSearchLabel')}
-                  >
-                    <Ionicons name="close-circle" size={20} color={colors.text.muted} />
-                  </Pressable>
-                ) : undefined
-              }
+            <SectionTitle>{group.name}</SectionTitle>
+            <FilterOptionList
+              options={group.attributes.map((a) => ({ id: a.slug, label: a.label }))}
+              selectedId={filters.customAttributes?.[group.slug]?.[0]}
+              onSelect={(o) => toggleCustomAttribute(group.slug, o.id)}
             />
           </View>
+        </View>
+      ))}
 
-          <Divider style={styles.divider} />
+      <Divider style={styles.divider} />
 
-          {/* Araç Türü */}
-          {options.categories.length > 0 && (
-            <View style={styles.section}>
-              <SectionTitle>{t('product.vehicleType')}</SectionTitle>
-              {options.categories.map((c) => (
-                <RadioRow
-                  key={c.id}
-                  label={c.name}
-                  selected={filters.categoryId === c.id}
-                  onPress={() => selectCategory(c.id, c.name)}
-                />
-              ))}
-            </View>
-          )}
+      {/* Durum */}
+      <View style={styles.section}>
+        <SectionTitle>{t('product.condition')}</SectionTitle>
+        <FilterOptionList options={conditionList} selectedId={filters.condition} onSelect={toggleCondition} />
+      </View>
 
-          <Divider style={styles.divider} />
+      <Divider style={styles.divider} />
 
-          {/* Marka */}
-          <View style={styles.section}>
-            <SectionTitle>{t('product.brand')}</SectionTitle>
+      {/* Fiyat */}
+      <View style={styles.section}>
+        <SectionTitle>{t('product.priceRange')}</SectionTitle>
+        <View style={styles.chipGrid}>
+          {PRICE_PRESETS.map((p) => {
+            const active = filters.minPrice === p.min && filters.maxPrice === p.max;
+            return (
+              <Chip
+                key={p.label}
+                label={p.label}
+                selected={active}
+                onPress={() =>
+                  onChange(
+                    active
+                      ? { ...filters, minPrice: '', maxPrice: '' }
+                      : { ...filters, minPrice: p.min, maxPrice: p.max },
+                  )
+                }
+              />
+            );
+          })}
+        </View>
+        <View style={styles.priceRow}>
+          <View style={styles.flex}>
             <Input
-              placeholder={t('brands.searchPlaceholder')}
-              value={brandSearch}
-              onChangeText={setBrandSearch}
-              leftIconName="search"
+              label={t('product.minPrice')}
+              placeholder="0"
+              keyboardType="numeric"
+              value={filters.minPrice}
+              onChangeText={(v) => onChange({ ...filters, minPrice: v.replace(/[^0-9]/g, '') })}
             />
-            <View style={styles.scrollList}>
-              {filteredBrands.slice(0, 40).map((b) => (
-                <RadioRow
-                  key={b.id}
-                  label={b.name}
-                  selected={filters.brandId === b.id}
-                  onPress={() => selectBrand(b.id, b.name)}
-                />
-              ))}
-            </View>
           </View>
-
-          <Divider style={styles.divider} />
-
-          {/* Model (markaya bağlı) */}
-          <View style={styles.section}>
-            <SectionTitle>{t('product.model')}</SectionTitle>
-            {!filters.brandId && (
-              <Text variant="caption" tone="muted" style={{ marginBottom: spacing[2] }}>
-                {t('filter.modelSelectBrandFirstHint')}
-              </Text>
-            )}
+          <Text variant="body" tone="muted" style={styles.priceDash}>
+            -
+          </Text>
+          <View style={styles.flex}>
             <Input
-              placeholder={t('product.searchModels')}
-              value={modelSearch}
-              onChangeText={setModelSearch}
-              leftIconName="search"
+              label={t('product.maxPrice')}
+              placeholder="∞"
+              keyboardType="numeric"
+              value={filters.maxPrice}
+              onChangeText={(v) => onChange({ ...filters, maxPrice: v.replace(/[^0-9]/g, '') })}
             />
-            <View style={styles.scrollList}>
-              {modelsForBrand.slice(0, 40).map((m) => (
-                <RadioRow
-                  key={m.id}
-                  label={m.name}
-                  selected={filters.carModelId === m.id}
-                  onPress={() => selectModel(m.id, m.name)}
-                />
-              ))}
-            </View>
           </View>
+        </View>
+      </View>
 
-          <Divider style={styles.divider} />
+      <Divider style={styles.divider} />
 
-          {/* Ölçek */}
-          <View style={styles.section}>
-            <SectionTitle>{t('product.scale')}</SectionTitle>
-            <View style={styles.chipGrid}>
-              {options.scales.map((s) => (
-                <Chip
-                  key={s}
-                  label={s}
-                  selected={filters.scale === s}
-                  onPress={() => toggleScale(s)}
-                />
-              ))}
-            </View>
-          </View>
-
-          <Divider style={styles.divider} />
-
-          {/* Malzeme */}
-          <View style={styles.section}>
-            <SectionTitle>{t('product.material')}</SectionTitle>
-            <View style={styles.chipGrid}>
-              {options.materials.map((m) => (
-                <Chip
-                  key={m.slug}
-                  label={m.label}
-                  selected={filters.material === m.slug}
-                  onPress={() => toggleMaterial(m.slug)}
-                />
-              ))}
-            </View>
-          </View>
-
-          <Divider style={styles.divider} />
-
-          {/* Üretici */}
-          <View style={styles.section}>
-            <SectionTitle>{t('product.manufacturer')}</SectionTitle>
-            <Input
-              placeholder={t('product.searchManufacturers')}
-              value={manufacturerSearch}
-              onChangeText={setManufacturerSearch}
-              leftIconName="search"
-            />
-            <View style={styles.scrollList}>
-              {filteredManufacturers.slice(0, 40).map((m) => (
-                <RadioRow
-                  key={m.id}
-                  label={m.name}
-                  selected={filters.manufacturerId === m.id}
-                  onPress={() => selectManufacturer(m.id, m.name)}
-                />
-              ))}
-            </View>
-          </View>
-
-          {/* Üreticiye-özel filtreler (örn Hot Wheels: Segment, Assortment...).
-              Yalnızca attribute-grubu olan bir üretici seçilince dolar. Web SidebarFilters paritesi. */}
-          {options.customAttributes.length > 0 && (
-            <>
-              <Divider style={styles.divider} />
-              {options.customAttributes.map((group) => {
-                const selected = filters.customAttributes?.[group.slug] ?? [];
-                return (
-                  <View key={group.slug} style={styles.section}>
-                    <SectionTitle>{group.name}</SectionTitle>
-                    <View style={styles.scrollList}>
-                      {group.attributes.map((attr) => (
-                        <RadioRow
-                          key={attr.slug}
-                          label={attr.label}
-                          selected={selected.includes(attr.slug)}
-                          onPress={() => toggleCustomAttribute(group.slug, attr.slug)}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                );
-              })}
-            </>
-          )}
-
-          <Divider style={styles.divider} />
-
-          {/* Durum */}
-          <View style={styles.section}>
-            <SectionTitle>{t('product.condition')}</SectionTitle>
-            {conditionOptions.map((c) => (
-              <RadioRow
-                key={c.value}
-                label={c.label}
-                selected={filters.condition === c.value}
-                onPress={() => toggleCondition(c.value)}
-              />
-            ))}
-          </View>
-
-          <Divider style={styles.divider} />
-
-          {/* Fiyat */}
-          <View style={styles.section}>
-            <SectionTitle>{t('product.priceRange')}</SectionTitle>
-            <View style={styles.chipGrid}>
-              {PRICE_PRESETS.map((p) => {
-                const active = filters.minPrice === p.min && filters.maxPrice === p.max;
-                return (
-                  <Chip
-                    key={p.label}
-                    label={p.label}
-                    selected={active}
-                    onPress={() =>
-                      onChange(
-                        active
-                          ? { ...filters, minPrice: '', maxPrice: '' }
-                          : { ...filters, minPrice: p.min, maxPrice: p.max },
-                      )
-                    }
-                  />
-                );
-              })}
-            </View>
-            <View style={styles.priceRow}>
-              <View style={{ flex: 1 }}>
-                <Input
-                  label={t('product.minPrice')}
-                  placeholder="0"
-                  keyboardType="numeric"
-                  value={filters.minPrice}
-                  onChangeText={(v) => onChange({ ...filters, minPrice: v.replace(/[^0-9]/g, '') })}
-                />
-              </View>
-              <Text variant="body" tone="muted" style={styles.priceDash}>
-                -
-              </Text>
-              <View style={{ flex: 1 }}>
-                <Input
-                  label={t('product.maxPrice')}
-                  placeholder="∞"
-                  keyboardType="numeric"
-                  value={filters.maxPrice}
-                  onChangeText={(v) => onChange({ ...filters, maxPrice: v.replace(/[^0-9]/g, '') })}
-                />
-              </View>
-            </View>
-          </View>
-
-          <Divider style={styles.divider} />
-
-          {/* Seçenekler */}
-          <View style={styles.section}>
-            <SectionTitle>{t('product.options')}</SectionTitle>
-            <View style={styles.optionRow}>
-              <Checkbox
-                checked={filters.tradeOnly}
-                onChange={(v) => onChange({ ...filters, tradeOnly: v })}
-                label={t('product.tradeOnlyHint')}
-              />
-            </View>
-            <View style={styles.optionRow}>
-              <Checkbox
-                checked={filters.discountOnly}
-                onChange={(v) => onChange({ ...filters, discountOnly: v })}
-                label={t('filter.discountOnlyLabel')}
-              />
-            </View>
-            <View style={styles.optionRow}>
-              <Checkbox
-                checked={filters.preOrder}
-                onChange={(v) => onChange({ ...filters, preOrder: v })}
-                label={t('product.preOrder')}
-              />
-            </View>
-            <View style={styles.optionRow}>
-              <Checkbox
-                checked={filters.limited}
-                onChange={(v) => onChange({ ...filters, limited: v })}
-                label={t('product.limitedEdition')}
-              />
-            </View>
-            <View style={styles.optionRow}>
-              <Checkbox
-                checked={filters.set}
-                onChange={(v) => onChange({ ...filters, set: v })}
-                label={t('product.setBundle')}
-              />
-            </View>
-          </View>
-
-          <View style={{ height: 100 }} />
-        </ScrollView>
-
-        <View style={styles.footer}>
-          <Button variant="outline" title={t('common.clear')} onPress={onClear} style={styles.footerBtn} />
-          <Button
-            variant="primary"
-            title={countLoading ? t('filter.resultsLoading') : t('filter.showResultsCount', { count: resultCount })}
-            onPress={onClose}
-            style={{ ...styles.footerBtn, flex: 2 }}
+      {/* Seçenekler */}
+      <View style={styles.section}>
+        <SectionTitle>{t('product.options')}</SectionTitle>
+        <View style={styles.optionRow}>
+          <Checkbox
+            checked={filters.tradeOnly}
+            onChange={(v) => onChange({ ...filters, tradeOnly: v })}
+            label={t('product.tradeOnlyHint')}
+          />
+        </View>
+        <View style={styles.optionRow}>
+          <Checkbox
+            checked={filters.discountOnly}
+            onChange={(v) => onChange({ ...filters, discountOnly: v })}
+            label={t('filter.discountOnlyLabel')}
           />
         </View>
       </View>
-    </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface.DEFAULT },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-  },
-  content: { flex: 1, paddingHorizontal: spacing[4] },
+  firstSection: { marginTop: spacing[1] },
   section: { marginTop: spacing[4] },
   sectionTitle: { marginBottom: spacing[3] },
   divider: { marginTop: spacing[4] },
-  scrollList: { marginTop: spacing[2] },
-  radioRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[2],
-    borderRadius: theme.radius.xl,
-  },
-  radioRowSelected: { backgroundColor: colors.primary[50]! },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
   priceRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: spacing[3] },
   priceDash: { marginHorizontal: spacing[3], marginBottom: spacing[3] },
+  flex: { flex: 1 },
   optionRow: { paddingVertical: spacing[2] },
-  footer: {
-    flexDirection: 'row',
-    padding: spacing[4],
-    gap: spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: colors.border.DEFAULT,
-  },
-  footerBtn: { flex: 1, borderRadius: 12 },
 });

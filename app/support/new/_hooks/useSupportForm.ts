@@ -1,38 +1,42 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { toast } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { supportApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { UUID_RE } from '../_lib/constants';
 
 /**
  * Support-ticket controller — owns the ticket form fields + validation (subject
  * ≥5, message ≥10) and the create-ticket submit (order/trade UUID handling).
- * Lifted verbatim from the monolithic screen (§12).
+ * Lifted verbatim from the monolithic screen (app/CLAUDE.md › Worked examples); feedback is a toast (web react-hot-toast).
  */
 export function useSupportForm() {
   const { t } = useTranslation();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
+  const queryClient = useQueryClient();
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState('medium');
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [orderId, setOrderId] = useState('');
   const [loading, setLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
 
   const handleSubmit = async () => {
     if (!category || !subject || !description) {
-      setSnackbar({ visible: true, message: t('auth.fillRequiredFields') });
+      toast.error(t('auth.fillRequiredFields'));
       return;
     }
 
     // Backend DTO ile parite (CreateTicketDto): subject @MinLength(5), message @MinLength(10).
     if (subject.trim().length < 5) {
-      setSnackbar({ visible: true, message: t('support.new.subjectMinLength') });
+      toast.error(t('support.new.subjectMinLength'));
       return;
     }
     if (description.trim().length < 10) {
-      setSnackbar({ visible: true, message: t('support.new.descriptionMinLength') });
+      toast.error(t('support.new.descriptionMinLength'));
       return;
     }
 
@@ -55,7 +59,9 @@ export function useSupportForm() {
         ...(isUuid && category !== 'trade' ? { orderId: refId } : {}),
       });
 
-      setSnackbar({ visible: true, message: t('support.new.ticketCreated') });
+      // Talep listesi artık her odakta değil yalnız bayatsa tazeleniyor → yeni talep görünsün.
+      void queryClient.invalidateQueries({ queryKey: qk.support.tickets });
+      toast.success(t('support.new.ticketCreated'));
 
       // Reset form
       setCategory('');
@@ -64,7 +70,7 @@ export function useSupportForm() {
       setOrderId('');
       setPriority('medium');
     } catch {
-      setSnackbar({ visible: true, message: t('support.new.createFailed') });
+      toast.error(t('support.new.createFailed'));
     } finally {
       setLoading(false);
     }
@@ -84,8 +90,6 @@ export function useSupportForm() {
     orderId,
     setOrderId,
     loading,
-    snackbar,
-    setSnackbar,
     handleSubmit,
   };
 }

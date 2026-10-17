@@ -8,20 +8,23 @@
  * Böylece "her modal kendi mutation'ını taşır" kuralı bozulmadan, iki farklı
  * uca giden aynı form tek yerde kalır.
  *
- * ⚠️ CLAUDE.md §12: mutasyonun `appAlert`'i modal AÇIKKEN patlarsa iOS donuyor.
+ * ⚠️ src/ui/CLAUDE.md › iOS modal rule: mutasyonun `appAlert`'i modal AÇIKKEN patlarsa iOS donuyor.
  * Bu yüzden `onConfirm` çağrılmadan ÖNCE `onClose()` çalışır — sonuç geri
  * bildirimi çağıranın snackbar'ına düşer.
  */
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Modal, Select, Textarea, Button, Text, theme } from '@/ui';
+import { Modal, Label, RadioIndicator, Textarea, Button, Text, theme, ButtonRow } from '@/ui';
 import {
   BUYER_SELECTABLE_CANCELLATION_REASONS,
   DEFAULT_CANCELLATION_REASON,
   reasonLabelKey,
   type OrderCancellationReason,
 } from '@/lib/shared/orderCancellation';
+
+/** Neden listesi + not alanı bölümü, pencere yüksekliğinin bu oranını aşarsa kayar. */
+const BODY_MAX_HEIGHT_RATIO = 0.55;
 
 /** Serbest metin notu — sunucu 500 karakterde kesiyor (`MaxLength(500)`). */
 const NOTE_MAX_LENGTH = 500;
@@ -45,6 +48,7 @@ export function CancelOrderModal({
     DEFAULT_CANCELLATION_REASON,
   );
   const [note, setNote] = useState('');
+  const { height: windowHeight } = useWindowDimensions();
 
   const options = BUYER_SELECTABLE_CANCELLATION_REASONS.map((value) => {
     const key = reasonLabelKey(value);
@@ -66,30 +70,52 @@ export function CancelOrderModal({
         {willRefund ? t('order.cancelConfirmRefundBody') : t('order.cancelConfirmBody')}
       </Text>
 
-      <Select
-        label={t('order.cancelReasonLabel')}
-        value={reasonCode}
-        onChange={(value) => setReasonCode(value as OrderCancellationReason)}
-        options={options}
-      />
+      {/* Nedenler satır içi radyo listesi (modal içinde ikinci bir native sunum açılmaz);
+          küçük ekranda/klavyede kaydırılır, düğmeler altta sabit kalır. */}
+      <ScrollView
+        style={{ maxHeight: windowHeight * BODY_MAX_HEIGHT_RATIO }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Label>{t('order.cancelReasonLabel')}</Label>
+        <View accessibilityRole="radiogroup" style={styles.reasons}>
+          {options.map((opt) => {
+            const selected = opt.value === reasonCode;
+            return (
+              <Pressable
+                key={opt.value}
+                onPress={() => setReasonCode(opt.value)}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: selected }}
+                style={styles.reasonRow}
+                testID={`cancel-reason-${opt.value}`}
+              >
+                <RadioIndicator checked={selected} />
+                <Text variant="body" weight={selected ? 'semibold' : 'regular'} style={styles.reasonLabel}>
+                  {opt.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
-      <View style={styles.noteWrap}>
-        <Textarea
-          value={note}
-          onChangeText={setNote}
-          placeholder={t('order.cancelReasonPlaceholder')}
-          maxLength={NOTE_MAX_LENGTH}
-          rows={3}
-        />
-      </View>
+        <View style={styles.noteWrap}>
+          <Textarea
+            value={note}
+            onChangeText={setNote}
+            placeholder={t('order.cancelReasonPlaceholder')}
+            maxLength={NOTE_MAX_LENGTH}
+            rows={3}
+          />
+        </View>
+      </ScrollView>
 
-      <View style={styles.actions}>
+      <ButtonRow style={{ marginTop: theme.spacing[4] }}>
         <Button
           variant="outline"
           title={t('order.cancelConfirmNo')}
           onPress={onClose}
           disabled={pending}
-          style={styles.action}
         />
         <Button
           testID="cancel-order-confirm"
@@ -98,9 +124,8 @@ export function CancelOrderModal({
           onPress={submit}
           isLoading={pending}
           disabled={pending}
-          style={styles.action}
         />
-      </View>
+      </ButtonRow>
     </Modal>
   );
 }
@@ -108,6 +133,12 @@ export function CancelOrderModal({
 const styles = StyleSheet.create({
   intro: { marginBottom: theme.spacing[3] },
   noteWrap: { marginTop: theme.spacing[3] },
-  actions: { flexDirection: 'row', gap: theme.spacing[2], marginTop: theme.spacing[4] },
-  action: { flex: 1 },
+  reasons: { marginBottom: theme.spacing[1] },
+  reasonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing[3],
+    minHeight: theme.minTouchTarget,
+  },
+  reasonLabel: { flex: 1, minWidth: 0 },
 });

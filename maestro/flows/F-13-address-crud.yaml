@@ -1,5 +1,5 @@
 # F-13: Address create/edit/delete — Adreslerim CRUD.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 env:
@@ -10,14 +10,15 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 # Profil → Ayarlar → Adresler (settings/addresses route)
 - scrollUntilVisible:
     element:
@@ -26,13 +27,27 @@ env:
     timeout: 10000
 - tapOn:
     text: "Adreslerim|Adresler"
+# Liste yüklendi: kartın üstündeki "n/10 adres kayıtlı" satırı.
 - extendedWaitUntil:
     visible:
-      text: "Adres Ekle|Yeni Adres"
+      id: "address-limit-usage"
     timeout: 20000
-# Yeni adres formu
-- tapOn:
-    text: "Adres Ekle|Yeni Adres"
+# Yeni adres — ayrı EKRAN (settings/addresses/new; eskiden modal). Liste boşken EmptyState
+# "Yeni Adres Ekle"; doluyken üst bardaki "+" (address-add-button; içerikteki düğme kalktı).
+- runFlow:
+    when:
+      visible:
+        text: "Yeni Adres Ekle"
+    commands:
+      - tapOn:
+          text: "Yeni Adres Ekle"
+- runFlow:
+    when:
+      visible:
+        id: "address-add-button"
+    commands:
+      - tapOn:
+          id: "address-add-button"
 - extendedWaitUntil:
     visible:
       id: "address-title-input"
@@ -49,17 +64,38 @@ env:
 - tapOn:
     text: "Adres *"
 - inputText: "Test mahallesi test sokak no:1"
-# CityDistrictSelector — şehir + ilçe seçimi atla, mevcut default'la geç
+# İl + ilçe ZORUNLU (varsayılan yok) — seçici listesinden ilk il / ilk ilçe.
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "city-select-trigger"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "city-select-trigger"
+- tapOn:
+    text: "Adana"
+- tapOn:
+    id: "district-select-trigger"
+- tapOn:
+    text: "Aladağ"
+# Kaydet alt çubukta (klavyenin üstünde, her zaman görünür)
 - tapOn:
     id: "address-save-button"
+# Başarı = form ekranı kapanır, listeye dönülür (başlık girdisi de aynı metni
+# taşıdığı için önce ekranın gittiğini bekle, sonra listede ara).
+- extendedWaitUntil:
+    notVisible:
+      id: "address-save-button"
+    timeout: 20000
 - extendedWaitUntil:
     visible: ${ADDRESS_TITLE}
     timeout: 20000
 - assertVisible: ${ADDRESS_TITLE}
 - assertNotVisible: ".*Network Error.*"
-# Edit
+# Edit — satırdaki kalem ("Adresi Düzenle") ayrı ekranı açar (settings/addresses/[id]/edit)
 - tapOn:
-    text: "pencil|Düzenle"
+    text: "Adresi Düzenle|pencil|Düzenle"
     optional: true
 - runFlow:
     when:
@@ -72,6 +108,10 @@ env:
       - inputText: ${ADDRESS_TITLE_EDITED}
       - tapOn:
           id: "address-save-button"
+      - extendedWaitUntil:
+          notVisible:
+            id: "address-save-button"
+          timeout: 20000
       - extendedWaitUntil:
           visible: ${ADDRESS_TITLE_EDITED}
           timeout: 20000

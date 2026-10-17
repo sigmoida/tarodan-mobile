@@ -30,6 +30,10 @@ jest.mock('@/stores/authStore', () => ({
   },
 }));
 
+// Kapı bu testin konusu değil (bkz. legal-identity-gate.test): geçti say.
+jest.mock('@/hooks/useLegalIdentity', () =>
+  require('@/test-utils/legalIdentity').legalIdentityGatePassMock);
+
 import TradeCounterScreen from '../[id]';
 
 const getOneMock = tradesApi.getOne as jest.Mock;
@@ -104,6 +108,10 @@ describe('J6 · Karşı teklif formu', () => {
     renderWithProviders(<TradeCounterScreen />);
     await waitFor(() => expect(screen.getByText('Benim Ürünüm')).toBeOnTheScreen());
     fireEvent.press(screen.getByText('Benim Ürünüm'));
+    // Yalnız bir taraf seçiliyken gönder pasif (API iki tarafta da en az 1 ürün ister).
+    fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
+    expect(counterMock).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByText('Karşı Ürün'));
     fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
     await waitFor(() => expect(counterMock).toHaveBeenCalled());
     const [tradeId, body] = counterMock.mock.calls[0];

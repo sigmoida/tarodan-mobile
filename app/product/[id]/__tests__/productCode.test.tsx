@@ -12,7 +12,7 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
 }));
 
-import { ProductInfo } from '../_components/ProductInfo';
+import { ProductSpecs } from '../_components/ProductSpecs';
 
 const base = {
   id: 'p1',
@@ -23,38 +23,20 @@ const base = {
 };
 
 function renderInfo(extra: Record<string, unknown> = {}) {
-  const noop = () => {};
-  render(
-    <ProductInfo
-      product={{ ...base, ...extra } as any}
-      isOwner={false}
-      price={{ effectivePrice: 500, originalPrice: null, discountPct: 0 } as any}
-      favoriteCount={0}
-      actions={
-        {
-          onMakeOffer: noop,
-          onTrade: noop,
-          onAddToCollection: noop,
-          onMessage: noop,
-          onShare: noop,
-        } as any
-      }
-      onOpenReviews={noop}
-    />,
-  );
+  render(<ProductSpecs product={{ ...base, ...extra } as any} />);
 }
 
-describe('ProductInfo product code', () => {
+describe('ProductSpecs product code', () => {
   it('shows the product code the server sends', () => {
     renderInfo({ productCode: 'U010000' });
 
-    expect(screen.getByText('Ürün Kodu')).toBeTruthy();
+    expect(screen.getByText('İlan No')).toBeTruthy();
     expect(screen.getByText('U010000')).toBeTruthy();
   });
 
   it('omits the row when the product has no code', () => {
     renderInfo();
 
-    expect(screen.queryByText('Ürün Kodu')).toBeNull();
+    expect(screen.queryByText('İlan No')).toBeNull();
   });
 });

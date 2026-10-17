@@ -1,8 +1,9 @@
 /**
- * iOS'ta uygulama içi dijital satış Apple IAP'siz yapılamaz (App Store
- * Guideline 3.1.1 / 3.1.3(g)). Kapı TEK bir sabitte durur; ekranlar doğrudan
- * `Platform`'a bakmaz. Bu test hem sabiti hem de `limitAlert`'in yükseltme
- * düğmesini iOS'ta EKLEMEDİĞİNİ sabitler.
+ * Uygulama içi dijital satış iki mağazada da kapalı: iOS'ta Apple IAP'siz
+ * (Guideline 3.1.1 / 3.1.3(g)), Android'de Play Billing'siz yapılamaz. Kapı TEK
+ * bir sabitte durur; ekranlar doğrudan `Platform`'a bakmaz. Bu test hem sabiti
+ * hem de `limitAlert`'in yükseltme düğmesini İKİ platformda da EKLEMEDİĞİNİ
+ * sabitler.
  */
 jest.mock('@/ui', () => ({ appAlert: jest.fn() }));
 
@@ -49,9 +50,9 @@ describe('CAN_BUY_DIGITAL', () => {
     expect(loadModule().CAN_BUY_DIGITAL).toBe(false);
   });
 
-  it('Android ise açık', () => {
+  it('Android ise de kapalı (Play Billing yok)', () => {
     Platform.OS = 'android';
-    expect(loadModule().CAN_BUY_DIGITAL).toBe(true);
+    expect(loadModule().CAN_BUY_DIGITAL).toBe(false);
   });
 });
 
@@ -65,14 +66,14 @@ describe('limitAlert', () => {
     expect(JSON.stringify(buttons)).not.toContain('Premium');
   });
 
-  it('Android: yükseltme düğmesi var ve çalışıyor', () => {
+  it('Android: iOS gibi yalnız bilgi, yükseltme düğmesi YOK', () => {
     Platform.OS = 'android';
     loadModule().limitAlert(opts);
     const buttons = mockAlert.mock.calls[0][2];
-    expect(buttons).toHaveLength(2);
-    expect(buttons[1].text).toBe('Premium');
-    buttons[1].onPress();
-    expect(opts.onUpgrade).toHaveBeenCalled();
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0].text).toBe('İptal');
+    expect(JSON.stringify(buttons)).not.toContain('Premium');
+    expect(opts.onUpgrade).not.toHaveBeenCalled();
   });
 
   it('onCancel verilirse iptal düğmesine bağlanır (platformdan bağımsız)', () => {

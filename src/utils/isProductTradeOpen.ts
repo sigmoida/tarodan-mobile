@@ -27,8 +27,11 @@ export function isProductTradeOpen(item: unknown): boolean {
   if (!item || typeof item !== 'object') return false;
   const record = item as Record<string, unknown>;
 
+  // `tradeAvailable` API'nin türettiği efektif değerdir (üyelik takas hakkını kaybettiyse false):
+  // tanımlıysa (true/false) her şeyi ezer; yoksa eski alanlara düşülür. Kart ve detay aynı kuralı kullanır.
+  if (record.tradeAvailable !== undefined && record.tradeAvailable !== null) return truthy(record.tradeAvailable);
+
   if (truthy(record.isTradeEnabled)) return true;
-  if (truthy(record.tradeAvailable)) return true;
   if (truthy(record.trade_available)) return true;
   if (truthy(record.trade_enabled)) return true;
 

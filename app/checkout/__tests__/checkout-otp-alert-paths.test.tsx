@@ -140,13 +140,10 @@ async function openOtpModal() {
   renderWithProviders(<CheckoutScreen />);
   await waitFor(() => expect(screen.getByText('165,00 TL')).toBeOnTheScreen());
   fillAllStep1Fields();
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+  await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
   acceptDistanceSales();
   await act(async () => {
-    fireEvent.press(screen.getByText(/Onayla ve Öde/));
+    fireEvent.press(screen.getByText('Ödeme Yap'));
   });
   await waitFor(() => expect(screen.getByTestId('guest-otp-input')).toBeOnTheScreen());
   // Modalı açan akış hiçbir uyarı basmamalı — testlerin başlangıç noktası temiz.
@@ -228,7 +225,7 @@ describe('OTP modalı açıkken ham appAlert kalmadı', () => {
       () =>
         expect(appAlert).toHaveBeenCalledWith(
           'Hata',
-          'Sipariş oluşturuldu fakat ödeme başlatılamadı. Siparişlerim sayfasından devam edebilirsiniz.',
+          'Sipariş oluşturuldu ancak ödeme başlatılamadı. Lütfen Siparişlerim sayfasından ödemeyi tamamlayın.',
           undefined,
         ),
       { timeout: 2000 },

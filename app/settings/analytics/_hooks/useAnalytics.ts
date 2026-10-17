@@ -1,20 +1,21 @@
-import { useCallback } from "react";
-import { useFocusEffect } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import { qk } from "@/lib/query";
 import { api } from "@/lib/api";
 import { useRefresh } from "@/hooks/useRefresh";
+import { useRefetchStaleOnFocus } from "@/hooks/useRefetchStaleOnFocus";
 import { useAuthStore } from "@/stores/authStore";
 import { useTranslation } from "react-i18next";
 import type { Analytics } from "../_lib/types";
 import { isPremiumTier } from "../_lib/premium";
 
 /**
- * Analytics controller — owns the seller-analytics query, focus refresh, and the
+ * Analytics controller — owns the seller-analytics query, stale-only focus refresh, and the
  * premium/auth flags. Lifted verbatim from the monolithic AnalyticsScreen.
  */
 export function useAnalytics() {
   const { t } = useTranslation();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const timeRange = "7d";
 
   // `useAuthStore().limits` is the client's merged tier table (TIER_LIMITS
@@ -25,13 +26,14 @@ export function useAnalytics() {
   // `/membership/me/limits` response's measured `tierType` field.
   const isPremium = isPremiumTier({ tierType: user?.membershipTier });
 
-  // Fetch analytics
+  // Fetch analytics (anahtar sorgu ile odak tazelemesi arasında tek yerde).
+  const analyticsKey = qk.user.analytics(timeRange);
   const {
     data: analyticsData,
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ["analytics", timeRange],
+    queryKey: analyticsKey,
     queryFn: async () => {
       const response = await api.get("/users/me/analytics", {
         params: { period: timeRange },
@@ -45,14 +47,8 @@ export function useAnalytics() {
 
   const { refreshing, onRefresh } = useRefresh(refetch);
 
-  // Refresh on focus
-  useFocusEffect(
-    useCallback(() => {
-      if (isAuthenticated) {
-        refetch();
-      }
-    }, [isAuthenticated]),
-  );
+  // Ekrana dönüşte yalnız bayatsa tazele (her odakta değil; ilk açılışta ikinci istek yok).
+  useRefetchStaleOnFocus([analyticsKey], isAuthenticated);
 
   return {
     t,

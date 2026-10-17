@@ -9,6 +9,7 @@ import React from "react";
 import { TextInput } from "react-native";
 import { screen, fireEvent, waitFor } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
+import { ToastHost } from "@/ui";
 
 jest.mock("expo-router", () => ({
   router: {
@@ -21,6 +22,8 @@ jest.mock("expo-router", () => ({
 
 jest.mock("@/lib/api", () => ({
   supportApi: { guestContact: jest.fn(), createTicket: jest.fn() },
+  // SSS iade süresi politikadan (A-3 inceleme #7); bu dilimde geri düşüş yeter.
+  timingRulesApi: { getPolicy: jest.fn(() => Promise.reject(new Error("offline"))) },
 }));
 import { supportApi } from "@/lib/api";
 
@@ -39,6 +42,15 @@ jest.mock("react-i18next", () => ({
 import HelpScreen from "../help";
 
 const guestContactMock = supportApi.guestContact as jest.Mock;
+
+/** Geri bildirim toast olduğu için ekranın yanında global ToastHost de bağlanır (kökteki gibi). */
+const renderHelp = () =>
+  renderWithProviders(
+    <>
+      <HelpScreen />
+      <ToastHost />
+    </>,
+  );
 const createTicketMock = supportApi.createTicket as jest.Mock;
 
 /**
@@ -59,8 +71,8 @@ describe("Yardım Merkezi · iletişim formu", () => {
     mockIsAuthenticated = false;
   });
 
-  it("boş form gönderiminde uyarı snackbar gösterilir, API çağrılmaz", async () => {
-    renderWithProviders(<HelpScreen />);
+  it("boş form gönderiminde uyarı toast gösterilir, API çağrılmaz", async () => {
+    renderHelp();
     fireEvent.press(screen.getByText("common.send"));
     expect(
       await screen.findByText("common.fillAllFields"),
@@ -69,7 +81,7 @@ describe("Yardım Merkezi · iletişim formu", () => {
   });
 
   it("mesaj 10 karakterden kısa → reddedilir", async () => {
-    renderWithProviders(<HelpScreen />);
+    renderHelp();
     fillForm({ name: "Ali", email: "ali@test.com", message: "kısa" });
     fireEvent.press(screen.getByText("common.send"));
     expect(
@@ -79,7 +91,7 @@ describe("Yardım Merkezi · iletişim formu", () => {
   });
 
   it("geçersiz e-posta → reddedilir", async () => {
-    renderWithProviders(<HelpScreen />);
+    renderHelp();
     fillForm({
       name: "Ali",
       email: "gecersiz",
@@ -92,9 +104,9 @@ describe("Yardım Merkezi · iletişim formu", () => {
     expect(guestContactMock).not.toHaveBeenCalled();
   });
 
-  it("misafir geçerli form → guestContact çağrılır ve başarı snackbar", async () => {
+  it("misafir geçerli form → guestContact çağrılır ve başarı toast", async () => {
     guestContactMock.mockResolvedValue({});
-    renderWithProviders(<HelpScreen />);
+    renderHelp();
     fillForm({
       name: "Ali Veli",
       email: "ali@test.com",
@@ -115,7 +127,7 @@ describe("Yardım Merkezi · iletişim formu", () => {
   it("giriş yapmış kullanıcı geçerli form → takip edilebilir createTicket çağrılır", async () => {
     mockIsAuthenticated = true;
     createTicketMock.mockResolvedValue({ data: { ticketNumber: "TKT-1" } });
-    renderWithProviders(<HelpScreen />);
+    renderHelp();
     fillForm({
       name: "Ali Veli",
       email: "ali@test.com",
@@ -135,9 +147,9 @@ describe("Yardım Merkezi · iletişim formu", () => {
     ).toBeOnTheScreen();
   });
 
-  it("API hatası → kullanıcıya hata snackbar gösterilir", async () => {
+  it("API hatası → kullanıcıya hata toast gösterilir", async () => {
     guestContactMock.mockRejectedValue(new Error("network"));
-    renderWithProviders(<HelpScreen />);
+    renderHelp();
     fillForm({
       name: "Ali Veli",
       email: "ali@test.com",

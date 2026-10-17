@@ -1,5 +1,3 @@
-import { DEFAULT_COUNTRY_CODE } from '@/utils/phone';
-
 export interface Address {
   id: string;
   title: string;
@@ -13,16 +11,8 @@ export interface Address {
   isDefault: boolean;
 }
 
-export const EMPTY_FORM = () => ({
-  title: '',
-  fullName: '',
-  phone: '',
-  phoneCountryCode: DEFAULT_COUNTRY_CODE,
-  address: '',
-  city: '',
-  district: '',
-  postalCode: '',
-  isDefault: false,
-});
-
-export type AddressForm = ReturnType<typeof EMPTY_FORM>;
+/** Adres formu rotaları (liste → yeni / düzenle, düz stack push). */
+export const addressRoutes = {
+  new: '/settings/addresses/new',
+  edit: (id: string) => `/settings/addresses/${id}/edit`,
+} as const;

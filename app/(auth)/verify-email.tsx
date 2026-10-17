@@ -1,30 +1,33 @@
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
-import {
-  Button,
-  Input,
-  ScreenHeader,
-  Spinner,
-  Text,
-  VStack,
-  theme,
-  appAlert,
-} from '@/ui';
+import { Button, Input, Spinner, appAlert, theme } from '@/ui';
+import { AuthShell } from '@/components/auth/AuthShell';
 import { authApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
+import { ResendVerification } from '@/components/auth/ResendVerification';
 import { useAuthStore } from '@/stores/authStore';
+import { usePendingAuthEmailStore } from '@/stores/pendingAuthEmailStore';
 
-const { colors, spacing } = theme;
+const { colors } = theme;
 
 type Status = 'idle' | 'verifying' | 'success' | 'error';
 
 export default function VerifyEmailScreen() {
   const { t } = useTranslation();
-  const { token: tokenParam } = useLocalSearchParams<{ token?: string }>();
-  const { isAuthenticated, user } = useAuthStore();
+  const { token: tokenParam, email: emailParam } = useLocalSearchParams<{
+    token?: string;
+    email?: string;
+  }>();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
+  const pendingEmail = usePendingAuthEmailStore((st) => st.email);
+  // API doğrulama yanıtında e-posta dönmez: güvenilir kaynaklar oturum ve kayıt anında saklanan adres.
+  // `?email=` bağlantı paramı DOĞRULANMAMIŞ girdidir: metinde gösterilmez, store'un önüne geçmez,
+  // yalnız misafir e-posta alanını ön doldurur.
+  const knownEmail = user?.email || pendingEmail || null;
+  const prefillEmail = typeof emailParam === 'string' ? emailParam.trim() || null : null;
   const [manualToken, setManualToken] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -32,27 +35,15 @@ export default function VerifyEmailScreen() {
   const verifyMutation = useMutation({
     mutationFn: (token: string) => authApi.verifyEmail(token),
     onSuccess: () => {
+      // Oturumlu kullanıcı girişe gitmeyecek: bellek içi e-posta işini bitirdi. Misafirde giriş
+      // ekranı ön dolduruyor; orada giriş başarısında / çıkışta temizlenir (authStore).
+      if (isAuthenticated) usePendingAuthEmailStore.getState().setEmail(null);
       setStatus('success');
       setErrorMsg(null);
     },
     onError: (e: unknown) => {
-      const err = e as { response?: { data?: { message?: string } } };
       setStatus('error');
-      setErrorMsg(err?.response?.data?.message || t('auth.verifyLinkInvalid'));
-    },
-  });
-
-  const resendMutation = useMutation({
-    mutationFn: () => authApi.resendVerification(user?.email ?? ''),
-    onSuccess: () => {
-      appAlert(
-        t('auth.verificationResentTitle'),
-        t('auth.verifyResentBody'),
-      );
-    },
-    onError: (e: unknown) => {
-      const err = e as { response?: { data?: { message?: string } } };
-      appAlert(t('common.error'), err?.response?.data?.message || t('auth.verificationResendFailed'));
+      setErrorMsg(apiErrorMessage(e, t('auth.verifyLinkInvalid')));
     },
   });
 
@@ -69,119 +60,86 @@ export default function VerifyEmailScreen() {
     verifyMutation.mutate(manualToken.trim());
   };
 
-  const iconName =
-    status === 'success' ? 'mail-open' : status === 'error' ? 'alert-circle' : 'mail';
-  const iconColor =
-    status === 'success'
-      ? colors.success[600]!
-      : status === 'error'
-        ? colors.danger[600]!
-        : colors.primary[600]!;
+  const goHome = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
+  // Oturumlu: e-posta sabit, yalnız düğme. Misafir: e-posta alanı + düğme.
+  const resendBlock = (variant: 'primary' | 'outline') => (
+    <ResendVerification
+      email={knownEmail}
+      prefill={prefillEmail}
+      askEmail={!isAuthenticated}
+      variant={variant}
+    />
+  );
+
+  // E-posta girişe URL'siz taşınır: login `pendingAuthEmailStore`'dan önceden doldurur.
+  const goToLogin = () => router.replace('/(auth)/login');
+
+  if (status === 'verifying') {
+    return (
+      <AuthShell title={t('auth.verifyingEmail')} description={t('auth.pleaseWait')}>
+        <Spinner color={colors.primary[600]} />
+      </AuthShell>
+    );
+  }
+
+  if (status === 'success') {
+    return (
+      <AuthShell title={t('auth.emailVerified')} description={t('auth.emailVerifiedDesc')}>
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
+          title={isAuthenticated ? t('common.continueAction') : t('common.login')}
+          onPress={() => (isAuthenticated ? router.replace('/(tabs)') : goToLogin())}
+        />
+      </AuthShell>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <AuthShell
+        title={t('auth.verificationFailed')}
+        description={errorMsg || t('auth.verifyLinkInvalidLong')}
+      >
+        {resendBlock('primary')}
+        <Button
+          variant="ghost"
+          fullWidth
+          title={t('auth.verifyBackToLogin')}
+          onPress={() => goToLogin()}
+        />
+      </AuthShell>
+    );
+  }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.surface.DEFAULT }}>
-      <ScreenHeader title={t('auth.emailVerification')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+    <AuthShell
+      title={t('auth.emailVerification')}
+      description={
+        knownEmail
+          ? t('auth.verifyInstructionsWithEmail', { email: knownEmail })
+          : t('auth.verifyInstructions')
+      }
+      onBack={goHome}
+    >
+      <Input
+        label={t('auth.verifyCodeLabel')}
+        value={manualToken}
+        onChangeText={setManualToken}
+        autoCapitalize="none"
+      />
 
-      <VStack gap={2} align="center" padding={6} flex={1}>
-        <View style={{ marginTop: spacing[4], marginBottom: spacing[2] }}>
-          <Ionicons name={iconName} size={72} color={iconColor} />
-        </View>
+      <Button
+        variant="primary"
+        size="lg"
+        fullWidth
+        title={t('auth.verifyCodeSubmit')}
+        onPress={handleManual}
+        disabled={!manualToken.trim()}
+      />
 
-        {status === 'verifying' ? (
-          <>
-            <Text variant="h2" align="center">
-              {t('auth.verifyingEmail')}
-            </Text>
-            <Spinner color={colors.primary[600]!} />
-          </>
-        ) : status === 'success' ? (
-          <>
-            <Text variant="h2" align="center">
-              {t('auth.emailVerified')}
-            </Text>
-            <Text variant="bodySm" tone="muted" align="center">
-              {t('auth.emailVerifiedDesc')}
-            </Text>
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              title={t('common.continueAction')}
-              onPress={() =>
-                router.replace(isAuthenticated ? '/(tabs)' : '/(auth)/login')
-              }
-              style={{ marginTop: spacing[3] }}
-            />
-          </>
-        ) : status === 'error' ? (
-          <>
-            <Text variant="h2" align="center">
-              {t('auth.verificationFailed')}
-            </Text>
-            <Text variant="bodySm" tone="muted" align="center">
-              {errorMsg || t('auth.verifyLinkInvalidLong')}
-            </Text>
-            {isAuthenticated ? (
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                title={t('auth.verifyRequestNewLink')}
-                icon="mail-outline"
-                onPress={() => resendMutation.mutate()}
-                isLoading={resendMutation.isPending}
-                disabled={resendMutation.isPending || !user?.email}
-                style={{ marginTop: spacing[3] }}
-              />
-            ) : null}
-            <Button
-              variant="ghost"
-              fullWidth
-              title={t('auth.verifyBackToLogin')}
-              onPress={() => router.replace('/(auth)/login')}
-            />
-          </>
-        ) : (
-          <>
-            <Text variant="h2" align="center">
-              {t('auth.emailVerification')}
-            </Text>
-            <Text variant="bodySm" tone="muted" align="center">
-              {user?.email
-                ? t('auth.verifyInstructionsWithEmail', { email: user.email })
-                : t('auth.verifyInstructions')}
-            </Text>
-
-            <Input
-              label={t('auth.verifyCodeLabel')}
-              value={manualToken}
-              onChangeText={setManualToken}
-              autoCapitalize="none"
-            />
-
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              title={t('auth.verifyCodeSubmit')}
-              onPress={handleManual}
-              disabled={!manualToken.trim()}
-            />
-
-            {isAuthenticated ? (
-              <Button
-                variant="ghost"
-                fullWidth
-                title={t('auth.verifyResend')}
-                icon="mail-outline"
-                onPress={() => resendMutation.mutate()}
-                isLoading={resendMutation.isPending}
-                disabled={resendMutation.isPending || !user?.email}
-              />
-            ) : null}
-          </>
-        )}
-      </VStack>
-    </View>
+      {resendBlock('outline')}
+    </AuthShell>
   );
 }

@@ -1,6 +1,6 @@
 # E-03: Tekliflerim listesi + relatif zaman gösterimi.
 # login → Profil → Tekliflerim → liste yüklenir → en az bir kart "dk önce" / "saat önce" / "gün önce" gösterir.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 env:
@@ -9,14 +9,14 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
-- tapOn:
-    text: "Profil"
+- runFlow: ../subflows/open-profile-menu.yaml
 - scrollUntilVisible:
     element:
       id: "profile-offers-link"

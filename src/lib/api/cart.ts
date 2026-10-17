@@ -1,4 +1,5 @@
 import { api } from "./client";
+import { apiPath } from "./path";
 
 /** Sunucu sepetindeki tek satır (CartItemResponseDto). */
 export interface ServerCartItem {
@@ -16,10 +17,12 @@ export interface ServerCartItem {
   lineTotal: number;
   productDiscount?: number;
   isAvailable: boolean;
-  /** "Son 2 adet", "Stokta yok" gibi sunucu uyarısı. */
+  /** Sunucunun yerelleştirilmiş stok uyarısı ("Son 1 ürün", "Stokta yok" …) — olduğu gibi gösterilir. */
   stockWarning?: string;
   /** Bu satırda sipariş edilebilecek azami adet; tanımsız = sınırsız stok. */
   maxQuantity?: number;
+  /** Ürünün şu anki satın alınabilir stoğu (yeni sunucu; eski yanıtta yok). */
+  availableQuantity?: number;
 }
 
 /** Sepet fiyat hesabı (CartCalculationResponseDto). */
@@ -62,10 +65,10 @@ export const cartApi = {
 
   /** quantity: 0 → satırı kaldırır (backend sözleşmesi). */
   updateItem: (productId: string, quantity: number) =>
-    api.patch<ServerCart>(`/cart/items/${productId}`, { quantity }),
+    api.patch<ServerCart>(apiPath`/cart/items/${productId}`, { quantity }),
 
   removeItem: (productId: string) =>
-    api.delete<ServerCart>(`/cart/items/${productId}`),
+    api.delete<ServerCart>(apiPath`/cart/items/${productId}`),
 
   clear: () => api.delete("/cart"),
 };

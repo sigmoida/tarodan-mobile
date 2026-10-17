@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { useTranslation } from 'react-i18next';
-import { api, errorText } from '@/lib/api';
-import { appAlert } from '@/ui';
-import { useMessagesStore } from '@/stores/messagesStore';
-import { useCreateThread } from '@/hooks/messaging';
-import { useAuthStore } from '@/stores/authStore';
+import { api } from '@/lib/api';
+import { apiPath } from '@/lib/api/path';
+import { apiErrorMessage } from '@/lib/api/errorText';
+import { toast } from '@/ui';
+import { useCreateThread, useDailyMessageLimit } from '@/hooks/messaging';
 import type { User } from '../_lib/types';
 
 /**
  * New-message controller — owns recipient preselect (seller/product/trade
  * context), the optional product query, the message draft (pre-filled from a
  * product), and the createThread send flow. Lifted verbatim from the monolithic
- * screen (§12). NOTE: manuel kullanıcı arama backend'de yok → devre dışı.
+ * screen (app/CLAUDE.md › Worked examples). NOTE: manuel kullanıcı arama backend'de yok → devre dışı.
  */
 export function useNewMessage() {
   const { t } = useTranslation();
@@ -23,9 +24,9 @@ export function useNewMessage() {
     productId?: string;
     productTitle?: string;
   }>();
-  const canSendMessage = useMessagesStore((s) => s.canSendMessage);
   const createThread = useCreateThread();
-  const { limits } = useAuthStore();
+  // Sunucu sayımı (GET /messages/daily-limit); bilinmiyorsa engellenmez.
+  const { limit: messageLimit, canSend } = useDailyMessageLimit();
 
   // Recipient can arrive as `sellerId` (seller/product context) or `receiverId` (trade context).
   const recipientId = sellerId || receiverId;
@@ -41,8 +42,6 @@ export function useNewMessage() {
   );
   const [sending, setSending] = useState(false);
 
-  const canSend = canSendMessage();
-
   // NOT: Backend'de isimle kullanıcı arama ucu (GET /users/search) YOK; web'de de bu
   // özellik bulunmuyor. Bozuk uca 404 atmak yerine manuel aramayı devre dışı bırakıyoruz.
   const searchResults: User[] = [];
@@ -51,11 +50,11 @@ export function useNewMessage() {
 
   // Fetch recipient profile if a recipient id is provided (seller, product, or trade context)
   const { data: preselectedUser } = useQuery({
-    queryKey: ['user', recipientId],
+    queryKey: qk.user.detail(recipientId ?? ''),
     queryFn: async () => {
       if (!recipientId) return null;
       try {
-        const response = await api.get(`/users/${recipientId}/profile`);
+        const response = await api.get(apiPath`/users/${recipientId}/profile`);
         const profile = response.data?.data || response.data;
         if (!profile?.id) return null;
         return {
@@ -79,11 +78,11 @@ export function useNewMessage() {
 
   // Fetch product details if productId is provided
   const { data: product } = useQuery({
-    queryKey: ['product', productId],
+    queryKey: qk.products.composeSummary(productId ?? ''),
     queryFn: async () => {
       if (!productId) return null;
       try {
-        const response = await api.get(`/products/${productId}`);
+        const response = await api.get(apiPath`/products/${productId}`);
         return response.data;
       } catch (error) {
         return null;
@@ -111,7 +110,7 @@ export function useNewMessage() {
     } catch (e) {
       setSending(false);
       // Eskiden sessizdi: gönder'e basınca hiçbir şey olmuyordu (Apple 2.1).
-      appAlert(t('message.sendFailed'), errorText(e, t('message.tryAgainBody')));
+      toast.error(apiErrorMessage(e, t('message.sendFailed')));
     }
   };
 
@@ -123,11 +122,11 @@ export function useNewMessage() {
   // Geri git; stack kökündeysek (deep link / replace ile gelinmişse) mesajlara düş.
   const handleBack = () => {
     if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)/messages' as never);
+    else router.replace('/messages');
   };
 
   return {
-    limits,
+    messageLimit,
     productId,
     product,
     decodedProductTitle,

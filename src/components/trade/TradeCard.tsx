@@ -1,33 +1,17 @@
-import { useTradeStatusConfig } from '@/lib/shared/tradeStatus';
-import React, { useState } from 'react';
+import { useTradeStatusConfig, tradeViewerRole } from '@/lib/shared/tradeStatus';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, StyleSheet, Image, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, StyleSheet } from 'react-native';
+import { AppImage } from '../AppImage';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
-import { theme, Text, Chip, Avatar, type ChipVariant } from '@/ui';
+import { tr } from 'date-fns/locale/tr';
+import { theme, Text, StatusBadge, Avatar, Icon, ListRowCard } from '@/ui';
 import { formatPrice } from '../../utils/format';
-import { transformImageUrl, IMAGE_PLACEHOLDER } from '../../utils/imageUrl';
 
 const { colors, spacing, radius } = theme;
 
-const FALLBACK_IMG = IMAGE_PLACEHOLDER;
 
-
-/**
- * Takas durumunun çip bilgisi. Sözlük TEK kaynakta
- * (`@/lib/shared/tradeStatus`); burada ikinci bir kopya tutmak kartla rozetin
- * aynı durumu farklı kelimeyle göstermesine yol açıyordu.
- */
-export function useTradeStatusInfo(): (status: string) => { label: string; variant: ChipVariant } {
-  const config = useTradeStatusConfig();
-  return (status) =>
-    (config[status] as { label: string; variant: ChipVariant } | undefined) ?? {
-      label: status,
-      variant: 'neutral',
-    };
-}
 
 export interface TradeCardItem {
   id?: string | number;
@@ -55,12 +39,12 @@ export interface TradeCardTrade {
   receiverItems?: TradeCardItem[];
 }
 
-function itemImageUrl(item: TradeCardItem): string {
-  const raw =
+function itemImageSource(item: TradeCardItem): string | undefined {
+  return (
     item.productImages?.[0]?.cardUrl ??
     item.productImages?.[0]?.detailUrl ??
-    item.productImage;
-  return raw ? transformImageUrl(raw) : FALLBACK_IMG;
+    item.productImage
+  );
 }
 
 function sideTotal(items: TradeCardItem[]): number {
@@ -75,7 +59,6 @@ function sideTotal(items: TradeCardItem[]): number {
  * başlık satırındaki toplamda görünüyor. */
 function ItemRow({ item, showPrice }: { item: TradeCardItem; showPrice: boolean }) {
   const { t } = useTranslation();
-  const [src, setSrc] = useState<string>(() => itemImageUrl(item));
   const qty = Number(item.quantity) || 1;
   const subtitle = showPrice
     ? `${qty > 1 ? `${qty}x · ` : ''}${formatPrice(item.valueAtTrade)}`
@@ -84,11 +67,8 @@ function ItemRow({ item, showPrice }: { item: TradeCardItem; showPrice: boolean 
       : null;
   return (
     <View style={styles.itemRow}>
-      <Image
-        source={{ uri: src }}
-        style={styles.thumb}
-        onError={() => setSrc(FALLBACK_IMG)}
-      />
+      {/* Yüklenemezse AppImage kendi gri yer tutucusuna düşer. */}
+      <AppImage source={itemImageSource(item)} variant="card" style={styles.thumb} />
       <View style={styles.itemBody}>
         <Text variant="bodySm" weight="medium" numberOfLines={subtitle ? 1 : 2}>
           {item.productTitle || t('order.product')}
@@ -142,8 +122,8 @@ export interface TradeCardProps {
 
 function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
   const { t } = useTranslation();
-  const tradeStatusInfo = useTradeStatusInfo();
-  const statusInfo = tradeStatusInfo(trade.status);
+  // Durum rozeti: renk + etiket web `tradeStatusConfig` ile aynı tek kaynaktan.
+  const statusConfig = useTradeStatusConfig(tradeViewerRole(trade, currentUserId));
   const isSent = !!currentUserId && trade.initiatorId === currentUserId;
 
   const otherUserName = isSent
@@ -161,10 +141,7 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
   };
 
   return (
-    <Pressable
-      onPress={handlePress}
-      style={({ pressed }) => [styles.card, pressed && { opacity: 0.92 }]}
-    >
+    <ListRowCard direction="column" gap={0} onPress={handlePress} style={styles.card}>
       {/* Header */}
       <View style={styles.header}>
         <Avatar name={otherUserName} size="md" />
@@ -176,7 +153,7 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
             {otherUserName}
           </Text>
         </View>
-        <Chip label={statusInfo.label} variant={statusInfo.variant} size="sm" />
+        <StatusBadge status={trade.status} config={statusConfig} size="sm" />
       </View>
 
       {/* Trade panel */}
@@ -186,7 +163,7 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
           <View style={styles.swapCircle}>
-            <Ionicons name="swap-vertical" size={15} color={colors.primary[600]!} />
+            <Icon name="arrows-up-down" size={15} color={colors.primary[600]!} />
           </View>
           <View style={styles.dividerLine} />
         </View>
@@ -197,7 +174,6 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
       {/* Cash difference */}
       {cash > 0 ? (
         <View style={styles.cashRow}>
-          <Ionicons name="cash-outline" size={16} color={colors.primary[700]!} />
           <Text variant="caption" tone="muted">
             {t('trade.cashDifferenceLine')}
           </Text>
@@ -217,22 +193,15 @@ function TradeCardBase({ trade, currentUserId, onPress }: TradeCardProps) {
           <Text variant="caption" tone="primary" weight="medium">
             {t('common.details')}
           </Text>
-          <Ionicons name="chevron-forward" size={14} color={colors.primary[600]!} />
+          <Icon name="chevron-right" size={14} color={colors.primary[600]!} />
         </View>
       </View>
-    </Pressable>
+    </ListRowCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.white,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    padding: spacing[3.5],
-    marginBottom: spacing[3],
-  },
+  card: { marginBottom: spacing[3] },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

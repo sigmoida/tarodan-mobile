@@ -1,4 +1,7 @@
 import { api, guestApi } from './client';
+import { apiPath } from './path';
+import { DOCUMENT_UPLOAD_TIMEOUT_MS } from './media';
+import { appendRNFile } from './formData';
 import type { OrderCancellationReason } from '@/lib/shared/orderCancellation';
 
 // Orders API - Web ile aynı endpoint'ler
@@ -15,7 +18,7 @@ export type OrderAddressInput = {
  * `POST /orders/quote` yanıtı (2026-07-30 canlı ölçüm — staging).
  * `pricingHash` + `shippingTariffVersion` KÖKTE, `pricing` içinde DEĞİL — order-create
  * uçlarının `expectedPricingHash`/`expectedShippingTariffVersion` zorunlu alanları
- * buradan gelir. `pricing.summary` ekranda basılacak TEK doğru kırılım (§CLAUDE.md
+ * buradan gelir. `pricing.summary` ekranda basılacak TEK doğru kırılım (src/lib/api/CLAUDE.md › Money values:
  * "parayla ilgili hiçbir değeri istemcide hesaplama").
  */
 /**
@@ -114,6 +117,17 @@ export type OrderQuoteShippingBySeller = {
   packageTier?: string;
 };
 
+/**
+ * Quote ve sipariş (`checkout` / `checkoutGuest`) gövdelerindeki satır.
+ *
+ * `quantity` sipariş uçlarında ZORUNLU tutulur: sunucu (`CheckoutItemDto`)
+ * alanı opsiyonel kabul edip `quantity ?? 1` varsayıyor, ama fiyat imzası
+ * (`pricingHash`) adede bağlı — quote'a giden adet buraya gitmezse 409
+ * `pricingChanged` döner. İki gövde aynı üreticiden çıkar
+ * (`app/checkout/_lib/lineItems.ts`).
+ */
+export type OrderLineItemInput = { productId: string; quantity: number };
+
 export type OrderQuoteResponse = {
   itemsSubtotal?: number;
   shippingAmount?: number;
@@ -140,7 +154,7 @@ export type OrderQuoteResponse = {
 
 /**
  * Sipariş gövdesine AYNEN geri gidecek fiyat imzası. Delta 18 ile komisyon
- * rule-set kimliği/sürümü eklendi; alanlar dört payload üreticisine dağıtılmak
+ * rule-set kimliği/sürümü eklendi; alanlar payload üreticilerine dağıtılmak
  * yerine burada toplanır — beşinci alan geldiğinde yalnız bu tip ve
  * `toExpectedPricing` değişir, çağıran hiç değişmez.
  */
@@ -182,31 +196,11 @@ export const ordersApi = {
   getSellerEarnings: () =>
     api.get<{ totalEarnings: number; pendingEarnings: number }>('/orders/seller/earnings'),
   getOne: (id: string | number) =>
-    api.get(`/orders/${id}`),
-  create: (data: any) =>
-    api.post('/orders', data),
-  /** Buy Now — üye için doğrudan satın alma */
-  directBuy: ({ expectedPricing, ...rest }: {
-    productId: string;
-    shippingAddressId?: string;
-    shippingAddress?: OrderAddressInput;
-    billingAddressId?: string;
-    billingAddress?: OrderAddressInput;
-    /** Quote'tan türetilmiş fiyat imzası — gövdeye düz alanlar olarak yayılır. */
-    expectedPricing: ExpectedPricingSnapshot;
-  }) => api.post('/orders/buy', { ...rest, ...expectedPricing }),
-  createGuest: ({ expectedPricing, ...rest }: {
-    productId: string;
-    email: string;
-    phone: string;
-    guestName: string;
-    shippingAddress: OrderAddressInput;
-    billingAddress?: OrderAddressInput;
-    offerId?: string;
-    price?: number;
-    /** Quote'tan türetilmiş fiyat imzası — gövdeye düz alanlar olarak yayılır. */
-    expectedPricing: ExpectedPricingSnapshot;
-  }) => guestApi.post('/orders/guest', { ...rest, ...expectedPricing }),
+    api.get(apiPath`/orders/${id}`),
+  /* `create` (`POST /orders` — API'de yok), `directBuy` (`/orders/buy`) ve
+     `createGuest` (`/orders/guest`) bilerek YOK: hiç çağrılmıyorlardı. "Hızlı
+     Al" da sepet gibi `checkout`/`checkoutGuest` üzerinden gider (tek ürünlü
+     `items`), böylece adet/fiyat imzası tek yoldan geçer. (Parite A-1.11a) */
   sendGuestVerificationCode: (data: { email: string; expectedCheckoutCount?: number }) =>
     guestApi.post<{ success: boolean; expiresInSeconds: number }>(
       '/orders/guest/send-verification-code',
@@ -214,7 +208,7 @@ export const ordersApi = {
     ),
   /** Toplu checkout (üye): sepetteki tüm ürünler tek CheckoutGroup altında, tek ödeme */
   checkout: ({ expectedPricing, ...rest }: {
-    items: Array<{ productId: string }>;
+    items: OrderLineItemInput[];
     idempotencyKey: string;
     /**
      * Mesafeli satış sözleşmesi onayı. Sunucu sözleşmesinde OPSİYONEL ama
@@ -238,7 +232,7 @@ export const ordersApi = {
   }) => api.post('/orders/checkout', { ...rest, ...expectedPricing }),
   /** Toplu checkout (misafir) */
   checkoutGuest: ({ expectedPricing, ...rest }: {
-    items: Array<{ productId: string }>;
+    items: OrderLineItemInput[];
     idempotencyKey: string;
     /**
      * Mesafeli satış sözleşmesi onayı. Sunucu sözleşmesinde OPSİYONEL ama
@@ -268,7 +262,7 @@ export const ordersApi = {
     api.get('/orders/groups', { params }),
   /** Tek sipariş grubu detayı (ürün satırları + ayrı kargolar) */
   getGroup: (id: string) =>
-    api.get(`/orders/groups/${id}`),
+    api.get(apiPath`/orders/groups/${id}`),
   /**
    * Kargo öncesi sipariş iptali.
    *
@@ -282,7 +276,7 @@ export const ordersApi = {
   cancel: (
     id: string | number,
     body?: { reasonCode?: OrderCancellationReason; reason?: string },
-  ) => api.post(`/orders/${id}/cancel`, body ?? {}),
+  ) => api.post(apiPath`/orders/${id}/cancel`, body ?? {}),
   /**
    * SEPETİN TAMAMINI iptal et (çok satıcılı grup).
    *
@@ -297,7 +291,7 @@ export const ordersApi = {
   cancelGroup: (
     groupId: string,
     body?: { reasonCode?: OrderCancellationReason; reason?: string },
-  ) => api.post(`/orders/groups/${groupId}/cancel`, body ?? {}),
+  ) => api.post(apiPath`/orders/groups/${groupId}/cancel`, body ?? {}),
   /**
    * Misafir sipariş iptali (kargo öncesi) — delta 19, staging'de canlı.
    *
@@ -313,19 +307,19 @@ export const ordersApi = {
   }) => guestApi.post('/orders/guest/cancel', data),
   /** Alıcı: teslim aldım onayı (backend: POST /orders/:id/confirm). */
   confirm: (id: string | number) =>
-    api.post(`/orders/${id}/confirm`),
+    api.post(apiPath`/orders/${id}/confirm`),
   /** Alıcı: 48h pencerede erken onay (backend: POST /orders/:id/confirm-receipt) (Faz 4C). */
   confirmReceipt: (id: string | number) =>
-    api.post(`/orders/${id}/confirm-receipt`),
+    api.post(apiPath`/orders/${id}/confirm-receipt`),
   /** Satıcı: siparişi hazırlanıyor olarak işaretle (backend: POST /orders/:id/prepare) */
   markAsPreparing: (id: string | number) =>
-    api.post(`/orders/${id}/prepare`),
+    api.post(apiPath`/orders/${id}/prepare`),
   /** İptal edilmiş teklif siparişini yeniden aç (backend: POST /orders/:id/reactivate) */
   reactivate: (id: string | number) =>
-    api.post(`/orders/${id}/reactivate`),
+    api.post(apiPath`/orders/${id}/reactivate`),
   /** Satıcı tarafında kargo adresi/bilgisi güncelleme */
   setShippingAddress: (id: string | number, data: OrderAddressInput) =>
-    api.patch(`/orders/${id}/shipping-address`, data),
+    api.patch(apiPath`/orders/${id}/shipping-address`, data),
   /** Guest sipariş takibi (orderNumber + email) */
   trackGuest: (data: { orderNumber: string; email: string }) =>
     guestApi.post('/orders/guest/track', data),
@@ -353,21 +347,37 @@ export const ordersApi = {
     amount: number;
     categoryId?: string;
     packageTier?: ShippingPackageTierCode;
-  }) => api.get('/orders/commission-preview', { params }),
+  }) => api.get<CommissionPreviewResponse>('/orders/commission-preview', { params }),
   /** İlanlarım listesi için toplu komisyon önizleme */
   getCommissionPreviewBatch: (items: Array<{ amount: number; categoryId?: string | null }>) =>
     api.post('/orders/commission-preview-batch', { items }),
 };
 
+/**
+ * Siparişin HAZIR e-Arşiv belgelerinden biri. Tek alışverişte taraf başına
+ * ÜÇ hizmet belgesi kesilir (komisyon, hizmet bedeli, kargo payı); `label`
+ * sunucunun belge açıklamasıdır (ör. "Platform hizmet bedeli").
+ */
+export interface ElogoInvoice {
+  id: string;
+  invoiceNumber: string | null;
+  type?: string;
+  label: string;
+  total?: number | string | null;
+  issuedAt?: string | null;
+}
+
 // eLogo e-Arşiv (gerçek yasal fatura) API
 export const elogoInvoicesApi = {
-  /** Siparişe ait kullanıcının e-Arşiv faturası (yoksa null) — buton hazırsa çıksın */
-  byOrder: (orderId: string) =>
-    api.get<{ id: string; invoiceNumber: string; label?: string; total?: number } | null>(
-      `/elogo/invoices/by-order/${orderId}`,
-    ),
+  /**
+   * Siparişe ait kullanıcının TÜM e-Arşiv belgeleri (web `useElogoInvoices`).
+   * Tekil `/by-order/:id` ucu yalnız ilk belgeyi döndürür — kullanıcı diğer
+   * ikisine ulaşamıyordu; o uç eski sürümler için sunucuda duruyor.
+   */
+  byOrderAll: (orderId: string) =>
+    api.get<ElogoInvoice[]>(apiPath`/elogo/invoices/by-order/${orderId}/all`),
   /** Fatura PDF — S3 presigned URL döner ({ url }) */
-  pdf: (id: string) => api.get<{ url?: string; invoiceNumber?: string }>(`/elogo/invoices/${id}/pdf`),
+  pdf: (id: string) => api.get<{ url?: string; invoiceNumber?: string }>(apiPath`/elogo/invoices/${id}/pdf`),
 };
 
 // Kurumsal satıcının siparişe ELLE yüklediği ürün faturası (eLogo gelir faturasından ayrı)
@@ -379,19 +389,20 @@ export const sellerInvoiceApi = {
       canUpload: boolean;
       isSeller: boolean;
       isBuyer: boolean;
-    }>(`/orders/${orderId}/seller-invoice`),
+    }>(apiPath`/orders/${orderId}/seller-invoice`),
   /** Kurumsal satıcı: siparişe fatura PDF yükle/değiştir (alıcıya mail gider).
    *  Backend: POST /orders/:id/seller-invoice — multipart/form-data, alan adı `file`. */
   upload: (orderId: string, file: { uri: string; name: string; type: string }) => {
     const formData = new FormData();
-    formData.append('file', file as any);
-    return api.post(`/orders/${orderId}/seller-invoice`, formData, {
+    appendRNFile(formData, 'file', file);
+    return api.post(apiPath`/orders/${orderId}/seller-invoice`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: DOCUMENT_UPLOAD_TIMEOUT_MS,
     });
   },
   /** İndirme — S3 presigned URL ({ url, fileName }) */
   download: (orderId: string) =>
-    api.get<{ url?: string; fileName?: string }>(`/orders/${orderId}/seller-invoice/download`),
+    api.get<{ url?: string; fileName?: string }>(apiPath`/orders/${orderId}/seller-invoice/download`),
 };
 
 // Shipping API — Backend `/shipping`
@@ -409,6 +420,22 @@ export type ShippingProvider = 'surat';
  */
 /** İlan başına seçilen kargo paket boyutu (desi girdisinin yerine geçti). */
 export type ShippingPackageTierCode = 'small' | 'medium' | 'large';
+
+/**
+ * `GET /orders/commission-preview` gövdesi (ilan formu). Tutarlar sunucuda
+ * string de gelebiliyor; istemci `Number()` ile normalize eder.
+ *
+ * `packageTierShipping[]`: her kademe için SATICININ ödeyeceği kargo payı —
+ * kademe kartlarındaki "Paket ücreti" buradan gelir (tarifenin tam bedeli
+ * `ShippingPackageTier.amount` DEĞİL). Seçili kademeden bağımsızdır.
+ */
+export interface CommissionPreviewResponse {
+  sellerFeeAmount?: number | string;
+  withholdingTaxAmount?: number | string;
+  shippingAmount?: number | string;
+  sellerNetAmount?: number | string;
+  packageTierShipping?: Array<{ code: ShippingPackageTierCode; sellerShippingAmount?: number | string }>;
+}
 
 /**
  * `GET /shipping/package-tiers` kademesi (canlı ölçüm — staging, 2026-08-02).
@@ -474,9 +501,9 @@ export const shippingApi = {
   createShipment: (data: { orderId: string; provider: ShippingProvider }) =>
     api.post('/shipping', data),
   /** Tek shipment detayı */
-  getShipment: (id: string) => api.get(`/shipping/${id}`),
+  getShipment: (id: string) => api.get(apiPath`/shipping/${id}`),
   /** Siparişin shipment'ları */
-  getOrderShipments: (orderId: string) => api.get(`/shipping/order/${orderId}`),
+  getOrderShipments: (orderId: string) => api.get(apiPath`/shipping/order/${orderId}`),
 };
 
 /**
@@ -496,13 +523,13 @@ export const refundsApi = {
       evidencePhotoUrls?: string[];
       refundQuantity?: number;
     },
-  ) => api.post(`/orders/${orderId}/refund-requests`, body),
+  ) => api.post(apiPath`/orders/${orderId}/refund-requests`, body),
   /** GET /refund-requests/:id */
-  getById: (id: string) => api.get(`/refund-requests/${id}`),
+  getById: (id: string) => api.get(apiPath`/refund-requests/${id}`),
   /** GET /refund-requests/me — buyer's own refund requests */
   getMine: () => api.get('/refund-requests/me'),
   /** GET /refund-requests/seller — seller'a gelen iade talepleri */
   getSeller: () => api.get('/refund-requests/seller'),
   /** POST /refund-requests/:id/cancel */
-  cancel: (id: string) => api.post(`/refund-requests/${id}/cancel`),
+  cancel: (id: string) => api.post(apiPath`/refund-requests/${id}/cancel`),
 };

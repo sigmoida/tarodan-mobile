@@ -1,80 +1,126 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { theme } from '@/ui';
-import type { BadgeVariant } from '@/ui';
-import type { Ionicons } from '@expo/vector-icons';
-import type { MessageKey } from '@/i18n/lib';
+import type { IconName } from '@/ui';
+import { tradeStatusConfig, type StatusConfig, type StatusConfigDef } from './status-configs';
+import { statusVariantSolid } from './status-colors';
 
-type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
 /**
- * Takas durumu → etiket anahtarı + rozet varyantı + ikon. **Tek kaynak.**
+ * Takas durumu → etiket anahtarı + rozet varyantı. **Tek kaynak: web.**
  *
- * Bu harita ÜÇ ayrı yerde tanımlıydı ve üçü de birbirinden ayrılmıştı:
- *
- * - Kapsam: 16 / 17 / 17 durum. `returning` durumundaki bir takas kartta ham
- *   `returning` yazısı gösteriyordu; `initiator_received` de detay ekranında
- *   ham görünüyordu.
- * - Kelime: `at_warehouse` kartta "Depoda", rozette "Tarodan Deposunda";
- *   `shipping_to_recipients` kartta "Size Gönderiliyor", rozette "Alıcılara
- *   Gönderim". Aynı takas, iki ekranda iki farklı cümle.
+ * Etiket ve varyant web `tradeStatusConfig`'ten (`@/lib/shared/status-configs`)
+ * gelir. Mobilin eklediği tek durum `countered` (karşı teklif; web'de yok).
+ * Kart, rozet ve detay başlığı aynı kaynağı okur — aynı takas iki ekranda iki
+ * farklı cümle olmaz.
  *
  * Etiket katalog anahtarı olarak tutulur (modül saf, hook çağıramaz); çeviri
- * `useTradeStatusConfig` ile render anında yapılır. `icon` yalnız adım/detay
- * görünümü için; rozet kullanan çağıranlar yok sayar.
+ * `useTradeStatusConfig` ile render anında yapılır.
  */
-export const tradeStatusMeta: Record<
-  string,
-  { labelKey: MessageKey; variant: BadgeVariant; icon: IconName }
-> = {
-  pending: { labelKey: 'trade.statusPending', variant: 'warning', icon: 'time-outline' },
-  accepted: { labelKey: 'trade.statusAccepted', variant: 'success', icon: 'checkmark-circle-outline' },
-  rejected: { labelKey: 'trade.statusRejected', variant: 'danger', icon: 'close-circle-outline' },
-  countered: { labelKey: 'trade.statusCountered', variant: 'info', icon: 'swap-horizontal-outline' },
-  awaiting_payment: { labelKey: 'trade.statusAwaitingPayment', variant: 'warning', icon: 'card-outline' },
-  shipping_to_warehouse: { labelKey: 'trade.statusShippingToWarehouse', variant: 'info', icon: 'cube-outline' },
-  at_warehouse: { labelKey: 'trade.statusAtWarehouse', variant: 'primary', icon: 'business-outline' },
-  admin_reviewing: { labelKey: 'trade.statusAdminReviewing', variant: 'info', icon: 'search-outline' },
-  shipping_to_recipients: { labelKey: 'trade.statusShippingToRecipients', variant: 'primary', icon: 'send-outline' },
-  returning: { labelKey: 'trade.statusReturning', variant: 'warning', icon: 'return-up-back-outline' },
-  initiator_shipped: { labelKey: 'trade.statusInitiatorShipped', variant: 'info', icon: 'cube-outline' },
-  receiver_shipped: { labelKey: 'trade.statusReceiverShipped', variant: 'info', icon: 'cube-outline' },
-  both_shipped: { labelKey: 'trade.statusBothShipped', variant: 'info', icon: 'cube-outline' },
-  initiator_received: { labelKey: 'trade.statusInitiatorReceived', variant: 'info', icon: 'checkmark-outline' },
-  receiver_received: { labelKey: 'trade.statusReceiverReceived', variant: 'info', icon: 'checkmark-outline' },
-  completed: { labelKey: 'trade.statusCompleted', variant: 'success', icon: 'checkmark-done-outline' },
-  cancelled: { labelKey: 'trade.statusCancelled', variant: 'danger', icon: 'close-circle-outline' },
-  disputed: { labelKey: 'trade.statusDisputed', variant: 'danger', icon: 'alert-circle-outline' },
+export const tradeStatusMeta: Record<string, StatusConfigDef> = {
+  ...tradeStatusConfig,
+  countered: { labelKey: 'trade.statusCountered', variant: 'default' },
+};
+
+export type TradeViewerRole = 'initiator' | 'receiver';
+
+/** Giriş yapan kullanıcının takastaki tarafı; taraf değilse `undefined`. */
+export function tradeViewerRole(
+  trade: { initiatorId?: string; receiverId?: string },
+  userId?: string | null,
+): TradeViewerRole | undefined {
+  if (!userId) return undefined;
+  if (trade.initiatorId === userId) return 'initiator';
+  if (trade.receiverId === userId) return 'receiver';
+  return undefined;
+}
+
+/**
+ * Bakan tarafa göre durum haritası.
+ *
+ * Web bu dört durumu (`initiator_shipped`, `receiver_shipped`,
+ * `initiator_received`, `receiver_received`) iki tarafa da AYNI etiketle
+ * gösteriyor ("Gönderildi" / "Karşı Taraf Gönderdi") — etiketler gönderen
+ * tarafın gözünden yazılmış, alıcı kendi gönderisini "karşı taraf gönderdi"
+ * okuyabiliyor. Mobil bunu BİLEREK perspektife göre seçer: kim gönderdi açık
+ * yazılır ("Siz Gönderdiniz" / "Karşı Taraf Gönderdi"). Taraf bilinmiyorsa
+ * (ör. yönetici) taraf adıyla nötr etiket ("Gönderen Kargoda"). Diğer
+ * durumlar web ile aynı.
+ */
+export function tradeStatusMetaFor(role?: TradeViewerRole): Record<string, StatusConfigDef> {
+  const them = (key: 'receiver_shipped' | 'receiver_received') => tradeStatusConfig[key]!;
+  const mine = (key: 'trade.statusYouShipped' | 'trade.statusYouReceived'): StatusConfigDef => ({
+    labelKey: key,
+    variant: 'default',
+  });
+  if (role === 'initiator') {
+    return {
+      ...tradeStatusMeta,
+      initiator_shipped: mine('trade.statusYouShipped'),
+      receiver_shipped: them('receiver_shipped'),
+      initiator_received: mine('trade.statusYouReceived'),
+      receiver_received: them('receiver_received'),
+    };
+  }
+  if (role === 'receiver') {
+    return {
+      ...tradeStatusMeta,
+      initiator_shipped: them('receiver_shipped'),
+      receiver_shipped: mine('trade.statusYouShipped'),
+      initiator_received: them('receiver_received'),
+      receiver_received: mine('trade.statusYouReceived'),
+    };
+  }
+  return {
+    ...tradeStatusMeta,
+    initiator_shipped: { labelKey: 'trade.statusInitiatorShipped', variant: 'default' },
+    receiver_shipped: { labelKey: 'trade.statusReceiverShipped', variant: 'default' },
+    initiator_received: { labelKey: 'trade.statusInitiatorReceived', variant: 'default' },
+    receiver_received: { labelKey: 'trade.statusReceiverReceived', variant: 'default' },
+  };
+}
+
+/**
+ * Detay başlığındaki DURUM ikonu (işlevsel — başlık/adım görünümü). Rozetler
+ * ikon taşımaz (web'de de yok).
+ */
+const TRADE_STATUS_ICON: Record<string, IconName> = {
+  pending: 'clock',
+  accepted: 'check-circle',
+  rejected: 'x-circle',
+  countered: 'arrows-right-left',
+  awaiting_payment: 'credit-card',
+  shipping_to_warehouse: 'cube',
+  at_warehouse: 'building-office-2',
+  admin_reviewing: 'magnifying-glass',
+  shipping_to_recipients: 'paper-airplane',
+  returning: 'arrow-uturn-left',
+  initiator_shipped: 'cube',
+  receiver_shipped: 'cube',
+  both_shipped: 'cube',
+  initiator_received: 'check',
+  receiver_received: 'check',
+  completed: 'check-badge',
+  cancelled: 'x-circle',
+  disputed: 'exclamation-circle',
 };
 
 /** Rozet/çip tüketicileri için çevrilmiş config. */
-export function useTradeStatusConfig(): Record<string, { label: string; variant: BadgeVariant }> {
+export function useTradeStatusConfig(role?: TradeViewerRole): Record<string, StatusConfig> {
   const { t } = useTranslation();
   return useMemo(
     () =>
       Object.fromEntries(
-        Object.entries(tradeStatusMeta).map(([status, meta]) => [
+        Object.entries(tradeStatusMetaFor(role)).map(([status, meta]) => [
           status,
           { label: t(meta.labelKey), variant: meta.variant },
         ]),
       ),
-    [t],
+    [t, role],
   );
 }
 
-/** Varyant → semantik renk. Detay/adım görünümü rozet yerine düz renk istiyor. */
-const VARIANT_COLOR: Record<string, string> = {
-  warning: theme.colors.warning[600]!,
-  success: theme.colors.success[600]!,
-  danger: theme.colors.danger[600]!,
-  info: theme.colors.info[600]!,
-  primary: theme.colors.primary[600]!,
-  secondary: theme.colors.text.muted,
-  default: theme.colors.text.muted,
-};
-
 /** Detay/adım görünümü için: çevrilmiş etiket + renk + ikon. */
-export function useTradeStatusDetail(): Record<
+export function useTradeStatusDetail(role?: TradeViewerRole): Record<
   string,
   { label: string; color: string; icon: IconName }
 > {
@@ -82,15 +128,15 @@ export function useTradeStatusDetail(): Record<
   return useMemo(
     () =>
       Object.fromEntries(
-        Object.entries(tradeStatusMeta).map(([status, meta]) => [
+        Object.entries(tradeStatusMetaFor(role)).map(([status, meta]) => [
           status,
           {
             label: t(meta.labelKey),
-            color: VARIANT_COLOR[meta.variant] ?? VARIANT_COLOR.default!,
-            icon: meta.icon,
+            color: statusVariantSolid(meta.variant),
+            icon: TRADE_STATUS_ICON[status] ?? 'question-mark-circle',
           },
         ]),
       ),
-    [t],
+    [t, role],
   );
 }

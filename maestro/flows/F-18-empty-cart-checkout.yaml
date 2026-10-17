@@ -1,5 +1,5 @@
 # F-18: Empty cart checkout blocked — boş sepet → checkout butonu görünmemeli.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - smoke
 env:
@@ -8,10 +8,11 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 # Direct deep link: cart route

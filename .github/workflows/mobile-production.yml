@@ -1,88 +1,391 @@
-name: Mobile Production Release (EAS Build + Submit)
+name: Mobile Production (CI → release = store build · hotfix = approved OTA)
 
-# master push -> prod iOS build + submit (mevcut Tarodan app: TestFlight).
-# Android ERTELENDİ (spec 2026-07-31 §7): Play service account + Firebase
-# çift-client google-services.json hazır olunca Android platformu geri eklenir.
-# VERSION-GATE: submit yalnızca app.json expo.version bu push'ta DEĞİŞTİYSE çalışır
-# (her master merge'i build tetiklemez — deliberate release). workflow_dispatch ile
-# elle de tetiklenebilir. Guard: EXPO_TOKEN yoksa no-op.
+# master'a merge (push), production kimliğiyle (EXPO_PUBLIC_ENVIRONMENT=production
+# → com.tarodan.app). Merge'ün türünü PR'ın kaynak dalı belirler (master'a yalnız
+# PR ile ve yalnız development / hotfix/* dalından girilir — master-flow.yml):
+#
+#   1. ci        CI (ci.yml `workflow_call`).
+#   2. plan      Kaynak dal merge commit'inin PR'ından okunur (okunamazsa SÜRÜM).
+#                SÜRÜM (development → master): HER ZAMAN store build'i.
+#                  app.json `expo.version` son bitmiş production build'inin
+#                  sürümünden BÜYÜK olmalı; değilse plan anlaşılır bir hatayla DURUR
+#                  (build de OTA da yok). Yalnız JS değişmiş olsa da production
+#                  OTA'sı bu yoldan ÇIKMAZ.
+#                HOTFIX (hotfix/* → master): fingerprint kararı.
+#                  binary var (bitmiş + gönderilmiş) → OTA (onaylı, aşağıda)
+#                  build/gönderim sürüyor → bekle (uyarı; OTA da build de yok)
+#                  binary yok → native değişti → STORE BUILD (VERSION-GATE'e tabi)
+#                Not: expo.version fingerprint'e girer; sürüm artışı her zaman
+#                yeni build'dir.
+#   3. ota       eas update --branch production — `environment: production`
+#                onayına bağlı (GitHub Environment; onaylayan kişi Settings →
+#                Environments'ta tanımlı). Yalnız hotfix merge'ünde ya da elle
+#                mode=ota ile hazırlanır; onaysız asla çıkmaz.
+#   4. build-ios eas build --profile production → eas submit --profile production
+#                → App Store Connect / TestFlight. **App Store incelemesine gönderim
+#                (Submit for Review) App Store Connect'te ELLE kalır.**
+#      build-android  vars.ANDROID_RELEASE_ENABLED == 'true' iken: production AAB
+#                → eas submit --profile production (track: internal). Production
+#                track'e yükseltme Play Console'da ELLE (kişisel hesap: önce 12
+#                testçi / 14 gün kapalı test şartı).
+#   5. release-bookkeeping  once a store build was submitted: tag mobile-v<version>
+#                on the released commit + a GitHub Release (generated notes since
+#                the previous mobile-v tag). It never writes to development: the next
+#                version is computed at release time (release.sh next-version, the
+#                release PR's `chore(release): X.Y.Z` commit; docs/RELEASE.md).
+#
+# Concurrency: plan iptalsiz; ota matrix'i platform + runtime başına iptalsiz
+# (onay bekleyen bir OTA'yı başka runtime'ın push'u düşürmez); build-* asla
+# iptal edilmez.
+#
+# Elle tetikleme yalnız master ref'inde anlamlıdır (plan başka ref'te durur):
+#   gh workflow run mobile-production.yml --ref master -f mode=auto   # SÜRÜM kuralı
+#   mode=ota   → acil JS düzeltmesi; onaylı OTA (binary'si olan runtime'a).
+#   mode=build → sürüm kapısı yalnız UYARI verir (bilinçli insan kararı: ör.
+#                aynı sürümün reddedilen build'ini yeniden almak).
+#
+# Token (her environment kendi EXPO_TOKEN secret'ını taşır; repo düzeyinde YOK):
+#   production-build  yalnız master, onaysız — plan + store build/submit
+#   production        yalnız master, ONAYLI   — yalnız OTA
+# Başka bir daldaki workflow (ya da environment'sız bir job) token'a ulaşamaz.
+# Guard: EXPO_TOKEN yoksa no-op.
 
 on:
   push:
     branches: [master]
+    # Yalnız bunları değiştiren bir merge koşmaz: uygulamaya girmezler. Sürüm
+    # merge'ü her zaman store build'i istediği için, aksi halde salt test/CI
+    # değişikliği "sürümü artır" hatasıyla kırmızı olurdu.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'maestro/**'
+      - '.github/**'
+      - 'scripts/ci/**'
+      - '**/__tests__/**'
+      - '**/*.test.ts'
+      - '**/*.test.tsx'
   workflow_dispatch:
     inputs:
-      submit:
-        description: 'Submit to stores after build?'
+      mode:
+        description: 'auto = fingerprint decides · ota (approval) · build'
         required: true
-        default: true
-        type: boolean
+        default: 'auto'
+        type: choice
+        options: [auto, ota, build]
+      platform:
+        description: 'Platform(s); Android also needs vars.ANDROID_RELEASE_ENABLED'
+        required: true
+        default: 'all'
+        type: choice
+        options: [all, ios, android]
 
-concurrency:
-  group: mobile-release-${{ github.ref }}
-  cancel-in-progress: false
+permissions:
+  contents: read
 
 jobs:
-  build-and-submit:
-    name: EAS Build + Submit (iOS)
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  plan:
+    name: Plan (release → store build · hotfix → OTA)
+    needs: ci
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # Token için `production-build` (yalnız master, ONAYSIZ): plan yalnız okur.
+    environment: production-build
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: read  # merge commit'inin PR'ı (kaynak dal: development / hotfix/*)
+    concurrency:
+      group: mobile-production-plan-${{ github.event_name }}
+      # İptalsiz: yeni bir push eski koşunun kararını (ve onun runtime'ına ait
+      # OTA'yı) düşürmesin; plan'lar sırayla koşar.
+      cancel-in-progress: false
+    outputs:
+      skip: ${{ steps.guard.outputs.skip }}
+      ios: ${{ steps.decide.outputs.ios }}
+      android: ${{ steps.decide.outputs.android }}
+      ios_fp: ${{ steps.decide.outputs.ios_fp }}
+      android_fp: ${{ steps.decide.outputs.android_fp }}
+      ota_matrix: ${{ steps.decide.outputs.ota_matrix }}
+      message: ${{ steps.decide.outputs.message }}
+      blocked: ${{ steps.decide.outputs.blocked }}
+      decided: ${{ steps.decide.outputs.decided }}
     steps:
-      - uses: actions/checkout@v7
-        with:
-          # Version-gate github.event.before..HEAD taban commit'ini karşılaştırır;
-          # push N commit taşıyabildiği için tam geçmiş gerekir (bkz. BASE fallback).
-          fetch-depth: 0
       - name: Guard — skip if EXPO_TOKEN missing
         id: guard
+        env:
+          HAS_TOKEN: ${{ secrets.EXPO_TOKEN != '' }}
         run: |
-          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+          if [ "$HAS_TOKEN" != "true" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::EXPO_TOKEN missing — no-op."
+            echo "::notice::EXPO_TOKEN missing — mobile-production no-op."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
-      - name: Version-gate — app.json version değişti mi?
-        id: vergate
+      - uses: actions/checkout@v7
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          fetch-depth: 0  # history + mobile-v tags for check-release-version
+      - name: Only master ships to production
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          REF: ${{ github.ref }}
+          MODE: ${{ inputs.mode || 'auto' }}
+        run: scripts/ci/release.sh guard-ref production
+      - uses: ./.github/actions/setup-eas
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          expo-token: ${{ secrets.EXPO_TOKEN }}
+      - name: Which branch was merged? (development = release, hotfix/* = hotfix)
+        # master'a yalnız PR ile girilir (ruleset + Master source guard), yani push
+        # bir PR merge'üdür. Okunamazsa boş kalır → release.sh SÜRÜM sayar (güvenli
+        # taraf: OTA hazırlanmaz; hotfix en kötü "sürümü artır" hatasıyla durur).
+        # Dal adı yalnız env'den okunur (enjeksiyon yok).
+        id: source
         if: steps.guard.outputs.skip != 'true' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        # PR, merge commit'iyle eşleşerek bulunur (merge_commit_sha == push'un sha'sı;
+        # merge, squash ve rebase'te de doğru); yalnız bu depodaki dallar sayılır (fork
+        # PR'ı hotfix sayılmaz). Önce commit'in PR'ları sorulur; boş dönerse (ör. commit
+        # back-merge ile varsayılan dala girdikten sonra yeniden çalıştırma) master'a
+        # kapanan son 100 PR'a bakılır.
+        run: |
+          err="$(mktemp)"
+          q='[.[] | select(.merge_commit_sha == env.SHA and .base.ref == "master" and .head.repo.full_name == env.REPO)][0].head.ref // ""'
+          if ! ref="$(gh api "repos/$REPO/commits/$SHA/pulls" --jq "$q" 2>"$err")"; then
+            echo "::warning::commit'in PR'ları okunamadı: $(head -c 300 "$err")"
+            ref=""
+          fi
+          if [ -z "$ref" ] && ! ref="$(gh api "repos/$REPO/pulls?state=closed&base=master&sort=updated&direction=desc&per_page=100" --jq "$q" 2>"$err")"; then
+            echo "::warning::master PR listesi okunamadı — merge SÜRÜM sayılacak. gh: $(head -c 300 "$err")"
+            ref=""
+          fi
+          echo "Merge edilen PR'ın dalı: '${ref:-bulunamadı}'"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+      - name: Release version matches the commits (release merges only)
+        # A development -> master merge must carry the version next-version computes
+        # (the release PR's chore(release) commit) or a higher manual one; otherwise
+        # nothing is built. Hotfixes and mode=ota|build skip this (release.sh).
+        id: version
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          MODE: ${{ inputs.mode || 'auto' }}
+          SOURCE_REF: ${{ steps.source.outputs.ref }}
+        run: scripts/ci/release.sh check-release-version
+      - name: Decide per platform + VERSION-GATE
+        id: decide
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          MODE: ${{ inputs.mode || 'auto' }}
+          PLATFORM: ${{ inputs.platform || 'all' }}
+          ANDROID_ENABLED: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          SHA: ${{ github.sha }}
+          SOURCE_REF: ${{ steps.source.outputs.ref }}
+        # Karar döngüsünün TEK kopyası: scripts/ci/release.sh plan (staging ile ortak).
+        run: scripts/ci/release.sh plan production
+      - name: Fail if a platform is blocked (other platforms still ship)
+        # Plan job'u kırmızı olur ama downstream job'lar `!cancelled()` +
+        # `decided == 'true'` ile koştuğu için engellenmeyen platform yayınlanır.
+        if: steps.decide.outputs.blocked != ''
+        env:
+          BLOCKED: ${{ steps.decide.outputs.blocked }}
+        run: |
+          echo "::error::Engellenen platform(lar): $BLOCKED — ayrıntı yukarıdaki ::error:: satırlarında."
+          exit 1
+
+  ota:
+    name: OTA → production ${{ matrix.platform }} (requires approval)
+    needs: plan
+    if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.ota_matrix != '[]' && needs.plan.outputs.ota_matrix != '' }}
+    strategy:
+      fail-fast: false
+      # Platform başına bir job: [{platform, fp}] (release.sh plan).
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.ota_matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Production OTA onaysız ÇIKMAZ: GitHub Environment `production` (required
+    # reviewers + dağıtım yalnız master). Onay YALNIZ burada istenir.
+    environment: production
+    # Kuyruk platform + runtime BAŞINA ve iptalsiz: başka runtime'ın (ör. native
+    # değişiklik getiren) ya da diğer platformun push'u bu runtime'ın bekleyen
+    # (production'da onay bekleyen) OTA'sını İPTAL ETMEZ. Aynı runtime'ın OTA'ları
+    # sırayla çıkar (eski yeniyi asla ezmez); GitHub, aynı grupta bekleyen
+    # İKİNCİ job'ı üçüncüsü gelince düşürür — o da aynı runtime'ın daha yeni kodu.
+    concurrency:
+      group: mobile-production-ota-${{ matrix.platform }}-${{ matrix.fp }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-eas
+        with:
+          expo-token: ${{ secrets.EXPO_TOKEN }}
+      - name: Publish OTA to production
+        env:
+          OTA_PLATFORM: ${{ matrix.platform }}
+          MSG: ${{ needs.plan.outputs.message }}
+          # Source maps of the update to Sentry; release.sh refuses a production OTA without it.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: scripts/ci/release.sh publish-ota production "$OTA_PLATFORM" production "$MSG"
+
+  build-ios:
+    name: iOS build + submit (production → App Store Connect)
+    needs: plan
+    if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.ios == 'build' }}
+    outputs:
+      # Build'in id'si; job başarılıysa build + submit tamamlanmıştır (recheck'in
+      # build'siz "skip"inde boş). release-bookkeeping buna bakar.
+      build_id: ${{ steps.build.outputs.build_id }}
+    runs-on: ubuntu-latest
+    # Store build + submit: `production-build` (yalnız master, onaysız). App
+    # Review'a gönderim zaten App Store Connect'te elle.
+    environment: production-build
+    timeout-minutes: 120
+    concurrency:
+      group: mobile-production-build-ios
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-eas
+        with:
+          expo-token: ${{ secrets.EXPO_TOKEN }}
+      - name: Re-check after acquiring the build lock
+        id: recheck
+        env:
+          FP: ${{ needs.plan.outputs.ios_fp }}
+          MODE: ${{ inputs.mode || 'auto' }}
+        run: scripts/ci/release.sh recheck ios production
+      - name: EAS build + submit (iOS, production)
+        id: build
+        # Submit build'i App Store Connect'e (TestFlight) yükler. İncelemeye
+        # gönderim (Submit for Review) App Store Connect'te ELLE yapılır.
+        if: steps.recheck.outputs.action == 'build'
+        env:
+          FP: ${{ needs.plan.outputs.ios_fp }}  # build mesajına ci-fp damgası (döngü koruması)
+        run: scripts/ci/release.sh build-submit ios production production
+
+  build-android:
+    name: Android build + submit (production → Play internal)
+    needs: plan
+    # Play Console hesabı + service account + ilk elle yükleme bitene kadar KAPALI.
+    if: ${{ vars.ANDROID_RELEASE_ENABLED == 'true' && !cancelled() && needs.plan.outputs.decided == 'true' && needs.plan.outputs.android == 'build' }}
+    outputs:
+      # Build'in id'si; job başarılıysa build + submit tamamlanmıştır (recheck'in
+      # build'siz "skip"inde boş). release-bookkeeping buna bakar.
+      build_id: ${{ steps.build.outputs.build_id }}
+    runs-on: ubuntu-latest
+    environment: production-build
+    timeout-minutes: 120
+    concurrency:
+      group: mobile-production-build-android
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-eas
+        with:
+          expo-token: ${{ secrets.EXPO_TOKEN }}
+      - name: Re-check after acquiring the build lock
+        id: recheck
+        env:
+          FP: ${{ needs.plan.outputs.android_fp }}
+          MODE: ${{ inputs.mode || 'auto' }}
+        run: scripts/ci/release.sh recheck android production
+      - name: Verify Android package is com.tarodan.app
+        # production Android build'i ve gönderimi yalnız bu pakete gider. Değilse DUR:
+        # eas submit Play uygulamasını AAB'deki paket adından seçer; yanlış paket
+        # staging uygulamasına gider. Gönderimden önce build'in appIdentifier'ı
+        # ayrıca doğrulanır
+        # (build-submit'in son argümanı).
+        if: steps.recheck.outputs.action == 'build'
+        run: scripts/ci/release.sh assert-app-id android production com.tarodan.app
+      - name: EAS build + submit (Android AAB, production → Play internal track)
+        id: build
+        # eas.json submit.production.android.track = internal. Production track'e
+        # yükseltme Play Console'da ELLE.
+        if: steps.recheck.outputs.action == 'build'
+        env:
+          FP: ${{ needs.plan.outputs.android_fp }}  # build mesajına ci-fp damgası (döngü koruması)
+        run: scripts/ci/release.sh build-submit android production production com.tarodan.app
+
+  release-bookkeeping:
+    name: After release - tag and GitHub Release
+    # Runs only if a store build was really submitted from master (build job
+    # succeeded AND has a build id; a build-less "skip" from recheck does not
+    # count): 1) tag mobile-v<version> on the released commit, 2) a GitHub Release
+    # with notes generated since the previous mobile-v tag. It also runs if the
+    # other platform failed or was blocked: a binary of that version reached a
+    # store. A version not above the highest released tag is not tagged. Safe to
+    # re-run (an existing tag or Release is left alone). OTA-only runs do not
+    # trigger it. Nothing is pushed to development (no post-release bump).
+    needs: [plan, build-ios, build-android]
+    if: ${{ !cancelled() && needs.plan.outputs.decided == 'true' && ((needs.build-ios.result == 'success' && needs.build-ios.outputs.build_id != '') || (needs.build-android.result == 'success' && needs.build-android.outputs.build_id != '')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # No EAS token (no environment); it only writes the tag and the Release.
+    permissions:
+      contents: write  # tag + GitHub Release
+    # Per commit: jobs of different releases do not cancel each other in the queue
+    # (GitHub cancels a pending job of the same group when a newer one arrives).
+    concurrency:
+      group: mobile-production-bookkeeping-${{ github.sha }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # all history and tags (latest-release reads the mobile-v tags)
+      - name: Tag the released commit + GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          # Sadece top-level expo.version'ı karşılaştır (nested "version" alanları
-          # false-trigger etmesin). Taban commit push'un event.before'udur — HEAD~1
-          # yalnızca push tek commit taşıyorsa doğrudur; N-commit'lik push'larda
-          # HEAD~1 yanlış taban olur ve gate sessizce atlanır (bkz. github issue).
-          BASE="${{ github.event.before }}"
-          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-            BASE="HEAD~1"
-          fi
-          CUR=$(node -p "require('./app.json').expo.version")
-          PREV=$(git show "$BASE:app.json" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).expo.version))")
-          echo "base=$BASE prev=$PREV cur=$CUR"
-          if [ "$CUR" != "$PREV" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::expo.version $PREV -> $CUR — prod release devam."
+          version="$(scripts/ci/release.sh app-version app.json)"
+          tag="mobile-v$version"
+          # The previous release, for the notes. Computed BEFORE tagging: it also
+          # refuses a version that is not X.Y.Z, so no such tag is ever pushed.
+          prev="$(scripts/ci/release.sh latest-release "$version")"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            at="$(git rev-parse "$tag^{commit}")"
+            if [ "$at" != "$SHA" ]; then
+              # A new build of the same version (e.g. mode=build after an App Review
+              # rejection): the tag stays on the first submitted commit.
+              echo "::warning::$tag is already on $at; not moved (this run: $SHA)."
+            fi
           else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::expo.version değişmedi ($CUR) — prod release skip."
+            # Only mobile-vX.Y.Z tags count (release.sh latest-release; an rc tag
+            # would sort above the real version and block it).
+            latest="$(scripts/ci/release.sh latest-release)"
+            if [ -n "$latest" ] && ! scripts/ci/release.sh version-gt "$version" "$latest"; then
+              # e.g. a manual mode=build of an older version after a revert: do not
+              # tag the live version wrongly.
+              echo "::warning::$version is not greater than the highest released tag (mobile-v$latest); no tag or Release created."
+              exit 0
+            fi
+            git tag -a "$tag" "$SHA" -m "Tarodan $version"
+            if ! git push origin "refs/tags/$tag" 2>"$RUNNER_TEMP/tag-push.err"; then
+              # Fine if another run of the same version pushed the tag just now.
+              if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+                echo "::warning::$tag was already created by another run."
+              else
+                cat "$RUNNER_TEMP/tag-push.err" >&2
+                exit 1
+              fi
+            fi
           fi
-      - uses: pnpm/action-setup@v6
-        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
-      - uses: actions/setup-node@v6
-        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
-        with:
-          node-version: 22
-          cache: 'pnpm'
-      - uses: expo/expo-github-action@v9
-        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-      - name: Install
-        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
-        run: pnpm install --frozen-lockfile
-      - name: EAS build (iOS, production)
-        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || github.event_name == 'workflow_dispatch')
-        run: eas build --platform ios --profile production --non-interactive --wait
-      - name: EAS submit — iOS (TestFlight, mevcut app)
-        if: steps.guard.outputs.skip != 'true' && (steps.vergate.outputs.changed == 'true' || (github.event_name == 'workflow_dispatch' && inputs.submit))
-        run: eas submit --platform ios --profile production --latest --non-interactive
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            # Notes start at the previous release tag; without it GitHub would list
+            # the whole history (the seed tag has no Release of its own).
+            notes=(--generate-notes)
+            if [ -n "$prev" ]; then notes+=(--notes-start-tag "mobile-v$prev"); fi
+            gh release create "$tag" --verify-tag --title "Tarodan $version" "${notes[@]}" \
+              || gh release view "$tag" >/dev/null  # enough if a concurrent run created it
+          fi

@@ -1,11 +1,8 @@
 import React from 'react';
-import { View, ScrollView } from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, Chip, Divider, Text, Input, Textarea, theme } from '@/ui';
+import { Alert, Button, ButtonRow, Chip, Input, SectionCard, Text, Textarea, theme, Icon } from '@/ui';
 
-import { ThemedRefreshControl } from '@/components/common';
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import { TradeProductPicker } from './TradeProductPicker';
@@ -13,23 +10,15 @@ import type { TradeCounterController } from '../_hooks/useTradeCounter';
 
 const { colors } = theme;
 
-/** Notice, product pickers, cash, message, summary, and submit/cancel buttons. */
+/** Notice, product pickers, cash, message, summary (SectionCard dizisi). Düğmeler alt barda (`TradeCounterFooter`). */
 export function TradeCounterBody({ f }: { f: TradeCounterController }) {
   const { t } = useTranslation();
   const { trade } = f;
   if (!trade) return null;
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.scrollBody}
-      refreshControl={<ThemedRefreshControl refreshing={f.refreshing} onRefresh={f.onRefresh} />}
-    >
-      <View style={styles.noticeCard}>
-        <Ionicons name="information-circle" size={18} color={colors.info[600]!} />
-        <Text style={styles.noticeText}>
-          {t('trade.counterOfferNotice')}
-        </Text>
-      </View>
+    <>
+      <Alert variant="info">{t('trade.counterOfferNotice')}</Alert>
 
       <TradeProductPicker
         title={t('trade.counterMyItemsTitle')}
@@ -40,9 +29,7 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
       />
 
       <View style={styles.swapWrap}>
-        <View style={styles.swapCircle}>
-          <Ionicons name="swap-vertical" size={20} color={colors.primary[600]!} />
-        </View>
+        <Icon name="arrows-up-down" size={theme.iconSize.lg} color={colors.primary[600]!} />
       </View>
 
       <TradeProductPicker
@@ -53,8 +40,7 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
         toggle={f.toggleTheirs}
       />
 
-      <Card style={styles.card}>
-        <Text style={styles.section}>{t('trade.cashDifferenceLine')}</Text>
+      <SectionCard title={t('trade.cashDifferenceLine')}>
         <View style={styles.chipsRow}>
           <Chip
             label={t('trade.iWillPay')}
@@ -78,57 +64,65 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
           keyboardType="numeric"
           containerStyle={styles.cashInput}
         />
-      </Card>
+      </SectionCard>
 
-      <Card style={styles.card}>
-        <Text style={styles.section}>{t('trade.messageOptionalLabel')}</Text>
+      <SectionCard title={t('trade.messageOptionalLabel')}>
         <Textarea
           value={f.message}
           onChangeText={(v: string) => f.setMessage(v.slice(0, 500))}
           rows={3}
           placeholder={t('trade.counterMessagePlaceholderLong')}
-          containerStyle={styles.messageInput}
         />
-        <Text style={styles.charCount}>{f.message.length}/500</Text>
-      </Card>
+        <Text variant="caption" tone="subtle" align="right">{f.message.length}/500</Text>
+      </SectionCard>
 
       {/* Summary */}
-      <Card style={styles.card}>
-        <Text style={styles.section}>{t('trade.summaryTitle')}</Text>
+      <SectionCard title={t('trade.summaryTitle')} bodyStyle={styles.summary}>
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>{t('trade.myTotalGiven')}</Text>
-          <Text style={styles.summaryValue}>{formatPrice(f.myTotal)}</Text>
+          <Text variant="bodySm" tone="muted">{t('trade.myTotalGiven')}</Text>
+          <Text variant="bodySm" weight="bold" tone="heading">{formatPrice(f.myTotal)}</Text>
         </View>
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>{t('trade.myTotalWanted')}</Text>
-          <Text style={styles.summaryValue}>{formatPrice(f.theirTotal)}</Text>
+          <Text variant="bodySm" tone="muted">{t('trade.myTotalWanted')}</Text>
+          <Text variant="bodySm" weight="bold" tone="heading">{formatPrice(f.theirTotal)}</Text>
         </View>
         {f.cashValue > 0 ? (
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>
+            <Text variant="bodySm" tone="muted">
               {f.cashDirection === 'offer' ? t('trade.willPayCashShort') : t('trade.willReceiveCashShort')}
             </Text>
-            <Text style={[styles.summaryValue, { color: colors.primary[600]! }]}>
+            <Text variant="bodySm" weight="bold" style={{ color: theme.priceColor.detail }}>
               {formatPrice(f.cashValue)}
             </Text>
           </View>
         ) : null}
-        <Divider style={{ marginVertical: theme.spacing[2] }} />
-        <Text style={styles.summaryHint}>
+        <Text variant="caption" tone="muted" align="center">
           {t('trade.counterSummaryHint', { myCount: f.selectedMine.length, theirCount: f.selectedTheirs.length })}
         </Text>
-      </Card>
+      </SectionCard>
+    </>
+  );
+}
 
+/**
+ * Sabit alt bar (PageShell `footer`): [Vazgeç][Karşı Teklif Gönder] — diğer akış ekranlarıyla aynı
+ * yerleşim. API iki tarafta da en az 1 ürün ister: biri boşsa gönder pasif.
+ */
+export function TradeCounterFooter({ f }: { f: TradeCounterController }) {
+  const { t } = useTranslation();
+  return (
+    <ButtonRow>
+      {/* Üst bardaki geri okuyla aynı işleyici: geçmiş yoksa (bildirim / derin bağlantı) /trades'e döner. */}
+      <Button variant="outline" size="lg" title={t('trade.dispute.cancelCta')} onPress={f.handleBack} />
       <Button
         variant="primary"
+        size="lg"
         title={t('trade.sendCounterOffer')}
         onPress={f.handleSubmit}
-        isLoading={f.counterMutation.isPending}
-        disabled={f.counterMutation.isPending || (f.selectedMine.length === 0 && f.selectedTheirs.length === 0)}
-        style={styles.submitBtn}
+        testID="trade-counter-submit"
+        isLoading={f.submitPending}
+        disabled={f.submitPending || f.selectedMine.length === 0 || f.selectedTheirs.length === 0}
       />
-
-      <Button variant="ghost" title={t('trade.dispute.cancelCta')} onPress={() => router.back()} />
-    </ScrollView>
+    </ButtonRow>
   );
 }

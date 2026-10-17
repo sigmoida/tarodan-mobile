@@ -5,17 +5,27 @@
  * Backend içerik filtresi uygulaması, escrow, onay akışı backend-only.
  */
 import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { Modal } from 'react-native';
+import { act, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { renderWithProviders } from '@/test-utils';
 
-import { resetRouterMocks } from '@/test-utils/router-mock';
+import { useFocusEffect } from 'expo-router';
+import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
   useFocusEffect: jest.fn(),
   useLocalSearchParams: () => ({ threadId: 't1' }),
+}));
+
+// Engelleme/şikayet paylaşılan hook (kendi süiti var): burada yalnız başlık menüsünün bağlantısı.
+const mockRequestBlock = jest.fn();
+let mockIsBlocked = false;
+jest.mock('@/hooks/useBlockUser', () => ({
+  useBlockStatus: () => ({ isBlocked: mockIsBlocked }),
+  useBlockUser: () => ({ requestBlock: mockRequestBlock, requestUnblock: jest.fn(), pending: false }),
 }));
 
 jest.mock('expo-image-picker', () => ({
@@ -27,6 +37,14 @@ jest.mock('expo-image-picker', () => ({
 jest.mock('@/lib/api', () => ({
   mediaApi: { uploadMessageImage: jest.fn() },
 }));
+// Görüntü işleme native modülü testte yok; mesaj eki `strict` hazırlandığı için gerçek
+// hazırlayıcı hata verirdi. Hazırlama ayrı testlenir (uploadAttachment) — burada geçir.
+jest.mock('@/lib/media', () => ({
+  ...jest.requireActual('@/lib/media'),
+  withPreparedImage: (file: unknown, fn: (f: unknown) => Promise<unknown>) => fn(file),
+}));
+// API kökü sabit: `[IMG:]` mutlak hedefi + bearer yalnız bu origin'deki mesaj eki ucu.
+jest.mock('@/lib/api/baseUrl', () => ({ resolveApiBaseUrl: () => 'https://api.tarodan.com/api' }));
 
 // Selector-aware: `useMessageThread` hook'u selector'süz çağırıyor, `AppImage`
 // ise `useAuthStore((s) => s.token)` ile abone oluyor (bearer'lı mesaj eki).
@@ -35,7 +53,7 @@ jest.mock('@/stores/authStore', () => ({
   useAuthStore: (selector?: any) => (selector ? selector(mockAuth) : mockAuth),
 }));
 
-// Store client-only (getOtherParticipant/canSendMessage/setCurrentThreadId); selector-aware (#77).
+// Store client-only (getOtherParticipant/setCurrentThreadId); selector-aware (#77).
 let mockStore: any;
 const useMessagesStoreMock: any = (sel?: any) => (sel ? sel(mockStore) : mockStore);
 useMessagesStoreMock.getState = () => mockStore;
@@ -46,13 +64,21 @@ jest.mock('@/stores/messagesStore', () => ({
 // thread/messages artık React Query, send/markRead mutation (#77).
 let mockThreadQuery: any;
 let mockMessagesQuery: any;
+// GET /messages/daily-limit yanıtı (sunucu sayımı); null = henüz bilinmiyor.
+let mockDaily: any = { remaining: 50, limit: 50 };
 const mockSendMessage = jest.fn();
+const mockRefetchDaily = jest.fn();
 const mockMarkAsRead = jest.fn();
 jest.mock('@/hooks/messaging', () => ({
   useThreadQuery: () => mockThreadQuery,
   useMessagesQuery: () => mockMessagesQuery,
   useSendMessage: () => ({ mutateAsync: mockSendMessage }),
-  useMarkAsRead: () => ({ mutate: mockMarkAsRead }),
+  useMarkAsRead: () => mockMarkAsRead,
+  useDailyMessageLimit: () => ({
+    ...jest.requireActual('@/lib/messaging/dailyLimit').viewDailyLimit(mockDaily),
+    isLoading: false,
+    refetch: (...a: unknown[]) => mockRefetchDaily(...a),
+  }),
 }));
 
 import { mediaApi } from '@/lib/api';
@@ -75,9 +101,7 @@ function message(overrides: Record<string, unknown> = {}) {
 function makeStore(overrides: Record<string, unknown> = {}) {
   return {
     getOtherParticipant: (t: any) => t.participant2,
-    canSendMessage: () => true,
     setCurrentThreadId: jest.fn(),
-    dailyMessageCount: 0,
     ...overrides,
   };
 }
@@ -101,6 +125,7 @@ describe('J103 · mesaj thread render & gönderim', () => {
     mockMarkAsRead.mockReset();
     mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 }, token: 'test-token' };
     mockStore = makeStore();
+    mockDaily = { remaining: 50, limit: 50 };
     mockThreadQuery = makeThreadQuery();
     mockMessagesQuery = makeMessagesQuery([]);
   });
@@ -114,15 +139,15 @@ describe('J103 · mesaj thread render & gönderim', () => {
 
   it('J103.2 sadece boşluk içeren input ile gönder çağrılmaz', () => {
     renderWithProviders(<MessageThreadScreen />);
-    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın...'), '   ');
-    fireEvent.press(screen.UNSAFE_getByProps({ name: 'send' }).parent);
+    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın'), '   ');
+    fireEvent.press(screen.getByTestId('message-send'));
     expect(mockSendMessage).not.toHaveBeenCalled();
   });
 
   it('J103.3 geçerli mesaj gönderilir', async () => {
     renderWithProviders(<MessageThreadScreen />);
-    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın...'), 'Merhaba');
-    const sendBtn = screen.UNSAFE_getByProps({ name: 'send' }).parent;
+    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın'), 'Merhaba');
+    const sendBtn = screen.getByTestId('message-send');
     fireEvent.press(sendBtn);
     await waitFor(() =>
       expect(mockSendMessage).toHaveBeenCalledWith({ threadId: 't1', content: 'Merhaba' }),
@@ -137,14 +162,15 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
     mockMarkAsRead.mockReset();
     mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 }, token: 'test-token' };
     mockStore = makeStore();
+    mockDaily = { remaining: 50, limit: 50 };
     mockThreadQuery = makeThreadQuery();
     mockMessagesQuery = makeMessagesQuery([]);
   });
 
   it('J104.1 telefon numarası içeren mesaj engellenir + uyarı gösterilir', async () => {
     renderWithProviders(<MessageThreadScreen />);
-    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın...'), 'ara beni 0532 123 45 67');
-    fireEvent.press(screen.UNSAFE_getByProps({ name: 'send' }).parent);
+    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın'), 'ara beni 0532 123 45 67');
+    fireEvent.press(screen.getByTestId('message-send'));
     await waitFor(() =>
       expect(screen.getByText(/Güvenliğiniz için bu mesaj gönderilemiyor/)).toBeOnTheScreen(),
     );
@@ -154,10 +180,10 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
   it('J104.2 IBAN içeren mesaj engellenir', async () => {
     renderWithProviders(<MessageThreadScreen />);
     fireEvent.changeText(
-      screen.getByPlaceholderText('Mesajınızı yazın...'),
+      screen.getByPlaceholderText('Mesajınızı yazın'),
       'TR12 3456 7890 1234 5678 9012 34',
     );
-    fireEvent.press(screen.UNSAFE_getByProps({ name: 'send' }).parent);
+    fireEvent.press(screen.getByTestId('message-send'));
     await waitFor(() =>
       expect(screen.getByText(/Güvenliğiniz için bu mesaj gönderilemiyor/)).toBeOnTheScreen(),
     );
@@ -165,22 +191,42 @@ describe('J104 · içerik filtresi & mesaj limiti (UI göstergesi)', () => {
   });
 
   it('J104.3 limit dolunca input devre dışı (placeholder değişir) ve gönderim engellenir', () => {
-    mockStore = makeStore({ canSendMessage: () => false });
+    mockDaily = { remaining: 0, limit: 30 };
     renderWithProviders(<MessageThreadScreen />);
     // canSend=false → input placeholder "Mesaj limiti doldu" + editable=false
     const input = screen.getByPlaceholderText('Mesaj limiti doldu');
     expect(input.props.editable).toBe(false);
-    // "Mesajınızı yazın..." placeholder limit dolunca render edilmez
-    expect(screen.queryByPlaceholderText('Mesajınızı yazın...')).toBeNull();
+    // "Mesajınızı yazın" placeholder limit dolunca render edilmez
+    expect(screen.queryByPlaceholderText('Mesajınızı yazın')).toBeNull();
+    // Uyarıdaki sayı katman tablosundan DEĞİL sunucunun `limit` değerinden (30) gelir.
+    expect(screen.getByText(/\(30 mesaj\)/)).toBeOnTheScreen();
+    // Limit platform genelinde tek değer: "Premium ile sınırsız mesaj" vaadi/yükseltme yok.
+    expect(screen.queryByText(/Premium|sınırsız/i)).toBeNull();
   });
 
-  it('J104.4 premium (limitsiz) kullanıcıda limit uyarısı gösterilmez', () => {
-    mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: -1 }, token: 'test-token' };
-    mockStore = makeStore({ canSendMessage: () => true });
-    renderWithProviders(<MessageThreadScreen />);
-    // limitsiz: aktif input placeholder'ı görünür, "limiti doldu" placeholder yok
-    expect(screen.getByPlaceholderText('Mesajınızı yazın...').props.editable).toBe(true);
-    expect(screen.queryByPlaceholderText('Mesaj limiti doldu')).toBeNull();
+  it('J104.5 ekrana odaklanınca günlük hak tazelenir (gece yarısı sonrası bayat kilit kalmasın)', () => {
+    mockRefetchDaily.mockClear();
+    // Odak geri çağrısını bağlanma anında çalıştır (gerçek useFocusEffect gibi).
+    (useFocusEffect as jest.Mock).mockImplementation((cb: () => void) => {
+      React.useEffect(() => cb(), [cb]);
+    });
+    try {
+      renderWithProviders(<MessageThreadScreen />);
+      expect(mockRefetchDaily).toHaveBeenCalledWith({ cancelRefetch: false });
+    } finally {
+      (useFocusEffect as jest.Mock).mockReset();
+    }
+  });
+
+  it('J104.4 hak kaldıysa (ya da limit henüz bilinmiyorsa) input aktif, uyarı yok', () => {
+    for (const daily of [{ remaining: 3, limit: 50 }, null]) {
+      mockDaily = daily;
+      const { unmount } = renderWithProviders(<MessageThreadScreen />);
+      expect(screen.getByPlaceholderText('Mesajınızı yazın').props.editable).toBe(true);
+      expect(screen.queryByPlaceholderText('Mesaj limiti doldu')).toBeNull();
+      expect(screen.queryByText(/Günlük mesaj limitinize ulaştınız/)).toBeNull();
+      unmount();
+    }
   });
 });
 
@@ -198,6 +244,7 @@ describe('mesaj eki görselleri — bearer + şema beyaz listesi', () => {
     mockMarkAsRead.mockReset();
     mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 }, token: 'test-token' };
     mockStore = makeStore();
+    mockDaily = { remaining: 50, limit: 50 };
     mockThreadQuery = makeThreadQuery();
     mockMessagesQuery = makeMessagesQuery([]);
   });
@@ -229,6 +276,35 @@ describe('mesaj eki görselleri — bearer + şema beyaz listesi', () => {
     expect(attachmentImages()[0].props.source.headers).toBeUndefined();
   });
 
+  it('yabancı host işaretli ek görünür ama token hiçbir yabancı görsele gitmez', () => {
+    mockMessagesQuery = makeMessagesQuery([
+      message({ content: 'bak [IMG:https://evil.example/api/media/message-attachment/a1]' }),
+    ]);
+    renderWithProviders(<MessageThreadScreen />);
+
+    const foreign = screen
+      .UNSAFE_queryAllByType(ExpoImage)
+      .filter((n: any) => String(n.props.source?.uri || '').includes('evil.example'));
+    expect(foreign.length).toBeGreaterThan(0);
+    foreign.forEach((n: any) => expect(n.props.source.headers).toBeUndefined());
+    expect(JSON.stringify(foreign.map((n: any) => n.props.source))).not.toContain('test-token');
+    expect(screen.queryByText(/\[IMG:/)).toBeNull();
+  });
+
+  it('eski mesajdaki S3/CDN https görseli bearer OLMADAN görünür', () => {
+    mockMessagesQuery = makeMessagesQuery([
+      message({ content: 'eski [IMG:https://cdn.tarodan.com/dev/messages/old.jpg]' }),
+    ]);
+    renderWithProviders(<MessageThreadScreen />);
+
+    const legacy = screen
+      .UNSAFE_queryAllByType(ExpoImage)
+      .filter((n: any) => String(n.props.source?.uri || '').includes('cdn.tarodan.com'));
+    expect(legacy.length).toBeGreaterThan(0);
+    legacy.forEach((n: any) => expect(n.props.source.headers).toBeUndefined());
+    expect(screen.queryByText(/\[IMG:/)).toBeNull();
+  });
+
   it('karşı tarafın elle yazdığı `file:` eki HİÇ render edilmez (I1)', () => {
     mockMessagesQuery = makeMessagesQuery([
       message({ content: 'şunu aç [IMG:file:///etc/passwd]' }),
@@ -256,12 +332,12 @@ describe('mesaj eki görselleri — bearer + şema beyaz listesi', () => {
     });
 
     renderWithProviders(<MessageThreadScreen />);
-    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın...'), 'şuna bak');
+    fireEvent.changeText(screen.getByPlaceholderText('Mesajınızı yazın'), 'şuna bak');
     await waitFor(() =>
-      fireEvent.press(screen.UNSAFE_getByProps({ name: 'image-outline' }).parent),
+      fireEvent.press(screen.getByTestId('message-attach')),
     );
     await waitFor(() => expect(mediaApi.uploadMessageImage).not.toHaveBeenCalled());
-    fireEvent.press(screen.UNSAFE_getByProps({ name: 'send' }).parent);
+    fireEvent.press(screen.getByTestId('message-send'));
 
     await waitFor(() =>
       expect(mockSendMessage).toHaveBeenCalledWith({
@@ -269,5 +345,68 @@ describe('mesaj eki görselleri — bearer + şema beyaz listesi', () => {
         content: 'şuna bak [IMG:https://api.tarodan.com/api/media/message-attachment/new-1]',
       }),
     );
+  });
+});
+
+/**
+ * Başlık menüsü: `appAlert` düğmeleri değil `ActionSheet`. Eylemler sheet kapandıktan SONRA
+ * çalışır (şikayet penceresi / engel onayı için 300 ms zamanlayıcı hack'i kalktı, src/ui/CLAUDE.md › iOS modal rule).
+ */
+describe('başlık menüsü (ActionSheet)', () => {
+  beforeEach(() => {
+    resetRouterMocks();
+    mockMarkAsRead.mockReset();
+    mockAuth = { user: { id: 'me' }, limits: { maxMessagesPerDay: 50 }, token: 'test-token' };
+    mockStore = makeStore();
+    mockDaily = { remaining: 50, limit: 50 };
+    mockThreadQuery = makeThreadQuery();
+    mockMessagesQuery = makeMessagesQuery([]);
+    mockRequestBlock.mockClear();
+    mockIsBlocked = false;
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+    jest.useRealTimers();
+  });
+
+  const openMenu = () => fireEvent.press(screen.getByLabelText('Daha Fazla'));
+  const nativeDismiss = () =>
+    act(() => {
+      // Sayfada ReportModal'ın da Modal'ı var: kapanış sinyali sheet'inkinde (onDismiss).
+      screen.UNSAFE_getAllByType(Modal).find((m) => m.props.onDismiss)?.props.onDismiss();
+    });
+
+  it('menü açılır: Profil, Şikayet, Engelle (yıkıcı) + Vazgeç; appAlert çağrılmaz', () => {
+    const { appAlert } = jest.requireMock('@/ui') as { appAlert: jest.Mock };
+    renderWithProviders(<MessageThreadScreen />);
+    expect(screen.queryByTestId('thread-menu-sheet')).toBeNull();
+    openMenu();
+    expect(screen.getByTestId('thread-menu-sheet')).toBeOnTheScreen();
+    expect(screen.getByTestId('thread-menu-sheet-action-0')).toBeOnTheScreen();
+    expect(screen.getByTestId('thread-menu-sheet-action-1')).toBeOnTheScreen();
+    expect(screen.getByTestId('thread-menu-sheet-action-2')).toBeOnTheScreen();
+    expect(screen.getByTestId('thread-menu-sheet-cancel')).toBeOnTheScreen();
+    expect(appAlert).not.toHaveBeenCalled();
+  });
+
+  it('Profil: kapanıştan sonra satıcı profiline gider', () => {
+    renderWithProviders(<MessageThreadScreen />);
+    openMenu();
+    fireEvent.press(screen.getByTestId('thread-menu-sheet-action-0'));
+    expect(pushMock).not.toHaveBeenCalled();
+    nativeDismiss();
+    expect(pushMock).toHaveBeenCalledWith('/seller/u2');
+  });
+
+  it('Engelle: onay kapanıştan sonra istenir', () => {
+    renderWithProviders(<MessageThreadScreen />);
+    openMenu();
+    fireEvent.press(screen.getByTestId('thread-menu-sheet-action-2'));
+    expect(mockRequestBlock).not.toHaveBeenCalled();
+    nativeDismiss();
+    expect(mockRequestBlock).toHaveBeenCalledWith('u2', 'Ayşe');
   });
 });

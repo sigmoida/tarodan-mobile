@@ -4,7 +4,7 @@
 # auth navigasyonunu kapsar.
 # Email çakışmasından kaçınmak için timestamp tabanlı email gerekir; manual tag
 # kullanıyoruz çünkü her run benzersiz değer istemek için override edilmeli.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 env:
@@ -20,10 +20,11 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow:
     when:
@@ -36,8 +37,9 @@ env:
     visible:
       id: "login-email-input"
     timeout: 15000
+# Giriş ekranının alt bağlantısı: "Hesabınız yok mu? Üye Ol".
 - tapOn:
-    text: "Üye Ol|Kayıt Ol|Hesap Oluştur"
+    id: "login-register-link"
 - extendedWaitUntil:
     visible:
       id: "register-displayName-input"
@@ -60,16 +62,33 @@ env:
     id: "register-password-input"
 - inputText: ${REG_PASSWORD}
 - tapOn:
-    text: "Şifre Tekrar"
+    id: "register-confirmPassword-input"
 - inputText: ${REG_PASSWORD}
+- hideKeyboard
+# Form uzadı (telefon/doğum tarihi, şifre gereksinimleri, pazarlama izni): onay kutuları ve
+# gönder düğmesi kaydırılarak bulunur. Kutu etiketi artık metin içi bağlantı taşıyor —
+# metne değil kutunun id'sine dokunulur (yoksa Şartlar sayfası açılır).
+- scrollUntilVisible:
+    element:
+      id: "register-acceptTerms"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
-    text: "Kullanım koşullarını"
+    id: "register-acceptTerms"
+# KVKK aydınlatma metni AYRI zorunlu kutu (B-2.3, delta 22).
+- tapOn:
+    id: "register-acceptKvkk"
+- scrollUntilVisible:
+    element:
+      id: "register-submit-button"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "register-submit-button"
-# Başarılı: login ekranına yönlendirilir VEYA verify-email gate çıkar.
+# Başarılı: "Neredeyse Tamam!" durumu (doğrulama e-postası gönderildi + Giriş Sayfasına Git).
 - extendedWaitUntil:
     visible:
-      text: ".*doğrula.*|.*Giriş.*|.*E-posta.*"
+      id: "register-go-login-button"
     timeout: 30000
 - assertNotVisible: ".*Network Error.*"
 - assertNotVisible: ".*Kayıt başarısız.*"

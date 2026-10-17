@@ -37,7 +37,7 @@ const noopActions = {
 
 describe('SaleCard tutarı', () => {
   it('ürün bedelini basar, alıcının toplamını DEĞİL', () => {
-    render(<SaleCard sale={sale({ pricing: { subtotal: 449.1 } })} actions={noopActions} />);
+    render(<SaleCard sale={sale({ pricing: { subtotal: 449.1 } })} onPrepare={noopActions.handleMarkAsProcessing} onShip={noopActions.setShipDialog} />);
     expect(screen.getByText('449,10 TL')).toBeTruthy();
     expect(screen.queryByText('557,60 TL')).toBeNull();
   });
@@ -45,7 +45,7 @@ describe('SaleCard tutarı', () => {
   it('`pricing` hiç gelmediğinde çökmez ve uydurma sayı basmaz', () => {
     // Eski gövde şekli hâlâ dolaşımda olabilir. Para değeri istemcide
     // HESAPLANMAZ — alan yoksa yer tutucu basılır.
-    const { toJSON } = render(<SaleCard sale={sale()} actions={noopActions} />);
+    const { toJSON } = render(<SaleCard sale={sale()} onPrepare={noopActions.handleMarkAsProcessing} onShip={noopActions.setShipDialog} />);
     expect(toJSON()).toBeTruthy();
     expect(screen.queryByText('557,60 TL')).toBeNull();
   });

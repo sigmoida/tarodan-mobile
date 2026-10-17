@@ -3,8 +3,9 @@ import { theme } from '@/ui';
 
 const { colors } = theme;
 
-// Route-local stylesheet (§12). Monolitten BİREBİR taşındı.
+// Route-local stylesheet (app/CLAUDE.md › Worked examples). Monolitten BİREBİR taşındı.
 export const styles = StyleSheet.create({
+  planBody: { gap: theme.spacing[2] },
   container: {
     flex: 1,
     backgroundColor: colors.surface.alt,
@@ -25,29 +26,19 @@ export const styles = StyleSheet.create({
     marginBottom: theme.spacing[4],
   },
   planName: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: theme.typography.fontSize.xl,
+    fontWeight: theme.typography.fontWeight.bold,
   },
   planPrice: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    fontSize: theme.typography.fontSize['4xl'],
+    fontWeight: theme.typography.fontWeight.bold,
     color: colors.text.heading,
     marginTop: theme.spacing[1],
   },
   planPeriod: {
-    fontSize: 14,
-    fontWeight: 'normal',
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.regular,
     color: colors.text.muted,
-  },
-  popularBadge: {
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[1],
-    borderRadius: 12,
-  },
-  popularBadgeText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   featuresCompact: {
     gap: theme.spacing[2],
@@ -58,18 +49,18 @@ export const styles = StyleSheet.create({
   },
   featureText: {
     marginLeft: theme.spacing[2],
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: colors.text.heading,
   },
   moreFeatures: {
     marginLeft: theme.spacing[6],
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.sm,
     color: colors.text.muted,
     fontStyle: 'italic',
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.bold,
     color: colors.text.heading,
     marginBottom: theme.spacing[3],
   },
@@ -84,8 +75,8 @@ export const styles = StyleSheet.create({
   },
   paymentOptionText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: theme.typography.fontSize.sm,
+    lineHeight: theme.typography.fontSize.sm * theme.typography.lineHeight.snug,
     color: colors.text.muted,
   },
   summaryCard: {
@@ -98,15 +89,15 @@ export const styles = StyleSheet.create({
     marginBottom: theme.spacing[2],
   },
   summaryLabel: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: colors.text.muted,
   },
   summaryValue: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: colors.text.heading,
   },
   vatNote: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.xs,
     color: colors.text.muted,
     marginTop: theme.spacing[0.5],
   },
@@ -116,27 +107,27 @@ export const styles = StyleSheet.create({
     marginVertical: theme.spacing[3],
   },
   totalLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.bold,
     color: colors.text.heading,
   },
   totalValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.bold,
     color: colors.primary[600]!,
   },
   terms: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.xs,
     color: colors.text.muted,
     textAlign: 'center',
     marginBottom: theme.spacing[4],
-    lineHeight: 18,
+    lineHeight: theme.typography.fontSize.xs * theme.typography.lineHeight.normal,
   },
   termsLink: {
     color: colors.primary[600]!,
     textDecorationLine: 'underline',
   },
   payButton: {
-    borderRadius: 12,
+    borderRadius: theme.radius.lg,
   },
 });

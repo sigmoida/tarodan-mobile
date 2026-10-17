@@ -1,61 +1,46 @@
 import { StyleSheet } from "react-native";
-import { theme } from "@/ui";
+import { CHAT_BUBBLE_METRICS as CB, theme } from "@/ui";
 
-const { colors } = theme;
+const { colors, spacing, radiusRole, typography } = theme;
 
-// Mesaj sohbeti ekranının route-local stylesheet'i (monolitten birebir taşındı).
+/** Sohbet görsel ölçüleri (pt). */
+const MESSAGE_IMAGE = 160;
+const PENDING_THUMB = 56;
+const AVATAR_COLUMN = CB.avatarColumn;
+/** Mesaj kutusunun büyüyebileceği azami yükseklik: ~5 satır gövde metni; sonrası kutu içinde kayar. */
+const MESSAGE_INPUT_MAX_HEIGHT = Math.round(typography.fontSize.base * typography.lineHeight.normal * 5);
+
+// Mesaj sohbeti ekranının route-local stylesheet'i — web MessageBubble/ChatHeader dili, token'lı.
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.alt,
-  },
-  header: {
-    backgroundColor: colors.primary[600]!,
-    paddingBottom: theme.spacing[3],
-    paddingHorizontal: theme.spacing[2],
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  backButton: {
-    padding: theme.spacing[2],
-  },
+  // --- Üst bar: standart ScreenHeader; yalnız `titleSlot` (avatar + ad/ürün) içeriği burada ---
   headerContent: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    marginLeft: theme.spacing[2],
+    gap: spacing[3],
   },
   headerInfo: {
-    marginLeft: theme.spacing[3],
     flex: 1,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.white,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: colors.overlay.white85,
   },
   productBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.surface.DEFAULT,
-    padding: theme.spacing[3],
+    justifyContent: "space-between",
+    gap: spacing[2],
+    backgroundColor: colors.surface.elevated,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
     borderBottomWidth: 1,
     borderBottomColor: colors.border.DEFAULT,
   },
   productBannerText: {
     flex: 1,
-    marginHorizontal: theme.spacing[2],
-    color: colors.text.heading,
-    fontSize: 13,
+  },
+  alertWrap: {
+    padding: spacing[3],
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
   messagesList: {
     flex: 1,
@@ -64,21 +49,20 @@ export const styles = StyleSheet.create({
     opacity: 0,
   },
   messagesContent: {
-    padding: theme.spacing[4],
+    padding: spacing[4],
   },
   // TypingIndicator görünüp kaybolunca liste footer'ının toplam yüksekliği
   // DEĞİŞMESİN diye sabit yükseklik: göstergenin kendi paddingVertical'i
   // (spacing[2] * 2) + caption satır yüksekliği. Eski 20pt alt boşluğun yerini
   // alır — indikatör gizliyken de aynı boşluğu korur (layout denetimi B3).
   typingIndicatorFooter: {
-    height:
-      theme.spacing[2] * 2 + theme.typography.fontSize.xs * theme.typography.lineHeight.normal,
+    height: spacing[2] * 2 + typography.fontSize.xs * typography.lineHeight.normal,
     justifyContent: "flex-end",
   },
   dateDivider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: theme.spacing[4],
+    marginVertical: spacing[4],
   },
   dateDividerLine: {
     flex: 1,
@@ -86,13 +70,11 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.border.DEFAULT,
   },
   dateDividerText: {
-    paddingHorizontal: theme.spacing[3],
-    fontSize: 12,
-    color: colors.text.muted,
+    paddingHorizontal: spacing[3],
   },
   messageRow: {
     flexDirection: "row",
-    marginBottom: theme.spacing[2],
+    marginBottom: CB.rowGap,
   },
   messageRowOwn: {
     justifyContent: "flex-end",
@@ -101,136 +83,81 @@ export const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   avatarPlaceholder: {
-    width: 36,
-    marginRight: theme.spacing[2],
+    width: AVATAR_COLUMN,
+    marginRight: CB.avatarGap,
   },
+  // Web: px-4 py-2.5 rounded-2xl, kendi balonu primary-500 + sağ alt köşe md; karşı taraf
+  // surface-elevated + çerçeve + sol alt köşe md.
+  // Ölçüler `CHAT_BUBBLE_METRICS`'ten (iskelet balonla tek kaynak).
   messageBubble: {
-    maxWidth: "75%",
-    padding: theme.spacing[3],
-    borderRadius: theme.radius['3xl'],
+    maxWidth: CB.maxWidth,
+    paddingHorizontal: CB.paddingHorizontal,
+    paddingVertical: CB.paddingVertical,
+    borderRadius: CB.radius,
   },
   messageBubbleOwn: {
-    backgroundColor: colors.primary[600]!,
-    borderBottomRightRadius: theme.radius.md,
+    backgroundColor: colors.primary[500]!,
+    borderBottomRightRadius: CB.tailRadius,
   },
   messageBubbleOther: {
-    backgroundColor: colors.surface.DEFAULT,
-    borderBottomLeftRadius: theme.radius.md,
+    backgroundColor: colors.surface.elevated,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    borderBottomLeftRadius: CB.tailRadius,
   },
   messageImagesWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: theme.spacing[1.5],
-    marginBottom: theme.spacing[1.5],
+    gap: spacing[1.5],
+    marginBottom: spacing[1.5],
   },
   messageImage: {
-    width: 160,
-    height: 160,
-    borderRadius: theme.radius.xl,
+    width: MESSAGE_IMAGE,
+    height: MESSAGE_IMAGE,
+    borderRadius: radiusRole.card,
     backgroundColor: colors.surface.alt,
-  },
-  messageText: {
-    fontSize: 15,
-    lineHeight: 20,
-  },
-  messageTextOwn: {
-    color: colors.white,
-  },
-  messageTextOther: {
-    color: colors.text.heading,
   },
   messageFooter: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: theme.spacing[1],
+    marginTop: CB.footerGap,
     justifyContent: "flex-end",
+    gap: spacing[1.5],
   },
-  messageTime: {
-    fontSize: 11,
-  },
-  messageTimeOwn: {
-    color: colors.overlay.white70,
-  },
-  messageTimeOther: {
-    color: colors.text.muted,
-  },
-  messageStatus: {
-    marginLeft: theme.spacing[1],
-    fontSize: 11,
-    color: colors.overlay.white70,
-  },
-  // Okundu → çift mavi çentik (bilgi/okundu durumu → info token).
-  messageStatusRead: {
-    color: colors.info[400]!,
-    fontWeight: "700",
-  },
+  // --- Giriş çubuğu (PageShell footer'ı çerçeve + güvenli alanı verir) ---
   inputContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
-    padding: theme.spacing[3],
-    backgroundColor: colors.surface.DEFAULT,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.DEFAULT,
+    gap: spacing[2],
   },
   inputWrapper: {
     flex: 1,
-    backgroundColor: colors.surface.alt,
-    borderRadius: 24,
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[2],
-    marginRight: theme.spacing[2],
-    maxHeight: 120,
   },
-  textInput: {
-    fontSize: 16,
-    color: colors.text.heading,
-    maxHeight: 100,
+  messageInputContainer: {
+    marginBottom: spacing[0],
   },
-  sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primary[600]!,
-    justifyContent: "center",
+  // Input'un çok satırlı varsayılanı (80pt) yerine tek satır: düğme boyu (`controlHeight.md`).
+  messageInputField: {
+    minHeight: theme.controlHeight.md,
+    paddingVertical: spacing[2],
     alignItems: "center",
   },
-  sendButtonDisabled: {
-    backgroundColor: colors.surface.alt,
-  },
-  attachButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.surface.alt,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: theme.spacing[2],
-  },
-  attachButtonDisabled: {
-    opacity: 0.5,
+  messageInputText: {
+    maxHeight: MESSAGE_INPUT_MAX_HEIGHT,
+    textAlignVertical: "center",
   },
   pendingImageBar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
-    backgroundColor: colors.surface.DEFAULT,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.DEFAULT,
+    gap: spacing[3],
   },
   pendingImageThumb: {
-    width: 56,
-    height: 56,
-    borderRadius: theme.radius.xl,
+    width: PENDING_THUMB,
+    height: PENDING_THUMB,
+    borderRadius: radiusRole.card,
     backgroundColor: colors.surface.alt,
   },
   pendingImageText: {
     flex: 1,
-    marginHorizontal: theme.spacing[3],
-    fontSize: 14,
-    color: colors.text.muted,
-  },
-  pendingImageRemove: {
-    padding: theme.spacing[1],
   },
 });

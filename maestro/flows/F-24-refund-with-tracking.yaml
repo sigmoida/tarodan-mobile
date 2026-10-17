@@ -1,9 +1,10 @@
 # F-24: Manual. Pre-condition: zeynep'in delivered durumda bir order'ı
-# (14 gün içinde). Akış: detay → İade Talep Et → modal → Hasarlı geldi →
-# Submit → "İade Sürüyor" banner. Sonra DB'de RefundRequest.status →
+# (14 gün içinde). Akış: detay → İade Talep Et → iade talebi EKRANI → varsayılan neden
+# (kusur nedenleri kanıt fotoğrafı ister, galeri Maestro'da otomatik değil) →
+# Talep Oluştur → ekran kapanır → "İade Sürüyor" banner. Sonra DB'de RefundRequest.status →
 # 'return_shipment_open' + returnTrackingNumber set. Pull-to-refresh →
 # RFD-tracking görünür.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 ---
@@ -15,10 +16,12 @@ tags:
     timeout: 15000
 - tapOn:
     id: "refund-request-button"
+- extendedWaitUntil:
+    visible:
+      id: "refund-request-screen"
+    timeout: 10000
 - tapOn:
-    text: "Hasarlı geldi"
-- tapOn:
-    text: "İade Talebi Gönder|Gönder"
+    id: "refund-submit-button"
 - extendedWaitUntil:
     visible:
       id: "refund-active-banner"

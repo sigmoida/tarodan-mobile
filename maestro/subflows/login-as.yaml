@@ -1,10 +1,10 @@
 # Login as zeynep@demo.com (default test user). Hard-coded — Maestro 2.5'te
 # runFlow.env inputText'e propagate olmuyor. Başka kullanıcı için ayrı subflow yaz.
 # Login zaten yapılmışsa (profile-go-login-button görünmüyorsa) komutlar atlanır.
-appId: com.tarodan.app
+appId: ${APP_ID}
 ---
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
       visible:
@@ -19,6 +19,13 @@ appId: com.tarodan.app
       - tapOn:
           id: "login-email-input"
       - inputText: "zeynep@demo.com"
+      # Giriş iki aşamalı (web gibi): e-posta -> Devam Et -> şifre.
+      - tapOn:
+          id: "login-continue-button"
+      - extendedWaitUntil:
+          visible:
+            id: "login-password-input"
+          timeout: 15000
       - tapOn:
           id: "login-password-input"
       - inputText: "Demo123!"

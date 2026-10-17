@@ -1,6 +1,6 @@
 # İlanlarım ekranı: login → profile → İlanlarım listesinde en az 1 ilan görünür.
 # Zeynep'in seed'de 6 ilanı var.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - smoke
 env:
@@ -9,21 +9,20 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
-- tapOn:
-    text: "Profil"
+- runFlow: ../subflows/open-profile-menu.yaml
 - extendedWaitUntil:
     visible:
-      text: ".*İlanlarım.*"
+      id: "menu-item-listings"
     timeout: 15000
 - tapOn:
-    text: ".*İlanlarım.*"
-    index: 0
+    id: "menu-item-listings"
 - extendedWaitUntil:
     visible:
       text: ".*İlan.*"

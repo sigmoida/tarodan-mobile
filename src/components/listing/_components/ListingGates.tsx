@@ -1,15 +1,52 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { theme } from '@/ui';
+import { EmptyState, ScreenLoader, type EmptyStateProps } from '@/ui';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { PageShell } from '@/components/common/PageShell';
+import { goBackOrHome } from '@/components/common/goBackOrHome';
 
-import { styles } from '../_lib/styles';
 import type { ListingFormController } from '../_hooks/useListingForm';
 
-const { colors } = theme;
+const goLogin = () => router.push('/(auth)/login');
+
+/**
+ * Kapı ekranlarının çerçevesi — standart durumlar (`ScreenLoader` / `EmptyState`).
+ * Düzenleme: `PageShell` (`loading` → tam ekran spinner, `empty` → `EmptyState`; geri oku,
+ * ortak üst bar). Oluşturma `sell` sekme kökünün (AppShell) içinde açılır: aynı durumları
+ * doğrudan çizer, alt dolgu yüzen alt menü kadar.
+ */
+function ListingGateFrame({
+  isEdit,
+  loading,
+  emptyState,
+}: {
+  isEdit: boolean;
+  loading?: boolean;
+  emptyState?: EmptyStateProps;
+}) {
+  const { t } = useTranslation();
+  const tabInset = useTabBarInset();
+  if (isEdit) {
+    return (
+      <PageShell
+        title={t('product.editListing')}
+        mode="static"
+        padding={false}
+        loading={loading}
+        loadingVariant="spinner"
+        empty={!!emptyState}
+        emptyState={emptyState}
+      />
+    );
+  }
+  return (
+    <View style={[styles.tabRoot, { paddingBottom: tabInset }]}>
+      {loading ? <ScreenLoader /> : emptyState ? <EmptyState {...emptyState} /> : null}
+    </View>
+  );
+}
 
 /**
  * Renders the appropriate loading / auth / not-found / reserved gate for the
@@ -21,55 +58,60 @@ export function ListingGates({ f }: { f: ListingFormController }) {
   const { authLoading, isEdit, productLoading, isAuthenticated, productNotFound, status } = f;
 
   if (authLoading || (isEdit && productLoading)) {
-    return (
-      <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary[600]!} />
-      </SafeAreaView>
-    );
+    return <ListingGateFrame isEdit={isEdit} loading />;
   }
 
   if (!isAuthenticated) {
     return (
-      <SafeAreaView style={styles.centered}>
-        <Text style={styles.authText}>{t('product.loginRequiredToCreate')}</Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={() => router.push('/(auth)/login')}>
-          <Text style={styles.primaryButtonText}>{t('common.login')}</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <ListingGateFrame
+        isEdit={isEdit}
+        emptyState={{
+          icon: 'user',
+          title: t('membership.loginRequiredTitle'),
+          subtitle: t('product.loginRequiredToCreate'),
+          actionLabel: t('common.login'),
+          onAction: goLogin,
+          testID: 'listing-gate-login',
+        }}
+      />
     );
   }
 
   if (isEdit && productNotFound) {
     return (
-      <SafeAreaView style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={64} color={colors.danger[600]!} />
-        <Text style={[styles.authText, { marginTop: theme.spacing[4] }]}>{t('product.listingNotFound')}</Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={() => router.back()}>
-          <Text style={styles.primaryButtonText}>{t('common.goBack')}</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <ListingGateFrame
+        isEdit
+        emptyState={{
+          icon: 'exclamation-circle',
+          title: t('product.listingNotFound'),
+          subtitle: t('emptyState.notFoundHint'),
+          actionLabel: t('common.goBack'),
+          onAction: goBackOrHome,
+          testID: 'listing-gate-not-found',
+        }}
+      />
     );
   }
 
   if (isEdit && status === 'reserved') {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.back')}>
-            <Ionicons name="arrow-back" size={24} color={colors.white} />
-          </Pressable>
-          <Text style={styles.headerTitle}>{t('product.editListing')}</Text>
-          <View style={{ width: 24 }} />
-        </View>
-        <View style={styles.centered}>
-          <Ionicons name="lock-closed-outline" size={56} color={colors.warning[600]!} />
-          <Text style={[styles.authText, { marginTop: theme.spacing[4] }]}>
-            {t('listing.reservedCannotEdit')}
-          </Text>
-        </View>
-      </SafeAreaView>
+      <ListingGateFrame
+        isEdit
+        emptyState={{
+          icon: 'lock-closed',
+          title: t('product.productReserved'),
+          subtitle: t('listing.reservedCannotEdit'),
+          testID: 'listing-gate-reserved',
+        }}
+      />
     );
   }
 
   return null;
 }
+
+const styles = StyleSheet.create({
+  tabRoot: {
+    flex: 1,
+  },
+});

@@ -1,22 +1,25 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
-import { Text } from './Text';
-import { theme } from '../lib/theme';
+import { StateLayout, type EmptyStatePlacement } from './EmptyState';
 
 export interface ErrorStateProps {
   title?: string;
   message?: string;
   onRetry?: () => void;
   retryLabel?: string;
-  fullscreen?: boolean;
+  /** İkincil aksiyon (ghost buton, yeniden denemenin altında) — `EmptyState` ile aynı ad. */
+  secondaryLabel?: string;
+  onSecondary?: () => void;
+  /** Bkz. `EmptyStateProps.placement`. */
+  placement?: EmptyStatePlacement;
+  testID?: string;
 }
 
-const { colors, spacing, radius } = theme;
-
 /**
+ * EmptyState ile aynı web iskeleti (gri daire, gri ikon, lg/600 başlık, sm muted açıklama).
+ *
  * Varsayılan başlık/mesaj/buton metni `mobile.errorSomethingWrong` /
  * `mobile.errorBoundaryDescription` / `mobile.errorRetry`'yi REUSE eder —
  * `ErrorBoundary`'nin de kullandığı aynı üç anahtar (bkz. o dosya), ayrı bir
@@ -27,49 +30,38 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   message,
   onRetry,
   retryLabel,
-  fullscreen = false,
+  secondaryLabel,
+  onSecondary,
+  placement,
+  testID = 'error-state',
 }) => {
   const { t } = useTranslation();
+  const retryButton = onRetry ? (
+    <Button variant="primary" title={retryLabel ?? t('mobile.errorRetry')} onPress={onRetry} style={styles.button} />
+  ) : null;
+  const secondaryButton =
+    secondaryLabel && onSecondary ? (
+      <Button variant="ghost" title={secondaryLabel} onPress={onSecondary} style={styles.button} />
+    ) : null;
   return (
-    <View style={[styles.container, fullscreen && styles.fullscreen]}>
-      <View style={styles.iconCircle}>
-        <Ionicons name="alert-circle-outline" size={44} color={colors.danger[600]!} />
-      </View>
-      <Text variant="h3" align="center">
-        {title ?? t('mobile.errorSomethingWrong')}
-      </Text>
-      <Text variant="bodySm" tone="muted" align="center" style={styles.message}>
-        {message ?? t('mobile.errorBoundaryDescription')}
-      </Text>
-      {onRetry ? (
-        <Button
-          variant="primary"
-          title={retryLabel ?? t('mobile.errorRetry')}
-          onPress={onRetry}
-          style={styles.button}
-        />
+    <StateLayout
+      icon="exclamation-circle"
+      title={title ?? t('mobile.errorSomethingWrong')}
+      description={message ?? t('mobile.errorBoundaryDescription')}
+      placement={placement}
+      testID={testID}
+    >
+      {/* Aksiyon yoksa boş aksiyon satırı (üst boşluk) çizilmesin diye `null`. */}
+      {retryButton || secondaryButton ? (
+        <>
+          {retryButton}
+          {secondaryButton}
+        </>
       ) : null}
-    </View>
+    </StateLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing[8],
-  },
-  fullscreen: { flex: 1 },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: radius.full,
-    backgroundColor: colors.danger[50]!,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing[4],
-  },
-  message: { marginTop: spacing[2] },
-  // Button varsayılan alignSelf:'flex-start' kullanır; ortalı içeriğe hizala.
-  button: { marginTop: spacing[5], alignSelf: 'center' },
+  button: { alignSelf: 'center' },
 });

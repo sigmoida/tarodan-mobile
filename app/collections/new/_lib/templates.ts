@@ -7,12 +7,12 @@ import type { TFunction } from 'i18next';
  */
 export function buildCollectionTemplates(t: TFunction) {
   return [
-    { id: 'ferrari', name: t('collection.templateFerrari'), icon: '🏎️' },
-    { id: 'vintage', name: t('collection.templateVintage'), icon: '🚗' },
-    { id: 'trucks', name: t('collection.templateTrucks'), icon: '🚚' },
-    { id: 'f1', name: t('collection.templateF1'), icon: '🏁' },
-    { id: 'muscle', name: t('collection.templateMuscle'), icon: '💪' },
-    { id: 'custom', name: t('collection.templateCustom'), icon: '⭐' },
+    { id: 'ferrari', name: t('collection.templateFerrari') },
+    { id: 'vintage', name: t('collection.templateVintage') },
+    { id: 'trucks', name: t('collection.templateTrucks') },
+    { id: 'f1', name: t('collection.templateF1') },
+    { id: 'muscle', name: t('collection.templateMuscle') },
+    { id: 'custom', name: t('collection.templateCustom') },
   ] as const;
 }
 

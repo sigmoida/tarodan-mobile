@@ -1,26 +1,8 @@
 import type { TFunction } from 'i18next';
-import { Ionicons } from '@expo/vector-icons';
-import { theme } from '@/ui';
 import { FREE_MEMBER_LIMITS, PREMIUM_MEMBER_LIMITS } from '@/utils/membershipLimits';
-
-const { colors } = theme;
 
 export const TIER_ORDER = ['free', 'basic', 'premium', 'business'] as const;
 export type TierType = (typeof TIER_ORDER)[number];
-
-export const TIER_COLORS: Record<TierType, string> = {
-  free: colors.gray[500]!,
-  basic: colors.info[600]!,
-  premium: colors.primary[600]!,
-  business: colors.warning[500]!,
-};
-
-export const TIER_ICONS: Record<TierType, keyof typeof Ionicons.glyphMap> = {
-  free: 'person-outline',
-  basic: 'star-outline',
-  premium: 'diamond-outline',
-  business: 'briefcase-outline',
-};
 
 /**
  * Katman özellik listesi — `t` çağrıldığı ANDA çözülür (bileşen
@@ -78,6 +60,11 @@ export const formatTL = (n: number): string =>
 
 export interface MembershipDetails {
   tier?: { type: string; name: string };
+  /** Abonelik durumu / dönemi — Üyelik Planı kartında salt görüntülenir (`deriveSubscriptionSummary`). */
+  status?: 'active' | 'cancelled' | 'past_due' | 'expired';
+  billingPeriod?: 'monthly' | 'yearly';
+  /** `false` → dönem sonunda yenilenmez (tarih "bitiş" olarak gösterilir). */
+  autoRenew?: boolean;
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
   pendingPayment?: {

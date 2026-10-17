@@ -1,30 +1,23 @@
-import { View, StyleSheet } from 'react-native';
-import { Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { theme, Text } from '@/ui';
+import { Button } from '@/ui';
+import { GateScreen } from '@/components/common/GateScreen';
 
-const { colors } = theme;
+const retry = () => router.replace('/(tabs)');
 
+/**
+ * Bakım ekranı — kapı değil, bilgi ekranı: kullanıcı burada kilitli kalmaz. "Tekrar dene" ve Android geri
+ * tuşu ana sayfaya döner (bakım sürüyorsa istekler yine buraya yönlendirir); yığında geri gidilmez.
+ */
 export default function MaintenanceScreen() {
   const { t } = useTranslation();
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: t('mobile.maintenanceHeaderTitle') }} />
-      <View style={styles.content}>
-        <Ionicons name="construct-outline" size={64} color={colors.text.muted} />
-        <Text variant="h2" style={styles.title}>{t('mobile.maintenanceTitle')}</Text>
-        <Text variant="body" style={styles.text}>
-          {t('mobile.maintenanceDescription')}
-        </Text>
-      </View>
-    </View>
+    <GateScreen
+      icon="wrench-screwdriver"
+      title={t('mobile.maintenanceTitle')}
+      description={t('mobile.maintenanceDescription')}
+      onHardwareBack={retry}
+      actions={<Button variant="primary" fullWidth title={t('common.tryAgain')} onPress={retry} />}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface.DEFAULT },
-  content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: theme.spacing[6] },
-  title: { marginTop: theme.spacing[4], fontWeight: 'bold', color: colors.text.heading },
-  text: { marginTop: theme.spacing[2], textAlign: 'center', color: colors.text.muted },
-});

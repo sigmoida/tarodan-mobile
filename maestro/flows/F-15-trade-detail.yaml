@@ -1,6 +1,6 @@
 # F-15: Trade detail status display — ilk takasa tap → status chip + counterparty.
 # Mevcut takas fixture'ına bağımlı.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 env:
@@ -9,10 +9,11 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 - runFlow: ../subflows/open-first-trade.yaml

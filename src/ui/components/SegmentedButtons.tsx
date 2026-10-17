@@ -1,6 +1,8 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
+import { RawText } from './Text';
+import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFeedback';
 
 export interface SegmentedOption<V extends string = string> {
   value: V;
@@ -24,6 +26,7 @@ export function SegmentedButtons<V extends string = string>({
   density = 'medium',
   style,
 }: SegmentedButtonsProps<V>) {
+  // Asgari yükseklik: büyük yazı ölçeğinde (en çok `maxFontScale.control`) satır büyür, etiket kırpılmaz.
   const height = density === 'small' ? 36 : 44;
   const fontSize = density === 'small' ? typography.fontSize.sm : typography.fontSize.base;
 
@@ -31,7 +34,7 @@ export function SegmentedButtons<V extends string = string>({
     <View
       style={[
         styles.row,
-        { height, borderRadius: radius.lg, borderColor: colors.border.DEFAULT },
+        { minHeight: height, borderRadius: radius.lg, borderColor: colors.border.DEFAULT },
         style,
       ]}
     >
@@ -43,11 +46,13 @@ export function SegmentedButtons<V extends string = string>({
           <Pressable
             key={opt.value}
             onPress={() => onValueChange(opt.value)}
+            android_ripple={androidRipple({ tone: selected ? 'onDark' : 'onLight' })}
             style={({ pressed }) => [
               styles.segment,
+              rippleClip(),
               {
                 backgroundColor: selected ? colors.primary[600]! : colors.surface.DEFAULT,
-                opacity: pressed ? 0.85 : 1,
+                opacity: showPressedStyle(pressed) ? 0.85 : 1,
                 borderTopLeftRadius: isFirst ? radius.lg - 1 : 0,
                 borderBottomLeftRadius: isFirst ? radius.lg - 1 : 0,
                 borderTopRightRadius: isLast ? radius.lg - 1 : 0,
@@ -59,16 +64,17 @@ export function SegmentedButtons<V extends string = string>({
             accessibilityRole="button"
             accessibilityState={{ selected }}
           >
-            <Text
+            <RawText
               style={{
                 color: selected ? colors.white : colors.text.heading,
                 fontSize,
                 fontWeight: '600',
               }}
               numberOfLines={1}
+              maxFontSizeMultiplier={typography.maxFontScale.control}
             >
               {opt.label}
-            </Text>
+            </RawText>
           </Pressable>
         );
       })}
@@ -87,5 +93,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
   },
 });

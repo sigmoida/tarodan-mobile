@@ -1,124 +1,119 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Avatar, Button, Text, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { Avatar, Badge, Button, SectionCard, Text, ButtonRow } from '@/ui';
 import { useTranslation } from 'react-i18next';
 
 import { styles } from '../_lib/styles';
-import { BADGE_INFO } from '../_lib/constants';
+import { BADGE_LABEL } from '../_lib/constants';
 import type { SellerProfileController } from '../_hooks/useSellerProfile';
 
-const { colors } = theme;
+function Metric({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <View style={styles.metric}>
+      <Text variant="h2">{value}</Text>
+      <Text variant="caption" tone="muted">
+        {label}
+      </Text>
+    </View>
+  );
+}
 
-/** Seller header: avatar, name, location, stats, trust badge, badges, bio, message. */
+/**
+ * Satıcı başlık kartı (web `SellerHeader`): avatar, ad + rozetler (Premium / Doğrulanmış / Güven),
+ * üyelik tarihi, Mesaj + Takip düğmeleri ve 2×2 sayaç ızgarası (İlanlar, Satışlar, Takas,
+ * Takipçi). Ortalama puan değerlendirmeler kartının başlığında. Şikayet/engelle üst bardaki menüde.
+ */
 export function SellerProfileCard({ f }: { f: SellerProfileController }) {
   const { t } = useTranslation();
-  const { seller, products, ratingStats } = f;
+  const { seller, products } = f;
+  // Avatar yanında yalnız üyelik tarihi; puan değerlendirmeler kartında, takipçi sayaç ızgarasında.
+  const memberSince = seller.createdAt
+    ? t('seller.memberSincePrefix', {
+        date: new Date(seller.createdAt).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }),
+      })
+    : null;
+
   return (
-    <View style={styles.profileCard}>
-      <Avatar
-        size="xl"
-        source={seller.avatarUrl}
-        name={seller.displayName?.substring(0, 2).toUpperCase() || 'S'}
-      />
-      <View style={styles.profileNameRow}>
-        <Text style={styles.profileName}>{seller.displayName}</Text>
-        {seller.isVerified && (
-          <Ionicons name="checkmark-circle" size={24} color={colors.warning[500]!} />
-        )}
-      </View>
-      {seller.location && (
-        <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={16} color={colors.text.muted} />
-          <Text style={styles.locationText}>{seller.location}</Text>
-        </View>
-      )}
-      {seller.createdAt ? (
-        <Text style={styles.memberSince}>
-          {t('seller.memberSincePrefix', {
-            date: new Date(seller.createdAt).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }),
-          })}
-        </Text>
-      ) : null}
-
-      {/* Stats Row — web ile parite: stats objesinden */}
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{seller.stats?.totalListings ?? products.length}</Text>
-          <Text style={styles.statLabel}>{t('seller.itemsListing')}</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{seller.stats?.totalSales ?? 0}</Text>
-          <Text style={styles.statLabel}>{t('seller.salesLabel')}</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <View style={styles.ratingValue}>
-            <Ionicons name="star" size={18} color={colors.warning[500]!} />
-            <Text style={styles.statValue}>
-              {(ratingStats?.averageScore ?? ratingStats?.averageRating ?? seller.stats?.averageRating ?? 0).toFixed(1)}
-            </Text>
+    <SectionCard testID="seller-header">
+      <View style={styles.header}>
+        <View style={styles.identity}>
+          <Avatar
+            size="lg"
+            source={seller.avatarUrl}
+            name={seller.displayName?.substring(0, 2).toUpperCase() || 'S'}
+          />
+          <View style={styles.identityInfo}>
+            <View style={styles.nameRow}>
+              <Text variant="h2" numberOfLines={1} style={styles.name}>
+                {seller.displayName}
+              </Text>
+              {seller.isVerified ? (
+                <Badge variant="success" size="sm">
+                  {t('seller.verified')}
+                </Badge>
+              ) : null}
+              {seller.isPremium && typeof seller.trustScore === 'number' ? (
+                <Badge variant="warning" size="sm">
+                  {t('seller.trustScoreLabel', { score: seller.trustScore })}
+                  {seller.trustLevel ? t('seller.trustScoreLevelSuffix', { level: seller.trustLevel }) : ''}
+                </Badge>
+              ) : null}
+            </View>
+            {seller.location ? (
+              <Text variant="caption" tone="subtle">
+                {seller.location}
+              </Text>
+            ) : null}
+            {memberSince ? (
+              <Text variant="bodySm" tone="subtle">
+                {memberSince}
+              </Text>
+            ) : null}
           </View>
-          <Text style={styles.statLabel}>
-            {(ratingStats?.totalRatings ?? ratingStats?.total ?? seller.stats?.totalRatings ?? 0)} {t('seller.totalReviews')}
+        </View>
+
+        {seller.badges && seller.badges.length > 0 ? (
+          <View style={styles.nameRow}>
+            {seller.badges.map((badge: string) =>
+              BADGE_LABEL[badge] ? (
+                <Badge key={badge} variant="outline" size="sm">
+                  {t(BADGE_LABEL[badge]!)}
+                </Badge>
+              ) : null,
+            )}
+          </View>
+        ) : null}
+
+        {seller.bio ? (
+          <Text variant="bodySm" tone="muted">
+            {seller.bio}
           </Text>
+        ) : null}
+
+        {!f.isOwnProfile ? (
+          <ButtonRow>
+            <Button title={t('common.message')} onPress={f.handleMessage} />
+            <Button
+              variant={f.isFollowingSeller ? 'secondary' : 'outline'}
+              title={f.isFollowingSeller ? t('seller.following') : t('seller.follow')}
+              onPress={f.handleToggleFollow}
+              isLoading={f.followBusy}
+            />
+          </ButtonRow>
+        ) : null}
+        {!f.isAuthenticated && !f.isOwnProfile ? (
+          <Text variant="caption" tone="muted">
+            {t('seller.loginToMessage')}
+          </Text>
+        ) : null}
+
+        <View style={styles.metrics}>
+          <Metric label={t('common.listings')} value={seller.stats?.totalListings ?? products.length} />
+          <Metric label={t('common.sales')} value={seller.stats?.totalSales ?? 0} />
+          <Metric label={t('auth.heroStatTrades')} value={seller.stats?.totalTrades ?? 0} />
+          <Metric label={t('profile.followers')} value={seller.followersCount ?? 0} />
         </View>
       </View>
-
-      {/* Güven Skoru — web seller sayfası paritesi (premium + görünür; backend null dönerse gizli) */}
-      {seller.isPremium && typeof seller.trustScore === 'number' && (
-        <View style={styles.trustBadge}>
-          <Ionicons name="shield-checkmark" size={14} color={colors.warning[700]!} />
-          <Text style={styles.trustBadgeText}>
-            {t('seller.trustScoreLabel', { score: seller.trustScore })}
-            {seller.trustLevel ? t('seller.trustScoreLevelSuffix', { level: seller.trustLevel }) : ''}
-          </Text>
-        </View>
-      )}
-
-      {/* Badges */}
-      {seller.badges && seller.badges.length > 0 && (
-        <View style={styles.badgesRow}>
-          {seller.badges.map((badge: string) => {
-            const info = BADGE_INFO[badge];
-            if (!info) return null;
-            return (
-              <View key={badge} style={[styles.badge, { backgroundColor: info.color }]}>
-                <Ionicons name={info.icon as any} size={14} color={colors.white} />
-                <Text style={styles.badgeText}>{t(info.labelKey)}</Text>
-              </View>
-            );
-          })}
-        </View>
-      )}
-
-      {/* Bio */}
-      {seller.bio && <Text style={styles.bio}>{seller.bio}</Text>}
-
-      {/* Follow Button — web seller header paritesi */}
-      <Button
-        variant={f.isFollowingSeller ? 'secondary' : 'outline'}
-        title={f.isFollowingSeller ? t('seller.following') : t('seller.follow')}
-        onPress={f.handleToggleFollow}
-        style={styles.messageButton}
-        icon={f.isFollowingSeller ? 'checkmark' : 'person-add-outline'}
-        isLoading={f.followBusy}
-      />
-
-      {/* Message Button */}
-      <Button
-        variant="primary"
-        title={t('seller.sendMessage')}
-        onPress={f.handleMessage}
-        style={styles.messageButton}
-        icon="chatbubble-outline"
-      />
-      {!f.isAuthenticated && (
-        <Text style={styles.loginNotice}>
-          {t('seller.loginToMessage')}
-        </Text>
-      )}
-    </View>
+    </SectionCard>
   );
 }

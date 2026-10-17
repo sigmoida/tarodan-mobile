@@ -1,146 +1,139 @@
 import { useQuery } from '@tanstack/react-query';
-import { api, productsApi, categoriesApi, collectionsApi } from '@/lib/api';
+import { manufacturersApi, productsApi, userApi } from '@/lib/api';
+import { unwrapList } from '@/lib/api/unwrap';
 import { qk } from '@/lib/query';
+import { selectWithListings, type ListingCountCarrier } from '@/utils/catalogListings';
 
-/** Anasayfa içerik query'leri — web ile aynı endpoint'ler. */
+interface HomeManufacturer extends ListingCountCarrier {
+  id: string;
+  name: string;
+  slug?: string;
+  logo?: string | null;
+}
+import {
+  getProductEffectivePrice,
+  getProductOriginalPriceForDisplay,
+  isProductOnSaleDisplay,
+} from '@/utils/productPrice';
+
+/** Uç `[...]`, `{ data: [...] }` ya da `{ products: [...] }` dönebilir (web `unwrapList`). */
+const toList = (body: any): any[] => {
+  const list = body?.data ?? body?.products ?? body ?? [];
+  return Array.isArray(list) ? list : [];
+};
+
+/** Hata bir bölümü boş bırakır, ekranı bozmaz (web `Promise.allSettled`). */
+const safeList = async (load: () => Promise<{ data: unknown }>): Promise<any[]> => {
+  try {
+    return toList((await load()).data);
+  } catch {
+    return [];
+  }
+};
+
+const safeOne = async (load: () => Promise<{ data: unknown }>): Promise<any | null> => {
+  try {
+    return (await load()).data ?? null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Anasayfa içerik sorguları — web `app/page.tsx` ile aynı uçlar: Öne Çıkan (homeShowcase),
+ * İndirimdekiler, Takas Vitrini, Popüler, Üreticiler (marka şeridi), En İyi Koleksiyonlar,
+ * Haftanın Koleksiyoneri / Şirketi.
+ */
 export function useHomeData() {
-  const productsQuery = useQuery({
-    queryKey: qk.products.all,
+  const featured = useQuery({
+    queryKey: qk.products.homeFeatured,
+    queryFn: () =>
+      safeList(() => productsApi.getAll({ limit: 20, page: 1, homeShowcase: true, status: 'active' })),
+  });
+
+  const onSale = useQuery({
+    queryKey: qk.products.homeOnSale,
     queryFn: async () => {
-      try {
-        const response = await productsApi.getAll({ limit: 20 });
-        const products = response.data.data || response.data.products || response.data || [];
-        return Array.isArray(products) ? products : [];
-      } catch (error) {
-        console.log('⚠️ Ürünler yüklenemedi:', error);
-        return [];
-      }
+      const list = await safeList(() =>
+        productsApi.getAll({ limit: 24, page: 1, discountOnly: true, status: 'active' }),
+      );
+      // Web gibi: yalnız gerçek indirimi olanlar.
+      return list.filter(
+        (p) => isProductOnSaleDisplay(p) && getProductOriginalPriceForDisplay(p) > getProductEffectivePrice(p),
+      );
     },
   });
 
-  const boostedQuery = useQuery({
-    queryKey: qk.products.boosted,
-    queryFn: async () => {
-      try {
-        const response = await productsApi.getAll({ boostedOnly: true, status: 'active', limit: 12 });
-        const list = response.data?.data || response.data?.products || response.data || [];
-        return Array.isArray(list) ? list : [];
-      } catch {
-        return [];
-      }
-    },
+  const trade = useQuery({
+    queryKey: qk.products.homeTrade,
+    queryFn: () =>
+      safeList(() => productsApi.getAll({ limit: 24, page: 1, tradeOnly: true, status: 'active' })),
   });
 
-  /** Popüler ilanlar — backend görüntülenme sayısına göre sıralar (web ile aynı uç).
-   *  Boş dönerse ekran genel ürün listesine düşer. */
-  const popularQuery = useQuery({
+  /** Popüler ilanlar — backend görüntülenme sayısına göre sıralar (web ile aynı uç). */
+  const popular = useQuery({
     queryKey: qk.products.popular,
-    queryFn: async () => {
-      try {
-        const response = await productsApi.getPopular({ limit: 20 });
-        const list = response.data?.data || response.data?.products || response.data || [];
-        return Array.isArray(list) ? list : [];
-      } catch {
-        console.log('⚠️ Popüler ilanlar yüklenemedi');
-        return [];
-      }
-    },
+    queryFn: () => safeList(() => productsApi.getPopular({ limit: 20, page: 1 })),
   });
 
-  const categoriesQuery = useQuery({
-    queryKey: qk.catalog.categories,
-    queryFn: async () => {
-      try {
-        const response = await categoriesApi.getAll();
-        const cats = response.data.data || response.data || [];
-        return Array.isArray(cats) ? cats : [];
-      } catch (error) {
-        console.log('⚠️ Kategoriler yüklenemedi:', error);
-        return [];
-      }
-    },
+  /**
+   * Marka şeridi — web gibi `/manufacturers` (logolu). Üreticiler ekranıyla aynı sorgu.
+   * İlanı olmayan üretici şeritte yok (`select`; önbellekteki ham liste değişmez). Anahtar Üreticiler
+   * ve Kategoriler ekranlarıyla PAYLAŞILIR: hata `safeList` gibi `[]`'a çevrilip "başarılı" diye
+   * önbelleğe YAZILMAZ (diğer ekranlar hatayı görsün); sorgu hata verir, şerit `data` olmadan boş kalır.
+   */
+  const manufacturers = useQuery({
+    queryKey: qk.catalog.manufacturers,
+    queryFn: async () => unwrapList<HomeManufacturer>((await manufacturersApi.findAll()).data),
+    select: selectWithListings,
   });
 
-  const collectionsQuery = useQuery({
-    queryKey: qk.collections.browse,
-    queryFn: async () => {
-      try {
-        const response = await collectionsApi.browse({ limit: 5 });
-        const collections = response.data.data || response.data || [];
-        return Array.isArray(collections) ? collections : [];
-      } catch {
-        console.log('⚠️ Koleksiyonlar yüklenemedi');
-        return [];
-      }
-    },
+  const topCollections = useQuery({
+    queryKey: qk.collections.top,
+    queryFn: () => safeList(() => userApi.getTopCollections({ limit: 20 })),
   });
 
-  const featuredCollectorQuery = useQuery({
+  const featuredCollector = useQuery({
     queryKey: qk.products.featuredCollector,
-    queryFn: async () => {
-      try {
-        const response = await api.get('/users/featured-collector');
-        return response.data ?? null;
-      } catch {
-        console.log('⚠️ Haftanın Koleksiyoneri yüklenemedi');
-        return null;
-      }
-    },
+    queryFn: () => safeOne(() => userApi.getFeaturedCollector()),
   });
 
-  const companyOfWeekQuery = useQuery({
+  const featuredBusiness = useQuery({
     queryKey: qk.products.featuredBusiness,
-    queryFn: async () => {
-      try {
-        const response = await api.get('/users/featured-business');
-        if (response.data) return response.data;
-        return null;
-      } catch {
-        console.log('⚠️ Haftanın Şirketi yüklenemedi, fallback deneniyor');
-        try {
-          const fallbackResponse = await api.get('/users/top-sellers?limit=1');
-          const sellers = fallbackResponse.data?.data || fallbackResponse.data || [];
-          if (sellers.length > 0) {
-            const sellerId = sellers[0].id;
-            const productsResponse = await productsApi.getAll({ sellerId, limit: 6 });
-            const products = productsResponse.data?.data || productsResponse.data?.products || [];
-            return {
-              ...sellers[0],
-              products: products.slice(0, 6),
-              stats: {
-                totalProducts: products.length,
-                totalViews: 0,
-                totalLikes: 0,
-                totalSales: 0,
-                averageRating: sellers[0].rating || 0,
-                totalRatings: 0,
-              },
-            };
-          }
-        } catch {
-          console.log('⚠️ Fallback da başarısız');
-        }
-        return null;
-      }
-    },
+    queryFn: () => safeOne(() => userApi.getFeaturedBusiness()),
   });
 
   return {
-    products: productsQuery.data ?? [],
-    /** Popüler bölümü için; uç boş dönerse genel listeye düşer. */
-    popularProducts: popularQuery.data?.length ? popularQuery.data : (productsQuery.data ?? []),
-    loadingPopular: popularQuery.isLoading,
-    boostedProducts: boostedQuery.data ?? [],
-    loadingBoosted: boostedQuery.isLoading,
-    categories: categoriesQuery.data ?? [],
-    loadingCategories: categoriesQuery.isLoading,
-    collections: collectionsQuery.data ?? [],
-    loadingCollections: collectionsQuery.isLoading,
-    featuredCollector: featuredCollectorQuery.data ?? null,
-    loadingFeaturedCollector: featuredCollectorQuery.isLoading,
-    companyOfWeek: companyOfWeekQuery.data ?? null,
-    loadingCompanyOfWeek: companyOfWeekQuery.isLoading,
-    loadingProducts: productsQuery.isLoading,
-    refetchProducts: productsQuery.refetch,
+    featured: featured.data ?? [],
+    loadingFeatured: featured.isLoading,
+    onSale: onSale.data ?? [],
+    loadingOnSale: onSale.isLoading,
+    trade: trade.data ?? [],
+    loadingTrade: trade.isLoading,
+    popular: popular.data ?? [],
+    loadingPopular: popular.isLoading,
+    manufacturers: manufacturers.data ?? [],
+    loadingManufacturers: manufacturers.isLoading,
+    topCollections: topCollections.data ?? [],
+    loadingTopCollections: topCollections.isLoading,
+    /** Web gibi: haftanın koleksiyoneri yoksa en iyi koleksiyonların ilki. */
+    featuredCollector: featuredCollector.data ?? topCollections.data?.[0] ?? null,
+    featuredBusiness: featuredBusiness.data ?? null,
+    // Koleksiyoner yoksa en iyi koleksiyonların ilkine düşülür → o liste de beklenir (geç gelip zıplamasın).
+    loadingSpotlights:
+      featuredCollector.isLoading ||
+      featuredBusiness.isLoading ||
+      (!featuredCollector.data && topCollections.isLoading),
+    refetchAll: async () => {
+      await Promise.all([
+        featured.refetch(),
+        onSale.refetch(),
+        trade.refetch(),
+        popular.refetch(),
+        topCollections.refetch(),
+        featuredCollector.refetch(),
+        featuredBusiness.refetch(),
+      ]);
+    },
   };
 }

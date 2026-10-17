@@ -1,59 +1,59 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { View, Image, Pressable, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Card, theme } from '@/ui';
+import { View } from 'react-native';
+import { AppImage } from '@/components/AppImage';
+import { Avatar, ChipTabs, EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
 
-import { resolveImageUrl } from '@/utils/imageUrl';
 import { styles } from '../_lib/styles';
 import type { TabType } from '../_lib/types';
 import { StatCard, ProductRow, CollectionRow } from './BusinessRows';
 import type { BusinessController } from '../_hooks/useBusinessStats';
+import { formatPrice } from '@/utils/format';
 
 const { colors } = theme;
 
 /**
  * Etiketler çeviriden geldiği için liste bir FABRİKA: modül seviyesinde
  * kurulsaydı `t` daha hazır olmadan çalışır ve etiketler ilk dilde donardı
- * (aynı gerekçe `quickActionItems` ve zod şemalarında da geçerli).
+ * (aynı gerekçe zod şemalarında da geçerli).
  */
-const buildTabs = (t: TFunction): Array<{ id: TabType; label: string; icon: string }> => [
-  { id: 'overview', label: t('business.tabOverview'), icon: 'stats-chart' },
-  { id: 'products', label: t('product.title'), icon: 'cube' },
-  { id: 'collections', label: t('collection.collections'), icon: 'albums' },
+const buildTabs = (t: TFunction): Array<{ id: TabType; label: string }> => [
+  { id: 'overview', label: t('business.tabOverview') },
+  { id: 'products', label: t('product.title') },
+  { id: 'collections', label: t('collection.collections') },
 ];
 
 // ---------------------------------------------------------------------------
-// Company header (gradient)
+// Company header
 // ---------------------------------------------------------------------------
 export function BusinessCompanyHeader({ f }: { f: BusinessController }) {
   const { t } = useTranslation();
   const { stats } = f;
+  const name = stats?.company.name || stats?.company.displayName;
   return (
-    <LinearGradient colors={[colors.primary[100]!, colors.warning[100]!]} style={styles.companyHeader}>
+    <SectionCard>
       <View style={styles.companyInfo}>
         {stats?.company.avatarUrl ? (
-          <Image source={{ uri: resolveImageUrl(stats.company.avatarUrl) }} style={styles.companyAvatar} />
+          <AppImage source={stats.company.avatarUrl} style={styles.companyAvatar} />
         ) : (
-          <View style={styles.companyAvatarPlaceholder}>
-            <Text style={styles.companyAvatarText}>🏢</Text>
-          </View>
+          <Avatar size="xl" name={name || '?'} />
         )}
         <View style={styles.companyDetails}>
           <View style={styles.companyNameRow}>
-            <Text style={styles.companyName}>
-              {stats?.company.name || stats?.company.displayName}
+            <Text variant="h2" numberOfLines={2} style={styles.companyName}>
+              {name}
             </Text>
             {stats?.company.isVerified && (
-              <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
+              <Icon name="check-circle" variant="solid" size={theme.iconSize.md} color={colors.success[600]!} />
             )}
           </View>
-          <Text style={styles.companyTitle}>📊 {t('mobile.settingsBusinessPanel')}</Text>
+          <Text variant="bodySm" tone="primary">
+            {t('mobile.settingsBusinessPanel')}
+          </Text>
         </View>
       </View>
-    </LinearGradient>
+    </SectionCard>
   );
 }
 
@@ -63,20 +63,12 @@ export function BusinessCompanyHeader({ f }: { f: BusinessController }) {
 export function BusinessTabs({ f }: { f: BusinessController }) {
   const { t } = useTranslation();
   return (
-    <View style={styles.tabsContainer}>
-      {buildTabs(t).map((tab) => (
-        <Pressable
-          key={tab.id}
-          style={[styles.tab, f.activeTab === tab.id && styles.tabActive]}
-          onPress={() => f.setActiveTab(tab.id)}
-        >
-          <Ionicons name={tab.icon as any} size={18} color={f.activeTab === tab.id ? colors.primary[600]! : colors.text.muted} />
-          <Text style={[styles.tabText, f.activeTab === tab.id && styles.tabTextActive]}>
-            {tab.label}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
+    <ChipTabs
+      testID="business-tabs"
+      value={f.activeTab}
+      onChange={f.setActiveTab}
+      items={buildTabs(t).map((tab) => ({ key: tab.id, label: tab.label }))}
+    />
   );
 }
 
@@ -90,98 +82,90 @@ export function BusinessTabContent({ f }: { f: BusinessController }) {
 
   if (activeTab === 'overview') {
     return (
-      <View style={styles.tabContent}>
+      <>
         {/* Main Stats */}
         <View style={styles.statsGrid}>
-          <StatCard icon="eye" label={t('home.statViews')} value={stats.overview.totalViews} color={colors.info[600]!} />
-          <StatCard icon="heart" label={t('home.statLikes')} value={stats.overview.totalLikes} color={colors.danger[600]!} />
-          <StatCard icon="bag-handle" label={t('common.sales')} value={stats.overview.totalSales} color={colors.success[600]!} />
-          <StatCard icon="cube" label={t('business.statActiveProducts')} value={stats.overview.activeProducts} color={colors.info[700]!} />
-          <StatCard icon="albums" label={t('business.statCollections')} value={stats.overview.totalCollections} color={colors.primary[600]!} />
+          <StatCard label={t('home.statViews')} value={stats.overview.totalViews} />
+          <StatCard label={t('home.statLikes')} value={stats.overview.totalLikes} />
+          <StatCard label={t('common.sales')} value={stats.overview.totalSales} />
+          <StatCard label={t('business.statActiveProducts')} value={stats.overview.activeProducts} />
+          <StatCard label={t('business.statCollections')} value={stats.overview.totalCollections} />
         </View>
 
-        {/* Revenue Card */}
-        <Card style={styles.revenueCard} padding={0}>
-          <LinearGradient colors={[colors.success[100]!, colors.success[50]!]} style={styles.revenueGradient}>
-            <Text style={styles.revenueLabel}>{t('business.totalRevenue')}</Text>
-            <Text style={styles.revenueValue}>₺{stats.overview.totalRevenue.toLocaleString('tr-TR')}</Text>
-          </LinearGradient>
-        </Card>
+        {/* Revenue */}
+        <SectionCard title={t('business.totalRevenue')}>
+          <Text variant="displaySm" tone="primary">
+            {formatPrice(stats.overview.totalRevenue)}
+          </Text>
+        </SectionCard>
 
         {/* Weekly Stats */}
-        <Card style={styles.weeklyCard}>
-          <Text style={styles.sectionTitle}>{t('business.thisWeek')}</Text>
+        <SectionCard title={t('business.thisWeek')}>
           <View style={styles.weeklyStatsRow}>
             <View style={styles.weeklyStat}>
-              <Ionicons name="eye" size={20} color={colors.info[600]!} />
-              <Text style={styles.weeklyStatValue}>{stats.weekly.views.toLocaleString()}</Text>
-              <Text style={styles.weeklyStatLabel}>{t('home.statViews')}</Text>
+              <Text variant="h2">{stats.weekly.views.toLocaleString()}</Text>
+              <Text variant="caption">{t('home.statViews')}</Text>
             </View>
             <View style={styles.weeklyStat}>
-              <Ionicons name="heart" size={20} color={colors.danger[600]!} />
-              <Text style={styles.weeklyStatValue}>{stats.weekly.likes.toLocaleString()}</Text>
-              <Text style={styles.weeklyStatLabel}>{t('home.statLikes')}</Text>
+              <Text variant="h2">{stats.weekly.likes.toLocaleString()}</Text>
+              <Text variant="caption">{t('home.statLikes')}</Text>
             </View>
           </View>
-        </Card>
+        </SectionCard>
 
         {/* Collection Stats */}
-        <Card style={styles.collectionStatsCard}>
-          <Text style={styles.sectionTitle}>{t('business.collectionStats')}</Text>
+        <SectionCard title={t('business.collectionStats')}>
           <View style={styles.weeklyStatsRow}>
             <View style={styles.weeklyStat}>
-              <Text style={[styles.weeklyStatValue, { color: colors.info[600]! }]}>
-                {stats.overview.collectionViews.toLocaleString()}
-              </Text>
-              <Text style={styles.weeklyStatLabel}>{t('business.totalViews')}</Text>
+              <Text variant="h2">{stats.overview.collectionViews.toLocaleString()}</Text>
+              <Text variant="caption">{t('business.totalViews')}</Text>
             </View>
             <View style={styles.weeklyStat}>
-              <Text style={[styles.weeklyStatValue, { color: colors.danger[600]! }]}>
-                {stats.overview.collectionLikes.toLocaleString()}
-              </Text>
-              <Text style={styles.weeklyStatLabel}>{t('business.totalLikes')}</Text>
+              <Text variant="h2">{stats.overview.collectionLikes.toLocaleString()}</Text>
+              <Text variant="caption">{t('business.totalLikes')}</Text>
             </View>
           </View>
-        </Card>
-      </View>
+        </SectionCard>
+      </>
     );
   }
 
   if (activeTab === 'products') {
     return (
-      <View style={styles.tabContent}>
-        <Text style={styles.sectionTitle}>{t('business.mostViewedProducts')}</Text>
-        {stats.topProducts?.byViews?.length > 0 ? (
-          stats.topProducts.byViews.map((product, index) => (
-            <ProductRow key={product.id} product={product} index={index} metric="views" />
-          ))
-        ) : (
-          <Text style={styles.emptyText}>{t('business.noProductStats')}</Text>
-        )}
+      <>
+        <SectionCard title={t('business.mostViewedProducts')} bodyStyle={styles.rows}>
+          {stats.topProducts?.byViews?.length > 0 ? (
+            stats.topProducts.byViews.map((product, index) => (
+              <ProductRow key={product.id} product={product} index={index} metric="views" />
+            ))
+          ) : (
+            <EmptyState placement="inline" testID="business-empty-views" icon="chart-bar" title={t('business.noProductStats')} subtitle={t('emptyState.statsHint')} />
+          )}
+        </SectionCard>
 
-        <Text style={[styles.sectionTitle, { marginTop: theme.spacing[6] }]}>{t('business.mostLikedProducts')}</Text>
-        {stats.topProducts?.byLikes?.length > 0 ? (
-          stats.topProducts.byLikes.map((product, index) => (
-            <ProductRow key={product.id} product={product} index={index} metric="likes" />
-          ))
-        ) : (
-          <Text style={styles.emptyText}>{t('business.noProductStats')}</Text>
-        )}
-      </View>
+        <SectionCard title={t('business.mostLikedProducts')} bodyStyle={styles.rows}>
+          {stats.topProducts?.byLikes?.length > 0 ? (
+            stats.topProducts.byLikes.map((product, index) => (
+              <ProductRow key={product.id} product={product} index={index} metric="likes" />
+            ))
+          ) : (
+            <EmptyState placement="inline" testID="business-empty-likes" icon="chart-bar" title={t('business.noProductStats')} subtitle={t('emptyState.statsHint')} />
+          )}
+        </SectionCard>
+      </>
     );
   }
 
   // collections
   return (
-    <View style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>{t('business.mostPopularCollections')}</Text>
+    <SectionCard title={t('business.mostPopularCollections')} bodyStyle={styles.rows}>
       {stats.topCollections?.length > 0 ? (
         stats.topCollections.map((collection, index) => (
           <CollectionRow key={collection.id} collection={collection} index={index} />
         ))
       ) : (
-        <Text style={styles.emptyText}>{t('business.noCollectionStats')}</Text>
+        <EmptyState placement="inline" testID="business-empty-collections" icon="chart-bar" title={t('business.noCollectionStats')} subtitle={t('emptyState.statsHint')} />
       )}
-    </View>
+    </SectionCard>
   );
 }

@@ -1,21 +1,27 @@
-import { View, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Text, ScreenHeader, ScreenLoader, Alert, Button, ErrorState, theme } from '@/ui';
+import { Alert, Button, ChipTabs, ErrorState } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
+import { useScreenCaptureProtection } from '@/lib/security/screenCapture';
 import { useBusinessApplication, type BusinessApplicationTab } from './_hooks/useBusinessApplication';
 import { useDocumentUpload } from './_hooks/useDocumentUpload';
 import { DetailsTab } from './_sections/DetailsTab';
 import { StakeholdersTab } from './_sections/StakeholdersTab';
 import { DocumentsTab } from './_sections/DocumentsTab';
+import { BusinessApplicationSkeleton } from './_components/BusinessApplicationSkeleton';
 
 /**
- * Kurumsal başvuru tamamlama — THIN ekran. Üç sekme; her sekme kendi
- * bölümünde self-gate eder. Veri/mutation `_hooks/useBusinessApplication`'da.
+ * Kurumsal başvuru tamamlama — THIN ekran. Üç sekme (ChipTabs); her sekme kendi
+ * bölümünde (SectionCard) self-gate eder. Veri/mutation `_hooks/useBusinessApplication`'da.
  */
 export default function BusinessApplicationScreen() {
   const { t } = useTranslation();
   const f = useBusinessApplication();
   const upload = useDocumentUpload();
+  // IBAN, vergi no ve yetkili kimlik bilgileri ekran görüntüsüne / uygulama değiştiriciye düşmez.
+  useScreenCaptureProtection();
+  const title = t('businessApplication.headerTitle');
 
   const TABS: { key: BusinessApplicationTab; label: string }[] = [
     { key: 'details', label: t('businessApplication.tabDetails') },
@@ -23,79 +29,61 @@ export default function BusinessApplicationScreen() {
     { key: 'documents', label: t('businessApplication.tabDocuments') },
   ];
 
-  if (f.isLoading) return <ScreenLoader />;
-
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/settings' as never));
 
   if (f.loadError) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.colors.surface.DEFAULT }}>
-        <ScreenHeader title={t('businessApplication.headerTitle')} onBack={goBack} />
-        <View testID="application-error" style={{ flex: 1 }}>
+      <PageShell title={title} onBack={goBack} mode="static" padding={false}>
+        <View testID="application-error" style={styles.fill}>
           <ErrorState
-            fullscreen
             title={t('businessApplication.loadErrorTitle')}
             message={t('common.genericError')}
           />
         </View>
-      </View>
+      </PageShell>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.surface.DEFAULT }}>
-      <ScreenHeader title={t('businessApplication.headerTitle')} onBack={goBack} />
-
-      {!f.isMissing && (
-        <View style={{ flexDirection: 'row', paddingHorizontal: theme.spacing[4], gap: theme.spacing[2] }}>
-          {TABS.map((tabItem) => (
-            <Pressable
-              key={tabItem.key}
-              testID={`tab-${tabItem.key}`}
-              onPress={() => f.setTab(tabItem.key)}
-              style={{
-                paddingVertical: theme.spacing[2],
-                paddingHorizontal: theme.spacing[4],
-                borderRadius: theme.radius.md,
-                backgroundColor: f.tab === tabItem.key ? theme.colors.primary[50] : 'transparent',
-              }}
-            >
-              <Text
-                variant="body"
-                color={f.tab === tabItem.key ? theme.colors.primary[600] : theme.colors.text.muted}
-                style={{ fontWeight: f.tab === tabItem.key ? '600' : '400' }}
-              >
-                {tabItem.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+    <PageShell
+      title={title}
+      onBack={goBack}
+      loading={f.isLoading}
+      loadingFallback={<BusinessApplicationSkeleton />}
+    >
+      {f.isMissing ? (
+        <>
+          <Alert variant="warning" title={t('businessApplication.notFoundTitle')}>
+            {t('businessApplication.notFoundBody')}
+          </Alert>
+          <Button
+            testID="business-application-missing-back"
+            variant="primary"
+            title={t('common.goBack')}
+            onPress={goBack}
+          />
+        </>
+      ) : (
+        <>
+          <ChipTabs
+            testID="business-application-tabs"
+            value={f.tab}
+            onChange={f.setTab}
+            items={TABS.map((tabItem) => ({
+              key: tabItem.key,
+              label: tabItem.label,
+              testID: `tab-${tabItem.key}`,
+            }))}
+          />
+          <DetailsTab f={f} />
+          <StakeholdersTab f={f} upload={upload} />
+          <DocumentsTab f={f} upload={upload} />
+        </>
       )}
-
-      <ScrollView
-        contentContainerStyle={{ padding: theme.spacing[4], gap: theme.spacing[4] }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {f.isMissing ? (
-          <>
-            <Alert variant="warning" title={t('businessApplication.notFoundTitle')}>
-              {t('businessApplication.notFoundBody')}
-            </Alert>
-            <Button
-              testID="business-application-missing-back"
-              variant="primary"
-              title={t('common.goBack')}
-              onPress={goBack}
-            />
-          </>
-        ) : (
-          <>
-            <DetailsTab f={f} />
-            <StakeholdersTab f={f} upload={upload} />
-            <DocumentsTab f={f} upload={upload} />
-          </>
-        )}
-      </ScrollView>
-    </View>
+    </PageShell>
   );
 }
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+});

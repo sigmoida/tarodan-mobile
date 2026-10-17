@@ -1,9 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Modal, Button, Input, Text, theme } from '@/ui';
-
-const { colors } = theme;
+import { Modal, Button, Input, Text, theme, ButtonRow } from '@/ui';
 
 export function RejectTradeModal({
   visible,
@@ -11,18 +9,16 @@ export function RejectTradeModal({
   reason,
   setReason,
   onSubmit,
-  isPending,
 }: {
   visible: boolean;
   onClose: () => void;
   reason: string;
   setReason: (v: string) => void;
   onSubmit: () => void;
-  isPending: boolean;
 }) {
   const { t } = useTranslation();
   return (
-    <Modal isOpen={visible} onClose={() => !isPending && onClose()} title={t('trade.rejectTradeTitle')}>
+    <Modal isOpen={visible} onClose={onClose} title={t('trade.rejectTradeTitle')}>
       <Text variant="caption" tone="muted" style={{ marginBottom: theme.spacing[3] }}>
         {t('trade.rejectModalDesc')}
       </Text>
@@ -36,16 +32,14 @@ export function RejectTradeModal({
         containerStyle={{ marginBottom: theme.spacing[3] }}
         inputStyle={{ minHeight: 80 }}
       />
-      <View style={styles.modalActions}>
-        <Button variant="outline" title={t('trade.dispute.cancelCta')} onPress={onClose} disabled={isPending} />
+      <ButtonRow style={{ marginTop: theme.spacing[2] }}>
+        <Button variant="outline" title={t('trade.dispute.cancelCta')} onPress={onClose} />
         <Button
-          variant="primary"
+          variant="danger"
           title={t('trade.rejectTrade')}
           onPress={onSubmit}
-          isLoading={isPending}
-          style={{ backgroundColor: colors.danger[600]! }}
         />
-      </View>
+      </ButtonRow>
     </Modal>
   );
 }

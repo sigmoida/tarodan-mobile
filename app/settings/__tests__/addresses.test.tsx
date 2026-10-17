@@ -1,23 +1,24 @@
 /**
- * J32 / J388 · Adres ekleme form validasyonu (mobil-UI dilimi).
- * handleSubmit client-side: zorunlu alan boş → uyarı; adres < 10 karakter → uyarı;
- * telefon < 10 hane → uyarı. Validasyon geçmeden saveMutation (api) çağrılmaz.
- * Ayrıca bulgu #32: her hatalı alan görünür inline hata (kırmızı çerçeve + alt mesaj)
- * alır; alanı düzeltince o alanın inline hatası anında kalkar.
+ * Adres LİSTESİ ekranı (settings/addresses). Form (J32 / J388 validasyonu) artık
+ * ayrı ekranlarda — bkz. `app/settings/addresses/__tests__/address-form.test.tsx`.
+ * Burada: liste → yeni / düzenle ekranına yönlendirme, satır-bazlı "Varsayılan
+ * Yap", hata geri bildirimi ve sorgu hatasının yutulmaması.
  */
 import React from "react";
-import { appAlert } from "@/ui";
+import { appAlert, toast } from "@/ui";
 import { screen, fireEvent, waitFor } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
+import { pushMock, resetRouterMocks } from "@/test-utils/router-mock";
 
 jest.mock("expo-router", () => ({
   ...require("@/test-utils/router-mock").routerMock,
   useFocusEffect: jest.fn(),
 }));
 
+let mockLimits: { maxAddresses?: number } = { maxAddresses: 10 };
 jest.mock("@/stores/authStore", () => ({
   useAuthStore: (sel?: (state: any) => unknown) => {
-    const state: any = ({ isAuthenticated: true, limits: { maxAddresses: 10 } });
+    const state: any = ({ isAuthenticated: true, limits: mockLimits });
     return sel ? sel(state) : state;
   },
 }));
@@ -33,63 +34,112 @@ jest.mock("@/lib/api", () => ({
     patch: jest.fn(),
     delete: jest.fn(),
   },
+  addressesApi: { setDefault: jest.fn() },
 }));
-import { api } from "@/lib/api";
-const post = api.post as jest.Mock;
+import { api, addressesApi } from "@/lib/api";
 
 import AddressesScreen from "../addresses";
 
-describe("J32 · adres ekleme form validasyonu", () => {
-  let alertSpy: jest.Mock;
+const ADDRESS = {
+  id: "a1",
+  title: "Ev",
+  fullName: "Ayşe",
+  address: "Sokak 1",
+  city: "İstanbul",
+  district: "Kadıköy",
+  phone: "5551112233",
+  isDefault: false,
+};
+
+// Yüklü makinede (paralel ajanlar) ilk render + sorgu 1 sn'yi aşabiliyor.
+const SLOW = { timeout: 5000 };
+
+describe("Adres listesi → form EKRANLARINA yönlendirme (modal yok)", () => {
   beforeEach(() => {
-    post.mockReset();
-    alertSpy = (appAlert as jest.Mock).mockImplementation(() => {});
-  });
-  afterEach(() => alertSpy.mockRestore());
-
-  const openDialog = async () => {
-    // Boş listede "Adres Ekle" butonu diyaloğu açar (query çözülene kadar bekle)
-    const addBtn = await screen.findByText("address.addNewAddress");
-    fireEvent.press(addBtn);
-  };
-
-  // Uyarı MODAL İÇİNDE satır mesajı olarak gösterilir: modal açıkken appAlert
-  // (kendisi de bir RN Modal) iOS'ta donmaya yol açıyordu (CLAUDE.md §12).
-  it("J32.1 zorunlu alanlar boşken kaydet → modal içi uyarı, appAlert yok, API çağrılmaz", async () => {
-    renderWithProviders(<AddressesScreen />);
-    await openDialog();
-    fireEvent.press(screen.getByTestId("address-save-button"));
-    expect(screen.getByTestId("modal-message")).toHaveTextContent("address.fillRequiredFields");
-    expect(alertSpy).not.toHaveBeenCalled();
-    expect(post).not.toHaveBeenCalled();
+    resetRouterMocks();
+    mockLimits = { maxAddresses: 10 };
+    (api.get as jest.Mock).mockReset();
   });
 
-  it("J32.2 başlık inputu görünür ve düzenlenebilir", async () => {
+  it("boş listede \"Yeni Adres Ekle\" → /settings/addresses/new ekranı itilir", async () => {
+    (api.get as jest.Mock).mockResolvedValue({ data: [] });
     renderWithProviders(<AddressesScreen />);
-    await openDialog();
-    const titleInput = screen.getByTestId("address-title-input");
-    fireEvent.changeText(titleInput, "Ev");
-    expect(titleInput.props.value).toBe("Ev");
+    fireEvent.press(await screen.findByText("address.addNewAddress", {}, SLOW));
+    expect(pushMock).toHaveBeenCalledWith("/settings/addresses/new");
+    // Form artık bu ekranda çizilmez.
+    expect(screen.queryByTestId("address-save-button")).toBeNull();
   });
 
-  it('J32.3 boş submit → alanların altında inline "Zorunlu alan" hatası görünür', async () => {
+  it("dolu listede üst bardaki \"+\" aynı ekranı iter; içerikte \"Yeni Adres\" düğmesi yok", async () => {
+    (api.get as jest.Mock).mockResolvedValue({ data: [ADDRESS] });
     renderWithProviders(<AddressesScreen />);
-    await openDialog();
-    fireEvent.press(screen.getByTestId("address-save-button"));
-    // title + fullName + phone + address Input'ları mesajı basar (il/ilçe kırmızı çerçeve alır).
-    const errs = await screen.findAllByText("validation.required");
-    expect(errs.length).toBeGreaterThanOrEqual(4);
+    fireEvent.press(await screen.findByTestId("address-add-button", {}, SLOW));
+    expect(pushMock).toHaveBeenCalledWith("/settings/addresses/new");
+    expect(screen.queryByText("address.newAddress")).toBeNull();
+    expect(screen.getByTestId("address-add-button").props.accessibilityLabel).toBe("address.newAddress");
   });
 
-  it("J32.4 hatalı alanı düzeltince o alanın inline hatası kalkar", async () => {
+  it("limit göstergesi soluk metin olarak listenin üstünde", async () => {
+    (api.get as jest.Mock).mockResolvedValue({ data: [ADDRESS] });
     renderWithProviders(<AddressesScreen />);
-    await openDialog();
-    fireEvent.press(screen.getByTestId("address-save-button"));
-    const beforeCount = (await screen.findAllByText("validation.required")).length;
-    fireEvent.changeText(screen.getByTestId("address-title-input"), "Ev");
-    await waitFor(() => {
-      expect(screen.getAllByText("validation.required").length).toBe(beforeCount - 1);
+    expect(await screen.findByTestId("address-limit-usage", {}, SLOW)).toHaveTextContent("address.limitUsage");
+  });
+
+  it("boş listede üst bar \"+\" yok (EmptyState eylemi yeterli)", async () => {
+    (api.get as jest.Mock).mockResolvedValue({ data: [] });
+    renderWithProviders(<AddressesScreen />);
+    await screen.findByText("address.addNewAddress", {}, SLOW);
+    expect(screen.queryByTestId("address-add-button")).toBeNull();
+  });
+
+  it("limit bilinmiyor/sınırsız (-1) → sayaç gizli, \"+\" açık", async () => {
+    mockLimits = { maxAddresses: -1 };
+    (api.get as jest.Mock).mockResolvedValue({ data: [ADDRESS] });
+    renderWithProviders(<AddressesScreen />);
+    expect(await screen.findByTestId("address-add-button", {}, SLOW)).toBeTruthy();
+    expect(screen.queryByTestId("address-limit-usage")).toBeNull();
+  });
+
+  it("limit verilmezse sunucu limiti (3) geçerli: 3 adreste \"+\" gizli", async () => {
+    mockLimits = {};
+    (api.get as jest.Mock).mockResolvedValue({
+      data: Array.from({ length: 3 }, (_, i) => ({ ...ADDRESS, id: `b${i}`, title: `Ev ${i}` })),
     });
+    renderWithProviders(<AddressesScreen />);
+    await screen.findByText("Ev 0", {}, SLOW);
+    expect(screen.queryByTestId("address-add-button")).toBeNull();
+  });
+
+  it("limit dolunca üst bar \"+\" gizlenir", async () => {
+    (api.get as jest.Mock).mockResolvedValue({
+      data: Array.from({ length: 10 }, (_, i) => ({ ...ADDRESS, id: `a${i}`, title: `Adres ${i}` })),
+    });
+    renderWithProviders(<AddressesScreen />);
+    await screen.findByText("Adres 0", {}, SLOW);
+    expect(screen.queryByTestId("address-add-button")).toBeNull();
+  });
+
+  it("satırdaki düzenle → /settings/addresses/<id>/edit", async () => {
+    (api.get as jest.Mock).mockResolvedValue({ data: [ADDRESS] });
+    renderWithProviders(<AddressesScreen />);
+    await screen.findByText("Ev", {}, SLOW);
+    fireEvent.press(screen.getByLabelText("address.editAddress"));
+    expect(pushMock).toHaveBeenCalledWith("/settings/addresses/a1/edit");
+  });
+
+  it("silme mevcut appAlert onayıyla; onayda DELETE + başarı toast", async () => {
+    (api.get as jest.Mock).mockResolvedValue({ data: [ADDRESS] });
+    (api.delete as jest.Mock).mockResolvedValue({});
+    const success = jest.spyOn(toast, "success").mockImplementation(() => 1);
+    renderWithProviders(<AddressesScreen />);
+    await screen.findByText("Ev", {}, SLOW);
+    fireEvent.press(screen.getByLabelText("address.deleteAddress"));
+    expect(appAlert).toHaveBeenCalledTimes(1);
+    const [, , buttons] = (appAlert as jest.Mock).mock.calls[0];
+    buttons.find((b: any) => b.style === "destructive").onPress();
+    await waitFor(() => expect(api.delete).toHaveBeenCalledWith("/users/me/addresses/a1"));
+    await waitFor(() => expect(success).toHaveBeenCalledWith("address.deleted"));
+    success.mockRestore();
   });
 });
 
@@ -102,11 +152,13 @@ describe("J32 · adres ekleme form validasyonu", () => {
 describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => {
   const get = api.get as jest.Mock;
   const patch = api.patch as jest.Mock;
+  const setDefault = addressesApi.setDefault as jest.Mock;
   let resolvePatch: (value: unknown) => void;
 
   beforeEach(() => {
     get.mockReset();
     patch.mockReset();
+    setDefault.mockReset();
     (appAlert as jest.Mock).mockImplementation(() => {});
     get.mockResolvedValue({
       data: [
@@ -134,7 +186,7 @@ describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => 
     });
     // Kontrollü deferred → mutation'ı pending tutar; test sonunda çözüp temizleriz
     // (çözülmeyen promise bırakmak tüm suite'i kapanışta asılı bırakırdı).
-    patch.mockReturnValue(
+    setDefault.mockReturnValue(
       new Promise((resolve) => {
         resolvePatch = resolve;
       }),
@@ -149,12 +201,18 @@ describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => 
 
     fireEvent.press(buttons[0]!);
 
-    // a1 pending → başlığı spinner ile değişir; a2 dokunulmadığı için "Varsayılan Yap" kalır.
+    // a1 pending → web Button gibi etiket kalır, düğme kilitli/meşgul (spinner etiketin önünde);
+    // a2 dokunulmadığı için açık kalır.
     await waitFor(() => {
-      expect(screen.getAllByText("address.makeDefault")).toHaveLength(1);
+      const [first, second] = screen.getAllByText("address.makeDefault");
+      expect(first).toBeDisabled();
+      expect(second).not.toBeDisabled();
     });
-    expect(patch).toHaveBeenCalledTimes(1);
-    expect(patch).toHaveBeenCalledWith("/users/me/addresses/a1/default");
+    // B-1.3: var olmayan `/default` ucu değil, web ile aynı `addressesApi.setDefault`
+    // (PATCH /users/me/addresses/:id { isDefault: true }) — payload'ı api testi doğrular.
+    expect(setDefault).toHaveBeenCalledTimes(1);
+    expect(setDefault).toHaveBeenCalledWith("a1");
+    expect(patch).not.toHaveBeenCalled();
 
     // Mutation'ı çöz → onSuccess invalidate eder, a1 satırı yükleme durumundan çıkar,
     // dangling handle kalmaz. Her iki buton tekrar görünür.
@@ -170,5 +228,78 @@ describe('J32.b · "Varsayılan Yap" satır-bazlı yükleme (bulgu #23)', () => 
       },
       { timeout: 5000 },
     );
+    // Test süresi iç `waitFor`'un 5 sn'sinden UZUN olmalı: jest'in varsayılan
+    // 5 sn'lik test sınırı, yüklü makinede iç bekleyiş bitmeden testi düşürüyordu
+    // (tam suite'te görüldü; tek başına koşumda geçiyor).
+  }, 15000);
+});
+
+/**
+ * B-1.3 · "Varsayılan Yap" hatası artık yutulmuyor — sunucu mesajı (yoksa
+ * `address.defaultFailed`) kullanıcıya gösterilir. Karar ağacı: yeniden
+ * denenebilir işlem hatası → `toast.error` (useAppMutation), appAlert DEĞİL.
+ */
+describe('B-1.3 · "Varsayılan Yap" hatası görünür', () => {
+  const get = api.get as jest.Mock;
+  const setDefault = addressesApi.setDefault as jest.Mock;
+
+  beforeEach(() => {
+    get.mockReset();
+    setDefault.mockReset();
+    (appAlert as jest.Mock).mockReset();
+    (appAlert as jest.Mock).mockImplementation(() => {});
+    get.mockResolvedValue({
+      data: [
+        {
+          id: "a1",
+          title: "Ev",
+          fullName: "Ayşe",
+          address: "Sokak 1",
+          city: "İstanbul",
+          district: "Kadıköy",
+          phone: "5551112233",
+          isDefault: false,
+        },
+      ],
+    });
+  });
+
+  let errorToast: jest.SpyInstance;
+  beforeEach(() => {
+    errorToast = jest.spyOn(toast, "error").mockImplementation(() => 1);
+  });
+  afterEach(() => errorToast.mockRestore());
+
+  it("sunucu mesajsız hata → address.defaultFailed toast'ı (statusCode yoksa düz yedek metin)", async () => {
+    setDefault.mockRejectedValue({ response: { status: 500, data: {} } });
+    renderWithProviders(<AddressesScreen />);
+    fireEvent.press(await screen.findByText("address.makeDefault"));
+    await waitFor(() => {
+      expect(errorToast).toHaveBeenCalledWith("address.defaultFailed");
+    });
+    expect(appAlert).not.toHaveBeenCalled();
+  });
+
+  it("sunucu mesajı varsa o gösterilir", async () => {
+    setDefault.mockRejectedValue({
+      response: { status: 404, data: { message: "Adres bulunamadı" } },
+    });
+    renderWithProviders(<AddressesScreen />);
+    fireEvent.press(await screen.findByText("address.makeDefault"));
+    await waitFor(() => {
+      expect(errorToast).toHaveBeenCalledWith("Adres bulunamadı");
+    });
+  });
+});
+
+describe("C3 inceleme · adres sorgusu hatayı yutmaz", () => {
+  it("API hata verince önbelleğe [] yazılmaz (ilan formu kapısıyla ortak anahtar)", async () => {
+    const { QueryClient } = require("@tanstack/react-query");
+    const { qk } = require("@/lib/query");
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    (api.get as jest.Mock).mockRejectedValueOnce(new Error("network"));
+    renderWithProviders(<AddressesScreen />, { queryClient: qc });
+    await waitFor(() => expect(qc.getQueryState(qk.user.addresses)?.status).toBe("error"));
+    expect(qc.getQueryData(qk.user.addresses)).toBeUndefined();
   });
 });

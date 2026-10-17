@@ -1,65 +1,48 @@
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
-import { theme, ScreenHeader } from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
+import { PageShell } from '@/components/common/PageShell';
 
-import { styles } from './_lib/membershipStyles';
 import { useMembership } from './_hooks/useMembership';
+import { MembershipSkeleton } from './_components/MembershipSkeletons';
 import {
   MembershipBanners,
   MembershipCurrentPlan,
+  MembershipExplorePlansCard,
   MembershipBillingToggle,
   MembershipTierList,
 } from './_components/MembershipSections';
 
-const { colors } = theme;
-
 /**
  * Membership plans — THIN screen. The `useMembership` controller owns the
  * membership/tiers fetch, billing period, tier visibility/guard, and price
- * getters; this file composes the header, banners, current plan, toggle, and
- * tier cards.
+ * getters; this file composes banners, current plan, toggle, and tier cards
+ * inside the shared PageShell (yalnız görünüm; satın alma kapıları değişmedi).
  */
 export default function MembershipScreen() {
   const f = useMembership();
 
-  const header = (
-    <ScreenHeader
+  return (
+    <PageShell
       title={f.t('mobile.membershipTitle')}
       onBack={f.guardLocked ? f.handleLockedExit : f.handleBack}
-    />
-  );
-
-  if (f.loading) {
-    return (
-      <View style={styles.container}>
-        {header}
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary[600]!} />
-          <Text style={styles.loadingText}>{f.t('common.loading')}</Text>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      {header}
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <MembershipBanners f={f} />
-        <MembershipCurrentPlan f={f} />
-        {/* Fiyatlar ve paket kartları iOS'ta yok: uygulama içi dijital satış
-            Apple IAP'siz yapılamıyor (Guideline 3.1.1) ve fiyat göstermek
-            2.1(b)'nin "abonelik referansı" tanımına giriyor. */}
-        {CAN_BUY_DIGITAL && (
-          <>
-            <MembershipBillingToggle f={f} />
-            <MembershipTierList f={f} />
-          </>
-        )}
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
+      loading={f.loading}
+      loadingFallback={<MembershipSkeleton />}
+      error={f.error}
+      errorMessage={f.error ?? undefined}
+      onRetry={f.fetchData}
+    >
+      <MembershipBanners f={f} />
+      <MembershipCurrentPlan f={f} />
+      <MembershipExplorePlansCard f={f} />
+      {/* Fiyatlar ve paket kartları iOS ve Android'de yok: uygulama içi dijital
+          satış IAP/Play Billing'siz yapılamıyor (Guideline 3.1.1, Play ödeme
+          politikası) ve fiyat göstermek 2.1(b)'nin "abonelik referansı"
+          tanımına giriyor. */}
+      {CAN_BUY_DIGITAL && (
+        <>
+          <MembershipBillingToggle f={f} />
+          <MembershipTierList f={f} />
+        </>
+      )}
+    </PageShell>
   );
 }

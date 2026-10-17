@@ -3,11 +3,12 @@ import i18n from '@/i18n/config';
 import { useAuthStore } from './authStore';
 
 /**
- * #77 (CLAUDE.md §8): mesajlaşmanın server-state'i (threads/messages/unread) artık
+ * #77 (src/stores/CLAUDE.md › Client state only): mesajlaşmanın server-state'i (threads/messages/unread) artık
  * React Query'de — bkz `@/hooks/messaging` (queries/mutations) + `@/lib/messaging`
  * (cache köprüsü, normalize). Bu store SADECE client/UI state tutar:
- *   - `currentThreadId`: açık thread — socket köprüsünün aktif thread'i bilmesi için,
- *   - `dailyMessageCount`/`dailyMessageLimit`: ücretsiz üye günlük mesaj limiti sayacı.
+ *   - `currentThreadId`: açık thread — socket köprüsünün aktif thread'i bilmesi için.
+ * Günlük mesaj limiti burada DEĞİL: `GET /messages/daily-limit` →
+ * `useDailyMessageLimit` (`@/hooks/messaging`).
  * Tipler (MessageThread/Message) burada kalır; tüm tüketiciler buradan import eder.
  *
  * `getOtherParticipant`'ın "Kullanıcı" düşüşü store'un dışında (React) render
@@ -59,45 +60,21 @@ export interface Message {
   updatedAt: string;
 }
 
-const FREE_DAILY_MESSAGE_LIMIT = 50;
-
 interface MessagesState {
   /** Açık thread'in id'si — socket köprüsü (useMessagingSocket) açık/kapalı ayrımı için. */
   currentThreadId: string | null;
-  dailyMessageCount: number;
-  dailyMessageLimit: number;
 
   // Actions (client-only)
   setCurrentThreadId: (threadId: string | null) => void;
-  incrementDailyCount: () => void;
-  resetDailyCount: () => void;
 
   // Helpers (saf — authStore okur, fetch YOK)
-  canSendMessage: () => boolean;
   getOtherParticipant: (thread: MessageThread) => { id: string; displayName: string; avatarUrl?: string };
 }
 
 export const useMessagesStore = create<MessagesState>((set, get) => ({
   currentThreadId: null,
-  dailyMessageCount: 0,
-  dailyMessageLimit: FREE_DAILY_MESSAGE_LIMIT,
 
   setCurrentThreadId: (threadId) => set({ currentThreadId: threadId }),
-  incrementDailyCount: () => set((state) => ({ dailyMessageCount: state.dailyMessageCount + 1 })),
-  resetDailyCount: () => set({ dailyMessageCount: 0 }),
-
-  canSendMessage: () => {
-    const { dailyMessageCount } = get();
-    const { limits } = useAuthStore.getState();
-
-    // Premium üyeler sınırsız
-    if (limits?.maxMessagesPerDay === -1) {
-      return true;
-    }
-
-    const limit = limits?.maxMessagesPerDay || FREE_DAILY_MESSAGE_LIMIT;
-    return dailyMessageCount < limit;
-  },
 
   getOtherParticipant: (thread: MessageThread) => {
     const { user } = useAuthStore.getState();

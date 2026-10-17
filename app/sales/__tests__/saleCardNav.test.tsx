@@ -25,13 +25,13 @@ describe('SaleCard navigasyonu', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('karta basınca satış detayına gider', () => {
-    const { getByTestId } = render(<SaleCard sale={sale} actions={actions} />);
+    const { getByTestId } = render(<SaleCard sale={sale} onPrepare={actions.handleMarkAsProcessing} onShip={actions.setShipDialog} />);
     fireEvent.press(getByTestId('sale-card-sale-1'));
     expect(router.push).toHaveBeenCalledWith('/sales/sale-1');
   });
 
   it('aksiyon butonu navigasyonu TETİKLEMEZ', () => {
-    const { getByText } = render(<SaleCard sale={sale} actions={actions} />);
+    const { getByText } = render(<SaleCard sale={sale} onPrepare={actions.handleMarkAsProcessing} onShip={actions.setShipDialog} />);
     fireEvent.press(getByText('Hazırlanıyor Olarak İşaretle'));
     expect(actions.handleMarkAsProcessing).toHaveBeenCalled();
     expect(router.push).not.toHaveBeenCalled();

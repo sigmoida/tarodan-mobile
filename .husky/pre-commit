@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# Plain script: works with core.hooksPath=.husky (no .husky/_ wrapper needed).
+set -e
+cd "$(git rev-parse --show-toplevel)"
+if [ ! -x node_modules/.bin/lint-staged ]; then
+  echo "pre-commit: dependencies missing; run: pnpm install --frozen-lockfile --prefer-offline" >&2
+  exit 1
+fi
+sh scripts/check-partial-staging.sh
+# --no-stash: the git stash stack is shared by every worktree of this clone, and
+# the hub rules forbid git stash. Partially staged files are refused above.
+node_modules/.bin/lint-staged --no-stash

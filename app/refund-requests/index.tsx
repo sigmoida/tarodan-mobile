@@ -1,19 +1,12 @@
-import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ScreenHeader } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
 
-import { styles } from './_lib/styles';
 import { useRefundRequests } from './_hooks/useRefundRequests';
-import {
-  RefundAuthGate,
-  RefundList,
-  RefundSellerNote,
-  RefundTabs,
-} from './_components/RefundSections';
+import { RefundList, RefundSellerNote, RefundTabs } from './_components/RefundSections';
 
 /**
- * İade talepleri — THIN ekran: controller + bölümler.
+ * İade talepleri — İNCE ekran: PageShell + sekmeler + liste.
  *
  * İki sekme: "Taleplerim" (`/refund-requests/me`) ve "Bana Açılanlar"
  * (`/refund-requests/seller`). İkincisi salt okunur; gerekçesi
@@ -22,18 +15,35 @@ import {
 export default function RefundRequestsScreen() {
   const { t } = useTranslation();
   const f = useRefundRequests();
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
-  if (!f.isAuthenticated) return <RefundAuthGate f={f} />;
+  if (!f.isAuthenticated) {
+    return (
+      <PageShell
+        title={t('mobile.quickRefundRequests')}
+        onBack={back}
+        empty
+        emptyState={{
+          icon: 'receipt-percent',
+          title: t('order.myRefundRequests'),
+          subtitle: t('refund.authGateSubtitle'),
+          actionLabel: t('common.login'),
+          onAction: () => router.push('/(auth)/login'),
+        }}
+      />
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={t('mobile.quickRefundRequests')}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-      />
+    <PageShell
+      title={t('mobile.quickRefundRequests')}
+      onBack={back}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
+    >
       <RefundTabs f={f} />
       <RefundSellerNote f={f} />
       <RefundList f={f} />
-    </View>
+    </PageShell>
   );
 }

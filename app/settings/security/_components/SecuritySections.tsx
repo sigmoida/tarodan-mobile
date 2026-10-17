@@ -1,156 +1,84 @@
 import React from 'react';
-import { View, ScrollView, TouchableOpacity } from 'react-native';
-import { Card, Switch, Button, Text, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
-import { splitPhone } from '@/utils/phone';
+import { useTranslation } from 'react-i18next';
+import { Badge } from '@/ui';
 
-import { styles } from '../_lib/styles';
-import type { SecurityController } from '../_hooks/useSecurity';
+import type { SecurityHub } from '../_hooks/useSecurityHub';
+import { SettingsActionCard } from './SettingsActionCard';
 
-const { colors } = theme;
-
-/** Password / 2FA / phone-verification / sessions / tips cards. */
-export function SecuritySections({ f }: { f: SecurityController }) {
-  const { t } = f;
+/** Şifre / 2FA / telefon doğrulama / oturumlar / hesabı sil — hepsi aynı kart kalıbı (`SettingsActionCard`). */
+export function SecuritySections({ f }: { f: SecurityHub }) {
+  const { t } = useTranslation();
   return (
-    <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-      {/* Password Section */}
-      <Text style={styles.sectionTitle}>{t('mobile.password')}</Text>
-      <Card style={styles.card}>
-        <TouchableOpacity
-          style={styles.settingRow}
-          onPress={() => { f.pwMsg.clear(); f.setShowPasswordDialog(true); }}
-        >
-          <View style={styles.settingInfo}>
-            <Ionicons name="lock-closed-outline" size={24} color={colors.primary[600]!} />
-            <View style={styles.settingText}>
-              <Text style={styles.settingTitle}>{t('security.changePasswordTitle')}</Text>
-              <Text style={styles.settingSubtitle}>{t('security.lastChangeUnknown')}</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.text.subtle} />
-        </TouchableOpacity>
-      </Card>
+    <>
+      <SettingsActionCard
+        title={t('mobile.password')}
+        description={t('profile.security.passwordDesc')}
+        action={{
+          label: t('profile.change'),
+          onPress: f.openPassword,
+          testID: 'security-password-button',
+        }}
+      />
 
-      {/* Two-Factor Auth */}
-      <Text style={styles.sectionTitle}>{t('security.twoFactorSection')}</Text>
-      <Card style={styles.card}>
-        <View style={styles.settingRow}>
-          <View style={styles.settingInfo}>
-            <Ionicons name="shield-checkmark-outline" size={24} color={colors.primary[600]!} />
-            <View style={styles.settingText}>
-              <Text style={styles.settingTitle}>2FA</Text>
-              <Text style={styles.settingSubtitle}>
-                {f.twoFactorEnabled ? t('security.enabled') : t('security.disabled')}
-              </Text>
-            </View>
-          </View>
-          <Switch
-            value={f.twoFactorEnabled}
-            onValueChange={(value: boolean) => {
-              if (value) {
-                f.handleSetupTwoFactor();
-              } else {
-                f.handleDisableTwoFactor();
-              }
-            }}
-          />
-        </View>
-        <Text style={styles.infoText}>{t('security.twoFactorDesc')}</Text>
-        {f.twoFactorEnabled ? (
-          <Button
-            variant="outline"
-            title={t('security.regenerateBackupCodes')}
-            onPress={() => {
-              f.setNewBackupCodes(null);
-              f.setRegenerateCode('');
-              f.regenMsg.clear();
-              f.setShowRegenerateDialog(true);
-            }}
-            style={{ marginTop: theme.spacing[3] }}
-          />
-        ) : null}
-      </Card>
+      <SettingsActionCard
+        title={t('security.twoFactorSection')}
+        badge={
+          f.twoFactorEnabled ? (
+            <Badge variant="success" size="sm">{t('common.active')}</Badge>
+          ) : undefined
+        }
+        description={
+          f.twoFactorEnabled ? t('profile.security.twoFactorOn') : t('profile.security.twoFactorOff')
+        }
+        action={{
+          label: f.twoFactorEnabled ? t('profile.security.manage') : t('profile.security.setUp'),
+          onPress: f.openTwoFactor,
+          testID: 'two-factor-manage-button',
+        }}
+      />
 
-      {/* Phone Verification */}
-      <Text style={styles.sectionTitle}>{t('security.phoneSection')}</Text>
-      <Card style={styles.card}>
-        <View style={styles.settingRow}>
-          <View style={styles.settingInfo}>
-            <Ionicons name="call-outline" size={24} color={colors.primary[600]!} />
-            <View style={styles.settingText}>
-              <Text style={styles.settingTitle}>{t('security.phoneVerificationTitle')}</Text>
-              <Text style={styles.settingSubtitle}>
-                {f.phoneVerified ? t('security.phoneVerifiedNotice') : t('security.phoneVerifyHint')}
-              </Text>
-            </View>
-          </View>
-        </View>
-        {f.phoneVerified ? (
-          <View style={styles.verifiedBadge}>
-            <Ionicons name="checkmark-circle" size={18} color={colors.success[600]!} />
-            <Text style={styles.verifiedText}>{t('security.verified')}</Text>
-          </View>
-        ) : (
-          <Button
-            title={t('security.verify')}
-            onPress={() => {
-              // Kayıtlı numara E.164 saklanıyor; alan ülke kodu + lokal parça
-              // istiyor, ikisine ayır (yoksa "+90" tekrar yazılmış görünürdü).
-              const seed = splitPhone(f.user?.phone || '');
-              f.setPhoneCountryCode(seed.countryCode);
-              f.setPhoneInput(seed.phone);
-              f.setPhoneStep('enter');
-              f.setPhoneCode('');
-              f.setPhoneMsg(null);
-              f.setShowPhoneDialog(true);
-            }}
-            testID="phone-verify-button"
-            style={{ marginTop: theme.spacing[3] }}
-          />
-        )}
-      </Card>
+      <SettingsActionCard
+        title={t('security.phoneSection')}
+        badge={
+          f.phoneVerified ? (
+            <Badge variant="success" size="sm">{t('security.verified')}</Badge>
+          ) : undefined
+        }
+        description={
+          f.phoneVerified ? t('security.phoneVerifiedNotice') : t('security.phoneVerifyHint')
+        }
+        action={
+          f.phoneVerified
+            ? undefined
+            : { label: t('security.verify'), onPress: f.openPhone, testID: 'phone-verify-button' }
+        }
+      />
 
-      {/* Sessions */}
-      <Text style={styles.sectionTitle}>{t('mobile.sessions')}</Text>
-      <Card style={styles.card}>
-        <TouchableOpacity style={styles.settingRow} onPress={f.handleLogoutAllDevices}>
-          <View style={styles.settingInfo}>
-            <Ionicons name="log-out-outline" size={24} color={colors.danger[600]!} />
-            <View style={styles.settingText}>
-              <Text style={[styles.settingTitle, { color: colors.danger[600]! }]}>
-                Tüm Cihazlardan Çıkış
-              </Text>
-              <Text style={styles.settingSubtitle}>
-                Diğer tüm cihazlarda oturumunuzu sonlandırın
-              </Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Card>
+      <SettingsActionCard
+        title={t('security.logoutAllTitle')}
+        description={t('security.logoutAllHint')}
+        action={{
+          label: t('common.logout'),
+          onPress: f.logoutAllDevices,
+          destructive: true,
+          disabled: f.logoutAllPending,
+          isLoading: f.logoutAllPending,
+          testID: 'security-logout-all',
+        }}
+      />
 
-      {/* Security Tips */}
-      <Text style={styles.sectionTitle}>{t('security.tipsSection')}</Text>
-      <Card style={styles.tipsCard}>
-        <View style={styles.tipItem}>
-          <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-          <Text style={styles.tipText}>{t('mobile.tipStrongPassword')}</Text>
-        </View>
-        <View style={styles.tipItem}>
-          <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-          <Text style={styles.tipText}>{t('mobile.tipTwoFactor')}</Text>
-        </View>
-        <View style={styles.tipItem}>
-          <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-          <Text style={styles.tipText}>{t('mobile.tipChangePassword')}</Text>
-        </View>
-        <View style={styles.tipItem}>
-          <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-          <Text style={styles.tipText}>{t('mobile.tipReportSuspicious')}</Text>
-        </View>
-      </Card>
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
+      {/* Hesabı sil — profil sekmesinden buraya taşındı (web `DangerZoneSection` eşi): yazarak onaylanan
+          ayrı ekrana (`settings/delete-account`) gider; silme burada çağrılmaz. */}
+      <SettingsActionCard
+        title={t('settings.dangerZone')}
+        description={t('settings.deleteAccountDetails')}
+        action={{
+          label: t('settings.deleteAccount'),
+          onPress: f.openDeleteAccount,
+          destructive: true,
+          testID: 'security-delete-account',
+        }}
+      />
+    </>
   );
 }

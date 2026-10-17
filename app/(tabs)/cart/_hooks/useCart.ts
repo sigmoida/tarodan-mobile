@@ -1,0 +1,196 @@
+import i18n from '@/i18n/config';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { ordersApi, type OrderQuoteResponse } from '@/lib/api';
+import { qk, retryUnlessClientError } from '@/lib/query';
+import { serverAmount } from '@/utils/format';
+import { indexQuoteLines } from '@/utils/quoteLines';
+import { unwrapEnvelope } from '@/utils/apiEnvelope';
+import { maxAllowedQty, useCartStore, type CartItem } from '@/stores/cartStore';
+import { useAuthStore } from '@/stores/authStore';
+import { useCartSync } from '@/hooks/useCartSync';
+import { useServerCart } from '@/hooks/useServerCart';
+
+/**
+ * Cart controller — owns the cart store bindings, the
+ * buyer-fee quote query, and the totals + quantity/remove handlers. Lifted
+ * verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
+ */
+export function useCart() {
+  const items = useCartStore((s) => s.items);
+  const syncStock = useCartStore((s) => s.syncStock);
+  // Seçim store'da: checkout ayrı bir rota ve aynı kaynaktan okuyor. Ekranda
+  // `useState` olsaydı ödeme adımı seçimi göremezdi.
+  const deselectedIds = useCartStore((s) => s.deselectedIds);
+  const toggleSelected = useCartStore((s) => s.toggleSelected);
+  const setAllSelected = useCartStore((s) => s.setAllSelected);
+
+  /**
+   * Fiyatlanan ve ödenecek satırlar. `items` yerine BUNLAR quote'a gider —
+   * uç zaten yalnız gönderilen satırları fiyatlıyor, o yüzden seçim tek başına
+   * istemci tarafında bitiyor.
+   */
+  const selected = useMemo(
+    () => items.filter((i) => !deselectedIds.includes(i.id)),
+    [items, deselectedIds],
+  );
+  const allSelected = items.length > 0 && selected.length === items.length;
+  // Yazmalar sunucu sepetine de aynalanır (üyede); okuma yerel store'dan.
+  const sync = useCartSync();
+  const { byProductId } = useServerCart();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  const itemCount = useCartStore((s) => s.getItemCount());
+
+  // Fiyat kırılımı checkout ile AYNI uçtan ve AYNI anahtardan gelir — sepet ile
+  // ödeme ekranı arasında tek bir doğru vardır.
+  const quoteQuery = useQuery({
+    queryKey: qk.checkout.quote(selected.map((it) => `${it.productId}:${it.quantity}`).join(',')),
+    queryFn: async () => {
+      const res = await ordersApi.getQuote({
+        items: selected.map((it) => ({ productId: it.productId, quantity: it.quantity })),
+      });
+      return unwrapEnvelope<OrderQuoteResponse>(res);
+    },
+    enabled: selected.length > 0,
+    staleTime: 60_000,
+    // 4xx yeniden denenmez — checkout ile AYNI yüklem (tek kaynak, CLAUDE.md › Principles). Sepet
+    // ve checkout aynı queryKey'i paylaşıyor; yüklem burada eksik olsaydı aynı
+    // sorgu iki ekranda farklı sayıda istek atardı.
+    retry: retryUnlessClientError,
+  });
+  const summary = quoteQuery.data?.pricing?.summary;
+  // ————————————————————————————————————————————————————————————————
+  // BAĞLAYICI KISIT: parayla ilgili hiçbir değer istemcide hesaplanmaz.
+  // Eskiden buradaki `total` `productAmount + serviceFeeAmount` idi — hiçbir
+  // sunucu alanına karşılık gelmeyen, istemcide üretilmiş bir tutar; üstelik
+  // "Ara Toplam" yerel `getSubtotal()`, "Toplam" sunucu tabanlıydı, ikisi
+  // ayrıştığında satırlar tutmuyordu. Artık dördü de `pricing.summary`'den AYNEN.
+  // Kapı ALAN seviyesinde (`serverAmount`): `summary` gelip `total: null` olsaydı
+  // `Number(null)` = 0 ile "0,00 TL" basılırdı. Sayı değilse `null` → yer tutucu.
+  // ————————————————————————————————————————————————————————————————
+  const productAmount = serverAmount(summary?.productAmount);
+  const shippingAmount = serverAmount(summary?.shippingAmount);
+  const serviceFeeAmount = serverAmount(summary?.serviceFeeAmount);
+  const total = serverAmount(summary?.total);
+
+  /**
+   * Satır birim fiyatı — sunucunun `items[].unitPrice`'ı. Sepetteki `item.price`
+   * ekleme anında donuyor ve sepette süresiz bekleyebiliyor; kampanya penceresi sepette
+   * beklerken kapanırsa satırda eski (indirimli) fiyat, özette yeni ara toplam
+   * görünürdü. Sunucu satırı yoksa `null` → ekran yer tutucu basar.
+   */
+  const quoteLines = useMemo(() => indexQuoteLines(quoteQuery.data?.items), [quoteQuery.data]);
+  const unitPriceFor = (productId: string): number | null =>
+    quoteLines.get(productId)?.unitPrice ?? null;
+
+  /** Satır toplamı (adet dahil) — sunucunun `items[].subtotal`'ı; yoksa `null` (yer tutucu). */
+  const lineSubtotalFor = (productId: string): number | null =>
+    quoteLines.get(productId)?.subtotal ?? null;
+
+  const handleRemove = (itemId: string) => {
+    sync.removeItem(itemId);
+  };
+
+  /**
+   * Sunucunun bildirdiği taze satın alınabilir adet (`availableQuantity` / `maxQuantity`;
+   * ikisi de varsa küçüğü). Yalnız üyede ve sunucu satırı varken dolu; yoksa `null`
+   * (eski sunucu yanıtı ya da misafir → yerel donmuş `stock`'a düşülür).
+   */
+  const serverStockFor = (productId: string): number | null => {
+    const line = byProductId.get(productId);
+    if (!line) return null;
+    const caps = [line.availableQuantity, line.maxQuantity].filter(
+      (n): n is number => typeof n === 'number' && Number.isFinite(n),
+    );
+    return caps.length ? Math.max(0, Math.min(...caps)) : null;
+  };
+
+  /**
+   * Adet seçicinin tavanı. Sunucu değeri varsa o (sipariş-başı limit ve 99 ile kırpılır);
+   * yoksa eski davranış: ekleme anındaki stok. Tavan sepetteki adedin ALTINA düşerse
+   * (sepette 5, sunucu 3/0) tavan = mevcut adet: "+" kilitlenir, "−" çalışır — stepper
+   * `value > max` iken her adımı yutuyordu. Azaltınca store taze tavana kırpar (syncStock).
+   */
+  const maxQuantityFor = (item: Pick<CartItem, 'productId' | 'quantity' | 'stock' | 'maxQuantityPerOrder'>) => {
+    const server = serverStockFor(item.productId);
+    const cap =
+      server === 0
+        ? 0
+        : maxAllowedQty({ stock: server ?? item.stock, maxQuantityPerOrder: item.maxQuantityPerOrder });
+    return Math.max(1, item.quantity, cap);
+  };
+
+  const handleQuantityChange = (itemId: string, delta: number) => {
+    const item = items.find((i) => i.id === itemId);
+    if (item) {
+      // Store'un tavanı da sunucu değerini görsün: donmuş `stock` daha düşükse artış kırpılırdı.
+      const server = serverStockFor(item.productId);
+      if (server != null && server > 0) syncStock(item.productId, server);
+      sync.setQuantity(itemId, item.quantity + delta);
+    }
+  };
+
+  /**
+   * İndirim öncesi birim fiyat (üstü çizili gösterim) — sunucu sepet satırının
+   * `originalPrice`'ı, YALNIZ sunucu satırı indirim bildiriyorsa (`effectivePrice < originalPrice`)
+   * ve güncel birim fiyat (quote) bundan düşükse. İstemci fiyat türetmez; misafirde / sunucu satırı
+   * yokken `null` (eski fiyat çizilmez).
+   */
+  const originalPriceFor = (productId: string): number | null => {
+    const line = byProductId.get(productId);
+    const original = serverAmount(line?.originalPrice);
+    const effective = serverAmount(line?.effectivePrice);
+    const unit = unitPriceFor(productId);
+    if (original == null || effective == null || unit == null) return null;
+    return effective < original && unit < original ? original : null;
+  };
+
+  /** Satır bazlı sunucu stok uyarısı — yalnız üyede dolu gelir. */
+  const stockWarningFor = (productId: string) => {
+    const line = byProductId.get(productId);
+    if (!line) return null;
+    if (line.isAvailable === false) return i18n.t('cart.outOfStock');
+    return line.stockWarning ?? null;
+  };
+
+  return {
+    items,
+    isAuthenticated,
+    itemCount,
+    /** Ödemeye girecek satırlar; seçim kutuları ve ödeme kapısı bunu okur. */
+    selectedItems: selected,
+    selectedCount: selected.length,
+    allSelected,
+    isSelected: (itemId: string) => !deselectedIds.includes(itemId),
+    toggleSelected,
+    toggleSelectAll: () => setAllSelected(!allSelected),
+    // Fiyat — hepsi `pricing.summary`'nin aynısı; yoksa `null` (yer tutucu).
+    productAmount,
+    shippingAmount,
+    serviceFeeAmount,
+    total,
+    /** Satır birim fiyatı — sunucunun `items[].unitPrice`'ı; yoksa `null`. */
+    unitPriceFor,
+    lineSubtotalFor,
+    /** İndirim öncesi birim fiyat (sunucu sepet satırı); indirim yoksa `null`. */
+    originalPriceFor,
+    quoteLoading: quoteQuery.isLoading,
+    /**
+     * Quote hatası — sepet de checkout ile AYNI çıkış yolunu gösterir
+     * (paylaşılan `ErrorState` + "Tekrar Dene", src/ui/CLAUDE.md › Empty and error states). Bu olmadan
+     * kullanıcı dört satırın da "—" olduğu, sebebi ve çıkışı olmayan bir
+     * sepet görüyordu.
+     */
+    quoteError: quoteQuery.isError,
+    retryQuote: () => {
+      void quoteQuery.refetch();
+    },
+    handleRemove,
+    handleQuantityChange,
+    maxQuantityFor,
+    stockWarningFor,
+  };
+}
+
+export type CartController = ReturnType<typeof useCart>;

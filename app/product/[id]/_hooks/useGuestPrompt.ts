@@ -5,8 +5,12 @@ type PromptType = 'favorites' | 'message' | 'purchase' | 'trade' | 'collections'
 
 /** Misafir kullanıcı için görüntülenme sayımı + gecikmeli signup prompt. */
 export function useGuestPrompt(productId: string, isAuthenticated: boolean) {
-  const { incrementProductView, getPromptType, setLastPromptShown, canShowPrompt } =
-    useGuestStore();
+  // Aksiyonlar kararlı referans — tek tek selector: guest store yazımları (görüntülenme sayacı)
+  // bu hook'u yeniden render ettirmez.
+  const incrementProductView = useGuestStore((s) => s.incrementProductView);
+  const getPromptType = useGuestStore((s) => s.getPromptType);
+  const setLastPromptShown = useGuestStore((s) => s.setLastPromptShown);
+  const canShowPrompt = useGuestStore((s) => s.canShowPrompt);
 
   const [showPrompt, setShowPrompt] = useState(false);
   const [promptType, setPromptType] = useState<PromptType | null>(null);

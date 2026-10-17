@@ -10,8 +10,9 @@
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { getPhoneInvalidMessage } from '@/utils/phone';
+import { backMock, canGoBackMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
@@ -41,6 +42,8 @@ jest.mock('@/stores/authStore', () => ({
   useAuthStore: (sel?: (state: any) => unknown) => {
     const state: any = ({
     isAuthenticated: true,
+    // Tam profil yüklenmiş (useFullProfile beklemez).
+    profileValidated: true,
     limits: { maxAddresses: 10 },
     user: { displayName: 'Test', email: 't@b.com', membershipTier: 'free' },
     refreshUserData: jest.fn(),
@@ -62,7 +65,7 @@ jest.mock('@/lib/api', () => ({
 }));
 import { api, userApi } from '@/lib/api';
 
-import AddressesScreen from '../addresses';
+import NewAddressScreen from '../addresses/new';
 import EditProfileScreen from '../edit-profile';
 
 const post = api.post as jest.Mock;
@@ -70,13 +73,14 @@ const updateProfile = userApi.updateProfile as jest.Mock;
 
 describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', () => {
   beforeEach(() => {
+    resetRouterMocks();
+    canGoBackMock.mockReturnValue(true);
     post.mockClear();
     (appAlert as jest.Mock).mockImplementation(() => {});
   });
 
   const fillAndSave = async (phone: string) => {
-    renderWithProviders(<AddressesScreen />);
-    fireEvent.press(await screen.findByText('address.addNewAddress'));
+    renderWithProviders(<NewAddressScreen />);
     fireEvent.changeText(screen.getByTestId('address-title-input'), 'Ev');
     fireEvent.changeText(screen.getByTestId('address-fullname-input'), 'Ayşe Yılmaz');
     fireEvent.changeText(screen.getByTestId('address-phone-input'), phone);
@@ -102,22 +106,30 @@ describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', 
     expect(post.mock.calls[0]![1]).toMatchObject({ phone: '+905321234567' });
   });
 
+  it('başarılı kayıt: ekran geri döner (router.back), bilgi toast olur (appAlert değil)', async () => {
+    const success = jest.spyOn(toast, 'success').mockImplementation(() => 1);
+    await fillAndSave('0532 123 45 67');
+    await waitFor(() => expect(success).toHaveBeenCalledWith('address.added'));
+    expect(appAlert).not.toHaveBeenCalled();
+    expect(backMock).toHaveBeenCalledTimes(1);
+    success.mockRestore();
+  });
+
   it.each([['00905321234567'], ['+1 415 555 0100'], ['05321234567890'], ['0432 123 45 67']])(
     '%s → gönderim DURUR, kırpılmış numara API\'ye SIZMAZ',
     async (input) => {
       await fillAndSave(input);
-      // Uyarı modal İÇİNDE (appAlert modal açıkken iOS'ta donduruyor, CLAUDE.md §12).
-      await waitFor(() => expect(screen.getByTestId('modal-message')).toBeTruthy());
+      // Uyarı satır içi: kural metni alanın altında; alt çubuktaki özet yalnız hatalı
+      // alanın ADINI söyler (iki yerde iki kural anlatılmaz); appAlert yok.
+      await waitFor(() => expect(screen.getByText(getPhoneInvalidMessage())).toBeTruthy());
+      expect(screen.getByText('address.checkFields')).toBeTruthy();
       expect(appAlert).not.toHaveBeenCalled();
       expect(post).not.toHaveBeenCalled();
-      // Alanın altında VE modal içi satırda aynı metin (iki yerde iki kural anlatılmaz).
-      expect((await screen.findAllByText(getPhoneInvalidMessage())).length).toBeGreaterThan(0);
     },
   );
 
   it('fazla haneli girdi alanda KIRPILMAZ — kullanıcı yazdığını görür', async () => {
-    renderWithProviders(<AddressesScreen />);
-    fireEvent.press(await screen.findByText('address.addNewAddress'));
+    renderWithProviders(<NewAddressScreen />);
     const input = screen.getByTestId('address-phone-input');
     fireEvent.changeText(input, '05321234567890');
     // Kırpma olsaydı burada "532 123 45 67" görünür, 890 sessizce kaybolurdu.
@@ -125,8 +137,7 @@ describe('Adres formu — alana yazılan telefon payload\'a ne olarak gidiyor', 
   });
 
   it('blur\'da hata görünür, numara düzeltilince anında kalkar', async () => {
-    renderWithProviders(<AddressesScreen />);
-    fireEvent.press(await screen.findByText('address.addNewAddress'));
+    renderWithProviders(<NewAddressScreen />);
     const input = screen.getByTestId('address-phone-input');
 
     fireEvent.changeText(input, '00905321234567');
@@ -168,6 +179,8 @@ describe('Profil formu — alana yazılan telefon payload\'a ne olarak gidiyor',
 
   it('telefon boş bırakılabilir (numara silme) — hata çıkmaz', async () => {
     renderWithProviders(<EditProfileScreen />);
+    // Kaydet yalnız kirli formda etkin: telefon dışı bir alanı değiştir.
+    fireEvent.changeText(screen.getByDisplayValue('Test'), 'Test Yeni');
     fireEvent.press(screen.getByText('product.saveChanges'));
     await waitFor(() => expect(updateProfile).toHaveBeenCalledTimes(1));
     expect(screen.queryByText(getPhoneInvalidMessage())).toBeNull();

@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { View, Pressable, Image } from 'react-native';
+import { View, Pressable } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Button, Card, StatusBadge, Text, theme } from '@/ui';
+import { Button, SectionCard, StatusBadge, Text, theme, ButtonRow } from '@/ui';
 
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
 import { styles } from '../_lib/ordersStyles';
@@ -16,10 +16,11 @@ import {
   type Order,
 } from '../_lib/ordersStatus';
 
-const { colors } = theme;
-
-/** A single order card (also used compact inside a group's item band). */
-export function OrderCard({
+/**
+ * Tek sipariş kartı (web `OrderGroupCard` satırı): sipariş no + durum rozeti, ürün satırı
+ * (görsel · başlık · satıcı · tarih · fiyat), alt şeritte takip / ayrıntı. Grup içinde `compact`.
+ */
+export const OrderCard = React.memo(function OrderCard({
   order,
   compact = false,
   onRate,
@@ -30,76 +31,75 @@ export function OrderCard({
 }) {
   const { t } = useTranslation();
   const statusConfig = useOrderStatusConfig();
+  const open = () => router.push(`/orders/${order.id}`);
   return (
-    <Card variant="elevated" padding={0} style={styles.orderCard}>
-      <Pressable onPress={() => router.push(`/orders/${order.id}`)}>
-        <View style={styles.orderHeader}>
-          <Text variant="caption" style={styles.orderNumber}>
-            {t('sale.orderNumberTitle', { number: order.orderNumber })}
+    <SectionCard bodyStyle={styles.card}>
+      <View style={styles.cardHead}>
+        <Text variant="caption" tone="muted">
+          {t('sale.orderNumberTitle', { number: order.orderNumber })}
+        </Text>
+        <StatusBadge status={badgeStatusOf(order)} config={statusConfig} size="sm" />
+      </View>
+
+      <Pressable onPress={open} style={styles.line} accessibilityRole="button">
+        <AppImage
+          source={getOrderProductImageUri(order.product, 'card')}
+          recyclingKey={String(order.id)}
+          style={compact ? styles.imageSm : styles.image}
+        />
+        <View style={styles.info}>
+          <Text variant="body" weight="medium" tone="heading" numberOfLines={2}>
+            {order.product.title}
           </Text>
-          <StatusBadge status={badgeStatusOf(order)} config={statusConfig} size="sm" />
-        </View>
-
-        <View style={styles.orderContent}>
-          <Image
-            source={{ uri: getOrderProductImageUri(order.product) }}
-            style={compact ? styles.productImageSm : styles.productImage}
-          />
-          <View style={styles.productInfo}>
-            <Text variant="label" numberOfLines={2}>{order.product.title}</Text>
-            <Text variant="caption" style={styles.sellerName}>
-              {t('refund.sellerLabel', { name: order.seller.displayName })}
-            </Text>
-            <Text variant="h3" style={styles.price}>
-              {formatOrderPrice(order.totalAmount)}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.orderFooter}>
-          <Text variant="caption" style={styles.dateText}>
+          <Text variant="bodySm" tone="muted">
+            {t('refund.sellerLabel', { name: order.seller.displayName })}
+          </Text>
+          <Text variant="caption" tone="subtle">
             {formatOrderDate(order.createdAt)}
           </Text>
-
-          {/* Tracking */}
-          {order.trackingNumber && order.status === 'shipped' && (
-            <Pressable
-              style={styles.trackButton}
-              onPress={() => router.push(`/order-track?orderNumber=${order.orderNumber}`)}
-            >
-              <Ionicons name="location" size={14} color={colors.primary[600]!} />
-              <Text style={styles.trackButtonText}>{t('order.track')}</Text>
-            </Pressable>
-          )}
         </View>
+        <Text variant="body" weight="semibold" style={{ color: theme.priceColor.detail }}>
+          {formatOrderPrice(order.totalAmount)}
+        </Text>
       </Pressable>
+
+      {/* Takip + ayrıntı */}
+      <View style={styles.cardFoot}>
+        <View style={styles.footActions}>
+          {order.trackingNumber && order.status === 'shipped' ? (
+            <Button
+              variant="outline"
+              size="sm"
+              title={t('order.track')}
+              onPress={() => router.push(`/order-track?orderNumber=${order.orderNumber}`)}
+            />
+          ) : null}
+        </View>
+        <Button variant="outline" size="sm" title={t('common.details')} onPress={open} />
+      </View>
 
       {/* Değerlendirme — teslim/tamamlanmış siparişte (yeni escrow: ayrı "Teslim Aldım"
           onay butonu yok; satıcıya ödeme teslim+14 gün sonra otomatik serbest kalır) */}
-      {canRateOrder(order) && (
-        <View style={styles.ratingSection}>
+      {canRateOrder(order) ? (
+        <ButtonRow>
           {!order.hasProductRating && (
             <Button
               variant="outline"
               size="sm"
-              icon="star"
               title={t('order.rateProduct')}
               onPress={() => onRate('product', order)}
-              style={styles.rateButton}
             />
           )}
           {!order.hasSellerRating && (
             <Button
               variant="outline"
               size="sm"
-              icon="person"
               title={t('order.rateSeller')}
               onPress={() => onRate('seller', order)}
-              style={styles.rateButton}
             />
           )}
-        </View>
-      )}
-    </Card>
+        </ButtonRow>
+      ) : null}
+    </SectionCard>
   );
-}
+});

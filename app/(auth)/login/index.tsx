@@ -1,78 +1,39 @@
-import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { HStack, Screen, Text, VStack, theme } from '@/ui';
 
-import { BrandLogo } from '@/components/BrandLogo';
-import { styles } from './_lib/styles';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { AuthFooterLink } from '@/components/auth/AuthFooterLink';
 import { useLogin } from './_hooks/useLogin';
-import { LoginCard } from './_components/LoginCard';
-
-const { colors } = theme;
+import { LoginForm } from './_components/LoginForm';
 
 /**
- * Login — THIN screen. The `useLogin` controller owns the RHF form, login/resend
- * mutations, and social sign-in; this file composes the back button, brand
- * header, login card, and footer links.
+ * Giriş — İNCE ekran. `useLogin` kontrolcüsü RHF formunu, iki aşamalı akışı (e-posta → şifre),
+ * giriş/yeniden-gönder mutasyonlarını ve sosyal girişi yönetir; bu dosya yalnız ortak auth
+ * kabuğunu (başlık üst barda, logo yok) kurar. Geri oku yalnız yığında geri gidilecek bir ekran
+ * varsa çizilir; giriş ana girişse (derin bağlantı / oturum sonu) yoktur — "Misafir olarak
+ * devam et" çıkış yolu olarak kalır.
  */
 export default function LoginScreen() {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const f = useLogin();
 
   return (
-    <Screen center style={styles.screen}>
-      <Pressable
-        testID="login-back-button"
-        onPress={f.continueAsGuest}
-        accessibilityRole="button"
-        accessibilityLabel={t('auth.backToHome')}
-        hitSlop={12}
-        style={[styles.backButton, { top: insets.top + 8 }]}
-      >
-        <Ionicons name="arrow-back" size={26} color={colors.white} />
-      </Pressable>
-
-      <VStack gap={5}>
-        {/* Markalı başlık — turuncu zemin üzerinde Tarodan logosu (logo şeffaf;
-            beyaz "TARO" ancak turuncu arka planda görünür) + slogan */}
-        <View style={styles.brandHeader}>
-          <BrandLogo />
-        </View>
-
-        <LoginCard f={f} />
-
-        <VStack gap={2} style={{ marginTop: theme.spacing[1] }}>
-          <HStack justify="center" wrap gap={2}>
-            <Text variant="body" style={styles.footerText}>{t('auth.noAccount')}</Text>
-            <Text
-              variant="body"
-              weight="bold"
-              style={styles.footerLink}
-              onPress={() => router.push('/(auth)/register' as never)}
-            >
-              {t('auth.signUp')}
-            </Text>
-          </HStack>
-
-          <HStack justify="center" wrap gap={2}>
-            <Text variant="bodySm" style={styles.footerText}>
-              {t('auth.isBusinessOwnerPrompt')}
-            </Text>
-            <Text
-              variant="bodySm"
-              weight="bold"
-              style={styles.footerLink}
-              onPress={() => router.push('/(auth)/register-business' as never)}
-            >
-              {t('auth.openBusinessAccountCta')}
-            </Text>
-          </HStack>
-        </VStack>
-      </VStack>
-    </Screen>
+    <AuthShell
+      title={t('auth.loginTitle')}
+      hero="auth_default"
+      // Şifre / Google-only adımında geri oku 1. adıma (e-posta) döner; 1. adımda ekrandan çıkar.
+      showBack
+      onBack={f.step !== 'email' ? f.back : f.continueAsGuest}
+      footer={
+        <AuthFooterLink
+          prompt={t('auth.noAccount')}
+          linkLabel={t('common.register')}
+          testID="login-register-link"
+          onPress={() => router.push('/(auth)/register' as never)}
+        />
+      }
+    >
+      <LoginForm f={f} />
+    </AuthShell>
   );
 }

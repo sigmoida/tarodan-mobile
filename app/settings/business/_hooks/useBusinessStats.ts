@@ -10,7 +10,7 @@ import type { BusinessStats, TabType } from "../_lib/types";
 /**
  * İşletme paneli controller'ı — istatistik çekimi, oturum yönlendirmesi, sekme.
  *
- * React Query'ye taşındı (CLAUDE.md §6). Hata mesajı ayrımı korundu: 400
+ * React Query'ye taşındı (src/lib/query/CLAUDE.md › Query hooks). Hata mesajı ayrımı korundu: 400
  * "bu özellik yalnız İşletme hesapları için" anlamına geliyor ve sunucunun
  * kendi metni gösteriliyor; diğer hatalar genel mesaja düşüyor.
  */

@@ -1,9 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { View, ScrollView, Pressable, Image } from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Button, Card, Chip, StatusBadge, Text, theme } from '@/ui';
+import { View, Pressable } from 'react-native';
+import { AppImage } from '@/components/AppImage';
+import { ChipTabs, SectionCard, StatusBadge, Text, theme, Icon } from '@/ui';
 
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
 import type { UiOrderStatus } from '@/utils/orderStatus';
@@ -20,86 +19,62 @@ import {
 import { OrderCard } from './OrderCard';
 import type { OrdersController } from '../_hooks/useOrders';
 
-const { colors } = theme;
-
-const FILTER_ORDER: FilterType[] = ['all', 'pending', 'processing', 'shipped', 'delivered', 'completed', 'refunds'];
-
-// ---------------------------------------------------------------------------
-// Not-authenticated gate
-// ---------------------------------------------------------------------------
-export function OrdersGate({ f }: { f: OrdersController }) {
-  const { t } = useTranslation();
-  if (f.isAuthenticated) return null;
-  return (
-    <View style={styles.centeredContainer}>
-      <Ionicons name="receipt-outline" size={64} color={colors.primary[600]!} />
-      <Text variant="h2" style={styles.title}>{t('order.myOrders')}</Text>
-      <Text style={styles.subtitle}>{t('order.signInToView')}</Text>
-      <Button variant="primary" title={t('common.login')} onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
-    </View>
-  );
-}
+const FILTER_ORDER: FilterType[] = [
+  'all',
+  'pending',
+  'processing',
+  'shipped',
+  'delivered',
+  'completed',
+  'cancelled',
+  'refunds',
+];
 
 // ---------------------------------------------------------------------------
-// Filter chips
+// Filter chips (web Tabs karşılığı — yatay kaydırılan chip'ler)
 // ---------------------------------------------------------------------------
 export function OrdersFilters({ f }: { f: OrdersController }) {
   const { t } = useTranslation();
   const statusText = useStatusText();
   return (
-    <View style={styles.filterContainer}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {FILTER_ORDER.map((key) => (
-          <Chip
-            key={key}
-            label={
-              key === 'all'
-                ? t('order.tabAll')
-                : key === 'refunds'
-                  ? t('order.tabRefunds')
-                  : statusText(key as UiOrderStatus)
-            }
-            selected={f.filter === key}
-            onPress={() => f.setFilter(key)}
-            style={styles.filterChipSpacing}
-          />
-        ))}
-      </ScrollView>
-    </View>
+    <ChipTabs
+      testID="orders-filters"
+      value={f.filter}
+      onChange={f.setFilter}
+      items={FILTER_ORDER.map((key) => ({
+        key,
+        label:
+          key === 'all'
+            ? t('order.tabAll')
+            : key === 'cancelled'
+              ? t('order.filterCancelled')
+              : key === 'refunds'
+                ? t('order.tabRefunds')
+                : statusText(key as UiOrderStatus),
+      }))}
+    />
   );
 }
 
 // ---------------------------------------------------------------------------
-// Empty state
+// Empty state metni (PageShell `emptyState` için)
 // ---------------------------------------------------------------------------
-export function OrdersEmpty({ filter }: { filter: FilterType }) {
+export function useOrdersEmptyTitle(filter: FilterType): string {
   const { t } = useTranslation();
   const statusText = useStatusText();
-  return (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="receipt-outline" size={80} color={colors.text.subtle} />
-      <Text variant="h3" style={styles.emptyTitle}>
-        {filter === 'all'
-          ? t('order.noOrders')
-          : filter === 'refunds'
-            ? t('order.noRefunds')
-            : t('order.noOrdersForStatus', { status: statusText(filter as UiOrderStatus) })}
-      </Text>
-      <Text style={styles.emptySubtitle}>{t('order.startShopping')}</Text>
-      <Button
-        variant="primary"
-        title={t('order.exploreProducts')}
-        onPress={() => router.push('/(tabs)/search')}
-        style={styles.emptyButton}
-      />
-    </View>
-  );
+  return filter === 'all'
+    ? t('order.noOrders')
+    : filter === 'cancelled'
+      ? t('order.emptyCancelled')
+      : filter === 'refunds'
+        ? t('order.noRefunds')
+        : t('order.noOrdersForStatus', { status: statusText(filter as UiOrderStatus) });
 }
 
 // ---------------------------------------------------------------------------
 // Multi-item group card (accordion)
 // ---------------------------------------------------------------------------
-export function OrderGroupCard({
+export const OrderGroupCard = React.memo(function OrderGroupCard({
   group,
   isExpanded,
   onToggle,
@@ -107,7 +82,8 @@ export function OrderGroupCard({
 }: {
   group: OrderGroup;
   isExpanded: boolean;
-  onToggle: () => void;
+  /** Kararlı (satır başına closure yok): grup kimliğini alır. */
+  onToggle: (groupId: string) => void;
   onRate: (type: 'product' | 'seller', order: Order) => void;
 }) {
   const { t } = useTranslation();
@@ -118,76 +94,67 @@ export function OrderGroupCard({
 
   return (
     <View>
-      {/* Özet kart — tekli sipariş kartıyla AYNI krom; kapalıyken de tek karta benzer. */}
-      <Card variant="elevated" padding={0} style={styles.orderCard}>
-        {/* Özet satırı — tıkla aç/kapa (accordion) */}
+      {/* Özet kart — tekli sipariş kartıyla AYNI krom. Tıkla aç/kapa (accordion). */}
+      <SectionCard bodyStyle={styles.card}>
         <Pressable
-          onPress={onToggle}
+          onPress={() => onToggle(group.id)}
           accessibilityRole="button"
           accessibilityState={{ expanded: isExpanded }}
+          style={styles.card}
         >
-          {/* 1. Başlık — tekli karttaki sipariş no / durum hizası */}
-          <View style={styles.orderHeader}>
-            <Text variant="caption" style={styles.orderNumber}>
+          <View style={styles.cardHead}>
+            <Text variant="caption" tone="muted">
               {t('order.multiOrderWithCount', { count: itemCount })}
             </Text>
             <StatusBadge status={group.status} config={statusConfig} size="sm" />
           </View>
 
-          {/* 2. İçerik — tekli karttaki ürün görseli hizası (büyük thumbnaillar) */}
-          <View style={styles.orderContent}>
+          <View style={styles.line}>
             <View style={styles.thumbRow}>
               {thumbs.map((order, idx) => (
-                <Image
+                <AppImage
                   key={order.id}
-                  source={{ uri: getOrderProductImageUri(order.product) }}
+                  source={getOrderProductImageUri(order.product, 'card')}
                   style={[styles.thumb, idx > 0 && styles.thumbOverlap]}
                 />
               ))}
               {extraCount > 0 && (
                 <View style={[styles.thumb, styles.thumbOverlap, styles.thumbMore]}>
-                  <Text variant="caption" style={styles.thumbMoreText}>
+                  <Text variant="caption" weight="bold" tone="muted">
                     +{extraCount}
                   </Text>
                 </View>
               )}
             </View>
-            <View style={styles.productInfo}>
-              <Text variant="label" numberOfLines={1}>
-                {itemCount} ürünlük sepet
-              </Text>
-              <Text variant="caption" style={styles.sellerName}>
-                Her ürün ayrı kargolanır
-              </Text>
-              <Text variant="caption" style={styles.sellerName}>
+            <View style={styles.info}>
+              <Text variant="caption" tone="subtle">
                 {formatOrderDate(group.createdAt)}
               </Text>
             </View>
           </View>
 
-          {/* 3. Alt — tekli karttaki satıcı / toplam hizası + aç-kapa */}
-          <View style={styles.orderFooter}>
-            <Text variant="caption" style={styles.dateText}>
+          <View style={styles.cardFoot}>
+            <Text variant="bodySm" tone="muted">
               {isExpanded ? t('order.hideItems') : t('order.showItems')}
             </Text>
-            <View style={styles.groupFooterRight}>
-              <Text variant="h3" style={styles.price}>
+            <View style={styles.groupRight}>
+              <Text variant="body" weight="semibold" style={{ color: theme.priceColor.detail }}>
                 {formatOrderPrice(group.totalAmount)}
               </Text>
-              <Ionicons
+              <Icon
                 name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                size={20}
-                color={colors.text.muted}
+                size={theme.iconSize.md}
+                color={theme.colors.text.muted}
               />
             </View>
           </View>
         </Pressable>
-      </Card>
+      </SectionCard>
 
-      {/* Açılınca: grubun ürünleri sol-bantlı bir kolonda KOMPAKT kartlar olarak
-          görünür → hem küçük durur hem de sepete ait olduğu net belli olur. */}
+      {/* Açılınca: grubun ürünleri sol-bantlı bir kolonda KOMPAKT kartlar (web `border-l-2
+          border-primary-300 pl-4`) → sepete ait olduğu belli olur. */}
       {isExpanded && (
-        <View style={styles.groupItemsBand}>
+        <View style={styles.groupBand}>
           {group.orders.map((order) => (
             <OrderCard key={order.id} order={order} compact onRate={onRate} />
           ))}
@@ -195,4 +162,4 @@ export function OrderGroupCard({
       )}
     </View>
   );
-}
+});

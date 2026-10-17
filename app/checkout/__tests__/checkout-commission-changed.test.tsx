@@ -13,6 +13,11 @@ import React from 'react';
 import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
+// B4: kimlik kapısı bu testin konusu değil — geçti say (kapı testi ayrı dosyada).
+jest.mock('@/hooks/useLegalIdentity', () =>
+  require('@/test-utils/legalIdentity').legalIdentityGatePassMock,
+);
+
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
@@ -97,13 +102,10 @@ async function payThroughCheckout() {
   // zamanlamasına bağımlı kalmamak için (validateStep1 inline adres ister).
   await waitFor(() => expect(screen.getByText('Ali Veli')).toBeOnTheScreen());
   fireEvent.press(screen.getByText('Ali Veli'));
-  fireEvent.press(screen.getByText('Devam Et')); // step1 → step2
-  await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
-  fireEvent.press(screen.getByText('Devam Et')); // step2 → step3
-  await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+  await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
   acceptDistanceSales();
   await act(async () => {
-    fireEvent.press(screen.getByText(/Onayla ve Öde/));
+    fireEvent.press(screen.getByText('Ödeme Yap'));
   });
 }
 

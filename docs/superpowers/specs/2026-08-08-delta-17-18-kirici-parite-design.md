@@ -1,7 +1,7 @@
 # Delta 17/18 — Kırıcı Parite Turu (Tasarım)
 
 **Tarih:** 2026-08-08
-**Kaynak:** `mobile-parity docs/17-api-delta-2026-08-04.md`, `18-api-delta-2026-08-07.md`
+**Kaynak:** `docs/mobile-parity/17-api-delta-2026-08-04.md`, `18-api-delta-2026-08-07.md`
 **Ana repo:** `sigmoida/tarodan-app` `development` @ `cfc058da` (2026-08-07)
 
 ## Amaç

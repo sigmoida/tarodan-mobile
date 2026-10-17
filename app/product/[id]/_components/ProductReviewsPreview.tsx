@@ -1,14 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
-import { Text, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { EmptyState, SectionCard, SectionCardAction } from '@/ui';
 import type { ProductReview } from '../_lib/types';
-import { ReviewAuthorName } from '@/components/reviews/ReviewAuthorName';
+import { ReviewRow } from './ReviewRow';
 
-const { colors } = theme;
-
-/** Değerlendirme bölümü: ilk 2 yorum + "Tümünü Gör". */
+/** Değerlendirmeler (web `ProductReviews`): SectionCard + "Tümünü gör"; ilk 2 yorum, yoksa boş metin. */
 export function ProductReviewsPreview({
   reviews,
   onSeeAll,
@@ -19,58 +15,14 @@ export function ProductReviewsPreview({
   const { t } = useTranslation();
   const list = Array.isArray(reviews) ? reviews : [];
   return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{t('profile.reviews')}</Text>
-        <Pressable onPress={onSeeAll}>
-          <Text style={styles.seeAll}>{t('common.seeAll')}</Text>
-        </Pressable>
-      </View>
+    <SectionCard title={t('review.reviews')} action={<SectionCardAction onPress={onSeeAll} />} testID="product-reviews">
+      {list.slice(0, 2).map((review, i) => (
+        <ReviewRow key={review.id} review={review} divided={i > 0} />
+      ))}
 
-      {list.slice(0, 2).map((review) => {
-        const score = review.score ?? review.rating ?? 0;
-        const reviewerName =
-          review.user?.displayName ?? (review as any).userName ?? (review as any).reviewer?.displayName ?? t('common.user');
-        const reviewText = review.review ?? review.comment;
-        const dateStr = review.createdAt ?? review.date;
-        return (
-          <View key={review.id} style={styles.reviewCard}>
-            <View style={styles.reviewHeader}>
-              <ReviewAuthorName review={review as any} name={reviewerName} style={styles.reviewerName} />
-              <View style={styles.ratingStars}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Ionicons
-                    key={star}
-                    name={star <= score ? 'star' : 'star-outline'}
-                    size={14}
-                    color={colors.warning[500]!}
-                  />
-                ))}
-              </View>
-            </View>
-            {review.title ? <Text style={styles.reviewTitle}>{review.title}</Text> : null}
-            {reviewText ? <Text style={styles.reviewComment}>{reviewText}</Text> : null}
-            {dateStr ? <Text style={styles.reviewDate}>{new Date(dateStr).toLocaleDateString('tr-TR')}</Text> : null}
-          </View>
-        );
-      })}
-
-      {list.length === 0 && <Text style={styles.noReviews}>{t('profile.noReviews')}</Text>}
-    </View>
+      {list.length === 0 && (
+        <EmptyState placement="inline" icon="star" title={t('profile.noReviews')} subtitle={t('emptyState.reviewsHint')} />
+      )}
+    </SectionCard>
   );
 }
-
-const styles = StyleSheet.create({
-  section: { marginBottom: theme.spacing[2] },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[3] },
-  sectionTitle: { fontSize: 18, fontWeight: '600', color: colors.text.heading, marginBottom: theme.spacing[3] },
-  seeAll: { fontSize: 14, color: colors.primary[600]!, fontWeight: '500' },
-  reviewCard: { backgroundColor: colors.gray[50], borderRadius: theme.radius.xl, padding: theme.spacing[3], marginBottom: theme.spacing[2] },
-  reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[2] },
-  reviewerName: { fontSize: 14, fontWeight: '600', color: colors.text.heading },
-  ratingStars: { flexDirection: 'row', gap: theme.spacing[0.5] },
-  reviewTitle: { fontSize: 14, fontWeight: '700', color: colors.text.heading, marginBottom: theme.spacing[0.5] },
-  reviewComment: { fontSize: 14, color: colors.text.heading, lineHeight: 20 },
-  reviewDate: { fontSize: 12, color: colors.text.muted, marginTop: theme.spacing[2] },
-  noReviews: { fontSize: 14, color: colors.text.muted, fontStyle: 'italic' },
-});

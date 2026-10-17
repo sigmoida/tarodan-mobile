@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { usePathname, router } from 'expo-router';
 import { useAuthStore } from '../stores/authStore';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
+import { isLegalTextPath } from '@/lib/shared/legalConsent';
 
 /**
  * Web BusinessMembershipGuard karşılığı (apps/web/src/components/BusinessMembershipGuard.tsx).
@@ -12,10 +13,15 @@ import { CAN_BUY_DIGITAL } from '@/lib/purchases';
  *   - businessStatus === 'rejected' → /business-rejected (sadece rejected + contact + login serbest)
  *   - onaylı ama business üyelik tier'ı yoksa → /membership
  *
+ * Yasal metin sayfaları (`/terms`, `/privacy`, …; `isLegalTextPath`) her
+ * durumda muaftır: onay kapısı (`RequiredStepsGate`) üyeden bu metinleri
+ * onaylamasını ister, belgeye dokunan kurumsal hesap metni okuyabilmeli.
+ *
  * Render etmez (null) — _layout.tsx içinde mount edilir.
  */
 export default function BusinessMembershipGuard() {
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -25,6 +31,9 @@ export default function BusinessMembershipGuard() {
     if (!isBusinessAccount) return;
 
     // expo-router pathname grup segmentlerini ((auth), (tabs)) içermez.
+
+    // Onay kapısının açtığı yasal metinler hiçbir durumda yönlendirilmez.
+    if (isLegalTextPath(pathname)) return;
 
     // Pending: sadece /business-pending ve /contact'a izin ver
     if (user.businessStatus === 'pending') {

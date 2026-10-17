@@ -5,7 +5,8 @@
  * Backend (ilan durum geçişleri, relist limiti, deaktif/sil kalıcılığı) backendOnly.
  */
 import React from "react";
-import { screen, fireEvent, waitFor } from "@testing-library/react-native";
+import { Modal } from "react-native";
+import { screen, fireEvent, waitFor, act } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
 
 const mockPush = jest.fn();
@@ -41,11 +42,15 @@ jest.mock("@/components/product/BoostModal", () => ({
 const mockGetMyListings = jest.fn();
 const mockGetMyStats = jest.fn();
 jest.mock("@/lib/api", () => ({
+  errorText: (_e: unknown, fallback: string) => fallback,
   productsApi: {
     getMyListings: (...a: any[]) => mockGetMyListings(...a),
     getMyStats: (...a: any[]) => mockGetMyStats(...a),
     update: jest.fn(),
     delete: jest.fn(),
+    deactivate: jest.fn(),
+    renew: jest.fn(),
+    renewMany: jest.fn(),
   },
 }));
 
@@ -94,9 +99,9 @@ describe("J68 · İlanlarım filtre chip + durum rozeti", () => {
   it("J68.1 filtre chip'leri sunucu sayaçlarıyla render olur (Tümü/Reddedildi)", async () => {
     mockGetMyListings.mockResolvedValue({ data: { data: [listing()] } });
     renderWithProviders(<MyListingsScreen />);
-    expect(await screen.findByText("listing.filterAll (3)")).toBeOnTheScreen();
-    expect(screen.getByText("listing.filterRejected (1)")).toBeOnTheScreen();
-    expect(screen.getByText("listing.filterActive (1)")).toBeOnTheScreen();
+    expect(await screen.findByLabelText("listing.filterAll (3)")).toBeOnTheScreen();
+    expect(screen.getByLabelText("listing.filterRejected (1)")).toBeOnTheScreen();
+    expect(screen.getByLabelText("listing.filterActive (1)")).toBeOnTheScreen();
   });
 
   it('J68.2 reddedilen ilan → "Reddedildi" durum rozeti gösterilir', async () => {
@@ -107,12 +112,12 @@ describe("J68 · İlanlarım filtre chip + durum rozeti", () => {
     });
     renderWithProviders(<MyListingsScreen />);
     expect(await screen.findByText("Reddedilen İlan")).toBeOnTheScreen();
-    // "Reddedildi" hem chip etiketinde hem ilan rozetinde geçer → en az 2
+    // Filtre chip'i `listing.filterRejected`, ilan durumu web `productStatusConfig`
+    // etiketi (`status.product.rejected`).
     await waitFor(() =>
-      expect(screen.getAllByText(/listing.filterRejected/).length).toBeGreaterThanOrEqual(
-        2,
-      ),
+      expect(screen.getAllByText(/listing.filterRejected/).length).toBeGreaterThanOrEqual(1),
     );
+    expect(screen.getAllByText('status.product.rejected').length).toBeGreaterThanOrEqual(1);
   });
 
   it("J68.3 boş liste → boş durum mesajı", async () => {
@@ -140,7 +145,20 @@ describe("J133 · İlan düzenleme navigasyon wiring", () => {
     // İlan menüsünü aç (accessibilityLabel="İlan menüsü")
     fireEvent.press(screen.getByLabelText("listing.menuAccessibility"));
     await screen.findByText("common.edit");
+    // Eylem ActionSheet kapandıktan SONRA çalışır (runAfterClose; iOS onDismiss / üst sınır).
+    jest.useFakeTimers();
     fireEvent.press(screen.getByText("common.edit"));
+    act(() => {
+      jest.advanceTimersByTime(1000); // kapanış animasyonu + söküm
+    });
+    act(() => {
+      // iOS native Modal onDismiss → kuyruk
+      screen.UNSAFE_queryAllByType(Modal).forEach((m) => m.props.onDismiss?.());
+    });
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+    jest.useRealTimers();
 
     expect(mockPush).toHaveBeenCalledWith("/listing/L9/edit");
   });
@@ -157,7 +175,7 @@ describe("J133 · İlan düzenleme navigasyon wiring", () => {
 
 /**
  * Eylem menüsü bir ui-native Modal. Menü kapanırken AYNI tick'te appAlert (o da
- * bir RN Modal) açmak iOS'ta donmaya yol açıyor (CLAUDE.md §12) — uyarı menü
+ * bir RN Modal) açmak iOS'ta donmaya yol açıyor (src/ui/CLAUDE.md › iOS modal rule) — uyarı menü
  * kapandıktan sonra açılmalı.
  */
 describe("İlanlarım · menü kapanmadan uyarı açılmaz (iOS donma)", () => {
@@ -167,7 +185,7 @@ describe("İlanlarım · menü kapanmadan uyarı açılmaz (iOS donma)", () => {
     wireStats();
   });
 
-  it('"Pasifleştir" onayı menü kapandıktan sonra açılır', async () => {
+  it('"Pasife al" nedeni penceresi menü kapandıktan sonra açılır (appAlert değil)', async () => {
     const { appAlert } = jest.requireMock("@/ui") as { appAlert: jest.Mock };
     appAlert.mockClear();
     mockGetMyListings.mockResolvedValue({ data: { data: [listing({ id: "L9", status: "active" })] } });
@@ -178,9 +196,63 @@ describe("İlanlarım · menü kapanmadan uyarı açılmaz (iOS donma)", () => {
 
     jest.useFakeTimers();
     fireEvent.press(screen.getByText("listing.deactivateAction"));
+    expect(screen.queryByText("product.deactivateListingFull")).toBeNull();
+    act(() => {
+      jest.advanceTimersByTime(1000); // kapanış animasyonu + söküm
+    });
+    act(() => {
+      screen.UNSAFE_queryAllByType(Modal).forEach((m) => m.props.onDismiss?.());
+    });
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+    expect(screen.getByText("product.deactivateListingFull")).toBeOnTheScreen();
     expect(appAlert).not.toHaveBeenCalled();
-    jest.advanceTimersByTime(500);
-    expect(appAlert).toHaveBeenCalledWith("listing.deactivateTitle", "listing.deactivateBody", expect.any(Array));
     jest.useRealTimers();
+  });
+});
+
+/**
+ * Parite C-1.6 · aktivasyon mesajı API'nin döndürdüğü statüye göre seçilir.
+ * İade karantinasındaki ilan doğrudan `active` olur; "incelemeye gönderildi"
+ * demek yanlış olurdu.
+ */
+describe("İlanlarım · aktivasyon mesajı yanıt statüsüne göre", () => {
+  async function relistFirstListing(responseStatus: string) {
+    const toastSuccess = jest
+      .spyOn((jest.requireMock("@/ui") as { toast: { success: () => number } }).toast, "success")
+      .mockImplementation(() => 1);
+    const { productsApi } = jest.requireMock("@/lib/api") as {
+      productsApi: { update: jest.Mock };
+    };
+    productsApi.update.mockReset();
+    productsApi.update.mockResolvedValue({ data: { id: "L9", status: responseStatus } });
+    mockGetMyListings.mockResolvedValue({
+      data: { data: [listing({ id: "L9", status: "inactive" })] },
+    });
+    renderWithProviders(<MyListingsScreen />);
+    await screen.findByText("Hot Wheels Camaro");
+    fireEvent.press(screen.getByLabelText("listing.menuAccessibility"));
+    fireEvent.press(await screen.findByText("listing.relistAction"));
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
+    return toastSuccess;
+  }
+
+  beforeEach(() => {
+    mockGetMyListings.mockReset();
+    mockGetMyStats.mockReset();
+    wireStats();
+  });
+
+  it("yanıt statüsü active ise doğrudan yayında mesajı gösterilir", async () => {
+    const toastSuccess = await relistFirstListing("active");
+    expect(toastSuccess).toHaveBeenCalledWith("listing.reactivatedImmediately");
+    toastSuccess.mockRestore();
+  });
+
+  it("yanıt statüsü pending ise incelemeye gönderildi mesajı gösterilir", async () => {
+    const toastSuccess = await relistFirstListing("pending");
+    expect(toastSuccess).toHaveBeenCalledWith("listing.sentForReview");
+    toastSuccess.mockRestore();
   });
 });

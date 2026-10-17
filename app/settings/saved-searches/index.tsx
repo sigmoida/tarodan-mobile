@@ -1,113 +1,79 @@
-import { View, ScrollView, TouchableOpacity } from "react-native";
-import { Button, Spinner, Text, ScreenHeader, theme } from "@/ui";
+import { Alert, Button, EmptyState, Text, TopBarLabel } from "@/ui";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSavedSearches } from "./_hooks/useSavedSearches";
 import UpgradeCta from "@/components/UpgradeCta";
-import { styles } from "./_lib/styles";
+import { AuthGatePage } from "@/components/common/AuthGatePage";
+import { PageShell } from "@/components/common/PageShell";
+import { RowListSkeleton } from "@/components/common/RowListSkeleton";
 import { SavedSearchCard } from "./_components/SavedSearchCard";
 
-const { colors } = theme;
-
+/** Kayıtlı aramalar — PageShell (Skeleton) + web Card'ları; limit uyarısı Alert, boşken EmptyState. */
 export default function SavedSearchesScreen() {
   const { t } = useTranslation();
   const f = useSavedSearches();
 
   if (!f.isAuthenticated) {
     return (
-      <View style={styles.centeredContainer}>
-        <Ionicons
-          name="search-outline"
-          size={64}
-          color={colors.primary[600]!}
-        />
-        <Text variant="h3" style={styles.title}>
-          {t("savedSearch.title")}
-        </Text>
-        <Text variant="body" style={styles.subtitle}>
-          {t("savedSearch.loginSubtitle")}
-        </Text>
-        <Button
-          variant="primary"
-          title={t("common.login")}
-          onPress={() => router.push("/(auth)/login")}
-          style={{ alignSelf: "center" }}
-        />
-      </View>
+      <AuthGatePage
+        title={t("mobile.settingsSavedSearches")}
+        emptyTitle={t("savedSearch.title")}
+        icon="magnifying-glass"
+        subtitle={t("savedSearch.loginSubtitle")}
+      />
     );
   }
 
+  const nearLimit =
+    f.maxSavedSearches !== -1 && f.searches.length >= f.maxSavedSearches - 1;
+
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={t("mobile.settingsSavedSearches")}
-        onBack={() =>
-          router.canGoBack() ? router.back() : router.replace("/(tabs)")
-        }
-        right={
-          <Text style={styles.headerCount}>
-            {f.searches.length}/
-            {f.maxSavedSearches === -1 ? "∞" : f.maxSavedSearches}
-          </Text>
-        }
-      />
-
+    <PageShell
+      title={t("mobile.settingsSavedSearches")}
+      onBack={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)"))}
+      right={
+        <TopBarLabel>
+          {f.searches.length}/{f.maxSavedSearches === -1 ? "∞" : f.maxSavedSearches}
+        </TopBarLabel>
+      }
+      loading={f.isLoading}
+      loadingFallback={<RowListSkeleton rows={4} />}
+      error={f.loadFailed || undefined}
+      onRetry={f.retry}
+    >
       {/* Limit Info */}
-      {f.maxSavedSearches !== -1 &&
-        f.searches.length >= f.maxSavedSearches - 1 && (
-          <View style={styles.limitBanner}>
-            <Ionicons
-              name="information-circle"
-              size={20}
-              color={colors.warning[600]!}
+      {nearLimit && (
+        <Alert variant="warning">
+          <Text variant="bodySm" tone="warning">
+            {f.searches.length >= f.maxSavedSearches
+              ? t("savedSearch.limitReached")
+              : t("savedSearch.remainingSearches", { count: f.maxSavedSearches - f.searches.length })}
+          </Text>
+          {/* iOS'ta satın alma yok (Guideline 3.1.1); düğme yalnız Android/web'de render edilir. */}
+          <UpgradeCta>
+            <Button
+              variant="link"
+              size="sm"
+              title={t("membership.premium")}
+              onPress={() => router.push("/upgrade")}
             />
-            <Text style={styles.limitText}>
-              {f.searches.length >= f.maxSavedSearches
-                ? t("savedSearch.limitReached")
-                : t("savedSearch.remainingSearches", { count: f.maxSavedSearches - f.searches.length })}
-            </Text>
-            {/* iOS'ta satın alma yok (Guideline 3.1.1); düğme yalnız Android/web'de render edilir. */}
-            <UpgradeCta>
-              <TouchableOpacity onPress={() => router.push("/upgrade")}>
-                <Text style={styles.upgradeLink}>{t("membership.premium")}</Text>
-              </TouchableOpacity>
-            </UpgradeCta>
-          </View>
-        )}
-
-      {f.isLoading ? (
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" />
-        </View>
-      ) : f.searches.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons
-            name="search-outline"
-            size={80}
-            color={colors.text.subtle}
-          />
-          <Text variant="h3" style={styles.emptyTitle}>
-            {t("savedSearch.emptyTitle")}
-          </Text>
-          <Text variant="body" style={styles.emptySubtitle}>
-            {t("savedSearch.emptySubtitle")}
-          </Text>
-          <Button
-            variant="primary"
-            title={t("savedSearch.goToSearch")}
-            onPress={() => router.push("/(tabs)/search")}
-            style={{ alignSelf: "center" }}
-          />
-        </View>
-      ) : (
-        <ScrollView style={styles.content}>
-          {f.searches.map((search) => (
-            <SavedSearchCard key={search.id} search={search} f={f} />
-          ))}
-          <View style={{ height: 50 }} />
-        </ScrollView>
+          </UpgradeCta>
+        </Alert>
       )}
-    </View>
+
+      {f.searches.length === 0 ? (
+        <EmptyState
+          icon="magnifying-glass"
+          title={t("savedSearch.emptyTitle")}
+          subtitle={t("savedSearch.emptySubtitle")}
+          actionLabel={t("savedSearch.goToSearch")}
+          onAction={() => router.push("/search")}
+        />
+      ) : (
+        f.searches.map((search) => (
+          <SavedSearchCard key={search.id} search={search} f={f} />
+        ))
+      )}
+    </PageShell>
   );
 }

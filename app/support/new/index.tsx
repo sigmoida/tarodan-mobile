@@ -1,20 +1,14 @@
-import { View, ScrollView } from "react-native";
-import {
-  Text,
-  Snackbar,
-  Button,
-  ScreenHeader,
-  theme,
-} from "@/ui";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { Button } from "@/ui";
+import { PageShell } from "@/components/common/PageShell";
 import { useSupportForm } from "./_hooks/useSupportForm";
-import { styles } from "./_lib/styles";
 import { SupportForm } from "./_components/SupportForm";
 
-const { colors } = theme;
-
+/**
+ * Yeni destek talebi — PageShell (klavye kaçınma, sabit alt bar = "Talep Oluştur") + SectionCard'lı
+ * form. Alan durumu/doğrulama/gönderim `useSupportForm`'da; geri bildirim toast.
+ */
 export default function SupportScreen() {
   const { t } = useTranslation();
   const f = useSupportForm();
@@ -24,44 +18,38 @@ export default function SupportScreen() {
 
   if (!f.isAuthenticated) {
     return (
-      <View style={styles.container}>
-        <ScreenHeader title={t("mobile.pageSupport")} onBack={back} />
-        <View style={styles.authRequired}>
-          <Ionicons
-            name="headset-outline"
-            size={64}
-            color={colors.primary[600]!}
-          />
-          <Text style={styles.authTitle}>{t("auth.loginRequired")}</Text>
-          <Text style={styles.authSubtitle}>
-            {t("support.new.loginRequiredSubtitle")}
-          </Text>
-          <Button
-            variant="primary"
-            title={t("common.login")}
-            onPress={() => router.push("/(auth)/login")}
-            style={{ alignSelf: "center" }}
-          />
-        </View>
-      </View>
+      <PageShell
+        title={t("mobile.pageSupport")}
+        onBack={back}
+        empty
+        emptyState={{
+          icon: "lifebuoy",
+          title: t("auth.loginRequired"),
+          subtitle: t("support.new.loginRequiredSubtitle"),
+          actionLabel: t("common.login"),
+          onAction: () => router.push("/(auth)/login"),
+        }}
+      />
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t("support.new.title")} onBack={back} />
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <SupportForm f={f} />
-      </ScrollView>
-
-      <Snackbar
-        visible={f.snackbar.visible}
-        onDismiss={() => f.setSnackbar({ ...f.snackbar, visible: false })}
-        duration={3000}
-      >
-        {f.snackbar.message}
-      </Snackbar>
-    </View>
+    <PageShell
+      title={t("support.new.title")}
+      onBack={back}
+      footer={
+        <Button
+          variant="primary"
+          size="lg"
+          fullWidth
+          title={t("support.createTicket")}
+          onPress={f.handleSubmit}
+          isLoading={f.loading}
+          disabled={f.loading || !f.category || !f.subject || !f.description}
+        />
+      }
+    >
+      <SupportForm f={f} />
+    </PageShell>
   );
 }

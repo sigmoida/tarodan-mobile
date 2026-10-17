@@ -298,8 +298,10 @@ describe('409 — form TAMAMEN sunucunun taze haline döner', () => {
 
     await waitFor(() => expect(productsApi.update).toHaveBeenCalledTimes(2));
     const payload = (productsApi.update as jest.Mock).mock.calls[1][1];
-    expect(payload.attributes).toBeUndefined();
-    expect(payload.attributes ?? []).not.toContain('premium');
+    // Düzenlemede boş liste `[]` gider (sunucu tüm özel grup bağlarını
+    // değiştirir; alanı atlamak eski bağı silmezdi) — eski üretici niteliği yok.
+    expect(payload.attributes).toEqual([]);
+    expect(payload.attributes).not.toContain('premium');
   });
 });
 

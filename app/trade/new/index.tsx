@@ -1,16 +1,25 @@
-import { View, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { ScreenHeader, Snackbar } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
 
-import { styles } from './_lib/styles';
 import { useNewTrade } from './_hooks/useNewTrade';
 import { NewTradeGate } from './_components/NewTradeGate';
-import { StepIndicator, Step1MyItems, Step2TheirItems, Step3Review } from './_components/NewTradeSteps';
+import {
+  StepIndicator,
+  Step1MyItems,
+  Step2TheirItems,
+  Step3Review,
+  NewTradeFooter,
+  newTradeFooterVisible,
+} from './_components/NewTradeSteps';
 
 /**
  * New trade wizard — THIN screen. The `useNewTrade` controller owns the 3-step
  * state, product queries, and the create-trade mutation; this file renders the
- * gate, step indicator, the active step, and the snackbar.
+ * gate, step indicator and the active step inside the shared PageShell; the step buttons sit in
+ * the PageShell's fixed bottom bar (`NewTradeFooter`), like other flow/form screens.
+ *
+ * Not: adım bileşenleri (`NewTradeSteps`, `TradeProductCard`) ve `_lib/styles.ts` bu pakette
+ * DEĞİŞMEDİ — ürün kartı birleştirmesi P1 Keşif paketinde (çakışmasın diye).
  */
 export default function NewTradeScreen() {
   const f = useNewTrade();
@@ -19,26 +28,16 @@ export default function NewTradeScreen() {
   if (gate) return gate;
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title="Takas Teklifi" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
-
+    <PageShell
+      title="Takas Teklifi"
+      onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+      footer={newTradeFooterVisible(f) ? <NewTradeFooter f={f} /> : undefined}
+    >
       <StepIndicator step={f.step} />
 
-      <ScrollView style={styles.content}>
-        {f.step === 1 && <Step1MyItems f={f} />}
-        {f.step === 2 && <Step2TheirItems f={f} />}
-        {f.step === 3 && <Step3Review f={f} />}
-
-        <View style={{ height: 50 }} />
-      </ScrollView>
-
-      <Snackbar
-        visible={f.snackbar.visible}
-        onDismiss={() => f.setSnackbar({ ...f.snackbar, visible: false })}
-        duration={3000}
-      >
-        {f.snackbar.message}
-      </Snackbar>
-    </View>
+      {f.step === 1 && <Step1MyItems f={f} />}
+      {f.step === 2 && <Step2TheirItems f={f} />}
+      {f.step === 3 && <Step3Review f={f} />}
+    </PageShell>
   );
 }

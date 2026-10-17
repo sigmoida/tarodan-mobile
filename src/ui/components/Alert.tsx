@@ -1,58 +1,120 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
+import { Icon, type IconName } from '../icons';
+import { Text } from './Text';
 
-export type AlertVariant = 'default' | 'info' | 'success' | 'warning' | 'danger';
+/**
+ * Bilgi / başarı / uyarı / hata kutusu — uygulamadaki TEK mesaj kutusu (web `@tarodan/ui` Alert).
+ * Ekranlarda renkli zeminli `View + Icon + Text` kutusu elle çizilmez; "Banner", "Notice", "InfoBox"
+ * gibi yerel kutular bunu kullanır.
+ *
+ * Yapı her varyantta aynı: solda ikon (varyantın varsayılanı, `icon` ile başka bir ad seçilebilir) +
+ * isteğe bağlı başlık + metin (+ isteğe bağlı `action` satırı). Dolgu, köşe (`radiusRole.card`) ve
+ * 1px çerçeve ortaktır; yalnız renk değişir ve renkler YALNIZ temel paletten gelir:
+ * - `info`    → nötr gri (mavi DEĞİL; uygulamada ayrı bir "bilgi mavisi" yok)
+ * - `success` → success yeşili
+ * - `warning` → warning (amber)
+ * - `danger`  → danger kırmızısı
+ */
+export type AlertVariant = 'info' | 'success' | 'warning' | 'danger';
 
 export interface AlertProps {
   variant?: AlertVariant;
   title?: string;
+  /** Düz metin ya da zengin içerik (metin + bağlantı, liste…). */
   children?: React.ReactNode;
-  icon?: React.ReactNode;
+  /** Varsayılan varyant ikonunun yerine başka bir ikon adı (ör. süre uyarısında `clock`). */
+  icon?: IconName;
+  /** Gövdenin altında (ör. düğmeler). */
+  action?: React.ReactNode;
   testID?: string;
-  style?: import('react-native').ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
-const { colors, radius, spacing, typography } = theme;
+const { colors, radiusRole, spacing, iconSize } = theme;
 
-const variantStyle: Record<AlertVariant, { bg: string; border: string; text: string }> = {
-  default: { bg: colors.white, border: colors.gray[200], text: colors.text.heading },
-  info: { bg: colors.info[50]!, border: colors.info[200]!, text: colors.info[800]! },
-  success: { bg: colors.success[50]!, border: colors.success[200]!, text: colors.success[800]! },
-  warning: { bg: colors.warning[50]!, border: colors.warning[200]!, text: colors.warning[800]! },
-  danger: { bg: colors.danger[50]!, border: colors.danger[200]!, text: colors.danger[800]! },
+interface AlertLook {
+  bg: string;
+  border: string;
+  /** Başlık rengi. */
+  title: string;
+  /** Gövde metni rengi. */
+  text: string;
+  icon: string;
+  iconName: IconName;
+}
+
+export const alertLook: Record<AlertVariant, AlertLook> = {
+  info: {
+    bg: colors.gray[50]!,
+    border: colors.border.DEFAULT,
+    title: colors.text.heading,
+    text: colors.text.body,
+    icon: colors.text.muted,
+    iconName: 'information-circle',
+  },
+  success: {
+    bg: colors.success[50]!,
+    border: colors.success[200]!,
+    title: colors.success[800]!,
+    text: colors.success[800]!,
+    icon: colors.success[600]!,
+    iconName: 'check-circle',
+  },
+  warning: {
+    bg: colors.warning[50]!,
+    border: colors.warning[200]!,
+    title: colors.warning[800]!,
+    text: colors.warning[800]!,
+    icon: colors.warning[600]!,
+    iconName: 'exclamation-triangle',
+  },
+  danger: {
+    bg: colors.danger[50]!,
+    border: colors.danger[200]!,
+    title: colors.danger[800]!,
+    text: colors.danger[800]!,
+    icon: colors.danger[600]!,
+    iconName: 'exclamation-circle',
+  },
 };
 
 export const Alert: React.FC<AlertProps> = ({
-  variant = 'default',
+  variant = 'info',
   title,
   icon,
+  action,
   children,
   testID,
   style,
 }) => {
-  const vs = variantStyle[variant];
+  const look = alertLook[variant];
+  // Birden çok metin parçası (`{a}{b}`) dizi gelir — hepsi metinse yine <Text> içine sar (RN çıplak metin çöker).
+  const plain = React.Children.toArray(children).every((c) => typeof c === 'string' || typeof c === 'number');
   return (
     <View
       testID={testID}
-      style={[
-        styles.base,
-        { backgroundColor: vs.bg, borderColor: vs.border },
-        style,
-      ]}
+      accessibilityRole="alert"
+      style={[styles.base, { backgroundColor: look.bg, borderColor: look.border }, style]}
     >
-      <View style={styles.row}>
-        {icon && <View style={styles.icon}>{icon}</View>}
-        <View style={styles.body}>
-          {title && (
-            <Text style={[styles.title, { color: vs.text }]}>{title}</Text>
-          )}
-          {typeof children === 'string' ? (
-            <Text style={[styles.message, { color: vs.text }]}>{children}</Text>
-          ) : (
-            children
-          )}
-        </View>
+      <View style={styles.icon}>
+        <Icon name={icon ?? look.iconName} size={iconSize.md} color={look.icon} />
+      </View>
+      <View style={styles.body}>
+        {title ? (
+          <Text variant="bodySm" weight="semibold" color={look.title}>
+            {title}
+          </Text>
+        ) : null}
+        {plain ? (
+          <Text variant="bodySm" color={look.text}>
+            {children}
+          </Text>
+        ) : (
+          children
+        )}
+        {action ? <View style={styles.action}>{action}</View> : null}
       </View>
     </View>
   );
@@ -60,24 +122,15 @@ export const Alert: React.FC<AlertProps> = ({
 
 const styles = StyleSheet.create({
   base: {
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: spacing[4],
-  },
-  row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing[3],
+    borderWidth: 1,
+    borderRadius: radiusRole.card,
+    padding: spacing[4],
   },
+  // İkon ilk satırın ortasına otursun (bodySm satır yüksekliği ≈ 20 = iconSize.md).
   icon: { flexShrink: 0 },
-  body: { flex: 1 },
-  title: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    marginBottom: spacing[1],
-  },
-  message: {
-    fontSize: typography.fontSize.sm,
-    lineHeight: typography.fontSize.sm * 1.5,
-  },
+  body: { flex: 1, minWidth: 0, gap: spacing[1] },
+  action: { marginTop: spacing[2], flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing[2] },
 });

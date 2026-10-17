@@ -13,6 +13,12 @@ import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor, act } from '@testing-library/react-native';
 
+jest.mock('@/ui', () => ({
+  ...jest.requireActual('@/ui'),
+  appAlert: jest.fn(),
+  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn(), dismiss: jest.fn() }),
+}));
+
 jest.mock('@/lib/api', () => ({
   userApi: {
     block: jest.fn().mockResolvedValue({ data: { success: true } }),
@@ -26,7 +32,7 @@ jest.mock('@/stores/authStore', () => ({
   useAuthStore: (sel?: (state: any) => unknown) => (sel ? sel(mockAuthState) : mockAuthState),
 }));
 
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { userApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useBlockStatus, useBlockUser } from '../useBlockUser';
@@ -127,7 +133,6 @@ describe('invalidasyon — engellenen anında akıştan düşer', () => {
       ['brand-products'],
       ['manufacturer-products'],
       ['model-products'],
-      ['product-unavailable-similar'],
       ['autocomplete-rich'],
       ['autocomplete-sellers'],
       ['liked-collections'],
@@ -135,6 +140,8 @@ describe('invalidasyon — engellenen anında akıştan düşer', () => {
       ['product-reviews-all'],
       ['product-rating-stats'],
       ['seller-ratings'],
+      // "Satışta değil" ekranının benzerleri `qk.products.similar` → `product` kökü.
+      qk.products.detailAll,
       qk.offers.all,
       qk.trades.all,
       qk.notifications.list,
@@ -179,11 +186,28 @@ describe('invalidasyon — engellenen anında akıştan düşer', () => {
 
   it('hata bildirilir, invalidasyon yapılmaz', async () => {
     api.block.mockRejectedValue({ response: { data: { message: 'Engelleme sınırı' } } });
-    const notify = jest.fn();
-    const { result } = renderHook(() => useBlockUser({ notify }), { wrapper });
+    const { result } = renderHook(() => useBlockUser(), { wrapper });
     act(() => result.current.requestBlock('u2', 'Ayşe'));
     await confirmBlock();
-    await waitFor(() => expect(notify).toHaveBeenCalledWith('Engelleme sınırı', 'error'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Engelleme sınırı'));
+  });
+});
+
+describe('bildirim', () => {
+  it('hata: toast.error(sunucu mesajı); onay diyaloğundan başka appAlert açılmaz', async () => {
+    api.block.mockRejectedValue({ response: { data: { message: ['Engelleme sınırı'] } } });
+    const { result } = renderHook(() => useBlockUser(), { wrapper });
+    act(() => result.current.requestBlock('u2', 'Ayşe'));
+    await confirmBlock();
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Engelleme sınırı'));
+    expect(mockAppAlert).toHaveBeenCalledTimes(1);
+  });
+
+  it('başarı: toast.success', async () => {
+    const { result } = renderHook(() => useBlockUser(), { wrapper });
+    act(() => result.current.requestBlock('u2', 'Ayşe'));
+    await confirmBlock();
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
   });
 });
 

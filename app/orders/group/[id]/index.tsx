@@ -1,43 +1,38 @@
 import { useTranslation } from 'react-i18next';
-import { View, ScrollView, RefreshControl } from 'react-native';
-import { Button, Snackbar, Spinner, Text, ScreenHeader, theme } from '@/ui';
+import { Button } from '@/ui';
 import { CancelOrderModal } from '@/components/orders/CancelOrderModal';
+import { PageShell } from '@/components/common/PageShell';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useOrderGroup } from './_hooks/useOrderGroup';
-import { styles } from './_lib/styles';
 import { GroupHeader, GroupOrderRow, GroupPackageCard } from './_components/GroupSections';
 
-const { colors } = theme;
-
+/** Sipariş grubu (çok ürünlü sepet) — PageShell + SectionCard dizisi; iptal modalı `overlay`'de. */
 export default function OrderGroupDetailScreen() {
   const { t } = useTranslation();
   const f = useOrderGroup();
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={t('order.orderDetails')}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-      />
-
-      {f.isLoading ? (
-        <View style={styles.center}>
-          <Spinner size="lg" />
-        </View>
-      ) : f.error || !f.group ? (
-        <View style={styles.center}>
-          <Ionicons name="alert-circle-outline" size={64} color={colors.text.subtle} />
-          <Text style={styles.errorText}>{t('order.groupLoadFailed')}</Text>
-          <Button variant="primary" title={t('common.tryAgain')} onPress={() => f.refetch()} />
-        </View>
-      ) : (
-        <ScrollView
-          contentContainerStyle={styles.body}
-          refreshControl={
-            <RefreshControl refreshing={f.refreshing} onRefresh={f.onRefresh} colors={[colors.primary[600]!]} />
-          }
-        >
+    <PageShell
+      title={t('order.orderDetails')}
+      onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+      loading={f.isLoading}
+      error={!f.isLoading && (f.error || !f.group)}
+      errorMessage={t('order.groupLoadFailed')}
+      onRetry={() => f.refetch()}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
+      overlay={
+        <CancelOrderModal
+          isOpen={f.cancel.visible}
+          onClose={f.cancel.close}
+          onConfirm={f.cancel.confirm}
+          willRefund={f.cancel.willRefund}
+          pending={f.cancel.isPending}
+        />
+      }
+    >
+      {f.group ? (
+        <>
           <GroupHeader group={f.group} />
           {f.group.orders.map((order) => (
             <GroupOrderRow key={order.id} order={order} multi={f.group!.orders.length > 1} />
@@ -45,7 +40,7 @@ export default function OrderGroupDetailScreen() {
           {/*
             Satıcı-bazlı kargo kırılımı (B10) — yalnız 2+ paketli (çok satıcılı)
             grupta. Tek paketli grupta üstteki sipariş satırı zaten aynı kargo
-            bilgisini taşıyor, ayrı kart tekrar olurdu (§5 DRY).
+            bilgisini taşıyor, ayrı kart tekrar olurdu (CLAUDE.md › Principles).
           */}
           {f.group.packages.length > 1 &&
             f.group.packages.map((pkg) => <GroupPackageCard key={pkg.id} pkg={pkg} />)}
@@ -57,35 +52,15 @@ export default function OrderGroupDetailScreen() {
           {f.cancel.available ? (
             <Button
               testID="group-cancel-button"
-              variant="outline"
-              icon="close-circle-outline"
+              variant="danger"
               fullWidth
               title={t('order.cancelOrder')}
               onPress={f.cancel.open}
               disabled={f.cancel.isPending}
-              style={{ marginTop: theme.spacing[4], borderColor: colors.danger[600]! }}
             />
           ) : null}
-          <View style={{ height: 80 }} />
-        </ScrollView>
-      )}
-
-      <CancelOrderModal
-        isOpen={f.cancel.visible}
-        onClose={f.cancel.close}
-        onConfirm={f.cancel.confirm}
-        willRefund={f.cancel.willRefund}
-        pending={f.cancel.isPending}
-      />
-
-      <Snackbar
-        visible={f.snackbar.visible}
-        onDismiss={f.dismissSnackbar}
-        duration={3500}
-        variant={f.snackbar.variant}
-      >
-        {f.snackbar.message}
-      </Snackbar>
-    </View>
+        </>
+      ) : null}
+    </PageShell>
   );
 }

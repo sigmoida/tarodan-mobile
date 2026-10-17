@@ -1,15 +1,13 @@
 import React, { Component, ReactNode } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { usePathname } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { theme } from "@/ui";
+import { theme, RawText, Icon } from "@/ui";
 import { logger } from "../services/logger";
 import { SHOW_DIAGNOSTICS } from "@/config/diagnostics";
 
@@ -110,30 +108,30 @@ function FallbackScreen({
   const { t } = useTranslation();
   return (
     <View style={styles.container}>
-      <Ionicons
-        name="warning-outline"
+      <Icon
+        name="exclamation-triangle"
         size={64}
         color={theme.colors.danger[500]}
       />
-      <Text style={styles.title}>{t("mobile.errorSomethingWrong")}</Text>
-      <Text style={styles.subtitle}>
+      <RawText style={styles.title}>{t("mobile.errorSomethingWrong")}</RawText>
+      <RawText style={styles.subtitle}>
         {t("mobile.errorBoundaryDescription")}
-      </Text>
+      </RawText>
       {/* TANI: gerçek hatayı ekranda göster — YALNIZ geliştirme/staging
           (`SHOW_DIAGNOSTICS`). Production'da kullanıcı ve App Review ham
           console/route dökümü görmez; hata Sentry'ye gider. */}
       {showDiagnostics && error && (
         <ScrollView style={styles.errorBox}>
-          <Text style={styles.errorText}>
+          <RawText style={styles.errorText}>
             {"### CONSOLE (Check the render method of ...) ###\n"}
             {capturedLogs.filter((l) => /invalid|render method|got:|undefined/i.test(l)).join("\n---\n") || "(ilgili log yok)"}
             {"\n\n### ROUTE: " + lastRouteRef.current + "\n\n"}
             {error.message}
-          </Text>
+          </RawText>
         </ScrollView>
       )}
       <TouchableOpacity style={styles.button} onPress={onRetry}>
-        <Text style={styles.buttonText}>{t("mobile.errorRetry")}</Text>
+        <RawText style={styles.buttonText}>{t("mobile.errorRetry")}</RawText>
       </TouchableOpacity>
     </View>
   );
@@ -148,18 +146,18 @@ const styles = StyleSheet.create({
     padding: theme.spacing[6],
   },
   title: {
-    fontSize: 22,
-    fontWeight: "700",
+    fontSize: theme.typography.fontSize.xl,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.gray[900],
     marginTop: theme.spacing[4],
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.gray[600],
     textAlign: "center",
     marginTop: theme.spacing[2],
-    lineHeight: 20,
+    lineHeight: theme.typography.fontSize.sm * theme.typography.lineHeight.normal,
   },
   errorBox: {
     maxHeight: 200,
@@ -171,7 +169,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontFamily: "Courier",
-    fontSize: 11,
+    fontSize: theme.typography.fontSize.xs,
     color: colors.danger[800],
   },
   button: {
@@ -183,7 +181,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: colors.white,
-    fontWeight: "600",
-    fontSize: 16,
+    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: theme.typography.fontSize.base,
   },
 });

@@ -1,15 +1,38 @@
-import { theme } from '@/ui';
 import type { TFunction } from 'i18next';
+import type { IconName } from '@/ui';
+import { formatPrice } from '@/utils/format';
+import { buildPaymentStatusConfig } from '@/lib/payment/status';
+import { statusVariantSolid } from '@/lib/shared/status-colors';
+import type { StatusConfig } from '@/lib/shared/status-configs';
 
-export const buildStatusConfig = (t: TFunction): Record<string, { label: string; color: string; icon: string }> => ({
-  completed: { label: t('common.completed'), color: theme.colors.success[500], icon: 'checkmark-circle' },
-  paid: { label: t('common.completed'), color: theme.colors.success[500], icon: 'checkmark-circle' },
-  failed: { label: t('payment.statusFailed'), color: theme.colors.danger[500], icon: 'close-circle' },
-  pending: { label: t('payment.statusPending'), color: theme.colors.warning[500], icon: 'time' },
+/** Satır başındaki durum ikonu (foto yokken) — işlevsel; rozet ikon taşımaz. */
+const STATUS_ICON: Record<string, IconName> = {
+  completed: 'check-circle',
+  paid: 'check-circle',
+  success: 'check-circle',
+  hold_payment: 'check-circle',
+  failed: 'x-circle',
+  pending: 'clock',
+  processing: 'clock',
   // İade edilen ödeme "Bekliyor" değil, açıkça "İade Edildi" gösterilmeli (web ile tutarlı).
-  refunded: { label: t('order.statusRefunded'), color: theme.colors.warning[500], icon: 'arrow-undo' },
-  refund_requested: { label: t('order.statusRefundInProgress'), color: theme.colors.warning[500], icon: 'time' },
-});
+  refunded: 'arrow-uturn-left',
+  refund_requested: 'clock',
+  cancelled: 'x-circle',
+};
+
+export type PaymentHistoryStatus = StatusConfig & { color: string; icon: IconName };
+
+/**
+ * Renk + etiket web `paymentStatusConfig` ile aynı (`@/lib/payment/status`);
+ * `color` aynı varyanttan türetilir (satır ikonu için), ayrı renk tablosu yok.
+ */
+export const buildStatusConfig = (t: TFunction): Record<string, PaymentHistoryStatus> =>
+  Object.fromEntries(
+    Object.entries(buildPaymentStatusConfig(t)).map(([status, cfg]) => [
+      status,
+      { ...cfg, color: statusVariantSolid(cfg.variant), icon: STATUS_ICON[status] ?? 'clock' },
+    ]),
+  );
 
 // Not: tarih/tutar formatı bilerek 'tr-TR' — @/utils/format.formatPrice ile aynı
 // yerleşik kararı izliyor (uygulama genelinde para/tarih formatı sabit TL/tr-TR).
@@ -23,5 +46,5 @@ export function formatDate(dateStr: string): string {
 }
 
 export function formatCurrency(amount: number): string {
-  return `₺${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return formatPrice(amount);
 }

@@ -1,29 +1,28 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { router } from 'expo-router';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
+import { useRefresh } from '@/hooks/useRefresh';
 import { paymentsApi } from '@/lib/api';
+import { qk, useAppMutation } from '@/lib/query';
 import type { Payment } from '../_lib/types';
+import { useDoRetryPayment } from './useDoRetryPayment';
 
 /**
  * Payments-history controller — owns the GET /payments/me query + status filter,
- * the cancel (pending) and retry (failed → paymentUrl webview) handlers, and the
- * snackbar. Lifted verbatim from the monolithic screen (§12).
+ * the cancel (pending) handler (info → toast); retry (failed → kimlik → onay →
+ * paymentUrl webview) lives in `useDoRetryPayment`. Lifted from the monolithic
+ * screen (app/CLAUDE.md › Worked examples).
  */
 export function usePayments() {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuthStore();
-  const queryClient = useQueryClient();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [statusFilter, setStatusFilter] = useState<string>('');
-  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string }>({
-    visible: false,
-    message: '',
-  });
+  const retry = useDoRetryPayment();
 
   const paymentsQuery = useQuery({
-    queryKey: ['my-payments', statusFilter],
+    queryKey: qk.payments.list(statusFilter),
     queryFn: async () => {
       const params: any = { page: 1, limit: 50 };
       if (statusFilter) params.status = statusFilter;
@@ -33,6 +32,15 @@ export function usePayments() {
       return Array.isArray(list) ? list : [];
     },
     enabled: isAuthenticated,
+    // Filtre değişince eski liste kalır; isLoading yalnız ilk yüklemede true olur,
+    // böylece PageShell çipleri unmount etmez.
+    placeholderData: keepPreviousData,
+  });
+
+  const cancelMutation = useAppMutation((id: string) => paymentsApi.cancel(id), {
+    invalidates: [qk.payments.mine],
+    success: t('payment.cancelled'),
+    error: t('payment.cancelFailed'),
   });
 
   const handleCancel = (id: string) => {
@@ -41,52 +49,29 @@ export function usePayments() {
       {
         text: t('payment.cancelAction'),
         style: 'destructive',
-        onPress: async () => {
-          try {
-            await paymentsApi.cancel(id);
-            setSnackbar({ visible: true, message: t('payment.cancelled') });
-            queryClient.invalidateQueries({ queryKey: ['my-payments'] });
-          } catch (e: any) {
-            appAlert(t('common.error'), e?.response?.data?.message || t('payment.cancelFailed'));
-          }
-        },
+        onPress: () => cancelMutation.mutate(id),
       },
     ]);
   };
 
-  const handleRetry = (id: string) => {
-    appAlert(t('payment.retryTitle'), t('payment.retryConfirm'), [
-      { text: t('discount.discard'), style: 'cancel' },
-      {
-        text: t('common.continueShort'),
-        onPress: async () => {
-          try {
-            const response: any = await paymentsApi.retry(id);
-            const url = response?.data?.paymentUrl ?? response?.data?.data?.paymentUrl;
-            if (url) {
-              router.push({ pathname: '/payment/[id]', params: { id, paymentUrl: url } } as any);
-            } else {
-              setSnackbar({ visible: true, message: t('payment.retryStarted') });
-              queryClient.invalidateQueries({ queryKey: ['my-payments'] });
-            }
-          } catch (e: any) {
-            appAlert(t('common.error'), e?.response?.data?.message || t('payment.retryFailed'));
-          }
-        },
-      },
-    ]);
-  };
+  // Çekip-yenile göstergesi yalnız kullanıcı çektiğinde: `isFetching` filtre çipi değişiminde
+  // (keepPreviousData) ve iptal/yeniden deneme sonrası invalidate'te de dönüyordu.
+  const { refreshing, onRefresh } = useRefresh(paymentsQuery.refetch);
 
   return {
     isAuthenticated,
     paymentsQuery,
+    refreshing,
+    onRefresh,
     payments: paymentsQuery.data ?? [],
     statusFilter,
     setStatusFilter,
-    snackbar,
-    setSnackbar,
     handleCancel,
-    handleRetry,
+    handleRetry: retry.start,
+    /** Kimlik kontrolü ya da retry sürüyor → TÜM "Tekrar Dene" düğmeleri devre dışı. */
+    retryBusy: retry.busy,
+    /** Spinner'ın gösterileceği kart (`mutation.variables`'tan). */
+    retryPendingId: retry.pendingId,
   };
 }
 

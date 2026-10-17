@@ -37,7 +37,7 @@ function wrapper({ children }: { children: any }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
-async function setup(initial: any[] = []) {
+async function setup(initial: any = []) {
   mockApi.get.mockResolvedValue({ data: initial });
   const view = renderHook(() => useFollowing(), { wrapper });
   await waitFor(() => expect(view.result.current.isLoading).toBe(false));
@@ -102,5 +102,29 @@ describe('unfollowSeller', () => {
     await act(async () => { ok = await result.current.unfollowSeller('s1'); });
     expect(ok).toBe(true);
     await waitFor(() => expect(result.current.following).toHaveLength(0));
+  });
+});
+
+describe('API yanıt biçimi ({ following: [...] })', () => {
+  it('iç içe takip kayıtları satıcı kimliğiyle düzleşir; isFollowing satıcı id ile çalışır', async () => {
+    const { result } = await setup({
+      following: [
+        {
+          id: 'row1',
+          followingId: 's1',
+          createdAt: '2026-02-02',
+          following: { id: 's1', publicName: 'Mağaza', displayName: 'Ali', _count: { products: 3 } },
+        },
+      ],
+    });
+    await waitFor(() => expect(result.current.getFollowingCount()).toBe(1));
+    expect(result.current.following[0]).toMatchObject({
+      id: 's1',
+      displayName: 'Mağaza',
+      listingCount: 3,
+      followedAt: '2026-02-02',
+    });
+    expect(result.current.isFollowing('s1')).toBe(true);
+    expect(result.current.isFollowing('row1')).toBe(false);
   });
 });

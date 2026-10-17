@@ -1,254 +1,189 @@
-import React, { useState } from 'react';
-import { View, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React from 'react';
+import { View, Pressable } from 'react-native';
+import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, Chip, Divider, Text, theme, appAlert } from '@/ui';
-import { useAuthStore } from '@/stores/authStore';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { ThemedRefreshControl } from '@/components/common';
-import { transformImageUrl } from '@/utils/imageUrl';
-import ReportModal from '@/components/ReportModal';
+import { Alert, Avatar, Button, EmptyState, GlassIconButton, SectionCard, Text, theme, Icon } from '@/ui';
+import { ProductCard } from '@/components/product';
+import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/collectionStyles';
 import type { CollectionDetailController } from '../_hooks/useCollectionDetail';
 
-const { colors } = theme;
+const { colors, iconSize } = theme;
 
-/** Cover image, header buttons, collection info, items grid, and guest notice. */
+/**
+ * Koleksiyon öğesi → ürün kartı alanları (API: productId/productTitle/productImage/productPrice/productStatus).
+ * Satıcı alanı varsa (`sellerId` / `seller.id`) taşınır: kendi ilanında kart kalp çizmez
+ * (`useProductCardFavorites`). API şu an öğe başına satıcı döndürmüyor; döndüğü anda kendiliğinden çalışır.
+ */
+function toCardProduct(item: any, fallbackTitle: string) {
+  return {
+    id: String(item.productId ?? item.id),
+    title: item.productTitle ?? item.title ?? fallbackTitle,
+    price: item.productPrice ?? item.price ?? 0,
+    imageUrl: item.productImage ?? item.imageUrl ?? null,
+    status: item.productStatus ?? null,
+    sellerId: item.sellerId ?? null,
+    seller: item.seller ?? null,
+  };
+}
+
+/**
+ * Üst barın sağ grubu (PageShell `right`) — ürün detayıyla aynı düzen ve sıra (cam daireler, 44pt):
+ * paylaş herkese; sahibine düzenle (kalem) + ürün ekle (artı); sahibi olmayana beğen (dolu = danger)
+ * ve şikayet bayrağı.
+ */
+export function CollectionTopActions({ f, onReport }: { f: CollectionDetailController; onReport: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.topActions} testID="collection-actions">
+      <GlassIconButton
+        testID="collection-share-button"
+        icon="share"
+        accessibilityLabel={t('collection.share')}
+        onPress={f.handleShare}
+      />
+      {f.isOwner ? (
+        <>
+          <GlassIconButton
+            testID="collection-edit-button"
+            icon="pencil"
+            accessibilityLabel={t('collection.edit')}
+            onPress={() => router.push(`/collections/${f.id}/edit`)}
+          />
+          <GlassIconButton
+            testID="collection-add-items-button"
+            icon="plus"
+            accessibilityLabel={t('collection.addProduct')}
+            onPress={() => router.push(`/collections/${f.id}/add-items`)}
+          />
+        </>
+      ) : (
+        <>
+          <GlassIconButton
+            testID="collection-like-button"
+            icon="heart"
+            iconVariant={f.isLiked ? 'solid' : 'outline'}
+            iconColor={f.isLiked ? colors.danger[500] : undefined}
+            accessibilityLabel={t('collection.likes')}
+            selected={f.isLiked}
+            onPress={f.handleLike}
+          />
+          <GlassIconButton
+            testID="collection-report-button"
+            icon="flag"
+            accessibilityLabel={t('collection.report')}
+            onPress={onReport}
+          />
+        </>
+      )}
+    </View>
+  );
+}
+
+/** Başlık kartı (web `CollectionHeaderCard`), içerik kartı (öğeler) ve misafir bilgilendirmesi. */
 export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
   const { t } = useTranslation();
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { collection, items, id } = f;
-  const insets = useSafeAreaInsets();
-  // Apple App Review 1.2: sahibi olmadığın koleksiyonu şikayet edebilmelisin.
-  const [reportVisible, setReportVisible] = useState(false);
+  // Kalp yalnız pazaryeri ürünü olan kalemde ve koleksiyon sahibi olmayana (sahibin kalemleri kendi ilanı).
+  const favoriteProps = useProductCardFavorites();
+  const cover = collection.coverImageUrl ?? collection.coverImage;
 
   return (
-    <View style={styles.container}>
-      {/* Header Image */}
-      <Image
-        source={{ uri: transformImageUrl(collection.coverImageUrl ?? collection.coverImage) }}
-        style={styles.coverImage}
-        resizeMode="cover"
-      />
-
-      {/* Header Buttons */}
-      <View style={[styles.headerButtons, { top: Math.max(insets.top, theme.spacing[3]) }]}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.white} />
-        </TouchableOpacity>
-        <View style={styles.headerActions}>
-          {f.isOwner && (
-            <TouchableOpacity style={styles.headerButton} onPress={() => router.push(`/collections/${id}/edit`)}>
-              <Ionicons name="create-outline" size={24} color={colors.white} />
-            </TouchableOpacity>
-          )}
-          {!f.isOwner && (
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={() => {
-                // Misafir: POST /user-reports 401 döner ve interceptor Modal
-                // açıkken oturumu kapatıp yönlendiriyordu (iOS donma). Ürün
-                // sayfasıyla aynı — önce giriş.
-                if (!isAuthenticated) {
-                  appAlert(t('collection.report'), t('product.signInToReport'), [
-                    { text: t('common.cancel'), style: 'cancel' },
-                    { text: t('common.login'), onPress: () => router.push('/(auth)/login') },
-                  ]);
-                  return;
-                }
-                setReportVisible(true);
-              }}
+    <>
+      <View style={styles.header} testID="collection-header">
+        <View style={styles.topRow}>
+          <View style={styles.cover}>
+            {cover ? (
+              <AppImage source={cover} variant="detail" style={styles.coverImage} resizeMode="cover" />
+            ) : null}
+          </View>
+          <View style={styles.headInfo}>
+            <Text variant="h2" accessibilityRole="header">
+              {collection.name}
+            </Text>
+            {collection.description ? (
+              <Text variant="bodySm" tone="muted">
+                {collection.description}
+              </Text>
+            ) : null}
+            {/* Sahibi (profiline gider) — paylaş/beğen/şikayet üst barda; çip onların eski yerinde. */}
+            <Pressable
+              style={styles.ownerChip}
+              disabled={!collection.userId}
+              onPress={() => collection.userId && router.push(`/seller/${collection.userId}`)}
               accessibilityRole="button"
-              accessibilityLabel={t('collection.report')}
+              testID="collection-owner-chip"
             >
-              <Ionicons name="flag-outline" size={22} color={colors.white} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={styles.headerButton} onPress={f.handleShare}>
-            <Ionicons name="share-outline" size={24} color={colors.white} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton} onPress={f.handleLike}>
-            <Ionicons
-              name={f.isLiked ? 'heart' : 'heart-outline'}
-              size={24}
-              color={f.isLiked ? colors.danger[600]! : colors.white}
-            />
-          </TouchableOpacity>
+              <Avatar size="sm" name={collection.userName || t('collection.anonymous')} />
+              <Text variant="bodySm" weight="medium" numberOfLines={1} style={styles.ownerName}>
+                {collection.userName}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.counters}>
+          <View style={styles.counter}>
+            <Icon name="eye" variant="solid" size={iconSize.sm} color={colors.primary[500]!} />
+            <Text variant="bodySm" tone="subtle">
+              {collection.viewCount} {t('collection.views')}
+            </Text>
+          </View>
+          <View style={styles.counter}>
+            <Icon name="heart" variant="solid" size={iconSize.sm} color={colors.danger[500]!} />
+            <Text variant="bodySm" tone="subtle">
+              {f.likeCount} {t('collection.likes')}
+            </Text>
+          </View>
         </View>
       </View>
 
-      <ReportModal
-        visible={reportVisible}
-        onDismiss={() => setReportVisible(false)}
-        type="collection"
-        targetId={String(id)}
-        targetName={collection.name}
-      />
-
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<ThemedRefreshControl refreshing={f.refreshing} onRefresh={f.onRefresh} />}
-      >
-        {/* Collection Info */}
-        <View style={styles.infoSection}>
-          <Text style={styles.collectionName}>{collection.name}</Text>
-
-          {/* Owner */}
-          <TouchableOpacity
-            style={styles.ownerRow}
-            disabled={!collection.userId}
-            onPress={() => collection.userId && router.push(`/seller/${collection.userId}`)}
-          >
-            <Avatar size="md" name={collection.userName || 'U'} />
-            <View style={styles.ownerInfo}>
-              <View style={styles.ownerNameRow}>
-                <Text style={styles.ownerName}>{collection.userName}</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
-          </TouchableOpacity>
-
-          {/* Stats */}
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Ionicons name="images-outline" size={20} color={colors.text.muted} />
-              <Text style={styles.statValue}>{collection.itemCount}</Text>
-              <Text style={styles.statLabel}>{t('collection.statModel')}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="eye-outline" size={20} color={colors.text.muted} />
-              <Text style={styles.statValue}>{collection.viewCount}</Text>
-              <Text style={styles.statLabel}>{t('collection.statViews')}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="heart" size={20} color={colors.danger[600]!} />
-              <Text style={styles.statValue}>{f.likeCount}</Text>
-              <Text style={styles.statLabel}>{t('collection.statLikes')}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="share-social-outline" size={20} color={colors.text.muted} />
-              <Text style={styles.statValue}>{collection.shareCount}</Text>
-              <Text style={styles.statLabel}>{t('collection.statShares')}</Text>
-            </View>
-          </View>
-
-          {/* Estimated Value */}
-          {collection.estimatedValue && (
-            <View style={styles.valueCard}>
-              <Ionicons name="diamond-outline" size={24} color={colors.primary[600]!} />
-              <View style={styles.valueInfo}>
-                <Text style={styles.valueLabel}>{t('collection.estimatedValueLabel')}</Text>
-                <Text style={styles.valueAmount}>
-                  ₺{collection.estimatedValue.toLocaleString('tr-TR')}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Description */}
-          <Text style={styles.description}>{collection.description}</Text>
-
-          {/* Tags */}
-          {collection.tags && collection.tags.length > 0 && (
-            <View style={styles.tagsRow}>
-              {collection.tags.map((tag: string, index: number) => (
-                <Chip key={index} label={tag} />
-              ))}
-            </View>
-          )}
-
-          <Divider />
-
-          {/* Items Section */}
-          <View style={styles.itemsHeader}>
-            <Text style={styles.itemsTitle}>{t('collection.contentsTitle')}</Text>
-            {f.isOwner ? (
-              <TouchableOpacity
-                style={styles.addItemBtn}
-                onPress={() => router.push(`/collections/${id}/add-items`)}
-              >
-                <Ionicons name="add" size={18} color={colors.primary[600]!} />
-                <Text style={styles.addItemBtnText}>{t('collection.addProduct')}</Text>
-              </TouchableOpacity>
-            ) : (
-              <Text style={styles.itemsCount}>{t('collection.modelCount', { count: items.length })}</Text>
-            )}
-          </View>
-
-          {/* Items Grid — API item şekli: { productId, productTitle, productImage, productPrice, productStatus } */}
-          {items.length === 0 ? (
-            <View style={styles.itemsEmpty}>
-              <Ionicons name="cube-outline" size={40} color={colors.text.muted} />
-              <Text style={styles.itemsEmptyText}>{t('collection.noProductsYet')}</Text>
-              {f.isOwner && (
-                <Button
-                  variant="primary"
-                  title={t('collection.addFirstProduct')}
-                  icon="add"
-                  onPress={() => router.push(`/collections/${id}/add-items`)}
-                  style={{ marginTop: theme.spacing[3], alignSelf: 'center' }}
-                />
-              )}
-            </View>
-          ) : (
-            <View style={styles.itemsGrid}>
-              {items.map((item: any) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.itemCard}
-                  onPress={() => item.productId && router.push(`/product/${item.productId}`)}
-                >
-                  <Image
-                    source={{ uri: transformImageUrl(item.productImage ?? item.imageUrl) }}
-                    style={styles.itemImage}
-                    resizeMode="cover"
+      <SectionCard title={t('collection.contentsTitle')} testID="collection-items">
+        {items.length === 0 ? (
+          <EmptyState placement="inline"
+            icon="cube"
+            title={t('collection.noProductsYet')}
+            subtitle={t('emptyState.collectionItemsHint')}
+            actionLabel={f.isOwner ? t('collection.addFirstProduct') : undefined}
+            onAction={f.isOwner ? () => router.push(`/collections/${id}/add-items`) : undefined}
+          />
+        ) : (
+          <View style={styles.itemsGrid}>
+            {items.map((item: any) => {
+              const product = toCardProduct(item, t('product.productFallback'));
+              return (
+                <View key={item.id} style={styles.itemCell}>
+                  <ProductCard
+                    product={product}
+                    showMeta={false}
+                    trackClick={!!item.productId}
+                    onPress={() => item.productId && router.push(`/product/${item.productId}`)}
+                    {...(item.productId && !f.isOwner ? favoriteProps(product) : null)}
                   />
-                  <View style={styles.itemInfo}>
-                    <Text style={styles.itemTitle} numberOfLines={2}>
-                      {item.productTitle ?? item.title ?? t('product.productFallback')}
-                    </Text>
-                    {(item.productPrice ?? item.price) != null && (
-                      <Text style={styles.itemValue}>
-                        ₺{Number(item.productPrice ?? item.price).toLocaleString('tr-TR')}
-                      </Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Guest Notice — premium/business üyelere ve koleksiyon sahibine gösterme.
-            Metin ("Premium üye olarak...") satışa yönelik; bu yüzden yalnız düğme
-            değil, blok bütünüyle iOS'ta kapanır (Guideline 3.1.1/3.1.3). */}
-        {!f.isPremiumMember && !f.isOwner && (
-          <UpgradeCta>
-            <View style={styles.guestNotice}>
-              <Ionicons name="lock-closed-outline" size={24} color={colors.text.muted} />
-              <View style={styles.noticeContent}>
-                <Text style={styles.noticeTitle}>{t('collection.guestNoticeTitle')}</Text>
-                <Text style={styles.noticeText}>
-                  {t('collection.guestNoticeText')}
-                </Text>
-                <Button
-                  variant="primary"
-                  title={t('collection.becomePremiumCta')}
-                  onPress={() => router.push(f.isAuthenticated ? '/upgrade' : '/(auth)/login')}
-                  fullWidth
-                  style={styles.noticeButton}
-                />
-              </View>
-            </View>
-          </UpgradeCta>
+                </View>
+              );
+            })}
+          </View>
         )}
+      </SectionCard>
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </View>
+      {/* Misafir bilgilendirmesi — premium/business üyelere ve koleksiyon sahibine gösterme.
+          Metin ("Premium üye olarak...") satışa yönelik; bu yüzden yalnız düğme değil, blok
+          bütünüyle iOS'ta kapanır (Guideline 3.1.1/3.1.3). */}
+      {!f.isPremiumMember && !f.isOwner && (
+        <UpgradeCta>
+          <Alert variant="info" title={t('collection.guestNoticeTitle')}>
+            {t('collection.guestNoticeText')}
+          </Alert>
+          <Button
+            title={t('collection.becomePremiumCta')}
+            onPress={() => router.push(f.isAuthenticated ? '/upgrade' : '/(auth)/login')}
+            fullWidth
+          />
+        </UpgradeCta>
+      )}
+    </>
   );
 }

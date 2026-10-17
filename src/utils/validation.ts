@@ -1,10 +1,9 @@
 /**
  * Web `apps/web/src/app/register/page.tsx` paritesinde Zod helper'ları.
- * Şifre kuralı: 8+ karakter, en az 1 büyük harf, 1 küçük harf, 1 rakam.
+ * Şifre kuralı AYRI tek kaynakta: `./passwordPolicy` (`passwordSchema`: 8-72 karakter, ≥1 büyük, ≥1 küçük, ≥1 rakam; Unicode).
  *
- * Mobile'daki bütün form ekranları (register, register-business, reset-password,
- * settings/security'deki şifre değiştirme) bu yardımcıları kullanır ki kurallar
- * tek noktadan değişebilsin ve web ile birebir aynı kalsın.
+ * Mobile'daki bütün form ekranları (register, register-business, …) bu yardımcıları
+ * kullanır ki kurallar tek noktadan değişebilsin ve web ile birebir aynı kalsın.
  */
 
 import { z } from 'zod';
@@ -21,17 +20,8 @@ import { parseE164TrPhone } from './phone';
  * çağıran taraf `useMemo(() => …, [t])` ile dil değişiminde yeniden kuruyor.
  *
  * Mesajlar `validation.*` kataloğundan gelir — üç kayıt ekranı, kurumsal davet
- * ve kullanıcı adı talebi aynı metinleri paylaşır (§5).
+ * ve kullanıcı adı talebi aynı metinleri paylaşır (CLAUDE.md › Principles).
  */
-
-/** Tek noktada güçlü şifre Zod schema'sı. */
-export const strongPasswordSchema = (t: TFunction) =>
-  z
-    .string()
-    .min(8, t('validation.passwordMin8'))
-    .regex(/[A-Z]/, t('validation.passwordUppercase'))
-    .regex(/[a-z]/, t('validation.passwordLowercase'))
-    .regex(/\d/, t('validation.passwordNumber'));
 
 /**
  * TR cep telefonu — **zorunlu**. Çıktı E.164 (`+905XXXXXXXXX`), çözülemeyen
@@ -91,7 +81,7 @@ export const emailSchema = (t: TFunction) =>
  *
  * TEK KAYNAK — kayıt (`app/(auth)/register`), kurumsal davet
  * (`app/(auth)/corporate-invite`) ve kullanıcı adı talebi
- * (`app/settings/username`) ekranlarının üçü de buradan alır. Daha önce üç ayrı
+ * (`app/settings/edit-profile`, kullanıcı adı bölümü) ekranlarının üçü de buradan alır. Daha önce üç ayrı
  * kopya vardı ve davranışları sessizce ayrışmıştı (biri `Gorkem`'i kabul edip
  * dönüştürüyor, biri reddediyordu).
  */
@@ -101,8 +91,8 @@ export const USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$/;
  * Kullanıcı adı alanının görüntü dönüşümü — bugün yalnız küçük harfe çevirir.
  * TEK KAYNAK: register (`RegisterForm.tsx`), kurumsal davet
  * (`corporate-invite/index.tsx`) ve kullanıcı adı talebi
- * (`settings/username/index.tsx`) ekranlarının üçü de buradan alır (önceden
- * üç ayrı `(t) => t.toLowerCase()` kopyası vardı, §5).
+ * (`settings/edit-profile/_sections/UsernameSection.tsx`) ekranlarının üçü de buradan alır (önceden
+ * üç ayrı `(t) => t.toLowerCase()` kopyası vardı, CLAUDE.md › Principles).
  *
  * ⚠️ Bilinçli olarak transliterasyon YAPMAZ (`ı→i`, `ş→s`, `ğ→g` gibi bir eşleme
  * yok) — kullanıcının adını sessizce başka bir kalıcı handle'a çevirmek ürün

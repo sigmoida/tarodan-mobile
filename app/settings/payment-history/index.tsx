@@ -1,67 +1,70 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import { ScreenHeader, theme } from '@/ui';
+import { useCallback } from 'react';
+import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { EmptyState, pageListContentStyle, usePageScrollHandler } from '@/ui';
+import { AuthGatePage } from '@/components/common/AuthGatePage';
+import { listWindowing } from '@/lib/list/windowing';
+import { PageShell } from '@/components/common/PageShell';
+import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { usePaymentHistory } from './_hooks/usePaymentHistory';
-import { styles } from './_lib/styles';
 import { PaymentHistoryItem } from './_components/PaymentHistoryItem';
+import type { Payment } from './_lib/types';
 
+const paymentKey = (item: Payment) => item.id;
+
+/** Ödeme geçmişi — PageShell (Skeleton) + web Card satırları; boşken EmptyState. */
 export default function PaymentHistoryScreen() {
   const { t } = useTranslation();
   const f = usePaymentHistory();
+  const page = usePageScrollHandler();
+  const title = t('mobile.settingsPaymentHistory');
+  const renderPayment = useCallback(
+    ({ item }: { item: Payment }) => <PaymentHistoryItem item={item} onPress={f.handlePaymentPress} />,
+    [f.handlePaymentPress],
+  );
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
   if (!f.isAuthenticated) {
     return (
-      <View style={styles.container}>
-        <ScreenHeader title={t('mobile.settingsPaymentHistory')} onBack={back} />
-        <View style={styles.centeredContainer}>
-          <Ionicons name="log-in-outline" size={48} color={theme.colors.gray[400]} />
-          <Text style={styles.emptyTitle}>{t('membership.loginRequiredTitle')}</Text>
-          <Text style={styles.emptySubtitle}>{t('payment.myPaymentsLoginSubtitle')}</Text>
-          <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/(auth)/login')}>
-            <Text style={styles.loginButtonText}>{t('common.login')}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AuthGatePage
+        title={title}
+        onBack={back}
+        icon="arrow-right-on-rectangle"
+        emptyTitle={t('membership.loginRequiredTitle')}
+        subtitle={t('payment.myPaymentsLoginSubtitle')}
+      />
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('mobile.settingsPaymentHistory')} onBack={back} />
-
-      {f.isLoading ? (
-        <View style={styles.centeredContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
-        </View>
-      ) : (
-        <FlatList
-          data={f.payments}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <PaymentHistoryItem item={item} onPress={f.handlePaymentPress} />}
-          contentContainerStyle={f.payments.length === 0 ? styles.emptyListContainer : styles.listContent}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          refreshControl={
-            <RefreshControl
-              refreshing={f.isRefreshing}
-              onRefresh={() => f.fetchPayments()}
-              colors={[theme.colors.primary[500]]}
-              tintColor={theme.colors.primary[500]}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconCircle}>
-                <Ionicons name="receipt-outline" size={48} color={theme.colors.gray[400]} />
-              </View>
-              <Text style={styles.emptyTitle}>{t('payment.noHistory')}</Text>
-              <Text style={styles.emptySubtitle}>{t('payment.noPaymentsSubtitle')}</Text>
-            </View>
-          }
-        />
-      )}
-    </View>
+    <PageShell
+      title={title}
+      onBack={back}
+      mode="list"
+      scroll={page}
+      loading={f.isLoading}
+      loadingFallback={<RowListSkeleton rows={5} />}
+      error={f.loadFailed || undefined}
+      onRetry={() => f.fetchPayments()}
+    >
+      <Animated.FlatList
+        {...page.listProps}
+        data={f.payments}
+        keyExtractor={paymentKey}
+        renderItem={renderPayment}
+        {...listWindowing}
+        contentContainerStyle={page.contentStyle(pageListContentStyle)}
+        refreshing={f.isRefreshing}
+        onRefresh={() => f.fetchPayments()}
+        ListEmptyComponent={
+          <EmptyState
+            icon="receipt-percent"
+            title={t('payment.noHistory')}
+            subtitle={t('payment.noPaymentsSubtitle')}
+          />
+        }
+      />
+    </PageShell>
   );
 }

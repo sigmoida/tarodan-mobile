@@ -1,24 +1,30 @@
-import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { AppImage } from '@/components/AppImage';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useContext, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, View, type LayoutChangeEvent, type LayoutRectangle, type ViewStyle } from 'react-native';
 import { router } from 'expo-router';
-import { theme, Text } from '@/ui';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
+import { QueryClientContext } from '@tanstack/react-query';
+import { AppImage } from '@/components/AppImage';
+import { GLASS_ICON_BUTTON_SIZE_SM, GlassIconButton, ProductBadge, Text, theme, Icon } from '@/ui';
 import { productsApi } from '@/lib/api';
-import { formatPrice } from '../../utils/format';
-import { transformImageUrl, IMAGE_PLACEHOLDER } from '../../utils/imageUrl';
+import { prefetchProductDetail } from '@/lib/product/detailQuery';
+import { usePressPrefetch } from '@/hooks/usePressPrefetch';
 import {
   ProductPriceFields,
   getProductEffectivePrice,
   getProductOriginalPriceForDisplay,
   isProductOnSaleDisplay,
-  getProductDiscountPercent,
   isProductOutOfStock,
-} from '../../utils/productPrice';
-import { isProductTradeOpen } from '../../utils/isProductTradeOpen';
+} from '@/utils/productPrice';
+import { formatPrice } from '@/utils/format';
+import { OutOfStockOverlay } from './OutOfStockOverlay';
+import { PRODUCT_CARD_METRICS } from './productCardMetrics';
+import { getProductSalePercent, isProductTradeBadgeVisible, selectProductCardBadges, type ProductCardBadge } from './productCardBadges';
 
-const { colors } = theme;
+const { colors, spacing, typography, radiusRole, iconSize } = theme;
+
+/** Takas rozeti ikonu — sabit referans (kart yeniden render olunca yeni element üretilmez). */
+const TRADE_ICON = <Icon name="arrows-right-left" size={iconSize.sm} color={colors.text.inverted} />;
 
 export interface ProductCardProduct extends ProductPriceFields {
   id: string;
@@ -27,444 +33,515 @@ export interface ProductCardProduct extends ProductPriceFields {
   imageUrl?: string | null;
   viewCount?: number;
   likeCount?: number;
-  isPreorder?: boolean;
-  isLimited?: boolean;
   isTradeEnabled?: boolean;
   isBoosted?: boolean;
   boostedUntil?: string | null;
-  condition?: string;
+  discountPercent?: number | null;
+  /** Bedel kampanyası etiketleri (web `feeCampaigns`) — ilki "nadir" rozetiyle gösterilir. */
+  feeCampaigns?: string[] | null;
   /** Ürün statüsü (active = stokta). active dışındaki her statü "stokta yok" sayılır. */
   status?: string | null;
   /** Müsait adet (quantity - reserved). null = sınırsız stok. <= 0 ise stokta yok. */
   availableQuantity?: number | null;
   rating?: { average: number | null; count: number } | null;
-  seller?: { id?: string; displayName?: string; isVerified?: boolean } | null;
-  brand?: string | null;
-  scale?: string | null;
+  /** Liste görünümünde iki satıra kadar gösterilir. */
+  description?: string | null;
+  /** Satıcı (kendi ilanında favori kalbi gösterilmez — bkz. `useProductCardFavorites`). */
+  sellerId?: string | null;
+  seller?: { id?: string | null } | null;
 }
 
 export type ProductCardLayout = 'grid' | 'list';
 
-interface ProductCardProps {
+export interface ProductCardProps {
   product: ProductCardProduct;
   layout?: ProductCardLayout;
-  tag?: string | null;
+  /**
+   * İkincil bilgi: puan, beğeni ve görüntülenme (liste görünümünde açıklama da). Varsayılan açık;
+   * dar raylarda `false` (başlık, fiyat ve görsel her zaman kalır).
+   */
+  showMeta?: boolean;
+  /** Varsayılan: `/product/:id` açılır. */
   onPress?: () => void;
-  /** Favori butonu göster (kart üstünde kalp ikonu). */
-  onToggleFavorite?: () => void;
+  /** Sıralama sinyali (tıklama kaydı). Ürün açmayan kullanımlarda (seçim listesi) `false`. */
+  trackClick?: boolean;
+  /**
+   * Dokunuşta ürün detayını önceden çek — ekran açılırken istek yolda olur (kaydırırken çekilmez:
+   * `usePressPrefetch`). Varsayılan: kart ürünü kendisi açıyorsa (`onPress` yok) açık; `onPress` ile ürünü açan
+   * çağıran (anasayfa rayı) `true` verir. Görüntülenme sayılmaz (`prefetchProductDetail`).
+   */
+  prefetchDetail?: boolean;
+  /** Seçili durum (web seçim kartı: 2px primary çerçeve + primary-50 zemin). */
+  selected?: boolean;
+  /** Görselin sağ üstünde (rozet/kaldır düğmesi). */
+  overlay?: React.ReactNode;
+  /** Görselin sol üstünde. */
+  overlayStart?: React.ReactNode;
+  /** Kartın altında, kart dokunuşunun dışında (ör. sepete ekle düğmesi). */
+  footer?: React.ReactNode;
+  /**
+   * Görselin sağ üstünde cam favori kalbi; yalnız verilince çizilir (`overlay` varsa çizilmez, aynı köşe). Çağıran liste başına
+   * `useProductCardFavorites()` ile alır (`{...favoriteProps(product)}`) — kimliği sabit tutun.
+   */
+  onToggleFavorite?: (productId: string) => void;
+  /** Dolu kalp (favoride). */
   isFavorite?: boolean;
-  /** Ürün sepetteyse görsel üstünde "Sepette" göstergesi çıkar. */
-  inCart?: boolean;
-  /** Grid modu için sütun sayısı bilgisi (aspectRatio ayarı için gerekmez, sadece bilgi). */
-  compact?: boolean;
+  style?: ViewStyle;
+  testID?: string;
 }
 
-const FALLBACK_IMG = IMAGE_PLACEHOLDER;
+/** Geometri `productCardMetrics.ts`'te (iskeletle tek kaynak; ayrı dosya: kartı mock'layan testler iskeleti kırmasın). */
+export { PRODUCT_CARD_METRICS };
+const PM = PRODUCT_CARD_METRICS;
 
-function resolveImageSrc(product: ProductCardProduct): string {
-  // Liste hücresi → 'card' varyantı (thumbnail), tam-res değil (#73).
-  if (product.imageUrl) return transformImageUrl(product.imageUrl, 'card');
-  if (Array.isArray(product.images) && product.images.length > 0) {
-    const first = product.images[0] as any;
-    if (typeof first === 'string') return transformImageUrl(first, 'card');
-    return transformImageUrl(first?.cardUrl || first?.url || null, 'card');
+/** Kalbin görsel köşesine uzaklığı (rozetlerle aynı iç boşluk). */
+const FAVORITE_INSET = spacing[1.5];
+
+/**
+ * Grid rozet yığınının sağ boşluğu (web: `left-1.5 max-w-[calc(100%-3.25rem)]` = sağdan 46pt): sağ
+ * üstteki kalbe (6 + 32pt) çarpmasın, taşan etiket ellipsis olsun.
+ */
+const BADGES_END_INSET = FAVORITE_INSET + GLASS_ICON_BUTTON_SIZE_SM + spacing[2];
+
+/**
+ * Görselin sağ üstündeki cam favori kalbi (32pt, dokunma alanı 44pt). Kartın Pressable'ının KARDEŞİ
+ * olarak çizilir: basmak kartı açmaz. Pasif: çizgi kalp; aktif: dolu `danger-500`.
+ */
+function FavoriteHeart({
+  productId,
+  title,
+  isFavorite,
+  onToggle,
+}: {
+  productId: string;
+  title: string;
+  isFavorite: boolean;
+  onToggle: (id: string) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <GlassIconButton
+      size="sm"
+      icon="heart"
+      iconVariant={isFavorite ? 'solid' : 'outline'}
+      iconColor={isFavorite ? colors.danger[500] : undefined}
+      // Etiket sabit (ürün adıyla), durum `selected` (web: sabit "Favori" + aria-pressed) — ikisi
+      // birden değişirse ekran okuyucu "Favorilerden çıkar, seçili" gibi çelişik okur.
+      accessibilityLabel={t('product.favoriteNamed', { title })}
+      selected={isFavorite}
+      testID={`product-card-favorite-${productId}`}
+      onPress={() => onToggle(productId)}
+    />
+  );
+}
+
+/** Rozetin ekran okuyucu metni (görünen etiketle aynı i18n anahtarları). */
+function badgeA11yText(b: ProductCardBadge, t: TFunction): string {
+  switch (b.kind) {
+    case 'sale':
+      return `%${b.percent} ${t('product.discount')}`;
+    case 'sponsored':
+      return t('product.sponsored');
+    case 'trade':
+      return t('product.tradeShort');
+    case 'campaign':
+      return b.label;
   }
-  return FALLBACK_IMG;
 }
 
+/** Bir `Text` kısa yolu: web kartındaki "text-xs text-subtle" meta metni. */
+function MetaItem({ icon, color, children }: { icon: 'star' | 'heart' | 'eye'; color: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.metaItem}>
+      <Icon name={icon} variant={icon === 'eye' ? 'outline' : 'solid'} size={iconSize.sm} color={color} />
+      {children}
+    </View>
+  );
+}
+
+function RatingMeta({ rating }: { rating?: ProductCardProduct['rating'] }) {
+  if (!rating || rating.average === null || !(rating.count > 0)) return null;
+  return (
+    <MetaItem icon="star" color={colors.warning[400]!}>
+      <Text variant="caption" weight="semibold" tone="heading">
+        {rating.average.toFixed(1)}
+      </Text>
+      <Text variant="caption" tone="subtle">
+        ({rating.count})
+      </Text>
+    </MetaItem>
+  );
+}
+
+const MetaRow = React.memo(function MetaRow({ product, listOrder }: { product: ProductCardProduct; listOrder: boolean }) {
+  const likes = (
+    <MetaItem key="likes" icon="heart" color={colors.danger[500]!}>
+      <Text variant="caption" tone="subtle">
+        {product.likeCount ?? 0}
+      </Text>
+    </MetaItem>
+  );
+  const views = (
+    <MetaItem key="views" icon="eye" color={colors.primary[500]!}>
+      <Text variant="caption" tone="subtle">
+        {product.viewCount ?? 0}
+      </Text>
+    </MetaItem>
+  );
+  return (
+    <View style={styles.metaRow}>
+      {listOrder ? (
+        <>
+          {views}
+          {likes}
+          <RatingMeta rating={product.rating} />
+        </>
+      ) : (
+        <>
+          <RatingMeta rating={product.rating} />
+          {likes}
+          {views}
+        </>
+      )}
+    </View>
+  );
+});
+
+/**
+ * Pazaryerinin TEK ürün kartı (web `ProductCard`'ın telefon görünümü): grid ve liste. Ham ürünü
+ * alır; fiyat, indirim, stok ve görseli kendisi türetir — çağıran hiçbirini önceden hesaplamaz.
+ * Başlık, fiyat ve görsel her zaman çizilir; `showMeta` ikincil bilgiyi açar/kapatır.
+ *
+ * Favori kalbi görselin sağ üstünde (web ile birlikte eklendi; `onToggleFavorite` verilince). Web'de
+ * olmayan "Sepette" rozeti ve ön sipariş/sınırlı rozeti kartta yok (ürün detayında/filtrelerde).
+ */
 function ProductCardBase({
   product,
   layout = 'grid',
-  tag,
+  showMeta = true,
   onPress,
+  trackClick = true,
+  prefetchDetail,
+  selected = false,
+  overlay,
+  overlayStart,
+  footer,
   onToggleFavorite,
   isFavorite = false,
-  inCart = false,
-  compact = false,
+  style,
+  testID,
 }: ProductCardProps) {
   const { t } = useTranslation();
-  const [imgSrc, setImgSrc] = useState<string>(() => resolveImageSrc(product));
+  // Liste: görsel satırda dikey ortalı (web `items-center`; konum gövde yüksekliğine bağlı) — kalp
+  // görselin ÖLÇÜLEN çerçevesine yerleşir ve ölçüm gelene dek çizilmez (ilk karede zıplama yok).
+  const [listImageFrame, setListImageFrame] = useState<LayoutRectangle | null>(null);
+  const onListImageLayout = onToggleFavorite
+    ? (e: LayoutChangeEvent) => setListImageFrame(e.nativeEvent.layout)
+    : undefined;
+  const heart = onToggleFavorite ? (
+    <FavoriteHeart productId={product.id} title={product.title} isFavorite={isFavorite} onToggle={onToggleFavorite} />
+  ) : null;
 
-  const effectivePrice = useMemo(() => getProductEffectivePrice(product), [product]);
-  const onSale = useMemo(() => isProductOnSaleDisplay(product), [product]);
-  const originalPrice = useMemo(() => getProductOriginalPriceForDisplay(product), [product]);
-  const discountPct = useMemo(() => getProductDiscountPercent(product), [product]);
+  const { effective, original, onSale, salePercent, outOfStock, isTrade, badges } = useMemo(
+    () => ({
+      effective: getProductEffectivePrice(product),
+      original: getProductOriginalPriceForDisplay(product),
+      onSale: isProductOnSaleDisplay(product) && getProductOriginalPriceForDisplay(product) > getProductEffectivePrice(product),
+      salePercent: getProductSalePercent(product),
+      outOfStock: isProductOutOfStock(product),
+      isTrade: isProductTradeBadgeVisible(product),
+      badges: selectProductCardBadges(product),
+    }),
+    [product],
+  );
+  // Ekran okuyucu: görünen rozetler başlığa eklenir (grid: yığın; liste: indirim + takas ikonu).
+  const visibleBadges: ProductCardBadge[] =
+    layout === 'list'
+      ? [
+          ...(salePercent >= 1 ? [{ kind: 'sale', percent: salePercent } as const] : []),
+          ...(isTrade ? [{ kind: 'trade' } as const] : []),
+        ]
+      : overlayStart
+        ? []
+        : badges;
+  const cardLabel = [product.title, ...visibleBadges.map((b) => badgeA11yText(b, t))].join(', ');
+
+  // Sağlayıcı yoksa (izole bileşen testleri) prefetch atlanır — `useQueryClient` gibi fırlatmaz.
+  const queryClient = useContext(QueryClientContext);
+  const shouldPrefetch = prefetchDetail ?? !onPress;
+  // Kaydırırken değil, gerçek dokunuşta / kısa basılı tutmada çekilir (`usePressPrefetch`).
+  const pressPrefetch = usePressPrefetch(
+    shouldPrefetch && queryClient ? () => prefetchProductDetail(queryClient, product.id) : undefined,
+  );
 
   const handlePress = () => {
-    // Fire-and-forget sıralama sinyali; hata navigasyonu engellemez.
-    void productsApi.recordClick(product.id).catch(() => {});
+    pressPrefetch.prefetchNow();
+    // Sıralama sinyali: hata gezinmeyi engellemez (web `click` ping'i).
+    if (trackClick) void productsApi.recordClick(product.id).catch(() => {});
     if (onPress) return onPress();
     router.push(`/product/${product.id}`);
   };
 
-  const ratingAvg = product.rating?.average ?? null;
-  const ratingCount = product.rating?.count ?? 0;
-
-  // Stokta yok: active dışı statü veya müsait adet 0 (null = sınırsız stok → stokta).
-  const isOutOfStock = isProductOutOfStock(product);
+  const imageSource = product.imageUrl ?? product.images;
+  const tradeIcon = TRADE_ICON;
 
   if (layout === 'list') {
     return (
-      <TouchableOpacity style={styles.listCard} onPress={handlePress} activeOpacity={0.85}>
-        <View style={styles.listImageWrap}>
-          <AppImage
-            source={imgSrc}
-            style={[styles.listImage, isOutOfStock && styles.imageDimmed]}
-            onError={() => setImgSrc(FALLBACK_IMG)}
-          />
-          {isOutOfStock ? (
-            <View style={styles.outOfStockOverlay}>
-              <Text style={styles.outOfStockText}>{t('product.soldOut').toUpperCase()}</Text>
-            </View>
-          ) : null}
-          {onSale && discountPct > 0 ? (
-            <View style={[styles.badge, styles.saleBadge]}>
-              <Text style={styles.badgeText}>%{discountPct}</Text>
-            </View>
-          ) : null}
-          {inCart ? (
-            <View style={styles.inCartPill}>
-              <Ionicons name="checkmark-circle" size={12} color={colors.white} />
-              <Text style={styles.inCartPillText}>{t('product.inCartShort')}</Text>
-            </View>
-          ) : null}
-        </View>
-        <View style={styles.listBody}>
-          <Text style={styles.title} numberOfLines={2}>{product.title}</Text>
-          {product.brand || product.scale ? (
-            <Text style={styles.meta} numberOfLines={1}>
-              {[product.brand, product.scale].filter(Boolean).join(' • ')}
-            </Text>
-          ) : null}
-          {product.seller?.displayName ? (
-            <Text style={styles.meta} numberOfLines={1}>
-              {t('refund.sellerLabel', { name: product.seller.displayName })}
-            </Text>
-          ) : null}
-          <View style={styles.listFooter}>
-            <View>
-              {onSale && originalPrice > effectivePrice ? (
-                <Text style={styles.priceOld}>{formatPrice(originalPrice)}</Text>
-              ) : null}
-              <Text style={styles.price}>{formatPrice(effectivePrice)}</Text>
-            </View>
-            {ratingAvg !== null && ratingCount > 0 ? (
-              <View style={styles.ratingRow}>
-                <Ionicons name="star" size={14} color={colors.warning[500]!} />
-                <Text style={styles.ratingText}>{ratingAvg.toFixed(1)}</Text>
-                <Text style={styles.ratingCount}>({ratingCount})</Text>
-              </View>
+      <View style={style}>
+        <Pressable
+          onPress={handlePress}
+          onPressIn={pressPrefetch.onPressIn}
+          onPressOut={pressPrefetch.onPressOut}
+          testID={testID}
+          accessibilityRole="button"
+          accessibilityLabel={cardLabel}
+          accessibilityState={{ selected }}
+          style={({ pressed }) => [styles.listCard, selected && styles.selected, pressed && styles.pressed]}
+        >
+          <View style={styles.listImage} onLayout={onListImageLayout}>
+            <AppImage
+              source={imageSource}
+              recyclingKey={product.id}
+              variant="card"
+              style={[styles.fill, outOfStock && styles.dimmed]}
+              resizeMode="cover"
+            />
+            {outOfStock ? <OutOfStockOverlay label={t('product.soldOut').toUpperCase()} /> : null}
+            {isTrade ? (
+              <ProductBadge
+                variant="trade"
+                icon={tradeIcon}
+                accessibilityLabel={t('product.tradeShort')}
+                style={styles.listTradeBadge}
+              />
             ) : null}
           </View>
-        </View>
-      </TouchableOpacity>
+          <View style={styles.listBody}>
+            <Text variant="body" weight="semibold" numberOfLines={2} style={styles.listTitle}>
+              {product.title}
+            </Text>
+            {showMeta ? <MetaRow product={product} listOrder /> : null}
+            {showMeta && product.description ? (
+              <Text variant="bodySm" tone="muted" numberOfLines={2} style={styles.listDescription}>
+                {product.description}
+              </Text>
+            ) : null}
+          </View>
+          <View style={styles.listPrice}>
+            {onSale ? (
+              <Text variant="bodySm" tone="subtle" style={styles.struck} testID="product-card-old-price">
+                {formatPrice(original)}
+              </Text>
+            ) : null}
+            <Text variant="h3" weight="bold" tone="primary" testID="product-card-price">
+              {formatPrice(effective)}
+            </Text>
+            {salePercent >= 1 ? <ProductBadge variant="sale">%{salePercent}</ProductBadge> : null}
+          </View>
+        </Pressable>
+        {heart && listImageFrame ? (
+          <View style={[styles.favoriteBox, listHeartPosition(listImageFrame)]}>{heart}</View>
+        ) : null}
+        {overlay ? <View style={styles.overlayEnd}>{overlay}</View> : null}
+        {footer ? <View style={styles.listFooter}>{footer}</View> : null}
+      </View>
     );
   }
 
   return (
-    <Pressable style={({ pressed }) => [styles.gridCard, pressed && { opacity: 0.85 }]} onPress={handlePress}>
-      <View style={styles.gridImageWrap}>
-        <AppImage
-          source={imgSrc}
-          style={[styles.gridImage, isOutOfStock && styles.imageDimmed]}
-          onError={() => setImgSrc(FALLBACK_IMG)}
-        />
-
-        {isOutOfStock ? (
-          <View style={styles.outOfStockOverlay}>
-            <Text style={styles.outOfStockText}>{t('product.soldOut').toUpperCase()}</Text>
-          </View>
-        ) : null}
-
-        {/* Sol üst: sponsorlu / indirim / ön sipariş / limited */}
-        <View style={styles.topLeftStack}>
-          {product.isBoosted || product.boostedUntil ? (
-            <View style={[styles.badge, styles.boostBadge]}>
-              <Ionicons name="rocket" size={10} color={colors.white} />
-              <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]}>{t('product.sponsored').toUpperCase()}</Text>
+    <View style={[styles.gridWrap, style]}>
+      <Pressable
+        onPress={handlePress}
+        onPressIn={pressPrefetch.onPressIn}
+        onPressOut={pressPrefetch.onPressOut}
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityLabel={cardLabel}
+        accessibilityState={{ selected }}
+        style={({ pressed }) => [styles.gridCard, selected && styles.selected, pressed && styles.pressed]}
+      >
+        <View style={styles.gridImage}>
+          <AppImage
+            source={imageSource}
+            recyclingKey={product.id}
+            variant="card"
+            style={[styles.fill, outOfStock && styles.dimmed]}
+            resizeMode="cover"
+          />
+          {outOfStock ? <OutOfStockOverlay label={t('product.soldOut').toUpperCase()} /> : null}
+          {/* Sol üst yuva `overlayStart`'ındır: verilmişse rozet yığını çizilmez (çakışmasın). */}
+          {overlayStart ? null : (
+            <View style={styles.badgesStart} pointerEvents="none">
+              {badges.map((b) => {
+                switch (b.kind) {
+                  case 'sale':
+                    return (
+                      <ProductBadge key="sale" variant="sale">
+                        %{b.percent}
+                      </ProductBadge>
+                    );
+                  case 'sponsored':
+                    return (
+                      <ProductBadge key="sponsored" variant="sponsored">
+                        {t('product.sponsored')}
+                      </ProductBadge>
+                    );
+                  case 'trade':
+                    return (
+                      <ProductBadge key="trade" variant="trade" icon={tradeIcon}>
+                        {t('product.tradeShort')}
+                      </ProductBadge>
+                    );
+                  case 'campaign':
+                    return (
+                      <ProductBadge key="campaign" variant="rare">
+                        {b.label}
+                      </ProductBadge>
+                    );
+                }
+              })}
             </View>
-          ) : null}
-          {onSale && discountPct > 0 ? (
-            <View style={[styles.badge, styles.saleBadge]}>
-              <Text style={styles.badgeText}>%{discountPct} {t('product.discount')}</Text>
-            </View>
-          ) : null}
-          {product.isPreorder ? (
-            <View style={[styles.badge, styles.preorderBadge]}>
-              <Text style={styles.badgeText}>{t('product.preOrder').toUpperCase()}</Text>
-            </View>
-          ) : null}
-          {product.isLimited ? (
-            <View style={[styles.badge, styles.limitedBadge]}>
-              <Ionicons name="star" size={10} color={colors.white} />
-              <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]}>{t('product.limitedBadge').toUpperCase()}</Text>
-            </View>
-          ) : null}
-          {isProductTradeOpen(product) ? (
-            <View style={[styles.badge, styles.tradeBadge]}>
-              <Ionicons name="swap-horizontal" size={10} color={colors.white} />
-              <Text style={[styles.badgeText, { marginLeft: theme.spacing[1] }]}>{t('product.tradeShort').toUpperCase()}</Text>
-            </View>
-          ) : null}
+          )}
         </View>
-
-        {/* Sağ üst: tag veya favori */}
-        <View style={styles.topRightStack}>
-          {tag ? (
-            <View style={[styles.badge, styles.neutralBadge]}>
-              <Text style={styles.badgeText}>{tag}</Text>
+        <View style={styles.gridBody}>
+          <Text variant="bodySm" weight="medium" numberOfLines={2} style={styles.gridTitle}>
+            {product.title}
+          </Text>
+          <View style={styles.gridBottom}>
+            {showMeta ? <MetaRow product={product} listOrder={false} /> : null}
+            <View style={styles.priceBlock}>
+              {onSale ? (
+                <Text variant="bodySm" tone="subtle" style={styles.struck} testID="product-card-old-price">
+                  {formatPrice(original)}
+                </Text>
+              ) : null}
+              {/* Dar ızgara hücresinde (360pt) uzun fiyat sarmaz; gerekirse hafifçe küçülür. */}
+              <Text
+                variant="body"
+                weight="bold"
+                tone="primary"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+                testID="product-card-price"
+              >
+                {formatPrice(effective)}
+              </Text>
             </View>
-          ) : null}
-          {onToggleFavorite ? (
-            <TouchableOpacity
-              style={styles.favBtn}
-              onPress={onToggleFavorite}
-              accessibilityRole="button"
-              accessibilityLabel={isFavorite ? t('product.removeFromFavorites') : t('product.addToFavorites')}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            >
-              <Ionicons
-                name={isFavorite ? 'heart' : 'heart-outline'}
-                size={18}
-                color={isFavorite ? colors.danger[600]! : colors.text.heading}
-              />
-            </TouchableOpacity>
-          ) : null}
+          </View>
         </View>
-
-        {inCart ? (
-          <View style={styles.inCartPill}>
-            <Ionicons name="checkmark-circle" size={12} color={colors.white} />
-            <Text style={styles.inCartPillText}>{t('product.inCartShort')}</Text>
-          </View>
-        ) : null}
-      </View>
-
-      <View style={[styles.gridBody, compact && { padding: theme.spacing[2] }]}>
-        <Text style={[styles.title, compact && { fontSize: 13 }]} numberOfLines={2}>
-          {product.title}
-        </Text>
-        {onSale && originalPrice > effectivePrice ? (
-          <Text style={styles.priceOld}>{formatPrice(originalPrice)}</Text>
-        ) : null}
-        <Text style={styles.price}>{formatPrice(effectivePrice)}</Text>
-        {ratingAvg !== null && ratingCount > 0 ? (
-          <View style={styles.ratingRow}>
-            <Ionicons name="star" size={12} color={colors.warning[500]!} />
-            <Text style={styles.ratingText}>{ratingAvg.toFixed(1)}</Text>
-            <Text style={styles.ratingCount}>({ratingCount})</Text>
-          </View>
-        ) : null}
-      </View>
-    </Pressable>
+      </Pressable>
+      {footer ? <View style={styles.gridFooter}>{footer}</View> : null}
+      {heart && !overlay ? (
+        // Sağ üst köşe tek yuva: grid'de `overlay` (kaldır düğmesi) varsa kalp çizilmez.
+        // Görselle aynı kare (kenarlık içinde): kalp sağ üst köşeye oturur, kare dokunuşu geçirir.
+        <View style={styles.gridImageFrame} pointerEvents="box-none">
+          <View style={[styles.favoriteBox, styles.favoriteGrid]}>{heart}</View>
+        </View>
+      ) : null}
+      {overlay ? <View style={styles.overlayEnd}>{overlay}</View> : null}
+      {overlayStart ? <View style={styles.overlayStart}>{overlayStart}</View> : null}
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  // ========== GRID ==========
-  gridCard: {
-    flex: 1,
-    backgroundColor: colors.surface.DEFAULT,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border.DEFAULT,
-  },
-  gridImageWrap: {
-    aspectRatio: 1,
-    backgroundColor: colors.surface.alt,
-    position: 'relative',
-  },
-  gridImage: {
-    width: '100%',
-    height: '100%',
-  },
-  gridBody: {
-    padding: theme.spacing[2.5],
-  },
-
-  // ========== LIST ==========
-  listCard: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface.DEFAULT,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border.DEFAULT,
-    padding: theme.spacing[2.5],
-    gap: theme.spacing[3],
-  },
-  listImageWrap: {
-    width: 110,
-    height: 110,
-    borderRadius: theme.radius.xl,
-    overflow: 'hidden',
-    backgroundColor: colors.surface.alt,
-  },
-  listImage: {
-    width: '100%',
-    height: '100%',
-  },
-  listBody: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  listFooter: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    marginTop: theme.spacing[2],
-  },
-
-  // ========== TEXT ==========
-  title: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.heading,
-    lineHeight: 18,
-  },
-  meta: {
-    fontSize: 12,
-    color: colors.text.muted,
-    marginTop: theme.spacing[0.5],
-  },
-  price: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.primary[700]!,
-    marginTop: theme.spacing[1],
-  },
-  priceOld: {
-    fontSize: 12,
-    color: colors.gray[400],
-    textDecorationLine: 'line-through',
-    marginTop: theme.spacing[1],
-  },
-
-  // ========== OUT OF STOCK ==========
-  imageDimmed: {
-    opacity: 0.45,
-  },
-  outOfStockOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  outOfStockText: {
-    backgroundColor: colors.overlay.black70,
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[1.5],
-    borderRadius: theme.radius.lg,
-    overflow: 'hidden',
-  },
-
-  // ========== BADGES ==========
-  topLeftStack: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    flexDirection: 'column',
-    gap: theme.spacing[1],
-    alignItems: 'flex-start',
-  },
-  topRightStack: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    flexDirection: 'column',
-    gap: theme.spacing[1],
-    alignItems: 'flex-end',
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: 3,
-    borderRadius: theme.radius.md,
-  },
-  badgeText: {
-    color: colors.white,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  saleBadge: {
-    backgroundColor: colors.danger[500]!,
-  },
-  preorderBadge: {
-    backgroundColor: colors.warning[500]!,
-  },
-  limitedBadge: {
-    backgroundColor: colors.warning[500]!,
-  },
-  tradeBadge: {
-    backgroundColor: colors.success[500]!,
-  },
-  boostBadge: {
-    backgroundColor: colors.warning[500]!,
-  },
-  neutralBadge: {
-    backgroundColor: colors.overlay.black70,
-  },
-  favBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.overlay.white90,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inCartPill: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[1],
-    backgroundColor: colors.primary[600]!,
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: theme.spacing[1],
-    borderRadius: theme.radius.xl,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  inCartPillText: {
-    color: colors.white,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-
-  // ========== RATING ==========
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[0.5],
-    marginTop: theme.spacing[1],
-  },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text.heading,
-    marginLeft: theme.spacing[0.5],
-  },
-  ratingCount: {
-    fontSize: 11,
-    color: colors.text.muted,
-    marginLeft: theme.spacing[0.5],
-  },
-});
+/** Liste kalbinin konumu: ölçülen görsel çerçevesinin sağ üstü. */
+function listHeartPosition(frame: LayoutRectangle): ViewStyle {
+  return {
+    left: frame.x + frame.width - GLASS_ICON_BUTTON_SIZE_SM - FAVORITE_INSET,
+    top: frame.y + FAVORITE_INSET,
+  };
+}
 
 export const ProductCard = React.memo(ProductCardBase);
 
 export default ProductCard;
+
+const styles = StyleSheet.create({
+  fill: { width: '100%', height: '100%' },
+  dimmed: { opacity: 0.5 },
+  pressed: { opacity: 0.85 },
+  selected: { borderWidth: 2, borderColor: colors.primary[500], backgroundColor: colors.primary[50] },
+  struck: { textDecorationLine: 'line-through' },
+
+  // ===== GRID (web: rounded border bg-surface-elevated, aspect-square görsel, p-2.5 gövde) =====
+  gridWrap: { flex: 1 },
+  gridCard: {
+    flex: 1,
+    overflow: 'hidden',
+    borderRadius: PM.grid.radius,
+    borderWidth: PM.borderWidth,
+    borderColor: colors.border.DEFAULT,
+    backgroundColor: colors.surface.elevated,
+  },
+  gridImage: { aspectRatio: 1, backgroundColor: colors.surface.alt },
+  badgesStart: {
+    position: 'absolute',
+    top: spacing[1.5],
+    left: spacing[1.5],
+    // Taşan etiket ellipsis'e düşer; sağ üstteki kalbe çarpmaz.
+    right: BADGES_END_INSET,
+    alignItems: 'flex-start',
+    gap: spacing[1],
+  },
+  gridBody: { flex: 1, padding: PM.grid.bodyPadding },
+  gridTitle: {
+    marginBottom: PM.grid.titleGap,
+    lineHeight: PM.grid.titleLineHeight,
+  },
+  // Meta + fiyat altta sabit: 1 ya da 2 satırlık başlıkta kartlar hizalı kalır.
+  gridBottom: { marginTop: 'auto' },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    columnGap: spacing[3],
+    rowGap: spacing[0.5],
+    marginBottom: PM.grid.metaGap,
+  },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: spacing[0.5] },
+  priceBlock: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border.subtle,
+    paddingTop: PM.grid.priceTopPadding,
+  },
+  gridFooter: { paddingHorizontal: spacing[2.5], paddingBottom: spacing[2.5] },
+  overlayEnd: { position: 'absolute', top: spacing[1.5], right: spacing[1.5], zIndex: 1 },
+  overlayStart: { position: 'absolute', top: spacing[1.5], left: spacing[1.5], zIndex: 1 },
+  // Grid görsel karesi: kart kenarlığının (1pt) içinde, kare.
+  gridImageFrame: { position: 'absolute', top: 1, left: 1, right: 1, aspectRatio: 1, zIndex: 1 },
+  favoriteBox: { position: 'absolute', zIndex: 1 },
+  favoriteGrid: { right: FAVORITE_INSET, top: FAVORITE_INSET },
+
+  // ===== LİSTE (web: rounded-lg border p-3 gap-3, 80pt görsel, fiyat tam genişlikte sağa yaslı) =====
+  listCard: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: PM.list.gap,
+    padding: PM.list.padding,
+    borderRadius: PM.list.radius,
+    borderWidth: PM.borderWidth,
+    borderColor: colors.border.DEFAULT,
+    backgroundColor: colors.surface.elevated,
+  },
+  listImage: {
+    width: PM.list.imageSize,
+    height: PM.list.imageSize,
+    overflow: 'hidden',
+    borderRadius: radiusRole.card,
+    backgroundColor: colors.surface.alt,
+  },
+  listTradeBadge: { position: 'absolute', top: spacing[1], left: spacing[1], padding: spacing[1], gap: 0 },
+  listBody: { flex: 1, minWidth: 0 },
+  listTitle: { lineHeight: PM.list.titleLineHeight },
+  listDescription: { marginTop: spacing[2] },
+  listPrice: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'flex-end',
+    gap: spacing[2],
+  },
+  listFooter: { marginTop: spacing[2] },
+});

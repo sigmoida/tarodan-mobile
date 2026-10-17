@@ -1,0 +1,7 @@
+{
+  "name": "eslint-plugin-tarodan",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tarodan mobil yerel ESLint kuralları (tasarım token disiplini)",
+  "main": "index.js"
+}

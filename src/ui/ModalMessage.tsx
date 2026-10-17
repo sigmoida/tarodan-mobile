@@ -1,7 +1,11 @@
 import { useCallback, useState } from 'react';
-import { Text, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { theme } from './lib/theme';
 import { appAlert, type AlertDialogButton } from './components/AlertDialog';
+import { MODAL_CLOSE_DELAY_MS } from './lib/modal-timing';
+import { RawText } from './components/Text';
+
+export { MODAL_CLOSE_DELAY_MS };
 
 const { colors, spacing, typography } = theme;
 
@@ -22,12 +26,12 @@ export function useModalMessage() {
 export function ModalMessage({ state }: { state: ModalMessageState }) {
   if (!state) return null;
   return (
-    <Text
+    <RawText
       testID="modal-message"
       style={[styles.base, state.type === 'error' ? styles.error : styles.info]}
     >
       {state.text}
-    </Text>
+    </RawText>
   );
 }
 
@@ -48,11 +52,8 @@ export function alertAfterClose(
   runAfterModalClose(() => appAlert(title, message, buttons), delayMs);
 }
 
-/** Modal'ın kapanma animasyonunun bitmesi için beklenen süre. */
-export const MODAL_CLOSE_DELAY_MS = 400;
-
 /** Modal kapatıldıktan SONRA bir sonraki adımı (appAlert, başka bir Modal)
- *  çalıştırır — aynı tick'te açmak iOS'ta donmaya yol açıyor (CLAUDE.md §12).
+ *  çalıştırır — aynı tick'te açmak iOS'ta donmaya yol açıyor (src/ui/CLAUDE.md › iOS modal rule).
  *  Kapatmayı çağıran yapar; bu yalnız bekletir. */
 export function runAfterModalClose(next: () => void, delayMs = MODAL_CLOSE_DELAY_MS): void {
   setTimeout(next, delayMs);

@@ -1,0 +1,46 @@
+#!/usr/bin/env node
+// Fake npx, only for src/config/__tests__/releaseScript.test.ts.
+//   npx expo-updates fingerprint:generate --platform P
+//       -> {"hash": $FAKE_FP_<P> or "fp-<P>-<EXPO_PUBLIC_ENVIRONMENT>"}
+//       (the default proves that the profile env was really loaded)
+//   npx expo config [--type public] --json
+//       -> android.package / ios.bundleIdentifier ($FAKE_ANDROID_PACKAGE overrides) and
+//          the Sentry plugin with organization + project ($FAKE_NO_SENTRY_PLUGIN changes it)
+//   npx sentry-expo-upload-sourcemaps dist
+//       → succeeds (logged); fails with $FAKE_SENTRY_UPLOAD_FAIL
+const fs = require('fs');
+const path = require('path');
+const args = process.argv.slice(2);
+const env = process.env.EXPO_PUBLIC_ENVIRONMENT || '';
+fs.appendFileSync(
+  path.join(process.env.FAKE_DIR, 'log'),
+  `npx ${args.join(' ')} | EXPO_PUBLIC_ENVIRONMENT=${env}\n`,
+);
+if (args[0] === 'expo-updates' && args[1] === 'fingerprint:generate') {
+  const p = args[args.indexOf('--platform') + 1];
+  console.log(JSON.stringify({ hash: process.env[`FAKE_FP_${p.toUpperCase()}`] || `fp-${p}-${env}` }));
+} else if (args[0] === 'expo' && args[1] === 'config') {
+  const id = env === 'preview' ? 'com.tarodan.app.staging' : 'com.tarodan.app';
+  console.log(
+    JSON.stringify({
+      name: env === 'preview' ? 'Tarodan (Staging)' : 'Tarodan',
+      ios: { bundleIdentifier: id },
+      android: { package: process.env.FAKE_ANDROID_PACKAGE || id },
+      // FAKE_NO_SENTRY_PLUGIN=1: bare plugin string; =url: options without org/project.
+      plugins: process.env.FAKE_NO_SENTRY_PLUGIN === 'url'
+        ? [['@sentry/react-native/expo', { url: 'https://sentry.io/' }]]
+        : process.env.FAKE_NO_SENTRY_PLUGIN
+          ? ['@sentry/react-native/expo']
+          : [['@sentry/react-native/expo', { organization: 'org', project: 'project' }]],
+    }),
+  );
+} else if (args[0] === 'sentry-expo-upload-sourcemaps') {
+  // FAKE_SENTRY_UPLOAD_FAIL=1 makes the upload fail.
+  if (process.env.FAKE_SENTRY_UPLOAD_FAIL) {
+    console.error('fake npx: sentry upload failed (FAKE)');
+    process.exit(1);
+  }
+} else {
+  console.error(`fake npx: unexpected command ${args.join(' ')}`);
+  process.exit(2);
+}

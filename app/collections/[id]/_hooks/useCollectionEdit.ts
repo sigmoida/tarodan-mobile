@@ -1,35 +1,41 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import * as ImagePicker from 'expo-image-picker';
+import { qk } from '@/lib/query';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { api } from '@/lib/api';
+import { apiPath } from '@/lib/api/path';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { useAuthStore } from '@/stores/authStore';
 import { buildCollectionEditSchema, type CollectionForm, type Collection } from '../_lib/collectionEditSchema';
+import { useCollectionCover } from '../../_hooks/useCollectionCover';
+import { useSafeTimeout } from '@/hooks/useSafeTimeout';
 
 /**
  * Collection edit controller — owns the collection query, RHF form (zod), the
- * update/delete/remove-item mutations, cover-image picker, and the snackbar.
+ * update/delete/remove-item mutations, cover-image picker; feedback is toast.
  * Lifted verbatim from the monolithic EditCollectionScreen.
  */
 export function useCollectionEdit() {
+  // Silme sonrası gecikmeli yönlendirme ekrandan çıkılınca iptal olur.
+  const schedule = useSafeTimeout();
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams();
-  const { user } = useAuthStore();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
 
-  const [coverImage, setCoverImage] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
+  const { coverImage, setCoverImage, pickCoverImage, uploadCover } = useCollectionCover();
 
   // Fetch collection
   const { data: collection, isLoading } = useQuery<Collection>({
-    queryKey: ['collection', id],
+    queryKey: qk.collections.detail(String(id)),
     queryFn: async () => {
-      const response = await api.get(`/collections/${id}`);
-      return response.data;
+      const response = await api.get(apiPath`/collections/${id}`);
+      // Detay ekranıyla AYNI anahtar (`qk.collections.detail`) → aynı şekil: zarf varsa aç.
+      return response.data?.data ?? response.data;
     },
     enabled: !!id,
   });
@@ -56,13 +62,13 @@ export function useCollectionEdit() {
       });
       setCoverImage(collection.coverImageUrl);
     }
-  }, [collection, reset]);
+  }, [collection, reset, setCoverImage]);
 
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: async (data: CollectionForm) => {
       // Metin alanları JSON ile (API @Body() UpdateCollectionDto bekler, FileInterceptor yok)
-      await api.patch(`/collections/${id}`, {
+      await api.patch(apiPath`/collections/${id}`, {
         name: data.name,
         description: data.description || undefined,
         isPublic: data.isPublic,
@@ -70,66 +76,45 @@ export function useCollectionEdit() {
 
       // Kapak değiştiyse ayrı multipart uca yükle (PATCH /collections/:id/cover, alan 'cover')
       if (coverImage && coverImage !== collection?.coverImageUrl) {
-        const formData = new FormData();
-        formData.append('cover', {
-          uri: coverImage,
-          type: 'image/jpeg',
-          name: 'cover.jpg',
-        } as any);
-        await api.patch(`/collections/${id}/cover`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await uploadCover(String(id), coverImage);
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collection', id] });
-      queryClient.invalidateQueries({ queryKey: ['collections'] });
-      queryClient.invalidateQueries({ queryKey: ['my-collections'] });
-      setSnackbar({ visible: true, message: t('collection.collectionUpdated') });
+      queryClient.invalidateQueries({ queryKey: qk.collections.detail(String(id)) });
+      queryClient.invalidateQueries({ queryKey: qk.collections.all });
+      queryClient.invalidateQueries({ queryKey: qk.collections.mine });
+      toast.success(t('collection.collectionUpdated'));
     },
     onError: (error: any) => {
-      setSnackbar({ visible: true, message: error.response?.data?.message || t('collection.updateFailed') });
+      toast.error(apiErrorMessage(error, t('collection.updateFailed')));
     },
   });
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: () => api.delete(`/collections/${id}`),
+    mutationFn: () => api.delete(apiPath`/collections/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collections'] });
-      queryClient.invalidateQueries({ queryKey: ['my-collections'] });
-      setSnackbar({ visible: true, message: t('collection.collectionDeleted') });
-      setTimeout(() => router.replace('/collections'), 1500);
+      queryClient.invalidateQueries({ queryKey: qk.collections.all });
+      queryClient.invalidateQueries({ queryKey: qk.collections.mine });
+      toast.success(t('collection.collectionDeleted'));
+      schedule(() => router.replace('/collections'), 1500);
     },
     onError: (error: any) => {
-      setSnackbar({ visible: true, message: error.response?.data?.message || t('collection.deleteFailed') });
+      toast.error(apiErrorMessage(error, t('collection.deleteFailed')));
     },
   });
 
   // Remove item mutation
   const removeItemMutation = useMutation({
-    mutationFn: (itemId: string) => api.delete(`/collections/${id}/items/${itemId}`),
+    mutationFn: (itemId: string) => api.delete(apiPath`/collections/${id}/items/${itemId}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collection', id] });
-      setSnackbar({ visible: true, message: t('collection.productRemoved') });
+      queryClient.invalidateQueries({ queryKey: qk.collections.detail(String(id)) });
+      toast.success(t('collection.productRemoved'));
     },
     onError: (error: any) => {
-      setSnackbar({ visible: true, message: error.response?.data?.message || t('collection.removeFailed') });
+      toast.error(apiErrorMessage(error, t('collection.removeFailed')));
     },
   });
-
-  const pickCoverImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setCoverImage(result.assets[0].uri);
-    }
-  };
 
   const handleDelete = () => {
     appAlert(
@@ -166,11 +151,10 @@ export function useCollectionEdit() {
     coverImage,
     pickCoverImage,
     updateMutation,
+    deleteMutation,
     handleDelete,
     handleRemoveItem,
     onSubmit,
-    snackbar,
-    setSnackbar,
   };
 }
 

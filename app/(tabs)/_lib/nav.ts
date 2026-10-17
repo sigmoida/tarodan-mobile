@@ -1,21 +1,18 @@
 import { router } from 'expo-router';
 
-// Her navigasyona benzersiz token: Ara sekmesi kalıcı olduğundan token değişimi
-// ekrana "taze geçiş, filtreyi yeniden uygula" sinyali verir.
-export const navToken = () => `&t=${Date.now()}`;
-
+// Arama ekranı yığın rotası (`/search`): her `push` taze bir ekran kurar ve filtreler URL
+// parametrelerinden başlatılır — eski kalıcı sekmenin `navToken` hilesi gerekmez.
 export const goSearch = (query: string) => {
-  if (query.trim()) router.navigate(`/search?q=${encodeURIComponent(query)}${navToken()}`);
+  if (query.trim()) router.push(`/search?q=${encodeURIComponent(query)}`);
 };
 
-export const goScale = (scale: string) =>
-  router.navigate(`/search?scale=${encodeURIComponent(scale)}${navToken()}`);
-
-// Anasayfa "Markalar" şeridi aslında üreticiler — web ile aynı: manufacturer ismi ile filtrele.
+// Anasayfa "Markalar" şeridi aslında üreticiler — web menüsüyle aynı: id (API süzgeci, ad
+// eşleşmesinden bağımsız) + ad (aktif filtre çipi etiketi) birlikte.
 export const goBrand = (brand: { id: string; name: string }) =>
-  router.navigate(`/search?manufacturer=${encodeURIComponent(brand.name)}${navToken()}`);
+  router.push({
+    pathname: '/search',
+    params: brand.id ? { manufacturer: brand.name, manufacturerId: brand.id } : { manufacturer: brand.name },
+  });
 
 export const goCategory = (cat: { id: string; name: string }) =>
-  router.navigate(
-    `/search?categoryId=${encodeURIComponent(cat.id)}&category=${encodeURIComponent(cat.name)}${navToken()}`,
-  );
+  router.push(`/search?categoryId=${encodeURIComponent(cat.id)}&category=${encodeURIComponent(cat.name)}`);

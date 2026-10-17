@@ -1,20 +1,19 @@
 import React from "react";
-import { View, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
-
-import { Ionicons } from "@expo/vector-icons";
+import { Pressable, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { type Locale } from "@/i18n/lib";
-import { theme, Text } from "@/ui";
-import { ScreenHeader } from "@/components/common";
-import { useLocale, localeNames, localeFlags } from "@/i18n/LocaleProvider";
+import { SectionCard, Text, theme, Icon } from "@/ui";
+import { PageShell } from "@/components/common/PageShell";
+import { useLocale, localeNames } from "@/i18n/LocaleProvider";
 
-const { colors } = theme;
+const { colors, spacing, minTouchTarget, iconSize } = theme;
 
+const OPTIONS: Locale[] = ["tr", "en"];
+
+/** Dil ayarı — PageShell + tek SectionCard; seçili dilde işlevsel onay işareti. */
 export default function LanguageSettingsScreen() {
   const { t } = useTranslation();
   const { locale, setLocale } = useLocale();
-
-  const options: Locale[] = ["tr", "en"];
 
   const handleSelect = (next: Locale) => {
     if (next === locale) return;
@@ -22,96 +21,52 @@ export default function LanguageSettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t("language.language")} />
-
-      <ScrollView contentContainerStyle={styles.scrollBody}>
-        <View style={styles.infoCard}>
-          <Ionicons name="language" size={18} color={colors.primary[600]!} />
-          <Text style={styles.infoText}>
-            {t("language.languageInfo")}
-          </Text>
-        </View>
-
-        {options.map((l) => (
-          <TouchableOpacity
+    <PageShell title={t("language.language")}>
+      <Text variant="bodySm" tone="muted">
+        {t("language.languageInfo")}
+      </Text>
+      <SectionCard bodyStyle={styles.list}>
+        {OPTIONS.map((l) => (
+          <Pressable
             key={l}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: locale === l }}
             style={[styles.row, locale === l && styles.rowActive]}
             onPress={() => handleSelect(l)}
-            activeOpacity={0.8}
           >
-            <Text style={styles.flag}>{localeFlags[l]}</Text>
-            <Text style={[styles.name, locale === l && styles.nameActive]}>
+            <Text
+              variant="body"
+              weight={locale === l ? "semibold" : "regular"}
+              tone={locale === l ? "primary" : "heading"}
+              style={styles.name}
+            >
               {localeNames[l]}
             </Text>
             {locale === l ? (
-              <Ionicons
-                name="checkmark-circle"
-                size={22}
-                color={colors.primary[600]!}
-              />
-            ) : (
-              <View style={styles.emptyCheck} />
-            )}
-          </TouchableOpacity>
+              <Icon name="check" size={iconSize.lg} color={colors.primary[600]!} />
+            ) : null}
+          </Pressable>
         ))}
-      </ScrollView>
-    </View>
+      </SectionCard>
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.alt,
-  },
-  scrollBody: {
-    padding: theme.spacing[4],
-    gap: theme.spacing[3],
-  },
-  infoCard: {
-    flexDirection: "row",
-    gap: theme.spacing[2],
-    alignItems: "flex-start",
-    backgroundColor: colors.primary[50]!,
-    padding: theme.spacing[3],
-    borderRadius: theme.radius["2xl"],
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.text.muted,
-    lineHeight: 18,
-  },
+  list: { gap: spacing[2] },
   row: {
+    minHeight: minTouchTarget,
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing[3],
-    padding: theme.spacing[3.5],
-    backgroundColor: colors.surface.DEFAULT,
-    borderRadius: theme.radius["2xl"],
+    gap: spacing[3],
+    paddingHorizontal: spacing[3],
+    borderRadius: theme.radiusRole.card,
     borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
+    borderColor: colors.border.subtle,
   },
   rowActive: {
-    borderColor: colors.primary[600]!,
+    borderColor: colors.primary[500]!,
     backgroundColor: colors.primary[50]!,
   },
-  flag: {
-    fontSize: 24,
-  },
-  name: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.text.heading,
-    fontWeight: "500",
-  },
-  nameActive: {
-    fontWeight: "700",
-    color: colors.primary[600]!,
-  },
-  emptyCheck: {
-    width: 22,
-    height: 22,
-  },
+  name: { flex: 1 },
 });

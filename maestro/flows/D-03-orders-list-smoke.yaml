@@ -1,19 +1,19 @@
-# D-03: Sipariş listesi smoke — login → Profil → Siparişlerim → liste açılır.
+# D-03: Sipariş listesi smoke — login → Yan menü → Siparişlerim → liste açılır.
 # Zeynep'in seed'de sipariş geçmişi var; ekran boş olmamalı.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
-- tapOn:
-    text: "Profil"
+- runFlow: ../subflows/open-profile-menu.yaml
 - extendedWaitUntil:
     visible:
       id: "profile-orders-link"

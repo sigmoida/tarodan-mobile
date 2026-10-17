@@ -1,5 +1,5 @@
 # 01-12: Logout cleanup — login → logout → login ekranı (form alanları görünür).
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 env:
@@ -9,12 +9,13 @@ env:
 - runFlow: ../subflows/open-tarodan.yaml
 - runFlow: ../subflows/login-as.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow: ../subflows/logout.yaml
 # Logout sonrası uygulama login ekranına yönlendirir.
 - assertVisible:
     id: "login-email-input"
+# Giriş iki aşamalı: logout sonrası 1. adım (e-posta + Devam Et) görünür, şifre alanı henüz yok.
 - assertVisible:
-    id: "login-password-input"
+    id: "login-continue-button"
 - assertNotVisible:
     text: "zeynep@demo.com"

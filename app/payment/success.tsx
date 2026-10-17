@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Button, Spinner, Text, theme } from '@/ui';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Badge, Button, SectionCard, Spinner, theme } from '@/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { paymentsApi } from '@/lib/api';
+import { requestVerify } from '@/lib/payment/verifyPacer';
+import { forgetPaymentCapabilityIfFinal } from '@/lib/payment/paymentCapability';
+import { isFailedPaymentStatus, isPaidPaymentStatus } from '@/lib/payment/status';
 import { formatPrice } from '@/utils/format';
-import { styles } from './_success/_lib/styles';
-
-const { colors } = theme;
+import { PageShell } from '@/components/common/PageShell';
+import { useHardwareBackToHome } from '@/hooks/useBlockHardwareBack';
+import { PaymentResultCard, PaymentResultRow } from '@/components/payment/PaymentResultCard';
+import { offerNotificationPrompt } from '@/lib/notifications/prePrompt';
 
 // Web'deki OrderStatusLabels ile uyumlu durum etiketleri
 const buildStatusLabels = (t: TFunction): Record<string, string> => ({
@@ -22,10 +24,6 @@ const buildStatusLabels = (t: TFunction): Record<string, string> => ({
   pending: t('common.pending'),
   processing: t('payment.statusProcessing'),
 });
-
-/** Ödeme kesinleşti mi (gerçekten ödendi). Hem polling'de hem render'da kullanılır. */
-const isTerminal = (s?: string) =>
-  s === 'paid' || s === 'completed' || s === 'success' || s === 'hold_payment';
 
 interface PaymentInfo {
   id: string;
@@ -54,6 +52,8 @@ export default function PaymentSuccessScreen() {
   const [loading, setLoading] = useState(true);
   const [info, setInfo] = useState<PaymentInfo | null>(null);
   const statusLabels = buildStatusLabels(t);
+  // Sonuç ekranı: donanım geri tuşu ödeme akışına DÖNMEZ — ana sayfaya (iOS'ta geri oku/kaydırma kapalı).
+  useHardwareBackToHome();
 
   // Takas nakit farkı ödemesi mi? URL paramları 3DS dönüşü/deep link'te
   // kaybolabilir; web ile parite için API yanıtındaki tradeId de sinyal sayılır.
@@ -63,10 +63,15 @@ export default function PaymentSuccessScreen() {
   useEffect(() => {
     let cancelled = false;
 
+    // Üye de JWT'ye bağlı `GET /payments/:id` yerine `/status`'u okur (web
+    // `usePaymentSuccess` gibi): uç public, oturum 3DS sırasında düştüyse 401
+    // dönmez (sunucu kullanıcıyı yok sayar) ve yetki belirteciyle yetkilendirir.
+    // `GET /payments/:id` oturum düşünce 401 → çıkış → login'e atıyordu; grup ve
+    // takas ödemesinde de 400 dönüyordu (tekil sipariş yok).
     const fetchStatus = async (): Promise<PaymentInfo | null> => {
       const response = guest === '1'
         ? await paymentsApi.getStatusLightGuest(paymentId)
-        : await paymentsApi.getStatus(paymentId);
+        : await paymentsApi.getStatusLight(paymentId);
       return response.data?.data ?? response.data ?? null;
     };
 
@@ -78,30 +83,70 @@ export default function PaymentSuccessScreen() {
       // çalışıp başarısız olabilir; ödemeyi/siparişi sunucu tarafında AKTİVE eden tek
       // çağrı verify (getStatus yalnız DB OKUR). Bu yüzden her turda verify'i tekrar
       // dene — aksi halde localhost'ta callback ulaşmadığında ödeme pending takılır.
+      //
+      // verify arkada gider, durum okuması onu beklemez. Çağrılar kart formu
+      // yoklamasıyla AYNI bütçeden düşer (sunucu dakikada 10 verify; `verifyPacer`):
+      // bütçe doluysa verify atlanır, durum okuması sürer. Misafir `guestApi`'den.
+      // Her turda önce durum okunur: ödendi ya da başarısızsa verify GÖNDERİLMEZ
+      // (başarısız ödemede verify bir şey değiştirmez, bütçe boşa gitmesin).
+      const verifyOptions = { guest: guest === '1' };
       let last: PaymentInfo | null = null;
+      // Döngünün gönderdiği son verify'ın sözü + herhangi biri ödemeyi tamamladı mı.
+      // Uçuş kaydına güvenilmez: verify son durum okuması sürerken biterse kayıt
+      // düşer ve "tamamlandı" sonucu kaybolurdu.
+      let lastVerify: Promise<boolean> | null = null;
+      let verifyCompleted = false;
       for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {
-        // Idempotent & public: zaten completed ise no-op.
-        try { await paymentsApi.verify(paymentId); } catch { /* best-effort */ }
         try {
           const data = await fetchStatus();
           last = data;
           if (!cancelled) setInfo(data);
-          if (isTerminal(data?.status)) break;
+          if (isPaidPaymentStatus(data?.status) || isFailedPaymentStatus(data?.status)) break;
         } catch {
-          // Sessiz — success sayfasında hata kritik değil
+          // Sessiz — success sayfasında hata kritik değil (durum bilinmiyor: verify gider)
         }
-        if (attempt < 4 && !cancelled) {
+        if (cancelled) break;
+        // Idempotent & public: zaten completed ise no-op.
+        const verifying = requestVerify(paymentId, verifyOptions);
+        lastVerify = verifying;
+        void verifying.then((completed) => {
+          if (completed) verifyCompleted = true;
+        });
+        if (attempt < 4) {
           await new Promise(resolve => setTimeout(resolve, 1500));
         }
       }
+      // Geç verify: döngü kesinleşmeden bittiyse son verify'ı (en fazla zaman aşımı
+      // kadar) bekle. Bir verify ödemeyi tamamladıysa, son durum okumasından SONRA
+      // bitmiş olsa bile durumu bir kez daha oku.
+      const open = !isPaidPaymentStatus(last?.status) && !isFailedPaymentStatus(last?.status);
+      const completedLate = !cancelled && open && lastVerify ? (await lastVerify) || verifyCompleted : false;
+      if (completedLate && !cancelled) {
+        try {
+          last = await fetchStatus();
+          if (!cancelled) setInfo(last);
+        } catch {
+          // Sessiz
+        }
+      }
       if (cancelled) return;
+      // Başarısız ödeme bu ekrana düştüyse (merchant ok URL'i, derin bağlantı)
+      // sonsuz "doğrulanıyor" yerine başarısız ekranına git (web
+      // `usePaymentSuccess` gibi, takas yönlendirmesinden önce): üye orada
+      // "Tekrar Dene"yi, misafir "İlanlara / Ana Sayfaya Dön"ü bulur.
+      if (isFailedPaymentStatus(last?.status)) {
+        router.replace({ pathname: '/payment/fail', params: { paymentId, ...(guest ? { guest } : {}) } });
+        return;
+      }
+      // Ödeme kesinleştiyse yetki belirteci artık gereksiz: kaydı sil.
+      void forgetPaymentCapabilityIfFinal(paymentId, last?.status);
 
       // Takas nakit farkı ödemesi: takasa dön + ilgili query'leri tazele (web ile parite).
       const paidTradeId = tradeId || last?.tradeId;
       if (paidTradeId) {
-        queryClient.invalidateQueries({ queryKey: ['trade'] });
-        queryClient.invalidateQueries({ queryKey: ['trades'] });
-        queryClient.invalidateQueries({ queryKey: ['trades-status-counts'] });
+        // `trades.all` Takaslarım segment sayaçlarını da kapsar (status-counts onun altında).
+        queryClient.invalidateQueries({ queryKey: qk.trades.detailAll });
+        queryClient.invalidateQueries({ queryKey: qk.trades.all });
         router.replace(`/trade/${paidTradeId}` as any);
         return;
       }
@@ -116,108 +161,81 @@ export default function PaymentSuccessScreen() {
   const checkoutGroupId = groupId || info?.checkoutGroupId;
   // Başarı UI'ı yalnız ödeme GERÇEKTEN tamamlandıysa (verify/durum-sorgu) gösterilir;
   // aksi halde "doğrulanıyor" — sahte başarı basmayız (PayTR henüz kesinleştirmemiş olabilir).
-  const isCompleted = isTerminal(info?.status);
+  const isCompleted = isPaidPaymentStatus(info?.status);
+
+  // Değer anı: sipariş ödendi → kargo/teslim bildirimleri için izin (üye; uygunsa, bir kez).
+  // `offerNotificationPrompt` oturum yoksa (misafir) hiçbir şey yapmaz.
+  useEffect(() => {
+    if (!loading && isCompleted && guest !== '1' && !isTrade) {
+      void offerNotificationPrompt('order');
+    }
+  }, [loading, isCompleted, guest, isTrade]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollBody}>
-        <View style={styles.iconWrap}>
-          <Ionicons
-            name={isCompleted ? 'checkmark-circle' : 'time-outline'}
-            size={96}
-            color={isCompleted ? colors.success[600]! : colors.warning[600]!}
-          />
-        </View>
-
-        <Text style={styles.title}>
-          {isCompleted ? t('payment.successTitle') : t('payment.confirmingTitle')}
-        </Text>
-        <Text style={styles.subtitle}>
-          {isCompleted
+    <PageShell title={t('checkout.title')} showBack={false}>
+      <PaymentResultCard
+        tone={isCompleted ? 'success' : 'warning'}
+        title={isCompleted ? t('payment.successTitle') : t('payment.confirmingTitle')}
+        description={
+          isCompleted
             ? isTrade
               ? t('payment.tradeCashReceivedDesc')
               : t('payment.orderReceivedDesc')
-            : t('payment.verifyingDesc')}
-        </Text>
-
+            : t('payment.verifyingDesc')
+        }
+        actions={
+          <>
+            {isTrade && tid ? (
+              <Button
+                variant="primary"
+                title={t('trade.backToTrade')}
+                fullWidth
+                onPress={() => router.replace(`/trade/${tid}` as any)}
+              />
+            ) : checkoutGroupId && guest !== '1' ? (
+              <Button
+                variant="primary"
+                title={t('payment.viewMyOrder')}
+                fullWidth
+                onPress={() => router.replace(`/orders/group/${checkoutGroupId}` as any)}
+              />
+            ) : orderId && guest !== '1' ? (
+              <Button
+                variant="primary"
+                title={t('payment.viewMyOrder')}
+                fullWidth
+                onPress={() => router.replace(`/orders/${orderId}` as any)}
+              />
+            ) : null}
+            <Button variant="outline" title={t('auth.goToHome')} fullWidth onPress={() => router.replace('/')} />
+          </>
+        }
+      >
         {loading ? (
-          <View style={{ marginTop: theme.spacing[6] }}>
-            <Spinner size="md" />
-          </View>
+          <Spinner size="md" />
         ) : info ? (
-          <View style={styles.summaryCard}>
+          <SectionCard title={t('payment.detailsTitle')} bodyStyle={{ gap: theme.spacing[3] }}>
             {info.groupNumber ? (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('order.orderNumber')}</Text>
-                <Text style={styles.summaryValue}>{info.groupNumber}</Text>
-              </View>
+              <PaymentResultRow label={t('order.orderNumber')}>{info.groupNumber}</PaymentResultRow>
             ) : info.order?.orderNumber ? (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('order.orderNumber')}</Text>
-                <Text style={styles.summaryValue}>{info.order.orderNumber}</Text>
-              </View>
+              <PaymentResultRow label={t('order.orderNumber')}>{info.order.orderNumber}</PaymentResultRow>
             ) : null}
             {info.orders && info.orders.length > 1 ? (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('payment.orderCountLabel')}</Text>
-                <Text style={styles.summaryValue}>{info.orders.length}</Text>
-              </View>
+              <PaymentResultRow label={t('payment.orderCountLabel')}>{info.orders.length}</PaymentResultRow>
             ) : null}
             {info.amount ? (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('common.amount')}</Text>
-                <Text style={[styles.summaryValue, { color: colors.primary[600]!, fontSize: 18 }]}>
-                  {formatPrice(info.amount)}
-                </Text>
-              </View>
+              <PaymentResultRow label={t('common.amount')}>{formatPrice(info.amount)}</PaymentResultRow>
             ) : null}
             {info.status ? (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('common.status')}</Text>
-                <Text style={[styles.summaryValue, { color: colors.success[600]! }]}>
+              <PaymentResultRow label={t('common.status')}>
+                <Badge variant={isCompleted ? 'success' : 'warning'}>
                   {statusLabels[info.status] ?? info.status}
-                </Text>
-              </View>
+                </Badge>
+              </PaymentResultRow>
             ) : null}
-          </View>
+          </SectionCard>
         ) : null}
-
-        <View style={styles.actions}>
-          {isTrade && tid ? (
-            <Button
-              variant="primary"
-              title={t('trade.backToTrade')}
-              fullWidth
-              onPress={() => router.replace(`/trade/${tid}` as any)}
-              style={styles.btn}
-            />
-          ) : checkoutGroupId && guest !== '1' ? (
-            <Button
-              variant="primary"
-              title={t('payment.viewMyOrder')}
-              fullWidth
-              onPress={() => router.replace(`/orders/group/${checkoutGroupId}` as any)}
-              style={styles.btn}
-            />
-          ) : orderId && guest !== '1' ? (
-            <Button
-              variant="primary"
-              title={t('payment.viewMyOrder')}
-              fullWidth
-              onPress={() => router.replace(`/orders/${orderId}` as any)}
-              style={styles.btn}
-            />
-          ) : null}
-          <Button
-            variant="outline"
-            title={t('auth.goToHome')}
-            fullWidth
-            onPress={() => router.replace('/')}
-            style={styles.btn}
-          />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      </PaymentResultCard>
+    </PageShell>
   );
 }
-

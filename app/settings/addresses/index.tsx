@@ -1,85 +1,97 @@
-import { View, ScrollView } from 'react-native';
-import { Button, FAB, Spinner, Text, ScreenHeader, theme } from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-
-import { ThemedRefreshControl } from '@/components/common';
+import { useTranslation } from 'react-i18next';
+import { EmptyState, SectionCard, Text, TopBarAction } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
 import { styles } from './_lib/styles';
 import { useAddresses } from './_hooks/useAddresses';
+import { useAddressActions } from './_hooks/useAddressActions';
 import { AddressCard } from './_components/AddressCard';
-import { AddressFormModal } from './_components/AddressFormModal';
-
-const { colors } = theme;
+import { AddressesSkeleton } from './_components/AddressesSkeleton';
 
 /**
- * Saved addresses — THIN screen. The `useAddresses` controller owns the query,
- * save/delete/set-default mutations, and the form/validation state; this file
- * renders the auth gate, list, FAB, and the add/edit dialog.
+ * Kayıtlı adresler — D1b REFERANS EKRANI (liste): PageShell (beyaz üst bar, Skeleton,
+ * çekip yenileme) + üst barın sağında "+" (yeni adres; limit dolunca / liste boşken gizli) +
+ * kartın üstünde soluk "1/3 adres kayıtlı" satırı (limit bilinmiyorsa yok) + tek SectionCard içinde satırlar; boşken kart
+ * içi EmptyState (kendi "Yeni Adres Ekle" eylemiyle). Ekle/düzenle ayrı EKRANLAR (`new`,
+ * `[id]/edit`); `useAddresses` sorgu, `useAddressActions` yönlendirme + mutasyonlar.
  */
 export default function AddressesScreen() {
+  const { t } = useTranslation();
   const f = useAddresses();
+  const a = useAddressActions(f.addresses, f.maxAddresses);
+  const title = t('mobile.settingsAddresses');
+  const onBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
   if (!f.isAuthenticated) {
     return (
-      <View style={styles.centeredContainer}>
-        <Ionicons name="location-outline" size={64} color={colors.primary[600]!} />
-        <Text variant="h3" style={styles.title}>{f.t('mobile.settingsAddresses')}</Text>
-        <Text variant="body" style={styles.subtitle}>{f.t('address.authGateSubtitle')}</Text>
-        <Button variant="primary" title={f.t('common.login')} onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
-      </View>
+      <PageShell
+        title={title}
+        onBack={onBack}
+        empty
+        emptyState={{
+          icon: 'map-pin',
+          title,
+          subtitle: t('address.authGateSubtitle'),
+          actionLabel: t('common.login'),
+          onAction: () => router.push('/(auth)/login'),
+        }}
+      />
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={f.t('mobile.settingsAddresses')}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-        right={<Text style={styles.headerCount}>{f.addresses.length}/{f.maxAddresses}</Text>}
-      />
+  const canAdd = f.addresses.length < f.maxAddresses;
 
-      {f.isLoading ? (
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" />
-        </View>
-      ) : f.addresses.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="location-outline" size={80} color={colors.text.subtle} />
-          <Text variant="h3" style={styles.emptyTitle}>{f.t('mobile.noSavedAddress')}</Text>
-          <Text variant="body" style={styles.emptySubtitle}>{f.t('address.emptySubtitle')}</Text>
-          <Button variant="primary" title={f.t('address.addNewAddress')} onPress={f.openAddDialog} style={{ alignSelf: 'center' }} />
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.content}
-          refreshControl={<ThemedRefreshControl refreshing={f.refreshing} onRefresh={f.onRefresh} />}
-        >
-          {f.addresses.map((address) => (
+  return (
+    <PageShell
+      title={title}
+      onBack={onBack}
+      loading={f.isLoading}
+      loadingFallback={<AddressesSkeleton />}
+      error={f.loadFailed || undefined}
+      onRetry={f.retry}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
+      right={
+        // Önceki kuralla aynı: limit dolunca ve liste boşken (EmptyState'in kendi eylemi var) yok.
+        canAdd && f.addresses.length > 0 ? (
+          <TopBarAction
+            icon="plus"
+            accessibilityLabel={t('address.newAddress')}
+            onPress={a.openAdd}
+            testID="address-add-button"
+          />
+        ) : undefined
+      }
+    >
+      {Number.isFinite(f.maxAddresses) ? (
+        <Text variant="bodySm" tone="muted" testID="address-limit-usage">
+          {t('address.limitUsage', { count: f.addresses.length, max: f.maxAddresses })}
+        </Text>
+      ) : null}
+      <SectionCard bodyStyle={styles.list}>
+        {f.addresses.length === 0 ? (
+          <EmptyState
+            icon="map-pin"
+            title={t('mobile.noSavedAddress')}
+            subtitle={t('address.emptySubtitle')}
+            actionLabel={t('address.addNewAddress')}
+            onAction={a.openAdd}
+          />
+        ) : (
+          f.addresses.map((address) => (
             <AddressCard
               key={address.id}
               address={address}
-              onEdit={() => f.openEditDialog(address)}
-              onDelete={() => f.handleDelete(address)}
-              onSetDefault={() => f.setDefaultMutation.mutate(address.id)}
-              setDefaultPending={f.setDefaultMutation.isPending && f.setDefaultMutation.variables === address.id}
+              onEdit={() => a.openEdit(address)}
+              onDelete={() => a.handleDelete(address)}
+              onSetDefault={() => a.setDefaultMutation.mutate(address.id)}
+              setDefaultPending={
+                a.setDefaultMutation.isPending && a.setDefaultMutation.variables === address.id
+              }
             />
-          ))}
-
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      )}
-
-      {/* FAB */}
-      {f.addresses.length < f.maxAddresses && f.addresses.length > 0 && (
-        <FAB
-          icon="add"
-          accessibilityLabel={f.t('address.addNewAddress')}
-          style={styles.fab}
-          onPress={f.openAddDialog}
-        />
-      )}
-
-      <AddressFormModal f={f} />
-    </View>
+          ))
+        )}
+      </SectionCard>
+    </PageShell>
   );
 }

@@ -1,79 +1,70 @@
-import { View } from 'react-native';
-import { Spinner, EmptyState, theme } from '@/ui';
-import { router, Stack } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
+import { Button, theme } from '@/ui';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-
-import { styles } from './_lib/collectionEditStyles';
+import { PageShell } from '@/components/common/PageShell';
 import { useCollectionEdit } from './_hooks/useCollectionEdit';
 import { CollectionEditBody } from './_components/CollectionEditBody';
 
-const { colors } = theme;
-
 /**
- * Collection edit — THIN screen. The `useCollectionEdit` controller owns the
- * query, RHF form, and update/delete/remove-item mutations; this file renders
- * the loading / not-found / not-owner gates and delegates the body.
+ * Koleksiyon düzenle — PageShell (yükleniyor / bulunamadı / yetki yok durumları) + SectionCard
+ * bölümleri. Sabit alt bar `ListingSubmitBar` (düzenleme) düzeninde: üstte birincil
+ * "Değişiklikleri Kaydet", altında yıkıcı "Koleksiyonu Sil" (onay `handleDelete`'te).
+ * Sorgu, form ve mutasyonlar `useCollectionEdit`'te.
  */
 export default function EditCollectionScreen() {
   const { t } = useTranslation();
   const f = useCollectionEdit();
-
-  const headerScreenOptions = {
-    headerShown: true,
-    title: t('collection.editCollectionTitle'),
-    headerStyle: { backgroundColor: colors.primary[600]! },
-    headerTintColor: colors.white,
-    headerTitleStyle: { fontWeight: 'bold' as const },
-    headerShadowVisible: false,
-    headerBackButtonDisplayMode: 'minimal' as const,
-  };
-
-  if (f.isLoading) {
-    return (
-      <>
-        <Stack.Screen options={headerScreenOptions} />
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" />
-        </View>
-      </>
-    );
-  }
-
-  if (!f.collection) {
-    return (
-      <>
-        <Stack.Screen options={headerScreenOptions} />
-        <EmptyState
-          fullscreen
-          icon="albums-outline"
-          title={t('collection.collectionNotFound')}
-          actionLabel={t('common.goBack')}
-          onAction={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-        />
-      </>
-    );
-  }
-
-  // Check ownership
-  if (f.collection && f.user && f.collection.userId !== f.user.id) {
-    return (
-      <>
-        <Stack.Screen options={headerScreenOptions} />
-        <EmptyState
-          fullscreen
-          icon="lock-closed-outline"
-          title={t('collection.noEditPermission')}
-          actionLabel={t('common.goBack')}
-          onAction={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-        />
-      </>
-    );
-  }
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
+  const notOwner = !!f.collection && !!f.user && f.collection.userId !== f.user.id;
+  const gate = !f.isLoading && (!f.collection || notOwner);
+  // Başarılı silmeden sonra da kilitli kalır: geri gezinme bitene dek ikinci dokunuş olmasın.
+  const busy = f.updateMutation.isPending || f.deleteMutation.isPending || f.deleteMutation.isSuccess;
 
   return (
-    <>
-      <Stack.Screen options={headerScreenOptions} />
-      <CollectionEditBody f={f} />
-    </>
+    <PageShell
+      title={t('collection.editCollectionTitle')}
+      onBack={goBack}
+      loading={f.isLoading}
+      empty={gate}
+      emptyState={{
+        icon: notOwner ? 'lock-closed' : 'rectangle-stack',
+        title: notOwner ? t('collection.noEditPermission') : t('collection.collectionNotFound'),
+        subtitle: notOwner ? t('emptyState.collectionNoPermissionHint') : t('emptyState.notFoundHint'),
+        actionLabel: t('common.goBack'),
+        onAction: goBack,
+      }}
+      footer={
+        f.collection && !gate ? (
+          <View style={styles.bar}>
+            <Button
+              testID="collection-save-button"
+              size="lg"
+              title={t('collection.saveChanges')}
+              onPress={f.form.handleSubmit(f.onSubmit)}
+              isLoading={f.updateMutation.isPending}
+              disabled={busy}
+              fullWidth
+            />
+            <Button
+              testID="collection-delete-button"
+              variant="danger"
+              size="lg"
+              title={t('collection.deleteCollection')}
+              onPress={f.handleDelete}
+              isLoading={f.deleteMutation.isPending}
+              disabled={busy}
+              fullWidth
+            />
+          </View>
+        ) : undefined
+      }
+    >
+      {f.collection && !gate ? <CollectionEditBody f={f} /> : null}
+    </PageShell>
   );
 }
+
+const styles = StyleSheet.create({
+  bar: { gap: theme.spacing[3] },
+});

@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, Text, ScrollView, Platform, KeyboardAvoidingView, Pressable } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useMemo } from 'react';
+import { View, KeyboardAvoidingView } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { theme } from '@/ui';
+import { useKeyboardAvoid, usePageScrollValue, useShellPageScroll } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 
 import { styles } from './_lib/styles';
 import type { ListingFormProps } from './_lib/types';
@@ -15,14 +16,17 @@ import {
   ListingImagesSection,
   ListingBasicInfoSection,
   ListingDetailsSection,
+  ListingGlobalAttributesSection,
+  ListingManufacturerAttributesSection,
   ListingOptionsSection,
   ListingPricingSection,
   ListingShippingSection,
-  ListingSubmitRow,
+  ListingSubmitBar,
+  ListingRemovalOverlay,
 } from './_components/ListingSections';
 import { ListingPickers } from './_components/ListingPickers';
-
-const { colors } = theme;
+import { ListingRequirementGate } from './_components/ListingRequirementGate';
+import { listingGatesBlock } from './_lib/gates';
 
 export type { ListingFormProps };
 
@@ -31,45 +35,99 @@ export type { ListingFormProps };
  * owns all state/effects/mutations; this component only composes the gate,
  * sections, and picker modals. Consumed by `app/(tabs)/sell.tsx` (create) and
  * `app/listing/[id]/edit.tsx` (edit).
+ *
+ * Gönder: düzenlemede `PageShell` alt çubuğu (klavyeyle birlikte yükselir, her zaman görünür);
+ * oluşturmada sekme kökünde yüzen alt menü olduğundan formun sonunda (web `SubmitBar` gibi).
  */
 export default function ListingForm({ mode, productId }: ListingFormProps) {
   const { t } = useTranslation();
   const f = useListingForm({ mode, productId });
-  const insets = useSafeAreaInsets();
-
+  const tabInset = useTabBarInset();
+  // Oluşturma (sekme kökü): iOS `KeyboardAvoidingView padding`, Android ölçülen klavye örtüşmesi kadar
+  // alt dolgu (`PageShell` ile aynı kanca; düzenlemede klavyeyi PageShell kendisi karşılar).
+  const keyboard = useKeyboardAvoid(!f.isEdit);
   const gate = ListingGates({ f });
+  // Üst bar kaydırma sinyali: oluşturmada sekme kökünün (AppShell title) bağlamından, düzenlemede
+  // kendi PageShell'ine verilen değerden. Kapı ekranında bağlanmaz (gövde bar altında kalır).
+  const ownScroll = usePageScrollValue();
+  const shellScroll = useShellPageScroll(!gate && !f.isEdit);
+  const page = f.isEdit ? ownScroll : (shellScroll ?? ownScroll);
+  // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
+  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
+  // Oluşturma (sekme kökü): içerik yüzen alt menü hapının altında kalmasın -> alt dolgu tabInset.
+  const tabPad = useMemo(() => (f.isEdit ? null : { paddingBottom: tabInset }), [f.isEdit, tabInset]);
+
   if (gate) return gate;
 
-  return (
-    <SafeAreaView style={styles.container} edges={f.isEdit ? ['bottom'] : ['top', 'bottom']}>
-      {f.isEdit && (
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
-          <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.back')}>
-            <Ionicons name="arrow-back" size={24} color={colors.white} />
-          </Pressable>
-          <Text style={styles.headerTitle}>{t('product.editListing')}</Text>
-          <View style={{ width: 24 }} />
-        </View>
-      )}
-
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <ListingHeaderBanners f={f} />
+  const form = (
+    <Animated.ScrollView
+      style={styles.scroll}
+      {...tabScroll}
+      {...page.scrollProps}
+      scrollEventThrottle={16}
+      // Görsel sürüklenirken form kaymaz (sürükleme ile kaydırma çatışmasın).
+      scrollEnabled={!f.imageDragActive}
+      contentContainerStyle={page.contentStyle([styles.scrollContent, tabPad])}
+      keyboardShouldPersistTaps="handled"
+    >
+      <ListingHeaderBanners f={f} />
+      {/* Web gibi: IBAN ve kargo adresi ön koşulları, form ancak ikisi de açıkken görünür. */}
+      {listingGatesBlock(f) ? (
+        <ListingRequirementGate f={f} />
+      ) : (
+        <>
           <ListingImagesSection f={f} />
           <ListingBasicInfoSection f={f} />
           <ListingDetailsSection f={f} />
+          <ListingGlobalAttributesSection f={f} />
+          <ListingManufacturerAttributesSection f={f} />
           <ListingOptionsSection f={f} />
           <ListingPricingSection f={f} />
           <ListingShippingSection f={f} />
-          <ListingSubmitRow f={f} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+          {/* Düzenlemede düğmeler (kaydet + sil/iptal) sabit alt barda; oluşturmada formun sonunda. */}
+          {f.isEdit ? null : <ListingSubmitBar f={f} />}
+        </>
+      )}
+    </Animated.ScrollView>
+  );
+
+  // Düzenleme: standart beyaz üst bar (PageShell; klavye kaçınma ve alt çubuk da onda).
+  // Oluşturma: `sell` sekme kökü (AppShell) içinde açılır, kendi üst barı/güvenli alanı yok.
+  if (f.isEdit) {
+    return (
+      <PageShell
+        title={t('product.editListing')}
+        mode="static"
+        scroll={ownScroll}
+        padding={false}
+        contentStyle={styles.container}
+        footer={<ListingSubmitBar f={f} />}
+        overlay={
+          <>
+            <ListingPickers f={f} />
+            <ListingRemovalOverlay f={f} />
+          </>
+        }
+      >
+        {form}
+      </PageShell>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* Form ekran tepesinden başlar (yüzen bar üstünde): klavye kaçınması için ofset gerekmez. */}
+      {keyboard.behavior ? (
+        <KeyboardAvoidingView style={styles.fill} behavior={keyboard.behavior}>
+          {form}
+        </KeyboardAvoidingView>
+      ) : (
+        <View style={[styles.fill, { paddingBottom: keyboard.bottomInset }]} onLayout={keyboard.onLayout}>
+          {form}
+        </View>
+      )}
 
       <ListingPickers f={f} />
-    </SafeAreaView>
+    </View>
   );
 }

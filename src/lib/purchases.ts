@@ -1,27 +1,33 @@
-import { Platform } from 'react-native';
 import { appAlert } from '@/ui';
 
 /**
- * Uygulama içi DİJİTAL satın alma bu platformda mümkün mü?
+ * Uygulama içi DİJİTAL satın alma (üyelik, boost) mümkün mü?
  *
- * iOS'ta değil: Apple, uygulama içinde özellik açan abonelikleri ve aynı
- * uygulamada gösterilen tanıtımı (boost) yalnız kendi in-app purchase
- * sistemiyle satmaya izin veriyor (App Store Review Guideline 3.1.1 ve
- * 3.1.3(g)); web'e yönlendirmek de 3.1.3 anti-steering kapsamında yasak.
- * Uygulamada IAP entegrasyonu YOK, bu yüzden iOS'ta satış ve satışa çağıran
- * her yüzey kapalı.
+ * Hiçbir platformda değil: kapı iki mağazada da kapalı.
+ * - iOS: Apple, uygulama içinde özellik açan abonelikleri ve aynı uygulamada
+ *   gösterilen tanıtımı (boost) yalnız kendi in-app purchase sistemiyle satmaya
+ *   izin veriyor (App Store Review Guideline 3.1.1 ve 3.1.3(g)); web'e
+ *   yönlendirmek de 3.1.3 anti-steering kapsamında yasak.
+ * - Android: Google Play Payments politikası dijital ürün/abonelik için Play
+ *   Billing'i zorunlu kılar ve kullanıcıyı uygulama dışı ödemeye yönlendirmeyi
+ *   (steering) yasaklar.
+ * Uygulamada IAP / Play Billing entegrasyonu YOK, bu yüzden her iki platformda
+ * satış ve satışa çağıran (ya da web'den satın almaya yönlendiren) her yüzey
+ * kapalı: bilgi gösterilir, satın alma yok, hata metni nötr, yönlendirme yok.
  *
  * FİZİKSEL ticaret bunun DIŞINDA: 3.1.3(e) fiziksel malın IAP ile satılmasını
  * yasaklıyor, yani sipariş/sepet/takas ödemesi PayTR'de kalmak ZORUNDA.
  *
- * Ekranlar `Platform`'a doğrudan bakmaz; kural buradan okunur. Android'i de
- * kapatmak ya da sunucu bayrağına taşımak gerekirse tek değişiklik burada.
+ * Ekranlar `Platform`'a doğrudan bakmaz; kural buradan okunur. IAP/Play
+ * Billing eklendiğinde ya da sunucu bayrağına taşındığında tek değişiklik
+ * burada. `boolean` tipi bilinçli: `false` literal tipi, açık-satış dallarını
+ * "erişilemez" diye işaretleyip tip denetimini bozar.
  */
-export const CAN_BUY_DIGITAL = Platform.OS !== 'ios';
+export const CAN_BUY_DIGITAL = false as boolean;
 
 /**
  * Limit uyarısı. Yükseltme düğmesi yalnız satın almanın mümkün olduğu
- * platformlarda eklenir; iOS'ta uyarı yalnız durumu anlatır.
+ * durumda eklenir; şimdilik (iOS + Android) uyarı yalnız durumu anlatır.
  */
 export function limitAlert(opts: {
   title: string;

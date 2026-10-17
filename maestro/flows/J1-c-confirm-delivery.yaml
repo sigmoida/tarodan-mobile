@@ -3,13 +3,13 @@
 # durumu UI'da doğrulanır.
 # Ön koşul (orkestrator): REG_EMAIL ile giriş yapılmış olabilir; değilse login.
 # Sipariş driver tarafından 'delivered' duruma getirilmiş olmalı.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 # REG_EMAIL / REG_PASSWORD orkestratörden --env ile gelir (inline env --env'i ezer).
 ---
 - launchApp:
-    appId: com.tarodan.app
+    appId: ${APP_ID}
     clearState: false
 - waitForAnimationToEnd:
     timeout: 5000
@@ -35,7 +35,7 @@ tags:
           timeout: 2000
 # Giriş garanti (oturum düşmüşse)
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
       visible:
@@ -50,6 +50,13 @@ tags:
       - tapOn:
           id: "login-email-input"
       - inputText: "${REG_EMAIL}"
+      # Giriş iki aşamalı (web gibi): e-posta -> Devam Et -> şifre.
+      - tapOn:
+          id: "login-continue-button"
+      - extendedWaitUntil:
+          visible:
+            id: "login-password-input"
+          timeout: 15000
       - tapOn:
           id: "login-password-input"
       - inputText: "${REG_PASSWORD}"
@@ -62,9 +69,8 @@ tags:
       - tapOn:
           text: "Şimdi Değil"
           optional: true
-# 9. Siparişlerim → Teslim Aldım
-- tapOn:
-    text: "Profil"
+# 9. Yan menü → Siparişlerim → Teslim Aldım
+- runFlow: ../subflows/open-profile-menu.yaml
 - extendedWaitUntil:
     visible:
       id: "profile-orders-link"

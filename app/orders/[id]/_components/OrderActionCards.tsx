@@ -1,16 +1,17 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
-import { View, Pressable, Linking, StyleSheet } from 'react-native';
-import { Card, Text, Button, StatusBadge, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { View, StyleSheet } from 'react-native';
+import { openExternalUrlSafely } from '@/lib/security/openExternalUrl';
+import { SectionCard, Text, Button, StatusBadge, theme } from '@/ui';
 import { router } from 'expo-router';
 import { buildTrackingUrl } from '@/lib/shipping/tracking';
+import { CopyButton } from '@/components/common/CopyButton';
 import { useRefundStatusConfig } from '../_lib/status';
 import { formatDate } from '../_lib/format';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
 
-const { colors, radius } = theme;
+const { colors, radius, spacing } = theme;
 
 /** Kargo öncesi sipariş iptali. */
 export function OrderCancelCard({
@@ -27,23 +28,20 @@ export function OrderCancelCard({
   const { t } = useTranslation();
   if (!(order.isBuyer && !view.isMembershipOrder && view.isPreShipment && !order.activeRefundRequest)) return null;
   return (
-    <Card variant="elevated" style={styles.card}>
-      <Text variant="label" style={styles.sectionTitle}>{t('order.cancellationSection')}</Text>
-      <Text variant="caption" style={styles.confirmNote}>
+    <SectionCard title={t('order.cancellationSection')} bodyStyle={styles.stack}>
+      <Text variant="bodySm" tone="muted">
         {t('order.guestCancelIntro')}
       </Text>
       <Button
         testID="order-cancel-button"
-        variant="outline"
-        icon="close-circle-outline"
+        variant="danger"
         fullWidth
         title={t('order.cancelOrder')}
         onPress={onCancel}
         isLoading={cancelPending}
         disabled={cancelPending}
-        style={{ marginTop: theme.spacing[3], borderColor: colors.danger[600]! }}
       />
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -60,23 +58,19 @@ export function OrderRatingButtons({
   const { t } = useTranslation();
   if (!(view.canRate && order.isBuyer)) return null;
   return (
-    <Card variant="elevated" style={styles.card}>
-      <Text variant="label" style={styles.sectionTitle}>{t('order.reviewSection')}</Text>
-      <View style={styles.ratingButtons}>
-        {!order.hasProductRating && (
-          <Button variant="outline" icon="star" title={t('order.rateProduct')} onPress={() => onRate('product')} style={styles.rateButton} />
-        )}
-        {!order.hasSellerRating && (
-          <Button variant="outline" icon="person" title={t('order.rateSeller')} onPress={() => onRate('seller')} style={styles.rateButton} />
-        )}
-        {order.hasProductRating && order.hasSellerRating && (
-          <View style={styles.ratedMessage}>
-            <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-            <Text style={styles.ratedText}>{t('order.reviewReceivedShort')}</Text>
-          </View>
-        )}
-      </View>
-    </Card>
+    <SectionCard title={t('order.reviewSection')} bodyStyle={styles.stack}>
+      {!order.hasProductRating && (
+        <Button variant="outline" title={t('order.rateProduct')} onPress={() => onRate('product')} />
+      )}
+      {!order.hasSellerRating && (
+        <Button variant="outline" title={t('order.rateSeller')} onPress={() => onRate('seller')} />
+      )}
+      {order.hasProductRating && order.hasSellerRating && (
+        <Text variant="bodySm" style={{ color: colors.success[700]! }} align="center">
+          {t('order.reviewReceivedShort')}
+        </Text>
+      )}
+    </SectionCard>
   );
 }
 
@@ -98,29 +92,36 @@ export function OrderRefundBanner({
   const returnTrackingUrl = buildTrackingUrl(rr?.returnProvider, rr?.returnTrackingNumber);
   if (!(rr && !view.isCancelled)) return null;
   return (
-    <Card variant="elevated" style={styles.card} testID="refund-active-banner">
-      <View style={styles.refundHeaderRow}>
-        <Ionicons name="return-up-back" size={20} color={colors.info[600]!} />
-        <Text variant="label" style={styles.refundHeaderText}>{t('order.refundRequest')}</Text>
-        <StatusBadge status={rr.status} config={refundStatusConfig} size="sm" />
-      </View>
+    <SectionCard
+      title={t('order.refundRequest')}
+      testID="refund-active-banner"
+      bodyStyle={styles.stack}
+      badge={<StatusBadge status={rr.status} config={refundStatusConfig} size="sm" />}
+    >
       {rr.refundNumber ? (
-        <Text variant="caption" style={styles.refundMeta}>{rr.refundNumber} · {formatDate(rr.createdAt)}</Text>
+        <Text variant="bodySm" tone="muted">{rr.refundNumber} · {formatDate(rr.createdAt)}</Text>
       ) : null}
       {rr.status === 'return_shipment_open' && rr.returnTrackingNumber ? (
-        <View style={styles.refundTrackingBox}>
-          <Text variant="caption" style={styles.refundTrackingHint}>
+        <View style={styles.trackingBox}>
+          <Text variant="bodySm" tone="muted">
             {t('refund.dropOffAtSurat')}
           </Text>
-          <Text style={styles.refundTrackingNumber}>{rr.returnTrackingNumber}</Text>
+          <View style={styles.copyRow}>
+            <Text variant="body" weight="bold" tone="heading" selectable style={styles.copyValue}>
+              {rr.returnTrackingNumber}
+            </Text>
+            <CopyButton
+              testID="refund-return-tracking-copy"
+              value={rr.returnTrackingNumber}
+              successMessage={t('order.cargoCodeCopied')}
+            />
+          </View>
           {/* Link ELLE BİRLEŞTİRİLMEZ — tek kaynak `buildTrackingUrl`. */}
           {returnTrackingUrl ? (
             <Button
               variant="outline"
-              icon="cube"
               title={t('order.trackOnSurat')}
-              onPress={() => Linking.openURL(returnTrackingUrl)}
-              style={{ marginTop: theme.spacing[2] }}
+              onPress={() => void openExternalUrlSafely(returnTrackingUrl)}
             />
           ) : null}
         </View>
@@ -128,16 +129,14 @@ export function OrderRefundBanner({
       {['pending_review', 'wait_for_delivery'].includes(rr.status) && (
         <Button
           testID="refund-cancel-button"
-          variant="outline"
-          icon="close-circle-outline"
+          variant="danger"
           title={t('refund.cancel.cta')}
           onPress={onCancelRefund}
           isLoading={cancelRefundPending}
           disabled={cancelRefundPending}
-          style={{ marginTop: theme.spacing[3], borderColor: colors.danger[600]! }}
         />
       )}
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -152,6 +151,8 @@ export function OrderRefundActionCard({
   onOpenRefund: () => void;
 }) {
   const { t } = useTranslation();
+  const timingValues = view.timing;
+  // Pencere kapısı sunucu damgasından (`returnWindowEndsAt`) — bkz. `_lib/timing`.
   const eligible =
     order.isBuyer &&
     !view.isMembershipOrder &&
@@ -164,62 +165,41 @@ export function OrderRefundActionCard({
 
   if (view.isPastRefundWindow) {
     return (
-      <Card variant="elevated" style={styles.card}>
-        <Text variant="label" style={styles.sectionTitle}>{t('order.refundWindowClosed')}</Text>
-        <Text variant="caption" style={styles.refundIntro}>
-          {t('order.refundWindowPassed')}
+      <SectionCard title={t('order.refundWindowClosed')}>
+        <Text variant="bodySm" tone="muted">
+          {t('order.refundWindowPassed', timingValues)}
         </Text>
-      </Card>
+      </SectionCard>
     );
   }
   return (
-    <Card variant="elevated" style={styles.card}>
-      <Text variant="label" style={styles.sectionTitle}>{t('order.refundSection')}</Text>
-      <Text variant="caption" style={styles.refundIntro}>
-        {t('order.refundEligibleIntro')}
+    <SectionCard title={t('order.refundSection')} bodyStyle={styles.stack}>
+      <Text variant="bodySm" tone="muted">
+        {t('order.refundEligibleIntro', timingValues)}
       </Text>
       <Button
         testID="refund-request-button"
         variant="outline"
-        icon="return-up-back"
         title={t('order.requestRefund')}
         onPress={onOpenRefund}
-        style={{ marginTop: theme.spacing[2] }}
       />
-    </Card>
+    </SectionCard>
   );
 }
 
-/** Yardım kartı. */
+/** Yardım kartı (web `HelpCard`: "Yardım" + bağlantı satırları). */
 export function OrderHelpCard() {
   const { t } = useTranslation();
   return (
-    <Card variant="elevated" style={styles.card}>
-      <Pressable onPress={() => router.push('/help')}>
-        <View style={styles.helpCard}>
-          <Ionicons name="help-circle" size={24} color={colors.primary[600]!} />
-          <Text style={{ flex: 1, marginLeft: theme.spacing[3] }}>{t('payment.needHelp')}</Text>
-          <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
-        </View>
-      </Pressable>
-    </Card>
+    <SectionCard title={t('nav.help')} bodyStyle={styles.stack}>
+      <Button variant="ghost" title={t('payment.needHelp')} onPress={() => router.push('/help')} />
+    </SectionCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { marginBottom: theme.spacing[3] },
-  sectionTitle: { marginBottom: theme.spacing[3], color: colors.text.heading },
-  confirmNote: { textAlign: 'center', color: colors.text.muted },
-  ratingButtons: { gap: theme.spacing[2] },
-  rateButton: { borderColor: colors.primary[600]! },
-  ratedMessage: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: theme.spacing[3] },
-  ratedText: { marginLeft: theme.spacing[2], color: colors.success[700]! },
-  refundHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2], marginBottom: theme.spacing[1] },
-  refundHeaderText: { flex: 1, color: colors.text.heading },
-  refundMeta: { color: colors.text.muted, marginBottom: theme.spacing[1.5] },
-  refundIntro: { color: colors.text.muted },
-  refundTrackingBox: { backgroundColor: colors.surface.alt, padding: theme.spacing[3], borderRadius: radius.md, marginTop: theme.spacing[2] },
-  refundTrackingHint: { color: colors.text.muted, marginBottom: theme.spacing[1] },
-  refundTrackingNumber: { fontWeight: 'bold', color: colors.text.heading, fontSize: 16 },
-  helpCard: { flexDirection: 'row', alignItems: 'center' },
+  stack: { gap: spacing[2] },
+  trackingBox: { backgroundColor: colors.surface.alt, padding: spacing[3], borderRadius: radius.lg, gap: spacing[1] },
+  copyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
+  copyValue: { flexShrink: 1 },
 });

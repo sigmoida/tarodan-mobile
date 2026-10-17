@@ -1,112 +1,142 @@
-import { View, ScrollView, RefreshControl } from 'react-native';
+import { View, RefreshControl } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useState, useCallback, useEffect } from 'react';
-import { theme } from '@/ui';
+import { theme, usePageScrollValue } from '@/ui';
 import { router } from 'expo-router';
-import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useGuestStore } from '@/stores/guestStore';
 import { SignupPrompt } from '@/components/SignupPrompt';
-import { goSearch } from './_lib/nav';
-import { styles } from './_lib/styles';
+import { AppShell } from '@/components/shell/AppShell';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { floatingBarScrollProps, useFloatingBarInset } from '@/components/shell/floatingBar';
+import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
+import { homeStyles as styles } from './_lib/homeStyles';
 import { useHomeData } from './_hooks/useHomeData';
-import { useHomeBadges } from './_hooks/useHomeBadges';
 import { useHomeGuestPrompt } from './_hooks/useHomeGuestPrompt';
-import { HomeHeader } from './_components/HomeHeader';
-import {
-  HeroBanner,
-  CategoriesSection,
-  BrandsSection,
-  ScalesSection,
-  FeaturedCollectorSection,
-  BoostedRail,
-  PopularProducts,
-  ProductsGrid,
-  CollectionsSection,
-} from './_components/HomeSections';
-import { CompanyOfWeekSection } from './_components/CompanyOfWeekSection';
+import { useAfterFirstFrame } from './_hooks/useAfterFirstFrame';
+import { BrandsStrip } from './_components/HomeBrands';
+import { FeaturedRail, OnSaleRail, TradeRail, PopularRail } from './_components/HomeRails';
+import { TopCollections } from './_components/HomeCollections';
+import { Spotlights } from './_components/HomeSpotlights';
+import { HeroSection } from './_components/HeroSlider';
+import { HeroReserved } from './_components/HeroReserved';
+import { useHomeHero } from './_hooks/useHomeHero';
+import { useHeroVisibility } from './_hooks/useHeroVisibility';
 import { AdBanner } from '@/components/ads/AdBanner';
+import { PopupAd } from '@/components/ads/PopupAd';
+import { useAdSession } from '@/lib/ads/useAdSession';
 
 const { colors } = theme;
 
+/**
+ * Ana sayfa — web ana sayfasının bölüm kümesi ve sırası (hero, markalar, Öne Çıkan, İndirimdekiler,
+ * Takas Vitrini, Popüler, En İyi Koleksiyonlar, Haftanın Koleksiyoneri/Şirketi). Güven rozeti ızgarası yok.
+ * AppShell (marka barı: arama alanı + bildirim + sepet) içinde; her bölüm SectionCard + "Tümünü gör ›". Veri `useHomeData`.
+ * Algılanan hız: ilk kare yalnız üst bölümleri (hero, markalar, Öne Çıkan, İndirimdekiler) çizer; alt
+ * bölümler (Takas, Popüler, Koleksiyonlar, Haftanın…) ilk kareden sonra bağlanır, o ana dek iskelet.
+ */
 export default function HomeScreen() {
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const incrementListingView = useGuestStore((s) => s.incrementListingView);
 
-  const {
-    products,
-    popularProducts,
-    loadingPopular,
-    boostedProducts,
-    loadingBoosted,
-    categories,
-    loadingCategories,
-    collections,
-    loadingCollections,
-    featuredCollector,
-    loadingFeaturedCollector,
-    companyOfWeek,
-    loadingCompanyOfWeek,
-    loadingProducts,
-    refetchProducts,
-  } = useHomeData();
-  const counts = useHomeBadges(isAuthenticated);
-  const guest = useHomeGuestPrompt(isAuthenticated);
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
-
-  // API bağlantı kontrolü (yalnız log — davranış korunur).
+  const data = useHomeData();
+  const hero = useHomeHero();
+  const heroView = useHeroVisibility();
+  const showHero = !hero.loadingSlides && hero.slides.length > 0;
+  // Sarmalayıcı kalkınca ölçüm sıfırlanır (visible eski değerde donmasın).
+  const { resetHero } = heroView;
   useEffect(() => {
-    api
-      .get('/health')
-      .then(() => console.log('✅ API bağlantısı başarılı'))
-      .catch((err) => console.log('⚠️ API bağlantısı yok, mock data kullanılacak:', err.message));
-  }, []);
+    if (!showHero) resetHero();
+  }, [showHero, resetHero]);
+  // Tab bar daralma sinyali + hero görünürlüğü (ofset UI thread'inden seyrek köprülenir) + üst barın
+  // kaydırma kenarı (`page.scrollY`) — TEK handler.
+  const page = usePageScrollValue();
+  const tabScroll = useTabBarScrollHandler(heroView.onScrollOffset, page.scrollY);
+  const { onLayout: onTabScrollLayout } = tabScroll;
+  const guest = useHomeGuestPrompt(isAuthenticated);
+  // Yuvalar (topbar/header/footer) aynı tohumu ve gösterim kümesini paylaşır.
+  const adSession = useAdSession();
 
+  const [refreshing, setRefreshing] = useState(false);
+  const tabInset = useTabBarInset();
+  // Üst bar içeriğin üstünde yüzer: liste bar yüksekliği kadar boşlukla başlar (iOS contentInset / Android padding).
+  const barInset = useFloatingBarInset();
+  // Alt bölümler ilk kareden sonra (ilk açılışta onlarca kart birden çizilmesin; sorgular zaten yolda).
+  const lowerReady = useAfterFirstFrame();
+
+  const { refetchAll } = data;
+  const { refetch: refetchHero } = hero;
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refetchProducts();
+    await Promise.all([refetchAll(), refetchHero()]);
     setRefreshing(false);
-  }, [refetchProducts]);
+  }, [refetchAll, refetchHero]);
 
   const handleProductPress = (productId: string) => {
     if (!isAuthenticated) incrementListingView();
     router.push(`/product/${productId}`);
   };
 
-  const cardProps = { cartProductIds: counts.cartProductIds, onProductPress: handleProductPress };
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface.DEFAULT }]}>
-      <HomeHeader
-        searchQuery={searchQuery}
-        onChangeSearch={setSearchQuery}
-        onSearch={() => goSearch(searchQuery)}
-        counts={counts}
-      />
-
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary[600]!]} />}
+    <AppShell scroll={page}>
+      <Animated.ScrollView
+        style={styles.scroll}
+        {...floatingBarScrollProps(barInset)}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            progressViewOffset={barInset}
+            colors={[colors.primary[600]!]}
+            tintColor={colors.primary[600]!}
+          />
+        }
         showsVerticalScrollIndicator={false}
+        onScroll={tabScroll.onScroll}
+        onContentSizeChange={tabScroll.onContentSizeChange}
+        onLayout={(e) => {
+          onTabScrollLayout(e);
+          heroView.onViewportLayout(e);
+        }}
+        scrollEventThrottle={16}
       >
-        <AdBanner />
-        <HeroBanner />
-        <CategoriesSection categories={categories} isLoading={loadingCategories} />
-        <BrandsSection />
-        <ScalesSection />
-        <FeaturedCollectorSection featuredCollector={featuredCollector} isLoading={loadingFeaturedCollector} />
-        <BoostedRail items={boostedProducts} isLoading={loadingBoosted} {...cardProps} />
-        <PopularProducts items={popularProducts} isLoading={loadingPopular} {...cardProps} />
-        <ProductsGrid items={products} isLoading={loadingProducts} {...cardProps} />
-        <CompanyOfWeekSection companyOfWeek={companyOfWeek} isLoading={loadingCompanyOfWeek} />
-        <CollectionsSection collections={collections} isLoading={loadingCollections} />
-        <View style={{ height: 100 }} />
-      </ScrollView>
+        <AdBanner position="topbar" session={adSession} />
+        <AdBanner position="header" session={adSession} style={styles.adHeader} />
+        {/* Hero yokken (boş liste) sarmalayıcı da yok: ilk bölüm üstteki reklam/üst barın altından
+            tek `HOME_SECTION_GAP` ile (sections dolgusu) başlar. Yükleniyorsa yalnız son açılışta
+            hero vardıysa yer tutulur (`reserveSpace`). */}
+        {showHero ? (
+          <View onLayout={heroView.onHeroLayout} testID="home-hero">
+            <HeroSection slides={hero.slides} locale={hero.locale} visible={heroView.visible} />
+          </View>
+        ) : hero.reserveSpace ? (
+          <HeroReserved />
+        ) : null}
+
+        <View style={styles.sections}>
+          <BrandsStrip items={data.manufacturers} isLoading={data.loadingManufacturers} />
+          <FeaturedRail items={data.featured} isLoading={data.loadingFeatured} onProductPress={handleProductPress} />
+          <OnSaleRail items={data.onSale} isLoading={data.loadingOnSale} onProductPress={handleProductPress} />
+          <TradeRail items={data.trade} isLoading={!lowerReady || data.loadingTrade} onProductPress={handleProductPress} />
+          <PopularRail items={data.popular} isLoading={!lowerReady || data.loadingPopular} onProductPress={handleProductPress} />
+          <TopCollections items={data.topCollections} isLoading={!lowerReady || data.loadingTopCollections} />
+          <Spotlights
+            collector={data.featuredCollector}
+            business={data.featuredBusiness}
+            isLoading={!lowerReady || data.loadingSpotlights}
+          />
+        </View>
+
+        <AdBanner position="footer" session={adSession} style={styles.adFooter} />
+        <View style={{ height: tabInset }} />
+      </Animated.ScrollView>
+
+      {/* Popup reklam: misafir kayıt istemi açıkken çıkmaz (iki Modal birden iOS'u dondurur). */}
+      <PopupAd blocked={guest.showPrompt} />
 
       {guest.promptType && (
         <SignupPrompt visible={guest.showPrompt} onDismiss={guest.dismissPrompt} type={guest.promptType} />
       )}
-    </View>
+    </AppShell>
   );
 }

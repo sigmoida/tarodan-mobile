@@ -1,4 +1,5 @@
 import { api } from "./client";
+import { apiPath } from "./path";
 import { authApi } from "./auth";
 import { productsApi } from "./products";
 import { categoriesApi, collectionsApi } from "./catalog";
@@ -15,13 +16,15 @@ import {
   carModelsApi,
   searchApi,
 } from "./products";
-import { pagesApi, supportApi } from "./catalog";
+import { supportApi } from "./catalog";
 import { mediaApi, uploadApi } from "./media";
 
 export * from "./client";
 export * from "./app-config";
 export * from "./errorText";
 export * from "./auth";
+export * from "./consents";
+export * from "./legalIdentity";
 export * from "./products";
 export * from "./catalog";
 export * from "./listings";
@@ -33,7 +36,10 @@ export * from "./trades";
 export * from "./user";
 export * from "./media";
 export * from "./ads";
+export * from "./hero";
+export * from "./unwrap";
 export * from "./cart";
+export * from "./timingRules";
 
 // =============================================================================
 // ENDPOINTS OBJECT - Unified API access
@@ -47,12 +53,12 @@ export const endpoints = {
     getAll: (params?: Record<string, any>) =>
       api.get("/products", { params }).then((res) => res.data),
     getOne: (id: string | number) =>
-      api.get(`/products/${id}`).then((res) => res.data),
+      api.get(apiPath`/products/${id}`).then((res) => res.data),
   },
   categories: {
     getAll: () => api.get("/categories").then((res) => res.data),
     getOne: (id: string) =>
-      api.get(`/categories/${id}`).then((res) => res.data),
+      api.get(apiPath`/categories/${id}`).then((res) => res.data),
   },
   orders: ordersApi,
   messages: messagesApi,
@@ -72,7 +78,6 @@ export const endpoints = {
   // Yeni modüller
   brands: brandsApi,
   manufacturers: manufacturersApi,
-  pages: pagesApi,
   support: supportApi,
   discounts: discountsApi,
   media: mediaApi,

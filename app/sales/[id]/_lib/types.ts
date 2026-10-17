@@ -4,6 +4,19 @@ export interface Order {
   status: string;
   // Kargo öncesi iptalde status 'refunded' olur ama 'iptal' → "İptal Edildi" göster.
   cancellationType?: string | null;
+  /** Sunucunun yazdığı iptal gerekçesi (yönetici iptalinde "Yönetici tarafından iptal edildi: …"). */
+  cancelReason?: string | null;
+  /** `cancelReason`'ın stabil kategorisi — yalnız `cancelled` siparişte dolu. */
+  cancelCategory?: string | null;
+  /** Üyelik/dijital sipariş (hazırlık notu gösterilmez). */
+  isMembership?: boolean;
+  /** Sunucunun görüntüleyene göre yazdığı taraf bayrakları. */
+  isBuyer?: boolean;
+  isSeller?: boolean;
+  /** Satıcının kargoya verme son tarihi (tek seferlik uzatmada YENİ tarih). */
+  preparingDeadline?: string | null;
+  /** Doluysa hazırlık süresi bir kez uzatıldı — bu son süredir. */
+  preparingExtendedAt?: string | null;
   totalAmount?: number;
   subtotal?: number;
   shippingCost?: number;
@@ -59,7 +72,7 @@ export interface Order {
     trackingNumber?: string | null;
     cargoCode?: string | null;
     status?: string | null;
-    shippedAt?: string;
+    shippedAt?: string | null;
     trackingUrl?: string | null;
   };
 }

@@ -1,13 +1,11 @@
 // Ürün detay görüntüleme yardımcıları — durum rengi, görsel çözümleme, stok.
-import { theme } from '@/ui';
 import { transformImageUrl, IMAGE_PLACEHOLDER } from '@/utils/imageUrl';
-import { formatCondition } from '@/utils/format';
 import {
   getProductEffectivePrice,
   getProductOriginalPriceForDisplay,
-  getProductDiscountPercent,
   isProductOnSaleDisplay,
 } from '@/utils/productPrice';
+import { getProductSalePercent } from '@/components/product/productCardBadges';
 import type { Product } from './types';
 
 export interface PriceInfo {
@@ -17,26 +15,7 @@ export interface PriceInfo {
   discountPct: number;
 }
 
-const { colors } = theme;
-
 const PLACEHOLDER = IMAGE_PLACEHOLDER;
-
-// Durum rozeti renk paleti. Etiket metni TEK KAYNAK formatCondition()'dan gelir
-// (backend enum: new | like_new | very_good | good | fair) — burada yalnız renk var.
-const CONDITION_COLORS: Record<string, string> = {
-  new: colors.success[600]!,
-  like_new: colors.info[400]!,
-  very_good: colors.info[500]!,
-  good: colors.info[600]!,
-  fair: colors.warning[500]!,
-};
-
-export function getConditionInfo(condition: string) {
-  return {
-    name: formatCondition(condition),
-    color: CONDITION_COLORS[condition] ?? colors.gray[500]!,
-  };
-}
 
 /** İndirim/fiyat gösterimi — ProductCard ile aynı kural. (DTO gevşek olduğundan
  * paylaşılan util'lere `any` ile geçilir; sıkılaştırma Faz 4.) */
@@ -46,7 +25,7 @@ export function getProductPriceInfo(product: Product): PriceInfo {
     effectivePrice: getProductEffectivePrice(p),
     onSale: isProductOnSaleDisplay(p),
     originalPrice: getProductOriginalPriceForDisplay(p),
-    discountPct: getProductDiscountPercent(p),
+    discountPct: getProductSalePercent(p),
   };
 }
 
@@ -54,7 +33,7 @@ export function getProductPriceInfo(product: Product): PriceInfo {
 export function resolveProductImages(product: Product): any[] {
   return product?.images && product.images.length > 0
     ? product.images.map((img: any) => {
-        const uri = transformImageUrl(img);
+        const uri = transformImageUrl(img, 'detail'); // galeri: tam çözünürlük (varsayılan card)
         return typeof img === 'string' ? uri : { ...img, url: uri };
       })
     : [PLACEHOLDER];

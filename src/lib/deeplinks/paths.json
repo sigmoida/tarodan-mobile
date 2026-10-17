@@ -3,7 +3,9 @@
   "defaultLocale": "tr",
   "appIDs": ["P2628CQK26.com.tarodan.app"],
   "androidPackage": "com.tarodan.app",
+  "stagingAndroidPackage": "com.tarodan.app.staging",
   "hosts": ["tarodan.com.tr", "staging.tarodan.com.tr"],
+  "stagingHosts": ["staging.tarodan.com.tr"],
   "paths": [
     { "pattern": "/checkout*", "sample": "/checkout", "include": false, "confirmed": true,
       "comment": "odeme web'de kalsin" },
@@ -56,8 +58,6 @@
       "comment": "TEYIT: web yolu dogrulanmadi; toMobileRoute eslemesi yok" },
     { "pattern": "/brands/*", "sample": "/brands/bmw", "include": true, "confirmed": false,
       "comment": "TEYIT: web yolu dogrulanmadi; toMobileRoute eslemesi yok" },
-    { "pattern": "/sayfa/*", "sample": "/sayfa/hakkimizda", "include": true, "confirmed": false,
-      "comment": "TEYIT: CMS sayfalari; toMobileRoute eslemesi yok" },
     { "pattern": "/membership", "sample": "/membership", "include": true, "confirmed": false,
       "comment": "TEYIT: web yolu dogrulanmadi; toMobileRoute eslemesi yok" },
     { "pattern": "/pricing", "sample": "/pricing", "include": true, "confirmed": false,

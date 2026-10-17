@@ -1,26 +1,21 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useMemo, useState } from 'react';
+import { StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
-import { userReportsApi } from '@/lib/api';
-import { theme, Text, Button, Modal, Textarea } from '@/ui';
+import { userReportsApi, errorText } from '@/lib/api';
+import { theme, Text, Button, Modal, Textarea, Alert, ButtonRow, RadioIndicator, toast } from '@/ui';
 
 const { colors } = theme;
 
 export type ReportTargetType = 'product' | 'user' | 'collection' | 'message';
 
+/** Web `ReportModal` ile aynı TEK neden listesi (ürün, kullanıcı, koleksiyon, mesaj hepsi için). */
 export type ReportReason =
   | 'spam'
   | 'inappropriate_content'
+  | 'harassment'
   | 'fake_product'
   | 'scam'
-  | 'harassment'
-  | 'hate_speech'
-  | 'counterfeit'
-  | 'wrong_category'
-  | 'misleading_info'
   | 'other';
 
 interface ReportModalProps {
@@ -32,48 +27,29 @@ interface ReportModalProps {
   onSuccess?: () => void;
 }
 
-// Tek kaynaktan neden etiketleri — modül düzeyinde sabitlenirse i18next hazır
-// olmadan çözülür ve donar; bileşen `useMemo(() => buildReasonLabels(t), [t])`
-// ile çağırır. Katalogdaki `report.reason*` anahtarları kanonik: aynı neden
-// birden fazla listede farklı ifadeyle tekrar etmesin diye TEK etiket/neden.
-const buildReasonLabels = (t: TFunction): Record<ReportReason, string> => ({
-  spam: t('report.reasonSpam'),
-  inappropriate_content: t('report.reasonInappropriate'),
-  fake_product: t('report.reasonFakeProduct'),
-  scam: t('report.reasonScam'),
-  harassment: t('report.reasonHarassment'),
-  hate_speech: t('report.reasonHateSpeech'),
-  counterfeit: t('report.reasonCounterfeit'),
-  wrong_category: t('report.reasonWrongCategory'),
-  misleading_info: t('report.reasonMisleadingInfo'),
-  other: t('report.reasonOther'),
-});
-
-const PRODUCT_REASON_VALUES: ReportReason[] = [
-  'counterfeit',
-  'fake_product',
-  'misleading_info',
-  'wrong_category',
-  'inappropriate_content',
-  'spam',
-  'other',
+/**
+ * Şikayet nedenleri — sıra ve anahtarlar web `ReportModal` ile birebir (`report.reason*`).
+ * Ürün, kullanıcı, koleksiyon ve mesaj şikayeti TEK listeyi paylaşır; ayrı liste tutulmaz.
+ */
+const REPORT_REASONS: ReadonlyArray<{ value: ReportReason; labelKey: ReasonLabelKey }> = [
+  { value: 'spam', labelKey: 'report.reasonSpam' },
+  { value: 'inappropriate_content', labelKey: 'report.reasonInappropriate' },
+  { value: 'harassment', labelKey: 'report.reasonHarassment' },
+  { value: 'fake_product', labelKey: 'report.reasonFakeProduct' },
+  { value: 'scam', labelKey: 'report.reasonScam' },
+  { value: 'other', labelKey: 'report.reasonOther' },
 ];
 
-const USER_REASON_VALUES: ReportReason[] = [
-  'scam',
-  'harassment',
-  'hate_speech',
-  'spam',
-  'inappropriate_content',
-  'other',
-];
+type ReasonLabelKey =
+  | 'report.reasonSpam'
+  | 'report.reasonInappropriate'
+  | 'report.reasonHarassment'
+  | 'report.reasonFakeProduct'
+  | 'report.reasonScam'
+  | 'report.reasonOther';
 
-const GENERIC_REASON_VALUES: ReportReason[] = [
-  'inappropriate_content',
-  'spam',
-  'misleading_info',
-  'other',
-];
+/** Sunucu açıklamayı en az bu uzunlukta kabul eder (web ile aynı); kısaysa hiç gönderilmez. */
+const MIN_DESCRIPTION_LENGTH = 10;
 
 export default function ReportModal({
   visible,
@@ -87,16 +63,6 @@ export default function ReportModal({
   const [reason, setReason] = useState<ReportReason | ''>('');
   const [description, setDescription] = useState('');
 
-  const reasonLabels = useMemo(() => buildReasonLabels(t), [t]);
-
-  const reasons = useMemo(() => {
-    const values =
-      type === 'product' ? PRODUCT_REASON_VALUES
-      : type === 'user' ? USER_REASON_VALUES
-      : GENERIC_REASON_VALUES;
-    return values.map((value) => ({ value, label: reasonLabels[value] }));
-  }, [type, reasonLabels]);
-
   const title = useMemo(() => {
     switch (type) {
       case 'product': return t('report.reportListing');
@@ -108,74 +74,66 @@ export default function ReportModal({
   }, [type, t]);
 
   const reportMutation = useMutation({
-    mutationFn: async () => {
-      if (!reason) throw new Error('missing_reason');
-      return userReportsApi.create({
-        type,
-        targetId,
-        reason: reason as ReportReason,
-        description: description || undefined,
-      });
+    mutationFn: (payload: { reason: ReportReason; description?: string }) =>
+      userReportsApi.create({ type, targetId, ...payload }),
+    onSuccess: () => {
+      toast.success(t('report.submitSuccess'));
+      onSuccess?.();
+    },
+    onError: (error) => {
+      toast.error(errorText(error, t('report.submitFailed')));
     },
   });
-
-  // #82: unmount sonrası setState uyarısını önle — kapatma timer'ını sakla + temizle.
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => {
-      if (closeTimer.current) clearTimeout(closeTimer.current);
-    },
-    [],
-  );
 
   const handleClose = () => {
     setReason('');
     setDescription('');
-    reportMutation.reset();
     onDismiss();
   };
 
-  const handleSubmit = async () => {
+  // src/ui/CLAUDE.md › iOS modal rule: modal mutation'ı BEKLEMEZ — önce kapat, sonra gönder; sonuç toast (modal artık kapalı,
+  // toast görünür).
+  const handleSubmit = () => {
     if (!reason) return;
-    try {
-      await reportMutation.mutateAsync();
-      onSuccess?.();
-      // Kullanıcıya başarı mesajını göster, ardından kapat
-      closeTimer.current = setTimeout(() => {
-        handleClose();
-      }, 1500);
-    } catch (e) {
-      // error state is tracked by mutation
-    }
+    const trimmed = description.trim();
+    const payload = {
+      reason,
+      description: trimmed.length >= MIN_DESCRIPTION_LENGTH ? trimmed : undefined,
+    };
+    handleClose();
+    reportMutation.mutate(payload);
   };
 
   return (
-    <Modal isOpen={visible} onClose={handleClose} title={title}>
+    <Modal isOpen={visible} onClose={handleClose} title={title} scrollable={false}>
       <ScrollView style={styles.scrollArea} keyboardShouldPersistTaps="handled">
-        <Text style={styles.targetInfo} numberOfLines={2}>{targetName}</Text>
+        <Text variant="label" align="center" numberOfLines={2} style={styles.targetInfo}>
+          {targetName}
+        </Text>
 
-        <Text style={styles.sectionTitle}>{t('report.reasonSectionTitle')}</Text>
+        <Text variant="label" style={styles.sectionTitle}>
+          {t('report.reasonSectionTitle')}
+        </Text>
 
-        {reasons.map((r) => (
-          <TouchableOpacity
+        {REPORT_REASONS.map((r) => (
+          <Pressable
             key={r.value}
-            style={[
-              styles.reasonItem,
-              reason === r.value && styles.reasonItemSelected,
-            ]}
+            testID={`report-reason-${r.value}`}
+            style={[styles.reasonItem, reason === r.value && styles.reasonItemSelected]}
             onPress={() => setReason(r.value)}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: reason === r.value }}
           >
-            <Ionicons
-              name={reason === r.value ? 'radio-button-on' : 'radio-button-off'}
-              size={20}
-              color={reason === r.value ? colors.primary[600]! : colors.text.muted}
-            />
-            <Text style={styles.reasonText}>{r.label}</Text>
-          </TouchableOpacity>
+            <RadioIndicator checked={reason === r.value} />
+            <Text style={styles.reasonText}>{t(r.labelKey)}</Text>
+          </Pressable>
         ))}
 
-        <Text style={styles.sectionTitle}>{t('report.descriptionLabel')}</Text>
+        <Text variant="label" style={styles.sectionTitle}>
+          {t('report.detailsLabel')}
+        </Text>
         <Textarea
+          testID="report-description-input"
           value={description}
           onChangeText={setDescription}
           rows={3}
@@ -183,46 +141,25 @@ export default function ReportModal({
           maxLength={500}
           style={styles.input}
         />
-        <Text style={styles.charCount}>{description.length}/500</Text>
+        <Text variant="caption" align="right" style={styles.charCount}>
+          {description.length}/500
+        </Text>
 
-        <View style={styles.warningBox}>
-          <Ionicons name="warning" size={20} color={colors.warning[600]!} />
-          <Text style={styles.warningText}>
-            {t('report.falseReportWarning')}
-          </Text>
-        </View>
-
-        {reportMutation.error ? (
-          <Text style={styles.errorText}>
-            {t('report.submitFailed')}
-          </Text>
-        ) : null}
-
-        {reportMutation.isSuccess ? (
-          <View style={styles.successBox}>
-            <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-            <Text style={styles.successText}>
-              {t('report.submitSuccess')}
-            </Text>
-          </View>
-        ) : null}
+        <Alert variant="warning" style={styles.warningBox}>
+          {t('report.falseReportWarning')}
+        </Alert>
       </ScrollView>
 
-      <View style={styles.actions}>
-        <Button
-          variant="ghost"
-          title={t('common.cancel')}
-          onPress={handleClose}
-          disabled={reportMutation.isPending}
-        />
+      <ButtonRow style={styles.buttons}>
+        <Button variant="ghost" title={t('common.cancel')} onPress={handleClose} testID="report-cancel-button" />
         <Button
           variant="danger"
           title={t('report.report')}
           onPress={handleSubmit}
-          isLoading={reportMutation.isPending}
-          disabled={!reason || reportMutation.isPending}
+          disabled={!reason}
+          testID="report-submit-button"
         />
-      </View>
+      </ButtonRow>
     </Modal>
   );
 }
@@ -232,18 +169,11 @@ const styles = StyleSheet.create({
     maxHeight: 480,
   },
   targetInfo: {
-    textAlign: 'center',
-    fontSize: 14,
-    fontWeight: '500',
     marginBottom: theme.spacing[4],
-    color: colors.text.heading,
   },
   sectionTitle: {
     marginTop: theme.spacing[4],
     marginBottom: theme.spacing[2],
-    color: colors.text.heading,
-    fontSize: 14,
-    fontWeight: '600',
   },
   reasonItem: {
     flexDirection: 'row',
@@ -257,54 +187,17 @@ const styles = StyleSheet.create({
   },
   reasonText: {
     marginLeft: theme.spacing[3],
-    color: colors.text.heading,
   },
   input: {
     backgroundColor: colors.surface.DEFAULT,
   },
   charCount: {
-    textAlign: 'right',
     marginTop: theme.spacing[1],
-    fontSize: 12,
-    color: colors.text.muted,
   },
   warningBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.warning[50]!,
-    padding: theme.spacing[3],
-    marginTop: theme.spacing[4],
-    borderRadius: theme.radius.xl,
-    gap: theme.spacing[2],
-  },
-  warningText: {
-    flex: 1,
-    color: colors.warning[600]!,
-    fontSize: 12,
-  },
-  errorText: {
-    textAlign: 'center',
-    color: colors.danger[600]!,
     marginTop: theme.spacing[4],
   },
-  successBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.success[50]!,
-    padding: theme.spacing[3],
-    marginTop: theme.spacing[4],
-    borderRadius: theme.radius.xl,
-    gap: theme.spacing[2],
-  },
-  successText: {
-    flex: 1,
-    color: colors.success[600]!,
-    fontSize: 12,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.spacing[2],
+  buttons: {
     marginTop: theme.spacing[3],
   },
 });

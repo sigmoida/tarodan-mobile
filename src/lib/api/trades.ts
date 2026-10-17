@@ -1,4 +1,5 @@
 import { api } from './client';
+import { apiPath } from './path';
 
 /** Bir tarafın maliyeti. Hepsi TL ve KDV DAHİL; total = serviceFee + shipping + cashDifference. */
 export type TradePaymentQuoteSide = {
@@ -33,7 +34,7 @@ export const tradesApi = {
   /** Yanıt bekleyen takas sayısı (rozet) — backend: GET /trades/pending-count */
   getPendingCount: () => api.get<{ count: number }>('/trades/pending-count'),
   getOne: (id: string | number) =>
-    api.get(`/trades/${id}`),
+    api.get(apiPath`/trades/${id}`),
   create: (data: {
     receiverId: string;
     initiatorItems: Array<{ productId: string; quantity: number }>;
@@ -43,19 +44,19 @@ export const tradesApi = {
     shippingAddressId?: string;
   }) => api.post('/trades', data),
   accept: (id: string | number, message?: string, shippingAddressId?: string) =>
-    api.post(`/trades/${id}/accept`, { message, shippingAddressId }),
+    api.post(apiPath`/trades/${id}/accept`, { message, shippingAddressId }),
   reject: (id: string | number, reason?: string) =>
-    api.post(`/trades/${id}/reject`, { reason }),
+    api.post(apiPath`/trades/${id}/reject`, { reason }),
   cancel: (id: string | number, reason?: string) =>
-    api.post(`/trades/${id}/cancel`, { reason }),
+    api.post(apiPath`/trades/${id}/cancel`, { reason }),
   counter: (id: string | number, data: any) =>
-    api.post(`/trades/${id}/counter`, data),
+    api.post(apiPath`/trades/${id}/counter`, data),
   ship: (id: string | number, data: { fromAddressId: string; carrier: string }) =>
-    api.post(`/trades/${id}/ship`, data),
+    api.post(apiPath`/trades/${id}/ship`, data),
   confirmReceipt: (id: string | number) =>
-    api.post(`/trades/${id}/confirm-receipt`),
+    api.post(apiPath`/trades/${id}/confirm-receipt`),
   raiseDispute: (id: string | number, data: { reason: string; description: string; evidenceUrls?: string[] }) =>
-    api.post(`/trades/${id}/dispute`, data),
+    api.post(apiPath`/trades/${id}/dispute`, data),
   /**
    * Takas ödeme dökümü. v1 takasta `200` + BOŞ GÖVDE döner (ölçümle doğrulandı) —
    * bu hata değildir, `isV2`'nin ikinci kaynağıdır. Takasın HER durumunda çalışır:
@@ -63,7 +64,7 @@ export const tradesApi = {
    * SAYILAMAZ. `503 server.shipping.noActiveTariff`: aktif tarifede kademe yok.
    */
   getPaymentQuote: (id: string | number) =>
-    api.get<Partial<TradePaymentQuote>>(`/trades/${id}/payment-quote`),
+    api.get<Partial<TradePaymentQuote>>(apiPath`/trades/${id}/payment-quote`),
   /**
    * Kaydedilmemiş teklifin canlı fiyatı — teklif oluşturma ekranı için.
    * Yanıtta `tradeId`/`userId`/`side` YOKTUR (ölçümle doğrulandı). Bilinmeyen
@@ -82,41 +83,41 @@ export const offersApi = {
   getAll: (params?: Record<string, any>) =>
     api.get('/offers', { params }),
   getOne: (id: string) =>
-    api.get(`/offers/${id}`),
+    api.get(apiPath`/offers/${id}`),
   /** Bekleyen (gelen) teklif sayısı (rozet) — backend: GET /offers/pending-count */
   getPendingCount: () => api.get<{ count: number }>('/offers/pending-count'),
   create: (data: { productId: string; amount: number; message?: string }) =>
     api.post('/offers', data),
   accept: (id: string) =>
-    api.post(`/offers/${id}/accept`),
+    api.post(apiPath`/offers/${id}/accept`),
   reject: (id: string) =>
-    api.post(`/offers/${id}/reject`),
+    api.post(apiPath`/offers/${id}/reject`),
   counter: (id: string, amount: number) =>
-    api.post(`/offers/${id}/counter`, { amount }),
+    api.post(apiPath`/offers/${id}/counter`, { amount }),
   /** Alıcının karşı teklifi (satıcının counter'ından sonra). */
   buyerCounter: (id: string, amount: number) =>
-    api.post(`/offers/${id}/buyer-counter`, { amount }),
+    api.post(apiPath`/offers/${id}/buyer-counter`, { amount }),
   cancel: (id: string) =>
-    api.post(`/offers/${id}/cancel`),
+    api.post(apiPath`/offers/${id}/cancel`),
 };
 
 // Ratings API - Web ile aynı endpoint'ler
 export const ratingsApi = {
   // User ratings
   getUserRatings: (userId: string, params?: Record<string, any>) =>
-    api.get(`/ratings/users/${userId}`, { params }),
+    api.get(apiPath`/ratings/users/${userId}`, { params }),
   getUserStats: (userId: string) =>
-    api.get(`/ratings/users/${userId}/stats`),
+    api.get(apiPath`/ratings/users/${userId}/stats`),
   createUserRating: (data: { receiverId: string; orderId?: string; tradeId?: string; score: number; comment?: string }) =>
     api.post('/ratings/users', data),
 
   // Product ratings
   getProductRatings: (productId: string, params?: Record<string, any>) =>
-    api.get(`/ratings/products/${productId}`, { params }),
+    api.get(apiPath`/ratings/products/${productId}`, { params }),
   getProductStats: (productId: string) =>
-    api.get(`/ratings/products/${productId}/stats`),
+    api.get(apiPath`/ratings/products/${productId}/stats`),
   createProductRating: (data: { productId: string; orderId: string; score: number; title?: string; review?: string; images?: string[] }) =>
     api.post('/ratings/products', data),
   markHelpful: (ratingId: string) =>
-    api.post(`/ratings/products/${ratingId}/helpful`),
+    api.post(apiPath`/ratings/products/${ratingId}/helpful`),
 };

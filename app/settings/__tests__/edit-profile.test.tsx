@@ -14,6 +14,8 @@ jest.mock("@/stores/authStore", () => ({
     const state: any = ({
     user: { displayName: "Test", email: "t@b.com", membershipTier: "free" },
     isAuthenticated: true,
+    // Tam profil yüklenmiş (useFullProfile beklemez).
+    profileValidated: true,
     refreshUserData: jest.fn(),
   });
     return sel ? sel(state) : state;

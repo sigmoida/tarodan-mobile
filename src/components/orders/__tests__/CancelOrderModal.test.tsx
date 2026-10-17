@@ -6,10 +6,11 @@
  * kod olmadan `server.order.cancelReasonRequired` ile 400 attığı için ödenmiş
  * siparişin iptali mobilde hiç çalışmıyordu.
  *
- * İkincisi: modal mutasyondan ÖNCE kapanır (CLAUDE.md §12 — mutasyonun uyarısı
+ * İkincisi: modal mutasyondan ÖNCE kapanır (src/ui/CLAUDE.md › iOS modal rule — mutasyonun uyarısı
  * `ui-native` Modal açıkken iOS'u donduruyor).
  */
 import React from 'react';
+import { Modal } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { CancelOrderModal } from '../CancelOrderModal';
 import { DEFAULT_CANCELLATION_REASON } from '@/lib/shared/orderCancellation';
@@ -61,6 +62,25 @@ describe('CancelOrderModal', () => {
   it('ödenmemiş siparişte iade uyarısı yerine sade onay metnini gösterir', () => {
     setup({ willRefund: false });
     expect(screen.queryByText(/iade edilecek/i)).toBeNull();
+  });
+
+  it('nedenler satır içi radyo listesi: varsayılan işaretli, seçim reasonCode’u değiştirir', () => {
+    const { onConfirm } = setup();
+    expect(screen.getByTestId(`cancel-reason-${DEFAULT_CANCELLATION_REASON}`).props.accessibilityState).toMatchObject({
+      checked: true,
+    });
+    fireEvent.press(screen.getByTestId('cancel-reason-wrong_card'));
+    expect(screen.getByTestId('cancel-reason-wrong_card').props.accessibilityState).toMatchObject({ checked: true });
+    expect(screen.getByTestId(`cancel-reason-${DEFAULT_CANCELLATION_REASON}`).props.accessibilityState).toMatchObject({
+      checked: false,
+    });
+    fireEvent.press(screen.getByTestId('cancel-order-confirm'));
+    expect(onConfirm).toHaveBeenCalledWith({ reasonCode: 'wrong_card', reason: undefined });
+  });
+
+  it('modal içinde ikinci bir native Modal (Select sheet) açmaz', () => {
+    setup();
+    expect(screen.UNSAFE_getAllByType(Modal)).toHaveLength(1);
   });
 
   it('alıcıya `Diğer` seçeneğini sunmaz', () => {

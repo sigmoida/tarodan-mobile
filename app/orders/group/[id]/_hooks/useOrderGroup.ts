@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/ui';
 import { ordersApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
 import { qk } from '@/lib/query';
 import { captureException } from '@/services/sentry';
 import type { OrderCancellationReason } from '@/lib/shared/orderCancellation';
@@ -11,7 +13,7 @@ import type { GroupDetail, GroupOrder, GroupPackage } from '../_lib/types';
 
 /**
  * Order-group controller — owns the group query (with the raw→UI status mapping)
- * and pull-to-refresh. Lifted verbatim from the monolithic screen (§12).
+ * and pull-to-refresh. Lifted verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
  */
 export function useOrderGroup() {
   const { t } = useTranslation();
@@ -19,14 +21,9 @@ export function useOrderGroup() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [refreshing, setRefreshing] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
-  const [snackbar, setSnackbar] = useState<{
-    visible: boolean;
-    message: string;
-    variant: 'success' | 'danger';
-  }>({ visible: false, message: '', variant: 'success' });
 
   const { data: group, isLoading, refetch, error } = useQuery({
-    queryKey: ['order-group', id],
+    queryKey: qk.orders.group(String(id ?? '')),
     queryFn: async (): Promise<GroupDetail> => {
       const response = await ordersApi.getGroup(id!);
       const raw: any = response.data?.data ?? response.data;
@@ -88,9 +85,9 @@ export function useOrderGroup() {
     mutationFn: (input: { reasonCode: OrderCancellationReason; reason?: string }) =>
       ordersApi.cancelGroup(id!, input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['order-group', id] });
+      queryClient.invalidateQueries({ queryKey: qk.orders.group(String(id ?? '')) });
       queryClient.invalidateQueries({ queryKey: qk.orders.all });
-      setSnackbar({ visible: true, message: t('order.orderCancelled'), variant: 'success' });
+      toast.success(t('order.orderCancelled'));
     },
     onError: (err: any) => {
       captureException(err, {
@@ -98,12 +95,7 @@ export function useOrderGroup() {
         tags: { flow: 'order.cancelGroup' },
         extra: { status: err?.response?.status },
       });
-      const raw = err?.response?.data?.message;
-      setSnackbar({
-        visible: true,
-        message: typeof raw === 'string' ? raw : t('order.orderCancelFailed'),
-        variant: 'danger',
-      });
+      toast.error(apiErrorMessage(err, t('order.orderCancelFailed')));
     },
   });
 
@@ -135,8 +127,6 @@ export function useOrderGroup() {
     refetch,
     refreshing,
     onRefresh,
-    snackbar,
-    dismissSnackbar: () => setSnackbar((s) => ({ ...s, visible: false })),
     cancel: {
       available: cancellable,
       visible: cancelModalVisible,

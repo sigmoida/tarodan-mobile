@@ -1,84 +1,68 @@
 import React from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { Spinner, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SCROLL_EDGE_FULL_AT, ScrollEdge, theme, useHeaderTopInset } from '@/ui';
+import { FloatingIconButton } from './FloatingIconButton';
+import { useGallerySize } from '../_lib/layout';
 
-const { colors } = theme;
+const { spacing, headerHeight, headerBottomPad } = theme;
 
-/** Görselin üstündeki saydam üst bar: geri / raporla / paylaş / favori. */
+/**
+ * Ürün detayının üst barı: galerinin üstünde yüzen adalar — solda geri, sağda `children` (⋮ menü,
+ * paylaş, favori). Ölçüler diğer tüm üst barlarla AYNI (`ScreenHeader`): güvenli alan üstü +
+ * `headerHeight` satırı + `headerBottomPad`, 12pt yan boşluk, satırda dikey ortalı 44pt cam daireler.
+ * Arkada aynı kaydırma kenarı (`ScrollEdge`); tek fark tetik noktası: galeri bar ALTINA kadar
+ * uzandığından kenar 0'da değil, galerinin sonu bara geldiğinde tamamlanır (görsel beyaza boğulmaz).
+ * Yükleniyor / bulunamadı: içerik bar altına girmez, kenar dinlenmede (görünmez).
+ */
 export function ProductTopBar({
-  isFavorite,
-  favoriteLoading,
+  scrollY,
   onBack,
-  onReport,
-  onShare,
-  onFavorite,
+  children,
 }: {
-  isFavorite: boolean;
-  favoriteLoading: boolean;
+  scrollY: SharedValue<number>;
   onBack: () => void;
-  onReport: () => void;
-  onShare: () => void;
-  onFavorite: () => void;
+  children?: React.ReactNode;
 }) {
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const topInset = useHeaderTopInset();
+  const barHeight = topInset + headerHeight + headerBottomPad;
+  const gallerySize = useGallerySize();
+  // Kenar, galerinin altı barın altına ulaştığında TAM opak: kaydırma ofsetini o noktaya kaydır.
+  const fullAt = gallerySize - barHeight;
+  const edgeY = useDerivedValue(() => scrollY.value - (fullAt - SCROLL_EDGE_FULL_AT));
+
   return (
-    <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
-      <Pressable onPress={onBack} style={styles.headerButton} accessibilityRole="button" accessibilityLabel={t('common.back')}>
-        <Ionicons name="arrow-back" size={24} color={colors.white} />
-      </Pressable>
-      <View style={styles.headerActions}>
-        <Pressable testID="product-report-button" onPress={onReport} style={styles.headerButton} accessibilityRole="button" accessibilityLabel={t('report.report')}>
-          <Ionicons name="flag-outline" size={22} color={colors.white} />
-        </Pressable>
-        <Pressable onPress={onShare} style={styles.headerButton} accessibilityRole="button" accessibilityLabel={t('product.share')}>
-          <Ionicons name="share-outline" size={24} color={colors.white} />
-        </Pressable>
-        <Pressable
-          onPress={onFavorite}
-          style={styles.headerButton}
-          disabled={favoriteLoading}
-          accessibilityRole="button"
-          accessibilityLabel={t('product.addToFavorites')}
-        >
-          {favoriteLoading ? (
-            <Spinner size="sm" color={colors.white} />
-          ) : (
-            <Ionicons
-              name={isFavorite ? 'heart' : 'heart-outline'}
-              size={24}
-              color={isFavorite ? colors.danger[600]! : colors.white}
-            />
-          )}
-        </Pressable>
+    <View style={[styles.root, { paddingTop: topInset }]} pointerEvents="box-none">
+      <ScrollEdge barHeight={barHeight} scrollY={edgeY} testID="product-top-bar-edge" />
+      <View style={styles.row} pointerEvents="box-none">
+        <FloatingIconButton
+          testID="product-back-button"
+          icon="chevron-left"
+          accessibilityLabel={t('common.back')}
+          onPress={onBack}
+        />
+        <View style={styles.right}>{children}</View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
+  root: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 10,
+    paddingHorizontal: spacing[3],
+    paddingBottom: headerBottomPad,
+  },
+  row: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing[4],
-    paddingBottom: theme.spacing[3],
+    height: headerHeight,
   },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.overlay.black30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerActions: { flexDirection: 'row', gap: theme.spacing[3] },
+  right: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
 });

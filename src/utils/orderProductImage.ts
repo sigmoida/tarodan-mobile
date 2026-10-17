@@ -6,7 +6,7 @@ export function getOrderProductImageUri(
     imageUrl?: string | null;
     images?: unknown;
   } | null | undefined,
-  variant: ImageVariant = 'detail',
+  variant: ImageVariant = 'card',
 ): string {
   if (!product) return IMAGE_PLACEHOLDER;
   if (product.imageUrl && typeof product.imageUrl === 'string') {

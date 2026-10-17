@@ -1,6 +1,6 @@
 /**
  * J39/J117 · Bülten abone + abonelik iptali ekranları — mobil UI dilimi.
- * Abone formu: geçersiz e-posta reddi (Alert), boşken buton disable, geçerli
+ * Abone formu: geçersiz e-posta reddi (satır içi alan hatası), boşken buton disable, geçerli
  * gönderimde subscribe çağrısı, iptal ekranına navigasyon.
  * Unsubscribe ekranı render + e-posta akışı çağrısı + başarı durumu render.
  * Backend abonelik kaydı / token doğrulama backend-only.
@@ -47,13 +47,14 @@ describe('J39 · Bülten abone (newsletter)', () => {
     expect(screen.getByText('Abone Ol')).toBeDisabled();
   });
 
-  it('J39.2 geçersiz e-posta → Alert ile reddedilir, API çağrılmaz', () => {
+  it('J39.2 geçersiz e-posta → alan altında satır içi hata, reddedilir, API çağrılmaz', () => {
     renderWithProviders(<NewsletterScreen />);
     fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'gecersiz');
     // Rıza kutusu (P2 #12) abone olmanın kapısı — kullanıcı gibi önce işaretle.
     fireEvent.press(screen.getByTestId('newsletter-consent'));
     fireEvent.press(screen.getByText('Abone Ol'));
-    expect(alertSpy).toHaveBeenCalledWith('Eksik', 'Geçerli bir e-posta girin.');
+    expect(screen.getByText('Geçerli bir e-posta girin.')).toBeOnTheScreen();
+    expect(alertSpy).not.toHaveBeenCalled();
     expect(postMock).not.toHaveBeenCalled();
   });
 
@@ -95,11 +96,12 @@ describe('J117 · Bülten abonelik iptali (unsubscribe)', () => {
     expect(screen.getByText('Abonelikten Çık')).toBeDisabled();
   });
 
-  it('J117.2 geçersiz e-posta → Alert ile reddedilir', () => {
+  it('J117.2 geçersiz e-posta → alan altında satır içi hata, reddedilir', () => {
     renderWithProviders(<NewsletterUnsubscribeScreen />);
     fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], 'gecersiz');
     fireEvent.press(screen.getByText('Abonelikten Çık'));
-    expect(alertSpy).toHaveBeenCalledWith('Eksik', 'Geçerli bir e-posta girin.');
+    expect(screen.getByText('Geçerli bir e-posta girin.')).toBeOnTheScreen();
+    expect(alertSpy).not.toHaveBeenCalled();
     expect(postMock).not.toHaveBeenCalled();
   });
 
@@ -119,7 +121,7 @@ describe('J117 · Bülten abonelik iptali (unsubscribe)', () => {
     getMock.mockResolvedValue({ data: { success: true } });
     renderWithProviders(<NewsletterUnsubscribeScreen />);
     await waitFor(() =>
-      expect(getMock).toHaveBeenCalledWith('/newsletter/unsubscribe?token=abc123'),
+      expect(getMock).toHaveBeenCalledWith('/newsletter/unsubscribe', { params: { token: 'abc123' } }),
     );
   });
 });

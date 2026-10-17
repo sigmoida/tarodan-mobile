@@ -1,30 +1,28 @@
 import React, { useEffect, useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  RefreshControl,
-  FlatList,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, StyleSheet } from "react-native";
+import Animated from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
-import { theme, ScreenHeader, ErrorState } from "@/ui";
+import { ErrorState, pageListContentStyle, theme, useDelayedLoading, usePageScrollHandler } from "@/ui";
+import { PageShell } from "@/components/common/PageShell";
 import { useAuthStore } from "@/stores/authStore";
+import { useTimingValues } from "@/hooks/useTimingPolicy";
+import { useRefresh } from "@/hooks/useRefresh";
 import { useTranslation } from "react-i18next";
 import type { Offer, TabType } from "./_lib/types";
 import { useOffers } from "./_hooks/useOffers";
 import { useCommissionPreview } from "./_hooks/useCommissionPreview";
 import { useOfferActions } from "./_hooks/useOfferActions";
-import { OffersAuthGate } from "./_components/OffersAuthGate";
 import { OffersTabs } from "./_components/OffersTabs";
 import { OffersEmpty } from "./_components/OffersEmpty";
 import { OfferCard } from "./_components/OfferCard";
+import { OfferCardSkeleton } from "./_components/OfferCardSkeleton";
 import { CounterOfferModal } from "./_modals/CounterOfferModal";
 import { BuyerCounterModal } from "./_modals/BuyerCounterModal";
 
-const { colors } = theme;
-
+/**
+ * Tekliflerim — İNCE ekran: PageShell (list modu) + sekmeler + OfferCard listesi. Sorgu
+ * `useOffers`'ta, onaylı aksiyonlar `useOfferActions`'ta; karşı teklif modalları `overlay`'de.
+ */
 export default function OffersScreen() {
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ tab?: string | string[] }>();
@@ -32,7 +30,9 @@ export default function OffersScreen() {
     Array.isArray(params.tab) ? params.tab[0] : params.tab
   )?.toLowerCase();
 
-  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const authLoading = useAuthStore((s) => s.isLoading);
+  const page = usePageScrollHandler();
   const [activeTab, setActiveTab] = useState<TabType>(
     tabFromUrl === "sent" ? "sent" : "received",
   );
@@ -48,20 +48,28 @@ export default function OffersScreen() {
       setActiveTab(tabFromUrl);
   }, [tabFromUrl]);
 
+  // Sekme değişimi YERİNDE: URL parametresi `setParams` ile güncellenir. Eskiden
+  // `router.replace('/offers?tab=…')` her seçimde yığına yeni ekran koyup `slide_from_right`
+  // animasyonunu oynatıyordu (yön sekme sırasından bağımsız, hep aynı kayma). Diğer ChipTabs
+  // ekranları gibi liste anında değişir.
   const setTab = useCallback((tab: TabType) => {
     setActiveTab(tab);
-    router.replace(`/offers?tab=${tab}`);
+    router.setParams({ tab });
   }, []);
 
   const {
     data: offers = [],
     isLoading,
     isError,
-    isRefetching,
     refetch,
   } = useOffers(activeTab, isAuthenticated);
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const showSkeleton = useDelayedLoading(isLoading);
+  // Gösterge yalnız kullanıcı çektiğinde (`isRefetching` sekme değişimi / invalidate'te de döner).
+  const { refreshing, onRefresh } = useRefresh(refetch);
   const estimatedNetByOfferId = useCommissionPreview(offers, activeTab);
-  const { accept, reject, cancel, pendingOfferId } = useOfferActions();
+  const { requestAccept, requestReject, requestCancel, pendingOfferIds } = useOfferActions();
+  const timing = useTimingValues();
 
   // Stable renderItem (#75) — memoized OfferCard skips rows that didn't change.
   const renderOffer = useCallback(
@@ -76,11 +84,12 @@ export default function OffersScreen() {
             ? estimatedNetByOfferId[item.id]
             : undefined
         }
-        isPending={pendingOfferId === item.id}
+        isPending={pendingOfferIds.has(item.id)}
         t={t}
-        onAccept={accept}
-        onReject={reject}
-        onCancel={cancel}
+        timing={timing}
+        onAccept={requestAccept}
+        onReject={requestReject}
+        onCancel={requestCancel}
         onOpenCounter={setCounterOffer}
         onOpenBuyerCounter={setBuyerCounterOffer}
       />
@@ -88,97 +97,87 @@ export default function OffersScreen() {
     [
       activeTab,
       estimatedNetByOfferId,
-      pendingOfferId,
+      pendingOfferIds,
       t,
-      accept,
-      reject,
-      cancel,
+      timing,
+      requestAccept,
+      requestReject,
+      requestCancel,
     ],
   );
 
+  const back = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)"));
+
+  // İlk açılış: oturum çözülene dek tam ekran yükleniyor (yalnız burada spinner).
   if (authLoading) {
+    return <PageShell title={t("offer.myOffersTitle")} onBack={back} loading loadingVariant="spinner" />;
+  }
+
+  if (!isAuthenticated) {
     return (
-      <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary[600]!} />
-      </SafeAreaView>
+      <PageShell
+        title={t("offer.myOffersTitle")}
+        onBack={back}
+        empty
+        emptyState={{
+          icon: "tag",
+          title: t("offer.myOffersTitle"),
+          subtitle: t("offer.authGateSubtitle"),
+          actionLabel: t("common.login"),
+          onAction: () => router.push("/(auth)/login"),
+        }}
+      />
     );
   }
 
-  if (!isAuthenticated) return <OffersAuthGate />;
-
   return (
-    <View style={styles.safeArea}>
-      <ScreenHeader
-        title={t("offer.myOffersTitle")}
-        onBack={() =>
-          router.canGoBack() ? router.back() : router.replace("/(tabs)")
+    <PageShell
+      title={t("offer.myOffersTitle")}
+      onBack={back}
+      mode="list"
+      scroll={page}
+      overlay={
+        <>
+          <CounterOfferModal offer={counterOffer} onClose={() => setCounterOffer(null)} />
+          <BuyerCounterModal offer={buyerCounterOffer} onClose={() => setBuyerCounterOffer(null)} />
+        </>
+      }
+    >
+      <Animated.FlatList
+        {...page.listProps}
+        data={isLoading || isError ? [] : offers}
+        keyExtractor={(item) => item.id}
+        renderItem={renderOffer}
+        // #82: virtualizasyon ayarı — uzun teklif listelerinde bellek/kaydırma.
+        windowSize={7}
+        initialNumToRender={8}
+        maxToRenderPerBatch={10}
+        removeClippedSubviews
+        ListHeaderComponent={<OffersTabs activeTab={activeTab} onChange={setTab} />}
+        ListEmptyComponent={
+          isLoading || showSkeleton ? (
+            showSkeleton ? (
+              <View style={styles.skeletons} testID="offers-skeleton">
+                <OfferCardSkeleton />
+                <OfferCardSkeleton />
+              </View>
+            ) : null
+          ) : isError ? (
+            // Hatayı boş durumdan ayır: "Henüz teklif yok" bir yükleme hatasını maskelememeli.
+            <ErrorState message={t("offer.loadOffersFailed")} onRetry={() => refetch()} />
+          ) : (
+            <OffersEmpty tab={activeTab} />
+          )
         }
+        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
       />
-
-      <OffersTabs activeTab={activeTab} onChange={setTab} />
-
-      {isLoading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary[600]!} />
-          <Text style={styles.loadingText}>{t("offer.loadingOffers")}</Text>
-        </View>
-      ) : isError ? (
-        // Hatayı boş durumdan ayır (eskiden appAlert; artık kalıcı ErrorState +
-        // tekrar-dene). "Henüz teklif yok" bir yükleme hatasını maskelememeli.
-        <ErrorState
-          fullscreen
-          message={t("offer.loadOffersFailed")}
-          onRetry={() => refetch()}
-        />
-      ) : (
-        <FlatList
-          data={offers}
-          keyExtractor={(item) => item.id}
-          renderItem={renderOffer}
-          // #82: virtualizasyon ayarı — uzun teklif listelerinde bellek/kaydırma.
-          windowSize={7}
-          initialNumToRender={8}
-          maxToRenderPerBatch={10}
-          removeClippedSubviews
-          ListEmptyComponent={<OffersEmpty tab={activeTab} />}
-          contentContainerStyle={
-            offers.length === 0 ? { flex: 1 } : styles.listContent
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
-              colors={[colors.primary[600]!]}
-            />
-          }
-        />
-      )}
-
-      <CounterOfferModal
-        offer={counterOffer}
-        onClose={() => setCounterOffer(null)}
-      />
-      <BuyerCounterModal
-        offer={buyerCounterOffer}
-        onClose={() => setBuyerCounterOffer(null)}
-      />
-    </View>
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.surface.alt },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: theme.spacing[6],
-    backgroundColor: colors.surface.alt,
-  },
-  listContent: { padding: theme.spacing[4], paddingBottom: theme.spacing[8] },
-  loadingText: {
-    marginTop: theme.spacing[3],
-    fontSize: 14,
-    color: colors.text.muted,
-  },
+  list: { gap: theme.spacing[3] },
+  skeletons: { gap: theme.spacing[3] },
 });

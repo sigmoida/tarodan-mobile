@@ -1,104 +1,90 @@
 import React from 'react';
-import { View, TouchableOpacity, Image, Pressable } from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Card, Text, theme } from '@/ui';
+import { Avatar, Button, ChipTabs, EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
 
-import { resolveImageUrl } from '@/utils/imageUrl';
+import { ProductCard } from '@/components/product';
+import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
+import { CollectionCard } from '@/components/collection/CollectionCard';
+import { sellerRatingSummary } from '../_lib/rating';
 import { styles } from '../_lib/styles';
 import type { SellerProfileController } from '../_hooks/useSellerProfile';
 import { ReviewAuthorName } from '@/components/reviews/ReviewAuthorName';
 
-const { colors } = theme;
+const { colors, iconSize } = theme;
 
-// Küçük boş-durum yardımcı bileşeni.
-function TabEmpty({ icon, text }: { icon: React.ComponentProps<typeof Ionicons>['name']; text: string }) {
-  return (
-    <View style={{ alignItems: 'center', padding: theme.spacing[8] }}>
-      <Ionicons name={icon} size={48} color={colors.text.subtle} />
-      <Text style={{ color: colors.text.muted, marginTop: theme.spacing[2], fontSize: 14 }}>{text}</Text>
-    </View>
-  );
+type Tab = SellerProfileController['activeTab'];
+
+// Profil bir ScrollView içinde: tüm ilanları/yorumları tek seferde mount etmeyiz (satıcıda yüzlerce
+// ilan olabilir). İlk dilim çizilir, "Daha Fazla" ile artar.
+const LISTINGS_PAGE = 20;
+const REVIEWS_PAGE = 10;
+const COLLECTIONS_PAGE = 20;
+
+/** Görünür öğe sayısı: `pageSize` ile başlar, `showMore` her seferinde `pageSize` ekler. */
+function useVisibleCount(pageSize: number) {
+  const [count, setCount] = React.useState(pageSize);
+  const showMore = React.useCallback(() => setCount((c) => c + pageSize), [pageSize]);
+  return [count, showMore] as const;
 }
 
-/** Tab bar + active tab content (listings / reviews / collections). */
+/** Sekme çubuğu + içerik (web `SellerProfileClient`): ilanlar (ProductCard), değerlendirmeler, koleksiyonlar. */
 export function SellerTabs({ f }: { f: SellerProfileController }) {
   const { t } = useTranslation();
   const { activeTab, products, reviews, collections } = f;
+  const rating = sellerRatingSummary(f);
+  // Kendi profilinde ilanların hepsi kullanıcının: kalp hiç çizilmez (DTO'da satıcı olmasa da).
+  const favoriteProps = useProductCardFavorites();
+  const [listingsShown, moreListings] = useVisibleCount(LISTINGS_PAGE);
+  const [reviewsShown, moreReviews] = useVisibleCount(REVIEWS_PAGE);
+  const [collectionsShown, moreCollections] = useVisibleCount(COLLECTIONS_PAGE);
+  const moreButton = (testID: string, onPress: () => void) => (
+    <Button variant="outline" title={t('common.more')} onPress={onPress} testID={testID} style={styles.showMore} />
+  );
   return (
     <>
-      {/* Tabs */}
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'listings' && styles.tabActive]}
-          onPress={() => f.setActiveTab('listings')}
-        >
-          <Ionicons name="grid-outline" size={20} color={activeTab === 'listings' ? colors.primary[600]! : colors.text.muted} />
-          <Text numberOfLines={1} style={[styles.tabText, activeTab === 'listings' && styles.tabTextActive]}>
-            {t('seller.listingsCount', { count: products.length })}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'reviews' && styles.tabActive]}
-          onPress={() => f.setActiveTab('reviews')}
-        >
-          <Ionicons name="star-outline" size={20} color={activeTab === 'reviews' ? colors.primary[600]! : colors.text.muted} />
-          <Text numberOfLines={1} style={[styles.tabText, activeTab === 'reviews' && styles.tabTextActive]}>
-            {t('seller.reviewsCount', { count: reviews.length })}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'collections' && styles.tabActive]}
-          onPress={() => f.setActiveTab('collections')}
-        >
-          <Ionicons name="albums-outline" size={20} color={activeTab === 'collections' ? colors.primary[600]! : colors.text.muted} />
-          <Text numberOfLines={1} style={[styles.tabText, activeTab === 'collections' && styles.tabTextActive]}>
-            {t('seller.collectionsCount', { count: collections.length })}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <ChipTabs<Tab>
+        testID="seller-tabs"
+        value={activeTab}
+        onChange={f.setActiveTab}
+        items={[
+          { key: 'listings', label: t('profile.listings'), count: products.length },
+          { key: 'reviews', label: t('profile.reviews'), count: reviews.length },
+          { key: 'collections', label: t('nav.collections'), count: collections.length },
+        ]}
+      />
 
-      {/* Tab Content */}
-      {activeTab === 'listings' && (
-        products.length === 0 ? (
-          <TabEmpty icon="cube-outline" text={t('product.noListings')} />
+      {activeTab === 'listings' &&
+        (products.length === 0 ? (
+          <EmptyState placement="inline" testID="seller-empty-listings" icon="magnifying-glass" title={t('seller.noActiveListings')} subtitle={t('home.noProductsYetHint')} />
         ) : (
-          <View style={styles.listingsGrid}>
-            {products.map((product: any) => (
-              <Pressable
-                key={product.id}
-                onPress={() => router.push(`/product/${product.id}`)}
-                style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-              >
-                <Card style={styles.productCard} padding={0}>
-                  <Image
-                    source={{ uri: resolveImageUrl(product.images) }}
-                    style={styles.productImage}
-                    resizeMode="cover"
-                  />
-                  {product.tradeAvailable && (
-                    <View style={styles.tradeBadge}>
-                      <Ionicons name="swap-horizontal" size={12} color={colors.white} />
-                    </View>
-                  )}
-                  <View style={styles.productContent}>
-                    <Text style={styles.productTitle} numberOfLines={2}>{product.title}</Text>
-                    <Text style={styles.productPrice}>₺{product.price?.toLocaleString('tr-TR')}</Text>
-                  </View>
-                </Card>
-              </Pressable>
+          <View style={styles.grid}>
+            {products.slice(0, listingsShown).map((product: any) => (
+              <View key={product.id} style={styles.cell}>
+                <ProductCard product={product} {...(f.isOwnProfile ? null : favoriteProps(product))} />
+              </View>
             ))}
           </View>
-        )
-      )}
+        ))}
+      {activeTab === 'listings' && products.length > listingsShown
+        ? moreButton('seller-more-listings', moreListings)
+        : null}
 
-      {activeTab === 'reviews' && (
-        <View style={styles.reviewsList}>
-          {reviews.length === 0 ? (
-            <TabEmpty icon="star-outline" text={t('review.noReviews')} />
-          ) : (
-            reviews.map((review: any) => {
+      {activeTab === 'reviews' &&
+        (reviews.length === 0 ? (
+          <EmptyState placement="inline" testID="seller-empty-reviews" icon="star" title={t('review.noReviews')} subtitle={t('seller.noReviewsDesc')} />
+        ) : (
+          <SectionCard
+            title={t('review.reviews')}
+            badge={
+              rating.hasRatings ? (
+                <Text variant="bodySm" weight="semibold" tone="heading" testID="seller-reviews-average">
+                  ★ {rating.average.toFixed(1)} ({rating.total})
+                </Text>
+              ) : null
+            }
+          >
+            {reviews.slice(0, reviewsShown).map((review: any, i: number) => {
               // Kullanıcı/satıcı değerlendirmesi DTO'su: { score, comment, createdAt, giverName, giver: { displayName, avatarUrl } }
               const score = review.score ?? review.rating ?? 0;
               const reviewerName =
@@ -106,71 +92,54 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
               const dateStr = review.createdAt ?? review.date;
               const avatarUrl = review.giver?.avatarUrl ?? review.reviewer?.avatarUrl;
               return (
-                <View key={review.id} style={styles.reviewCard}>
-                  <View style={styles.reviewHeader}>
+                <View key={review.id} style={[styles.review, i > 0 && styles.reviewDivided]}>
+                  <View style={styles.reviewHead}>
                     <Avatar size="md" source={avatarUrl} name={reviewerName.substring(0, 2).toUpperCase()} />
                     <View style={styles.reviewInfo}>
-                      <ReviewAuthorName review={review} name={reviewerName} style={styles.reviewerName} />
-                      <View style={styles.ratingStars}>
+                      <ReviewAuthorName review={review} name={reviewerName} />
+                      <View style={styles.stars}>
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <Ionicons
+                          <Icon
                             key={star}
-                            name={star <= score ? 'star' : 'star-outline'}
-                            size={14}
-                            color={colors.warning[500]!}
+                            name={star <= score ? 'star' : 'star'} variant={star <= score ? 'solid' : 'outline'}
+                            size={iconSize.sm}
+                            color={colors.warning[400]!}
                           />
                         ))}
                         {dateStr ? (
-                          <Text style={styles.reviewDate}>
+                          <Text variant="caption" tone="muted">
+                            {' '}
                             {new Date(dateStr).toLocaleDateString(t('common.dateLocale'))}
                           </Text>
                         ) : null}
                       </View>
                     </View>
                   </View>
-                  {review.comment ? (
-                    <Text style={styles.reviewComment}>{review.comment}</Text>
-                  ) : null}
+                  {review.comment ? <Text variant="bodySm">{review.comment}</Text> : null}
                 </View>
               );
-            })
-          )}
-        </View>
-      )}
+            })}
+          </SectionCard>
+        ))}
+      {activeTab === 'reviews' && reviews.length > reviewsShown
+        ? moreButton('seller-more-reviews', moreReviews)
+        : null}
 
-      {activeTab === 'collections' && (
-        collections.length === 0 ? (
-          <TabEmpty icon="albums-outline" text={t('seller.noCollections')} />
+      {activeTab === 'collections' &&
+        (collections.length === 0 ? (
+          <EmptyState placement="inline" testID="seller-empty-collections" icon="rectangle-stack" title={t('seller.noCollections')} subtitle={t('emptyState.collectionsHint')} />
         ) : (
-          <View style={styles.listingsGrid}>
-            {collections.map((collection: any) => (
-              <Pressable
-                key={collection.id}
-                onPress={() => router.push(`/collections/${collection.id}`)}
-                style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-              >
-                <Card style={styles.productCard} padding={0}>
-                  {collection.coverImageUrl ? (
-                    <Image
-                      source={{ uri: resolveImageUrl(collection.coverImageUrl) }}
-                      style={styles.productImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={[styles.productImage, { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface.alt }]}>
-                      <Ionicons name="albums-outline" size={32} color={colors.text.subtle} />
-                    </View>
-                  )}
-                  <View style={styles.productContent}>
-                    <Text style={styles.productTitle} numberOfLines={2}>{collection.name}</Text>
-                    <Text style={styles.productPrice}>{t('payment.itemsCount', { count: collection.itemCount ?? 0 })}</Text>
-                  </View>
-                </Card>
-              </Pressable>
+          <View style={styles.grid}>
+            {collections.slice(0, collectionsShown).map((collection: any) => (
+              <View key={collection.id} style={styles.cell}>
+                <CollectionCard item={collection} />
+              </View>
             ))}
           </View>
-        )
-      )}
+        ))}
+      {activeTab === 'collections' && collections.length > collectionsShown
+        ? moreButton('seller-more-collections', moreCollections)
+        : null}
     </>
   );
 }

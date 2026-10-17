@@ -1,30 +1,45 @@
-import { View, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, Text, StatusBadge } from '@/ui';
+import { Button, SectionCard, Text, StatusBadge, theme } from '@/ui';
 import { AppImage } from '@/components/AppImage';
 import { getOrderProductImageUri } from '@/utils/orderProductImage';
 import { styles } from '../_lib/styles';
 import { useSalesStatusConfig, saleBadgeStatus, formatDate } from '../_lib/status';
 import { formatPrice, PRICE_PLACEHOLDER } from '@/utils/format';
 import type { Sale } from '../_lib/types';
-import type { SaleActionsController } from '../_hooks/useSaleActions';
+
+interface SaleCardProps {
+  sale: Sale;
+  /** "Hazırlanıyor olarak işaretle" (onay diyaloğunu açar). Kararlı referans — memo bozulmasın. */
+  onPrepare: (sale: Sale) => void;
+  /** "Kargoya ver" (gönderim diyaloğunu açar). Kararlı referans. */
+  onShip: (sale: Sale) => void;
+  /** Bu satış için durum mutasyonu sürüyor mu (yalnız kendi satırı yeniden çizilsin diye boolean). */
+  isUpdating?: boolean;
+}
 
 /** Tek bir satış kartı — durum rozeti, ürün/alıcı, tutar ve durum-bazlı aksiyonlar. */
-export function SaleCard({ sale, actions }: { sale: Sale; actions: SaleActionsController }) {
+export const SaleCard = React.memo(function SaleCard({
+  sale,
+  onPrepare,
+  onShip,
+  isUpdating = false,
+}: SaleCardProps) {
   const { t } = useTranslation();
   const salesStatusConfig = useSalesStatusConfig();
-  const { updateStatusMutation, handleMarkAsProcessing, setShipDialog } = actions;
 
   return (
-    <Card variant="elevated" style={styles.saleCard}>
-      <TouchableOpacity
+    <SectionCard bodyStyle={styles.saleCard}>
+      <Pressable
         testID={`sale-card-${sale.id}`}
-        activeOpacity={0.7}
         onPress={() => router.push(`/sales/${sale.id}`)}
+        style={styles.saleCard}
+        accessibilityRole="button"
       >
         <View style={styles.saleHeader}>
-          <Text variant="caption" style={styles.orderNumber}>
+          <Text variant="caption" tone="muted">
             #{sale.orderNumber}
           </Text>
           <StatusBadge status={saleBadgeStatus(sale)} config={salesStatusConfig} size="sm" />
@@ -33,24 +48,24 @@ export function SaleCard({ sale, actions }: { sale: Sale; actions: SaleActionsCo
         <View style={styles.saleContent}>
           <AppImage source={getOrderProductImageUri(sale.product, 'card')} style={styles.productImage} />
           <View style={styles.saleInfo}>
-            <Text variant="label" numberOfLines={1}>{sale.product.title}</Text>
-            <Text variant="caption" style={styles.buyerName}>
+            <Text variant="body" weight="medium" tone="heading" numberOfLines={1}>{sale.product.title}</Text>
+            <Text variant="bodySm" tone="muted">
               {t('order.buyer')}: {sale.buyer.displayName}
             </Text>
             {sale.shippingAddress?.city ? (
-              <Text variant="caption" style={styles.addressText} numberOfLines={1}>
-                📍 {sale.shippingAddress.city}
+              <Text variant="bodySm" tone="muted" numberOfLines={1}>
+                {sale.shippingAddress.city}
               </Text>
             ) : null}
           </View>
           <View style={styles.priceSection}>
-            <Text variant="h3" style={styles.price}>
+            <Text variant="body" weight="semibold" style={{ color: theme.priceColor.detail }}>
               {sale.pricing?.subtotal != null ? formatPrice(sale.pricing.subtotal) : PRICE_PLACEHOLDER}
             </Text>
-            <Text variant="caption" style={styles.dateText}>{formatDate(sale.createdAt)}</Text>
+            <Text variant="caption" tone="muted">{formatDate(sale.createdAt)}</Text>
           </View>
         </View>
-      </TouchableOpacity>
+      </Pressable>
 
       {/* Action Buttons */}
       {sale.status === 'paid' && (
@@ -58,11 +73,8 @@ export function SaleCard({ sale, actions }: { sale: Sale; actions: SaleActionsCo
           <Button
             variant="primary"
             title={t('order.markAsPreparing')}
-            onPress={() => handleMarkAsProcessing(sale)}
-            isLoading={
-              updateStatusMutation.isPending &&
-              updateStatusMutation.variables?.orderId === sale.id
-            }
+            onPress={() => onPrepare(sale)}
+            isLoading={isUpdating}
           />
         </View>
       )}
@@ -72,10 +84,10 @@ export function SaleCard({ sale, actions }: { sale: Sale; actions: SaleActionsCo
           <Button
             variant="primary"
             title={t('sale.shipCta')}
-            onPress={() => setShipDialog({ visible: true, order: sale })}
+            onPress={() => onShip(sale)}
           />
         </View>
       )}
-    </Card>
+    </SectionCard>
   );
-}
+});

@@ -34,6 +34,20 @@ const BAN_PAPER = {
           message:
             "react-native-paper kaldırıldı. Bunun yerine '@/ui'den component import et. Geçişte sorun olursa .eslintrc.cjs MIGRATION_OVERRIDES'a dosyayı ekle.",
         },
+        {
+          // Snackbar emekli (src/ui/CLAUDE.md › Feedback): tüm geri bildirim `toast` ile.
+          name: '@/ui',
+          importNames: ['Snackbar'],
+          message:
+            "Snackbar kaldırıldı: bilgi/başarı/hata sonucu için toast (toast.success / toast.error), onay için confirm() / appAlert (src/ui/CLAUDE.md › Feedback).",
+        },
+        {
+          // Sistem alert'i temasız ve iOS'ta açık bir RN Modal üstünde donma riski taşır (src/ui/CLAUDE.md › iOS modal rule).
+          name: 'react-native',
+          importNames: ['Alert'],
+          message:
+            "RN Alert yasak: onay için '@/ui' confirm() / appAlert, bilgi/başarı/hata sonucu için toast (src/ui/CLAUDE.md › Feedback).",
+        },
       ],
     },
   ],
@@ -55,6 +69,45 @@ const BAN_RAW_COLOR = {
   ],
 };
 
+/**
+ * Tasarım disiplini (web hizalaması, 2026-10) — ekran katmanında UYARI. Dalga 2 ekranları
+ * temizledikçe bunlar `error`'a çevrilecek. Yerel kurallar `eslint-plugin-tarodan/`
+ * klasöründe (çekirdek `no-restricted-syntax` renk yasağı için zaten `error`; aynı kural iki
+ * seviyede çalışamadığı için ayrı eklenti).
+ */
+const DESIGN_SCOPE = ['app/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}'];
+const DESIGN_TEST_FILES = ['**/__tests__/**', '**/*.test.{ts,tsx}'];
+
+const DESIGN_WARNINGS = {
+  // StyleSheet'te sayısal fontSize/lineHeight/borderRadius, sabit fontWeight → token.
+  'tarodan/no-raw-style-values': 'warn',
+  // '₺' → formatPrice ("1.234,50 TL").
+  'tarodan/no-lira-symbol': 'warn',
+  // Button'da ikon yalnız izinli işlev ikonları için (dalga 3).
+  'tarodan/restrict-button-icon': 'warn',
+  // Elle üst bar / insets.top / SafeAreaView top / elle geri ikonu → ScreenHeader, PageShell,
+  // AppShell, useHeaderTopInset. headerShown: true (native header) yasak.
+  'tarodan/no-custom-screen-header': 'warn',
+  'tarodan/no-native-header': 'warn',
+  // Boş durum: ListEmptyComponent içinde elle View/Text yerine EmptyState.
+  'tarodan/empty-state-standard': 'warn',
+  // Ham RN Text/TouchableOpacity/Modal → @/ui (Text/RawText, Button/Pressable, Modal).
+  '@typescript-eslint/no-restricted-imports': [
+    'warn',
+    {
+      paths: [
+        {
+          name: 'react-native',
+          importNames: ['Text', 'TextInput', 'TouchableOpacity', 'Modal'],
+          allowTypeImports: true,
+          message:
+            "'@/ui' kullan: Text (variant/tone) ya da RawText; TextInput yerine Input / RawTextInput (marka fontu); TouchableOpacity yerine Button/IconButton/Pressable; Modal yerine @/ui Modal.",
+        },
+      ],
+    },
+  ],
+};
+
 module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',
@@ -63,7 +116,7 @@ module.exports = {
     sourceType: 'module',
     ecmaFeatures: { jsx: true },
   },
-  plugins: ['@typescript-eslint'],
+  plugins: ['@typescript-eslint', 'tarodan'],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
@@ -95,6 +148,38 @@ module.exports = {
     ...BAN_RAW_COLOR,
   },
   overrides: [
+    {
+      files: DESIGN_SCOPE,
+      excludedFiles: DESIGN_TEST_FILES,
+      rules: DESIGN_WARNINGS,
+    },
+    {
+      // Yükleme göstergesi tek yerde (src/ui/loading/LoadingIndicator) — ham ActivityIndicator uyarı.
+      // İzinli klasör kuralın içinde; testler muaf.
+      files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+      excludedFiles: DESIGN_TEST_FILES,
+      rules: { 'tarodan/no-raw-activity-indicator': 'warn' },
+    },
+    {
+      // Query anahtarları yalnız `qk`'dan (src/lib/query/CLAUDE.md › Query keys) — kayıt defteri dosyası ve testler muaf.
+      files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+      excludedFiles: [...DESIGN_TEST_FILES, 'src/lib/query/keys.ts'],
+      rules: { 'tarodan/no-inline-query-key': 'warn' },
+    },
+    {
+      // Argümansız use*Store() = tüm store aboneliği (her yazımda render) → selector (src/stores/CLAUDE.md › Selectors).
+      // Store dosyalarının kendisi ve testler muaf.
+      files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+      excludedFiles: [...DESIGN_TEST_FILES, 'src/stores/**'],
+      rules: { 'tarodan/no-whole-store-subscription': 'warn' },
+    },
+    {
+      // Güvenlik: API yolundaki değişkenler `apiPath` ile kodlanır (src/lib/api/path.ts) —
+      // derin bağlantı parametresi isteği başka bir uca yönlendiremesin.
+      files: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}'],
+      excludedFiles: DESIGN_TEST_FILES,
+      rules: { 'tarodan/encoded-api-path': 'warn' },
+    },
     {
       // Renk kaynağı dosyaları raw-color / paper kurallarından muaf.
       files: MIGRATION_OVERRIDES,

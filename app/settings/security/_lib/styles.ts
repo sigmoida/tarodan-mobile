@@ -1,108 +1,99 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors } = theme;
+const { colors, spacing, radius, radiusRole } = theme;
 
-// Güvenlik ekranının route-local stylesheet'i (monolitten birebir taşındı).
+/** 2FA QR görseli kenarı (pt) — web `width={200}`. */
+export const QR_SIZE = 200;
+/** Adım numarası dairesi (web `h-6 w-6`). */
+const STEP_DOT = spacing[6];
+
+// Güvenlik ekranlarının (hub + şifre / 2FA / telefon) route-local stylesheet'i, token'lı.
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.alt,
-  },
-  content: {
-    flex: 1,
-    padding: theme.spacing[4],
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text.heading,
-    marginBottom: theme.spacing[3],
-    marginTop: theme.spacing[4],
-  },
-  card: {
-    backgroundColor: colors.surface.DEFAULT,
-    marginBottom: theme.spacing[2],
-  },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: theme.spacing[2],
-  },
-  settingInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
+    gap: spacing[3],
+    minHeight: theme.minTouchTarget,
   },
   settingText: {
-    marginLeft: theme.spacing[4],
     flex: 1,
+    gap: spacing[0.5],
   },
-  settingTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: colors.text.heading,
+  stack: {
+    gap: spacing[3],
   },
-  settingSubtitle: {
-    fontSize: 13,
-    color: colors.text.muted,
-    marginTop: theme.spacing[0.5],
-  },
-  infoText: {
-    fontSize: 13,
-    color: colors.text.muted,
-    marginTop: theme.spacing[3],
-    lineHeight: 18,
-  },
-  tipsCard: {
-    backgroundColor: colors.gray[100],
-  },
-  tipItem: {
+  stepHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing[3],
+    gap: spacing[2],
   },
-  tipText: {
-    marginLeft: theme.spacing[3],
-    fontSize: 14,
-    color: colors.text.heading,
+  stepDot: {
+    width: STEP_DOT,
+    height: STEP_DOT,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary[500],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  dialogInput: {
-    marginBottom: theme.spacing[3],
+  qrFrame: {
+    alignSelf: 'center',
+    padding: spacing[4],
+    borderWidth: 2,
+    borderColor: colors.border.DEFAULT,
+    borderRadius: radiusRole.modal,
+    backgroundColor: colors.surface.elevated,
   },
-  dialogText: {
-    fontSize: 14,
-    color: colors.text.muted,
-    marginBottom: theme.spacing[4],
-    lineHeight: 20,
+  qrImage: {
+    width: QR_SIZE,
+    height: QR_SIZE,
   },
-  secretContainer: {
-    backgroundColor: colors.gray[100],
-    padding: theme.spacing[3],
-    borderRadius: theme.radius.xl,
-    marginBottom: theme.spacing[4],
+  qrFallback: {
+    width: QR_SIZE,
+    height: QR_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface.alt,
   },
-  secretText: {
-    fontFamily: 'monospace',
-    fontSize: 14,
-    color: colors.text.heading,
+  secretRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  secretBox: {
+    flex: 1,
+    backgroundColor: colors.surface.alt,
+    borderRadius: radiusRole.card,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+  },
+  mono: {
+    // Web `font-mono`. iOS'ta 'monospace' adlı aile yok (Menlo sistem fontu); Android'de var.
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  codeInput: {
     textAlign: 'center',
   },
-  dialogActions: {
+  codesGrid: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[2],
+    flexWrap: 'wrap',
+    gap: spacing[2],
   },
-  verifiedBadge: {
-    flexDirection: 'row',
+  codeCell: {
+    // 2 sütun (web `grid-cols-2 gap-2`): yarım genişlik eksi aradaki boşluğun yarısı.
+    flexBasis: '47%',
+    flexGrow: 1,
+    backgroundColor: colors.surface.alt,
+    borderRadius: radiusRole.card,
+    paddingVertical: spacing[2],
     alignItems: 'center',
-    gap: theme.spacing[1.5],
-    marginTop: theme.spacing[2],
   },
-  verifiedText: {
-    color: colors.success[600]!,
-    fontWeight: '600',
+  modalHint: {
+    marginBottom: spacing[3],
+  },
+  resend: {
+    alignSelf: 'center',
+    paddingVertical: spacing[2],
   },
 });

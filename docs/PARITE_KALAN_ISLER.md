@@ -257,7 +257,7 @@ geçersiz kodda `200 {"isValid":false,"error":"Kupon kodu bulunamadı"}` dönüy
 fırlatmıyor). Aşağıdaki listede kalmaya devam ediyor.
 
 Bu dosya "web'de var, mobilde yok" listesi değil; **açık kalan sözleşme ve
-davranış maddeleridir**. Kaynaklar: `mobile-parity docs/15,17,18`, delta 18'den
+davranış maddeleridir**. Kaynaklar: `docs/mobile-parity/15,17,18`, delta 18'den
 sonra giren `8f9ae671`, `13-parity-matrix.md`'nin kapanmamış satırları ve
 2026-08-09 kırıcı turunun ertelenenleri.
 

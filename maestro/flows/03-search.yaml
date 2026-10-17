@@ -1,12 +1,11 @@
 # Search smoke: Ara tab → arama listesi yüklenir, sonuç sayısı görünür.
 # Detaylı filter testleri için ayrı flow'lar (testID gerektirir).
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - smoke
 ---
 - runFlow: ../subflows/open-tarodan.yaml
-- tapOn:
-    text: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       text: ".*sonuç bulundu.*"

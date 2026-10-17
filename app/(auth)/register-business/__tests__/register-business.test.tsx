@@ -10,8 +10,14 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
 const mockReplace = jest.fn();
+const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
-  router: { replace: (r: string) => mockReplace(r), back: jest.fn(), canGoBack: () => false },
+  router: {
+    replace: (r: string) => mockReplace(r),
+    push: (r: string) => mockPush(r),
+    back: jest.fn(),
+    canGoBack: () => false,
+  },
 }));
 
 jest.mock('@/lib/api', () => ({
@@ -326,4 +332,41 @@ it('400 hatasında API mesajını gösterir', async () => {
   expect(title).toBe('Başvuru gönderilemedi');
   expect(message).toMatch(/companyAddress/);
   expect(mockReplace).not.toHaveBeenCalled();
+});
+
+describe('kurumsal başvuru — düzen (web sırası, sade)', () => {
+  it('başlık üst barda; içerikte başlık / bilgi kartı / bölüm başlığı yok; Kurumsal sekmesi seçili', () => {
+    renderWithProviders(<RegisterBusinessScreen />);
+    expect(screen.getByRole('header', { name: 'Kurumsal Hesap Başvurusu' })).toBeOnTheScreen();
+    expect(screen.getAllByText('Kurumsal Hesap Başvurusu')).toHaveLength(1);
+    expect(screen.queryByTestId('brand-logo')).toBeNull();
+    expect(screen.queryByText('İşletme olarak ön başvuru yapın')).toBeNull();
+    expect(screen.getByTestId('register-tab-corporate').props.accessibilityState.selected).toBe(true);
+  });
+
+  it('web etiketleri ve +90 öneki; gönder düğmesi "Kurumsal Başvuruyu Gönder"', () => {
+    renderWithProviders(<RegisterBusinessScreen />);
+    expect(screen.getByText(/Yetkili Ad Soyad/)).toBeOnTheScreen();
+    expect(screen.getByText(/Şirket Tam Adı/)).toBeOnTheScreen();
+    expect(screen.getByText(/Şirket Ünvanı/)).toBeOnTheScreen();
+    expect(screen.getByText(/Şirket Adresi/)).toBeOnTheScreen();
+    expect(screen.getByText(/Şirket E-posta Adresi/)).toBeOnTheScreen();
+    expect(screen.getByText(/Şirket KEP Adresi/)).toBeOnTheScreen();
+    expect(screen.getByText(/Telefon Numarası/)).toBeOnTheScreen();
+    expect(screen.getAllByText('+90').length).toBeGreaterThan(0);
+    expect(screen.getByText('Kurumsal Başvuruyu Gönder')).toBeOnTheScreen();
+    // Adres çok satırlı.
+    expect(screen.getByTestId('register-business-companyAddress-input').props.multiline).toBe(true);
+  });
+
+  it('şartlar onayı metin içi bağlantılı; Giriş Yap bağlantısı girişe gider', () => {
+    renderWithProviders(<RegisterBusinessScreen />);
+    fireEvent.press(screen.getByText('Kullanım Şartları'));
+    expect(mockPush).toHaveBeenCalledWith('/terms');
+    fireEvent.press(screen.getByText('Gizlilik Politikası'));
+    expect(mockPush).toHaveBeenCalledWith('/privacy');
+    expect(screen.getByText(/Zaten hesabınız var mı\?/)).toBeOnTheScreen();
+    fireEvent.press(screen.getByTestId('register-business-login-link'));
+    expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
+  });
 });

@@ -1,92 +1,28 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors, radius } = theme;
+const { colors, spacing, radiusRole } = theme;
 
-// İndirim yönetimi ekranının route-local stylesheet'i (monolitten birebir taşındı).
+// İndirim yönetimi ekranının route-local stylesheet'i — web Card dili, token'lı.
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.alt,
-  },
-  gateContainer: {
-    flex: 1,
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    paddingHorizontal: theme.spacing[4],
-    paddingVertical: theme.spacing[3],
-    gap: theme.spacing[2],
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.subtle,
-  },
-  list: {
-    flex: 1,
-  },
   discountCard: {
-    backgroundColor: colors.white,
-    marginBottom: theme.spacing[3],
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
+    gap: spacing[2],
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: theme.spacing[2],
+    gap: spacing[3],
   },
-  discountName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text.heading,
-  },
-  codeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[1],
-    backgroundColor: colors.primary[50]!,
-    paddingHorizontal: theme.spacing[2],
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-    alignSelf: 'flex-start',
-    marginTop: theme.spacing[1],
-  },
-  codeText: {
-    color: colors.primary[600]!,
-    fontSize: 12,
-    fontWeight: '600',
+  cardHeaderText: {
+    flex: 1,
+    gap: spacing[1],
   },
   valueWrap: {
     alignItems: 'flex-end',
   },
-  valueText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.primary[600]!,
-  },
-  valueLabel: {
-    fontSize: 11,
-    color: colors.text.muted,
-  },
-  discountDesc: {
-    fontSize: 13,
-    color: colors.text.muted,
-    marginBottom: theme.spacing[2],
-  },
   metaRow: {
-    gap: theme.spacing[1.5],
-    marginVertical: theme.spacing[2],
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[1.5],
-  },
-  metaText: {
-    fontSize: 12,
-    color: colors.text.muted,
+    gap: spacing[1],
   },
   actions: {
     flexDirection: 'row',
@@ -94,104 +30,69 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: colors.border.subtle,
-    paddingTop: theme.spacing[2],
-    marginTop: theme.spacing[2],
+    paddingTop: spacing[2],
+    marginTop: spacing[1],
   },
   activeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[2],
+    gap: spacing[2],
   },
-  activeLabel: {
-    fontSize: 13,
-    color: colors.text.muted,
-  },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
-  },
-  dialogScroll: {
-    maxHeight: 460,
+  iconActions: {
+    flexDirection: 'row',
   },
   input: {
-    marginBottom: theme.spacing[2.5],
+    marginBottom: spacing[3],
   },
   dateInput: {
     flex: 1,
-    marginBottom: theme.spacing[0],
   },
   sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text.muted,
-    marginTop: theme.spacing[2],
-    marginBottom: theme.spacing[1.5],
+    marginTop: spacing[2],
+    marginBottom: spacing[2],
   },
   toggleRow: {
     flexDirection: 'row',
-    gap: theme.spacing[2],
-    marginBottom: theme.spacing[2.5],
+    gap: spacing[2],
+    marginBottom: spacing[3],
+  },
+  toggleRowWrap: {
+    flexWrap: 'wrap',
   },
   productPickerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[2.5],
-    paddingVertical: theme.spacing[3],
-    paddingHorizontal: theme.spacing[3.5],
-    backgroundColor: colors.surface.alt,
-    borderRadius: radius.md,
-    marginBottom: theme.spacing[2.5],
+    marginBottom: spacing[3],
   },
-  productPickerText: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.text.heading,
-    fontWeight: '500',
+  fieldError: {
+    marginTop: spacing[1],
+    marginBottom: spacing[3],
   },
   dateRow: {
     flexDirection: 'row',
-    gap: theme.spacing[2.5],
-    marginBottom: theme.spacing[2.5],
+    gap: spacing[3],
+    marginBottom: spacing[3],
   },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: theme.spacing[2],
-  },
-  switchLabel: {
-    fontSize: 14,
-    color: colors.text.heading,
-  },
-  emptyProducts: {
-    textAlign: 'center',
-    color: colors.text.muted,
-    paddingVertical: theme.spacing[6],
-    fontSize: 14,
+    paddingVertical: spacing[2],
   },
   productRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing[3],
-    paddingHorizontal: theme.spacing[4],
+    gap: spacing[3],
+    minHeight: theme.minTouchTarget,
+    paddingVertical: spacing[2],
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border.subtle,
   },
-  productTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.text.heading,
+  productRowText: {
+    flex: 1,
   },
-  productPrice: {
-    fontSize: 13,
-    color: colors.primary[600]!,
-    marginTop: theme.spacing[0.5],
-  },
-  dialogActions: {
+  codeBadgeWrap: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[3],
+  },
+  card: {
+    borderRadius: radiusRole.card,
   },
 });

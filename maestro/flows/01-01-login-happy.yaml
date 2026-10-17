@@ -1,6 +1,6 @@
 # 01-01: Login happy path — Zeynep (FREE seed user).
 # Önce logout dener (varsa), sonra login. Profil ekranında kullanıcı bilgisi görünür.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - smoke
 env:
@@ -9,14 +9,15 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 # Login başarılı → kullanıcının email'i profilde görünür.
 - extendedWaitUntil:
     visible: "zeynep@demo.com"

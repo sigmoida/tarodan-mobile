@@ -1,35 +1,29 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Modal, Button, Text, appAlert, theme } from '@/ui';
+import { Modal, ModalFooter, Text, theme } from '@/ui';
 import { Form, FormInput, useZodForm } from '@/ui/form';
 import { sellerDocumentsApi } from '@/lib/api';
-import { qk } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import { buildAppealSchema, type AppealForm } from '../_lib/schema';
 
 type Props = { documentId: string | null; onClose: () => void };
 
 /**
  * Belge kararına itiraz. Kendi form + mutation'ını sahiplenir.
- * ⚠️ appAlert modal AÇIKKEN çalışırsa iOS donuyor → modal mutation'dan ÖNCE kapanır.
+ * ⚠️ Geri bildirim modal AÇIKKEN çalışırsa iOS donuyor / toast altta kalıyor → modal mutation'dan ÖNCE kapanır.
  */
 export function AppealModal({ documentId, onClose }: Props) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const form = useZodForm(buildAppealSchema(t));
 
-  const mutation = useMutation({
-    mutationFn: ({ id, note }: { id: string; note: string }) =>
-      sellerDocumentsApi.appeal(id, note),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: qk.sellerDocuments.list });
-      appAlert(t('businessApplication.appealSentTitle'), t('businessApplication.appealSentBody'));
+  const mutation = useAppMutation(
+    ({ id, note }: { id: string; note: string }) => sellerDocumentsApi.appeal(id, note),
+    {
+      invalidates: [qk.sellerDocuments.list],
+      success: t('businessApplication.appealSentBody'),
+      error: t('businessApplication.appealFailed'),
     },
-    onError: (e: unknown) => {
-      const raw = (e as { response?: { data?: { message?: string | string[] } } })?.response
-        ?.data?.message;
-      appAlert(t('common.error'), Array.isArray(raw) ? raw.join('\n') : raw || t('businessApplication.appealFailed'));
-    },
-  });
+  );
 
   const onSubmit = form.handleSubmit((values: AppealForm) => {
     const id = documentId;
@@ -41,8 +35,20 @@ export function AppealModal({ documentId, onClose }: Props) {
   });
 
   return (
-    <Modal isOpen={!!documentId} onClose={onClose} title={t('businessApplication.appealCta')}>
-      <Text variant="caption" tone="muted" style={{ marginBottom: theme.spacing[3] }}>
+    <Modal
+      isOpen={!!documentId}
+      onClose={onClose}
+      title={t('businessApplication.appealCta')}
+      footer={
+        <ModalFooter
+          onCancel={onClose}
+          onConfirm={onSubmit}
+          confirmLabel={t('common.send')}
+          confirmTestID="appeal-submit"
+        />
+      }
+    >
+      <Text variant="caption" tone="muted" style={styles.hint}>
         {t('businessApplication.appealModalHint')}
       </Text>
       <Form form={form}>
@@ -54,7 +60,10 @@ export function AppealModal({ documentId, onClose }: Props) {
           numberOfLines={4}
         />
       </Form>
-      <Button testID="appeal-submit" onPress={onSubmit}>{t('common.send')}</Button>
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  hint: { marginBottom: theme.spacing[3] },
+});

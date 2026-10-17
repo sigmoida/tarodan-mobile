@@ -1,18 +1,24 @@
 import { useTranslation } from 'react-i18next';
-import React from 'react';
+import React, { useState } from 'react';
 import { Modal, Button, Input, Text, theme } from '@/ui';
+import { useSecondsUntil } from '@/hooks/useSecondsUntil';
 
 const { colors } = theme;
 
-/** Misafir e-posta doğrulama (OTP) modalı. */
+/**
+ * Misafir e-posta doğrulama (OTP) modalı.
+ *
+ * Kod ve geri sayım BU bileşenin state'i: tuş vuruşu ve saniyelik tik yalnız modalı yeniden
+ * çizer, checkout ekranını değil. Controller kodu temizlemek istediğinde `codeResetSeq`'i
+ * artırır (yeni kod gönderildi / modal kapandı); gönderimde kod `onSubmit(code)` ile gider.
+ */
 export function OtpModal({
   visible,
   onClose,
   email,
-  otpCode,
-  setOtpCode,
+  codeResetSeq,
   otpError,
-  otpExpiresIn,
+  resendAt,
   otpSending,
   loading,
   onSubmit,
@@ -21,16 +27,26 @@ export function OtpModal({
   visible: boolean;
   onClose: () => void;
   email: string;
-  otpCode: string;
-  setOtpCode: (v: string) => void;
+  /** Değişince girilen kod temizlenir. */
+  codeResetSeq: number;
   otpError: string | null;
-  otpExpiresIn: number;
+  /** Kodun yeniden istenebileceği an (ms, `Date.now()` ölçeğinde). */
+  resendAt: number;
   otpSending: boolean;
   loading: boolean;
-  onSubmit: () => void;
+  onSubmit: (code: string) => void;
   onResend: () => void;
 }) {
   const { t } = useTranslation();
+  const [otpCode, setOtpCode] = useState('');
+  // Render sırasında sıfırlama (önceki prop'u sakla kalıbı): ek bir effect render'ı olmadan.
+  const [seenResetSeq, setSeenResetSeq] = useState(codeResetSeq);
+  if (seenResetSeq !== codeResetSeq) {
+    setSeenResetSeq(codeResetSeq);
+    setOtpCode('');
+  }
+  const secondsLeft = useSecondsUntil(resendAt, visible);
+
   return (
     <Modal isOpen={visible} onClose={onClose} title={t('auth.emailVerification')}>
       <Text style={{ marginBottom: theme.spacing[3], color: colors.text.muted }}>
@@ -47,16 +63,16 @@ export function OtpModal({
       />
       <Button
         title={t('checkout.verifyAndPay')}
-        onPress={onSubmit}
+        onPress={() => onSubmit(otpCode)}
         disabled={otpCode.length !== 6}
         isLoading={loading}
         testID="guest-otp-submit"
       />
       <Button
-        title={otpExpiresIn > 0 ? t('checkout.resendCodeWithTimer', { seconds: otpExpiresIn }) : t('checkout.resendCode')}
+        title={secondsLeft > 0 ? t('checkout.resendCodeWithTimer', { seconds: secondsLeft }) : t('checkout.resendCode')}
         variant="ghost"
         onPress={onResend}
-        disabled={otpExpiresIn > 0 || otpSending}
+        disabled={secondsLeft > 0 || otpSending}
         testID="guest-otp-resend"
       />
     </Modal>

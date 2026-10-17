@@ -1,6 +1,6 @@
 /**
  * Kurumsal kayıt formunun telefon matrisi — route-local `_lib/phone.ts` emekli
- * edildi, ayrıştırıcı artık paylaşılan `@/utils/phone`'da (TEK KAYNAK, §5).
+ * edildi, ayrıştırıcı artık paylaşılan `@/utils/phone`'da (TEK KAYNAK, CLAUDE.md › Principles).
  * Bu suite yerinde kalıyor: formun sözleşmesi bu matris ve paylaşılan util
  * değişince burada da kırmızı görülsün.
  *

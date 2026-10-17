@@ -1,27 +1,23 @@
 import React, { useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { Platform, StyleSheet, type ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import { Modal } from './Modal';
-import { theme } from '../lib/theme';
+import { BottomSheet } from './BottomSheet';
+import { Button } from './Button';
+import { ButtonRow } from './ButtonRow';
 // Bazı ekran testleri `react-i18next`'i yalnız `{ t }` döndürecek şekilde
 // mock'luyor (useTranslation().i18n undefined kalır) — aktif dili doğrudan
 // global i18n örneğinden okuyoruz (bkz. `@/utils/format`), `t` yine
 // `useTranslation()`'dan (mock'lanabilir metin).
 import i18nInstance from '@/i18n/config';
+import { FieldTrigger } from './FieldTrigger';
 
 export interface DateFieldProps {
   label?: string;
+  /** Etiketin sonuna kırmızı `*`. */
+  required?: boolean;
   /** ISO date string "YYYY-MM-DD" (or empty/undefined when unset). */
   value?: string;
   /** Always called with a "YYYY-MM-DD" string. */
@@ -36,7 +32,8 @@ export interface DateFieldProps {
   containerStyle?: ViewStyle;
 }
 
-const { colors, radius, spacing, typography } = theme;
+/** iOS `UIDatePicker` spinner'ının doğal yüksekliği (pt). */
+const IOS_SPINNER_HEIGHT = 216;
 
 /** i18n dili -> `Intl`/native picker locale etiketi (bkz. `@/utils/format`). */
 function activeDateLocale(language: string): string {
@@ -87,6 +84,7 @@ function formatHuman(date: Date, locale: string): string {
 
 export const DateField: React.FC<DateFieldProps> = ({
   label,
+  required,
   value,
   onChange,
   error,
@@ -122,35 +120,22 @@ export const DateField: React.FC<DateFieldProps> = ({
   };
 
   return (
-    <View style={[styles.container, containerStyle]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
-
-      <Pressable
+    <>
+      <FieldTrigger
         testID={testID}
+        label={label}
+        required={required}
+        value={selectedDate ? formatHuman(selectedDate, dateLocale) : null}
+        placeholder={resolvedPlaceholder}
         onPress={open}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        style={[
-          styles.field,
-          { borderColor: error ? colors.danger[600]! : colors.border.DEFAULT },
-        ]}
-      >
-        <Text
-          style={[
-            styles.value,
-            { color: selectedDate ? colors.text.heading : colors.text.subtle },
-          ]}
-        >
-          {selectedDate ? formatHuman(selectedDate, dateLocale) : resolvedPlaceholder}
-        </Text>
-        <Ionicons name="calendar-outline" size={20} color={colors.text.muted} />
-      </Pressable>
-
-      {error || helperText ? (
-        <Text style={[styles.helper, error ? styles.errorText : null]}>
-          {error || helperText}
-        </Text>
-      ) : null}
+        error={error}
+        helperText={helperText}
+        open={show}
+        icon="calendar"
+        // Yan yana (yarım genişlik) yerleşimde "30 Ağustos 1990" iki satıra sarmasın.
+        fitText
+        containerStyle={containerStyle}
+      />
 
       {Platform.OS === 'android' && show ? (
         <DateTimePicker
@@ -164,10 +149,32 @@ export const DateField: React.FC<DateFieldProps> = ({
       ) : null}
 
       {Platform.OS === 'ios' ? (
-        <Modal
+        <BottomSheet
           isOpen={show}
           onClose={() => setShow(false)}
           title={label ?? resolvedPlaceholder}
+          scrollable={false}
+          testID={testID ? `${testID}-sheet` : 'date-field-sheet'}
+          footer={
+            <ButtonRow>
+              <Button
+                key="cancel"
+                variant="outline"
+                title={t('common.giveUp')}
+                onPress={() => setShow(false)}
+              />
+              <Button
+                key="confirm"
+                variant="primary"
+                title={t('common.ok')}
+                onPress={() => {
+                  onChange(formatLocalISO(draft));
+                  setShow(false);
+                }}
+                testID={testID ? `${testID}-confirm` : undefined}
+              />
+            </ButtonRow>
+          }
         >
           <DateTimePicker
             value={draft}
@@ -180,91 +187,17 @@ export const DateField: React.FC<DateFieldProps> = ({
             onChange={onIOSChange}
             style={styles.iosPicker}
           />
-          <View style={styles.iosButtons}>
-            <Pressable
-              onPress={() => setShow(false)}
-              style={styles.iosBtn}
-              accessibilityRole="button"
-            >
-              <Text style={styles.iosBtnGhost}>{t('seller.cancel')}</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                onChange(formatLocalISO(draft));
-                setShow(false);
-              }}
-              style={[styles.iosBtn, styles.iosBtnPrimary]}
-              accessibilityRole="button"
-            >
-              <Text style={styles.iosBtnPrimaryText}>{t('common.ok')}</Text>
-            </Pressable>
-          </View>
-        </Modal>
+        </BottomSheet>
       ) : null}
-    </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    marginBottom: spacing[2],
-  },
-  label: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    color: colors.text.heading,
-    marginBottom: spacing[1.5],
-  },
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 44,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    paddingHorizontal: spacing[3],
-    backgroundColor: colors.white,
-  },
-  value: {
-    flex: 1,
-    fontSize: typography.fontSize.base,
-  },
-  helper: {
-    marginTop: spacing[1],
-    fontSize: typography.fontSize.xs,
-    color: colors.text.muted,
-  },
-  errorText: {
-    color: colors.danger[600]!,
-  },
   iosPicker: {
     alignSelf: 'center',
-    // iOS spinner Modal içinde explicit boyut almazsa 0 yüksekliğe çöküp
-    // görünmez oluyor. Sabit yükseklik/genişlik ver.
+    // iOS spinner explicit boyut almazsa 0 yüksekliğe çöküp görünmez oluyor (sistem spinner'ı 216pt).
     width: '100%',
-    height: 200,
-  },
-  iosButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing[2],
-    marginTop: spacing[4],
-  },
-  iosBtn: {
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[4],
-    borderRadius: radius.lg,
-  },
-  iosBtnPrimary: {
-    backgroundColor: colors.primary[600]!,
-  },
-  iosBtnGhost: {
-    color: colors.text.muted,
-    fontWeight: '600',
-  },
-  iosBtnPrimaryText: {
-    color: colors.white,
-    fontWeight: '600',
+    height: IOS_SPINNER_HEIGHT,
   },
 });

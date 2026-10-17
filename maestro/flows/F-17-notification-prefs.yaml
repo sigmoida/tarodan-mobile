@@ -1,5 +1,5 @@
 # F-17: Notification prefs — toggle + persistence after navigation.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 env:
@@ -8,14 +8,15 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - scrollUntilVisible:
     element:
       text: "Bildirim"

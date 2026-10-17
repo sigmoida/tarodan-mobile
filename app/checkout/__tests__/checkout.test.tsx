@@ -1,13 +1,15 @@
 /**
- * checkout-3step · 3 adımlı ödeme akışının MOBİL-UI dilimleri.
- * J1 (üye satın alma akışı UI), J25, J54, J65.
- * Test edilen: adım butonu metni/durumu, fiyat özeti render, adım ilerleme/progress,
- * boş sepet durumu, step1 validasyon (snackbar) → ilerleme engeli.
+ * checkout · web gibi TEK sayfa ödeme akışının MOBİL-UI dilimleri.
+ * J1 (üye satın alma akışı UI), J25, J54.
+ * Test edilen: bölüm düzeni, ödeme butonu metni/durumu, fiyat özeti render,
+ * boş sepet durumu, form validasyonu (toast) → ödeme engeli.
  * Backend sipariş/ödeme oluşturma backend-only (handleCheckout) — test edilmez.
  */
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
+import { ToastHost } from '@/ui';
+import { resetToastForTests } from '@/ui/components/Toast';
 
 // AsyncStorage native modülü test ortamında null; resmi jest mock'u kullan.
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -21,8 +23,6 @@ jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 jest.mock('@/lib/api', () => ({
   toExpectedPricing: jest.requireActual('@/lib/api').toExpectedPricing,
   ordersApi: {
-    directBuy: jest.fn(),
-    createGuest: jest.fn(),
     getQuote: jest.fn(() =>
       Promise.resolve({
         data: {
@@ -86,33 +86,66 @@ function acceptDistanceSales() {
   if (box) fireEvent.press(box);
 }
 
-describe('checkout-3step', () => {
+describe('checkout-tek-sayfa', () => {
   afterEach(() => {
     useCartStore.setState({ items: [] });
+    resetToastForTests();
   });
 
   describe('J1 · boş sepet durumu', () => {
     it('sepet boşsa boş ekran + Alışverişe Başla butonu', () => {
       seedCart([]);
       renderWithProviders(<CheckoutScreen />);
-      expect(screen.getByText('Sepetiniz Boş')).toBeOnTheScreen();
+      expect(screen.getByText('Sepetiniz boş')).toBeOnTheScreen();
       expect(screen.getByText('Alışverişe Başla')).toBeOnTheScreen();
     });
   });
 
-  describe('J25 · adım 1 (Adres) başlangıç durumu', () => {
-    it('ilk adımda buton "Devam Et" ve progress başlığı Teslimat Bilgileri', () => {
+  describe('J25 · tek sayfa düzeni (web CheckoutClient)', () => {
+    it('bölümler alt alta: ürünler, teslimat adresi, sipariş özeti (ödeme yöntemi kartı yok)', () => {
       seedCart([SAMPLE_ITEM]);
       renderWithProviders(<CheckoutScreen />);
-      expect(screen.getByText('Devam Et')).toBeOnTheScreen();
-      expect(screen.getByText('Teslimat Bilgileri')).toBeOnTheScreen();
+      expect(screen.getByTestId('checkout-items')).toBeOnTheScreen();
+      expect(screen.getByText('Teslimat Adresi')).toBeOnTheScreen();
+      // Ödeme yöntemi kartı kaldırıldı: "Ödeme Yap" doğrudan PayTR'yi açar.
+      expect(screen.queryByText('Ödeme Yöntemi')).toBeNull();
+      // Web'de olduğu gibi iki kart da "Sipariş Özeti" başlığını taşır (ürünler + özet).
+      expect(screen.getAllByText('Sipariş Özeti')).toHaveLength(2);
+      expect(screen.getByText('Test Model Araba')).toBeOnTheScreen();
     });
 
-    it('fiyat özeti: ara toplam ürün adedi ile render edilir', () => {
+    it('adım göstergesi ve "Devam Et" yok — sabit alt barda tek "Ödeme Yap" düğmesi var', () => {
       seedCart([SAMPLE_ITEM]);
       renderWithProviders(<CheckoutScreen />);
-      expect(screen.getByText('Ara Toplam (1 ürün)')).toBeOnTheScreen();
-      expect(screen.getByText('Ödeme Detayı')).toBeOnTheScreen();
+      expect(screen.queryByText('Devam Et')).toBeNull();
+      expect(screen.queryByText('Adres')).toBeNull();
+      expect(screen.queryByText('Onay')).toBeNull();
+      expect(screen.queryByText(/Onayla ve Öde/)).toBeNull();
+      expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen();
+      expect(screen.getByTestId('page-shell-footer')).toBeOnTheScreen();
+    });
+
+    it('sözleşme onaylanana kadar "Ödeme Yap" kapalı ve nedeni yazılır', () => {
+      seedCart([SAMPLE_ITEM]);
+      renderWithProviders(<CheckoutScreen />);
+      expect(screen.getByTestId('checkout-pay-button')).toBeDisabled();
+      expect(
+        screen.getByText('Devam etmek için mesafeli satış sözleşmesini onaylayın'),
+      ).toBeOnTheScreen();
+    });
+
+    it('özet etiketleri web ile aynı: Ürün ücreti, Kargo ücreti, Hizmet Bedeli, Toplam', async () => {
+      seedCart([SAMPLE_ITEM]);
+      renderWithProviders(<CheckoutScreen />);
+      await waitFor(() => expect(screen.getByText('165,00 TL')).toBeOnTheScreen());
+      expect(screen.getByText('Ürün ücreti')).toBeOnTheScreen();
+      expect(screen.getByText('Kargo ücreti')).toBeOnTheScreen();
+      expect(screen.getByText('Hizmet Bedeli')).toBeOnTheScreen();
+      expect(screen.getByText('Toplam')).toBeOnTheScreen();
+      // Kargo firması adı etikete gömülmez; eski adım-3 başlıkları yok.
+      expect(screen.queryByText(/Sürat/)).toBeNull();
+      expect(screen.queryByText('Ödeme Detayı')).toBeNull();
+      expect(screen.queryByText(/Ara Toplam/)).toBeNull();
     });
 
     it('kargo satırı il seçilmeden de summary.shippingAmount ile basılır', async () => {
@@ -126,34 +159,17 @@ describe('checkout-3step', () => {
     });
   });
 
-  describe('J54 · adım 1 validasyon → ilerleme engeli', () => {
-    it('konuk bilgileri boşken Devam Et hata snackbar gösterir, adım 2ye geçmez', async () => {
+  describe('J54 · form doğrulaması ödeme düğmesinde (eski adım-1 kapısı)', () => {
+    it('konuk bilgileri boşken "Ödeme Yap" hata gösterir, sipariş/OTP başlamaz', async () => {
       seedCart([SAMPLE_ITEM]);
-      renderWithProviders(<CheckoutScreen />);
-      fireEvent.press(screen.getByText('Devam Et'));
+      renderWithProviders(<><CheckoutScreen /><ToastHost /></>);
+      acceptDistanceSales();
+      await waitFor(() => expect(screen.getByTestId('checkout-pay-button')).not.toBeDisabled());
+      fireEvent.press(screen.getByText('Ödeme Yap'));
       await waitFor(() =>
         expect(screen.getByText('Lütfen adınızı girin')).toBeOnTheScreen(),
       );
-      // Hala step 1 → buton "Devam Et" kalır, "Devam" başlık aynı
-      expect(screen.getByText('Devam Et')).toBeOnTheScreen();
-    });
-  });
-
-  describe('J65 · adım ilerleme göstergesi (progress)', () => {
-    it('3 adımlı progress etiketleri render edilir (Adres/Ödeme/Onay)', () => {
-      seedCart([SAMPLE_ITEM]);
-      renderWithProviders(<CheckoutScreen />);
-      expect(screen.getByText('Adres')).toBeOnTheScreen();
-      expect(screen.getByText('Ödeme')).toBeOnTheScreen();
-      expect(screen.getByText('Onay')).toBeOnTheScreen();
-    });
-
-    it('toplam fiyat son adım butonunda formatlanır — başlangıçta Devam Et görünür', () => {
-      seedCart([SAMPLE_ITEM]);
-      renderWithProviders(<CheckoutScreen />);
-      // İlk adımda son adım butonu (Onayla ve Öde) görünmez.
-      expect(screen.queryByText(/Onayla ve Öde/)).toBeNull();
-      expect(screen.getByText('Devam Et')).toBeOnTheScreen();
+      expect(screen.queryByTestId('guest-otp-input')).toBeNull();
     });
   });
 

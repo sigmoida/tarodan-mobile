@@ -1,48 +1,42 @@
-import { View } from 'react-native';
-import { Button, Spinner, Text, ScreenHeader, theme } from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-
-import { styles } from './_lib/styles';
+import { AuthGatePage } from '@/components/common/AuthGatePage';
+import { PageShell } from '@/components/common/PageShell';
 import { useAnalytics } from './_hooks/useAnalytics';
 import { AnalyticsContent } from './_components/AnalyticsContent';
-
-const { colors } = theme;
+import { AnalyticsSkeleton } from './_components/AnalyticsSkeleton';
 
 /**
  * Seller analytics — THIN screen. The `useAnalytics` controller owns the query,
- * focus refresh, and premium/auth flags; this file renders the auth gate,
- * loading/empty states, and the analytics content.
+ * focus refresh, and premium/auth flags; PageShell renders the loading / error
+ * states, the screen the auth gate and the analytics content.
  */
 export default function AnalyticsScreen() {
   const f = useAnalytics();
+  const title = f.t('mobile.settingsAnalytics');
 
   if (!f.isAuthenticated) {
     return (
-      <View style={styles.centeredContainer}>
-        <Ionicons name="stats-chart-outline" size={64} color={colors.primary[600]!} />
-        <Text variant="h3" style={styles.title}>{f.t('analytics.analytics')}</Text>
-        <Text variant="body" style={styles.subtitle}>{f.t('analytics.authGateSubtitle')}</Text>
-        <Button variant="primary" title={f.t('common.login')} onPress={() => router.push('/(auth)/login')} style={{ alignSelf: 'center' }} />
-      </View>
+      <AuthGatePage
+        title={title}
+        emptyTitle={f.t('analytics.analytics')}
+        icon="chart-bar"
+        subtitle={f.t('analytics.authGateSubtitle')}
+      />
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={f.t('mobile.settingsAnalytics')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
-
-      {f.isLoading ? (
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" />
-        </View>
-      ) : !f.analytics ? (
-        <View style={styles.emptyContainer}>
-          <Text>{f.t('analytics.dataLoadFailed')}</Text>
-        </View>
-      ) : (
-        <AnalyticsContent f={f} />
-      )}
-    </View>
+    <PageShell
+      title={title}
+      onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+      loading={f.isLoading}
+      loadingFallback={<AnalyticsSkeleton />}
+      empty={!f.isLoading && !f.analytics}
+      emptyState={{ icon: 'chart-bar', title: f.t('analytics.dataLoadFailed'), subtitle: f.t('emptyState.loadFailedHint') }}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
+    >
+      <AnalyticsContent f={f} />
+    </PageShell>
   );
 }

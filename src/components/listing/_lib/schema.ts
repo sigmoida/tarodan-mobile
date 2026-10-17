@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
+import { NO_PRICE_LIMITS, type PriceLimits } from '@/lib/shared/priceLimits';
+import { priceFieldError } from './priceRules';
 
 /**
  * #81: ListingForm form alanlari icin zod schema (useZodForm). watch/setValue
@@ -9,7 +11,7 @@ import type { TFunction } from 'i18next';
  * min 5 (web min 1'den farkli, mobil davranisi korunur).
  *
  * Schema-DISI kalan (useState): sale/discount alanlari (salePrice/saleStartDate/
- * saleEndDate), imageKeys/imageUris, customAttributes, reservedQty, reactivate
+ * saleEndDate), images, customAttributes, reservedQty, reactivate
  * alanlari, productLoading. Bunlar server/UI state.
  *
  * `t` argüman olarak alınıyor (i18n): zod mesajları şema KURULURKEN çözülüyor,
@@ -24,7 +26,16 @@ export const MIN_IMAGES = 3;
 /** `MAX_PRODUCT_COLORS` (api `common/helpers/attribute-groups.ts`). */
 export const MAX_COLORS = 3;
 
-export const buildListingFormSchema = (t: TFunction, opts: { isEdit?: boolean } = {}) => {
+export interface ListingSchemaOptions {
+  isEdit?: boolean;
+  /** Admin fiyat sınırları (`min_product_price` / `max_product_price`); yoksa kural yok. */
+  priceLimits?: PriceLimits;
+  /** Düzenlemede ilanda saklı fiyat değerleri — bunlardan birine eşit aday fiyat hata vermez. */
+  storedPrices?: readonly string[] | null;
+}
+
+export const buildListingFormSchema = (t: TFunction, opts: ListingSchemaOptions = {}) => {
+  const limits = opts.priceLimits ?? NO_PRICE_LIMITS;
   const descriptionMsg = t('listing.descriptionLengthMsg', { min: DESCRIPTION_MIN, max: DESCRIPTION_MAX });
   const inRange = (v: string) => v.length >= DESCRIPTION_MIN && v.length <= DESCRIPTION_MAX;
   return z.object({
@@ -45,7 +56,11 @@ export const buildListingFormSchema = (t: TFunction, opts: { isEdit?: boolean } 
     price: z
       .string()
       .min(1, t('common.invalidPrice'))
-      .refine((v) => !isNaN(Number(v)) && Number(v) >= 1, t('common.invalidPrice')),
+      .refine((v) => !isNaN(Number(v)) && Number(v) >= 1, t('common.invalidPrice'))
+      .superRefine((v, ctx) => {
+        const message = priceFieldError(t, v, limits, opts.storedPrices);
+        if (message) ctx.addIssue({ code: 'custom', message });
+      }),
     quantity: z.string(),
     bundleSize: z.string(),
     categoryId: z.string(),

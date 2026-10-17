@@ -12,11 +12,15 @@
  * `getImageUrl` ile aynı çözümleme. `resizeMode` → `contentFit` köprüsü var ki
  * mevcut çağrı yerleri tek satırda taşınabilsin.
  */
+import { logger } from '@/services/logger';
 import React from 'react';
 import { type StyleProp, type ImageStyle } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import { Image, type ImageContentFit } from 'expo-image';
+import { theme } from '@/ui';
 import { resolveImageUrl, IMAGE_PLACEHOLDER, type ImageVariant } from '@/utils/imageUrl';
 import { useAuthStore } from '@/stores/authStore';
+import { isApiMessageAttachmentUrl } from '@/lib/api/messageAttachment';
 
 export interface AppImageProps {
   /** Entity / görsel objesi / dizi / string — `getImageUrl` ile aynı çözümleme. */
@@ -43,13 +47,31 @@ export interface AppImageProps {
    *
    * ⚠️ Varsayılan `false` — SADECE API'nin JWT istediği bilinen uçlar için aç
    * (örn. mesaj eki `/api/media/message-attachment/{id}`, bkz.
-   * `app/messages/[threadId]/_components/MessageList.tsx`). Ürün görselleri
+   * `app/messages/[threadId]/_components/MessageList.tsx`). Açık olsa bile header
+   * yalnız çözülen URL API origin'inde ve mesaj eki yolundaysa eklenir
+   * (`@/lib/api/messageAttachment`); diğer her URL header'sız yüklenir. Ürün görselleri
    * public S3/CDN'den geliyor: gereksiz bir `Authorization` header'ı hem
    * işe yaramaz hem de presigned S3 URL'ine 302 redirect edildiğinde imzayı
    * bozma riski taşır.
    */
   authenticated?: boolean;
+  /**
+   * Geri dönüşümlü hücrelerde (FlashList) hücre başka öğeye geçince `expo-image` eski görseli
+   * gösterip çapraz geçiş yapmasın diye: öğenin kararlı kimliği (ör. ürün id).
+   */
+  recyclingKey?: string;
+  /**
+   * Cihaz-yerel URI'lere (`file:`, `content:`, `ph:`) izin ver — yalnız kaynağın CİHAZDAN
+   * seçildiği (galeri/kamera önizlemesi) çağıranlar açar; sunucu verisinde ASLA.
+   */
+  allowDeviceUris?: boolean;
 }
+
+/** Yükleme geçişi (ms) — kısa; reduce-motion açıkken 0. */
+const FADE_MS = 150;
+
+/** Zemin: görsel gelene / hata verene kadar gri ton (layout zıplamaz, boşluk beyaz kalmaz). */
+const baseStyle: ImageStyle = { backgroundColor: theme.colors.gray[100] };
 
 const RESIZE_TO_FIT: Record<NonNullable<AppImageProps['resizeMode']>, ImageContentFit> = {
   cover: 'cover',
@@ -67,15 +89,34 @@ export const AppImage = React.memo(function AppImage({
   accessibilityLabel,
   onError,
   authenticated = false,
+  recyclingKey,
+  allowDeviceUris = false,
 }: AppImageProps) {
-  const uri = resolveImageUrl(source, variant);
+  const uri = resolveImageUrl(source, variant, { allowDeviceUris });
+  const reduceMotion = useReducedMotion();
   const fit = contentFit ?? (resizeMode ? RESIZE_TO_FIT[resizeMode] : 'cover');
   // Hook KOŞULSUZ çağrılır (rules-of-hooks), ama seçici `authenticated`
   // değilken sabit `null` döndürür: public görseller token değişimine ABONE
   // OLMAZ, yoksa her sessiz refresh uygulamadaki BÜTÜN görselleri yeniden
   // render ederdi. Token sızıntısı sözleşmesi de aynı seçicide korunuyor.
-  const token = useAuthStore((s) => (authenticated ? s.token : null));
-  const imageSource = token ? { uri, headers: { Authorization: `Bearer ${token}` } } : { uri };
+  //
+  // ⚠️ Bearer YALNIZ kendi mesaj eki ucumuza gider (API origin'i +
+  // `/media/message-attachment/<id>`, `isApiMessageAttachmentUrl`). `authenticated`
+  // açık olsa bile URL mesaj gövdesinden (güvenilmez girdi) gelebilir; başka her
+  // hedef header'SIZ yüklenir — aksi hâlde `[IMG:https://saldirgan/x]` alıcının
+  // access token'ını saldırganın sunucusuna gönderirdi.
+  const sendBearer = authenticated && isApiMessageAttachmentUrl(uri);
+  const token = useAuthStore((s) => (sendBearer ? s.token : null));
+  // Hata durumu (uri + token çiftine bağlı): kaynak/token değişince yeniden denenir. Hatalıyken
+  // sade gri yer tutucu gösterilir (kırık/boş kutu yerine).
+  const attemptKey = `${uri}|${token ?? ''}`;
+  const [failedKey, setFailedKey] = React.useState<string | null>(null);
+  const failed = failedKey === attemptKey;
+  const imageSource = failed
+    ? { uri: IMAGE_PLACEHOLDER }
+    : token
+      ? { uri, headers: { Authorization: `Bearer ${token}` } }
+      : { uri };
 
   const handleError = React.useCallback(() => {
     // Bearer'lı yükleme sessizce placeholder'a düşmesin — bu hatanın bunca
@@ -83,21 +124,25 @@ export const AppImage = React.memo(function AppImage({
     // ⚠️ Token, URL, imza/query ve her tür PII log'lanmaz; yalnız DEV'de ve
     // yalnız "token var mıydı" boolean'ı — C1 (bayat token) ile C2 (token hiç
     // gelmemiş) ayrımını yapmaya bu yetiyor.
-    if (__DEV__ && authenticated) {
-      console.warn(`[AppImage] authenticated image failed to load (hasToken=${!!token})`);
+    if (authenticated) {
+      logger.debug("[AppImage] authenticated image failed to load", { hasToken: !!token });
     }
+    setFailedKey(attemptKey);
     onError?.();
-  }, [authenticated, token, onError]);
+  }, [authenticated, token, onError, attemptKey]);
 
   return (
     <Image
       source={imageSource}
-      style={style}
+      recyclingKey={recyclingKey}
+      // `contain` (logo, görüntüleyici) şeffaf kalır: gri yer tutucu zemin yalnız dolduran görsellerde.
+      style={[fit === 'contain' ? null : baseStyle, style]}
       contentFit={fit}
       cachePolicy="memory-disk"
-      transition={150}
+      transition={reduceMotion ? 0 : FADE_MS}
       placeholder={IMAGE_PLACEHOLDER}
       placeholderContentFit={fit}
+      accessible={accessibilityLabel ? true : undefined}
       accessibilityLabel={accessibilityLabel}
       onError={handleError}
     />

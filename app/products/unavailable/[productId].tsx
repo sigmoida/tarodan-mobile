@@ -1,222 +1,75 @@
-import React from "react";
-import { View, ScrollView, StyleSheet, FlatList } from "react-native";
-import { Stack, useLocalSearchParams, router } from "expo-router";
-import { Button, Spinner, Text, theme, ScreenHeader } from "@/ui";
-import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
-import {
-  ProductCard,
-  type ProductCardProduct,
-} from "@/components/product/ProductCard";
-import { productsApi } from "@/lib/api";
-import { useTranslation } from "react-i18next";
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { Button, Text, theme } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
+import { SimilarProductsCard } from '@/components/product';
+import { searchCategoryHref } from '@/lib/navigation/searchHref';
+import { useUnavailableProduct } from './_hooks/useUnavailableProduct';
 
-const { colors } = theme;
+const { colors, spacing, radiusRole } = theme;
 
-interface Product extends ProductCardProduct {
-  status?: string;
-  quantity?: number | null;
-  category?: { id: string; name: string; slug: string } | null;
-}
-
+/**
+ * Satışta olmayan ürün: sade durum bandı (tekrar stokta ya da artık yok) + kategori/ürün aksiyonu ve
+ * benzer ürünler. Kutlama ikonu/emoji yok; durum yalnız metin.
+ */
 export default function ProductUnavailableScreen() {
   const { t } = useTranslation();
   const { productId } = useLocalSearchParams<{ productId: string }>();
-  const id = String(productId ?? "");
-
-  const productQuery = useQuery({
-    queryKey: ["product-unavailable", id],
-    queryFn: async () => {
-      try {
-        const res = await productsApi.getOne(id);
-        return ((res.data as any)?.data ?? res.data) as Product | null;
-      } catch {
-        return null;
-      }
-    },
-    enabled: !!id,
-  });
-
-  const similarQuery = useQuery({
-    queryKey: ["product-unavailable-similar", id],
-    queryFn: async () => {
-      try {
-        const res = await productsApi.getSimilar(id, 12);
-        const data = (res.data as any)?.data ?? res.data ?? [];
-        return Array.isArray(data) ? (data as Product[]) : [];
-      } catch {
-        return [] as Product[];
-      }
-    },
-    enabled: !!id,
-  });
-
-  const product = productQuery.data ?? null;
-  const similar = similarQuery.data ?? [];
-  const loading = productQuery.isLoading || similarQuery.isLoading;
-
-  const isBackInStock =
-    !!product && product.status === "active" && (product.quantity ?? 0) > 0;
+  const id = String(productId ?? '');
+  const { product, similar, loading, isBackInStock } = useUnavailableProduct(id);
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <ScreenHeader
-        title={t("stockout.page.screenTitle")}
-        onBack={() =>
-          router.canGoBack() ? router.back() : router.replace("/" as any)
-        }
+    <PageShell
+      title={t('stockout.page.screenTitle')}
+      onBack={() => (router.canGoBack() ? router.back() : router.replace('/' as any))}
+      loading={loading}
+    >
+      <View style={styles.hero}>
+        <Text testID="unavailable-hero-title" variant="h2" align="center">
+          {isBackInStock ? t('stockout.page.titleBack') : t('stockout.page.title')}
+        </Text>
+        <Text variant="bodySm" tone="muted" align="center">
+          {isBackInStock
+            ? product?.title
+              ? t('stockout.page.bodyBack', { title: product.title })
+              : t('stockout.page.bodyBackFallback')
+            : product?.title
+              ? t('stockout.page.bodyOut', { title: product.title })
+              : t('stockout.page.bodyOutFallback')}
+        </Text>
+        {isBackInStock ? (
+          <Button fullWidth onPress={() => router.push(`/product/${id}` as any)}>
+            {t('stockout.page.viewProduct')}
+          </Button>
+        ) : product?.category?.id ? (
+          <Button fullWidth onPress={() => router.push(searchCategoryHref({ id: product.category!.id, name: product.category!.name ?? '' }))}>
+            {product.category.name
+              ? t('stockout.page.allCategory', { category: product.category.name })
+              : t('stockout.page.allCategoryFallback')}
+          </Button>
+        ) : null}
+      </View>
+
+      <SimilarProductsCard
+        title={t('stockout.page.similar')}
+        items={similar}
+        emptyText={t('stockout.page.empty')}
+        testID="unavailable-similar"
       />
-
-      {loading ? (
-        <View style={styles.loading}>
-          <Spinner size="lg" />
-        </View>
-      ) : (
-        <ScrollView
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Hero */}
-          <View style={styles.hero}>
-            {isBackInStock ? (
-              <>
-                <Text style={styles.heroEmoji}>🎉</Text>
-                <Text testID="unavailable-hero-title" style={styles.heroTitle}>
-                  {t("stockout.page.titleBack")}
-                </Text>
-                <Text style={styles.heroBody}>
-                  {product?.title
-                    ? t("stockout.page.bodyBack", { title: product.title })
-                    : t("stockout.page.bodyBackFallback")}
-                </Text>
-                <Button
-                  variant="primary"
-                  style={styles.heroBtn}
-                  onPress={() => router.push(`/product/${id}` as any)}
-                >
-                  {t("stockout.page.viewProduct")}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Ionicons
-                  name="close-circle"
-                  size={56}
-                  color={colors.danger[600]!}
-                  style={{ marginBottom: theme.spacing[2] }}
-                />
-                <Text testID="unavailable-hero-title" style={styles.heroTitle}>
-                  {t("stockout.page.title")}
-                </Text>
-                <Text style={styles.heroBody}>
-                  {product?.title
-                    ? t("stockout.page.bodyOut", { title: product.title })
-                    : t("stockout.page.bodyOutFallback")}
-                </Text>
-                {product?.category?.slug ? (
-                  <Button
-                    variant="primary"
-                    style={styles.heroBtn}
-                    onPress={() =>
-                      router.push(`/category/${product.category!.slug}` as any)
-                    }
-                  >
-                    {product.category.name
-                      ? t("stockout.page.allCategory", {
-                          category: product.category.name,
-                        })
-                      : t("stockout.page.allCategoryFallback")}
-                  </Button>
-                ) : null}
-              </>
-            )}
-          </View>
-
-          {/* Similar products */}
-          <Text style={styles.sectionTitle}>{t("stockout.page.similar")}</Text>
-          {similar.length === 0 ? (
-            <Text style={styles.emptyText}>{t("stockout.page.empty")}</Text>
-          ) : (
-            <FlatList
-              data={similar}
-              keyExtractor={(item) => item.id}
-              numColumns={2}
-              scrollEnabled={false}
-              columnWrapperStyle={styles.gridRow}
-              ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-              renderItem={({ item }) => (
-                <View style={styles.gridItem}>
-                  <ProductCard product={item} />
-                </View>
-              )}
-            />
-          )}
-        </ScrollView>
-      )}
-    </View>
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.gray[50],
-  },
-  loading: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  content: {
-    padding: theme.spacing[4],
-    paddingBottom: theme.spacing[10],
-  },
   hero: {
-    backgroundColor: colors.white,
-    borderRadius: theme.radius["3xl"],
-    padding: theme.spacing[6],
-    alignItems: "center",
-    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'stretch',
+    gap: spacing[2],
+    padding: spacing[6],
+    borderRadius: radiusRole.section,
+    borderWidth: 1,
     borderColor: colors.border.DEFAULT,
-    marginBottom: theme.spacing[6],
-  },
-  heroEmoji: {
-    fontSize: 48,
-    marginBottom: theme.spacing[2],
-  },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: colors.text.heading,
-    textAlign: "center",
-    marginBottom: theme.spacing[2],
-  },
-  heroBody: {
-    fontSize: 14,
-    color: colors.text.muted,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  heroBtn: {
-    marginTop: theme.spacing[4],
-    borderRadius: theme.radius["2xl"],
-    alignSelf: "stretch",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.text.heading,
-    marginBottom: theme.spacing[3],
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.text.muted,
-  },
-  gridRow: {
-    gap: theme.spacing[3],
-  },
-  gridItem: {
-    flex: 1,
+    backgroundColor: colors.surface.elevated,
   },
 });

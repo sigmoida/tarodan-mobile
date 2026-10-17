@@ -1,56 +1,67 @@
 import { useState, useCallback } from 'react';
-import { View, FlatList, RefreshControl, Pressable, StyleSheet } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { View, StyleSheet } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { keepPreviousData, useQuery, useQueries } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import {
-  Button,
-  ScreenHeader,
-  Spinner,
-  Text,
-  VStack,
+  ChipTabs,
+  EmptyState,
+  ErrorState,
+  pageListContentStyle,
   theme,
+  useDelayedLoading,
+  usePageScrollHandler,
 } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
 import { tradesApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
+import { listWindowing } from '@/lib/list/windowing';
 import { TradeCard, type TradeCardTrade } from '@/components/trade/TradeCard';
+import { SkeletonTradeCard } from '@/components/trade/SkeletonTradeCard';
 import type { TFn } from './trade/[id]/_lib/types';
 
-const { colors, spacing } = theme;
+const { spacing } = theme;
+
+const tradeKey = (item: TradeCardTrade) => String(item.id);
 
 // "Kargoda" filtresi artık sunucu tarafında (statusGroup=shipping) yapılıyor;
 // istemci tarafı statü listesine gerek kalmadı.
 type TradesTabFilter = 'all' | 'pending' | 'shipping' | 'completed' | 'cancelled' | 'rejected';
 
-// Sunucu sayaçları yalnızca ilk 4 grup için var; iptal/red sayaçsız gösterilir.
+// Sunucu sayaçları (status-counts) yalnızca ilk 4 grup için var; İptal/Reddedilen sayaçları
+// `getAll({ status, pageSize: 1 }).total` ile tamamlanır → ChipTabs tek kural: sayaç ya HEPSİNDE
+// ya hiçbirinde (hepsi yüklenene dek sayısız etiket).
 // Etiketler katalogdan — module-scope dizi import-zamanı DONMASIN diye
-// `buildFilters(t)` fonksiyonu (CLAUDE.md §2), her render'da yeniden kurulur.
+// `buildFilters(t)` fonksiyonu (src/i18n/CLAUDE.md › Build labels at call time), her render'da yeniden kurulur.
 function buildFilters(t: TFn): {
   value: TradesTabFilter;
   label: string;
-  icon: keyof typeof Ionicons.glyphMap | null;
-  countKey?: 'all' | 'pending' | 'shipping' | 'completed';
+  countKey: 'all' | 'pending' | 'shipping' | 'completed' | 'cancelled' | 'rejected';
 }[] {
   return [
-    { value: 'all', label: t('common.all'), icon: null, countKey: 'all' },
-    { value: 'pending', label: t('trade.filterPending'), icon: 'time-outline', countKey: 'pending' },
-    { value: 'shipping', label: t('trade.filterInTransit'), icon: 'cube-outline', countKey: 'shipping' },
-    { value: 'completed', label: t('trade.filterCompleted'), icon: 'checkmark-circle-outline', countKey: 'completed' },
-    { value: 'cancelled', label: t('common.cancel'), icon: 'close-circle-outline' },
-    { value: 'rejected', label: t('trade.filterRejected'), icon: 'ban-outline' },
+    { value: 'all', label: t('common.all'), countKey: 'all' },
+    { value: 'pending', label: t('trade.filterPending'), countKey: 'pending' },
+    { value: 'shipping', label: t('trade.filterInTransit'), countKey: 'shipping' },
+    { value: 'completed', label: t('trade.filterCompleted'), countKey: 'completed' },
+    { value: 'cancelled', label: t('common.cancel'), countKey: 'cancelled' },
+    { value: 'rejected', label: t('trade.filterRejected'), countKey: 'rejected' },
   ];
 }
 
+/** Takaslarım — PageShell (list modu) + sarmalanan filtre chip'leri (sayaçlı) + TradeCard listesi. */
 export default function TradesScreen() {
   const { t } = useTranslation();
   const FILTERS = buildFilters(t);
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const [filter, setFilter] = useState<TradesTabFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const page = usePageScrollHandler();
 
   const { data: tradesPayload, isLoading, isError, refetch } = useQuery({
-    queryKey: ['trades', filter],
+    queryKey: qk.trades.list({ filter }),
     queryFn: async () => {
       // pageSize:100 → liste tek sayfada (çoğu kullanıcı için tamamı). 'Kargoda' artık
       // istemci tarafında değil, sunucuda (statusGroup) filtreleniyor → sayfaya takılmıyor.
@@ -67,24 +78,53 @@ export default function TradesScreen() {
       return { trades: list };
     },
     enabled: isAuthenticated,
+    // Filtre (chip) değişince önceki liste yerinde kalır, yeni filtre arkada yüklenir — iskelete düşmez.
+    placeholderData: keepPreviousData,
   });
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const showSkeleton = useDelayedLoading(isLoading);
 
   const tradesList: TradeCardTrade[] = tradesPayload?.trades ?? [];
 
   // Segment sayaçları — filtreden/sayfalamadan bağımsız tek sunucu agregatı.
   // tc.all = profil "Takaslar" tile'ı ile birebir.
   const { data: countsResp, refetch: refetchCounts } = useQuery({
-    queryKey: ['trades-status-counts'],
+    queryKey: qk.trades.statusCounts,
     queryFn: () => tradesApi.getStatusCounts(),
     enabled: isAuthenticated,
   });
-  const tc = countsResp?.data ?? { all: 0, pending: 0, shipping: 0, completed: 0 };
+  // İptal / Reddedilen sayaçları (status-counts'ta yok): pageSize=1 ile yalnız `total` okunur.
+  // Anahtar `statusCounts` önekini paylaşır → takas oluşunca/ödemede aynı invalidate tazeler.
+  const extraCounts = useQueries({
+    queries: (['cancelled', 'rejected'] as const).map((status) => ({
+      queryKey: qk.trades.statusCountBy(status),
+      queryFn: async () => {
+        const res = await tradesApi.getAll({ status, pageSize: '1' });
+        const total = (res.data as { total?: number } | undefined)?.total;
+        return typeof total === 'number' ? total : null;
+      },
+      enabled: isAuthenticated,
+    })),
+  });
+  const [cancelledCount, rejectedCount] = extraCounts.map((q) => q.data);
+  const tc = countsResp?.data;
+  // Sayaçlar ya hep birlikte görünür ya hiç; ek sayaçlar (İptal/Reddedilen) alınamazsa sunucunun
+  // 4 grubu yine gösterilir (eski davranış) — tek bir yan istek hatası tüm sayaçları silmesin.
+  const extrasReady = typeof cancelledCount === 'number' && typeof rejectedCount === 'number';
+  const extrasFailed = extraCounts.some((q) => q.isError || (q.isSuccess && q.data == null));
+  const allCounts: Partial<Record<string, number>> | undefined = !tc
+    ? undefined
+    : extrasReady
+      ? { ...tc, cancelled: cancelledCount, rejected: rejectedCount }
+      : extrasFailed
+        ? tc
+        : undefined;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetch(), refetchCounts()]);
+    await Promise.all([refetch(), refetchCounts(), ...extraCounts.map((q) => q.refetch())]);
     setRefreshing(false);
-  }, [refetch, refetchCounts]);
+  }, [refetch, refetchCounts, extraCounts]);
 
   const handleBack = () => {
     if (router.canGoBack()) router.back();
@@ -101,136 +141,70 @@ export default function TradesScreen() {
 
   if (!isAuthenticated) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.surface.DEFAULT }}>
-        <ScreenHeader title={t('trade.myTrades')} onBack={handleBack} />
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: spacing[8],
-          }}
-        >
-          <Text variant="h2" align="center" style={{ marginBottom: spacing[4] }}>
-            {t('membership.loginRequiredTitle')}
-          </Text>
-          <Text variant="body" tone="muted" align="center" style={{ marginBottom: spacing[6] }}>
-            {t('trade.tradeRequiresLogin')}
-          </Text>
-          <Button
-            variant="primary"
-            title={t('common.login')}
-            onPress={() => router.push('/(auth)/login')}
-            style={{ alignSelf: 'center' }}
-          />
-        </View>
-      </View>
+      <PageShell
+        title={t('trade.myTrades')}
+        onBack={handleBack}
+        empty
+        emptyState={{
+          icon: 'arrows-right-left',
+          title: t('membership.loginRequiredTitle'),
+          subtitle: t('trade.tradeRequiresLogin'),
+          actionLabel: t('common.login'),
+          onAction: () => router.push('/(auth)/login'),
+        }}
+      />
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.surface.DEFAULT }}>
-      <ScreenHeader title={t('trade.myTrades')} onBack={handleBack} />
-
-      {/* Status filters — web gibi sarmalanan (wrap) çip satırı */}
-      <View style={styles.filterRow}>
-        {FILTERS.map((f) => {
-          const active = filter === f.value;
-          const count = f.countKey ? (tc as Record<string, number>)[f.countKey] : undefined;
-          return (
-            <Pressable
-              key={f.value}
-              onPress={() => setFilter(f.value)}
-              style={[styles.filterPill, active && styles.filterPillActive]}
-            >
-              {f.icon ? (
-                <Ionicons
-                  name={f.icon}
-                  size={14}
-                  color={active ? colors.white : colors.text.muted}
-                />
-              ) : null}
-              <Text
-                variant="caption"
-                weight="medium"
-                style={{ color: active ? colors.white : colors.text.body }}
-              >
-                {f.label}
-                {count != null ? ` (${count})` : ''}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      {isError ? (
-        <VStack gap={3} align="center" padding={6} style={{ marginTop: spacing[8] }}>
-          <Ionicons name="alert-circle-outline" size={48} color={colors.danger[500]!} />
-          <Text variant="body" align="center">
-            {t('trade.listLoadFailedHint')}
-          </Text>
-          <Button variant="primary" title={t('common.tryAgain')} onPress={() => refetch()} />
-        </VStack>
-      ) : isLoading ? (
-        <Spinner style={{ marginTop: spacing[8] }} />
-      ) : (
-        <FlatList
-          data={tradesList}
-          contentContainerStyle={{ padding: spacing[4], paddingTop: spacing[2] }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderTrade}
-          ListEmptyComponent={
-            <VStack gap={3} align="center" style={{ marginTop: spacing[10] }}>
-              <Ionicons name="swap-horizontal" size={56} color={colors.border.strong} />
-              <Text variant="h3" align="center">
-                {t('trade.noTrades')}
-              </Text>
-              <Text
-                variant="body"
-                tone="muted"
-                align="center"
-                style={{ paddingHorizontal: spacing[6] }}
-              >
-                {filter === 'all'
-                  ? t('trade.noTradesHint')
-                  : t('trade.noTradesFilteredHint')}
-              </Text>
-              <Button
-                variant="primary"
-                title={t('trade.searchListingsCta')}
-                onPress={() => router.push('/search')}
-                style={{ marginTop: spacing[2] }}
-              />
-            </VStack>
-          }
-        />
-      )}
-    </View>
+    <PageShell title={t('trade.myTrades')} onBack={handleBack} mode="list" scroll={page}>
+      <Animated.FlatList
+        {...page.listProps}
+        data={isError || isLoading ? [] : tradesList}
+        contentContainerStyle={page.contentStyle(pageListContentStyle)}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        keyExtractor={tradeKey}
+        renderItem={renderTrade}
+        {...listWindowing}
+        ListHeaderComponent={
+          // Durum filtreleri — tek satır, yatay kaydırılan sekmeler (sayaçlar hepsinde ya da hiçbirinde)
+          <ChipTabs
+            testID="trades-filters"
+            value={filter}
+            onChange={setFilter}
+            items={FILTERS.map((f) => ({
+              key: f.value,
+              label: f.label,
+              count: allCounts?.[f.countKey],
+            }))}
+          />
+        }
+        ListEmptyComponent={
+          isError ? (
+            <ErrorState message={t('trade.listLoadFailedHint')} onRetry={() => refetch()} />
+          ) : isLoading || showSkeleton ? (
+            showSkeleton ? (
+              <View style={styles.skeletons} testID="trades-skeleton">
+                <SkeletonTradeCard />
+                <SkeletonTradeCard />
+              </View>
+            ) : null
+          ) : (
+            <EmptyState
+              icon="arrows-right-left"
+              title={t('trade.noTrades')}
+              subtitle={filter === 'all' ? t('trade.noTradesHint') : t('trade.noTradesFilteredHint')}
+              actionLabel={t('trade.searchListingsCta')}
+              onAction={() => router.push('/search')}
+            />
+          )
+        }
+      />
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  filterRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    gap: spacing[2],
-  },
-  filterPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: 999,
-    backgroundColor: colors.surface.alt,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-  },
-  filterPillActive: {
-    backgroundColor: colors.primary[600]!,
-    borderColor: colors.primary[600]!,
-  },
+  skeletons: { gap: spacing[3] },
 });

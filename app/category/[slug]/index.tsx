@@ -1,59 +1,62 @@
-import { View, FlatList, RefreshControl } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { theme, Spinner, Text, ScreenHeader } from '@/ui';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import { PageShell } from '@/components/common/PageShell';
+import { ProductGrid, ProductSortModal } from '@/components/product';
+import { useTabBarPageScroll } from '@/components/shell/TabBarCollapse';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { withStackTabBar } from '@/components/shell/StackTabBar';
 import { useCategory } from './_hooks/useCategory';
-import { styles } from './_lib/styles';
 import { CategoryFilters } from './_components/CategoryFilters';
-import { CategoryProductCard } from './_components/CategoryProductCard';
 
-const { colors } = theme;
-
-export default function CategoryScreen() {
+/**
+ * Kategori — PageShell + tek ürün ızgarası (`ProductGrid`): ortak `ProductListToolbar` (arama, sıralama,
+ * ızgara/liste, ölçek çipleri, sonuç sayısı) liste başlığında. Kontrolcü `useCategory`; ekran yalnız kompozisyon.
+ * Yüzen alt menü (`withStackTabBar`) ekranın üstünde; aşağı kaydırınca Ana Sayfa gibi daralır (yalnız "+" kalır).
+ */
+function CategoryScreen() {
   const { t } = useTranslation();
   const f = useCategory();
+  // Tek handler: alt menü daralması + üst barın kaydırma kenarı.
+  const page = useTabBarPageScroll();
+  const tabInset = useTabBarInset();
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={f.category?.name || t('common.category')}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-      />
-
-      <CategoryFilters f={f} />
-
-      {f.isLoading ? (
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" />
-          <Text style={styles.loadingText}>{t('common.loading')}</Text>
-        </View>
-      ) : !f.products || f.products.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="cube-outline" size={64} color={colors.gray[500]} />
-          <Text style={styles.emptyTitle}>{t('product.noProductsFound')}</Text>
-          <Text style={styles.emptySubtitle}>{t('product.noProductsInCategory')}</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={f.products as any[]}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <CategoryProductCard item={item} />}
-          numColumns={2}
-          columnWrapperStyle={styles.productsGrid}
-          style={styles.productsContainer}
-          contentContainerStyle={styles.productsContent}
-          ListHeaderComponent={
-            <Text style={styles.resultsCount}>
-              {t('product.productsFoundCount', { count: f.products.length })}
-            </Text>
-          }
-          ListFooterComponent={<View style={{ height: 100 }} />}
-          refreshControl={
-            <RefreshControl refreshing={f.refreshing} onRefresh={f.onRefresh} colors={[colors.primary[600]!]} />
-          }
+    <PageShell
+      title={f.category?.name || t('common.category')}
+      mode="list"
+      scroll={page}
+      onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+      overlay={
+        <ProductSortModal
+          visible={f.sortMenuVisible}
+          value={f.sortBy}
+          onSelect={(sortBy) => {
+            f.setSortBy(sortBy);
+            f.setSortMenuVisible(false);
+          }}
+          onClose={() => f.setSortMenuVisible(false)}
         />
-      )}
-    </View>
+      }
+    >
+      <ProductGrid
+        items={(f.products as any[]) ?? []}
+        layout={f.layout}
+        scroll={page}
+        bottomInset={tabInset}
+        loading={f.isLoading}
+        errorMessage={f.loadFailed ? t('collection.productsLoadFailed') : null}
+        onRetry={f.retry}
+        refreshing={f.refreshing}
+        onRefresh={f.onRefresh}
+        filtered={!!f.searchQuery || !!f.selectedScale}
+        onClearFilters={() => {
+          f.setSearchQuery('');
+          f.setSelectedScale('');
+        }}
+        ListHeaderComponent={<CategoryFilters f={f} count={f.products ? f.products.length : undefined} />}
+      />
+    </PageShell>
   );
 }
+
+export default withStackTabBar(CategoryScreen);

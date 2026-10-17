@@ -1,53 +1,28 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors } = theme;
+const { spacing } = theme;
 
-// Route-local stylesheet (§12). Monolitten BİREBİR taşındı.
+// Kayıt formunun route-local stylesheet'i. Kabuk (üst bar, zemin) `AuthShell`'de.
 export const styles = StyleSheet.create({
-  backButton: {
-    position: 'absolute',
-    left: 16,
-    zIndex: 10,
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  screen: {
-    backgroundColor: colors.primary[600]!,
-  },
-  brandHeader: {
-    alignItems: 'center',
-    gap: theme.spacing[2],
-  },
-  headerTitle: {
-    color: colors.white,
-  },
-  footerText: {
-    color: colors.primary[50]!,
-  },
-  footerLink: {
-    color: colors.white,
-    textDecorationLine: 'underline',
-  },
-  /** Alan altındaki açıklama satırı — Input'un kendi alt boşluğunu yukarı çeker.
-   *  Negatif marj için token yok; `-theme.spacing[1]` (=-4pt) token türevi. */
-  fieldHint: {
-    marginTop: -theme.spacing[1],
-    marginBottom: theme.spacing[2],
-  },
-  card: {
+  /** Input kendi alt boşluğunu (8) taşır: 8 + 8 = web `space-y-4` (16). */
+  form: {
     width: '100%',
-    backgroundColor: colors.surface.elevated,
-    borderRadius: 20,
-    padding: theme.spacing[5],
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
+    gap: spacing[2],
+  },
+  /** Sekmeler ile ilk alan arası: 8 (form gap) + 8 = 16. */
+  tabs: {
+    marginBottom: spacing[2],
+  },
+  /** Telefon + Doğum Tarihi yan yana (iki eşit sütun). */
+  pair: {
+    flexDirection: 'row',
+    gap: spacing[3],
+  },
+  pairItem: {
+    flex: 1,
+  },
+  submit: {
+    marginTop: spacing[4],
   },
 });

@@ -1,6 +1,6 @@
 # F-14: Initiate trade → ali@demo.com → tradeAvailable ürün → "Takas" → trade/new.
 # Fixture: ali kendi listing'inde takas teklif edemez. Manual.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 env:
@@ -10,10 +10,11 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow:
     when:
@@ -29,6 +30,13 @@ env:
 - tapOn:
     id: "login-email-input"
 - inputText: ${EMAIL}
+# Giriş iki aşamalı (web gibi): e-posta -> Devam Et -> şifre.
+- tapOn:
+    id: "login-continue-button"
+- extendedWaitUntil:
+    visible:
+      id: "login-password-input"
+    timeout: 15000
 - tapOn:
     id: "login-password-input"
 - inputText: ${PASSWORD}
@@ -42,8 +50,7 @@ env:
       visible: "Şimdi Değil"
     commands:
       - tapOn: "Şimdi Değil"
-- tapOn:
-    text: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       id: "search-input"
@@ -53,19 +60,33 @@ env:
 - inputText: ${SEARCH_TERM}
 - extendedWaitUntil:
     visible:
-      text: ".*₺.*"
+      text: ".*[0-9],[0-9][0-9] TL.*"
     timeout: 30000
 - tapOn:
-    text: ".*₺.*"
+    text: ".*[0-9],[0-9][0-9] TL.*"
     index: 0
 - extendedWaitUntil:
     visible:
-      text: "Sepete Ekle"
+      id: "product-price"
     timeout: 30000
-# tradeAvailable ürünlerde "Takas" butonu var
-- tapOn:
-    text: "Takas"
+# Sepet düğmesi sabit alt barda (kaydırma gerekmez); ürün zaten sepetteyse "Sepete Git".
+- extendedWaitUntil:
+    visible:
+      id: "product-detail-(add-to-cart|go-to-cart)-button"
+    timeout: 30000
+- assertVisible: "Sepete Ekle|Sepete Git"
+# tradeAvailable ürünlerde "Takas Teklifi" butonu var
+# Teklif/takas satırı sabit alt barın üstünde (kaydırma gerekmez).
+- extendedWaitUntil:
+    visible:
+      id: "product-detail-trade-button"
+    timeout: 15000
     optional: true
+- tapOn:
+    id: "product-detail-trade-button"
+    optional: true
+# Yasal kimlik eksikse kapı açılır (1.0.6) — çalıştırmada MAESTRO_TEST_TCKN verin.
+- runFlow: ../subflows/pass-identity-gate.yaml
 - extendedWaitUntil:
     visible:
       text: "Takas|Eşya|teklif"

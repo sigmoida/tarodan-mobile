@@ -1,6 +1,6 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
-import { Text, theme } from "@/ui";
+import { StyleSheet } from "react-native";
+import { Pill } from "@/ui";
 import { SHIPMENT_STATUS_CHIP, SHIPMENT_CHIP_FALLBACK } from "../_lib/status";
 import type { TFn } from "../_lib/types";
 
@@ -16,30 +16,18 @@ export function ShipmentStatusChip({
   const meta =
     (status && SHIPMENT_STATUS_CHIP[status]) || SHIPMENT_CHIP_FALLBACK;
   return (
-    <View
+    <Pill
       testID={testID}
-      style={[styles.shipmentChip, { backgroundColor: meta.bg }]}
+      size="md"
+      background={meta.bg}
+      color={meta.fg}
+      style={styles.chip}
     >
-      {meta.icon ? (
-        <Text style={[styles.shipmentChipText, { color: meta.fg }]}>
-          {meta.icon}{" "}
-        </Text>
-      ) : null}
-      <Text style={[styles.shipmentChipText, { color: meta.fg }]}>
-        {t(meta.labelKey)}
-      </Text>
-    </View>
+      {`${meta.icon ? `${meta.icon} ` : ""}${t(meta.labelKey)}`}
+    </Pill>
   );
 }
 
 const styles = StyleSheet.create({
-  shipmentChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: theme.spacing[2.5],
-    paddingVertical: theme.spacing[1],
-    borderRadius: 999,
-    alignSelf: "flex-start",
-  },
-  shipmentChipText: { fontSize: 12, fontWeight: "600" },
+  chip: { alignSelf: "flex-start" },
 });

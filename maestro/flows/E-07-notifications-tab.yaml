@@ -1,7 +1,7 @@
-# E-07: Bildirimler tab smoke — login → Bildirimler tab → liste yüklenir.
+# E-07: Bildirimler smoke — login → üst bardaki Bildirimler düğmesi (yığın ekranı) → liste yüklenir.
 # Best-effort: stockout thumbnail spesifik testi fixture'a bağlı; bu yüzden
 # burada sadece tab'in açıldığı + en az bir bildirim kartı görünür olduğu doğrulanır.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 env:
@@ -10,14 +10,15 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 - tapOn:
-    text: "Bildirimler"
+    id: "app-shell-notifications"
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: "Bildirimler"

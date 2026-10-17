@@ -1,89 +1,39 @@
 import React from 'react';
-import { View, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
-import { Modal, Button, Divider, Text, theme } from '@/ui';
-import UpgradeCta from '@/components/UpgradeCta';
+import { ActionSheet } from '@/ui';
+import { ListingRemovalModal } from '@/components/listing/ListingRemovalModal';
+import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
-import { styles } from '../_lib/styles';
 import type { MyListingsController } from '../_hooks/useMyListings';
+import { buildListingMenuActions } from '../_lib/menu';
 
-const { colors } = theme;
-
-/** Per-listing action menu + delete confirmation dialog. */
+/**
+ * İlan eylem menüsü (ActionSheet; sil yıkıcı) + kaldırma nedeni penceresi (silme / pasife alma).
+ * Menü satırları sheet TAMAMEN kapandıktan sonra çalışır; kaldırma penceresi / öne çıkar
+ * penceresi / kota uyarısı bu yüzden zamanlayıcı olmadan güvenle açılır (src/ui/CLAUDE.md › iOS modal rule).
+ */
 export function MyListingsModals({ f }: { f: MyListingsController }) {
   const { t } = useTranslation();
   const menu = f.actionMenuListing;
   return (
     <>
-      {/* Action Menu Modal */}
-      <Modal
-        isOpen={f.actionMenuListing !== null}
-        onClose={() => f.setActionMenuListing(null)}
+      <ActionSheet
+        isOpen={f.actionMenuOpen}
+        onClose={f.closeActionMenu}
         title={t('common.actions')}
-      >
-        {menu && (
-          <View>
-            {menu.status !== 'deleted' && (
-              <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('view', menu)}>
-                <Ionicons name="eye" size={20} color={colors.text.heading} />
-                <Text style={styles.menuItemText}>{t('common.view')}</Text>
-              </Pressable>
-            )}
-            {menu.status !== 'sold' && menu.status !== 'deleted' && menu.status !== 'suspended' && (
-              <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('edit', menu)}>
-                <Ionicons name="pencil" size={20} color={colors.text.heading} />
-                <Text style={styles.menuItemText}>{t('common.edit')}</Text>
-              </Pressable>
-            )}
-            {menu.status === 'active' && (
-              <UpgradeCta>
-                <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('boost', menu)}>
-                  <Ionicons name="rocket" size={20} color={colors.warning[600]!} />
-                  <Text style={[styles.menuItemText, { color: colors.warning[700]! }]}>{t('listing.boostAction')}</Text>
-                </Pressable>
-              </UpgradeCta>
-            )}
-            {menu.status === 'active' && (
-              <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('deactivate', menu)}>
-                <Ionicons name="pause-circle" size={20} color={colors.text.heading} />
-                <Text style={styles.menuItemText}>{t('listing.deactivateAction')}</Text>
-              </Pressable>
-            )}
-            {menu.status === 'inactive' && (
-              <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('relist', menu)}>
-                <Ionicons name="refresh" size={20} color={colors.text.heading} />
-                <Text style={styles.menuItemText}>{t('listing.relistAction')}</Text>
-              </Pressable>
-            )}
-            <Divider />
-            <Pressable style={styles.menuItem} onPress={() => f.handleMenuAction('delete', menu)}>
-              <Ionicons name="trash" size={20} color={colors.danger[600]!} />
-              <Text style={[styles.menuItemText, { color: colors.danger[600]! }]}>{t('common.delete')}</Text>
-            </Pressable>
-          </View>
-        )}
-      </Modal>
+        actions={menu ? buildListingMenuActions(menu, t, f.handleMenuAction, CAN_BUY_DIGITAL) : []}
+        cancelLabel={t('common.cancel')}
+        testID="listing-menu-sheet"
+      />
 
-      {/* Delete Confirmation Dialog */}
-      <Modal
-        isOpen={f.deleteDialogVisible}
-        onClose={() => f.setDeleteDialogVisible(false)}
-        title={t('product.deleteListing')}
-      >
-        <Text style={{ marginBottom: theme.spacing[4], color: colors.text.body }}>
-          {t('listing.deleteConfirmNamed', { title: f.selectedListing?.title ?? '' })}
-        </Text>
-        <View style={styles.dialogActions}>
-          <Button variant="ghost" title={t('common.cancel')} onPress={() => f.setDeleteDialogVisible(false)} />
-          <Button
-            variant="danger"
-            title={t('common.delete')}
-            isLoading={f.deleteMutation.isPending}
-            onPress={() => f.selectedListing && f.deleteMutation.mutate(f.selectedListing.id)}
-          />
-        </View>
-      </Modal>
+      {/* Kaldırma nedeni: silme onayı + pasife alma — neden zorunlu (web ile aynı) */}
+      <ListingRemovalModal
+        action={f.removalTarget?.action ?? 'delete'}
+        visible={f.removalOpen}
+        listingTitle={f.removalTarget?.listing.title}
+        onClose={f.closeRemoval}
+        onSubmit={f.submitRemoval}
+      />
     </>
   );
 }

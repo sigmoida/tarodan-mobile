@@ -1,7 +1,7 @@
 # D-02: Membership ekranı smoke — login → Profil → Üyelik Planı → tier kartları render olur.
 # Tam bypass üyelik akışı API e2e (payment-bypass.e2e-spec.ts) ile kapsanıyor; bu flow
 # UI'ın açıldığını + ekran çökmediğini garanti eder.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 env:
@@ -10,14 +10,14 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
-- tapOn:
-    text: "Profil"
+- runFlow: ../subflows/open-settings.yaml
 - scrollUntilVisible:
     element:
       id: "profile-membership-link"
@@ -33,3 +33,21 @@ env:
     timeout: 30000
 - assertNotVisible: ".*Network Error.*"
 - assertNotVisible: ".*Bir hata oluştu.*"
+# "Planları Keşfet" → salt görüntüleme plan listesi (mevcut plan rozetli, alt not).
+- scrollUntilVisible:
+    element:
+      id: "membership-explore-plans"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "membership-explore-plans"
+- extendedWaitUntil:
+    visible: "Üyelik Planları"
+    timeout: 15000
+- assertVisible:
+    id: "membership-plan-current-badge"
+- scrollUntilVisible:
+    element:
+      id: "membership-plans-note"
+    direction: DOWN
+    timeout: 15000

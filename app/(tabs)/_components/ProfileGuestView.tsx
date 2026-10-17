@@ -1,198 +1,123 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Button, Snackbar, Text, theme } from '@/ui';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Button, Card, SectionCard, Text, pageListContentStyle, theme, usePageScrollValue, type IconName } from '@/ui';
 
+import { AppShell } from '@/components/shell/AppShell';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { SignupPrompt } from '@/components/SignupPrompt';
 import UpgradeCta from '@/components/UpgradeCta';
-import { styles } from '../_lib/profileStyles';
-import { benefitTints } from '../_lib/profileConstants';
+import { formatPrice } from '@/utils/format';
 import type { ProfileController } from '../_hooks/useProfile';
+import { ProfileHeader } from './ProfileHeader';
+import { ProfileRow } from '@/components/menu/ProfileRow';
 
-const { colors, spacing, radius } = theme;
+const { colors, spacing } = theme;
 
-/** Unauthenticated profile: welcome, benefits, quick links, premium promo. */
+/**
+ * Misafir profil: ortalı boş avatar, giriş/kayıt düğmeleri, düz bağlantı satırları (ikon + chevron).
+ * Üst bar üye profiliyle aynı: solu boş, sağda ⚙️ Ayarlar (misafirde dil, yardım, bilgi/yasal).
+ */
 export function ProfileGuestView({ f }: { f: ProfileController }) {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
+  const tabInset = useTabBarInset();
+  const page = usePageScrollValue();
+  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
+
+  const quickLinks: { label: string; to: string; icon: IconName }[] = [
+    { label: t('mobile.guestOrderTrack'), to: '/order-track', icon: 'truck' },
+  ];
+
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
-        <Text variant="h3" tone="inverted" weight="bold">
-          {t('profile.profile')}
-        </Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.guestWelcome}>
-          <View
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: radius.full,
-              backgroundColor: colors.primary[50]!,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="person-outline" size={48} color={colors.primary[600]!} />
+    <AppShell variant="title" title={t('profile.profile')} scroll={page} leading="none" actions="settings">
+      <Animated.ScrollView
+        {...tabScroll}
+        {...page.scrollProps}
+        scrollEventThrottle={16}
+        // Sayfa kenarı + kartlar arası boşluk (üye profiliyle aynı kart düzeni).
+        contentContainerStyle={page.contentStyle([pageListContentStyle, { paddingBottom: tabInset }])}
+        showsVerticalScrollIndicator={false}
+      >
+        <SectionCard testID="profile-guest-card">
+        <ProfileHeader>
+          <View style={styles.welcome}>
+            <Text variant="h2" align="center">
+              {t('profile.guestWelcomeTitle')}
+            </Text>
+            <Text variant="bodySm" tone="muted" align="center">
+              {t('profile.guestWelcomeSubtitle')}
+            </Text>
           </View>
-          <Text variant="h1" align="center" style={{ marginTop: spacing[4] }}>
-            {t('profile.guestWelcomeTitle')}
-          </Text>
-          <Text
-            variant="body"
-            tone="muted"
-            align="center"
-            style={{ marginTop: spacing[2], marginBottom: spacing[5] }}
-          >
-            {t('profile.guestWelcomeSubtitle')}
-          </Text>
-          <Button
-            testID="profile-go-login-button"
-            variant="primary"
-            size="lg"
-            fullWidth
-            icon="log-in-outline"
-            title={t('auth.loginTitle')}
-            onPress={() => router.push('/(auth)/login')}
-            style={styles.loginButton}
-          />
-          <Button
-            variant="outline"
-            size="lg"
-            fullWidth
-            title={t('auth.freeSignUp')}
-            onPress={() => router.push('/(auth)/register')}
-            style={styles.registerButton}
-          />
-        </View>
+          <View style={styles.actions}>
+            <Button
+              testID="profile-go-login-button"
+              variant="primary"
+              size="lg"
+              fullWidth
+              title={t('auth.loginTitle')}
+              onPress={() => router.push('/(auth)/login')}
+            />
+            <Button
+              testID="profile-go-register-button"
+              variant="outline"
+              size="lg"
+              fullWidth
+              title={t('auth.freeSignUp')}
+              onPress={() => router.push('/(auth)/register')}
+            />
+          </View>
+        </ProfileHeader>
+        </SectionCard>
 
-        <View style={styles.benefitsSection}>
-          <Text variant="h3" style={{ marginBottom: spacing[4] }}>
-            {t('profile.guestBenefitsTitle')}
-          </Text>
-
-          {[
-            {
-              icon: 'pricetag' as const,
-              title: t('mobile.guestListTitle'),
-              desc: t('mobile.guestListDesc'),
-              tint: benefitTints[0],
-            },
-            {
-              icon: 'swap-horizontal' as const,
-              title: t('mobile.guestTradeTitle'),
-              desc: t('mobile.guestTradeDesc'),
-              tint: benefitTints[1],
-            },
-            {
-              icon: 'heart' as const,
-              title: t('mobile.guestFavTitle'),
-              desc: t('mobile.guestFavDesc'),
-              tint: benefitTints[2],
-            },
-            {
-              icon: 'car-sport' as const,
-              title: t('mobile.guestGarageTitle'),
-              desc: t('mobile.guestGarageDesc'),
-              tint: benefitTints[3],
-            },
-          ].map((b) => (
-            <View key={b.title} style={styles.benefitCard}>
-              <View style={[styles.benefitIcon, { backgroundColor: b.tint.bg }]}>
-                <Ionicons name={b.icon} size={24} color={b.tint.fg} />
-              </View>
-              <View style={styles.benefitContent}>
-                <Text variant="label">{b.title}</Text>
-                <Text variant="bodySm" tone="muted" style={{ marginTop: spacing[1] }}>
-                  {b.desc}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.quickLinksSection}>
-          <Text variant="label" tone="muted" style={{ marginBottom: spacing[3] }}>
-            {t('profile.guestQuickLinksTitle')}
-          </Text>
-
-          {[
-            { icon: 'search-outline' as const, label: t('mobile.guestBrowseListings'), to: '/search' },
-            { icon: 'albums-outline' as const, label: t('collection.exploreCollections'), to: '/collections' },
-            { icon: 'cart-outline' as const, label: t('cart.myCart'), to: '/cart' },
-            { icon: 'location-outline' as const, label: t('mobile.guestOrderTrack'), to: '/order-track' },
-            { icon: 'help-circle-outline' as const, label: t('help.title'), to: '/help' },
-          ].map((q) => (
-            <TouchableOpacity
+        <SectionCard testID="profile-guest-links">
+          {quickLinks.map((q) => (
+            <ProfileRow
               key={q.label}
-              style={styles.quickLinkItem}
+              variant="card"
+              icon={q.icon}
+              label={q.label}
               onPress={() => router.push(q.to as never)}
-            >
-              <Ionicons name={q.icon} size={22} color={colors.primary[600]!} />
-              <Text variant="body" style={styles.quickLinkText}>
-                {q.label}
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.text.subtle} />
-            </TouchableOpacity>
+            />
           ))}
-        </View>
+        </SectionCard>
 
         <UpgradeCta>
-          <View style={styles.premiumPromo}>
-            <View style={styles.premiumHeader}>
-              <Ionicons name="diamond" size={32} color={colors.warning[500]!} />
-              <Text variant="h2" tone="inverted" style={{ marginLeft: spacing[3] }}>
-                Premium Üyelik
-              </Text>
-            </View>
-            <Text
-              variant="body"
-              color={colors.white}
-              style={{ marginBottom: spacing[4], opacity: 0.85 }}
-            >
+          <Card variant="bordered" style={styles.promo}>
+            <Text variant="h3">Premium Üyelik</Text>
+            <Text variant="bodySm" tone="muted">
               Sınırsız ilan, takas özelliği, Digital Garage ve daha fazlası için Premium üye olun!
             </Text>
-            <View style={styles.premiumPrice}>
-              <Text variant="bodySm" color={colors.white} style={{ opacity: 0.7, marginRight: spacing[2] }}>
-                Aylık sadece
-              </Text>
-              <Text variant="displaySm" color={colors.warning[500]!} weight="bold">
-                ₺99
-              </Text>
-            </View>
+            <Text variant="bodySm" tone="muted">
+              Aylık sadece
+            </Text>
+            <Text variant="h2" color={colors.primary[600]!}>
+              {formatPrice(99)}
+            </Text>
             <Button
               variant="primary"
               size="lg"
               fullWidth
               title={t('mobile.guestGoPremium')}
               onPress={() => router.push('/(auth)/register')}
-              style={{ backgroundColor: colors.warning[500]! }}
             />
-          </View>
+          </Card>
         </UpgradeCta>
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      <Snackbar
-        visible={f.snackbarVisible}
-        onDismiss={() => f.setSnackbarVisible(false)}
-        duration={2000}
-      >
-        {f.snackbarMessage}
-      </Snackbar>
+      </Animated.ScrollView>
 
       <SignupPrompt
         visible={f.showPrompt}
         onDismiss={() => f.setShowPrompt(false)}
         type={f.promptType}
       />
-    </View>
+    </AppShell>
   );
 }
+
+const styles = StyleSheet.create({
+  welcome: { alignItems: 'center', gap: spacing[1] },
+  actions: { alignSelf: 'stretch', gap: spacing[3] },
+  promo: { gap: spacing[2] },
+});

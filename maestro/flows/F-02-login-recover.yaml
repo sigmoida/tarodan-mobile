@@ -1,6 +1,6 @@
 # F-02: Yanlış şifre denemesi → hata banner → şifreyi düzelt → home.
 # Form recovery: page reload olmadan inputlar düzeltilebilir.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 env:
@@ -9,7 +9,7 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow: ../subflows/logout.yaml
 - runFlow:
     when:
@@ -26,6 +26,13 @@ env:
 - tapOn:
     id: "login-email-input"
 - inputText: ${EMAIL}
+# Giriş iki aşamalı (web gibi): e-posta -> Devam Et -> şifre.
+- tapOn:
+    id: "login-continue-button"
+- extendedWaitUntil:
+    visible:
+      id: "login-password-input"
+    timeout: 15000
 - tapOn:
     id: "login-password-input"
 - inputText: "yanlis-sifre-123"

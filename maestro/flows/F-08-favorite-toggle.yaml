@@ -1,8 +1,8 @@
 # F-08: Favorite → unfavorite from list and detail.
-# Search ile ürün bul → kalp ikonu tap → Profil → Favoriler → list'te kalbi tekrar tap.
+# Search ile ürün bul → kalp ikonu tap → Favoriler sekmesi → list'te kalbi tekrar tap.
 # Heart icon testID yok, "kalp" /heart label fallback yok; ikona tıklamak için
 # "Beğen" / "Favoriye" gibi label dene; aksi halde optional flow.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 env:
@@ -12,14 +12,14 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
-- tapOn:
-    text: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       id: "search-input"
@@ -29,30 +29,22 @@ env:
 - inputText: ${SEARCH_TERM}
 - extendedWaitUntil:
     visible:
-      text: ".*₺.*"
+      text: ".*[0-9],[0-9][0-9] TL.*"
     timeout: 30000
 - tapOn:
-    text: ".*₺.*"
+    text: ".*[0-9],[0-9][0-9] TL.*"
     index: 0
 - extendedWaitUntil:
-    visible: "Sepete Ekle"
+    visible:
+      id: "product-price"
     timeout: 30000
 # Heart ikonu — accessibility label'ı "Favoriye Ekle" veya "Beğen" olabilir.
 - tapOn:
-    text: "Favori|Beğen|favorite"
+    id: "product-favorite-button"
     optional: true
-# Profil → Favoriler
-- tapOn:
-    text: "Profil"
-- scrollUntilVisible:
-    element:
-      text: "Favorilerim|Favori"
-    direction: DOWN
-    timeout: 10000
-    optional: true
-- tapOn:
-    text: "Favorilerim|Favori"
-    optional: true
+# Favoriler artık alt menüde sekme (yan menüde değil); ürün detayı yığın ekranı olduğundan sekme
+# köküne derin bağlantıyla geçilir.
+- openLink: "tarodan://favorites"
 - extendedWaitUntil:
     visible:
       text: "Favoriler|Favori"

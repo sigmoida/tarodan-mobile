@@ -1,11 +1,29 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
 import { useMutation } from '@tanstack/react-query';
-import { theme, Text, Button, Modal, Input, Textarea, useModalMessage, ModalMessage } from '@/ui';
+import {
+  theme,
+  Text,
+  Alert,
+  Button,
+  Chip,
+  Modal,
+  Input,
+  Textarea,
+  useModalMessage,
+  ModalMessage,
+  ButtonRow,
+  toast,
+} from '@/ui';
 import { offersApi } from '@/lib/api';
+import { apiErrorMessage } from '@/lib/api/errorText';
+import { IS_MAESTRO } from '@/config/maestro';
+import { usePriceLimits } from '@/hooks/usePriceLimits';
+import { offerNotificationPrompt } from '@/lib/notifications/prePrompt';
+import { offerPriceFloor } from '@/lib/shared/priceLimits';
 import { formatPrice } from '../../utils/format';
+import { MIN_OFFER_RATIO, offerPresets } from './offerPresets';
 
 const { colors } = theme;
 
@@ -16,13 +34,16 @@ interface MakeOfferModalProps {
   productTitle: string;
   /** Liste fiyatı (satıcının istediği fiyat) — kullanıcının altında teklif vermesi beklenir. */
   listPrice: number;
-  /** Başarılı gönderim sonrası callback (örn. snackbar). */
+  /** Başarılı gönderim sonrası callback (örn. toast) — modal o anda zaten kapalı. */
   onSuccess?: () => void;
 }
 
 /**
  * Ürün detayında "Teklif Ver" butonuna tıklayınca açılan modal.
  * Web `apps/web/src/app/listings/[id]/page.tsx:424` ile aynı `offersApi.create({ productId, amount, message })`.
+ *
+ * src/ui/CLAUDE.md › iOS modal rule: doğrulama hataları modal içinde (ModalMessage) gösterilir;
+ * geçerli teklifte modal ÖNCE kapanır, mutation sonra çalışır, sonuç toast'a düşer (iOS donma kuralı).
  */
 export default function MakeOfferModal({
   visible,
@@ -36,25 +57,29 @@ export default function MakeOfferModal({
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
   const msg = useModalMessage();
+  // Admin fiyat tabanı: ilanın etkin fiyatı tabana eşit/üstüyse teklif tabanın altına inemez.
+  const { minPrice } = usePriceLimits();
+  const floor = offerPriceFloor(minPrice, listPrice);
 
   const createOfferMutation = useMutation({
-    mutationFn: () =>
-      offersApi.create({
-        productId,
-        amount: parseFloat(amount),
-        message: message.trim() || undefined,
-      }),
+    // Değerler çağrı anında geçirilir: modal kapanınca form state'i sıfırlanıyor.
+    mutationFn: (vars: { amount: number; message?: string }) => offersApi.create({ productId, ...vars }),
+    onSuccess: () => {
+      onSuccess?.();
+      // Değer anı: teklif yanıtlandığında haberdar olmak için bildirim izni (uygunsa, bir kez).
+      void offerNotificationPrompt('offer');
+    },
+    onError: (e) => toast.error(apiErrorMessage(e, t('product.offerFailed'))),
   });
 
   const handleClose = () => {
     msg.clear();
     setAmount('');
     setMessage('');
-    createOfferMutation.reset();
     onDismiss();
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     msg.clear();
     const numeric = parseFloat(amount);
     if (!numeric || numeric <= 0) {
@@ -62,37 +87,43 @@ export default function MakeOfferModal({
       return;
     }
     // API kuralı: minimum teklif fiyatın %50'si (web paritesi) — yoksa ham 400 dönüyordu.
-    const minOffer = listPrice * 0.5;
+    const minOffer = listPrice * MIN_OFFER_RATIO;
     if (numeric < minOffer) {
-      msg.error(t('offer.minimumOfferErrorTl', { amount: minOffer.toLocaleString('tr-TR') }));
+      msg.error(t('offer.minimumOfferErrorTl', { amount: formatPrice(minOffer) }));
+      return;
+    }
+    if (floor != null && numeric < floor) {
+      msg.error(t('offer.minimumOfferFloorError', { amount: formatPrice(floor) }));
       return;
     }
     if (numeric >= listPrice) {
       msg.error(t('offer.aboveListPriceError'));
       return;
     }
-    try {
-      await createOfferMutation.mutateAsync();
-      onSuccess?.();
-      handleClose();
-    } catch (e: any) {
-      msg.error(e?.response?.data?.message || t('product.offerFailed'));
-    }
+    const vars = { amount: numeric, message: message.trim() || undefined };
+    handleClose();
+    createOfferMutation.mutate(vars);
   };
 
   const numeric = parseFloat(amount) || 0;
   const discount = listPrice > 0 && numeric > 0 ? listPrice - numeric : 0;
   const discountPct = listPrice > 0 && numeric > 0 ? Math.round(((listPrice - numeric) / listPrice) * 100) : 0;
+  // Hızlı teklif: liste fiyatından −%5/−%10/−%15 (tam TL); serbest giriş de açık.
+  const presets = offerPresets(listPrice, floor);
 
   return (
     <Modal isOpen={visible} onClose={handleClose} title={t('product.makeOffer')}>
       <View>
-        <Text style={styles.productTitle} numberOfLines={2}>
+        <Text variant="bodySm" weight="semibold" numberOfLines={2} style={styles.productTitle}>
           {productTitle}
         </Text>
         <View style={styles.priceRow}>
-          <Text style={styles.priceLabel}>{t('product.listPriceLine')}:</Text>
-          <Text style={styles.priceValue}>{formatPrice(listPrice)}</Text>
+          <Text variant="bodySm" tone="muted">
+            {t('product.listPriceLine')}:
+          </Text>
+          <Text variant="body" weight="bold">
+            {formatPrice(listPrice)}
+          </Text>
         </View>
 
         <Input
@@ -102,18 +133,32 @@ export default function MakeOfferModal({
           onChangeText={(v: string) => setAmount(v.replace(/[^\d.,]/g, '').replace(',', '.'))}
           // Maestro: numeric klavyede return tuşu yok → hideKeyboard çalışmıyor.
           // Test modunda default klavye (return var); input zaten rakam-dışını filtreler.
-          keyboardType={process.env.EXPO_PUBLIC_MAESTRO === '1' ? 'default' : 'numeric'}
+          keyboardType={IS_MAESTRO ? 'default' : 'numeric'}
           containerStyle={styles.input}
           placeholder={t('offer.amountPlaceholderExample')}
         />
 
-        {numeric > 0 && discount > 0 ? (
-          <View style={styles.discountInfo}>
-            <Ionicons name="trending-down" size={16} color={colors.success[600]!} />
-            <Text style={styles.discountText}>
-              {t('offer.discountBelowListText', { amount: formatPrice(discount), percent: discountPct })}
-            </Text>
+        {presets.length > 0 ? (
+          <View style={styles.presets} accessibilityLabel={t('offer.presetsLabel')}>
+            {presets.map((p) => (
+              <Chip
+                key={p.percent}
+                testID={`offer-preset-${p.percent}`}
+                label={`${t('offer.presetDiscount', { percent: p.percent })} · ${formatPrice(p.amount)}`}
+                selected={numeric === p.amount}
+                onPress={() => {
+                  msg.clear();
+                  setAmount(String(p.amount));
+                }}
+              />
+            ))}
           </View>
+        ) : null}
+
+        {numeric > 0 && discount > 0 ? (
+          <Alert variant="success" style={styles.input}>
+            {t('offer.discountBelowListText', { amount: formatPrice(discount), percent: discountPct })}
+          </Alert>
         ) : null}
 
         <Textarea
@@ -126,42 +171,30 @@ export default function MakeOfferModal({
           placeholder={t('product.offerMessagePlaceholder')}
         />
 
-        <View style={styles.warning}>
-          <Ionicons name="information-circle-outline" size={16} color={colors.info[600]!} />
-          <Text style={styles.warningText}>
-            {t('offer.offerDeliveryNotice')}
-          </Text>
-        </View>
+        <Alert variant="info">{t('offer.offerDeliveryNotice')}</Alert>
       </View>
 
-      <View style={styles.actions}>
+      <ButtonRow style={{ marginTop: theme.spacing[3] }}>
         <Button
           variant="ghost"
           title={t('listing.dismiss')}
           onPress={handleClose}
-          disabled={createOfferMutation.isPending}
         />
         <Button
           testID="offer-submit-button"
           variant="primary"
           title={t('offer.sendOffer')}
           onPress={handleSubmit}
-          isLoading={createOfferMutation.isPending}
           disabled={!numeric || createOfferMutation.isPending}
         />
-      </View>
+      </ButtonRow>
       <ModalMessage state={msg.state} />
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  productTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.heading,
-    marginBottom: theme.spacing[2],
-  },
+  productTitle: { marginBottom: theme.spacing[2] },
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -170,52 +203,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border.DEFAULT,
     marginBottom: theme.spacing[3],
   },
-  priceLabel: {
-    fontSize: 13,
-    color: colors.text.muted,
-  },
-  priceValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text.heading,
-  },
-  input: {
-    marginBottom: theme.spacing[2.5],
-  },
-  discountInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[1.5],
-    backgroundColor: colors.success[50]!,
-    padding: theme.spacing[2],
-    borderRadius: theme.radius.xl,
-    marginBottom: theme.spacing[3],
-  },
-  discountText: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.success[600]!,
-    fontWeight: '600',
-  },
-  warning: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: theme.spacing[1.5],
-    backgroundColor: colors.info[50]!,
-    padding: theme.spacing[2.5],
-    borderRadius: theme.radius.xl,
-    marginTop: theme.spacing[1],
-  },
-  warningText: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.info[600]!,
-    lineHeight: 16,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.spacing[2],
-    marginTop: theme.spacing[3],
-  },
+  input: { marginBottom: theme.spacing[2.5] },
+  presets: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing[2], marginBottom: theme.spacing[2.5] },
 });

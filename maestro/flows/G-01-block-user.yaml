@@ -4,8 +4,8 @@
 #
 # Engel kalıcı ve simetrik olduğu için akış SONUNDA engeli kaldırır (staging
 # verisi kirlenmesin). Metin seçicileri regex: iOS hiyerarşisi etiketleri
-# ", Sepete Ekle" gibi baştaki virgülle veriyor, Maestro ise TAM eşliyor.
-appId: com.tarodan.app
+# ", Teklif Ver" gibi baştaki virgülle veriyor, Maestro ise TAM eşliyor.
+appId: ${APP_ID}
 tags:
   - regression
 env:
@@ -16,7 +16,7 @@ env:
 - runFlow: ../subflows/open-tarodan.yaml
 
 # 1) Arama → ilan detayı
-- tapOn: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       id: "search-input"
@@ -26,17 +26,17 @@ env:
 - inputText: ${SEARCH_TERM}
 - extendedWaitUntil:
     visible:
-      text: ".*₺.*"
+      text: ".*[0-9],[0-9][0-9] TL.*"
     timeout: 60000
 - tapOn:
-    text: ".*₺.*"
+    text: ".*[0-9],[0-9][0-9] TL.*"
     index: 0
 - extendedWaitUntil:
     visible:
-      id: "product-detail-add-to-cart-button"
+      id: "product-report-button"
     timeout: 60000
 
-# 2) İlan detayındaki bayrak → şikayet/engelle sheet'i
+# 2) İlan detayındaki bayrak → şikayet/engelle eylem menüsü (ActionSheet; eylem sheet kapandıktan sonra çalışır)
 - tapOn:
     id: "product-report-button"
 - extendedWaitUntil:
@@ -61,7 +61,7 @@ env:
     text: ".*Engelleme başarısız.*"
 
 # 4) Profil → Engellenen Kullanıcılar
-- tapOn: "Profil"
+- runFlow: ../subflows/open-settings.yaml
 - scrollUntilVisible:
     element:
       id: "profile-blocked-users-link"
@@ -78,13 +78,14 @@ env:
 # 5) Engeli kaldır → liste boşalır (temizlik de bu adım)
 - tapOn:
     text: ".*Engeli Kaldır.*"
-# Başarı diyaloğunu kapat — üstünde dururken boş durum "görünür" sayılmıyor.
+# Başarı artık toast (diyalog yok); "Tamam" yalnız eski sürümde vardı.
 - extendedWaitUntil:
     visible:
       text: ".*Engel kaldırıldı.*"
     timeout: 30000
 - tapOn:
     text: "Tamam"
+    optional: true
 - extendedWaitUntil:
     visible:
       text: ".*Engellediğiniz kullanıcı yok.*"

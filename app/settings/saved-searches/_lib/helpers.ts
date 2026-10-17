@@ -1,4 +1,5 @@
 import type { SavedSearch } from './types';
+import { formatPriceRange } from '@/utils/format';
 
 export const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('tr-TR');
 
@@ -9,9 +10,7 @@ export const getFilterSummary = (filters: SavedSearch['filters']): string => {
   if (filters.scale) parts.push(filters.scale);
   if (filters.condition) parts.push(filters.condition);
   if (filters.minPrice || filters.maxPrice) {
-    const min = filters.minPrice ? `₺${filters.minPrice}` : '';
-    const max = filters.maxPrice ? `₺${filters.maxPrice}` : '';
-    parts.push(`${min}-${max}`);
+    parts.push(formatPriceRange(filters.minPrice, filters.maxPrice));
   }
   if (filters.tradeAvailable) parts.push('Takas');
   return parts.length > 0 ? parts.join(' • ') : 'Filtre yok';

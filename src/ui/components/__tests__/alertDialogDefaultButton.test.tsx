@@ -3,10 +3,15 @@
  * "Tamam" idi — İngilizce cihazda (App Review) karışık dil. Arayüz diliyle çözülür.
  */
 import React from 'react';
-import { act, render, screen } from '@testing-library/react-native';
+import { act, cleanup, render, screen } from '@testing-library/react-native';
 import i18n from '@/i18n/config';
-import { AlertDialogHost, appAlert } from '../AlertDialog';
+import { AlertDialogHost, appAlert, resetAlertQueueForTests } from '../AlertDialog';
 
+// Sökülen host gösterdiği alert'i modül kuyruğuna geri verir: sonraki teste sızmasın.
+afterEach(() => {
+  cleanup();
+  resetAlertQueueForTests();
+});
 afterAll(() => i18n.changeLanguage('tr'));
 
 it.each([

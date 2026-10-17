@@ -1,0 +1,22 @@
+export const PAGE_SIZE = 24;
+
+// NOT: Üst çubukların yüksekliği için tahmini bir sabit (eski COLLAPSIBLE_ESTIMATE)
+// bilerek YOK. Çubukların içeriği dinamik (aktif filtre çipleri satırı koşullu),
+// bu yüzden yükseklik yalnızca `onLayout` ile ölçülür; ölçüm gelene kadar liste
+// gizli tutulur (bkz. useSearch → barsMeasured). Tahmin + düzeltme turu listeyi
+// ilk boyamada yeniden yerleştiriyordu.
+
+// Sonuç ızgarasının listesi `numColumns` kullanıyor — tek kaynaktan gitsin
+// diye burada sabitliyoruz (search.tsx içindeki FlatList prop'u bunu import
+// ediyor). NOT: `getItemLayout` buradan kaldırıldı (bkz. task-3-report.md
+// düzeltme notu) — kart yüksekliği koşullu puan satırı + tek/iki satırlık
+// başlık nedeniyle 272.8–315.8pt arasında değişiyor, sabit değil.
+export const SEARCH_NUM_COLUMNS = 2;
+
+/**
+ * FlashList v2 geri dönüşüm penceresi (px): görünür alanın alt/üstünde bu kadar içerik önceden çizilir.
+ * FlatList'in `windowSize` / `initialNumToRender` / `maxToRenderPerBatch` ayarlarının karşılığıdır;
+ * hücreler geri dönüştürüldüğü için batch/pencere sayısı yerine tek ayar yeter. ~2 kart satırı
+ * (ızgarada ≈ 290pt/satır) hızlı kaydırmada boşluk göstermez, JS turunu da şişirmez.
+ */
+export const SEARCH_DRAW_DISTANCE = 600;

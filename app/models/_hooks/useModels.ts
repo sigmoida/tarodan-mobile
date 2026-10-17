@@ -1,20 +1,21 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { carModelsApi } from '@/lib/api';
+import { qk } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import type { Brand, CarModel } from '../_lib/types';
 
 /**
  * Models-browse controller — owns the car-models query, the search + brand
  * filter state, and the derived brands/filtered/grouped selectors. Lifted
- * verbatim from the monolithic screen (§12).
+ * verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
  */
 export function useModels() {
   const [search, setSearch] = useState('');
   const [selectedBrand, setSelectedBrand] = useState<string>('all');
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['car-models'],
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: qk.catalog.carModels(),
     queryFn: async () => {
       const response = await carModelsApi.findAll();
       const items: CarModel[] = (response.data as any) ?? [];
@@ -63,6 +64,11 @@ export function useModels() {
     selectedBrand,
     setSelectedBrand,
     isLoading,
+    /** Modeller alınamadı (önbellekte de yok) — "sonuç yok" değil, ErrorState. */
+    loadFailed: isError && !data,
+    retry: () => {
+      void refetch();
+    },
     refreshing,
     onRefresh,
     brands,

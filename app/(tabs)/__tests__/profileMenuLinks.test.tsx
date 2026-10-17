@@ -1,63 +1,75 @@
-import { render, fireEvent } from '@testing-library/react-native';
-import { router } from 'expo-router';
+import { fireEvent, render } from '@testing-library/react-native';
 import i18n from '@/i18n/config';
+import { renderWithProviders } from '@/test-utils';
+import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
+import { buildAccountPages } from '@/lib/menu/accountPages';
+import { LEGAL_WEB_DOCS } from '@/lib/legal/webDocs';
 import { ProfileMenuSections } from '../_components/ProfileSections';
-import { buildInfoPages, buildAccountPages } from '../_lib/infoPages';
+import SettingsScreen from '../../settings';
 
-const INFO_PAGES = buildInfoPages(i18n.t);
 const ACCOUNT_PAGES = buildAccountPages(i18n.t);
 
-jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
+// Menü satırları sayaç sorgusu ister; bu test yalnız rota sözleşmesini sınar.
+jest.mock('../_hooks/useHomeBadges', () => ({ useHomeBadges: () => ({ pendingOffers: 0, pendingTrades: 0 }) }));
+jest.mock('@/hooks/useMembershipTier', () => ({ useMembershipTier: () => ({ effectiveTier: 'free', isPaidTier: false }) }));
+jest.mock('@/stores/authStore', () => ({
+  useAuthStore: (sel?: (s: unknown) => unknown) => {
+    const state = { isAuthenticated: true, user: { id: 'u1' }, logout: jest.fn() };
+    return sel ? sel(state) : state;
+  },
+}));
 // Satın almanın açık olduğu platform (Android). iOS'ta ücretsiz kullanıcı
-// "Aboneliğim"i görmez — ios-subscription-menu.test.tsx.
+// "Üyelik Planı"nı görmez — app/settings/__tests__/settings-screen.test.tsx.
 jest.mock('@/lib/purchases', () => ({ CAN_BUY_DIGITAL: true }));
 
-const f: any = {
-  isPaidTier: false,
-  tierLabel: 'Free',
-  effectiveTier: 'free',
-  handleLogout: jest.fn(),
-  handleDeleteAccount: jest.fn(),
-};
-
-const CASES: [string, string][] = [
-  ['profile-payment-methods-link', '/settings/payment-methods'],
+/** Profilde (işlemler) duran satırlar. */
+const PROFILE_CASES: [string, string][] = [
   ['profile-payment-history-link', '/settings/payment-history'],
   ['profile-payments-link', '/settings/payments'],
-  ['profile-subscription-link', '/settings/subscription'],
   ['profile-saved-searches-link', '/settings/saved-searches'],
   ['profile-discounts-link', '/settings/discounts'],
 ];
+/** Ayarlar ekranında duran satırlar. */
+const SETTINGS_CASES: [string, string][] = [
+  ['profile-payment-methods-link', '/settings/payment-methods'],
+  ['profile-membership-link', '/membership'],
+  ['settings-edit-profile-link', '/settings/edit-profile'],
+];
 
-describe('profil menüsü — daha önce erişilemeyen ekranlar', () => {
-  beforeEach(() => jest.clearAllMocks());
+/** Hesap sayfalarından `following` Profil'de (Koleksiyon); gerisi (bülten) Ayarlar'da. */
+const PROFILE_ACCOUNT_ROUTES = ['following'];
 
-  it.each(CASES)('%s -> %s', (testID, route) => {
-    const { getByTestId } = render(<ProfileMenuSections f={f} />);
+describe('menü — her satır kendi ekranına gider', () => {
+  beforeEach(() => resetRouterMocks());
+
+  it.each(PROFILE_CASES)('profil: %s -> %s', (testID, route) => {
+    const { getByTestId } = renderWithProviders(<ProfileMenuSections />);
     fireEvent.press(getByTestId(testID));
-    expect(router.push).toHaveBeenCalledWith(route);
+    expect(pushMock).toHaveBeenCalledWith(route);
   });
 
-  it.each([...INFO_PAGES, ...ACCOUNT_PAGES].map((p) => [p.route] as [string]))(
-    'menüsüz kalan /%s ekranına gidilebiliyor',
+  it.each(SETTINGS_CASES)('ayarlar: %s -> %s', (testID, route) => {
+    const { getByTestId } = render(<SettingsScreen />);
+    fireEvent.press(getByTestId(testID));
+    expect(pushMock).toHaveBeenCalledWith(route);
+  });
+
+  it.each(ACCOUNT_PAGES.map((p) => [p.route] as [string]))(
+    'hesap sayfası /%s ekranına gidilebiliyor',
     (route) => {
-      const prefix = INFO_PAGES.some((p) => p.route === route) ? 'info' : 'account';
-      const { getByTestId } = render(<ProfileMenuSections f={f} />);
-      fireEvent.press(getByTestId(`profile-${prefix}-${route}-link`));
-      expect(router.push).toHaveBeenCalledWith(`/${route}`);
+      const inProfile = PROFILE_ACCOUNT_ROUTES.includes(route);
+      const { getByTestId } = inProfile ? renderWithProviders(<ProfileMenuSections />) : render(<SettingsScreen />);
+      fireEvent.press(getByTestId(`profile-account-${route}-link`));
+      expect(pushMock).toHaveBeenCalledWith(`/${route}`);
     },
   );
 
-  // CMS sayfaları (`/pages/*`) production'da yayınlanmamış (2026-09-29: 404),
-  // menü "Sayfa bulunamadı" gösteriyordu. Hukuki metinlerin uygulamada statik
-  // ekranı var — giriş/kayıt ekranındaki linkler de onları açıyor.
-  it.each([
-    ['privacy', '/privacy'],
-    ['terms', '/terms'],
-    ['cookie-policy', '/cookies'],
-  ])('hukuki sayfa %s statik ekrana (%s) gider', (slug, route) => {
-    const { getByTestId } = render(<ProfileMenuSections f={f} />);
+  // Yasal belgeler aynı adlı native rotaya gider (ekran web'in uygulama modu
+  // sayfasını WebView'de açar) — giriş/kayıt/onay ekranlarındaki linkler de.
+  it.each(LEGAL_WEB_DOCS.map((doc) => [doc, `/${doc}`]))('yasal belge %s kendi ekranına (%s) gider', (slug, route) => {
+    const { getByTestId } = render(<SettingsScreen />);
     fireEvent.press(getByTestId(`profile-legal-${slug}-link`));
-    expect(router.push).toHaveBeenCalledWith(route);
+    expect(pushMock).toHaveBeenCalledWith(route);
   });
 });

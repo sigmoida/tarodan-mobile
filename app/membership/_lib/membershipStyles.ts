@@ -1,291 +1,97 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
 
-const { colors } = theme;
+const { spacing, radiusRole } = theme;
 
-// Üyelik ekranının route-local stylesheet'i (monolitten birebir taşındı).
+/**
+ * Üyelik ekranının route-local stylesheet'i. Renk/yazı tipi/gölge burada yok: yüzeyler `Card` /
+ * `SectionCard` / `Alert`, metinler `Text` varyantları, düğmeler `Button` / `SegmentedButtons`.
+ * Plan kartları web'in telefon düzeni gibi dikey, tam genişlik, `gap-4`.
+ */
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.alt,
+  // Bekleyen ödeme bandı (tek dokunuşla checkout'a gider) — Alert köşesiyle aynı yarıçap.
+  pendingPressable: {
+    borderRadius: radiusRole.card,
+    overflow: 'hidden',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: theme.spacing[3],
+
+  // Mevcut plan
+  planBody: {
+    gap: spacing[2],
   },
-  errorBanner: {
+  // Abonelik özeti (dönem / sonraki ödeme ya da bitiş / kalan gün) — salt görüntüleme satırları.
+  detailList: {
+    gap: spacing[2],
+    marginTop: spacing[1],
+  },
+  detailRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: theme.spacing[2],
-    margin: theme.spacing[4],
-    padding: theme.spacing[3],
-    borderRadius: theme.radius['2xl'],
-    backgroundColor: colors.danger[50]!,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.danger[600]!,
+    gap: spacing[3],
   },
-  errorBannerText: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.danger[600]!,
+  manageRow: {
+    marginTop: spacing[1],
+    paddingVertical: spacing[3],
   },
-  errorBannerRetry: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.danger[600]!,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: colors.text.muted,
-  },
-  scrollView: {
+  manageRowText: {
     flex: 1,
   },
 
-  // Pending Payment Banner
-  pendingBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.warning[100]!,
-    borderColor: colors.warning[500]!,
-    borderWidth: 1,
-    marginHorizontal: theme.spacing[4],
-    marginTop: theme.spacing[4],
-    borderRadius: 12,
-    padding: theme.spacing[3.5],
-    gap: theme.spacing[2.5],
-  },
-  pendingBannerText: {
+  // "Planları Keşfet" kartı
+  exploreText: {
     flex: 1,
-  },
-  pendingTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.warning[800]!,
-  },
-  pendingSubtitle: {
-    fontSize: 12,
-    color: colors.warning[700]!,
-    marginTop: theme.spacing[0.5],
+    minWidth: 0,
+    gap: spacing[0.5],
   },
 
-  // Current Plan Card
-  currentPlanCard: {
-    backgroundColor: colors.surface.elevated,
-    marginHorizontal: theme.spacing[4],
-    marginTop: theme.spacing[4],
-    borderRadius: theme.radius['3xl'],
-    padding: theme.spacing[5],
-    alignItems: 'center',
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  currentPlanIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: theme.spacing[3],
-  },
-  currentPlanLabel: {
-    fontSize: 13,
-    color: colors.text.muted,
-    marginBottom: theme.spacing[1],
-  },
-  currentPlanName: {
-    fontSize: 22,
-    fontWeight: '700',
-  },
-  currentPlanExpiry: {
-    fontSize: 12,
-    color: colors.text.subtle,
-    marginTop: theme.spacing[1.5],
-  },
-  manageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[1.5],
-    marginTop: theme.spacing[3],
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
-    borderRadius: theme.radius.xl,
-    backgroundColor: colors.primary[50]!,
-  },
-  manageButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary[600]!,
-  },
-
-  // Toggle
-  toggleContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface.elevated,
-    marginHorizontal: theme.spacing[4],
-    marginTop: theme.spacing[5],
-    borderRadius: 12,
-    padding: theme.spacing[1],
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  toggleButton: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: theme.spacing[2.5],
-    borderRadius: theme.radius['2xl'],
-    gap: theme.spacing[1.5],
-  },
-  toggleButtonActive: {
-    backgroundColor: colors.primary[600]!,
-  },
-  toggleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.muted,
-  },
-  toggleTextActive: {
-    color: colors.white,
+  // Aylık / yıllık seçici
+  toggle: {
+    gap: spacing[2],
   },
   discountBadge: {
-    backgroundColor: colors.success[100]!,
-    paddingHorizontal: theme.spacing[1.5],
-    paddingVertical: theme.spacing[0.5],
-    borderRadius: theme.radius.lg,
-  },
-  discountBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.success[800]!,
+    alignSelf: 'center',
   },
 
-  // Tier Cards
-  tierCardsContainer: {
-    paddingHorizontal: theme.spacing[4],
-    paddingTop: theme.spacing[5],
-    paddingBottom: theme.spacing[2],
-    gap: theme.spacing[3],
+  // Plan kartları: dikey liste (web `grid-cols-1 gap-4`)
+  tierList: {
+    gap: spacing[4],
   },
-  tierCard: {
-    width: 280,
-    backgroundColor: colors.surface.elevated,
-    borderRadius: theme.radius['3xl'],
-    padding: theme.spacing[5],
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-    minHeight: 420,
+
+  // Plan kartı
+  tierBody: {
+    gap: spacing[3],
   },
-  popularBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[1],
-    borderTopRightRadius: 14,
-    borderBottomLeftRadius: 12,
-  },
-  popularBadgeText: {
-    color: colors.white,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  currentBadge: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
+  tierHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[1],
-    paddingHorizontal: theme.spacing[2.5],
-    paddingVertical: theme.spacing[1],
-    borderTopLeftRadius: 14,
-    borderBottomRightRadius: 12,
-  },
-  currentBadgeText: {
-    color: colors.white,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  tierIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: theme.spacing[3],
-    marginBottom: theme.spacing[2.5],
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing[3],
   },
   tierName: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: theme.spacing[1],
+    flexShrink: 1,
+  },
+  tierBadge: {
+    flexShrink: 0,
   },
   tierPriceRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'baseline',
-    marginBottom: theme.spacing[0.5],
-  },
-  tierPriceFree: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text.heading,
-  },
-  tierPrice: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text.heading,
-  },
-  tierPricePeriod: {
-    fontSize: 14,
-    color: colors.text.muted,
-    marginLeft: theme.spacing[0.5],
-  },
-  tierMonthlyEquiv: {
-    fontSize: 12,
-    color: colors.text.subtle,
-    marginBottom: theme.spacing[0.5],
-  },
-  tierDivider: {
-    height: 1,
-    backgroundColor: colors.border.DEFAULT,
-    marginVertical: theme.spacing[3.5],
+    columnGap: spacing[1],
   },
   tierFeatures: {
-    gap: theme.spacing[2.5],
+    gap: spacing[2.5],
   },
   tierFeatureRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[2],
+    alignItems: 'flex-start',
+    gap: spacing[2],
+  },
+  tierFeatureIcon: {
+    marginTop: spacing[0.5],
   },
   tierFeatureText: {
-    fontSize: 13,
-    color: colors.text.heading,
     flex: 1,
-  },
-  tierButton: {
-    marginTop: theme.spacing[4],
-    paddingVertical: theme.spacing[3],
-    borderRadius: theme.radius['2xl'],
-    alignItems: 'center',
-  },
-  tierButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
   },
 });

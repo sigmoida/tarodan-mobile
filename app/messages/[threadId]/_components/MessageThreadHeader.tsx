@@ -1,57 +1,70 @@
 import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Avatar, IconButton, Alert as UIAlert, Text, theme } from '@/ui';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActionSheet, Avatar, TopBarAction, Alert as UIAlert, Text, theme, Icon } from '@/ui';
+import { ScreenHeader } from '@/components/common/ScreenHeader';
 
 import ReportModal from '@/components/ReportModal';
-import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { styles } from '../_lib/styles';
 import type { MessageThreadController } from '../_hooks/useMessageThread';
 
-const { colors } = theme;
+const { colors, iconSize } = theme;
 
-/** Chat header (avatar, name, product), report modal, product banner + alerts. */
+/**
+ * Sohbet üst bölümü (web ChatHeader: beyaz bar, geri + avatar + ad/ürün + menü), menü
+ * ActionSheet'i, şikayet modalı, ürün bağlantı satırı ve uyarılar. PageShell'in `header` slotuna konur.
+ */
 export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
   const { t } = useTranslation();
   const { other, currentThread } = f;
-  const insets = useSafeAreaInsets();
   return (
     <>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
-        <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.white} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.headerContent}
-          onPress={() => other && router.push(`/seller/${other.id}`)}
-        >
-          <Avatar
-            size="md"
-            source={other?.avatarUrl || undefined}
-            name={other?.displayName?.charAt(0) || '?'}
+      {/* Üst bar: standart ScreenHeader (geri, yükseklik, güvenli alan ortak); başlık yerine
+          avatar + ad + ürün. Geri oku varsayılanı: geçmiş yoksa ana sekme. */}
+      <ScreenHeader
+        // Akışta (opak beyaz): bu `header` slotu bar + ürün bandı + uyarıları birlikte taşır.
+        floating={false}
+        title={other?.displayName || t('common.loading')}
+        titleSlot={
+          <Pressable
+            style={styles.headerContent}
+            onPress={() => other && router.push(`/seller/${other.id}`)}
+          >
+            <Avatar
+              size="md"
+              source={other?.avatarUrl || undefined}
+              name={other?.displayName?.charAt(0) || '?'}
+            />
+            <View style={styles.headerInfo}>
+              <Text variant="label" numberOfLines={1}>{other?.displayName || t('common.loading')}</Text>
+              {currentThread?.product && (
+                <Text variant="caption" tone="primary" numberOfLines={1}>
+                  {currentThread.product.title}
+                </Text>
+              )}
+            </View>
+          </Pressable>
+        }
+        right={
+          <TopBarAction
+            icon="ellipsis-vertical"
+            accessibilityLabel={t('common.more')}
+            onPress={f.handleHeaderMenu}
           />
-          <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>{other?.displayName || t('common.loading')}</Text>
-            {currentThread?.product && (
-              <Text style={styles.headerSubtitle} numberOfLines={1}>
-                {currentThread.product.title}
-              </Text>
-            )}
-          </View>
-        </TouchableOpacity>
+        }
+      />
 
-        <IconButton
-          icon="ellipsis-vertical"
-          accessibilityLabel={t('common.more')}
-          size="md"
-          onPress={f.handleHeaderMenu}
+      {other && (
+        <ActionSheet
+          isOpen={f.headerMenuOpen}
+          onClose={f.closeHeaderMenu}
+          title={other.displayName}
+          actions={f.headerMenuActions}
+          cancelLabel={t('common.cancel')}
+          testID="thread-menu-sheet"
         />
-      </View>
+      )}
 
       {other && (
         <ReportModal
@@ -65,32 +78,30 @@ export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
 
       {/* Product Banner */}
       {currentThread?.product && (
-        <TouchableOpacity
+        <Pressable
           style={styles.productBanner}
           onPress={() => router.push(`/product/${currentThread.product?.id}`)}
         >
-          <Ionicons name="pricetag" size={16} color={colors.primary[600]!} />
-          <Text style={styles.productBannerText} numberOfLines={1}>
+          <Text variant="bodySm" tone="primary" style={styles.productBannerText} numberOfLines={1}>
             {currentThread.product.title}
           </Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.text.muted} />
-        </TouchableOpacity>
+          <Icon name="chevron-right" size={iconSize.sm} color={colors.text.muted} />
+        </Pressable>
       )}
 
       {/* Message Limit Warning */}
-      {!f.isUnlimited && !f.canSend && (
-        <UIAlert variant="warning">
-          {CAN_BUY_DIGITAL
-            ? t('message.dailyLimitWarning', { count: f.messageLimit })
-            : t('message.dailyLimitReached', { count: f.messageLimit })}
-        </UIAlert>
+      {!f.canSend && (
+        // Limit platform genelinde tek değer (katmana göre değişmez); yükseltme vaadi yok.
+        <View style={styles.alertWrap}>
+          <UIAlert variant="warning">{t('message.dailyLimitReached', { count: f.messageLimit })}</UIAlert>
+        </View>
       )}
 
       {/* İçerik filtresi uyarısı */}
       {f.filterWarning ? (
-        <UIAlert variant="warning">
-          {f.filterWarning}
-        </UIAlert>
+        <View style={styles.alertWrap}>
+          <UIAlert variant="warning">{f.filterWarning}</UIAlert>
+        </View>
       ) : null}
     </>
   );

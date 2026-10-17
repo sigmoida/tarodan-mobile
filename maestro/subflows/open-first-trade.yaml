@@ -1,9 +1,8 @@
-# Profil → Takaslarım → ilk takas kartını aç.
+# Yan menü → Takaslarım → ilk takas kartını aç.
 # Pre-req: kullanıcı login + en az bir takas seed'li.
-appId: com.tarodan.app
+appId: ${APP_ID}
 ---
-- tapOn:
-    text: "Profil"
+- runFlow: open-profile-menu.yaml
 - extendedWaitUntil:
     visible:
       id: "profile-trades-link"

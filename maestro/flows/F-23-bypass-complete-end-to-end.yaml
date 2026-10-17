@@ -1,11 +1,11 @@
 # F-23: Bypass mode'da uçtan uca: ürün → Sepete Ekle → cart → checkout →
-# Devam Et → Ödemeyi Tamamla → bypass-complete → /payment/success.
+# mesafeli satış onayı → Ödeme Yap → bypass-complete → /payment/success.
 #
 # NOT (BUG-007 düzeltmesi): App sepet-tabanlı; eski "Hemen Al"/product-detail-buy-button
-# yok. Doğru zincir: product-detail-add-to-cart-button → Sepete Git →
-# cart-checkout-button → checkout (Teslimat → Devam Et → Ödeme → Ödemeyi Tamamla).
+# yok. Doğru zincir: product-detail-add-to-cart-button → sepet (tarodan://cart) →
+# cart-checkout-button → checkout (tek sayfa: onay kutusu → Ödeme Yap).
 # Pre-req: PAYMENT_BYPASS=true + zeynep'te kayıtlı teslimat adresi.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - smoke
 env:
@@ -14,8 +14,7 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 # Ara → ilk ürün
-- tapOn:
-    text: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       id: "search-input"
@@ -26,18 +25,21 @@ env:
 - waitForAnimationToEnd:
     timeout: 5000
 - tapOn:
-    text: ".*₺.*"
+    text: ".*[0-9],[0-9][0-9] TL.*"
     index: 0
-# Ürün detay → Sepete Ekle → Sepete Git
+# Ürün detay → Sepete Ekle → sepet (deep link; sepet adası yok)
 - extendedWaitUntil:
     visible:
-      id: "product-detail-add-to-cart-button"
+      id: "product-price"
     timeout: 15000
+# Sepet düğmesi sabit alt barda (kaydırma gerekmez); ürün zaten sepetteyse "Sepete Git".
+- extendedWaitUntil:
+    visible:
+      id: "product-detail-(add-to-cart|go-to-cart)-button"
+    timeout: 30000
 - tapOn:
-    id: "product-detail-add-to-cart-button"
-- tapOn:
-    text: "Sepete Git"
-    optional: true
+    id: "product-detail-(add-to-cart|go-to-cart)-button"
+- openLink: "tarodan://cart"
 # Cart → Satın Al → checkout
 - extendedWaitUntil:
     visible:
@@ -45,26 +47,28 @@ env:
     timeout: 15000
 - tapOn:
     id: "cart-checkout-button"
-# Checkout Step 1 (Teslimat) → Devam Et
-- extendedWaitUntil:
-    visible: "Teslimat Bilgileri"
-    timeout: 20000
-- tapOn:
-    text: "Devam Et.*"
-# Checkout Step 2 (Ödeme) → Ödemeyi Tamamla (bypass → success)
+# Checkout tek sayfa (web gibi): adres → ödeme yöntemi → özet + mesafeli satış onayı → Ödeme Yap
 - extendedWaitUntil:
     visible:
-      text: ".*Ödeme.*Tamamla.*|.*Ödemeyi.*"
+      id: "checkout-address"
     timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "checkout-distance-sales-checkbox"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
-    text: ".*Ödeme.*Tamamla.*|.*Ödemeyi.*"
+    id: "checkout-distance-sales-checkbox"
+- tapOn:
+    id: "checkout-pay-button"
+# Yasal kimlik eksikse kapı açılır (1.0.6) — çalıştırmada MAESTRO_TEST_TCKN verin.
+- runFlow: ../subflows/pass-identity-gate.yaml
 - extendedWaitUntil:
     visible:
       text: ".*başarı.*|Sipariş.*tamamland.*|Tamamlandı"
     timeout: 30000
-# Profil → Siparişlerim → yeni sipariş görünür
-- tapOn:
-    text: "Profil"
+# Yan menü → Siparişlerim → yeni sipariş görünür
+- runFlow: ../subflows/open-profile-menu.yaml
 - tapOn:
     id: "profile-orders-link"
 - assertVisible: "ORD-"

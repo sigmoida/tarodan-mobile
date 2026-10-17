@@ -1,0 +1,137 @@
+#!/usr/bin/env node
+// Sahte eas-cli — yalnız src/config/__tests__/releaseScript.test.ts için.
+// Veriyi $FAKE_DIR'den okur (builds.json, submissions.json, build-result.json),
+// her çağrıyı $FAKE_DIR/log'a yazar. JSON şekli eas-cli 24.x'in `--json`
+// çıktısıyla aynıdır (GraphQL BuildFragment / SubmissionWithSubmittedBuildFragment:
+// runtime.version, fingerprint.hash, updateChannel.name, appIdentifier, status
+// büyük harf enum).
+const fs = require('fs');
+const path = require('path');
+const dir = process.env.FAKE_DIR;
+const args = process.argv.slice(2);
+const flag = (f) => {
+  const i = args.indexOf(f);
+  return i < 0 ? undefined : args[i + 1];
+};
+const readJson = (name, dflt) => {
+  const p = path.join(dir, name);
+  return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : dflt;
+};
+const envSeen = ['EXPO_PUBLIC_ENVIRONMENT', 'EXPO_PUBLIC_API_URL']
+  .map((k) => `${k}=${process.env[k] ?? ''}`)
+  .join(' ');
+fs.appendFileSync(path.join(dir, 'log'), `eas ${args.join(' ')} | ${envSeen}\n`);
+const enumOf = (s) => s && s.toUpperCase().replace(/-/g, '_');
+const fail = Number(process.env[`FAKE_EAS_FAIL_${(args[0] || '').replace(/[^a-z]/gi, '_').toUpperCase()}`] || 0);
+if (fail) {
+  console.error(`fake eas: ${args[0]} başarısız (FAKE)`);
+  process.exit(fail);
+}
+
+switch (args[0]) {
+  case 'build:list': {
+    // Yalnız geçmiş sorgusunu (runtime filtresiz: kota/döngü koruması) düşür.
+    if (process.env.FAKE_EAS_FAIL_HISTORY && !args.includes('--runtime-version')) {
+      console.error('fake eas: build:list (geçmiş) başarısız (FAKE)');
+      process.exit(1);
+    }
+    // FAKE_BUILDS_SEQ="a.json,b.json": runtime filtreli ardışık sorgular sırayla bu
+    // dosyaları okur (sonuncusu tekrar eder) — bekleyen build'in bitişini taklit eder.
+    // "FAIL" girdisi o sorguyu başarısız kılar (geçici EAS hatası).
+    let source = 'builds.json';
+    if (process.env.FAKE_BUILDS_SEQ && args.includes('--runtime-version')) {
+      const seq = process.env.FAKE_BUILDS_SEQ.split(',');
+      const counter = path.join(dir, 'builds-seq');
+      const n = fs.existsSync(counter) ? Number(fs.readFileSync(counter, 'utf8')) : 0;
+      fs.writeFileSync(counter, String(n + 1));
+      source = seq[Math.min(n, seq.length - 1)];
+      if (source === 'FAIL') {
+        console.error('fake eas: build:list geçici hata (FAKE)');
+        process.exit(1);
+      }
+    }
+    let b = readJson(source, []);
+    const platform = flag('--platform');
+    if (platform && platform !== 'all') b = b.filter((x) => x.platform === platform.toUpperCase());
+    const profile = flag('--build-profile') ?? flag('-e');
+    if (profile) b = b.filter((x) => x.buildProfile === profile);
+    const rv = flag('--runtime-version');
+    // Sunucu filtresi. JSON'da runtime alanı hiç olmayan build, "sunucu eşledi ama
+    // CLI'nin JSON şekli değişti" durumunu taklit eder ve filtreden geçer.
+    const rtOf = (x) => (x.runtime && x.runtime.version) || x.runtimeVersion;
+    if (rv) b = b.filter((x) => rtOf(x) === undefined || rtOf(x) === rv);
+    const st = flag('--status');
+    if (st) b = b.filter((x) => x.status === enumOf(st));
+    const ch = flag('--channel');
+    if (ch) b = b.filter((x) => (x.updateChannel && x.updateChannel.name) === ch);
+    console.log(JSON.stringify(b.slice(0, Number(flag('--limit') || 10)), null, 2));
+    break;
+  }
+  case 'submit:list': {
+    let s = readJson('submissions.json', []);
+    const platform = flag('--platform');
+    if (platform && platform !== 'all') s = s.filter((x) => x.platform === platform.toUpperCase());
+    const st = flag('--status');
+    if (st) s = s.filter((x) => x.status === enumOf(st));
+    console.log(JSON.stringify(s.slice(0, Number(flag('--limit') || 10)), null, 2));
+    break;
+  }
+  case 'build': {
+    const result = readJson('build-result.json', null) ?? [
+      { id: 'new-build', status: 'FINISHED', platform: (flag('--platform') || '').toUpperCase() },
+    ];
+    console.log(JSON.stringify(result, null, 2));
+    process.exit(Number(process.env.FAKE_BUILD_EXIT || 0));
+  }
+  case 'env:list': {
+    // EAS sunucu ortam değişkenleri: $FAKE_DIR/eas-env-<ortam>-<kapsam>.txt (kapsam
+    // varsayılanı project; yoksa boş liste). FAKE_EAS_FAIL_ENV_LIST_SCOPE=<kapsam> o
+    // kapsamın sorgusunu düşürür.
+    const scope = flag('--scope') || 'project';
+    if (process.env.FAKE_EAS_FAIL_ENV_LIST_SCOPE === scope) {
+      console.error(`fake eas: env:list (${scope}) başarısız (FAKE)`);
+      process.exit(1);
+    }
+    const p = path.join(dir, `eas-env-${args[1]}-${scope}.txt`);
+    if (fs.existsSync(p)) process.stdout.write(fs.readFileSync(p, 'utf8'));
+    break;
+  }
+  case 'update': {
+    // Like the real export: a bundle and its source map (with the debugId the Expo
+    // serializer writes) per platform under ./dist.
+    // FAKE_UPDATE_NO_MAPS=<platform> leaves that platform's map out ("all": every one);
+    // FAKE_UPDATE_NO_DEBUGID, FAKE_UPDATE_SNAKE_DEBUGID and FAKE_UPDATE_BAD_MAP
+    // (each <platform|all>) write that map without a debugId, with `debug_id`
+    // instead (FAKE_UPDATE_NUMERIC_DEBUGID adds a non-string debugId next to it),
+    // or as invalid JSON. FAKE_UPDATE_MAP_BODY is the raw text of every map written
+    // (overrides the above); FAKE_UPDATE_EXTRA_MAP=<platform|all> adds a second map
+    // without a debugId next to that platform's good one.
+    const want = flag('--platform') || 'all';
+    const hit = (v, p) => v === 'all' || v === p;
+    for (const p of want === 'all' ? ['ios', 'android'] : [want]) {
+      const out = path.join(process.cwd(), `dist/_expo/static/js/${p}`);
+      fs.mkdirSync(out, { recursive: true });
+      fs.writeFileSync(path.join(out, 'index.hbc'), '');
+      if (hit(process.env.FAKE_UPDATE_NO_MAPS, p)) continue;
+      const id = `00000000-0000-4000-8000-00000000000${p.length}`;
+      const map = hit(process.env.FAKE_UPDATE_NO_DEBUGID, p)
+        ? {}
+        : hit(process.env.FAKE_UPDATE_SNAKE_DEBUGID, p)
+          ? { debug_id: id, ...(process.env.FAKE_UPDATE_NUMERIC_DEBUGID ? { debugId: 1 } : {}) }
+          : { debugId: id };
+      const bad = hit(process.env.FAKE_UPDATE_BAD_MAP, p);
+      const body = process.env.FAKE_UPDATE_MAP_BODY;
+      fs.writeFileSync(
+        path.join(out, 'index.hbc.map'),
+        body !== undefined ? body : bad ? '{"version": 3,' : JSON.stringify(map),
+      );
+      if (hit(process.env.FAKE_UPDATE_EXTRA_MAP, p)) fs.writeFileSync(path.join(out, 'extra.js.map'), '{"version":3}');
+    }
+    break;
+  }
+  case 'submit':
+    break;
+  default:
+    console.error(`fake eas: beklenmeyen komut ${args.join(' ')}`);
+    process.exit(2);
+}

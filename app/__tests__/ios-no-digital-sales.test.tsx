@@ -60,18 +60,16 @@ jest.mock('@/lib/api', () => ({
     getMyPayments: jest.fn(),
   },
 }));
-import { api, membershipApi, paymentsApi } from '@/lib/api';
+import { api, membershipApi } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import MembershipScreen from '../membership/index';
-import SubscriptionSettingsScreen from '../settings/subscription/index';
 import SavedSearchesScreen from '../settings/saved-searches/index';
 import CollectionsScreen from '../settings/collections';
 import { STORAGE_KEY } from '../settings/saved-searches/_lib/types';
 
 const mockGetMembership = membershipApi.getCurrentMembership as jest.Mock;
 const mockGetTiers = membershipApi.getTiers as jest.Mock;
-const mockGetMyPayments = paymentsApi.getMyPayments as jest.Mock;
 const mockApiGet = api.get as jest.Mock;
 
 describe('iOS: dijital satış çağrısı yok — üyelik ekranı', () => {
@@ -98,24 +96,6 @@ describe('iOS: dijital satış çağrısı yok — üyelik ekranı', () => {
     // Aylık/yıllık geçişi ve "en popüler" rozeti de fiyatlandırmanın parçası.
     expect(screen.queryByText('membership.monthly')).toBeNull();
     expect(screen.queryByText('membership.mostPopular')).toBeNull();
-  });
-});
-
-describe('iOS: dijital satış çağrısı yok — abonelik ayarları (ücretsiz kullanıcı)', () => {
-  beforeEach(() => {
-    resetRouterMocks();
-    mockAuthState = { isAuthenticated: true };
-    // Ücretsiz kullanıcı senaryosu: ios-reactivate-gate.test.tsx yalnız
-    // premium/iptal edilmiş durumları kapsıyor, "hiç abone olmayan" burada.
-    mockGetMembership.mockResolvedValue({ data: null });
-    mockGetMyPayments.mockResolvedValue({ data: [] });
-  });
-
-  it('kendi paket adı (Ücretsiz) görünür; yükseltme düğmesi ve promosu yok', async () => {
-    renderWithProviders(<SubscriptionSettingsScreen />);
-    expect(await screen.findByText('membership.freeMembership')).toBeTruthy();
-    expect(screen.queryByText('membership.upgradeToPremium')).toBeNull();
-    expect(screen.queryByText('membership.freePlanPromo')).toBeNull();
   });
 });
 

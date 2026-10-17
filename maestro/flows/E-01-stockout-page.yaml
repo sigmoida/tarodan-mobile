@@ -6,7 +6,7 @@
 # Bu flow, stockout fixture seed'ine bağımlıdır → gerçek bir productId gerek.
 # Eğer fixture yoksa Network/yükleme hatası olmaz, ama hero başlığı çıkmayabilir →
 # tags: [manual] altında işaretledik.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 env:
@@ -16,10 +16,11 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 # Deep link to unavailable page

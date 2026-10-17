@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, Modal, Text, theme } from '@/ui';
+import { Button, Modal, Text, theme, ButtonRow } from '@/ui';
 import { useOrderShipment } from '@/hooks/useOrderShipment';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { styles } from '../_lib/styles';
@@ -8,6 +8,8 @@ import type { SaleActionsController } from '../_hooks/useSaleActions';
 
 /**
  * Kargoya verme onay diyaloğu — numara artık sunucu üretiyor, elle giriş yok.
+ * Onaylayınca ÖNCE kapanır, istek SONRA gider (`handleShip`, src/ui/CLAUDE.md › iOS modal rule) — düğme yükleniyor beklemez;
+ * ilerleme satış kartındaki spinner'da, sonuç toast/diyalogla gelir.
  *
  * Şubede verilecek numara İÇ REFERANSTIR (`trackingNumber`, `PKG-…`), gerçek
  * Sürat kodu değil — Sürat kodu şube kabulünden SONRA doluyor. Yönerge metni
@@ -15,7 +17,7 @@ import type { SaleActionsController } from '../_hooks/useSaleActions';
  */
 export function ShipDialog({ actions }: { actions: SaleActionsController }) {
   const { t } = useTranslation();
-  const { shipDialog, setShipDialog, handleShip, updateStatusMutation } = actions;
+  const { shipDialog, setShipDialog, handleShip } = actions;
   const { shipment } = useOrderShipment(shipDialog.order?.id);
   const { reference } = deriveShipmentView(shipment);
 
@@ -42,7 +44,7 @@ export function ShipDialog({ actions }: { actions: SaleActionsController }) {
           <Text variant="body">{t('order.cargoRefInstructions')}</Text>
         </>
       ) : null}
-      <View style={styles.dialogActions}>
+      <ButtonRow style={{ marginTop: theme.spacing[4] }}>
         <Button
           variant="ghost"
           title={t('common.cancel')}
@@ -52,9 +54,8 @@ export function ShipDialog({ actions }: { actions: SaleActionsController }) {
           variant="primary"
           title={t('order.statusShipped')}
           onPress={handleShip}
-          isLoading={updateStatusMutation.isPending}
         />
-      </View>
+      </ButtonRow>
     </Modal>
   );
 }

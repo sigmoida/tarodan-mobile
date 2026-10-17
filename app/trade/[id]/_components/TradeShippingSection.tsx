@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Pressable, Linking, StyleSheet } from 'react-native';
-import { Card, Text, Button, theme } from '@/ui';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { View, Pressable, StyleSheet } from 'react-native';
+import { openExternalUrlSafely } from '@/lib/security/openExternalUrl';
+import { SectionCard, Text, Button, theme, Icon } from '@/ui';
 import { buildTrackingUrl, deriveShipmentView } from '@/lib/shipping/tracking';
 import { ShipmentStatusChip } from './ShipmentStatusChip';
 import { renderOtherShipmentHint } from '../_lib/status';
@@ -13,10 +13,10 @@ const { colors } = theme;
 /** Link ELLE BİRLEŞTİRİLMEZ — tek kaynak `buildTrackingUrl` (§ kargo takibi). */
 const openSuratTrack = (code: string) => {
   const url = buildTrackingUrl('surat', code);
-  if (url) Linking.openURL(url);
+  if (url) void openExternalUrlSafely(url);
 };
 
-// 'Sürat Kargo' bir taşıyıcı markası — özel ad, çevrilmez (CLAUDE.md kural 4).
+// 'Sürat Kargo' bir taşıyıcı markası — özel ad, çevrilmez (src/i18n/CLAUDE.md › Proper names).
 const carrierLabel = (s: TradeShipment) =>
   (s.carrier === 'surat' ? 'Sürat Kargo' : s.carrier || '—') +
   (s.trackingNumber ? ` · ${s.trackingNumber}` : '');
@@ -25,7 +25,7 @@ const carrierLabel = (s: TradeShipment) =>
  * Gönderi → takip görünümü. `TradeShipment.carrier` field'ını
  * `deriveShipmentView`'ün beklediği `provider`'a eşler ve `cargoCode`'u
  * fallback olarak verir — üç kart (depoya-giriş/alıcıya-çıkış/iade) bu
- * eşlemeyi paylaşır (CLAUDE.md §5: tekrar eden blok çıkarılır).
+ * eşlemeyi paylaşır (CLAUDE.md › Principles: tekrar eden blok çıkarılır).
  */
 function shipmentTrackingView(s: TradeShipment | null | undefined) {
   if (!s) return deriveShipmentView(null);
@@ -36,7 +36,6 @@ function CopyBtn({ code, onCopy, t }: { code?: string | null; onCopy: (c?: strin
   if (!code) return null;
   return (
     <Pressable onPress={() => onCopy(code)} style={styles.copyBtn} hitSlop={8}>
-      <Ionicons name="copy-outline" size={16} color={colors.primary[600]!} />
       <Text variant="caption" tone="primary" weight="medium">{t('common.copy')}</Text>
     </Pressable>
   );
@@ -85,11 +84,10 @@ export function TradeShippingSection({
     <>
       {/* Legacy Kargo Durumu — yalnızca eski (direkt-kargo) takaslarda. */}
       {(myTrackingNumber || theirTrackingNumber) && (
-        <Card style={styles.card}>
-          <Text variant="label" style={styles.sectionTitle}>{t('trade.shippingStatus.title')}</Text>
+        <SectionCard title={t('trade.shippingStatus.title')} bodyStyle={styles.stack}>
           <View style={styles.shippingRow}>
-            <Ionicons
-              name={myTrackingNumber ? 'checkmark-circle' : 'ellipse-outline'}
+            <Icon
+              name={myTrackingNumber ? 'check-circle' : 'clock'} variant={myTrackingNumber ? 'solid' : 'outline'}
               size={20}
               color={myTrackingNumber ? colors.success[600]! : colors.text.muted}
             />
@@ -98,8 +96,8 @@ export function TradeShippingSection({
             </Text>
           </View>
           <View style={styles.shippingRow}>
-            <Ionicons
-              name={theirTrackingNumber ? 'checkmark-circle' : 'ellipse-outline'}
+            <Icon
+              name={theirTrackingNumber ? 'check-circle' : 'clock'} variant={theirTrackingNumber ? 'solid' : 'outline'}
               size={20}
               color={theirTrackingNumber ? colors.success[600]! : colors.text.muted}
             />
@@ -118,20 +116,14 @@ export function TradeShippingSection({
                        diğer üç karttan farklı olarak burada "kod hazırlanıyor"
                        yazmıyoruz, çünkü asla hazır olmayacak bir şeyi "hazırlanıyor"
                        demek yanıltıcı olurdu. Bu ayrımı "tutarlılık" adına kaldırmayın. */}
-        </Card>
+        </SectionCard>
       )}
 
       {/* Inbound shipment info (Sürat Kargo, auto-issued). */}
       {['shipping_to_warehouse', 'at_warehouse', 'admin_reviewing'].includes(trade.status) &&
         myToWarehouseShipment?.trackingNumber &&
         (isInitiator || isReceiver) && (
-          <Card style={{ ...styles.card, ...styles.inboundCard }} testID="trade-inbound-card">
-            <View style={styles.shippingRow}>
-              <MaterialCommunityIcons name="truck-fast-outline" size={22} color={colors.primary[600]!} />
-              <Text variant="label" style={{ ...styles.sectionTitle, marginBottom: theme.spacing[0], flex: 1 }}>
-                {t('trade.warehouseShipping.title')}
-              </Text>
-            </View>
+          <SectionCard title={t('trade.warehouseShipping.title')} testID="trade-inbound-card" bodyStyle={styles.stack}>
             <Text variant="caption" style={styles.protectionDesc}>{t('trade.warehouseShipping.subtitle')}</Text>
             <View style={styles.inboundShipBox}>
               <Text variant="caption" style={styles.messageSender}>{t('trade.warehouseShipping.yourShipment')}</Text>
@@ -163,16 +155,12 @@ export function TradeShippingSection({
             <Text variant="caption" style={styles.inboundShipHint}>
               {renderOtherShipmentHint(otherToWarehouseShipment?.status, t)}
             </Text>
-          </Card>
+          </SectionCard>
         )}
 
       {/* Shipping to recipients — outbound from warehouse. */}
       {trade.status === 'shipping_to_recipients' && (isInitiator || isReceiver) && (
-        <Card style={{ ...styles.card, ...styles.inboundCard }} testID="trade-outbound-card">
-          <View style={styles.shippingRow}>
-            <MaterialCommunityIcons name="truck-delivery-outline" size={22} color={colors.info[600]!} />
-            <Text variant="label" style={{ ...styles.sectionTitle, marginBottom: theme.spacing[0], flex: 1 }}>{t('trade.shipmentOnWay')}</Text>
-          </View>
+        <SectionCard title={t('trade.shipmentOnWay')} testID="trade-outbound-card" bodyStyle={styles.stack}>
           {myFromWarehouseShipment ? (
             <View style={styles.inboundShipBox}>
               <Text variant="caption" style={styles.messageSender}>{t('trade.shippedToYou')}</Text>
@@ -210,16 +198,12 @@ export function TradeShippingSection({
               </View>
             </View>
           ) : null}
-        </Card>
+        </SectionCard>
       )}
 
       {/* Return shipment tracking. */}
       {trade.status === 'returning' && myReturnShipment && (
-        <Card style={{ ...styles.card, ...styles.inboundCard }} testID="trade-return-card">
-          <View style={styles.shippingRow}>
-            <MaterialCommunityIcons name="truck-fast-outline" size={22} color={colors.warning[600]!} />
-            <Text variant="label" style={{ ...styles.sectionTitle, marginBottom: theme.spacing[0], flex: 1 }}>{t('trade.returnShipment')}</Text>
-          </View>
+        <SectionCard title={t('trade.returnShipment')} testID="trade-return-card" bodyStyle={styles.stack}>
           <View style={styles.inboundShipBox}>
             <View style={styles.trackingCodeRow}>
               <Text style={[styles.inboundTrackingNumber, { flex: 1 }]} numberOfLines={1}>
@@ -241,46 +225,42 @@ export function TradeShippingSection({
               <Text variant="caption" style={styles.inboundShipHint}>{t('shipping.codePending')}</Text>
             ) : null}
           </View>
-        </Card>
+        </SectionCard>
       )}
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { margin: theme.spacing[4], marginTop: theme.spacing[0], backgroundColor: colors.surface.DEFAULT },
-  sectionTitle: { marginBottom: theme.spacing[3], color: colors.text.heading },
-  shippingRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2], marginBottom: theme.spacing[2] },
+  stack: { gap: theme.spacing[2] },
+  shippingRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] },
   shippingText: { flex: 1 },
   trackButton: { marginTop: theme.spacing[2] },
-  protectionDesc: { color: colors.text.muted, marginTop: theme.spacing[0.5] },
-  messageSender: { color: colors.primary[600]!, fontWeight: '500', marginBottom: theme.spacing[1] },
-  inboundCard: { borderWidth: 1, borderColor: colors.border.DEFAULT },
+  protectionDesc: { color: colors.text.muted },
+  messageSender: { color: colors.primary[600]!, fontWeight: theme.typography.fontWeight.medium },
   inboundShipBox: {
-    marginTop: theme.spacing[3],
     padding: theme.spacing[3],
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radiusRole.card,
     borderWidth: 1,
     borderColor: colors.border.DEFAULT,
     backgroundColor: colors.surface.alt,
+    gap: theme.spacing[1],
   },
   inboundTrackingNumber: {
     fontFamily: 'Courier',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.bold,
     color: colors.text.heading,
-    marginTop: theme.spacing[1],
   },
-  inboundChipRow: { flexDirection: 'row', marginTop: theme.spacing[2] },
-  trackingCodeRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2], marginTop: theme.spacing[1] },
+  inboundChipRow: { flexDirection: 'row', marginTop: theme.spacing[1] },
+  trackingCodeRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2] },
   copyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing[1],
     paddingHorizontal: theme.spacing[2],
     paddingVertical: theme.spacing[1.5],
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radiusRole.button,
     backgroundColor: colors.primary[50]!,
   },
-  inboundShipHint: { color: colors.text.muted, marginTop: theme.spacing[2] },
+  inboundShipHint: { color: colors.text.muted },
 });

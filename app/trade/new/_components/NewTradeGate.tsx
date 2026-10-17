@@ -1,9 +1,8 @@
 import React from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Button, ScreenHeader, Text, theme } from '@/ui';
+import { Button, ScreenHeader, Text, theme, Icon } from '@/ui';
 import UpgradeCta from '@/components/UpgradeCta';
 
 import { getUpgradeMessage } from '@/utils/membershipLimits';
@@ -22,33 +21,34 @@ export function NewTradeGate({ f }: { f: NewTradeController }) {
     const upgradeInfo = getUpgradeMessage(t, 'tradeFeature');
     return (
       <View style={styles.container}>
-        <ScreenHeader title={t('product.trade')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
+        <ScreenHeader floating={false} title={t('product.trade')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
 
         <View style={styles.premiumRequired}>
-          <MaterialCommunityIcons name="swap-horizontal" size={80} color={colors.primary[600]!} />
+          <Icon name="arrows-right-left" size={80} color={colors.primary[600]!} />
           <Text variant="h2" style={styles.premiumTitle}>{upgradeInfo.title}</Text>
           <Text variant="body" style={styles.premiumSubtitle}>{upgradeInfo.message}</Text>
 
-          {/* Ücretli kademe özellik listesi + yükseltme düğmesi iOS'ta kapalı:
-              uygulama içinde ücretli kademeden söz etmek/satmak Apple IAP'siz
-              yapılamıyor (Guideline 3.1.1 / 3.1.3). Başlık + nötr mesaj + "Geri"
-              kalır ki ekran kendini açıklasın ve kullanıcı çıkabilsin. */}
+          {/* Ücretli kademe özellik listesi + yükseltme düğmesi mağaza sürümlerinde (iOS + Android,
+              `CAN_BUY_DIGITAL=false`) kapalı: uygulama içinde ücretli kademeden söz etmek/satmak
+              mağaza ödeme kurallarına aykırı (Apple 3.1.1 / 3.1.3, Play). Başlık + nötr mesaj +
+              "Geri" kalır — ürün detayındaki Takas Teklifi dialog'uyla AYNI metin
+              (`getUpgradeMessage('tradeFeature')`). */}
           <UpgradeCta>
             <View style={styles.premiumFeatures}>
               <View style={styles.premiumFeature}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
+                <Icon name="check-circle" variant="solid" size={20} color={colors.success[600]!} />
                 <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureCreate')}</Text>
               </View>
               <View style={styles.premiumFeature}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
+                <Icon name="check-circle" variant="solid" size={20} color={colors.success[600]!} />
                 <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureCounter')}</Text>
               </View>
               <View style={styles.premiumFeature}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
+                <Icon name="check-circle" variant="solid" size={20} color={colors.success[600]!} />
                 <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureCash')}</Text>
               </View>
               <View style={styles.premiumFeature}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
+                <Icon name="check-circle" variant="solid" size={20} color={colors.success[600]!} />
                 <Text style={styles.premiumFeatureText}>{t('trade.premiumFeatureProtection')}</Text>
               </View>
             </View>

@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
 import { useZodForm } from '@/ui/form';
 import { sellerDocumentsApi } from '@/lib/api';
-import { qk } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import { REUPLOADABLE_STATUSES } from '../_lib/documents';
 import {
   buildApplicationDetailsSchema,
@@ -15,13 +14,6 @@ import {
 import type { CorporateApplication, SellerDocument } from '../_lib/types';
 
 export type BusinessApplicationTab = 'details' | 'stakeholders' | 'documents';
-
-/** Sunucu hata mesajı string veya string[] olabilir (NestJS doğrulama dizisi). */
-const errorText = (e: unknown, fallback: string) => {
-  const raw = (e as { response?: { data?: { message?: string | string[] } } })?.response?.data
-    ?.message;
-  return Array.isArray(raw) ? raw.join('\n') : raw || fallback;
-};
 
 /** Başvuru sorgusu 400/404 döndüyse "henüz başvuru yok" demektir; başka bir hata değil. */
 const isMissingStatus = (e: unknown) => {
@@ -38,7 +30,6 @@ const isMissingStatus = (e: unknown) => {
  */
 export function useBusinessApplication() {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const [tab, setTab] = useState<BusinessApplicationTab>('details');
 
   const applicationQuery = useQuery({
@@ -58,10 +49,7 @@ export function useBusinessApplication() {
   const stakeholders = application?.stakeholders ?? [];
   const isLocked = application?.status === 'under_review';
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: qk.sellerDocuments.application });
-    queryClient.invalidateQueries({ queryKey: qk.sellerDocuments.list });
-  };
+  const applicationKeys = [qk.sellerDocuments.application, qk.sellerDocuments.list] as const;
 
   const detailsForm = useZodForm(buildApplicationDetailsSchema(t), {
     values: {
@@ -75,47 +63,45 @@ export function useBusinessApplication() {
     },
   });
 
-  const detailsMutation = useMutation({
-    mutationFn: (values: ApplicationDetailsForm) =>
+  const detailsMutation = useAppMutation(
+    (values: ApplicationDetailsForm) =>
       // Boş alanları gönderme — backend kısmi güncelleme yapıyor.
       sellerDocumentsApi.updateApplication(
         Object.fromEntries(
           Object.entries(values).filter(([, v]) => typeof v === 'string' && v !== ''),
         ) as Record<string, string>,
       ),
-    onSuccess: () => {
-      invalidate();
-      appAlert(t('businessApplication.detailsSavedTitle'), t('businessApplication.detailsSavedBody'));
+    {
+      invalidates: applicationKeys,
+      success: t('businessApplication.detailsSavedBody'),
+      error: t('businessApplication.detailsSaveFailed'),
     },
-    onError: (e) => appAlert(t('common.error'), errorText(e, t('businessApplication.detailsSaveFailed'))),
-  });
+  );
 
   const stakeholderForm = useZodForm(buildStakeholderSchema(t), {
     defaultValues: { fullName: '', identityType: 'tckn', identityNumber: '' },
   });
 
-  const stakeholderMutation = useMutation({
-    mutationFn: (values: StakeholderForm) =>
+  const stakeholderMutation = useAppMutation(
+    (values: StakeholderForm) =>
       sellerDocumentsApi.addStakeholder({
         fullName: values.fullName,
         identityType: values.identityType,
         ...(values.identityNumber ? { identityNumber: values.identityNumber } : {}),
       }),
-    onSuccess: () => {
-      invalidate();
-      stakeholderForm.reset({ fullName: '', identityType: 'tckn', identityNumber: '' });
-      appAlert(t('businessApplication.stakeholderAddedTitle'), t('businessApplication.stakeholderAddedBody'));
+    {
+      invalidates: applicationKeys,
+      success: t('businessApplication.stakeholderAddedBody'),
+      error: t('businessApplication.stakeholderAddFailed'),
+      onSuccess: () =>
+        stakeholderForm.reset({ fullName: '', identityType: 'tckn', identityNumber: '' }),
     },
-    onError: (e) => appAlert(t('common.error'), errorText(e, t('businessApplication.stakeholderAddFailed'))),
-  });
+  );
 
-  const submitMutation = useMutation({
-    mutationFn: () => sellerDocumentsApi.submit(),
-    onSuccess: () => {
-      invalidate();
-      appAlert(t('businessApplication.submittedTitle'), t('businessApplication.submittedBody'));
-    },
-    onError: (e) => appAlert(t('businessApplication.submitFailedTitle'), errorText(e, t('businessApplication.submitFailed'))),
+  const submitMutation = useAppMutation(() => sellerDocumentsApi.submit(), {
+    invalidates: applicationKeys,
+    success: t('businessApplication.submittedBody'),
+    error: t('businessApplication.submitFailed'),
   });
 
   /** Bir belge türünün (paydaş kimliğinde stakeholderId ile) yüklenmiş kaydı. */

@@ -1,8 +1,12 @@
 import { api } from "./client";
+import { apiPath } from "./path";
+import { DOCUMENT_UPLOAD_TIMEOUT_MS } from "./media";
+import { appendRNFile } from "./formData";
 
 // User API - Web ile aynı endpoint'ler
 export const userApi = {
-  getProfile: () => api.get("/users/me"),
+  /** `config`: yalnız açılışın ertelenmiş oturum denemesi `SESSION_PROBE` verir (`./sessionState`). */
+  getProfile: (config?: object) => api.get("/users/me", config),
   updateProfile: (
     data:
       | {
@@ -43,26 +47,26 @@ export const userApi = {
   getAnalytics: (params?: { period?: "7d" | "30d" | "90d" }) =>
     api.get("/users/me/analytics", { params }),
   /** Kullanıcının public profili — backend: GET /users/:id/profile */
-  getPublicProfile: (userId: string) => api.get(`/users/${userId}/profile`),
+  getPublicProfile: (userId: string) => api.get(apiPath`/users/${userId}/profile`),
   /** Kullanıcının takip durumu (sen onu takip ediyor musun?) — GET /users/:id/follow */
-  getFollowStatus: (userId: string) => api.get(`/users/${userId}/follow`),
+  getFollowStatus: (userId: string) => api.get(apiPath`/users/${userId}/follow`),
   /** Takip ettiklerim — GET /users/me/following */
   getMyFollowing: () => api.get("/users/me/following"),
   // Engelleme (Apple App Review 1.2: kalıcı, simetrik; web ile aynı uçlar —
   // sözleşme: ana repo `docs/USER_BLOCKING.md`).
   /** Hedefi engelledim mi? Menüde Engelle / Engeli Kaldır ayrımı için. */
   getBlockStatus: (userId: string) =>
-    api.get<{ blocked: boolean }>(`/users/${userId}/block`),
+    api.get<{ blocked: boolean }>(apiPath`/users/${userId}/block`),
   /** Engelle. `reason` yalnız admin bildiriminde görünür (≤500 karakter). */
   block: (userId: string, reason?: string) =>
-    api.post(`/users/${userId}/block`, reason ? { reason } : {}),
-  unblock: (userId: string) => api.delete(`/users/${userId}/block`),
+    api.post(apiPath`/users/${userId}/block`, reason ? { reason } : {}),
+  unblock: (userId: string) => api.delete(apiPath`/users/${userId}/block`),
   /** Engellediğim kullanıcılar */
   getBlockedUsers: () => api.get<BlockedUser[]>("/users/me/blocked"),
-  follow: (userId: string) => api.post(`/users/${userId}/follow`),
-  unfollow: (userId: string) => api.delete(`/users/${userId}/follow`),
+  follow: (userId: string) => api.post(apiPath`/users/${userId}/follow`),
+  unfollow: (userId: string) => api.delete(apiPath`/users/${userId}/follow`),
   /** Satıcı vitrin görüntülenmesini artır — backend: POST /users/:id/view. Vitrin başına 1 kez çağrılmalı. */
-  incrementStoreView: (userId: string) => api.post(`/users/${userId}/view`),
+  incrementStoreView: (userId: string) => api.post(apiPath`/users/${userId}/view`),
   /** İşletme satıcısına yükselt — backend: POST /users/me/seller */
   upgradeToSeller: (data: {
     companyName?: string;
@@ -122,9 +126,10 @@ export const sellerDocumentsApi = {
     const formData = new FormData();
     formData.append("documentType", documentType);
     if (stakeholderId) formData.append("stakeholderId", stakeholderId);
-    formData.append("file", file as unknown as Blob);
+    appendRNFile(formData, "file", file);
     return api.post("/users/me/seller-documents", formData, {
       headers: { "Content-Type": "multipart/form-data" },
+      timeout: DOCUMENT_UPLOAD_TIMEOUT_MS,
     });
   },
   /** Başvuru yoksa backend 400/404 döner — çağıran taraf "başvuru yok" olarak ele alır. */
@@ -139,16 +144,17 @@ export const sellerDocumentsApi = {
   submit: () => api.post("/users/me/seller-documents/application/submit"),
   /** Belge kararına itiraz. */
   appeal: (documentId: string, note: string) =>
-    api.post(`/users/me/seller-documents/${documentId}/appeal`, { note }),
+    api.post(apiPath`/users/me/seller-documents/${documentId}/appeal`, { note }),
 };
 
 // Seller Bank Account (IBAN) — backend: GET/PATCH/DELETE /users/me/bank-account
 export const bankAccountApi = {
   get: () => api.get("/users/me/bank-account"),
+  // `tcKimlikNo` BİLEREK yok (delta 23 §3): TCKN'nin tek kaynağı yasal kimlik;
+  // API alanı eski istemciler için kabul ediyor, gönderilmezse kayıtlı değere dokunmuyor.
   upsert: (data: {
     accountHolder: string;
     iban: string;
-    tcKimlikNo?: string;
     taxId?: string;
   }) => api.patch("/users/me/bank-account", data),
   remove: () => api.delete("/users/me/bank-account"),

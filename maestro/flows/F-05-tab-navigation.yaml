@@ -1,6 +1,10 @@
-# F-05: Tab navigation comprehensive — login → her bottom tab.
-# Sell/Ekle tab i18n key fallback nedeniyle özel: tab order ile gez.
-appId: com.tarodan.app
+# F-05: Tab navigation comprehensive — login → her bottom tab, alt menü sırasıyla (Ana Sayfa, Favoriler,
+# Sepet, Profil; sağda ayrı "+" İlan Ver). Arama tab değil; üst bar arama alanından açılır
+# (subflows/open-search.yaml). Mesajlar ve Bildirimler tab değil: her sekme kökünün üst barının
+# sağındaki iki düğmeden açılan yığın ekranları (geri oku ile dönülür).
+# Sekmelere dokunma testID ile (tab-home, tab-favorites, tab-cart, tab-profile, tab-sell); üst bar
+# düğmeleri app-shell-messages / app-shell-notifications.
+appId: ${APP_ID}
 tags:
   - smoke
 env:
@@ -9,41 +13,72 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 # 1. Ana Sayfa
 - tapOn:
-    text: "Ana Sayfa"
+    id: "tab-home"
 - extendedWaitUntil:
     visible:
       text: "Ana Sayfa"
     timeout: 15000
 - assertNotVisible: ".*Network Error.*"
-# 2. Ara
+# 2. Favoriler (sekme kökü)
 - tapOn:
-    text: "Ara"
+    id: "tab-favorites"
 - extendedWaitUntil:
     visible:
-      id: "search-input"
+      text: "Favorilerim.*"
     timeout: 20000
+- assertNotVisible: ".*Network Error.*"
+# 2a. Sepet (sekme kökü)
+- tapOn:
+    id: "tab-cart"
+- extendedWaitUntil:
+    visible:
+      text: "Sepetim"
+    timeout: 15000
+- assertNotVisible: ".*Network Error.*"
+# 2b. Arama: tab değil, üst bardaki arama alanı (tab kökünden)
+- tapOn:
+    id: "tab-home"
+- runFlow: ../subflows/open-search.yaml
 - assertVisible:
     id: "search-input"
 - assertNotVisible: ".*Network Error.*"
-# 3. Mesajlar
+# Arama yığın ekranı: tab çubuğu yok, geri oku ile tab köküne dön
 - tapOn:
-    text: "Mesajlar"
+    text: "Geri"
+# 3. Mesajlar (üst bar düğmesi → yığın ekranı → geri)
+- tapOn:
+    id: "tab-home"
+- tapOn:
+    id: "app-shell-messages"
 - extendedWaitUntil:
     visible:
       text: "Mesajlar"
     timeout: 15000
 - assertNotVisible: ".*Network Error.*"
-# 4. Profil
 - tapOn:
-    text: "Profil"
+    text: "Geri"
+# 4. Bildirimler (üst bar düğmesi → yığın ekranı → geri)
+- tapOn:
+    id: "app-shell-notifications"
+- extendedWaitUntil:
+    visible:
+      text: "Bildirimler"
+    timeout: 15000
+- assertNotVisible: ".*Network Error.*"
+- tapOn:
+    text: "Geri"
+# 5. Profil
+- tapOn:
+    id: "tab-profile"
 - extendedWaitUntil:
     visible: "zeynep@demo.com"
     timeout: 15000
@@ -51,5 +86,5 @@ env:
 - assertNotVisible: ".*Bir hata oluştu.*"
 # Geri Ana Sayfa'ya dön (clean state)
 - tapOn:
-    text: "Ana Sayfa"
+    id: "tab-home"
 - assertVisible: "Ana Sayfa"

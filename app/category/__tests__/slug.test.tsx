@@ -15,9 +15,14 @@ jest.mock('expo-router', () => ({
 }));
 import { router } from 'expo-router';
 
+// Yüzen alt menü (withStackTabBar) sayaçları: sepet deposu (AsyncStorage) / sorgu bağlamı gerekmesin.
+jest.mock('@/components/shell/useShellCounts', () => ({
+  useShellCounts: () => ({ cartCount: 0, notificationCount: 0, messageCount: 0 }),
+}));
+
 jest.mock('@/lib/api', () => ({
   categoriesApi: { getBySlug: jest.fn() },
-  productsApi: { getAll: jest.fn() },
+  productsApi: { getAll: jest.fn(), recordClick: jest.fn(() => Promise.resolve({ data: {} })) },
 }));
 import { categoriesApi, productsApi } from '@/lib/api';
 
@@ -53,15 +58,16 @@ describe('J12 · Kategori liste', () => {
     expect(await screen.findByText('Kırmızı Araba')).toBeOnTheScreen();
     expect(screen.getByText('Mavi Araba')).toBeOnTheScreen();
     expect(screen.getByText('2 ürün bulundu')).toBeOnTheScreen();
+    // Yüzen alt menü bu yığın ekranında da görünür (withStackTabBar).
+    expect(screen.getByTestId('app-tab-bar')).toBeOnTheScreen();
   });
 
-  it('J12.2 kategoride ürün yoksa bulunamadı durumu gösterilir', async () => {
+  it('J12.2 kategoride ürün yoksa tek boş durum metni gösterilir', async () => {
     getBySlug.mockResolvedValue({ data: { category: { id: 'c1', name: 'Arabalar' } } });
     getAll.mockResolvedValue({ data: { data: [] } });
     renderWithProviders(<CategoryScreen />);
 
-    expect(await screen.findByText('Ürün bulunamadı')).toBeOnTheScreen();
-    expect(screen.getByText('Bu kategoride henüz ürün yok')).toBeOnTheScreen();
+    expect(await screen.findByText('Henüz ilan yok')).toBeOnTheScreen();
   });
 
   it('J12.3 ürün kartına basınca ürün detayına yönlendirir', async () => {

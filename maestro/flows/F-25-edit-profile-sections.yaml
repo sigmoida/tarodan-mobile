@@ -1,0 +1,57 @@
+# F-25: Profili düzenle — iOS Ayarlar düzeni: Hesap kartında kullanıcı adı / e-posta SALT
+# OKUNUR satırlar; e-posta satırına dokununca ayrı "E-posta Değiştir" ekranı (yeni e-posta
+# alanı + alt çubuk "Kod gönder"); geri oku Profili düzenle'ye döner. Kod doğrulaması gerçek
+# posta kutusu gerektirdiği için UÇTAN UCA OTOMASYONA alınmaz (kod adımı jest testlerinde
+# kapsanır). Gizli değer akışta yok: giriş subflow'u.
+appId: ${APP_ID}
+tags:
+  - regression
+---
+- runFlow: ../subflows/open-tarodan.yaml
+- tapOn:
+    id: "tab-profile"
+- runFlow:
+    when:
+      visible:
+        id: "profile-edit-button"
+    file: ../subflows/logout.yaml
+- runFlow: ../subflows/login-as.yaml
+- tapOn:
+    id: "tab-profile"
+# "Profili düzenle" = üst barın sağ üstündeki kalem.
+- tapOn:
+    id: "profile-edit-button"
+- extendedWaitUntil:
+    visible:
+      id: "edit-profile-save"
+    timeout: 20000
+# Hesap kartı: kullanıcı adı (belirlenmişse salt okunur, belirlenebilirse satır) + e-posta satırı.
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-account-section"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "edit-profile-email-row"
+- assertNotVisible:
+    id: "email-change-input"
+- assertNotVisible: "destek ile iletişime geçin"
+# E-posta satırı → ayrı ekranda yeni e-posta alanı + alt çubuk "Kod gönder" (modal yok).
+- tapOn:
+    id: "edit-profile-email-row"
+- extendedWaitUntil:
+    visible:
+      id: "email-change-input"
+    timeout: 10000
+- assertVisible:
+    id: "email-change-request"
+# Geri oku → Profili düzenle, e-posta satırı yerinde.
+- tapOn:
+    id: "screen-header-back"
+- extendedWaitUntil:
+    visible:
+      id: "edit-profile-email-row"
+    timeout: 10000
+- assertNotVisible:
+    id: "email-change-input"
+- assertNotVisible: ".*Network Error.*"

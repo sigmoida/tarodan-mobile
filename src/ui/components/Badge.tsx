@@ -1,72 +1,130 @@
 import React from 'react';
-import { StyleSheet, Text, View, type ViewProps } from 'react-native';
-import type { StatusVariant } from '@/lib/shared';
+import { StyleSheet, type ViewProps } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import type { StatusConfig, WebStatusVariant } from '@/lib/shared';
 import { theme } from '../lib/theme';
+import { RawText } from './Text';
+import { Pill, pillTextStyle, type PillSize } from './Pill';
 
-/** Native badge variants — the canonical shared semantic vocabulary. */
-export type BadgeVariant = StatusVariant;
+/**
+ * Badge varyantları. Web `@tarodan/ui` Badge'in 5 durum varyantı — `default` (marka tonu),
+ * `success`, `warning`, `danger`, `outline` (`WebStatusVariant`, durum haritalarının tek
+ * sözlüğü) — garanti. Mobilin eski fazla adları (`primary`, `secondary`, `info`,
+ * `destructive`) yalnız rozet görünümü olarak burada yaşar ve çalışmaya devam eder; durum
+ * haritalarında kullanılmaz. (`@/lib/shared` `StatusVariant` artık gerekmez.)
+ */
+export type BadgeVariant = WebStatusVariant | 'primary' | 'secondary' | 'info' | 'destructive';
+
+/** `soft` (varsayılan) X-100/X-800; `solid` görsel üstü güçlü dolgu (ProductBadge). */
+export type BadgeAppearance = 'soft' | 'solid';
 
 export interface BadgeProps extends ViewProps {
   variant?: BadgeVariant;
-  size?: 'sm' | 'md' | 'lg';
-  children: React.ReactNode;
+  /** `xs` = görsel üstü sıkı (12pt, ProductBadge); `sm` gövde yazısına eşit (14pt). */
+  size?: 'xs' | 'sm' | 'md' | 'lg';
+  appearance?: BadgeAppearance;
+  children?: React.ReactNode;
+  /** Etiketin önünde küçük ikon (web `icon`). */
+  icon?: React.ReactNode;
+  /** Durum modu (web gibi): `config[status]` → etiket + varyant. */
+  status?: string;
+  config?: Record<string, StatusConfig>;
+  /** Çözülen etiketi ezer. */
+  label?: React.ReactNode;
+  /** Aktif/Pasif ön ayarı: success / outline. `status`'tan önceliklidir. */
+  active?: boolean;
+  activeLabel?: React.ReactNode;
+  passiveLabel?: React.ReactNode;
+  /** Etiket metin stili (nadiren; ör. sayaç rozetinde ortalama). */
+  textStyle?: React.ComponentProps<typeof RawText>['style'];
 }
 
-const { colors, radius, spacing, typography } = theme;
+const { colors } = theme;
 
-const variantStyle: Record<BadgeVariant, { bg: string; text: string; border?: string }> = {
-  default: { bg: colors.gray[100], text: colors.gray[800] },
+type Look = { bg: string; text: string; border?: string };
+
+const softStyle: Record<BadgeVariant, Look> = {
+  // Web: default = bg-primary-100 text-primary-800 (marka tonu).
+  default: { bg: colors.primary[100], text: colors.primary[800] },
   primary: { bg: colors.primary[100], text: colors.primary[800] },
-  secondary: { bg: colors.gray[100], text: colors.gray[900] },
-  success: { bg: colors.success[100]!, text: colors.success[800]! },
-  warning: { bg: colors.warning[100]!, text: colors.warning[800]! },
-  danger: { bg: colors.danger[100]!, text: colors.danger[800]! },
-  info: { bg: colors.info[100]!, text: colors.info[800]! },
-  outline: { bg: 'transparent', text: colors.text.body, border: colors.gray[300] },
+  secondary: { bg: colors.gray[100], text: colors.gray[800] },
+  success: { bg: colors.success[100], text: colors.success[800] },
+  warning: { bg: colors.warning[100], text: colors.warning[800] },
+  danger: { bg: colors.danger[100], text: colors.danger[800] },
+  info: { bg: colors.info[100], text: colors.info[800] },
+  outline: { bg: 'transparent', text: colors.text.body, border: colors.border.DEFAULT },
   // Legacy alias of `danger` (identical styling); kept for cross-platform parity.
-  destructive: { bg: colors.danger[100]!, text: colors.danger[800]! },
+  destructive: { bg: colors.danger[100], text: colors.danger[800] },
 };
 
-const sizePadding = {
-  sm: { px: spacing[2], py: 2, font: typography.fontSize.xs },
-  md: { px: spacing[2.5], py: 2, font: typography.fontSize.sm },
-  lg: { px: spacing[3], py: spacing[1], font: typography.fontSize.sm },
-} as const;
+const solidStyle: Record<BadgeVariant, Look> = {
+  default: { bg: colors.primary[600], text: colors.text.inverted },
+  primary: { bg: colors.primary[600], text: colors.text.inverted },
+  secondary: { bg: colors.gray[600], text: colors.text.inverted },
+  success: { bg: colors.success[600], text: colors.text.inverted },
+  warning: { bg: colors.warning[500], text: colors.text.inverted },
+  danger: { bg: colors.danger[600], text: colors.text.inverted },
+  info: { bg: colors.info[600], text: colors.text.inverted },
+  outline: { bg: colors.surface.DEFAULT, text: colors.text.heading, border: colors.border.DEFAULT },
+  destructive: { bg: colors.danger[600], text: colors.text.inverted },
+};
 
 export const Badge: React.FC<BadgeProps> = ({
-  variant = 'default',
+  variant,
   size = 'md',
+  appearance = 'soft',
   children,
+  icon,
+  status,
+  config,
+  label,
+  active,
+  activeLabel,
+  passiveLabel,
+  textStyle,
   style,
   ...rest
 }) => {
-  const vs = variantStyle[variant];
-  const ss = sizePadding[size];
+  const { t } = useTranslation();
+  let resolvedVariant: BadgeVariant = variant ?? 'default';
+  let content: React.ReactNode = children;
+
+  if (active !== undefined) {
+    resolvedVariant = variant ?? (active ? 'success' : 'outline');
+    content = label ?? (active ? (activeLabel ?? t('common.active')) : (passiveLabel ?? t('common.inactive')));
+  } else if (status !== undefined && config) {
+    const entry = config[status];
+    resolvedVariant = variant ?? entry?.variant ?? 'outline';
+    content = label ?? entry?.label ?? status;
+  } else if (label !== undefined) {
+    content = label;
+  }
+
+  const pillSize: PillSize = size === 'xs' ? 'sm' : size === 'sm' ? 'body' : size;
+  const vs = (appearance === 'solid' ? solidStyle : softStyle)[resolvedVariant];
   return (
-    <View
-      style={[
-        styles.base,
-        {
-          backgroundColor: vs.bg,
-          borderColor: vs.border ?? 'transparent',
-          borderWidth: vs.border ? 1 : 0,
-          paddingHorizontal: ss.px,
-          paddingVertical: ss.py,
-        },
-        style,
-      ]}
+    <Pill
+      size={pillSize}
+      shape="badge"
+      background={vs.bg}
+      borderColor={vs.border}
+      icon={icon}
+      style={[styles.base, style]}
       {...rest}
     >
-      <Text style={{ color: vs.text, fontSize: ss.font, fontWeight: '600' }}>
-        {children}
-      </Text>
-    </View>
+      <RawText
+        numberOfLines={1}
+        maxFontSizeMultiplier={theme.typography.maxFontScale.control}
+        style={[pillTextStyle(pillSize, vs.text), styles.label, textStyle]}
+      >
+        {content}
+      </RawText>
+    </Pill>
   );
 };
 
 const styles = StyleSheet.create({
-  base: {
-    borderRadius: radius.full,
-    alignSelf: 'flex-start',
-  },
+  // Uzun etiket (kampanya/durum metni) rozeti büyütmez: tek satır, taşarsa ellipsis.
+  base: { alignSelf: 'flex-start', maxWidth: '100%' },
+  label: { flexShrink: 1 },
 });

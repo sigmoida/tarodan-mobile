@@ -1,15 +1,12 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Button, Input, Text, theme } from '@/ui';
+import { Alert, Button, Input, theme } from '@/ui';
 import { formatPrice } from '@/utils/format';
 import type { CouponController } from '../_hooks/useCoupon';
 
-const { colors } = theme;
-
 /**
- * Kupon kodu kutusu — uygulanınca rozete dönüşür.
+ * Kupon kodu kutusu — uygulanınca başarı kutusuna (`Alert` success) dönüşür.
  *
  * İndirim tutarı BURADA gösterilir, ödeme özetinde DEĞİL: `OrderSummary`'nin üç
  * satırının toplamı sunucu garantisiyle `total`a eşit, araya bir "İndirim" satırı
@@ -30,22 +27,20 @@ export function CouponInput({
   if (coupon.applied) {
     const showDiscount = couponDiscount != null && couponDiscount > 0;
     return (
-      <View style={[styles.box, styles.appliedBox]} testID="coupon-applied">
-        <Ionicons name="pricetag" size={18} color={colors.success[600]!} />
-        <View style={styles.appliedText}>
-          <Text variant="bodySm" weight="bold" style={{ color: colors.success[600]! }}>
-            {showDiscount
-              ? t('checkout.couponAppliedWithDiscount', { code: coupon.applied.code, amount: formatPrice(couponDiscount) })
-              : t('checkout.couponAppliedLabel', { code: coupon.applied.code })}
-          </Text>
-          {coupon.applied.name ? (
-            <Text variant="caption" style={{ color: colors.text.muted }}>
-              {coupon.applied.name}
-            </Text>
-          ) : null}
-        </View>
-        <Button variant="ghost" size="sm" title={t('common.remove')} onPress={coupon.remove} testID="coupon-remove-button" />
-      </View>
+      <Alert
+        variant="success"
+        testID="coupon-applied"
+        title={
+          showDiscount
+            ? t('checkout.couponAppliedWithDiscount', { code: coupon.applied.code, amount: formatPrice(couponDiscount) })
+            : t('checkout.couponAppliedLabel', { code: coupon.applied.code })
+        }
+        action={
+          <Button variant="outline" size="sm" title={t('common.remove')} onPress={coupon.remove} testID="coupon-remove-button" />
+        }
+      >
+        {coupon.applied.name || undefined}
+      </Alert>
     );
   }
 
@@ -71,26 +66,18 @@ export function CouponInput({
         isLoading={coupon.isPending}
         disabled={coupon.isPending || !coupon.code.trim()}
         testID="coupon-apply-button"
-        style={styles.applyButton}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Input (md) ve Button (md) aynı boy (`controlHeight.md`): üstten hizalı = aynı hizada; hata
+  // satırı kutunun altına eklenir, düğme kutuyla hizalı kalır.
   box: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: theme.spacing[2],
-    marginBottom: theme.spacing[3],
   },
   field: { flex: 1 },
-  applyButton: { marginTop: theme.spacing[1] },
-  appliedBox: {
-    alignItems: 'center',
-    padding: theme.spacing[3],
-    backgroundColor: colors.success[50]!,
-    borderRadius: theme.radius.lg,
-  },
-  appliedText: { flex: 1 },
 });

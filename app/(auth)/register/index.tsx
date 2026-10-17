@@ -1,48 +1,40 @@
-import { Pressable, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { HStack, Screen, Text, VStack, theme } from '@/ui';
-import { BrandLogo } from '@/components/BrandLogo';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { AuthFooterLink } from '@/components/auth/AuthFooterLink';
+import { RegisterAccountTabs } from '@/components/auth/RegisterAccountTabs';
 import { useRegister } from './_hooks/useRegister';
 import { styles } from './_lib/styles';
 import { RegisterForm } from './_components/RegisterForm';
+import { RegisterVerifySent } from './_components/RegisterVerifySent';
 
-const { colors } = theme;
-
+/** Bireysel kayıt — İNCE ekran: auth kabuğu + Bireysel/Kurumsal sekmeleri + form. */
 export default function RegisterScreen() {
   const { t } = useTranslation();
   const f = useRegister();
-  const insets = useSafeAreaInsets();
+
+  // Kayıt tamam → web "Neredeyse Tamam!" durumu (e-posta doğrulama yönlendirmesi).
+  if (f.registeredEmail) return <RegisterVerifySent f={f} />;
 
   return (
-    <Screen center style={styles.screen}>
-      <Pressable
-        onPress={f.handleBack}
-        accessibilityRole="button"
-        accessibilityLabel={t('common.back')}
-        hitSlop={12}
-        style={[styles.backButton, { top: insets.top + 8 }]}
-      >
-        <Ionicons name="arrow-back" size={26} color={colors.white} />
-      </Pressable>
-
-      <VStack gap={5}>
-        <View style={styles.brandHeader}>
-          <BrandLogo />
-          <Text variant="displaySm" align="center" style={styles.headerTitle}>{t('auth.registerSubmit')}</Text>
-        </View>
-
-        <RegisterForm f={f} />
-
-        <HStack justify="center" wrap gap={1}>
-          <Text variant="body" style={styles.footerText}>{t('auth.hasAccount')}</Text>
-          <Text variant="body" weight="bold" style={styles.footerLink} onPress={() => router.push('/(auth)/login')}>
-            {t('common.login')}
-          </Text>
-        </HStack>
-      </VStack>
-    </Screen>
+    <AuthShell
+      title={t('auth.createAccount')}
+      hero="auth_register"
+      onBack={f.handleBack}
+      footer={
+        <AuthFooterLink
+          prompt={t('auth.hasAccount')}
+          linkLabel={t('common.login')}
+          testID="register-login-link"
+          onPress={() => router.push('/(auth)/login')}
+        />
+      }
+    >
+      <View style={styles.tabs}>
+        <RegisterAccountTabs active="individual" />
+      </View>
+      <RegisterForm f={f} />
+    </AuthShell>
   );
 }

@@ -1,5 +1,5 @@
 # F-06: Search → result → product detail → back nav.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - smoke
 env:
@@ -9,14 +9,14 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
-- tapOn:
-    text: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
       id: "search-input"
@@ -26,23 +26,32 @@ env:
 - inputText: ${SEARCH_TERM}
 - extendedWaitUntil:
     visible:
-      text: ".*sonuç bulundu.*|.*₺.*"
+      text: ".*sonuç bulundu.*|.*[0-9],[0-9][0-9] TL.*"
     timeout: 30000
 - assertVisible:
-    text: ".*₺.*"
+    text: ".*[0-9],[0-9][0-9] TL.*"
 # İlk fiyat etiketine tap → product detail
 - tapOn:
-    text: ".*₺.*"
+    text: ".*[0-9],[0-9][0-9] TL.*"
     index: 0
 - extendedWaitUntil:
-    visible: "Sepete Ekle"
+    visible:
+      id: "product-price"
     timeout: 30000
-- assertVisible: "Sepete Ekle"
+# Sepet düğmesi sabit alt barda (kaydırma gerekmez); ürün zaten sepetteyse "Sepete Git".
+- extendedWaitUntil:
+    visible:
+      id: "product-detail-(add-to-cart|go-to-cart)-button"
+    timeout: 30000
+- assertVisible: "Sepete Ekle|Sepete Git"
 - assertVisible:
-    id: "product-detail-add-to-cart-button"
+    id: "product-detail-(add-to-cart|go-to-cart)-button"
 - assertNotVisible: ".*Network Error.*"
-# Geri navigasyon ile arama sonuçlarına dön
-- back
+# Galeri üstündeki yüzen geri adası ile arama sonuçlarına dön (iOS + Android aynı)
+- assertVisible:
+    id: "product-back-button"
+- tapOn:
+    id: "product-back-button"
 - extendedWaitUntil:
     visible:
       id: "search-input"

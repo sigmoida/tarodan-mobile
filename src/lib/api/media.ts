@@ -1,24 +1,62 @@
 import { api } from './client';
+import { apiPath, keyPath } from './path';
+import { appendRNFile, type RNFile } from './formData';
 
 /**
- * Medya yükleme. React Native için dosyalar şu formatta iletilir:
- *   { uri: string; name: string; type: string }
- * (Web'deki File ile eşdeğer davranır.)
+ * Medya yükleme. Dosyalar `{ uri, name, type }` (önekli yerel URI) olarak verilir; multipart
+ * parçası ve iOS URI biçimi tek yerde: `appendRNFile` (`./formData`).
  */
-export type RNFile = { uri: string; name: string; type: string };
+export type { RNFile } from './formData';
 
-const appendRNFile = (formData: FormData, field: string, file: RNFile) => {
-  // RN'in kendine özel FormData implementasyonu dosya objesini aşağıdaki şekilde kabul eder.
-  // as any cast'i TS'in React Native FormData tiplerinin olmadığı durumlar için gerekli.
-  formData.append(field, file as any);
+/**
+ * Tek ürün görselinin istek süresi. Global 30 sn (`client.ts`) mobil veride büyük bir
+ * fotoğrafa yetmiyordu; sunucu da dosya başına moderasyon + iki sharp türevi + iki S3
+ * PUT yapıyor. Global ayara dokunulmaz — yalnız bu istek uzun bekler.
+ */
+export const PRODUCT_IMAGE_UPLOAD_TIMEOUT_MS = 120_000;
+
+/**
+ * Tek görsellik diğer yüklemelerin (avatar, mesaj eki, iade kanıtı, koleksiyon kapağı) süresi.
+ * Görsel yüklemeden önce ≤1600 px'e küçültülüyor (`@/lib/media`) ama hazırlama atlanabilir
+ * (yeniden derlenmemiş dev-client / 20 sn tavanı) ve sunucu her dosyada AI moderasyonu yapıyor;
+ * global 30 sn yavaş mobil veride yetmiyordu. Global ayara dokunulmaz.
+ */
+export const MEDIA_UPLOAD_TIMEOUT_MS = 60_000;
+
+/**
+ * Belge yüklemeleri (işletme belgesi, satıcı faturası): PDF'e dokunulmaz, 10 MB'a kadar
+ * olduğu gibi gider — ürün görseliyle aynı uzun tavan.
+ */
+export const DOCUMENT_UPLOAD_TIMEOUT_MS = 120_000;
+
+export type ProductImageUploadResult = {
+  cardKey: string;
+  detailKey: string;
+  cardUrl?: string;
+  detailUrl?: string;
 };
 
 export const mediaApi = {
-  uploadProductImages: (files: RNFile[]) => {
+  /**
+   * TEK ürün görseli — dosya bazlı ilerleme ve iptal için (web `uploadProductImage`).
+   * Eski toplu yükleme (tüm görseller tek istekte) kaldırıldı: bir dosyanın hatası hepsini
+   * düşürüyor, dosya başına ilerleme/iptal/yeniden deneme mümkün olmuyordu.
+   */
+  uploadProductImage: (
+    file: RNFile,
+    options?: { signal?: AbortSignal; onProgress?: (percent: number) => void },
+  ) => {
     const formData = new FormData();
-    files.forEach(file => appendRNFile(formData, 'images', file));
-    return api.post('/media/upload/product', formData, {
+    appendRNFile(formData, 'images', file);
+    return api.post<ProductImageUploadResult[]>('/media/upload/product', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: PRODUCT_IMAGE_UPLOAD_TIMEOUT_MS,
+      signal: options?.signal,
+      onUploadProgress: (event) => {
+        // `total` bilinmiyorsa yüzde uydurulmaz — sahte ilerleme gösterilmez.
+        if (!options?.onProgress || !event.total) return;
+        options.onProgress((event.loaded / event.total) * 100);
+      },
     });
   },
   uploadAvatar: (file: RNFile) => {
@@ -26,6 +64,7 @@ export const mediaApi = {
     appendRNFile(formData, 'avatar', file);
     return api.post('/media/upload/avatar', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: MEDIA_UPLOAD_TIMEOUT_MS,
     });
   },
   uploadMessageImage: (file: RNFile) => {
@@ -37,6 +76,7 @@ export const mediaApi = {
       {
         headers: { 'Content-Type': 'multipart/form-data' },
         params: { folder: 'messages' },
+        timeout: MEDIA_UPLOAD_TIMEOUT_MS,
       },
     );
   },
@@ -50,10 +90,22 @@ export const mediaApi = {
       {
         headers: { 'Content-Type': 'multipart/form-data' },
         params: { folder: 'reviews' },
+        timeout: MEDIA_UPLOAD_TIMEOUT_MS,
       },
     );
   },
-  deleteFile: (key: string) => api.delete(`/media/file/${key}`),
+  /**
+   * Ürün görselini saat yönünde 90° çevirir (web `rotateProductImage`). Sunucu depodaki detay
+   * türevini çevirip YENİ anahtarlar döner; sahiplik: kullanıcının geçici yükleme klasörü ya da
+   * kendi ürününe bağlı anahtar (taze yüklenmiş ve kayıtlı görsellerin ikisi de çevrilebilir).
+   */
+  rotateProductImage: (detailKey: string) =>
+    api.post<{ cardKey: string; detailKey: string; cardUrl: string; detailUrl: string }>(
+      '/media/product-image/rotate',
+      { detailKey },
+    ),
+  // Sunucu ucu `file/*` joker: key'in `/`'leri korunur, her parça ayrı kodlanır (`keyPath`).
+  deleteFile: (key: string) => api.delete(apiPath`/media/file/${keyPath(key)}`),
 };
 
 // Upload API — backend `/media` modülüne yönlendirilmiş eski uyumluluk katmanı.

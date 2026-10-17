@@ -1,0 +1,18 @@
+# Ayarlar ekranını aç: alt menüden Profil -> üst barın sağındaki ⚙️ (`app-shell-settings`, yalnız
+# Profil kökünde). Hesap (profili düzenle, adresler, güvenlik, engellenenler), Ödeme ve Banka,
+# Üyelik, Tercihler (bildirim, bülten, dil), Yardım & Destek, Bilgi & Yasal ve çıkış burada.
+appId: ${APP_ID}
+---
+- tapOn:
+    id: "tab-profile"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "app-shell-settings"
+    timeout: 30000
+- tapOn:
+    id: "app-shell-settings"
+- extendedWaitUntil:
+    visible:
+      id: "settings-screen"
+    timeout: 10000

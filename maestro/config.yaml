@@ -1,7 +1,13 @@
 # Maestro project config - shared env across all flows.
 # Override per run: maestro test --env EMAIL=foo@bar.com flows/auth-login.yaml
-appId: com.tarodan.app
+#
+# Flow'larda `appId` sabit DEĞİL: `appId: ${APP_ID}` (flows/ ve subflows/). Değer:
+#   - `pnpm maestro:dev ...` (run.sh) otomatik verir: varsayılan com.tarodan.app,
+#     EAS `maestro` profili build'i için MAESTRO_TARGET=staging → com.tarodan.app.staging
+#   - doğrudan `maestro test` için: --env APP_ID=$(bash app-id.sh <ios|android> staging)
+# Seçim tablosu: app-id.sh.
 env:
+  APP_ID: com.tarodan.app
   EMAIL: zeynep@demo.com
   PASSWORD: Demo123!
   PREMIUM_EMAIL: ahmet@demo.com
@@ -9,3 +15,8 @@ env:
   # E-01 / E-08 deep-link hedefi. Gerçek bir stockout product UUID'si ile override edin:
   # maestro test --env STOCKOUT_PRODUCT_ID=<uuid> flows/E-01-stockout-page.yaml
   STOCKOUT_PRODUCT_ID: "00000000-0000-0000-0000-000000000000"
+  # Yasal kimlik kapısı (subflows/pass-identity-gate.yaml). TCKN repoda tutulmaz; kapı açılan
+  # akışlarda çalıştırmada verin: maestro test --env MAESTRO_TEST_TCKN=<11 hane> ...
+  MAESTRO_TEST_TCKN: ""
+  MAESTRO_TEST_FIRST_NAME: "Maestro"
+  MAESTRO_TEST_LAST_NAME: "Test"

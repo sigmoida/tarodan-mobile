@@ -1,7 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { userApi } from '@/lib/api';
-import { qk } from '@/lib/query';
+import { qk, useAppMutation } from '@/lib/query';
 import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -14,14 +14,13 @@ import { useAuthStore } from '@/stores/authStore';
  */
 const BLOCK_INVALIDATES = [
   qk.blocks.list,
-  ['block-status'],
+  qk.blocks.statusAll,
   qk.products.all,
   // `products.all` (`["products"]`) tekil detay anahtarını (`["product", id]`)
   // yakalamaz: engellemeden önce açılmış bir ilan sayfası önbellekten
   // görünmeye devam ediyordu — Apple'ın "akıştan anında kalksın" şartını tam
   // buradan deliyordu.
   qk.products.detailAll,
-  qk.products.listingsAll,
   qk.products.searchAll,
   qk.products.featuredBusiness,
   qk.products.featuredCollector,
@@ -33,21 +32,21 @@ const BLOCK_INVALIDATES = [
   qk.collections.detailAll,
   qk.follow.following,
   qk.favorites.all,
-  // Kategori/marka/üretici/model listeleri, arama önerileri, yorumlar ve puanlar
-  // ham anahtarlarla (qk dışında) sorgulanıyor; kökleri burada — yoksa 5 dk
-  // staleTime boyunca engellenenin içeriği görünmeye devam ediyordu (Apple 1.2).
-  ['category-products'],
-  ['brand-products'],
-  ['manufacturer-products'],
-  ['model-products'],
-  ['product-unavailable-similar'],
-  ['autocomplete-rich'],
-  ['autocomplete-sellers'],
-  ['liked-collections'],
-  ['product-reviews'],
-  ['product-reviews-all'],
-  ['product-rating-stats'],
-  ['seller-ratings'],
+  // Kategori/marka/üretici/model listeleri, arama önerileri, yorumlar ve puanlar —
+  // her varyantı yakalayan kökleri burada; yoksa 5 dk staleTime boyunca engellenenin
+  // içeriği görünmeye devam ediyordu (Apple 1.2). "Satışta değil" ekranının benzer
+  // ürünleri `qk.products.similar` (`product` kökü → `detailAll`) ile zaten kapsanır.
+  qk.products.categoryProductsAll,
+  qk.catalog.brandProductsAll,
+  qk.catalog.manufacturerProductsAll,
+  qk.catalog.modelProductsAll,
+  qk.products.autocompleteAll,
+  qk.products.autocompleteSellersAll,
+  qk.collections.liked,
+  qk.products.reviewsRoot,
+  qk.products.reviewsAllRoot,
+  qk.products.ratingStatsRoot,
+  qk.seller.ratingsAll,
   qk.offers.all,
   qk.trades.all,
   qk.notifications.list,
@@ -58,7 +57,8 @@ const BLOCK_INVALIDATES = [
  * Backend: `GET /users/:id/block`.
  */
 export function useBlockStatus(targetUserId?: string) {
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const enabled = !!targetUserId && !!isAuthenticated && user?.id !== targetUserId;
 
   const query = useQuery({
@@ -72,7 +72,7 @@ export function useBlockStatus(targetUserId?: string) {
 
 /**
  * Engelle / engeli kaldır — onay diyaloğu, bildirim ve invalidasyon TEK yerde
- * (CLAUDE.md §6: mutation hook'u snackbar + invalidateQueries sahibidir).
+ * (src/lib/query/CLAUDE.md › Mutation hooks: mutation hook'u snackbar + invalidateQueries sahibidir).
  * `requireAuth` verilmezse giriş kapısı çağıranın sorumluluğundadır.
  */
 export function useBlockUser(options?: {
@@ -80,46 +80,30 @@ export function useBlockUser(options?: {
   /** Engel konduktan sonra (ör. DM ekranından çıkmak için). */
   onBlocked?: () => void;
   onUnblocked?: () => void;
-  /** Snackbar'ı olan ekranlar kendi bildirimini geçer; yoksa appAlert kullanılır. */
-  notify?: (message: string, type: 'success' | 'error') => void;
 }) {
   const { t } = useTranslation();
-  const qc = useQueryClient();
 
-  const invalidate = () => {
-    for (const key of BLOCK_INVALIDATES) {
-      qc.invalidateQueries({ queryKey: key as unknown as readonly unknown[] });
-    }
-  };
+  const invalidates = BLOCK_INVALIDATES as unknown as readonly (readonly unknown[])[];
 
-  const tell = (message: string, type: 'success' | 'error') => {
-    if (options?.notify) options.notify(message, type);
-    else appAlert(type === 'error' ? t('common.error') : t('common.success'), message);
-  };
+  const blockMutation = useAppMutation(
+    ({ userId }: { userId: string; name: string }) => userApi.block(userId),
+    {
+      invalidates,
+      success: (_data, vars) => t('profile.blockedToast', { name: vars.name }),
+      error: t('profile.blockFailed'),
+      onSuccess: () => options?.onBlocked?.(),
+    },
+  );
 
-  const blockMutation = useMutation({
-    mutationFn: ({ userId }: { userId: string; name: string }) => userApi.block(userId),
-    onSuccess: (_data, vars) => {
-      invalidate();
-      tell(t('profile.blockedToast', { name: vars.name }), 'success');
-      options?.onBlocked?.();
+  const unblockMutation = useAppMutation(
+    ({ userId }: { userId: string; name?: string }) => userApi.unblock(userId),
+    {
+      invalidates,
+      success: t('profile.unblockedToast'),
+      error: t('profile.unblockFailed'),
+      onSuccess: () => options?.onUnblocked?.(),
     },
-    onError: (error: any) => {
-      tell(error?.response?.data?.message || t('profile.blockFailed'), 'error');
-    },
-  });
-
-  const unblockMutation = useMutation({
-    mutationFn: ({ userId }: { userId: string; name?: string }) => userApi.unblock(userId),
-    onSuccess: () => {
-      invalidate();
-      tell(t('profile.unblockedToast'), 'success');
-      options?.onUnblocked?.();
-    },
-    onError: (error: any) => {
-      tell(error?.response?.data?.message || t('profile.unblockFailed'), 'error');
-    },
-  });
+  );
 
   /** Onay diyaloğu + engelleme. Diyalog kapanmadan mutation tetiklenmez. */
   const requestBlock = (userId: string, name: string) => {

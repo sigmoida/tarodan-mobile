@@ -1,15 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { userApi, ordersApi, productsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { useRefresh } from '@/hooks/useRefresh';
 import type { SellerStats } from '../_lib/types';
 
 /**
  * Seller dashboard controller — owns the 3 stat queries (product stats +
  * analytics + optional business-stats merge, pending-orders count, active-
- * listings count), derived values and refresh. Lifted verbatim (§12).
+ * listings count), derived values and refresh. Lifted verbatim (app/CLAUDE.md › Worked examples).
  */
 export function useSellerDashboard() {
-  const { user, isAuthenticated } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isBusiness = user?.membershipTier === 'business';
 
   // İşletme olmayan satıcılarda /users/me/business-stats 400 döndüğü için panel boş kalıyordu.
@@ -18,7 +21,7 @@ export function useSellerDashboard() {
   // - /users/me/analytics (totalSales/totalRevenue/pendingOrders)
   // business-stats yalnızca isBusiness olduğunda EK olarak istenir.
   const statsQuery = useQuery<SellerStats>({
-    queryKey: ['seller-stats', isBusiness],
+    queryKey: qk.seller.dashboardStats(isBusiness),
     queryFn: async () => {
       const [productStatsRes, analyticsRes, businessStatsRes] = await Promise.allSettled([
         productsApi.getMyStats(),
@@ -58,7 +61,7 @@ export function useSellerDashboard() {
   });
 
   const pendingOrdersQuery = useQuery({
-    queryKey: ['seller-pending-orders'],
+    queryKey: qk.orders.sellerPending,
     queryFn: async () => {
       const response = await ordersApi.getAll({ role: 'seller', status: 'paid' });
       const payload = response.data?.data ?? response.data ?? [];
@@ -68,7 +71,7 @@ export function useSellerDashboard() {
   });
 
   const myListingsQuery = useQuery({
-    queryKey: ['seller-my-listings-count'],
+    queryKey: qk.products.myListingsActiveCount,
     queryFn: async () => {
       const response = await productsApi.getMyListings({ status: 'active' });
       const payload = response.data?.data ?? response.data ?? [];
@@ -77,8 +80,10 @@ export function useSellerDashboard() {
     enabled: isAuthenticated,
   });
 
+  // Yükleyici ÜÇ sorgu da ilk kez çözülene dek kalır (eskiden `&&`: biri gelince kalkıyor,
+  // kartlar önce 0 sonra gerçek değerle yeniden çiziliyordu).
   const isLoading =
-    statsQuery.isLoading && pendingOrdersQuery.isLoading && myListingsQuery.isLoading;
+    statsQuery.isLoading || pendingOrdersQuery.isLoading || myListingsQuery.isLoading;
 
   const stats = statsQuery.data ?? {};
   const activeListings = myListingsQuery.data ?? stats.activeListings ?? 0;
@@ -86,18 +91,20 @@ export function useSellerDashboard() {
   const monthly = stats.monthlySales ?? 0;
   const rating = stats.averageRating ?? 0;
 
-  const refresh = () => {
-    statsQuery.refetch();
-    pendingOrdersQuery.refetch();
-    myListingsQuery.refetch();
-  };
+  // Çekip-yenile: gösterge yalnız kullanıcı çektiğinde ve üç istek bitene dek döner
+  // (eskiden `statsQuery.isRefetching` — arka plan tazelemesinde de dönüyordu).
+  const { refreshing, onRefresh: refresh } = useRefresh(
+    statsQuery.refetch,
+    pendingOrdersQuery.refetch,
+    myListingsQuery.refetch,
+  );
 
   return {
     user,
     isAuthenticated,
     isBusiness,
     isLoading,
-    isRefetching: statsQuery.isRefetching,
+    refreshing,
     stats,
     activeListings,
     pendingOrders,

@@ -1,7 +1,7 @@
 # F-04: Logout flow — login → profile → Çıkış Yap → confirm → login form (boş).
 # 01-12-logout-cleanup'ın superset'i: ek olarak email/password input'ların boş
 # olduğunu ve no-toast-error doğrular.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - regression
 env:
@@ -10,14 +10,15 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - extendedWaitUntil:
     visible: "zeynep@demo.com"
     timeout: 15000
@@ -28,8 +29,9 @@ env:
     timeout: 15000
 - assertVisible:
     id: "login-email-input"
+# Giriş iki aşamalı: logout sonrası 1. adım (e-posta + Devam Et) görünür, şifre alanı henüz yok.
 - assertVisible:
-    id: "login-password-input"
+    id: "login-continue-button"
 - assertNotVisible: "zeynep@demo.com"
 - assertNotVisible: ".*Network Error.*"
 - assertNotVisible: ".*Bir hata oluştu.*"

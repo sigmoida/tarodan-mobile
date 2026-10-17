@@ -1,41 +1,37 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { theme, Text } from '@/ui';
+import { RawText, theme } from '@/ui';
 
-const { colors } = theme;
+const { colors, spacing, typography, radiusRole } = theme;
 
 /**
- * Stoğu biten ürün kartlarında görselin üstünde gösterilen "Stokta yok" katmanı.
- * Görseli soluklaştırmak çağıran tarafın sorumluluğundadır (ör. image style'a opacity).
- * Kapsayan View konumlandırma bağlamı olur (RN absolute child).
+ * Stoğu biten ürün kartlarında görselin üstünde gösterilen "Stokta yok" katmanı (web
+ * `OutOfStockOverlay`: heading/70 zemin, 2xs extrabold, rounded). Görseli soluklaştırmak çağıran
+ * tarafın sorumluluğundadır (ör. image style'a opacity). Kapsayan View konumlandırma bağlamı olur.
  */
 export function OutOfStockOverlay({ label = 'STOKTA YOK' }: { label?: string }) {
   return (
     <View style={styles.overlay} pointerEvents="none">
-      <Text style={styles.text}>{label}</Text>
+      <RawText style={styles.text}>{label}</RawText>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },
   text: {
     backgroundColor: colors.overlay.black70,
-    color: colors.white,
-    fontSize: 11,
-    fontWeight: '800',
+    color: colors.text.inverted,
+    fontSize: typography.fontSize['2xs'],
+    fontWeight: typography.fontWeight.bold,
     letterSpacing: 0.5,
-    paddingHorizontal: theme.spacing[2.5],
-    paddingVertical: 5,
-    borderRadius: theme.radius.lg,
+    paddingHorizontal: spacing[2.5],
+    paddingVertical: spacing[1],
+    borderRadius: radiusRole.productCard,
     overflow: 'hidden',
   },
 });

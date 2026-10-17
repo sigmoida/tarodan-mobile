@@ -6,17 +6,15 @@ import type { TFunction } from 'i18next';
 import i18n from '@/i18n/config';
 
 /**
- * Sayı/tarih biçimlendirmesi için AKTİF dile göre `Intl` locale etiketi.
- *
- * ⚠️ React DIŞI bir modülüz — `useTranslation` çağıramayız; global `i18n`
- * örneğinden ÇAĞRI ANINDA okuruz (import anında okumak metni ilk yüklenen
- * dilde dondururdu — bkz. `paytrDirectForm.ts`). Yalnız GÖSTERİM biçimi
- * (binlik ayraç, ay adı) dile göre değişir — para birimi hep TL: bu Türkiye
- * pazaryeri, fiyatlar lira; `formatPrice`'ın " TL" son eki dilden bağımsızdır.
+ * Para biçimi dilden BAĞIMSIZ ve web (`packages/shared/src/money.ts`) ile
+ * birebir aynı: "1.234,50 TL" — tr-TR ayraçları, her zaman 2 ondalık, ₺ yok.
+ * Bu bir Türkiye pazaryeri; fiyat İngilizce arayüzde de aynı yazılır
+ * (web'de de öyle). Intl örneği bir kez kurulur — pahalı olan kurulumdur.
  */
-function activeNumberLocale(): string {
-  return i18n.language === 'en' ? 'en-US' : 'tr-TR';
-}
+const tlNumberFmt = new Intl.NumberFormat('tr-TR', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 /**
  * Backend'den brand/scale/category bazen string ("AutoArt"), bazen obje ({id,name,slug}) gelir.
@@ -36,21 +34,18 @@ export function asLabel(value: unknown, fallback: string = ''): string {
 }
 
 export function formatPrice(price: number | string | null | undefined): string {
-  const zero = (0).toLocaleString(activeNumberLocale(), {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  if (price === null || price === undefined) {
-    return `${zero} TL`;
-  }
+  return `${formatPriceNumber(price)} TL`;
+}
 
-  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-
-  if (isNaN(numPrice)) {
-    return `${zero} TL`;
-  }
-
-  return `${numPrice.toLocaleString(activeNumberLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL`;
+/**
+ * "0,00 TL - 500,00 TL" — fiyat aralığı (filtre çipi / kayıtlı arama özeti).
+ * Boş alt sınır 0, boş üst sınır "∞" sayılır.
+ */
+export function formatPriceRange(
+  min: number | string | null | undefined,
+  max: number | string | null | undefined,
+): string {
+  return `${formatPrice(min || 0)} - ${max ? formatPrice(max) : '∞'}`;
 }
 
 /** Sunucu tutarı henüz bilinmiyorken basılan yer tutucu. */
@@ -98,22 +93,24 @@ export function formatServerPrice(price: number | string | null | undefined): st
   return amount == null ? PRICE_PLACEHOLDER : formatPrice(amount);
 }
 
+/** `formatPrice`'ın " TL" son eksiz hâli ("1.234,50"). */
 export function formatPriceNumber(price: number | string | null | undefined): string {
-  const zero = (0).toLocaleString(activeNumberLocale(), {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
   if (price === null || price === undefined) {
-    return zero;
+    return tlNumberFmt.format(0);
   }
 
   const numPrice = typeof price === 'string' ? parseFloat(price) : price;
 
   if (isNaN(numPrice)) {
-    return zero;
+    return tlNumberFmt.format(0);
   }
 
-  return numPrice.toLocaleString(activeNumberLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return tlNumberFmt.format(numPrice);
+}
+
+/** Sayaç biçimi (görüntülenme/beğeni) — web `formatCount`: "1.590"; dil sabit tr-TR. */
+export function formatCount(value: number | null | undefined): string {
+  return (value ?? 0).toLocaleString('tr-TR');
 }
 
 // Varsayılan dil ARAYÜZ dili: eskiden sabit 'tr' idi ve ürün detayındaki durum
@@ -271,6 +268,25 @@ export function formatOfferStatus(status: string | null | undefined, locale: str
 }
 
 /**
+ * "12 Ekim 2026" — uygulamanın tek uzun tarih biçimi. Geçersiz/boş tarih → `null`
+ * (çağıran satırı düşürür, çökmez); geçersiz yerel etiket → cihaz varsayılan yereli.
+ */
+export function formatLongDate(
+  value: string | Date | null | undefined,
+  locale: string,
+): string | null {
+  if (!value) return null;
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (isNaN(date.getTime())) return null;
+  const options = { day: 'numeric', month: 'long', year: 'numeric' } as const;
+  try {
+    return date.toLocaleDateString(locale, options);
+  } catch {
+    return date.toLocaleDateString(undefined, options);
+  }
+}
+
+/**
  * Relative date formatter: "2 saat önce", "3 gün önce", "tam tarih"
  *
  * `localeOrT` da bir `TFunction` verilirse (i18n-aware çağrı yerleri, örn.
@@ -303,7 +319,7 @@ export function formatRelativeDate(
     if (diffMin < 60) return t('time.relative.minutes', { count: diffMin });
     if (diffHr < 24) return t('time.relative.hours', { count: diffHr });
     if (diffDay < 7) return t('time.relative.days', { count: diffDay });
-    return d.toLocaleDateString(t('common.dateLocale'), { day: 'numeric', month: 'long', year: 'numeric' });
+    return formatLongDate(d, t('common.dateLocale'))!; // `d` yukarıda doğrulandı
   }
 
   const locale = localeOrT;
@@ -312,12 +328,12 @@ export function formatRelativeDate(
     if (diffMin < 60) return `${diffMin} min ago`;
     if (diffHr < 24) return `${diffHr} hr ago`;
     if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
-    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    return formatLongDate(d, 'en-US')!;
   }
 
   if (diffSec < 60) return 'Az önce';
   if (diffMin < 60) return `${diffMin} dk önce`;
   if (diffHr < 24) return `${diffHr} sa önce`;
   if (diffDay < 7) return `${diffDay} gün önce`;
-  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+  return formatLongDate(d, 'tr-TR')!;
 }

@@ -1,12 +1,18 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
+import { toast } from '@/ui';
+import { useZodForm } from '@/ui/form';
 import { authApi } from '@/lib/api';
+import { registrationConsentDocuments } from '@/lib/shared/legalConsent';
 import { buildRegisterSchema, type RegisterForm } from '../_lib/schema';
-import { useUsernameAvailability } from './useUsernameAvailability';
+import { useUsernameAvailability } from '@/hooks/useUsernameAvailability';
+import { useSocialSignIn } from '@/hooks/useSocialSignIn';
+import { IS_MAESTRO } from '@/config/maestro';
+import { usePendingAuthEmailStore } from '@/stores/pendingAuthEmailStore';
+import { RESEND_COOLDOWN_SECONDS } from '@/hooks/useResendVerification';
+import { startResendCooldown } from '@/stores/resendCooldownStore';
 
 /**
  * "Bu e-posta zaten kayıtlı" — kasıtlı olarak fırlatılan, KULLANICIYA
@@ -21,7 +27,7 @@ class EmailTakenError extends Error {}
 
 /**
  * Register controller — owns the RHF+zod form, the register mutation and the
- * back handler. Lifted verbatim from the monolithic screen (§12).
+ * back handler. Lifted verbatim from the monolithic screen (app/CLAUDE.md › Worked examples).
  */
 export function useRegister() {
   const { t } = useTranslation();
@@ -32,8 +38,7 @@ export function useRegister() {
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm<RegisterForm>({
-    resolver: zodResolver(schema),
+  } = useZodForm(schema, {
     // HER metin alanı '' ile başlamalı: tanımsız bırakılan alan zod'un
     // `invalid_type_error` dalına düşüyor ve Türkçe arayüzde İngilizce
     // "Required" yazıyordu (alanın kendi çevrilmiş mesajı yerine).
@@ -41,17 +46,25 @@ export function useRegister() {
       username: '',
       displayName: '',
       email: '',
+      phone: '',
       password: '',
       confirmPassword: '',
       acceptTerms: false,
+      acceptKvkk: false,
+      acceptsMarketingEmails: false,
       // Maestro spinner DateField'ı süremez; test modunda geçerli (18+) bir
-      // doğum tarihi öndoldurulur. Prod'da EXPO_PUBLIC_MAESTRO unset → '' .
-      birthDate: process.env.EXPO_PUBLIC_MAESTRO === '1' ? '1990-01-01' : '',
+      // doğum tarihi öndoldurulur. Prod'da IS_MAESTRO false → '' .
+      birthDate: IS_MAESTRO ? '1990-01-01' : '',
     },
   });
 
   const usernameValue = watch('username') ?? '';
   const usernameAvailability = useUsernameAvailability(usernameValue);
+  const social = useSocialSignIn();
+
+  // Kayıt başarılıysa formun yerine web "Neredeyse Tamam!" durumu çizilir (aynı rota, ayrı akış
+  // değil: geri dönüş yok, yalnız girişe/doğrulamaya yönlendirir). Doluysa durum açık.
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterForm) => {
@@ -79,12 +92,25 @@ export function useRegister() {
         displayName: data.displayName,
         email: data.email,
         password: data.password,
+        // Telefon boşsa HİÇ gönderilmez; doluysa E.164 (şema normalize eder).
+        ...(data.phone ? { phone: data.phone } : {}),
+        acceptsMarketingEmails: data.acceptsMarketingEmails === true,
         // Boş bırakıldıysa alan HİÇ gönderilmez ('' göndermek sunucu tarafında
         // "geçerli bir tarih giriniz" hatası verir); opsiyonelliğin karşılığı bu.
         ...(data.birthDate ? { birthDate: data.birthDate } : {}),
+        // Sürüm ve zaman sunucuda damgalanır; burada yalnız hangi belgelerin
+        // onaylandığı söylenir. Eksik kalırsa yeniden-onay kapısı ilk girişte ister.
+        acceptedConsents: registrationConsentDocuments(data),
       });
     },
-    onSuccess: () => router.replace('/(auth)/login'),
+    onSuccess: (_res, data) => {
+      setRegisteredEmail(data.email);
+      // Doğrulama ekranı (e-posta bağlantısı sonradan açılırsa) e-postayı buradan alır.
+      usePendingAuthEmailStore.getState().setEmail(data.email);
+      // İlk doğrulama e-postası kayıtla birlikte gitti → tekrar gönder hemen açılmaz.
+      startResendCooldown(data.email, RESEND_COOLDOWN_SECONDS);
+      toast.success(t('auth.registerSuccessVerify'));
+    },
   });
 
   const onSubmit = (data: RegisterForm) => {
@@ -96,6 +122,9 @@ export function useRegister() {
   };
 
   const handleBack = () => (router.canGoBack() ? router.back() : router.replace('/(auth)/login'));
+  // Login yığında varsa ona dön (çift login ekranı olmaz), yoksa aç.
+  const goToLogin = () => router.dismissTo('/(auth)/login');
+  const goToVerifyEmail = () => router.push('/(auth)/verify-email');
 
   return {
     control,
@@ -105,6 +134,10 @@ export function useRegister() {
     onSubmit,
     handleBack,
     usernameAvailability,
+    social,
+    registeredEmail,
+    goToLogin,
+    goToVerifyEmail,
   };
 }
 

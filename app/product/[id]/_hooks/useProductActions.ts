@@ -1,35 +1,22 @@
+import { logger, safeError } from '@/services/logger';
 import i18n from '@/i18n/config';
-import type { MessageKey } from '@/i18n/lib';
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Share } from 'react-native';
 import { router } from 'expo-router';
-import { appAlert } from '@/ui';
-import { userReportsApi } from '@/lib/api';
+import { navigateTo } from '@/lib/navigation/goTo';
+import { appAlert, toast } from '@/ui';
 import { useCartStore } from '@/stores/cartStore';
 import { useCartSync } from '@/hooks/useCartSync';
 import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
-import { asLabel } from '@/utils/format';
+import { isOwnProduct } from '@/hooks/useFavoriteToggle';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useSafeTimeout } from '@/hooks/useSafeTimeout';
+import { getUpgradeMessage } from '@/utils/membershipLimits';
+import { asLabel, formatPrice } from '@/utils/format';
 import { buildShareContent, productShareUrl } from '@/utils/share';
+import { clampCartQuantity } from '../_lib/quantity';
 import type { Product } from '../_lib/types';
-
-type SnackType = 'success' | 'error';
-
-/**
- * Rapor nedenleri — modül seviyesinde olduğu için `t` çağıramaz; katalog
- * ANAHTARI tutulur, çeviri hook'un içinde yapılır (durum haritalarıyla aynı
- * desen). 'Spam' her iki dilde de aynı, çevrilmiyor.
- */
-const REPORT_REASONS: Array<{ key: string; labelKey: MessageKey | null; fallback?: string }> = [
-  { key: 'spam', labelKey: null, fallback: 'Spam' },
-  { key: 'fake_product', labelKey: 'product.reportReasonFake' },
-  { key: 'scam', labelKey: 'report.reasonScam' },
-  { key: 'counterfeit', labelKey: 'admin.reports.reason.counterfeit' },
-  { key: 'wrong_category', labelKey: 'admin.reports.reason.wrongCategory' },
-  { key: 'misleading_info', labelKey: 'admin.reports.reason.misleadingInfo' },
-  { key: 'inappropriate_content', labelKey: 'report.reasonInappropriate' },
-  { key: 'other', labelKey: 'product.other' },
-];
 
 function buildCartItem(product: Product, images: any[]) {
   return {
@@ -51,7 +38,7 @@ function buildCartItem(product: Product, images: any[]) {
 }
 
 /** Ürün detay aksiyonları: sepet/hızlı-al/mesaj/takas/teklif/koleksiyon/paylaş/raporla
- * + snackbar + modal aç/kapa. Handler'lar ekrandan buraya taşındı.
+ * + toast + modal aç/kapa. Handler'lar ekrandan buraya taşındı.
  *
  * `product` null olabilir (ekran yüklenirken) — hook gövdesi onu deref etmez;
  * handler'lar yalnız ürün render edildikten sonra (non-null) tetiklenir, yine de
@@ -72,50 +59,70 @@ export function useProductActions({
   user: { id?: string } | null | undefined;
 }) {
   const { t } = useTranslation();
-  const { isInCart, setBuyNow } = useCartStore();
+  const { canTrade } = useFeatureAccess();
+  // Yalnız bu ürünün sepet durumuna abone ol (diğer satırların değişimi render tetiklemez).
+  const inCart = useCartStore((s) => s.items.some((i) => i.productId === productId));
+  const setBuyNow = useCartStore((s) => s.setBuyNow);
   // Sepet yazmaları üyede sunucuya da aynalanır.
   const cart = useCartSync();
 
-  /**
-   * `action`: snackbar'ın yanında gösterilecek kısayol.
-   *
-   * Ekran bunu eskiden mesajın İÇİNDEN çıkarıyordu (`message.includes('sepet')`)
-   * — metin çevrildiği anda o kontrol tutmaz ve "Sepete git" butonu sessizce
-   * kaybolurdu. Kısayol artık mesajın yanında AYRI bir alan; dilden bağımsız.
-   */
-  const [snackbar, setSnackbar] = useState({
-    visible: false,
-    message: '',
-    type: 'success' as SnackType,
-    action: undefined as 'goToCart' | undefined,
-  });
+  // Adet seçici (web QuantityStepper): yalnız stoğu 1'den fazla ilanlarda gösterilir.
+  const [quantity, setQuantity] = useState(1);
+  // Ürün yenilenir ve stok/tavan düşerse seçili adet tavana iner.
+  const isOwnerProduct = !!product && isOwnProduct(product, user?.id);
+  useEffect(() => {
+    if (!product) return;
+    setQuantity((q) => {
+      const next = clampCartQuantity(q, product, isOwnerProduct);
+      return next === q ? q : next;
+    });
+  }, [product, isOwnerProduct]);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
-  const notify = (message: string, type: SnackType, action?: 'goToCart') =>
-    setSnackbar({ visible: true, message, type, action });
-  const dismissSnackbar = () => setSnackbar((s) => ({ ...s, visible: false }));
-
+  // Gecikmeli giriş yönlendirmesi ekrandan çıkılınca iptal olur.
+  const schedule = useSafeTimeout();
   const requireAuth = (message: string) => {
     if (isAuthenticated) return true;
-    notify(message, 'error');
-    setTimeout(() => router.push('/(auth)/login' as any), 1500);
+    toast.error(message);
+    schedule(() => router.push('/(auth)/login'), 1500);
     return false;
   };
 
+  /**
+   * Sepete ekle — misafirde de çalışır (web paritesi): yerel sepet store'una yazılır, üyede sunucuya
+   * da aynalanır; misafir satırları girişte `useCartMergeOnLogin` ile sunucu sepetine bir kez taşınır.
+   * Bilerek `requireAuth` YOK (teklif/takas/mesaj/koleksiyon/şikayet üye ister, sepet istemez).
+   */
   const handleAddToCart = () => {
     if (!product) return;
-    if (isOutOfStock) return notify(t('cart.outOfStock'), 'error');
-    cart.add(buildCartItem(product, images) as any);
-    notify(t('product.addedToCartExclaim'), 'success', 'goToCart');
+    if (isOutOfStock) return toast.error(t('cart.outOfStock'));
+    cart.add(buildCartItem(product, images) as any, clampCartQuantity(quantity, product, isOwnerProduct));
+    toast.success(t('product.addedToCartExclaim'));
   };
 
+  /**
+   * "Hemen Al" (web `handleBuyNow`): ürün sepette değilse önce sepete eklenir (vazgeçilirse
+   * kaybolmasın), sonra ödeme YALNIZ bu ürünle açılır (`?buyNow=1`); sepetin kalanı ödemeye girmez.
+   * Misafir de gelir — checkout'un misafir + e-posta doğrulama akışı aynen geçerli.
+   *
+   * Ödenen adet SEPET SATIRININ adedidir (web gibi): ödeme sonrası satır (yerelde ve sunucuda
+   * `productId` ile) bütünüyle düşüyor; seçicideki adet ödenseydi sepetteki fazlası sessizce
+   * kaybolurdu. Ürün sepetteyken adet seçici zaten gizli (bar "Sepete Git" gösterir).
+   */
   const handleBuyNow = () => {
     if (!product) return;
-    if (isOutOfStock) return notify(t('cart.outOfStock'), 'error');
-    setBuyNow(buildCartItem(product, images) as any);
+    if (isOutOfStock) return toast.error(t('cart.outOfStock'));
+    const item = buildCartItem(product, images) as any;
+    if (!useCartStore.getState().isInCart(productId)) cart.add(item, clampCartQuantity(quantity, product, isOwnerProduct));
+    const line = useCartStore.getState().items.find((i) => i.productId === productId);
+    setBuyNow(item, line?.quantity ?? clampCartQuantity(quantity, product, isOwnerProduct));
     router.push('/checkout?buyNow=1' as any);
   };
+
+  // Sepet bir SEKME: yığın ekranından `push` ikinci bir `(tabs)` iterdi (`navigateTo` → dismissTo).
+  const handleGoToCart = () => navigateTo('/cart');
 
   const handleMessage = () => {
     if (!product) return;
@@ -128,7 +135,14 @@ export function useProductActions({
   const handleTrade = () => {
     if (!product) return;
     if (!requireAuth(t('product.signInToTrade'))) return;
-    if (!product.seller?.id) return notify(t('trade.sellerNotFound'), 'error');
+    if (!product.seller?.id) return toast.error(t('trade.sellerNotFound'));
+    // Düğme herkese görünür (web ile aynı); üyeliği takasa izin vermeyene yalnız bilgi dialog'u —
+    // mağaza kuralı gereği satın alma/yükseltme düğmesi YOK (`getUpgradeMessage` nötr metni verir).
+    if (!canTrade) {
+      const { title, message } = getUpgradeMessage(t, 'tradeFeature');
+      appAlert(title, message);
+      return;
+    }
     router.push(`/trade/new?targetProductId=${productId}&targetSellerId=${product.seller.id}` as any);
   };
 
@@ -136,7 +150,7 @@ export function useProductActions({
     if (!product) return;
     if (!requireAuth(t('product.signInToOffer'))) return;
     if (product.seller?.id && user?.id === product.seller.id) {
-      return notify(t('product.cannotOfferOwn'), 'error');
+      return toast.error(t('product.cannotOfferOwn'));
     }
     setOfferModalOpen(true);
   };
@@ -152,50 +166,35 @@ export function useProductActions({
       const { content, options } = buildShareContent(
         t('product.shareText', {
           title: product.title,
-          price: product.price?.toLocaleString('tr-TR'),
+          price: formatPrice(product.price),
         }),
         productShareUrl(product.id),
         product.title,
       );
       await Share.share(content, options);
     } catch (error) {
-      console.error('Share error:', error);
+      logger.error('Share error', { err: safeError(error) });
     }
   };
 
+  /** Ürün şikayeti: tek yüzey `ReportModal` (neden listesi + açıklama + gönderim orada). */
   const handleReport = () => {
-    if (!isAuthenticated) return notify(t('product.signInToReport'), 'error');
-    appAlert(
-      t('product.reportListingTitle'),
-      t('product.reportReasonPrompt'),
-      [
-        ...REPORT_REASONS.map((reason) => ({
-          text: reason.labelKey ? t(reason.labelKey) : reason.fallback!,
-          onPress: async () => {
-            try {
-              await userReportsApi.create({ type: 'product', targetId: productId, reason: reason.key as any });
-              notify(t('product.reportReceived'), 'success');
-            } catch (error: any) {
-              notify(error.response?.data?.message || t('report.submitFailed'), 'error');
-            }
-          },
-        })),
-        { text: t('common.cancel'), style: 'cancel' as const },
-      ],
-      { cancelable: true },
-    );
+    if (!isAuthenticated) return toast.error(t('product.signInToReport'));
+    setReportOpen(true);
   };
 
   return {
-    snackbar,
-    notify,
-    dismissSnackbar,
-    inCart: isInCart(productId),
+    quantity,
+    setQuantity,
+    inCart,
     offerModalOpen,
     setOfferModalOpen,
     collectionModalOpen,
     setCollectionModalOpen,
+    reportOpen,
+    setReportOpen,
     handleAddToCart,
+    handleGoToCart,
     handleBuyNow,
     handleMessage,
     handleTrade,

@@ -22,4 +22,6 @@ export interface Offer {
   seller?: { id: string; displayName: string };
   counterAmount?: number;
   buyerMustAccept?: boolean;
+  /** Kabul sonrası siparişin durumu (ödendi mi?); API `orderStatus` yazar. */
+  orderStatus?: string | null;
 }

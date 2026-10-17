@@ -127,6 +127,22 @@ describe('J62 · Siparişlerim listesi', () => {
     expect(screen.queryByText('Teslim Aldım')).toBeNull();
   });
 
+  it('"Değerlendir" düğmeleri değerlendirme ekranını iter (eskiden modal)', async () => {
+    getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture({ status: 'delivered', isBuyer: true })] } });
+    renderWithProviders(<OrdersScreen />);
+    await waitFor(() => expect(screen.getByText('Ürünü Değerlendir')).toBeOnTheScreen());
+    fireEvent.press(screen.getByText('Ürünü Değerlendir'));
+    expect(pushMock).toHaveBeenCalledWith({
+      pathname: '/orders/[id]/review',
+      params: { id: 'order-1', type: 'product' },
+    });
+    fireEvent.press(screen.getByText('Satıcıyı Değerlendir'));
+    expect(pushMock).toHaveBeenCalledWith({
+      pathname: '/orders/[id]/review',
+      params: { id: 'order-1', type: 'seller' },
+    });
+  });
+
   it('J62.3 sipariş kartına dokununca detay sayfasına gider', async () => {
     getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture()] } });
     renderWithProviders(<OrdersScreen />);
@@ -135,5 +151,96 @@ describe('J62 · Siparişlerim listesi', () => {
     );
     fireEvent.press(screen.getByText('Deri Ceket'));
     expect(pushMock).toHaveBeenCalledWith('/orders/order-1');
+  });
+});
+
+/**
+ * "İptal Edilenler" sekmesi (web profile/orders `cancelled` sekmesi). Sunucu
+ * `/orders/groups` için varsayılan `tab=active`'te iptalleri DIŞLAR → iptaller
+ * eskiden hiçbir sekmede görünmüyordu.
+ */
+describe('Siparişlerim · İptal Edilenler sekmesi', () => {
+  beforeEach(() => {
+    getGroupsMock.mockReset();
+    mockAuth = { isAuthenticated: true };
+  });
+
+  it('"Tümü" gruplu listeyi açıkça tab=active ile ister', async () => {
+    getGroupsMock.mockResolvedValue({ data: { data: [] } });
+    renderWithProviders(<OrdersScreen />);
+    await waitFor(() => expect(getGroupsMock).toHaveBeenCalled());
+    expect(getGroupsMock).toHaveBeenCalledWith(expect.objectContaining({ role: 'buyer', tab: 'active' }));
+  });
+
+  it('sekme Tamamlandı ile İadeler arasında, iptalleri tab=cancelled ile gruplu çeker', async () => {
+    getGroupsMock.mockImplementation((params: { tab?: string }) =>
+      Promise.resolve({
+        data: {
+          data:
+            params.tab === 'cancelled'
+              ? [orderGroupFixture({ id: 'order-c', orderNumber: 'ORD-CANCEL0001', status: 'cancelled', cancellationType: 'iptal' })]
+              : [],
+        },
+      }),
+    );
+    renderWithProviders(<OrdersScreen />);
+    await waitFor(() => expect(screen.getByText('Henüz siparişiniz yok')).toBeOnTheScreen());
+
+    const labels = screen
+      .getByTestId('orders-filters')
+      .findAll((n: { props: { children?: unknown } }) => typeof n.props.children === 'string')
+      .map((n: { props: { children?: unknown } }) => n.props.children as string);
+    const order = ['Tamamlandı', 'İptal Edilenler', 'İadeler'].map((l) => labels.indexOf(l));
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+
+    fireEvent.press(screen.getByText('İptal Edilenler'));
+    await waitFor(() =>
+      expect(screen.getByText('Sipariş #ORD-CANCEL0001')).toBeOnTheScreen(),
+    );
+    expect(getGroupsMock).toHaveBeenCalledWith(expect.objectContaining({ role: 'buyer', tab: 'cancelled' }));
+    expect(ordersApi.getAll).not.toHaveBeenCalled();
+  });
+
+  it('iptal sekmesi boşsa web metni: "İptal edilmiş siparişiniz yok."', async () => {
+    getGroupsMock.mockResolvedValue({ data: { data: [] } });
+    renderWithProviders(<OrdersScreen />);
+    await waitFor(() => expect(screen.getByText('Henüz siparişiniz yok')).toBeOnTheScreen());
+    fireEvent.press(screen.getByText('İptal Edilenler'));
+    await waitFor(() =>
+      expect(screen.getByText('İptal edilmiş siparişiniz yok.')).toBeOnTheScreen(),
+    );
+  });
+});
+
+describe('Siparişlerim · sayfalama', () => {
+  beforeEach(() => {
+    getGroupsMock.mockReset();
+    mockAuth = { isAuthenticated: true };
+  });
+
+  it('liste sonuna gelince sonraki sayfa istenir ve satırlar eklenir', async () => {
+    getGroupsMock.mockImplementation((params: { page: number }) =>
+      Promise.resolve({
+        data: {
+          data: [
+            orderGroupFixture(
+              params.page === 1
+                ? { id: 'o-p1', orderNumber: 'ORD-PAGE-1' }
+                : { id: 'o-p2', orderNumber: 'ORD-PAGE-2' },
+            ),
+          ],
+          meta: { total: 2, page: params.page, limit: 20, totalPages: 2 },
+        },
+      }),
+    );
+    renderWithProviders(<OrdersScreen />);
+    expect(await screen.findByText(/ORD-PAGE-1/)).toBeOnTheScreen();
+    expect(getGroupsMock).toHaveBeenCalledWith(expect.objectContaining({ page: 1, limit: 20 }));
+
+    fireEvent(screen.getByTestId('orders-list'), 'endReached');
+    expect(await screen.findByText(/ORD-PAGE-2/)).toBeOnTheScreen();
+    expect(getGroupsMock).toHaveBeenCalledWith(expect.objectContaining({ page: 2 }));
+    expect(screen.getByText(/ORD-PAGE-1/)).toBeOnTheScreen();
   });
 });

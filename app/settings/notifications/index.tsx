@@ -1,79 +1,51 @@
-import { View, ScrollView, TouchableOpacity } from "react-native";
-import { Button, Spinner, Text, ScreenHeader, theme } from "@/ui";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { ThemedRefreshControl } from "@/components/common";
+import { PageShell } from "@/components/common/PageShell";
 import { useTranslation } from "react-i18next";
 import { useNotificationSettings } from "./_hooks/useNotificationSettings";
-import { styles } from "./_lib/styles";
 import { NotificationCards } from "./_components/NotificationCards";
+import { NotificationSettingsSkeleton } from "./_components/NotificationSettingsSkeleton";
 
-const { colors } = theme;
-
+/**
+ * Bildirim tercihleri — PageShell (Skeleton / hata / çekip yenileme) + SectionCard bölümleri.
+ * Web gibi Kaydet düğmesi yok: her anahtar değiştiği anda kaydedilir (iyimser + toast).
+ * Mantık `useNotificationSettings`'de.
+ */
 export default function NotificationSettingsScreen() {
   const { t } = useTranslation();
   const f = useNotificationSettings();
+  const title = t("mobile.settingsNotifications");
+  const onBack = () => (router.canGoBack() ? router.back() : router.replace("/(tabs)"));
 
   if (!f.isAuthenticated) {
     return (
-      <View style={styles.centeredContainer}>
-        <Ionicons
-          name="notifications-outline"
-          size={64}
-          color={colors.primary[600]!}
-        />
-        <Text variant="h3" style={styles.title}>
-          {t("mobile.settingsNotifications")}
-        </Text>
-        <Text variant="body" style={styles.subtitle}>
-          {t("settings.notificationsAuthGateSubtitle")}
-        </Text>
-        <Button
-          variant="primary"
-          title={t("common.login")}
-          onPress={() => router.push("/(auth)/login")}
-          style={{ alignSelf: "center" }}
-        />
-      </View>
+      <PageShell
+        title={title}
+        onBack={onBack}
+        empty
+        emptyState={{
+          icon: "bell",
+          title,
+          subtitle: t("settings.notificationsAuthGateSubtitle"),
+          actionLabel: t("common.login"),
+          onAction: () => router.push("/(auth)/login"),
+        }}
+      />
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={t("mobile.settingsNotifications")}
-        onBack={() =>
-          router.canGoBack() ? router.back() : router.replace("/(tabs)")
-        }
-        right={
-          <TouchableOpacity
-            onPress={f.handleSave}
-            disabled={f.saveMutation.isPending}
-          >
-            <Text style={styles.saveButton}>
-              {f.saveMutation.isPending ? t("collection.saving") : t("mobile.save")}
-            </Text>
-          </TouchableOpacity>
-        }
-      />
-
-      {f.isLoading ? (
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" />
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.content}
-          refreshControl={
-            <ThemedRefreshControl
-              refreshing={f.refreshing}
-              onRefresh={f.onRefresh}
-            />
-          }
-        >
-          <NotificationCards f={f} />
-        </ScrollView>
-      )}
-    </View>
+    <PageShell
+      title={title}
+      onBack={onBack}
+      loading={f.isLoading}
+      loadingFallback={<NotificationSettingsSkeleton />}
+      error={f.loadFailed ? true : undefined}
+      errorMessage={t("settings.notificationPreferencesLoadFailed")}
+      onRetry={f.retryLoad}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
+    >
+      <NotificationCards f={f} />
+    </PageShell>
   );
 }

@@ -1,12 +1,12 @@
 # D-01: Checkout girişi smoke.
-# Login → Ara → ilk ürün → Sepete Ekle → Sepete Git → Satın Al → Teslimat Bilgileri.
+# Login → Ara → ilk ürün → Sepete Ekle → sepet (deep link) → Satın Al → checkout (tek sayfa).
 #
 # NOT (BUG-007 düzeltmesi): App sepet-tabanlı bir akış kullanıyor; eski "Hemen Al"
 # direkt-al butonu yok. Doğru zincir: product-detail-add-to-cart-button →
-# Sepete Git → cart-checkout-button → checkout (Teslimat Bilgileri).
+# sepet (tarodan://cart; ürün detayında sepet adası yok) → cart-checkout-button → checkout (checkout-address).
 # Tam bypass payment chain API-level test'te kapsanıyor
 # (apps/api/test/e2e/payment-bypass.e2e-spec.ts).
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - smoke
 env:
@@ -14,26 +14,28 @@ env:
   PASSWORD: Demo123!
 ---
 - runFlow: ../subflows/open-tarodan.yaml
-- tapOn:
-    text: "Ara"
+- runFlow: ../subflows/open-search.yaml
 - extendedWaitUntil:
     visible:
-      text: ".*sonuç bulundu.*|.*₺.*"
+      text: ".*sonuç bulundu.*|.*[0-9],[0-9][0-9] TL.*"
     timeout: 30000
 - tapOn:
-    text: ".*₺.*"
+    text: ".*[0-9],[0-9][0-9] TL.*"
     index: 0
 # Ürün detay → Sepete Ekle
 - extendedWaitUntil:
     visible:
-      id: "product-detail-add-to-cart-button"
+      id: "product-price"
     timeout: 20000
+# Sepet düğmesi sabit alt barda (kaydırma gerekmez); ürün zaten sepetteyse "Sepete Git".
+- extendedWaitUntil:
+    visible:
+      id: "product-detail-(add-to-cart|go-to-cart)-button"
+    timeout: 30000
 - tapOn:
-    id: "product-detail-add-to-cart-button"
-# Sepete Git (snackbar aksiyonu) → cart
-- tapOn:
-    text: "Sepete Git"
-    optional: true
+    id: "product-detail-(add-to-cart|go-to-cart)-button"
+# Ürün detayında sepet adası yok → deep link ile cart
+- openLink: "tarodan://cart"
 # Cart → Satın Al → checkout
 - extendedWaitUntil:
     visible:
@@ -41,11 +43,13 @@ env:
     timeout: 15000
 - tapOn:
     id: "cart-checkout-button"
-# Checkout Step 1 — Teslimat Bilgileri yüklendi
+# Checkout (tek sayfa) yüklendi — adres bölümü + Ödeme Yap düğmesi
 - extendedWaitUntil:
-    visible: "Teslimat Bilgileri"
+    visible:
+      id: "checkout-address"
     timeout: 15000
-- assertVisible: "Teslimat Bilgileri"
 - assertVisible: "Teslimat Adresi"
+- assertVisible:
+    id: "checkout-pay-button"
 - assertNotVisible: ".*Network Error.*"
 - assertNotVisible: ".*Bir hata oluştu.*"

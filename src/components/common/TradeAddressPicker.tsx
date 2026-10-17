@@ -1,8 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { theme, Text } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { theme, Text, Icon, ListRowCard, RadioIndicator, EmptyState, LoadingIndicator } from '@/ui';
 import { router, useFocusEffect } from 'expo-router';
 import { addressesApi } from '@/lib/api';
 
@@ -78,30 +77,20 @@ export function TradeAddressPicker({ onChange, label }: Props) {
     <View style={styles.container}>
       {label ? (
         <View style={styles.labelRow}>
-          <Ionicons name="location-outline" size={16} color={colors.primary[600]!} />
+          <Icon name="map-pin" size={16} color={colors.primary[600]!} />
           <Text style={styles.label}>{label}</Text>
         </View>
       ) : null}
 
       {loading ? (
-        <ActivityIndicator color={colors.primary[600]!} style={{ marginVertical: theme.spacing[4] }} />
+        <LoadingIndicator style={styles.loading} />
       ) : (
         <>
           {addresses.map((a) => {
             const active = selectedId === a.id;
             return (
-              <TouchableOpacity
-                key={a.id}
-                style={[styles.card, active && styles.cardActive]}
-                onPress={() => select(a.id)}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name={active ? 'radio-button-on' : 'radio-button-off'}
-                  size={20}
-                  color={active ? colors.primary[600]! : colors.text.muted}
-                  style={{ marginTop: theme.spacing[0.5] }}
-                />
+              <ListRowCard key={a.id} gap={2.5} style={[styles.card, active && styles.cardActive]} onPress={() => select(a.id)}>
+                <RadioIndicator checked={active} style={{ marginTop: theme.spacing[0.5] }} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>
                     {a.fullName}
@@ -114,12 +103,12 @@ export function TradeAddressPicker({ onChange, label }: Props) {
                     {a.address}
                   </Text>
                 </View>
-              </TouchableOpacity>
+              </ListRowCard>
             );
           })}
 
           {addresses.length === 0 ? (
-            <Text style={styles.empty}>{t('address.noAddressesPicker')}</Text>
+            <EmptyState placement="inline" icon="map-pin" title={t('address.noAddressesPicker')} subtitle={t('address.emptySubtitle')} />
           ) : null}
 
           <TouchableOpacity
@@ -127,7 +116,7 @@ export function TradeAddressPicker({ onChange, label }: Props) {
             onPress={() => router.push('/settings/addresses' as any)}
             activeOpacity={0.8}
           >
-            <Ionicons name="add" size={18} color={colors.primary[600]!} />
+            <Icon name="plus" size={18} color={colors.primary[600]!} />
             <Text style={styles.addBtnText}>{t('address.addNewAddress')}</Text>
           </TouchableOpacity>
         </>
@@ -138,23 +127,15 @@ export function TradeAddressPicker({ onChange, label }: Props) {
 
 const styles = StyleSheet.create({
   container: { gap: theme.spacing[2] },
+  loading: { marginVertical: theme.spacing[4] },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[1.5], marginBottom: theme.spacing[1] },
-  label: { fontSize: 14, fontWeight: '600', color: colors.text.heading },
-  card: {
-    flexDirection: 'row',
-    gap: theme.spacing[2.5],
-    padding: theme.spacing[3],
-    borderRadius: theme.radius['2xl'],
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    backgroundColor: colors.surface.DEFAULT,
-  },
+  label: { fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.semibold, color: colors.text.heading },
+  card: { alignItems: 'stretch' },
   cardActive: { borderColor: colors.primary[500]!, backgroundColor: colors.primary[50]! },
-  name: { fontSize: 14, fontWeight: '600', color: colors.text.heading },
-  default: { fontSize: 12, color: colors.primary[600]!, fontWeight: '500' },
-  sub: { fontSize: 13, color: colors.text.muted, marginTop: theme.spacing[0.5] },
-  addr: { fontSize: 12, color: colors.text.subtle, marginTop: 1 },
-  empty: { fontSize: 13, color: colors.text.muted, paddingVertical: theme.spacing[2] },
+  name: { fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.semibold, color: colors.text.heading },
+  default: { fontSize: theme.typography.fontSize.xs, color: colors.primary[600]!, fontWeight: theme.typography.fontWeight.medium },
+  sub: { fontSize: theme.typography.fontSize.sm, color: colors.text.muted, marginTop: theme.spacing[0.5] },
+  addr: { fontSize: theme.typography.fontSize.xs, color: colors.text.subtle, marginTop: 1 },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -164,5 +145,5 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius['2xl'],
     backgroundColor: colors.primary[50]!,
   },
-  addBtnText: { fontSize: 14, fontWeight: '600', color: colors.primary[600]! },
+  addBtnText: { fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.semibold, color: colors.primary[600]! },
 });

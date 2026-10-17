@@ -1,7 +1,7 @@
 # E-08: Deep-link routing simülasyonu (real push yok).
 # openLink: tarodan://products/unavailable/{productId} → unavailable hero görünür.
 # Bu, push notification handler'ın yönlendireceği rotayı doğrular.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 env:
@@ -11,10 +11,11 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 - openLink: "tarodan://products/unavailable/${STOCKOUT_PRODUCT_ID}"

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Card, Text, theme } from '@/ui';
+import { SectionCard, Text, theme } from '@/ui';
 import { formatPrice } from '@/utils/format';
 import type { TradePaymentQuoteSide } from '@/lib/api';
 import type { TFn } from '../_lib/types';
@@ -38,12 +38,11 @@ export function TradeCostPreviewCard({
   if (lockedPaymentCount > 0) return null;
 
   return (
-    <Card style={styles.card}>
-      <Text variant="body" style={styles.title}>{t('trade.costPreviewTitle')}</Text>
+    <SectionCard title={t('trade.costPreviewTitle')} bodyStyle={styles.body}>
       <Side label={t('trade.costPreviewYou')} side={mine} t={t} />
       <Side label={t('trade.costPreviewThem')} side={theirs} t={t} />
-      <Text variant="caption" tone="muted" style={styles.hint}>{t('trade.costPreviewHint')}</Text>
-    </Card>
+      <Text variant="caption" tone="muted">{t('trade.costPreviewHint')}</Text>
+    </SectionCard>
   );
 }
 
@@ -82,10 +81,9 @@ function Row({ label, amount }: { label: string; amount: number }) {
 }
 
 const styles = StyleSheet.create({
-  card: { margin: theme.spacing[4], marginTop: theme.spacing[0], backgroundColor: theme.colors.surface.DEFAULT },
-  title: { fontWeight: '600' },
-  side: { marginTop: theme.spacing[3], gap: theme.spacing[1] },
-  sideLabel: { fontWeight: '600' },
+  body: { gap: theme.spacing[3] },
+  side: { gap: theme.spacing[1] },
+  sideLabel: { fontWeight: theme.typography.fontWeight.semibold },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   totalRow: {
     flexDirection: 'row',
@@ -95,6 +93,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: theme.colors.border.DEFAULT,
   },
-  totalValue: { fontWeight: 'bold' },
-  hint: { marginTop: theme.spacing[2] },
+  totalValue: { fontWeight: theme.typography.fontWeight.bold },
 });

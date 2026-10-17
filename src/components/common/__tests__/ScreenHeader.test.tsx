@@ -11,17 +11,20 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { ScreenHeader } from '../ScreenHeader';
 
 const mockBack = jest.fn();
+const mockReplace = jest.fn();
 let mockCanGoBack = true;
 
 jest.mock('expo-router', () => ({
   router: {
     back: () => mockBack(),
+    replace: (...a: unknown[]) => mockReplace(...a),
     canGoBack: () => mockCanGoBack,
   },
 }));
 
 beforeEach(() => {
   mockBack.mockClear();
+  mockReplace.mockClear();
   mockCanGoBack = true;
 });
 
@@ -40,10 +43,11 @@ describe('ScreenHeader — geri oku', () => {
     expect(mockBack).not.toHaveBeenCalled();
   });
 
-  it('geri gidilecek yer yoksa ok devre dışı kalır — sahte bir söz verilmez', () => {
+  it('geri gidilecek yer yoksa ok ÖLÜ kalmaz: ana sekmeye replace eder (derin bağlantı)', () => {
     mockCanGoBack = false;
     render(<ScreenHeader title="Dil" />);
     fireEvent.press(screen.getByLabelText('Geri'));
     expect(mockBack).not.toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith('/(tabs)');
   });
 });

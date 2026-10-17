@@ -1,105 +1,118 @@
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
-import { Button, Spinner, Snackbar, Text, ScreenHeader, theme } from '@/ui';
+import { View } from 'react-native';
+import Animated from 'react-native-reanimated';
+import {
+  EmptyState,
+  ErrorState,
+  SkeletonCard,
+  Spinner,
+  pageListContentStyle,
+  usePageScrollHandler,
+} from '@/ui';
 import { router } from 'expo-router';
 
-import RatingModal from '@/components/RatingModal';
+import { PageShell } from '@/components/common/PageShell';
+import { listWindowing } from '@/lib/list/windowing';
 import { styles } from './_lib/ordersStyles';
-import type { Order } from './_lib/ordersStatus';
+import type { Order, OrderListEntry } from './_lib/ordersStatus';
 import { useOrders } from './_hooks/useOrders';
+import { openOrderReview } from './[id]/_lib/routes';
 import { OrderCard } from './_components/OrderCard';
-import { OrdersGate, OrdersFilters, OrdersEmpty, OrderGroupCard } from './_components/OrdersSections';
+import { OrdersFilters, OrderGroupCard, useOrdersEmptyTitle } from './_components/OrdersSections';
 
-const { colors } = theme;
+const entryKey = (entry: OrderListEntry) =>
+  entry.kind === 'order' ? entry.order.id : `group:${entry.group.id}`;
+
+// Modül düzeyinde: satır başına closure yok → memo'lu kartlar yeniden çizilmez.
+const onRate = (type: 'product' | 'seller', order: Order) => openOrderReview(order.id, type);
 
 /**
- * Orders (buyer) — THIN screen. The `useOrders` controller owns the grouped/
- * flat query, filter, accordion, rating-modal and snackbar state; this file
- * composes the gate, filters, list (order + group cards), and rating modal.
+ * Siparişlerim (alıcı) — İNCE ekran. `useOrders` kontrolcüsü gruplu/düz sorguyu (sayfalı),
+ * filtreyi ve accordion durumunu taşır; burası PageShell (list modu) + filtre chip'leri (liste
+ * başlığı) + sanallaştırılmış liste kompoze eder. "Değerlendir" ayrı form ekranını iter
+ * (`/orders/[id]/review`). Yükleme Skeleton, boş/hata durumu filtre chip'lerini gizlemez.
  */
 export default function OrdersScreen() {
   const { t } = useTranslation();
   const f = useOrders();
+  const page = usePageScrollHandler();
+  const emptyTitle = useOrdersEmptyTitle(f.filter);
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
-  const gate = OrdersGate({ f });
-  if (gate) return gate;
-
-  const onRate = (type: 'product' | 'seller', order: Order) =>
-    f.setRatingModal({ visible: true, type, order });
-
-  return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('order.myOrders')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
-
-      <OrdersFilters f={f} />
-
-      {/* Orders */}
-      {f.ordersError ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptySubtitle}>
-            {t('order.loadFailedRetry')}
-          </Text>
-          <Button variant="primary" title={t('order.refresh')} onPress={() => f.refetch()} style={StyleSheet.flatten([styles.emptyButton, { marginTop: theme.spacing[3] }])} />
-        </View>
-      ) : f.isLoading && f.entries.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" />
-        </View>
-      ) : f.entries.length === 0 ? (
-        <OrdersEmpty filter={f.filter} />
+  const { expandedGroups, toggleGroup } = f;
+  // Kararlı renderItem (erken return'den ÖNCE — hook sırası sabit).
+  const renderEntry = useCallback(
+    ({ item }: { item: OrderListEntry }) =>
+      item.kind === 'order' ? (
+        <OrderCard order={item.order} onRate={onRate} />
       ) : (
-        <ScrollView
-          style={styles.ordersList}
-          refreshControl={
-            <RefreshControl refreshing={f.refreshing} onRefresh={f.onRefresh} colors={[colors.primary[600]!]} />
-          }
-        >
-          {f.entries.map((entry) =>
-            entry.kind === 'order' ? (
-              <OrderCard key={entry.order.id} order={entry.order} onRate={onRate} />
-            ) : (
-              <OrderGroupCard
-                key={entry.group.id}
-                group={entry.group}
-                isExpanded={f.expandedGroups.has(entry.group.id)}
-                onToggle={() => f.toggleGroup(entry.group.id)}
-                onRate={onRate}
-              />
-            )
-          )}
+        <OrderGroupCard
+          group={item.group}
+          isExpanded={expandedGroups.has(item.group.id)}
+          onToggle={toggleGroup}
+          onRate={onRate}
+        />
+      ),
+    [expandedGroups, toggleGroup],
+  );
 
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      )}
-
-      {/* Rating Modal */}
-      <RatingModal
-        visible={f.ratingModal.visible}
-        onDismiss={() => f.setRatingModal({ ...f.ratingModal, visible: false })}
-        type={f.ratingModal.type}
-        orderId={f.ratingModal.order?.id || ''}
-        productId={f.ratingModal.order?.product.id}
-        sellerId={f.ratingModal.order?.seller.id}
-        productTitle={f.ratingModal.order?.product.title}
-        sellerName={f.ratingModal.order?.seller.displayName}
-        onSuccess={() => {
-          f.refetch();
-          f.setSnackbar({
-            visible: true,
-            variant: 'success',
-            message: t('order.reviewReceived'),
-          });
+  if (!f.isAuthenticated) {
+    return (
+      <PageShell
+        title={t('order.myOrders')}
+        onBack={back}
+        empty
+        emptyState={{
+          icon: 'receipt-percent',
+          title: t('order.signInToView'),
+          subtitle: t('emptyState.loginRequiredHint'),
+          actionLabel: t('common.login'),
+          onAction: () => router.push('/(auth)/login'),
         }}
       />
+    );
+  }
 
-      <Snackbar
-        visible={f.snackbar.visible}
-        onDismiss={() => f.setSnackbar({ visible: false, message: '', variant: 'default' })}
-        duration={3500}
-        variant={f.snackbar.variant}
-      >
-        {f.snackbar.message}
-      </Snackbar>
-    </View>
+  const loading = f.isLoading && f.entries.length === 0;
+  const failed = !!f.ordersError && f.entries.length === 0;
+
+  return (
+    <PageShell title={t('order.myOrders')} onBack={back} mode="list" scroll={page}>
+      <Animated.FlatList
+        {...page.listProps}
+        testID="orders-list"
+        data={loading || failed ? [] : f.entries}
+        keyExtractor={entryKey}
+        renderItem={renderEntry}
+        {...listWindowing}
+        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
+        refreshing={f.refreshing}
+        onRefresh={f.onRefresh}
+        onEndReached={f.loadMore}
+        onEndReachedThreshold={0.4}
+        ListHeaderComponent={<OrdersFilters f={f} />}
+        ListFooterComponent={f.isFetchingNextPage ? <Spinner style={styles.footerSpinner} /> : null}
+        ListEmptyComponent={
+          failed ? (
+            <ErrorState message={t('order.loadFailedRetry')} onRetry={() => f.refetch()} />
+          ) : loading ? (
+            <View style={styles.list}>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </View>
+          ) : (
+            <EmptyState
+              icon="receipt-percent"
+              title={emptyTitle}
+              subtitle={t('order.startShopping')}
+              actionLabel={t('order.exploreProducts')}
+              onAction={() => router.push('/search')}
+            />
+          )
+        }
+      />
+    </PageShell>
   );
 }

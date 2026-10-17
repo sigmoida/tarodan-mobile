@@ -1,13 +1,12 @@
 import { useMemo } from 'react';
-import { View, StyleSheet, Modal as RNModal, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { theme, Text, Button } from '@/ui';
+import { theme, Text, Button, Icon, BottomSheet, ButtonRow, useBottomSheet } from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 
-const { colors } = theme;
+const { colors, spacing, iconSize } = theme;
 
 interface SignupPromptProps {
   visible: boolean;
@@ -20,7 +19,7 @@ interface SignupPromptProps {
 // ile çağırır.
 const buildPromptConfig = (t: TFunction) => ({
   favorites: {
-    icon: 'heart',
+    icon: 'heart' as const,
     title: t('product.addToFavorites'),
     description: t('signupPrompt.favoritesDescription'),
     primaryButton: t('common.register'),
@@ -32,7 +31,7 @@ const buildPromptConfig = (t: TFunction) => ({
     ],
   },
   message: {
-    icon: 'chatbubble-ellipses',
+    icon: 'chat-bubble-left-ellipsis' as const,
     title: t('signupPrompt.messageTitle'),
     description: t('signupPrompt.messageDescription'),
     primaryButton: t('common.login'),
@@ -44,7 +43,7 @@ const buildPromptConfig = (t: TFunction) => ({
     ],
   },
   purchase: {
-    icon: 'checkmark-circle',
+    icon: 'check-circle' as const,
     title: t('signupPrompt.purchaseTitle'),
     description: t('signupPrompt.purchaseDescription'),
     primaryButton: t('common.register'),
@@ -56,7 +55,7 @@ const buildPromptConfig = (t: TFunction) => ({
     ],
   },
   trade: {
-    icon: 'swap-horizontal',
+    icon: 'arrows-right-left' as const,
     title: t('trade.featureTitle'),
     description: CAN_BUY_DIGITAL
       ? t('signupPrompt.tradeDescription')
@@ -70,7 +69,7 @@ const buildPromptConfig = (t: TFunction) => ({
     ],
   },
   collections: {
-    icon: 'albums',
+    icon: 'rectangle-stack' as const,
     title: t('mobile.guestGarageTitle'),
     description: CAN_BUY_DIGITAL
       ? t('signupPrompt.collectionsDescription')
@@ -85,160 +84,117 @@ const buildPromptConfig = (t: TFunction) => ({
   },
 });
 
+/**
+ * Misafir tanıtımı — `BottomSheet size="fit"`: gövdede ikon + başlık + açıklama + faydalar,
+ * sabit footer'da iki düğme (ana eylem + "Şimdilik geç"). Ana eylem / giriş yönlendirmesi sheet
+ * TAMAMEN kapandıktan sonra çalışır (`runAfterClose`, src/ui/CLAUDE.md › iOS modal rule). Çağıranlar (`visible`/`onDismiss`/`type`)
+ * değişmez; sheet kapanış animasyonu için bileşen her zaman bağlıdır.
+ */
 export function SignupPrompt({ visible, onDismiss, type }: SignupPromptProps) {
   const { t } = useTranslation();
   const promptConfig = useMemo(() => buildPromptConfig(t), [t]);
-
-  if (!visible) return null;
-
   const config = promptConfig[type];
 
   return (
-    <RNModal
-      visible
-      transparent
-      animationType="fade"
-      onRequestClose={onDismiss}
+    <BottomSheet
+      isOpen={visible}
+      onClose={onDismiss}
+      testID="signup-prompt"
+      footer={<SignupPromptFooter primaryButton={config.primaryButton} primaryAction={config.primaryAction} />}
     >
-      <View style={styles.backdrop}>
-        <View style={styles.container}>
-          {/* Close Button */}
-          <TouchableOpacity style={styles.closeButton} onPress={onDismiss}>
-            <Ionicons name="close" size={24} color={colors.text.muted} />
-          </TouchableOpacity>
-
-          {/* Icon */}
-          <View style={styles.iconContainer}>
-            <Ionicons name={config.icon as any} size={48} color={colors.primary[600]!} />
-          </View>
-
-          {/* Title & Description */}
-          <Text style={styles.title}>{config.title}</Text>
-          <Text style={styles.description}>{config.description}</Text>
-
-          {/* Benefits */}
-          <View style={styles.benefitsList}>
-            {config.benefits.map((benefit, index) => (
-              <View key={index} style={styles.benefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success[600]!} />
-                <Text style={styles.benefitText}>{benefit}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Buttons */}
-          <Button
-            variant="primary"
-            title={config.primaryButton}
-            onPress={() => {
-              onDismiss();
-              config.primaryAction();
-            }}
-            style={styles.primaryButton}
-          />
-
-          {type !== 'message' && (
-            <TouchableOpacity
-              style={styles.loginLink}
-              onPress={() => {
-                onDismiss();
-                router.push('/(auth)/login');
-              }}
-            >
-              <Text style={styles.loginLinkText}>
-                {t('checkout.alreadyMember')}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity onPress={onDismiss}>
-            <Text style={styles.skipText}>{t('signupPrompt.skipText')}</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.iconContainer}>
+        <Icon name={config.icon} variant="solid" size={iconSize.lg} color={colors.primary[600]!} />
       </View>
-    </RNModal>
+
+      <Text variant="h2" align="center" style={styles.title}>
+        {config.title}
+      </Text>
+      <Text variant="bodySm" tone="muted" align="center" style={styles.description}>
+        {config.description}
+      </Text>
+
+      <View style={styles.benefitsList}>
+        {config.benefits.map((benefit, index) => (
+          <View key={index} style={styles.benefitItem}>
+            <Icon name="check-circle" variant="solid" size={iconSize.md} color={colors.success[600]!} />
+            <Text variant="bodySm" tone="heading" style={styles.benefitText}>
+              {benefit}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      {type !== 'message' ? <LoginLink /> : null}
+    </BottomSheet>
+  );
+}
+
+/** "Zaten üye misiniz? Giriş yapın" — sheet kapandıktan sonra giriş ekranına. */
+function LoginLink() {
+  const { t } = useTranslation();
+  const { runAfterClose } = useBottomSheet();
+  return (
+    <Button
+      variant="link"
+      title={t('checkout.alreadyMember')}
+      onPress={() => runAfterClose(() => router.push('/(auth)/login'))}
+      testID="signup-prompt-login"
+    />
+  );
+}
+
+function SignupPromptFooter({
+  primaryButton,
+  primaryAction,
+}: {
+  primaryButton: string;
+  primaryAction: () => void;
+}) {
+  const { t } = useTranslation();
+  const { close, runAfterClose } = useBottomSheet();
+  return (
+    <ButtonRow layout="stack">
+      <Button
+        key="primary"
+        variant="primary"
+        title={primaryButton}
+        onPress={() => runAfterClose(primaryAction)}
+        testID="signup-prompt-primary"
+      />
+      <Button key="skip" variant="ghost" title={t('signupPrompt.skipText')} onPress={close} testID="signup-prompt-skip" />
+    </ButtonRow>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay.black50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing[5],
-  },
-  container: {
-    backgroundColor: colors.surface.DEFAULT,
-    borderRadius: 20,
-    padding: theme.spacing[6],
-    width: '100%',
-    maxWidth: 340,
-    alignItems: 'center',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    padding: theme.spacing[2],
-  },
   iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    alignSelf: 'center',
+    width: spacing[20],
+    height: spacing[20],
+    borderRadius: theme.radius.full,
     backgroundColor: colors.primary[50]!,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing[4],
+    marginBottom: spacing[4],
   },
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.text.heading,
-    textAlign: 'center',
-    marginBottom: theme.spacing[2],
+    marginBottom: spacing[2],
   },
   description: {
-    fontSize: 14,
-    color: colors.text.muted,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: theme.spacing[5],
+    marginBottom: spacing[5],
   },
   benefitsList: {
     alignSelf: 'stretch',
-    marginBottom: theme.spacing[6],
+    marginBottom: spacing[3],
   },
   benefitItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing[2.5],
-    gap: theme.spacing[2.5],
+    marginBottom: spacing[2.5],
+    gap: spacing[2.5],
   },
   benefitText: {
-    fontSize: 14,
-    color: colors.text.heading,
     flex: 1,
-  },
-  primaryButton: {
-    width: '100%',
-    borderRadius: 12,
-    marginBottom: theme.spacing[3],
-  },
-  loginLink: {
-    marginBottom: theme.spacing[4],
-  },
-  loginLinkText: {
-    fontSize: 14,
-    color: colors.text.muted,
-  },
-  loginLinkBold: {
-    color: colors.primary[600]!,
-    fontWeight: '600',
-  },
-  skipText: {
-    fontSize: 14,
-    color: colors.text.muted,
   },
 });
 

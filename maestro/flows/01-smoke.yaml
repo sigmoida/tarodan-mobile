@@ -1,9 +1,15 @@
 # Smoke: Expo Go açılır → Tarodan recents'tan açılır → home content görünür.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - smoke
 ---
 - runFlow: ../subflows/open-tarodan.yaml
-- assertVisible: "Kategoriler"
-- assertVisible: "Markalar"
+# Ana sayfa: AppShell arama kutusu + web bölüm kümesi (Popüler İlanlar her zaman çizilir).
+- assertVisible:
+    id: "home-search-input"
+- scrollUntilVisible:
+    element:
+      id: "home-popular"
+    direction: DOWN
+    timeout: 30000
 - assertVisible: "Diecast pazaryeri"

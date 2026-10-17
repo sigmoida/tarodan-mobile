@@ -31,6 +31,7 @@ function fillRestOfForm() {
   fireEvent.changeText(screen.getByTestId('register-password-input'), 'Demo1234');
   fireEvent.changeText(screen.getByTestId('register-confirmPassword-input'), 'Demo1234');
   fireEvent.press(screen.getByTestId('register-acceptTerms'));
+  fireEvent.press(screen.getByTestId('register-acceptKvkk'));
   fireEvent(screen.getByTestId('register-birthDate-input'), 'onChange', '1990-01-01');
 }
 

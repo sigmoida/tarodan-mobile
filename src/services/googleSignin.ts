@@ -28,14 +28,26 @@ function ensureConfigured() {
 }
 
 /**
+ * Android'de Google girişi AÇIK mı — build başına bayrak. BİLİNÇLİ karar:
+ * Android henüz Play'de değil; bayrak `'true'` olana kadar buton Android'de
+ * gizli (belgesi `.env.example`, profiller `eas.json`'da `"false"`). Google Cloud'da
+ * Android OAuth istemcisine imza SHA-1'i (Play App Signing + upload) kayıtlı
+ * değilken giriş `DEVELOPER_ERROR` ile düşüyor (docs/RELEASE.md). Bayrak
+ * yalnız SHA-1 kaydı doğrulanmış build profilinde `'true'` yapılır; yoksa
+ * buton hiç görünmez. Doğrudan `process.env.EXPO_PUBLIC_*` erişimi: Expo
+ * değeri derleme anında inline'lar.
+ */
+const ANDROID_ENABLED = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED === 'true';
+
+/**
  * Google girişi bu platformda gerçekten yapılabilir mi?
  * Buton yalnızca true ise gösterilmeli — aksi halde configure() patlar.
  * - iOS: iosClientId (veya GoogleService-Info.plist) şart.
- * - Android: webClientId yeterli.
+ * - Android: webClientId + `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED==='true'`.
  */
 export function isGoogleConfigured(): boolean {
   if (Platform.OS === 'ios') return !!IOS_CLIENT_ID;
-  return !!WEB_CLIENT_ID;
+  return !!WEB_CLIENT_ID && ANDROID_ENABLED;
 }
 
 /** Google ile giriş; backend'e gönderilecek idToken döner. */

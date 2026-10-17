@@ -1,19 +1,14 @@
-import { View, ScrollView, Clipboard, StyleSheet } from "react-native";
-import {
-  Spinner,
-  Snackbar,
-  ScreenHeader,
-  EmptyState,
-  theme,
-} from "@/ui";
 import { router, useLocalSearchParams } from "expo-router";
-import { ThemedRefreshControl } from "@/components/common";
+import { PageShell } from "@/components/common/PageShell";
 import { useRefresh } from "@/hooks/useRefresh";
+import { isNotFoundError } from "@/lib/query";
 import { useAuthStore } from "@/stores/authStore";
+import { tradeViewerRole } from "@/lib/shared/tradeStatus";
 import { useTranslation } from "react-i18next";
+import { toast } from "@/ui";
+import { copyToClipboard } from "@/lib/clipboard";
 import { deriveTradeView } from "./_lib/derive";
 import { useTrade } from "./_hooks/useTrade";
-import { useCountdown } from "./_hooks/useCountdown";
 import { useTradeActions } from "./_hooks/useTradeActions";
 import { useTradePaymentQuote } from "./_hooks/useTradePaymentQuote";
 import { TradeStatusHeader } from "./_components/TradeStatusHeader";
@@ -26,24 +21,27 @@ import { TradeMessages } from "./_components/TradeMessages";
 import { TradeShippingSection } from "./_components/TradeShippingSection";
 import { TradeProtectionCard } from "./_components/TradeProtectionCard";
 import { TradeActions } from "./_components/TradeActions";
+import { TradeDetailSkeleton } from "./_components/TradeDetailSkeleton";
 import { RejectTradeModal } from "./_modals/RejectTradeModal";
-import { DisputeTradeModal } from "./_modals/DisputeTradeModal";
 
-const { colors } = theme;
-
+/**
+ * Takas detayı — İNCE ekran: PageShell + durum başlığı + SectionCard dizisi + eylemler. Türetilmiş
+ * değerler `deriveTradeView`'da, mutasyonlar `useTradeActions`'ta; bildirimler toast, reddet modalı
+ * `overlay`'de (yükleme/hata durumunda unmount olmaz). İtiraz ayrı form ekranı (`./dispute`).
+ */
 export default function TradeDetailScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const tradeId = String(id);
 
   const {
     data: trade,
     isLoading,
+    error,
     refetch,
   } = useTrade(id as string | undefined);
   const { refreshing, onRefresh } = useRefresh(refetch);
-  const now = useCountdown();
   const actions = useTradeActions(tradeId);
   const { quote: paymentQuote } = useTradePaymentQuote(tradeId);
 
@@ -54,155 +52,126 @@ export default function TradeDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.screen}>
-        <ScreenHeader title={t('trade.detailTitle')} onBack={handleBack} />
-        <View style={styles.loadingContainer}>
-          <Spinner size="lg" />
-        </View>
-      </View>
+      <PageShell title={t('trade.detailTitle')} onBack={handleBack} loading loadingFallback={<TradeDetailSkeleton />} />
     );
   }
 
   if (!trade) {
+    // Gerçek 404 → "bulunamadı"; diğer hatalar (ağ/5xx) → ErrorState + yeniden dene.
     return (
-      <View style={styles.screen}>
-        <ScreenHeader title={t('trade.detailTitle')} onBack={handleBack} />
-        <EmptyState
-          fullscreen
-          icon="swap-horizontal-outline"
-          title={t('trade.notFoundTitle')}
-          actionLabel={t('common.goBack')}
-          onAction={handleBack}
-        />
-      </View>
+      <PageShell
+        title={t('trade.detailTitle')}
+        onBack={handleBack}
+        error={(!!error && !isNotFoundError(error)) || undefined}
+        onRetry={() => refetch()}
+        empty
+        emptyState={{
+          icon: "arrows-right-left",
+          title: t('trade.notFoundTitle'),
+          subtitle: t('emptyState.notFoundHint'),
+          actionLabel: t('common.goBack'),
+          onAction: handleBack,
+        }}
+      />
     );
   }
 
   const view = deriveTradeView(trade, user, paymentQuote);
   const copyCode = (code?: string | null) => {
-    if (!code) return;
-    Clipboard.setString(code);
-    actions.notify(t('trade.trackingCopied'));
+    if (!copyToClipboard(code)) return;
+    toast.success(t('trade.trackingCopied'));
   };
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('trade.tradeNumberTitle', { number: trade.tradeNumber })} onBack={handleBack} />
-
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <ThemedRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <TradeStatusHeader trade={trade} t={t} now={now} hasPaymentStep={view.hasPaymentStep} />
-        <TradeInfoCard
-          trade={trade}
-          isInitiator={view.isInitiator}
-          otherParty={view.otherParty}
+    <PageShell
+      title={t('trade.tradeNumberTitle', { number: trade.tradeNumber })}
+      onBack={handleBack}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      overlay={
+        <RejectTradeModal
+          visible={actions.reject.visible}
+          onClose={actions.reject.close}
+          reason={actions.reject.reason}
+          setReason={actions.reject.setReason}
+          onSubmit={actions.reject.submit}
         />
-        <TradeItemsCompare
-          myItems={view.myItems}
-          theirItems={view.theirItems}
-          myTotal={view.myTotal}
-          theirTotal={view.theirTotal}
-          otherPartyName={view.otherParty.displayName}
-        />
-        <TradeCashCard
-          trade={trade}
-          userId={user?.id}
-          otherPartyName={view.otherParty.displayName}
-          cashPaid={view.cashPaid}
-          cashCommission={view.cashCommission}
-          cashTotal={view.cashTotal}
-          isV2={view.isV2}
-        />
-        <TradePaymentsCard view={view} otherPartyName={view.otherParty.displayName} />
-        <TradeCostPreviewCard
-          mine={view.isInitiator ? paymentQuote?.initiator ?? null : paymentQuote?.receiver ?? null}
-          theirs={view.isInitiator ? paymentQuote?.receiver ?? null : paymentQuote?.initiator ?? null}
-          lockedPaymentCount={view.totalCount}
-        />
-        <TradeMessages trade={trade} />
-        <TradeShippingSection
-          trade={trade}
-          view={view}
-          t={t}
-          onCopy={copyCode}
-        />
-        <TradeProtectionCard status={trade.status} />
-        <TradeActions
-          trade={trade}
-          id={tradeId}
-          t={t}
-          isInitiator={view.isInitiator}
-          isReceiver={view.isReceiver}
-          userId={user?.id}
-          otherPartyId={view.otherParty.id}
-          cashPaid={view.cashPaid}
-          cashTotal={view.cashTotal}
-          cashCommission={view.cashCommission}
-          isV2={view.isV2}
-          myPaymentRow={view.myPaymentRow}
-          myPaymentPending={view.myPaymentPending}
-          paidCount={view.paidCount}
-          totalCount={view.totalCount}
-          myFromWarehouseStatus={view.myFromWarehouseShipment?.status}
-          hasShippedLeg={view.hasShippedLeg}
-          actions={{
-            setTradeAddressId: actions.setTradeAddressId,
-            handleAccept: actions.handleAccept,
-            acceptPending: actions.acceptPending,
-            openReject: actions.reject.open,
-            rejectPending: actions.rejectPending,
-            handleCancel: actions.handleCancel,
-            cancelPending: actions.cancelPending,
-            cashPay: actions.cashPay,
-            cashPayPending: actions.cashPayPending,
-            confirm: actions.confirm,
-            confirmPending: actions.confirmPending,
-            openDispute: actions.dispute.open,
-          }}
-        />
-
-        <View style={{ height: 50 }} />
-      </ScrollView>
-
-      <RejectTradeModal
-        visible={actions.reject.visible}
-        onClose={actions.reject.close}
-        reason={actions.reject.reason}
-        setReason={actions.reject.setReason}
-        onSubmit={actions.reject.submit}
-        isPending={actions.reject.isPending}
-      />
-
-      <DisputeTradeModal
-        visible={actions.dispute.visible}
-        onClose={actions.dispute.close}
-        reason={actions.dispute.reason}
-        setReason={actions.dispute.setReason}
-        description={actions.dispute.description}
-        setDescription={actions.dispute.setDescription}
-        onSubmit={actions.dispute.submit}
-        isPending={actions.dispute.isPending}
+      }
+    >
+      <TradeStatusHeader
+        trade={trade}
         t={t}
+        hasPaymentStep={view.hasPaymentStep}
+        viewerRole={tradeViewerRole(trade, user?.id)}
       />
-
-      <Snackbar
-        visible={actions.snackbar.visible}
-        onDismiss={actions.dismissSnackbar}
-        duration={3000}
-      >
-        {actions.snackbar.message}
-      </Snackbar>
-    </View>
+      <TradeInfoCard
+        trade={trade}
+        isInitiator={view.isInitiator}
+        otherParty={view.otherParty}
+      />
+      <TradeItemsCompare
+        myItems={view.myItems}
+        theirItems={view.theirItems}
+        myTotal={view.myTotal}
+        theirTotal={view.theirTotal}
+        otherPartyName={view.otherParty.displayName}
+      />
+      <TradeCashCard
+        trade={trade}
+        userId={user?.id}
+        otherPartyName={view.otherParty.displayName}
+        cashPaid={view.cashPaid}
+        cashCommission={view.cashCommission}
+        cashTotal={view.cashTotal}
+        isV2={view.isV2}
+      />
+      <TradePaymentsCard view={view} otherPartyName={view.otherParty.displayName} />
+      <TradeCostPreviewCard
+        mine={view.isInitiator ? paymentQuote?.initiator ?? null : paymentQuote?.receiver ?? null}
+        theirs={view.isInitiator ? paymentQuote?.receiver ?? null : paymentQuote?.initiator ?? null}
+        lockedPaymentCount={view.totalCount}
+      />
+      <TradeMessages trade={trade} />
+      <TradeShippingSection
+        trade={trade}
+        view={view}
+        t={t}
+        onCopy={copyCode}
+      />
+      <TradeProtectionCard status={trade.status} />
+      <TradeActions
+        trade={trade}
+        id={tradeId}
+        t={t}
+        isInitiator={view.isInitiator}
+        isReceiver={view.isReceiver}
+        userId={user?.id}
+        otherPartyId={view.otherParty.id}
+        cashPaid={view.cashPaid}
+        cashTotal={view.cashTotal}
+        cashCommission={view.cashCommission}
+        isV2={view.isV2}
+        myPaymentRow={view.myPaymentRow}
+        myPaymentPending={view.myPaymentPending}
+        paidCount={view.paidCount}
+        totalCount={view.totalCount}
+        myFromWarehouseStatus={view.myFromWarehouseShipment?.status}
+        hasShippedLeg={view.hasShippedLeg}
+        actions={{
+          setTradeAddressId: actions.setTradeAddressId,
+          handleAccept: actions.handleAccept,
+          acceptPending: actions.acceptPending,
+          openReject: actions.reject.open,
+          rejectPending: actions.rejectPending,
+          handleCancel: actions.handleCancel,
+          cancelPending: actions.cancelPending,
+          cashPay: actions.cashPay,
+          cashPayPending: actions.cashPayPending,
+          confirm: actions.confirm,
+          confirmPending: actions.confirmPending,
+          openDispute: actions.openDispute,
+        }}
+      />
+    </PageShell>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.surface.alt },
-  container: { flex: 1, backgroundColor: colors.surface.alt },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  content: { flex: 1 },
-});

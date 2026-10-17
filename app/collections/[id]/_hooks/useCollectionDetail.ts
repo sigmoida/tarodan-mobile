@@ -1,13 +1,17 @@
+import { logger, safeError } from '@/services/logger';
 import { useState, useEffect } from 'react';
 import { Share } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { api, collectionsApi } from '@/lib/api';
+import { apiPath } from '@/lib/api/path';
 import { qk } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
 import { buildShareContent, collectionShareUrl } from '@/utils/share';
+import { copyToClipboard } from '@/lib/clipboard';
+import { toast } from '@/ui';
 
 /**
  * Collection detail controller — owns the collection query, optimistic like,
@@ -15,9 +19,10 @@ import { buildShareContent, collectionShareUrl } from '@/utils/share';
  */
 export function useCollectionDetail() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   // Premium/business üyeler zaten koleksiyon oluşturabildiği için upsell'i gizle.
   const isPremiumMember =
     user?.membershipTier === 'premium' || user?.membershipTier === 'business';
@@ -25,10 +30,10 @@ export function useCollectionDetail() {
   const [likeCount, setLikeCount] = useState(0);
 
   const { data: apiCollection, isLoading, refetch } = useQuery({
-    queryKey: ['collection', id],
+    queryKey: qk.collections.detail(String(id)),
     queryFn: async () => {
       try {
-        const response = await api.get(`/collections/${id}`);
+        const response = await api.get(apiPath`/collections/${id}`);
         return response.data.data || response.data;
       } catch {
         return null;
@@ -53,18 +58,25 @@ export function useCollectionDetail() {
     }
   }, [apiCollection]);
 
+  // Web `handleShare` ile aynı: paylaşım sayfası açılamazsa (hata/yok) linki panoya kopyala +
+  // "Link kopyalandı"; o da olmazsa hata toast'ı. Sessizce yutulmaz. Kullanıcının paylaşımı
+  // kapatması hata değildir (RN `Share.share` reddetmez, `dismissedAction` ile çözülür).
   const handleShare = async () => {
     if (!collection) return;
+    const url = collectionShareUrl(String(collection.id ?? id));
     try {
       const { content, options } = buildShareContent(
         t('collection.shareText', { name: collection.name, description: collection.description ?? '' }),
-        collectionShareUrl(String(collection.id ?? id)),
+        url,
         collection.name,
       );
       await Share.share(content, options);
+      return;
     } catch (error) {
-      console.error('Share error:', error);
+      logger.warn('Share unavailable, copying link', { err: safeError(error) });
     }
+    if (copyToClipboard(url)) toast.success(t('collection.linkCopied'));
+    else toast.error(t('common.copyFailed'));
   };
 
   const handleLike = async () => {
@@ -88,13 +100,13 @@ export function useCollectionDetail() {
         setIsLiked(serverLiked);
         setLikeCount(serverCount);
       }
-      queryClient.invalidateQueries({ queryKey: ['collections'] });
-      queryClient.invalidateQueries({ queryKey: ['liked-collections'] });
+      queryClient.invalidateQueries({ queryKey: qk.collections.all });
+      queryClient.invalidateQueries({ queryKey: qk.collections.liked });
       queryClient.invalidateQueries({ queryKey: qk.collections.mine });
       // ['collection', id] cache'ini taze tut ki tekrar girince stale (eski isLiked/likeCount)
       // gelmesin. Cache'i elle güncelliyoruz (viewCount backend'de tekilleştirildiği için
       // refetch de güvenli olurdu; yine de gereksiz istekten kaçınıyoruz).
-      queryClient.setQueryData(['collection', id], (old: any) =>
+      queryClient.setQueryData(qk.collections.detail(String(id)), (old: any) =>
         old ? { ...old, isLiked: serverLiked, likeCount: serverCount ?? old.likeCount } : old
       );
     } catch {

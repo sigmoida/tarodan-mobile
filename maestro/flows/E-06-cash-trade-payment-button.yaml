@@ -1,7 +1,7 @@
 # E-06: Cash takas awaiting_payment → cashPayer → "Ödeme Yap" butonu görünür.
 # Pre-req: cashPayerId === current user, status === awaiting_payment olan bir takas seed'li olmalı.
 # Bu fixture'a bağımlı; manual tag.
-appId: com.tarodan.app
+appId: ${APP_ID}
 tags:
   - manual
 env:
@@ -10,10 +10,11 @@ env:
 ---
 - runFlow: ../subflows/open-tarodan.yaml
 - tapOn:
-    text: "Profil"
+    id: "tab-profile"
 - runFlow:
     when:
-      visible: "Çıkış Yap"
+      visible:
+        id: "profile-edit-button"
     file: ../subflows/logout.yaml
 - runFlow: ../subflows/login-as.yaml
 - runFlow: ../subflows/open-first-trade.yaml

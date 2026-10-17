@@ -237,8 +237,9 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'detail.buyer.isVerified',
     'detail.buyer.username',
     'detail.canReactivate',
-    'detail.cancelCategory',
-    'detail.cancelReason',
+    // `detail.cancelCategory` / `detail.cancelReason` SİLİNDİ (Parite A-1.10):
+    // sipariş detayı artık iptal nedenini gösteriyor (`OrderDetail`,
+    // `orderCancelMessage`). Liste/grup satırlarındakiler hâlâ okunmuyor.
     'detail.checkoutGroupId',
     'detail.packageId',
     'detail.pricing.buyerFeeDiscountAmount',
@@ -386,7 +387,7 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     //
     // ── BOŞLUK — Plan B ──────────────────────────────────────────────────
     // `dispute.raisedById` / `resolution` / `resolvedAt`: mobil "itiraz aç"
-    // YAZMA akışını sunuyor (`useTradeActions.ts` → `DisputeTradeModal`) ama
+    // YAZMA akışını sunuyor (`trade/[id]/dispute.tsx` → `useDoRaiseDispute`) ama
     // açılmış bir itirazın SONUCUNU hiçbir yerde okumuyor/göstermiyor — bir
     // takas `disputed` olduktan sonra kullanıcı çözümü öğrenemiyor. Yazma var,
     // okuma yok.

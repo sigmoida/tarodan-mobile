@@ -14,6 +14,11 @@ import React from 'react';
 import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
+// B4: kimlik kapısı bu testin konusu değil — geçti say (kapı testi ayrı dosyada).
+jest.mock('@/hooks/useLegalIdentity', () =>
+  require('@/test-utils/legalIdentity').legalIdentityGatePassMock,
+);
+
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
@@ -96,10 +101,7 @@ const seed = () =>
 async function reachConfirmStep() {
   await waitFor(() => expect(screen.getByText('Ali Veli')).toBeOnTheScreen());
   fireEvent.press(screen.getByText('Ali Veli'));
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+  await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
 }
 
 describe('Checkout · mesafeli satış sözleşmesi onayı', () => {
@@ -134,7 +136,7 @@ describe('Checkout · mesafeli satış sözleşmesi onayı', () => {
 
     fireEvent.press(screen.getByTestId('checkout-distance-sales-checkbox'));
     await act(async () => {
-      fireEvent.press(screen.getByText(/Onayla ve Öde/));
+      fireEvent.press(screen.getByText('Ödeme Yap'));
     });
 
     await waitFor(() => expect(ordersApi.checkout).toHaveBeenCalled());

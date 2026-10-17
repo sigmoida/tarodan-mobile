@@ -1,51 +1,57 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Image,
-  LayoutChangeEvent,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Image, LayoutChangeEvent, Platform, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import Animated, {
   Easing,
-  cancelAnimation,
   runOnJS,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { useTranslation } from 'react-i18next';
-import { theme, Text } from '@/ui';
 
-const { colors } = theme;
+/**
+ * JS splash = YEREL (native) splash'in son karesi. Amaç native→JS geçişinde hiçbir
+ * görsel değişiklik olmaması: aynı düz zemin, aynı ikon, aynı boyut, aynı merkez.
+ * Sonra tüm katman yumuşakça kaybolur (ikon → wordmark dönüşümü yok: iki farklı
+ * en-boy oranlı görsel arasında geçiş yeniden bir "sıçrama" üretir).
+ */
 
-// Splash gradyan tonları. Üst/orta turuncular logodan (assets/tarodan-logo.jpg)
-// örneklendi — semantic token DEĞİL. Orta ton, native splash backgroundColor
-// (#FE6F13, app.json) ile BİREBİR aynı olmak zorunda: logonun kendi turuncu
-// zemini gradyana dikişsiz otursun ve native→JS geçişinde parlama olmasın.
-// Alt ton marka token'ı (primary[600]). Sampled değerler token'lanamadığı için
-// hex yasağı bu iki satırda bilinçli devre dışı.
-// eslint-disable-next-line no-restricted-syntax -- logodan örneklenen splash üst tonu
-const SPLASH_TOP = '#FE7815';
-// eslint-disable-next-line no-restricted-syntax -- native splash bg ile birebir (dikişsizlik)
-const SPLASH_MID = '#FE6F13';
-const SPLASH_GRADIENT = [SPLASH_TOP, SPLASH_MID, colors.primary[600]!] as const;
-const SPLASH_GRADIENT_LOCATIONS = [0, 0.5, 1] as const;
+// Native splash zemin rengi (app.json `expo-splash-screen.backgroundColor`) VE
+// assets/splash-icon-square.png'nin gömülü zemini ile BİREBİR aynı. Palette karşılığı
+// yok (primary[500] = #f97316, bu #FE6F13) ve görsel zemini PNG'ye gömülü olduğundan
+// değiştirilemez — tek yer, tek sabit. app.json ile birlikte güncellenmeli.
+// eslint-disable-next-line no-restricted-syntax -- native splash bg + PNG zemini ile birebir (dikişsizlik)
+export const SPLASH_BACKGROUND = '#FE6F13';
 
-// tarodan-logo.png oranı: 2788 x 688 ≈ 4.05:1
-const LOGO_ASPECT = 2788 / 688;
-const LOGO_WIDTH_RATIO = 0.72;
+/**
+ * İkon kutusu (dp/pt) — native splash'in GÖRÜNEN ikonuyla aynı olmalı:
+ *  - iOS: storyboard'da `imageWidth: 200` kare UIImageView, kapsayıcı merkezinde
+ *    (expo-splash-screen / prebuild-config InterfaceBuilder: centerX/centerY).
+ *  - Android 12+: `windowSplashScreenIconBackgroundColor` verilmediği için sistem
+ *    "arka plansız ikon" düzenini kullanır; androidx core-splashscreen
+ *    `splashscreen_icon_size_no_background` = 288dp (çizilebilir bu kutuya ölçeklenir,
+ *    görünen maske dairesi 192dp). Arka planlı düzen (240dp/160dp) bu projede geçerli değil.
+ *    Android 11 ve altı aynı core-splashscreen temasını kullanır → aynı 288dp.
+ * Görsel (1024x1024) zemini #FE6F13 olduğundan maske kenarı görünmez; oklar görselin
+ * ~%50'si → 288dp'de ~145dp, 192dp dairenin içinde.
+ */
+export const SPLASH_ICON_SIZE_IOS = 200;
+export const SPLASH_ICON_SIZE_ANDROID = 288;
+export const SPLASH_ICON_SIZE = Platform.select({
+  ios: SPLASH_ICON_SIZE_IOS,
+  default: SPLASH_ICON_SIZE_ANDROID,
+});
 
-// Animasyon en az bu kadar süre görünür (token hızlı yüklense bile kesilmez).
-const MIN_VISIBLE_MS = 1500;
+// Splash en az bu kadar görünür (token hızlı yüklense bile titreme olmasın).
+export const MIN_VISIBLE_MS = 500;
+// Çıkış: tüm katman yumuşakça kaybolur.
+export const EXIT_FADE_MS = 250;
+// Güvenlik ağı: appReady gelmese de splash en geç bu sürede kapanır.
+const MAX_VISIBLE_MS = 8000;
 
-const logoSource = require('../../assets/tarodan-logo.png');
+const iconSource = require('../../assets/splash-icon-square.png');
 
 interface AnimatedSplashProps {
   /** Uygulama hazır olduğunda (token yüklendi vb.) true olur. */
@@ -54,43 +60,9 @@ interface AnimatedSplashProps {
   onFinish: () => void;
 }
 
-/** Üç beyaz noktadan biri — kademeli (staggered) pulse animasyonu. */
-function LoadingDot({ delay }: { delay: number }) {
-  const progress = useSharedValue(0.3);
-
-  useEffect(() => {
-    progress.value = withDelay(
-      delay,
-      withRepeat(
-        withSequence(
-          withTiming(1, { duration: 450, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0.3, { duration: 450, easing: Easing.inOut(Easing.ease) }),
-        ),
-        -1,
-      ),
-    );
-    return () => cancelAnimation(progress);
-  }, [delay, progress]);
-
-  const style = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [{ scale: 0.7 + progress.value * 0.5 }],
-  }));
-
-  return <Animated.View style={[styles.dot, style]} />;
-}
-
 export default function AnimatedSplash({ appReady, onFinish }: AnimatedSplashProps) {
-  const { t } = useTranslation();
-  const { width } = useWindowDimensions();
-  const logoWidth = width * LOGO_WIDTH_RATIO;
-  const logoHeight = logoWidth / LOGO_ASPECT;
-
+  const reduceMotion = useReducedMotion();
   const rootOpacity = useSharedValue(1);
-  const logoOpacity = useSharedValue(0);
-  const logoScale = useSharedValue(0.8);
-  const taglineOpacity = useSharedValue(0);
-  const taglineY = useSharedValue(12);
 
   const [minElapsed, setMinElapsed] = useState(false);
   const splashHidden = useRef(false);
@@ -103,40 +75,36 @@ export default function AnimatedSplash({ appReady, onFinish }: AnimatedSplashPro
     onFinish();
   }, [onFinish]);
 
-  // Giriş animasyonu (mount'ta bir kez).
+  // Minimum görünme süresi (mount'ta bir kez). Beklerken ikon sabit — animasyon yok.
   useEffect(() => {
-    logoOpacity.value = withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) });
-    logoScale.value = withSequence(
-      withTiming(1.04, { duration: 480, easing: Easing.out(Easing.cubic) }),
-      withTiming(1, { duration: 160, easing: Easing.inOut(Easing.ease) }),
-    );
-    taglineOpacity.value = withDelay(250, withTiming(1, { duration: 450 }));
-    taglineY.value = withDelay(250, withTiming(0, { duration: 450, easing: Easing.out(Easing.cubic) }));
-
     const timer = setTimeout(() => setMinElapsed(true), MIN_VISIBLE_MS);
     return () => clearTimeout(timer);
-  }, [logoOpacity, logoScale, taglineOpacity, taglineY]);
+  }, []);
 
   // Hazır + minimum süre dolduğunda çıkışa geç (bir kez).
   useEffect(() => {
     if (!appReady || !minElapsed || exiting.current) return;
     exiting.current = true;
-    logoScale.value = withTiming(1.05, { duration: 350, easing: Easing.in(Easing.cubic) });
+    if (reduceMotion) {
+      rootOpacity.value = 0;
+      finishOnce();
+      return;
+    }
     rootOpacity.value = withTiming(
       0,
-      { duration: 350, easing: Easing.in(Easing.cubic) },
-      () => {
-        runOnJS(finishOnce)();
+      { duration: EXIT_FADE_MS, easing: Easing.out(Easing.quad) },
+      (done) => {
+        if (done) runOnJS(finishOnce)();
       },
     );
-  }, [appReady, minElapsed, logoScale, rootOpacity, finishOnce]);
+  }, [appReady, minElapsed, reduceMotion, rootOpacity, finishOnce]);
 
   // Güvenlik ağı: appReady/animasyon ne olursa olsun splash en geç bu süre sonra kapanır.
   useEffect(() => {
     const t = setTimeout(() => {
       rootOpacity.value = 0;
       finishOnce();
-    }, 8000);
+    }, MAX_VISIBLE_MS);
     return () => clearTimeout(t);
   }, [rootOpacity, finishOnce]);
 
@@ -150,74 +118,33 @@ export default function AnimatedSplash({ appReady, onFinish }: AnimatedSplashPro
   };
 
   const rootStyle = useAnimatedStyle(() => ({ opacity: rootOpacity.value }));
-  const logoStyle = useAnimatedStyle(() => ({
-    opacity: logoOpacity.value,
-    transform: [{ scale: logoScale.value }],
-  }));
-  const taglineStyle = useAnimatedStyle(() => ({
-    opacity: taglineOpacity.value,
-    transform: [{ translateY: taglineY.value }],
-  }));
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, rootStyle]} onLayout={handleLayout}>
+    <Animated.View
+      testID="animated-splash"
+      style={[StyleSheet.absoluteFill, styles.root, rootStyle]}
+      onLayout={handleLayout}
+    >
       <StatusBar style="light" />
-      <LinearGradient
-        colors={SPLASH_GRADIENT}
-        locations={SPLASH_GRADIENT_LOCATIONS}
-        style={StyleSheet.absoluteFill}
-      >
-        <View style={styles.content}>
-          <Animated.View style={logoStyle}>
-            <Image
-              source={logoSource}
-              style={{ width: logoWidth, height: logoHeight }}
-              resizeMode="contain"
-            />
-          </Animated.View>
-
-          <Animated.View style={taglineStyle}>
-            <Text style={styles.tagline}>{t('mobile.splashTagline')}</Text>
-          </Animated.View>
-        </View>
-
-        <View style={styles.dots}>
-          <LoadingDot delay={0} />
-          <LoadingDot delay={150} />
-          <LoadingDot delay={300} />
-        </View>
-      </LinearGradient>
+      <Image
+        testID="animated-splash-icon"
+        source={iconSource}
+        style={styles.icon}
+        resizeMode="contain"
+      />
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    flex: 1,
+  // Ekran merkezi: native splash ile aynı (iOS: kapsayıcı merkezi, Android: pencere merkezi).
+  root: {
+    backgroundColor: SPLASH_BACKGROUND,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tagline: {
-    marginTop: theme.spacing[6],
-    color: colors.overlay.white85,
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    textAlign: 'center',
-  },
-  dots: {
-    position: 'absolute',
-    bottom: theme.spacing[16],
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: theme.spacing[2],
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: theme.radius.md,
-    backgroundColor: colors.white,
+  icon: {
+    width: SPLASH_ICON_SIZE,
+    height: SPLASH_ICON_SIZE,
   },
 });

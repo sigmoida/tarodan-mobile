@@ -1,0 +1,195 @@
+/**
+ * J16 · Mesajlaşma — konuşma listesi (mobil UI dilimi).
+ * Boş durum, misafir/giriş gerekli durumu, konuşma render + thread'e navigasyon,
+ * günlük mesaj limiti banner'ı (UI göstergesi). Backend içerik filtresi/limit
+ * uygulaması backend-only.
+ */
+import React from "react";
+import { Platform } from "react-native";
+import { screen, fireEvent } from "@testing-library/react-native";
+import { renderWithProviders } from "@/test-utils";
+
+import {
+  pushMock as mockPush,
+  resetRouterMocks,
+} from "@/test-utils/router-mock";
+
+jest.mock("expo-router", () => ({
+  ...require("@/test-utils/router-mock").routerMock,
+  useFocusEffect: jest.fn(),
+  useLocalSearchParams: () => ({}),
+}));
+
+// AppShell marka barı sayaçları (sepet deposu + bildirim sorgusu) bu süitin konusu değil.
+jest.mock("@/components/shell/useShellCounts", () => ({
+  useShellCounts: () => ({ cartCount: 0, notificationCount: 0 }),
+}));
+jest.mock("expo-status-bar", () => ({ setStatusBarStyle: jest.fn() }));
+
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (k: string) => k }),
+}));
+
+let mockAuth: any = {
+  isAuthenticated: true,
+  user: { id: "me" },
+  limits: { maxMessagesPerDay: 50 },
+};
+jest.mock("@/stores/authStore", () => ({
+  useAuthStore: (sel?: (state: any) => unknown) => {
+    const state: any = mockAuth;
+    return sel ? sel(state) : state;
+  },
+}));
+
+// Store artık client-only (getOtherParticipant); selector-aware (#77).
+let mockMessages: any;
+jest.mock("@/stores/messagesStore", () => ({
+  useMessagesStore: (sel?: any) => (sel ? sel(mockMessages) : mockMessages),
+}));
+
+// threads/unread artık React Query (#77) — hook'lar mock'lanır.
+let mockThreadsQuery: any;
+let mockUnread: any;
+// GET /messages/daily-limit yanıtı (sunucu sayımı).
+let mockDaily: any = { remaining: 50, limit: 50 };
+jest.mock("@/hooks/messaging", () => ({
+  useThreadsQuery: () => mockThreadsQuery,
+  useUnreadCountQuery: () => mockUnread,
+  useDailyMessageLimit: () => ({
+    ...jest.requireActual("@/lib/messaging/dailyLimit").viewDailyLimit(mockDaily),
+    isLoading: false,
+    refetch: jest.fn(),
+  }),
+}));
+
+// Bu süit Android/web davranışını doğruluyor: yükseltme çağrıları orada duruyor.
+// jest-expo varsayılanı `ios` olduğu için açıkça sabitliyoruz; iOS tarafını
+// app/__tests__/ios-no-digital-sales.test.tsx doğrular.
+beforeAll(() => { Platform.OS = "android"; });
+
+// `@/lib/purchases`daki CAN_BUY_DIGITAL, Platform.OS'a modül YÜKLENİRKEN bakan
+// sabit bir değer; ekran bu dosyanın en üstünde statik import edildiği için
+// yukarıdaki beforeAll'dan ÖNCE değerlenir (Platform.OS ataması geç kalır).
+// jest.mock çağrıları babel-plugin-jest-hoist ile import'ların da üstüne
+// taşındığından, bayrağı burada doğrudan mock'lamak doğru zamanlamayı garanti eder.
+jest.mock("@/lib/purchases", () => ({
+  ...jest.requireActual("@/lib/purchases"),
+  CAN_BUY_DIGITAL: true,
+}));
+
+import MessagesTabScreen from "..";
+
+function thread(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "t1",
+    participant1Id: "me",
+    participant2Id: "u2",
+    participant1: { id: "me", displayName: "Ben" },
+    participant2: { id: "u2", displayName: "Ayşe" },
+    product: { id: "p1", title: "Deri Ceket" },
+    lastMessage: {
+      content: "Merhaba",
+      senderId: "u2",
+      createdAt: new Date().toISOString(),
+    },
+    unreadCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+function makeStore(overrides: Record<string, unknown> = {}) {
+  return {
+    getOtherParticipant: (t: any) =>
+      t.participant1Id === "me" ? t.participant2 : t.participant1,
+    ...overrides,
+  };
+}
+
+/** threads query mock — data + isFetched (hasLoadedThreads) + refetch. */
+function makeThreadsQuery(threads: any[] = []) {
+  return {
+    data: threads,
+    isLoading: false,
+    isFetched: true,
+    refetch: jest.fn(),
+  };
+}
+
+describe("J16 · mesaj konuşma listesi", () => {
+  beforeEach(() => {
+    resetRouterMocks();
+    mockAuth = {
+      isAuthenticated: true,
+      user: { id: "me" },
+      limits: { maxMessagesPerDay: 50 },
+    };
+    mockMessages = makeStore();
+    mockDaily = { remaining: 50, limit: 50 };
+    mockThreadsQuery = makeThreadsQuery([]);
+    mockUnread = { data: 0 };
+  });
+
+  it("J16.1 misafir kullanıcıya giriş yap çağrısı gösterir", () => {
+    mockAuth = { isAuthenticated: false, user: null, limits: null };
+    renderWithProviders(<MessagesTabScreen />);
+    expect(
+      screen.getByText("message.loginToView"),
+    ).toBeOnTheScreen();
+    fireEvent.press(screen.getByText("common.login"));
+    expect(mockPush).toHaveBeenCalledWith("/(auth)/login");
+  });
+
+  it("J16.1b başlık üst barda tek kez + geri oku (yığın ekranı); arama kutusu ve sekme kökü düğmeleri YOK", () => {
+    mockThreadsQuery = makeThreadsQuery([thread()]);
+    renderWithProviders(<MessagesTabScreen />);
+    expect(screen.getAllByText("mobile.messagesTitle")).toHaveLength(1);
+    expect(screen.getByTestId("screen-header")).toBeOnTheScreen();
+    expect(screen.getByTestId("screen-header-back")).toBeOnTheScreen();
+    expect(screen.queryByPlaceholderText("mobile.searchInMessages")).toBeNull();
+    expect(screen.queryByTestId("home-search-input")).toBeNull();
+    expect(screen.queryByTestId("app-shell-messages")).toBeNull();
+  });
+
+  it("J16.2 thread yoksa boş durum gösterir", () => {
+    mockThreadsQuery = makeThreadsQuery([]);
+    renderWithProviders(<MessagesTabScreen />);
+    expect(screen.getByText("message.noMessagesYet")).toBeOnTheScreen();
+    expect(
+      screen.getByText("message.startConversationShort"),
+    ).toBeOnTheScreen();
+  });
+
+  it("J16.3 thread render eder ve tıklayınca thread ekranına gider", () => {
+    mockThreadsQuery = makeThreadsQuery([thread()]);
+    renderWithProviders(<MessagesTabScreen />);
+    expect(screen.getByText("Ayşe")).toBeOnTheScreen();
+    expect(screen.getByText("Deri Ceket")).toBeOnTheScreen();
+    fireEvent.press(screen.getByText("Ayşe"));
+    expect(mockPush).toHaveBeenCalledWith("/messages/t1");
+  });
+
+  it("J16.4 limite yaklaşınca günlük mesaj banner gösterir", () => {
+    mockDaily = { remaining: 5, limit: 50 };
+    mockThreadsQuery = makeThreadsQuery([thread()]);
+    renderWithProviders(<MessagesTabScreen />);
+    expect(screen.getByText("message.dailyMessageCount")).toBeOnTheScreen();
+  });
+
+  it("J16.5 limit dolunca sayaç görünür ama Premium yükseltme bağlantısı YOK (limit katmana göre değişmez)", () => {
+    mockDaily = { remaining: 0, limit: 50 };
+    mockThreadsQuery = makeThreadsQuery([thread()]);
+    renderWithProviders(<MessagesTabScreen />);
+    expect(screen.getByText("message.dailyMessageCount")).toBeOnTheScreen();
+    expect(screen.queryByText("address.goPremium")).toBeNull();
+  });
+
+  it("J16.6 limit uzaktayken banner gizli", () => {
+    mockDaily = { remaining: 45, limit: 50 };
+    mockThreadsQuery = makeThreadsQuery([thread()]);
+    renderWithProviders(<MessagesTabScreen />);
+    expect(screen.queryByText("message.dailyMessageCount")).toBeNull();
+  });
+});

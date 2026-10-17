@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { toast } from '@/ui';
 // listingsApi → productsApi (parite migrasyonu); userApi.getMyProducts → productsApi.getMyListings
 import { productsApi as listingsApi, tradesApi, productsApi, type TradePaymentQuoteSide } from '@/lib/api';
-import { qk, retryUnlessClientError } from '@/lib/query';
+import { apiErrorMessage } from '@/lib/api/errorText';
+import { qk, retryUnlessClientError, useAppMutation } from '@/lib/query';
 import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { useAuthStore } from '@/stores/authStore';
 import { getProductEffectivePrice } from '@/utils/productPrice';
-import { formatApiErrorMessage } from '@/utils/formatApiErrorMessage';
 import { firstQueryParam, type Product } from '../_lib/types';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 
 /**
  * New-trade wizard controller — owns the 3-step state, the target/my/their
@@ -20,6 +21,7 @@ import { useFeatureAccess } from '@/hooks/useFeatureAccess';
  */
 export function useNewTrade() {
   const { t } = useTranslation();
+  const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
   const params = useLocalSearchParams<{
     listing?: string | string[];
     productId?: string | string[];
@@ -33,7 +35,9 @@ export function useNewTrade() {
     firstQueryParam(params.targetProductId);
   const targetSellerIdParam = (firstQueryParam(params.targetSellerId) || '').trim();
 
-  const { user, isAuthenticated, limits, refreshUserData } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1); // 1: Select my items, 2: Select their items, 3: Review
@@ -43,13 +47,12 @@ export function useNewTrade() {
   const [cashDirection, setCashDirection] = useState<'offer' | 'request'>('offer'); // offer = I pay, request = they pay
   const [message, setMessage] = useState('');
   const [tradeAddressId, setTradeAddressId] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState({ visible: false, message: '' });
 
   /** Web trades/new ile aynı kural — tek kaynak `useFeatureAccess`. */
   const { canTrade } = useFeatureAccess();
 
   const { data: targetProduct } = useQuery({
-    queryKey: ['trade-target-listing', listingId],
+    queryKey: qk.trades.targetListing(listingId ?? ''),
     queryFn: async () => {
       const res = await listingsApi.getOne(listingId!);
       return res.data?.product || res.data?.data || res.data;
@@ -61,7 +64,7 @@ export function useNewTrade() {
     targetSellerIdParam || targetProduct?.seller?.id || targetProduct?.sellerId || '';
 
   const { data: myProducts, isLoading: loadingMyProducts } = useQuery({
-    queryKey: ['my-tradeable-products', user?.id],
+    queryKey: qk.trades.myTradeable(user?.id, listingId),
     queryFn: async () => {
       // tradeEligible: aktif takasta olan veya müsait stoğu olmayan ürünler backend'de elenir
       const response = await productsApi.getMyListings({ status: 'active', tradeEligible: true });
@@ -79,7 +82,7 @@ export function useNewTrade() {
   });
 
   const { data: theirProducts, isLoading: loadingTheirProducts } = useQuery({
-    queryKey: ['seller-tradeable-products', targetSellerId],
+    queryKey: qk.trades.sellerTradeable(targetSellerId),
     queryFn: async () => {
       const response = await listingsApi.getAll({
         sellerId: targetSellerId,
@@ -104,19 +107,17 @@ export function useNewTrade() {
   }, [listingId, theirProducts]);
 
   const invalidateTradeRelatedQueries = () => {
-    queryClient.invalidateQueries({ queryKey: ['trades'] });
-    queryClient.invalidateQueries({ queryKey: ['my-tradeable-products'] });
-    queryClient.invalidateQueries({ queryKey: ['seller-tradeable-products'] });
-    queryClient.invalidateQueries({ queryKey: ['products'] });
-    queryClient.invalidateQueries({
-      predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === 'product',
-    });
-    queryClient.invalidateQueries({ queryKey: ['listings'] });
-    queryClient.invalidateQueries({ queryKey: ['my-listings'] });
+    queryClient.invalidateQueries({ queryKey: qk.trades.all });
+    queryClient.invalidateQueries({ queryKey: qk.trades.myTradeableAll });
+    queryClient.invalidateQueries({ queryKey: qk.trades.sellerTradeableAll });
+    queryClient.invalidateQueries({ queryKey: qk.products.all });
+    queryClient.invalidateQueries({ queryKey: qk.products.detailAll });
+    queryClient.invalidateQueries({ queryKey: qk.products.searchAll });
+    queryClient.invalidateQueries({ queryKey: qk.products.myListingsAll });
   };
 
-  const createTradeMutation = useMutation({
-    mutationFn: async () => {
+  const createTradeMutation = useAppMutation(
+    async () => {
       const cashVal = parseFloat(cashAmount.replace(',', '.')) || 0;
       let finalCash: number | undefined;
       if (cashVal > 0) {
@@ -131,23 +132,27 @@ export function useNewTrade() {
         shippingAddressId: tradeAddressId || undefined,
       });
     },
-    onSuccess: () => {
-      invalidateTradeRelatedQueries();
-      setSnackbar({ visible: true, message: t('trade.tradeSent') });
-      setTimeout(() => router.replace('/trades'), 1200);
+    {
+      error: t('trade.sendFailed'),
+      onSuccess: () => {
+        invalidateTradeRelatedQueries();
+        // Önce ekran değişir, sonra toast — bekleme yok.
+        router.replace('/trades');
+        toast.success(t('trade.tradeSent'));
+      },
+      // Toast `useAppMutation`dan; burada yalnız "üyelikte takas yok" ise yetkileri tazele.
+      onError: async (error) => {
+        const msg = apiErrorMessage(error, t('trade.sendFailed'));
+        if (
+          msg.includes('Takas özelliği') ||
+          msg.includes('üyeliğinizde mevcut değil') ||
+          msg.includes('takas özelliğine sahip değil')
+        ) {
+          await refreshUserData();
+        }
+      },
     },
-    onError: async (error: unknown) => {
-      const msg = formatApiErrorMessage(error, t('trade.sendFailed'));
-      if (
-        msg.includes('Takas özelliği') ||
-        msg.includes('üyeliğinizde mevcut değil') ||
-        msg.includes('takas özelliğine sahip değil')
-      ) {
-        await refreshUserData();
-      }
-      setSnackbar({ visible: true, message: msg });
-    },
-  });
+  );
 
   const myTotal = selectedMyItems.reduce((sum, p) => sum + getProductEffectivePrice(p), 0);
   const theirTotal = selectedTheirItems.reduce((sum, p) => sum + getProductEffectivePrice(p), 0);
@@ -196,20 +201,22 @@ export function useNewTrade() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const cashVal = parseFloat(cashAmount.replace(',', '.')) || 0;
     if (selectedMyItems.length === 0 && cashVal <= 0) {
-      appAlert(t('common.error'), t('trade.selectAtLeastOne'));
+      toast.error(t('trade.selectAtLeastOne'));
       return;
     }
     if (selectedTheirItems.length === 0) {
-      appAlert(t('common.error'), t('trade.selectAtLeastOneWant'));
+      toast.error(t('trade.selectAtLeastOneWant'));
       return;
     }
     if (!tradeAddressId) {
-      appAlert(t('address.deliveryAddress'), t('trade.selectDeliveryAddress'));
+      toast.error(t('trade.selectDeliveryAddress'));
       return;
     }
+    // B-2.4: takas başlamadan yasal kimlik; vazgeçerse teklif gönderilmez.
+    if (!(await requireIdentity())) return;
     createTradeMutation.mutate();
   };
 
@@ -227,13 +234,13 @@ export function useNewTrade() {
     message,
     setMessage,
     setTradeAddressId,
-    snackbar,
-    setSnackbar,
     myProducts,
     loadingMyProducts,
     theirProducts,
     loadingTheirProducts,
     createTradeMutation,
+    /** Gönderim sürüyor: kimlik kontrolü ya da takas isteği. */
+    submitPending: checkingIdentity || createTradeMutation.isPending,
     myTotal,
     theirTotal,
     cashValue,

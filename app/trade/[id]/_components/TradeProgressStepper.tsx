@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Text, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { Text, theme, Icon } from '@/ui';
 import { STEP_FLOW_STATUSES, STATUS_TO_STEP_KEY } from '../_lib/status';
 
 const { colors } = theme;
@@ -43,7 +42,7 @@ export function TradeProgressStepper({ status, hasCash }: { status: string; hasC
               />
               <View style={[styles.stepCircle, done ? styles.stepDone : active ? styles.stepActive : styles.stepFuture]}>
                 {done ? (
-                  <Ionicons name="checkmark" size={14} color={colors.white} />
+                  <Icon name="check" size={14} color={colors.white} />
                 ) : (
                   <Text style={[styles.stepNum, { color: active ? colors.white : colors.text.muted }]}>{i + 1}</Text>
                 )}
@@ -82,10 +81,15 @@ const styles = StyleSheet.create({
   stepCol: { flex: 1, alignItems: 'center' },
   stepLineRow: { flexDirection: 'row', alignItems: 'center', width: '100%' },
   stepLine: { flex: 1, height: 2 },
-  stepCircle: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  stepCircle: { width: 26, height: 26, borderRadius: theme.radius.full, alignItems: 'center', justifyContent: 'center' },
   stepDone: { backgroundColor: colors.primary[500]! },
   stepActive: { backgroundColor: colors.primary[600]!, borderWidth: 3, borderColor: colors.primary[100]! },
   stepFuture: { backgroundColor: colors.surface.alt, borderWidth: 1, borderColor: colors.border.DEFAULT },
-  stepNum: { fontSize: 12, fontWeight: '600' },
-  stepLabel: { fontSize: 10, textAlign: 'center', marginTop: theme.spacing[1.5], lineHeight: 13 },
+  stepNum: { fontSize: theme.typography.fontSize.xs, fontWeight: theme.typography.fontWeight.semibold },
+  stepLabel: {
+    fontSize: theme.typography.fontSize['2xs'],
+    textAlign: 'center',
+    marginTop: theme.spacing[1.5],
+    lineHeight: theme.typography.fontSize['2xs'] * theme.typography.lineHeight.snug,
+  },
 });

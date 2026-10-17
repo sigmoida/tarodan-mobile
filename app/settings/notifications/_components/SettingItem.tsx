@@ -1,19 +1,14 @@
 import { View } from 'react-native';
-import { Switch, Text, theme } from '@/ui';
-import { Ionicons } from '@expo/vector-icons';
+import { Switch, Text } from '@/ui';
 import { styles } from '../_lib/styles';
 
-const { colors } = theme;
-
-/** Tek bildirim ayarı satırı — ikon + etiket/açıklama + switch. */
+/** Tek bildirim ayarı satırı — etiket/açıklama + switch (satır başı ikonu yok). */
 export function SettingItem({
-  icon,
   label,
   description,
   value,
   onToggle,
 }: {
-  icon: string;
   label: string;
   description: string;
   value: boolean;
@@ -21,12 +16,13 @@ export function SettingItem({
 }) {
   return (
     <View style={styles.settingItem}>
-      <Ionicons name={icon as any} size={20} color={colors.text.muted} />
       <View style={styles.settingContent}>
         <Text variant="body">{label}</Text>
-        <Text variant="bodySm" style={styles.settingDescription}>{description}</Text>
+        <Text variant="bodySm" tone="muted" style={styles.settingDescription}>
+          {description}
+        </Text>
       </View>
-      <Switch value={value} onValueChange={onToggle} />
+      <Switch value={value} onValueChange={onToggle} accessibilityLabel={label} />
     </View>
   );
 }

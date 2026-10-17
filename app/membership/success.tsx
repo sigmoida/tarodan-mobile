@@ -1,25 +1,31 @@
 import { useEffect, useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { theme, Button, Text } from '@/ui';
+import { View } from 'react-native';
+import { Button, SectionCard, Text, theme } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
+import { useHardwareBackToHome } from '@/hooks/useBlockHardwareBack';
+import { PaymentResultCard } from '@/components/payment/PaymentResultCard';
 import { router, useLocalSearchParams, Redirect } from 'expo-router';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
-import { paymentsApi } from '@/lib/api';
+import { requestVerify, verifyBudgetWaitMs } from '@/lib/payment/verifyPacer';
 import type { TFunction } from 'i18next';
 
-const { colors } = theme;
+/** Verify denemeleri: PayTR durum sorgusu ödemeden birkaç sn sonra "ödendi" dönebilir. */
+const VERIFY_ATTEMPTS = 5;
+const VERIFY_RETRY_MS = 1200;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 type TierKey = 'basic' | 'premium' | 'business';
 
-type TierFeature = { icon: keyof typeof Ionicons.glyphMap; label: string };
+type TierFeature = { label: string };
 
 /**
  * Kademeye özel başarı özellikleri — `checkout/_lib/tiers.ts`teki
  * `buildMembershipTiers` ile AYNI sayı/anahtar seti (15/50/200 ücretsiz ilan,
- * 2/10/50 öne çıkan ilan, "Takas özelliği"/"Koleksiyon oluşturma"/"API
+ * "Takas özelliği"/"Koleksiyon oluşturma"/"API
  * erişimi"), drift'i önlemek için oradaki `membership.tierFeature*`
  * anahtarları yeniden kullanılıyor. `t` çağrıldığı ANDA çözülür (bkz.
  * UpgradePrompt) — bileşen `useMemo(() => buildTierFeatures(t), [t])` ile
@@ -27,27 +33,24 @@ type TierFeature = { icon: keyof typeof Ionicons.glyphMap; label: string };
  */
 const buildTierFeatures = (t: TFunction): Record<TierKey, TierFeature[]> => ({
   basic: [
-    { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 15 }) },
-    { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
-    { icon: 'albums', label: t('membership.tierFeatureCollectionCreate') },
-    { icon: 'star', label: t('membership.tierFeatureFeaturedListings', { count: 2 }) },
+    { label: t('membership.tierFeatureFreeListings', { count: 15 }) },
+    { label: t('membership.tierFeatureTrade') },
+    { label: t('membership.tierFeatureCollectionCreate') },
   ],
   premium: [
-    { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 50 }) },
-    { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
-    { icon: 'albums', label: t('membership.tierFeatureCollectionCreate') },
-    { icon: 'star', label: t('membership.tierFeatureFeaturedListings', { count: 10 }) },
+    { label: t('membership.tierFeatureFreeListings', { count: 50 }) },
+    { label: t('membership.tierFeatureTrade') },
+    { label: t('membership.tierFeatureCollectionCreate') },
     // "Reklamsız deneyim" KALDIRILDI — banner'lar herkese gösteriliyor ve
     // sunucu her katman için `isAdFree: null` döndürüyor (staging, 2026-08-26).
     // Satın alma SONRASI ekranda duruyordu: kullanıcı parayı ödedikten sonra
     // karşılığı olmayan bir vaat okuyordu.
   ],
   business: [
-    { icon: 'list', label: t('membership.tierFeatureFreeListings', { count: 200 }) },
-    { icon: 'swap-horizontal', label: t('membership.tierFeatureTrade') },
-    { icon: 'star', label: t('membership.tierFeatureFeaturedListings', { count: 50 }) },
-    { icon: 'code-slash', label: t('membership.tierFeatureApiAccess') },
-    { icon: 'ribbon', label: t('membership.tierFeatureSellerBadge') },
+    { label: t('membership.tierFeatureFreeListings', { count: 200 }) },
+    { label: t('membership.tierFeatureTrade') },
+    { label: t('membership.tierFeatureApiAccess') },
+    { label: t('membership.tierFeatureSellerBadge') },
   ],
 });
 
@@ -64,9 +67,11 @@ export default function MembershipSuccessScreen() {
 function MembershipSuccessBody() {
   const { t } = useTranslation();
   const { paymentId, tier } = useLocalSearchParams<{ paymentId?: string; tier?: string }>();
-  const { refreshUserData } = useAuthStore();
+  const refreshUserData = useAuthStore((s) => s.refreshUserData);
   const queryClient = useQueryClient();
   const tierFeatures = useMemo(() => buildTierFeatures(t), [t]);
+  // Üyelik alındı: geri tuşu ödeme ekranına DÖNMEZ — ana sayfaya (iOS'ta geri oku/kaydırma kapalı).
+  useHardwareBackToHome();
 
   // `?tier=` paramına göre içeriği kademeye uyarla; bilinmeyen/eksikse premium'a düş.
   const tierKey: TierKey = tier === 'basic' || tier === 'business' ? tier : 'premium';
@@ -86,127 +91,57 @@ function MembershipSuccessBody() {
         // gerçekten aktive eden tek çağrı verify (getStatus sadece DB'yi OKUR, aktive
         // ETMEZ); bu yüzden completed olana kadar verify'i tekrar dene. Aksi halde
         // üyelik past_due kalır ve ilan hakkı 5 (ücretsiz) görünür.
-        for (let i = 0; i < 5 && !cancelled; i++) {
-          try {
-            const res = await paymentsApi.verify(paymentId);
-            const completed = (res.data?.data ?? res.data)?.completed;
-            if (completed) break;
-          } catch { /* best-effort */ }
-          if (i < 4 && !cancelled) await new Promise((r) => setTimeout(r, 1200));
+        //
+        // Verify `verifyPacer` üzerinden: kart ödemesiyle AYNI global bütçe (sunucu
+        // dakikada 10 verify) ve uçuş tekilleştirmesi. Kart formu bütçenin yalnız
+        // kendi payını kullanır, bu ekrana yer kalır; yine de dolduysa (başka bir
+        // ekran harcadı) yer açılana dek BEKLENİR — hiç verify göndermeden bitmez.
+        // Verify'ın sonucu beklenir (10 sn'de terk edilmez): üyeliği o aktive eder,
+        // kullanıcı verisi ondan SONRA tazelenir.
+        for (let i = 0; i < VERIFY_ATTEMPTS && !cancelled; i++) {
+          const wait = verifyBudgetWaitMs();
+          if (wait > 0) await sleep(wait);
+          if (cancelled) return;
+          if (await requestVerify(paymentId, { awaitResult: true })) break;
+          if (i < VERIFY_ATTEMPTS - 1 && !cancelled) await sleep(VERIFY_RETRY_MS);
         }
       }
       if (cancelled) return;
       await refreshUserData?.();
-      // Tüm üyelik query'lerini tazele (profil rozeti ['membership-me'] kullanır).
-      queryClient.invalidateQueries({ queryKey: ['membership'] });
-      queryClient.invalidateQueries({ queryKey: ['membership-me'] });
+      // Tüm üyelik query'lerini tazele — profil rozeti (`qk.membership.me`) da `membership` kökünün altında.
+      queryClient.invalidateQueries({ queryKey: qk.membership.all });
     };
     run();
     return () => { cancelled = true; };
   }, [paymentId, refreshUserData, queryClient]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        {/* Success Icon */}
-        <View style={styles.iconContainer}>
-          <Ionicons name="checkmark-circle" size={100} color={colors.success[600]!} />
-        </View>
-
-        {/* Title */}
-        <Text style={styles.title}>{t('membership.successTitle')}</Text>
-
-        {/* Description */}
-        <Text style={styles.description}>
-          {t('membership.successDescription', { tierName })}
-        </Text>
-
-        {/* Features */}
-        <View style={styles.features}>
+    <PageShell title={t('membership.checkoutTitle')} showBack={false}>
+      <PaymentResultCard
+        tone="success"
+        title={t('membership.successTitle')}
+        description={t('membership.successDescription', { tierName })}
+        actions={
+          <>
+            <Button variant="primary" title={t('error.goHome')} fullWidth onPress={() => router.replace('/(tabs)')} />
+            <Button
+              variant="outline"
+              title={t('membership.successViewListings')}
+              fullWidth
+              onPress={() => router.push('/settings/my-listings')}
+            />
+          </>
+        }
+      >
+        <SectionCard bodyStyle={{ gap: theme.spacing[2] }}>
           {features.map((feat) => (
-            <View key={feat.label} style={styles.featureItem}>
-              <Ionicons name={feat.icon} size={24} color={colors.primary[600]!} />
-              <Text style={styles.featureText}>{feat.label}</Text>
+            <View key={feat.label} style={{ flexDirection: 'row', gap: theme.spacing[2] }}>
+              <Text variant="body" tone="muted">•</Text>
+              <Text variant="body" tone="heading" style={{ flex: 1 }}>{feat.label}</Text>
             </View>
           ))}
-        </View>
-
-        {/* Buttons */}
-        <View style={styles.buttons}>
-          <Button
-            variant="primary"
-            title={t('error.goHome')}
-            fullWidth
-            onPress={() => router.replace('/(tabs)')}
-            style={styles.primaryButton}
-          />
-          <Button
-            variant="outline"
-            title={t('membership.successViewListings')}
-            fullWidth
-            onPress={() => router.push('/settings/my-listings')}
-            style={styles.secondaryButton}
-          />
-        </View>
-      </View>
-    </View>
+        </SectionCard>
+      </PaymentResultCard>
+    </PageShell>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.DEFAULT,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing[8],
-  },
-  iconContainer: {
-    marginBottom: theme.spacing[6],
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.text.heading,
-    marginBottom: theme.spacing[3],
-  },
-  description: {
-    fontSize: 15,
-    color: colors.text.muted,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: theme.spacing[8],
-  },
-  features: {
-    width: '100%',
-    backgroundColor: colors.surface.alt,
-    borderRadius: theme.radius['3xl'],
-    padding: theme.spacing[5],
-    marginBottom: theme.spacing[8],
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.spacing[4],
-  },
-  featureText: {
-    marginLeft: theme.spacing[4],
-    fontSize: 15,
-    color: colors.text.heading,
-    fontWeight: '500',
-  },
-  buttons: {
-    width: '100%',
-    gap: theme.spacing[3],
-  },
-  primaryButton: {
-    borderRadius: 12,
-  },
-  secondaryButton: {
-    borderRadius: 12,
-    borderColor: colors.primary[600]!,
-  },
-});

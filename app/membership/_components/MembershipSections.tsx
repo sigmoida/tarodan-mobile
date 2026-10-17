@@ -1,254 +1,314 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { theme } from '@/ui';
+import {
+  theme,
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Chip,
+  Divider,
+  Icon,
+  ListRowCard,
+  SectionCard,
+  SegmentedButtons,
+  Text,
+  type SegmentedOption,
+} from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
+import { formatPrice } from '@/utils/format';
 
 import { styles } from '../_lib/membershipStyles';
-import {
-  TIER_COLORS,
-  TIER_ICONS,
-  buildTierNames,
-  formatTL,
-  type TierType,
-} from '../_lib/membershipTiers';
+import { buildTierNames, type TierType } from '../_lib/membershipTiers';
+import { deriveSubscriptionSummary, periodEndLabelKey } from '../_lib/subscription';
 import type { MembershipController } from '../_hooks/useMembership';
-
-const { colors } = theme;
 
 type SectionProps = { f: MembershipController };
 
 // ---------------------------------------------------------------------------
-// Error + pending-payment banners
+// Pending-payment banner (yükleme hatası artık PageShell ErrorState'i — `f.error`)
 // ---------------------------------------------------------------------------
 export function MembershipBanners({ f }: SectionProps) {
   const { membership, t } = f;
   return (
     <>
-      {f.error ? (
-        <TouchableOpacity style={styles.errorBanner} onPress={f.fetchData} activeOpacity={0.8}>
-          <Ionicons name="alert-circle" size={18} color={colors.danger[600]!} />
-          <Text style={styles.errorBannerText}>{f.error}</Text>
-          <Text style={styles.errorBannerRetry}>{t('common.tryAgain')}</Text>
-        </TouchableOpacity>
-      ) : null}
-
       {/* Bekleyen ödeme bandı yarım kalmış PayTR ödemesini tamamlamaya çağırıyor
-          — iOS'ta satın alma çağrısı olduğu için kalkar. Hata bandı (yukarıda)
-          satın almayla ilgisi olmadığı için DOKUNULMAZ. */}
+          — iOS'ta satın alma çağrısı olduğu için kalkar. */}
       {f.hasPendingPayment && CAN_BUY_DIGITAL && (
-        <TouchableOpacity
-          style={styles.pendingBanner}
+        <Pressable
+          style={styles.pendingPressable}
+          accessibilityRole="button"
+          accessibilityHint={t('order.completePayment')}
+          android_ripple={{ color: theme.colors.overlay.black10, foreground: true }}
           onPress={() =>
             router.push(
               `/membership/checkout?tier=${membership?.pendingPayment?.tierType || membership?.pendingTierType || 'premium'}&period=monthly`
             )
           }
         >
-          <Ionicons name="warning" size={22} color={colors.warning[800]!} />
-          <View style={styles.pendingBannerText}>
-            <Text style={styles.pendingTitle}>
-              {t('membership.pendingPaymentTitle', {
-                tierName: membership?.pendingPayment?.tierName || membership?.pendingTierName || t('membership.planFallback'),
-              })}
-            </Text>
-            <Text style={styles.pendingSubtitle}>{t('membership.pendingPaymentSubtitle')}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.warning[800]!} />
-        </TouchableOpacity>
+          <Alert
+            variant="warning"
+            title={t('membership.pendingPaymentTitle', {
+              tierName: membership?.pendingPayment?.tierName || membership?.pendingTierName || t('membership.planFallback'),
+            })}
+          >
+            {t('membership.pendingPaymentSubtitle')}
+          </Alert>
+        </Pressable>
       )}
     </>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Current plan summary card
+// Current plan summary card — eski "Aboneliğim" ekranının durum/yenileme/bitiş bilgisi de burada
+// (tek giriş). Mobilde SALT GÖRÜNTÜLEME: iptal / yeniden etkinleştir / plan değiştir düğmesi yok
+// (App Store / Play dijital satış kuralları). Satın alma kapıları (CAN_BUY_DIGITAL) değişmedi.
 // ---------------------------------------------------------------------------
 export function MembershipCurrentPlan({ f }: SectionProps) {
   const { currentTier, membership, t } = f;
   const tierNames = buildTierNames(t);
+  const sub = deriveSubscriptionSummary(t, membership);
   return (
-    <View style={styles.currentPlanCard}>
-      <View style={[styles.currentPlanIcon, { backgroundColor: TIER_COLORS[currentTier] + '20' }]}>
-        <Ionicons name={TIER_ICONS[currentTier]} size={28} color={TIER_COLORS[currentTier]} />
-      </View>
-      <Text style={styles.currentPlanLabel}>{t('membership.currentPlan')}</Text>
-      <Text style={[styles.currentPlanName, { color: TIER_COLORS[currentTier] }]}>
-        {tierNames[currentTier]}
-      </Text>
-      {membership?.currentPeriodEnd && currentTier !== 'free' && (
-        <Text style={styles.currentPlanExpiry}>
-          {t('membership.renewalLabel', {
-            date: new Date(membership.currentPeriodEnd).toLocaleDateString('tr-TR', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            }),
-          })}
-        </Text>
-      )}
-      {/* Üyelik yönetimi: otomatik yenileme + kayıtlı kartlar (tüm kademeler).
-          Bu satırın kendisi tam olarak PayTR'nin yinelenen tahsilat
-          yönetimini tanıtıyor — iOS'ta hem FREE hem PAID kullanıcıdan
-          gizlenir. İPTAL akışı buradan değil Profil → Abonelik
-          (SubscriptionBody) üzerinden gelir ve orada iOS'ta da açıktır. */}
-      {CAN_BUY_DIGITAL && (
-        <TouchableOpacity
-          style={styles.manageButton}
-          onPress={() => router.push('/membership/manage' as any)}
-          activeOpacity={0.8}
+    <>
+      <SectionCard
+        title={t('membership.currentPlan')}
+        badge={
+          sub.hasDetails ? (
+            <Chip
+              testID="membership-status"
+              variant={sub.statusChipVariant}
+              size="sm"
+              label={sub.statusLabel}
+            />
+          ) : undefined
+        }
+        bodyStyle={styles.planBody}
+      >
+        <Text variant="h2">{tierNames[currentTier]}</Text>
+        {sub.hasDetails ? (
+          <View style={styles.detailList} testID="membership-subscription-details">
+            {sub.billingPeriodLabel ? (
+              <DetailRow label={t('membership.planLabel')} value={sub.billingPeriodLabel} />
+            ) : null}
+            <DetailRow
+              label={t(periodEndLabelKey(sub, CAN_BUY_DIGITAL))}
+              value={formatPlanDate(sub.periodEnd)}
+            />
+            {sub.daysLeft > 0 ? (
+              <DetailRow
+                label={t('membership.remainingLabel')}
+                value={t('membership.daysCount', { count: sub.daysLeft })}
+              />
+            ) : null}
+          </View>
+        ) : (
+          membership?.currentPeriodEnd &&
+          currentTier !== 'free' && (
+            <Text variant="caption" tone="subtle">
+              {t('membership.renewalLabel', { date: formatPlanDate(membership.currentPeriodEnd) })}
+            </Text>
+          )
+        )}
+        {/* Üyelik yönetimi: otomatik yenileme + kayıtlı kartlar (tüm kademeler).
+            Bu satırın kendisi tam olarak PayTR'nin yinelenen tahsilat
+            yönetimini tanıtıyor — satın alma kapalı platformda (iOS/Android)
+            hem FREE hem PAID kullanıcıdan gizlenir. Etiket uzun (iki bölümlü)
+            olduğu için düğme değil, sarabilen satır kartı. */}
+        {CAN_BUY_DIGITAL && (
+          <ListRowCard
+            padding={3}
+            style={styles.manageRow}
+            onPress={() => router.push('/membership/manage' as any)}
+          >
+            <Text variant="bodySm" weight="semibold" tone="primary" style={styles.manageRowText}>
+              {t('membership.manageMembershipHint')}
+            </Text>
+          </ListRowCard>
+        )}
+      </SectionCard>
+
+      {/* İptal edilmiş abonelik dönem sonuna kadar sürer — bitişe kalan gün uyarısı. */}
+      {sub.hasDetails && sub.isCancelled && sub.daysLeft > 0 ? (
+        <Alert
+          variant="warning"
+          testID="membership-expiring-warning"
+          title={t('membership.expiringWarningTitle', { count: sub.daysLeft })}
         >
-          <Ionicons name="settings-outline" size={16} color={colors.primary[600]!} />
-          <Text style={styles.manageButtonText}>
-            {t('membership.manageMembershipHint')}
-          </Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.primary[600]!} />
-        </TouchableOpacity>
-      )}
+          {t('membership.expiringWarningDesc')}
+        </Alert>
+      ) : null}
+    </>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.detailRow}>
+      <Text variant="bodySm" tone="muted">
+        {label}
+      </Text>
+      <Text variant="bodySm" weight="semibold">
+        {value}
+      </Text>
     </View>
   );
 }
+
+const formatPlanDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' });
 
 // ---------------------------------------------------------------------------
 // Billing period toggle (monthly / yearly)
 // ---------------------------------------------------------------------------
+type Period = MembershipController['billingPeriod'];
+
 export function MembershipBillingToggle({ f }: SectionProps) {
   const { t } = f;
+  const options: SegmentedOption<Period>[] = [
+    { value: 'monthly', label: t('membership.monthly') },
+    { value: 'yearly', label: t('membership.yearly') },
+  ];
   return (
-    <View style={styles.toggleContainer}>
-      <TouchableOpacity
-        style={[styles.toggleButton, f.billingPeriod === 'monthly' && styles.toggleButtonActive]}
-        onPress={() => f.setBillingPeriod('monthly')}
-      >
-        <Text style={[styles.toggleText, f.billingPeriod === 'monthly' && styles.toggleTextActive]}>{t('membership.monthly')}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.toggleButton, f.billingPeriod === 'yearly' && styles.toggleButtonActive]}
-        onPress={() => f.setBillingPeriod('yearly')}
-      >
-        <Text style={[styles.toggleText, f.billingPeriod === 'yearly' && styles.toggleTextActive]}>{t('membership.yearly')}</Text>
-        <View style={styles.discountBadge}>
-          <Text style={styles.discountBadgeText}>{t('membership.discountBadge', { percent: f.settings.yearly_discount_percentage ?? 20 })}</Text>
-        </View>
-      </TouchableOpacity>
+    <View style={styles.toggle}>
+      <SegmentedButtons value={f.billingPeriod} onValueChange={f.setBillingPeriod} options={options} />
+      <Badge variant="success" size="sm" style={styles.discountBadge}>
+        {t('membership.discountBadge', { percent: f.settings.yearly_discount_percentage ?? 20 })}
+      </Badge>
     </View>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Horizontal tier cards
+// "Planları Keşfet" — tüm kart dokunulur, /membership/plans (salt görüntüleme plan listesi).
+// Fiyat / satın alma yok; mağaza kapısı (CAN_BUY_DIGITAL) plan ekranında uygulanır.
+// ---------------------------------------------------------------------------
+export function MembershipExplorePlansCard({ f }: SectionProps) {
+  const { t } = f;
+  const title = t('membership.explorePlansTitle');
+  return (
+    <ListRowCard
+      testID="membership-explore-plans"
+      accessibilityLabel={title}
+      onPress={() => router.push('/membership/plans')}
+    >
+      <View style={styles.exploreText}>
+        <Text variant="body" weight="semibold" tone="heading" numberOfLines={1}>
+          {title}
+        </Text>
+        <Text variant="bodySm" tone="muted">
+          {t('membership.explorePlansDesc')}
+        </Text>
+      </View>
+      <Icon name="chevron-right" size={theme.iconSize.md} color={theme.colors.text.subtle} />
+    </ListRowCard>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Plan özellik listesi (onay işaretli satırlar) — ödeme kartı ve "Üyelik Planları" ekranı ortak.
+// ---------------------------------------------------------------------------
+export function TierFeatureList({ features }: { features: string[] }) {
+  return (
+    <View style={styles.tierFeatures}>
+      {features.map((feat, idx) => (
+        <View key={idx} style={styles.tierFeatureRow}>
+          <Icon
+            name="check"
+            size={theme.iconSize.sm}
+            color={theme.colors.text.heading}
+            style={styles.tierFeatureIcon}
+          />
+          <Text variant="bodySm" style={styles.tierFeatureText}>
+            {feat}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tier cards — web telefon düzeni: dikey, tam genişlik, nötr (tek vurgu: mevcut plan kenarlığı)
 // ---------------------------------------------------------------------------
 function TierCard({ f, tier }: { f: MembershipController; tier: TierType }) {
   const { t } = f;
   const tierNames = buildTierNames(t);
   const price = f.getPrice(tier);
   const isCurrent = tier === f.currentTier;
-  const isUpgrade = f.tierIndex(tier) > f.tierIndex(f.currentTier);
-  const color = TIER_COLORS[tier];
   const features = f.getFeatures(tier);
+  // Web tek rozet yuvası: mevcut > popüler. Mevcut kartta durum zaten düğme etiketinde
+  // ("Mevcut Planınız") olduğu için rozet çizilmez (aynı metin iki kez yazılmaz).
+  const badge = isCurrent ? null : tier === 'premium' ? t('membership.mostPopular') : null;
 
   return (
-    <View style={[styles.tierCard, isCurrent && { borderColor: color, borderWidth: 2 }]}>
-      {/* Popular badge for premium */}
-      {tier === 'premium' && (
-        <View style={[styles.popularBadge, { backgroundColor: color }]}>
-          <Text style={styles.popularBadgeText}>{t('membership.mostPopular')}</Text>
+    <Card
+      variant="bordered"
+      padding={5}
+      style={isCurrent ? { borderColor: theme.colors.primary[500], borderWidth: 2 } : undefined}
+    >
+      <View style={styles.tierBody}>
+        <View style={styles.tierHeader}>
+          <Text variant="h3" style={styles.tierName}>
+            {tierNames[tier]}
+          </Text>
+          {badge && (
+            <Badge variant="outline" size="sm" style={styles.tierBadge}>
+              {badge}
+            </Badge>
+          )}
         </View>
-      )}
 
-      {/* Current plan badge */}
-      {isCurrent && (
-        <View style={[styles.currentBadge, { backgroundColor: color }]}>
-          <Ionicons name="checkmark-circle" size={14} color={colors.white} />
-          <Text style={styles.currentBadgeText}>{t('membership.currentPlanBadge')}</Text>
+        <View style={styles.tierPriceRow}>
+          {price === 0 ? (
+            <Text variant="displaySm">{t('membership.free')}</Text>
+          ) : (
+            <>
+              <Text variant="displaySm">{formatPrice(price)}</Text>
+              <Text variant="bodySm" tone="muted">
+                {f.billingPeriod === 'monthly' ? t('membership.perMonth') : t('membership.perYear')}
+              </Text>
+            </>
+          )}
         </View>
-      )}
 
-      <View style={[styles.tierIconCircle, { backgroundColor: color + '15' }]}>
-        <Ionicons name={TIER_ICONS[tier]} size={24} color={color} />
-      </View>
-
-      <Text style={[styles.tierName, { color }]}>{tierNames[tier]}</Text>
-
-      <View style={styles.tierPriceRow}>
-        {price === 0 ? (
-          <Text style={styles.tierPriceFree}>{t('membership.free')}</Text>
-        ) : (
-          <>
-            <Text style={styles.tierPrice}>{formatTL(price)} ₺</Text>
-            <Text style={styles.tierPricePeriod}>{f.billingPeriod === 'monthly' ? t('membership.perMonth') : t('membership.perYear')}</Text>
-          </>
+        {f.billingPeriod === 'yearly' && price > 0 && (
+          <Text variant="caption" tone="subtle">
+            {t('membership.monthlyEquivLabel', { amount: Math.round(price / 12).toLocaleString('tr-TR') })}
+          </Text>
         )}
-      </View>
 
-      {f.billingPeriod === 'yearly' && price > 0 && (
-        <Text style={styles.tierMonthlyEquiv}>
-          {t('membership.monthlyEquivLabel', { amount: Math.round(price / 12).toLocaleString('tr-TR') })}
-        </Text>
-      )}
+        <Divider />
 
-      <View style={styles.tierDivider} />
+        <TierFeatureList features={features} />
 
-      <View style={styles.tierFeatures}>
-        {features.map((feat, idx) => (
-          <View key={idx} style={styles.tierFeatureRow}>
-            <Ionicons name="checkmark-circle" size={16} color={color} />
-            <Text style={styles.tierFeatureText}>{feat}</Text>
-          </View>
-        ))}
-      </View>
-
-      <View style={{ flex: 1 }} />
-
-      <TouchableOpacity
-        style={[
-          styles.tierButton,
-          isCurrent
-            ? { backgroundColor: color + '15', borderColor: color, borderWidth: 1 }
-            : isUpgrade
-              ? { backgroundColor: color }
-              : { backgroundColor: colors.gray[100]! },
-        ]}
-        onPress={() => f.handleTierAction(tier)}
-        disabled={isCurrent || tier === 'free'}
-      >
-        <Text
-          style={[
-            styles.tierButtonText,
+        {/* Düğme etiketleri web ile aynı: mevcut -> "Mevcut Planınız", ücretsiz -> "Ücretsiz",
+            diğerleri "Devam Et". Alt plana geçiş uyarısı (handleTierAction) aynen. */}
+        <Button
+          fullWidth
+          variant={isCurrent || tier === 'free' ? 'outline' : 'primary'}
+          onPress={() => f.handleTierAction(tier)}
+          disabled={isCurrent || tier === 'free'}
+          title={
             isCurrent
-              ? { color }
-              : isUpgrade
-                ? { color: colors.white }
-                : { color: colors.text.subtle },
-          ]}
-        >
-          {isCurrent
-            ? t('membership.currentPlanBadge')
-            : tier === 'free'
-              ? t('membership.free')
-              : isUpgrade
-                ? t('membership.upgrade')
-                : t('membership.lowerPlanButton')}
-        </Text>
-      </TouchableOpacity>
-    </View>
+              ? t('membership.currentPlan')
+              : tier === 'free'
+                ? t('membership.free')
+                : t('common.continue')
+          }
+        />
+      </View>
+    </Card>
   );
 }
 
 export function MembershipTierList({ f }: SectionProps) {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.tierCardsContainer}
-      decelerationRate="fast"
-      snapToInterval={280 + 12}
-      snapToAlignment="start"
-    >
+    <View style={styles.tierList}>
       {f.visibleTiers.map((tier) => (
         <TierCard key={tier} f={f} tier={tier} />
       ))}
-    </ScrollView>
+    </View>
   );
 }

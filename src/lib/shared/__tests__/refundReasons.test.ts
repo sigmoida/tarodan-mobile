@@ -5,7 +5,7 @@
  * yazılmıştı: seçicide "Fikrim değişti / vazgeçtim", iki listede "Vazgeçtim",
  * `status-configs`'ta "Fikrimi Değiştirdim". Kapsam da farklıydı — yalnız
  * `status-configs` `counterfeit`/`lost_in_transit` biliyordu, diğer üçünde
- * başka bir yerde açılmış böyle bir talep etiketsiz kalıyordu (CLAUDE.md §5).
+ * başka bir yerde açılmış böyle bir talep etiketsiz kalıyordu (CLAUDE.md › Principles).
  *
  * `delivery_delayed` delta §15 ile eklendi: satıcı kusuru sayılıyor, seçiciye
  * girmesi gerekiyor. Bilinmeyen kod SESSİZCE düşmez — ham kodla gösterilir.
@@ -22,7 +22,7 @@
  *
  * i18n göçü (§ i18n-kuyruk, 2026-08-29): sözlük artık modül seviyesinde
  * DONDURULMUYOR — `buildRefundReasonConfig(t)` / `buildRefundReasonOptions(t)`
- * ÇAĞRI ANINDA aktif dile göre kurulur (CLAUDE.md kural 2). Testler sabit TR
+ * ÇAĞRI ANINDA aktif dile göre kurulur (src/i18n/CLAUDE.md › Build labels at call time). Testler sabit TR
  * çözümü için `i18n.getFixedT('tr')` kullanır (bkz. `validate.test.ts`).
  */
 import i18n from '@/i18n/config';

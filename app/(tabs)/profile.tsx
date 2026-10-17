@@ -1,69 +1,59 @@
-import { View, ScrollView, RefreshControl } from 'react-native';
-import { tabDiag } from '@/components/_tabDiag';
-import { Text, theme } from '@/ui';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { RefreshControl } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
+import { tabDiag } from '@/components/_tabDiag';
+import { AppShell } from '@/components/shell/AppShell';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
+import { pageListContentStyle, theme, usePageScrollValue } from '@/ui';
 
-import { styles } from './_lib/profileStyles';
 import { useProfile } from './_hooks/useProfile';
-import { useHomeBadges } from './_hooks/useHomeBadges';
 import { ProfileGuestView } from './_components/ProfileGuestView';
-import {
-  ProfileCard,
-  ProfileStatsGrid,
-  ProfileGarageSection,
-  ProfileQuickActions,
-  ProfileMenuSections,
-} from './_components/ProfileSections';
+import { ProfileCard, ProfileMenuSections } from './_components/ProfileSections';
 
 const { colors } = theme;
 
 /**
- * Profile tab — THIN screen. The `useProfile` controller owns all queries,
- * the trust-visibility mutation, and logout/delete/guest actions; this file
- * only branches guest vs. authenticated and composes the sections.
+ * Profil sekmesi — sekme kökü (AppShell, başlıklı bar: solu BOŞ, sağda tek ⚙️ Ayarlar düğmesi;
+ * "Profili düzenle" kalemi kimlik satırında). Düz (kartsız) düzen: yatay kompakt kimlik başlığı +
+ * kullanıcının işlemleri (Alışveriş · Finans · Koleksiyon · Analiz, gruplu satırlar). Hesap / ödeme
+ * ayarları / üyelik / tercihler / destek / yasal ve çıkış Ayarlar ekranında (`/settings`).
+ * `useProfile` tüm sorgu ve eylemlerin sahibi; ekran yalnız misafir/üye dallanması ve kompozisyon.
  */
 function ProfileScreen() {
   const f = useProfile();
   const { t } = useTranslation();
-  // Hook sırası sabit kalsın diye erken return'den ÖNCE çağrılır (CLAUDE.md §12).
-  const badges = useHomeBadges(f.isAuthenticated);
-  const insets = useSafeAreaInsets();
+  // Hook sırası sabit kalsın diye erken return'den ÖNCE çağrılır (app/CLAUDE.md › Thin screens).
+  const tabInset = useTabBarInset();
+  const page = usePageScrollValue();
+  // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
+  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
 
   if (!f.isAuthenticated) return <ProfileGuestView f={f} />;
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, theme.spacing[3]) }]}>
-        <Text variant="h3" tone="inverted" weight="bold">
-          {t('profile.profile')}
-        </Text>
-      </View>
-
-      <ScrollView
-        style={styles.scrollView}
+    <AppShell variant="title" title={t('profile.profile')} scroll={page} leading="none" actions="settings">
+      <Animated.ScrollView
+        {...tabScroll}
+        {...page.scrollProps}
+        scrollEventThrottle={16}
+        // Sayfa kenarı + kartlar arası boşluk (kimlik kartı + grup kartları).
+        contentContainerStyle={page.contentStyle([pageListContentStyle, { paddingBottom: tabInset }])}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={f.refreshing}
             onRefresh={f.onRefresh}
-            tintColor={colors.primary[600]!}
+            progressViewOffset={page.topInset}
+            tintColor={colors.primary[600]}
             colors={[colors.primary[600]!]}
           />
         }
       >
         <ProfileCard f={f} />
-        <ProfileStatsGrid f={f} />
-        <ProfileGarageSection f={f} />
-        <ProfileQuickActions
-          badges={{ pendingOffers: badges.pendingOffers, pendingTrades: badges.pendingTrades }}
-          isBusiness={!!(f.user?.companyName && f.user?.taxId)}
-        />
-        <ProfileMenuSections f={f} />
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-    </View>
+        <ProfileMenuSections />
+      </Animated.ScrollView>
+    </AppShell>
   );
 }
 

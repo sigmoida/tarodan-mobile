@@ -24,10 +24,14 @@ jest.mock('@/lib/api', () => ({
   ordersApi: { markAsPreparing: jest.fn() },
   shippingApi: { getOrderShipments: jest.fn(), createShipment: jest.fn() },
 }));
-jest.mock('@/ui', () => ({ ...jest.requireActual('@/ui'), appAlert: jest.fn() }));
+jest.mock('@/ui', () => ({
+  ...jest.requireActual('@/ui'),
+  appAlert: jest.fn(),
+  toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn(), dismiss: jest.fn() }),
+}));
 
-import { shippingApi } from '@/lib/api';
-import { appAlert } from '@/ui';
+import { ordersApi, shippingApi } from '@/lib/api';
+import { appAlert, toast } from '@/ui';
 import { useSaleActions } from '../_hooks/useSaleActions';
 
 const wrapper = ({ children }: { children: React.ReactNode }) => {
@@ -98,6 +102,43 @@ describe('kargoya verme geri bildirimi', () => {
 
     expect(alertText()).toContain('Kargo Kaydı Oluşturuldu');
     expect(alertText()).not.toMatch(/güncellendi/i);
+  });
+
+  it('KAPAT -> GÖNDER: diyalog istek bitmeden kapanır (src/ui/CLAUDE.md › iOS modal rule)', async () => {
+    let resolve!: (v: unknown) => void;
+    jest.mocked(shippingApi.getOrderShipments).mockReturnValue(new Promise((r) => (resolve = r)) as any);
+    const { result } = renderHook(() => useSaleActions(), { wrapper });
+    act(() => result.current.setShipDialog({ visible: true, order: ORDER }));
+    expect(result.current.shipDialog.visible).toBe(true);
+
+    act(() => result.current.handleShip());
+
+    expect(result.current.shipDialog.visible).toBe(false); // istek hâlâ beklemede
+    await waitFor(() => expect(shippingApi.getOrderShipments).toHaveBeenCalledWith('o1'));
+    expect(appAlert).not.toHaveBeenCalled();
+    await act(async () => resolve({ data: { id: 's1', trackingNumber: 'PKG-X' } }));
+    await waitFor(() => expect(appAlert).toHaveBeenCalled());
+  });
+
+  it('hata: toast.error(sunucu mesajı), appAlert YOK', async () => {
+    jest.mocked(shippingApi.getOrderShipments).mockRejectedValue({
+      response: { status: 500, data: { message: 'Sunucu hatası oluştu' } },
+    });
+
+    await ship();
+
+    expect(toast.error).toHaveBeenCalledWith('Sunucu hatası oluştu');
+    expect(appAlert).not.toHaveBeenCalled();
+  });
+
+  it('hazırlanıyor işaretleme: başarıda toast.success (appAlert(common.success) değil)', async () => {
+    jest.mocked(ordersApi.markAsPreparing).mockResolvedValue({ data: {} } as any);
+    const { result } = renderHook(() => useSaleActions(), { wrapper });
+    await act(async () => {
+      result.current.updateStatusMutation.mutate({ orderId: 'o1', status: 'processing' });
+    });
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Sipariş durumu güncellendi'));
+    expect(appAlert).not.toHaveBeenCalled();
   });
 
   it('boş gövdeyi mevcut kayıt saymaz — onarım yolu açık kalır', async () => {

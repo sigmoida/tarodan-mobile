@@ -19,7 +19,8 @@ export interface CartItem {
     id: string;
     displayName: string;
   };
-  addedAt: number; // timestamp for 24-hour expiry
+  /** Son ekleme/adet değişikliği zamanı (bilgi amaçlı; sepet süre dolunca SİLİNMEZ). */
+  addedAt: number;
 }
 
 interface CartState {
@@ -44,16 +45,32 @@ interface CartState {
    */
   deselectedIds: string[];
 
+  /**
+   * Yerel satırların sunucu sepetiyle birleştirilmesi bu kullanıcı için BEKLİYOR (kalıcı).
+   * Misafir→üye geçişinde (giriş) ve üyenin aynalanan eklemesi geçici hatayla düştüğünde
+   * konur; `useCartMergeOnLogin` birleştirmeyi kesin sonuca (başarı / satırın kesin reddi)
+   * ulaşınca kaldırır. Soğuk açılış birleştirme tetiklemez — yalnız işaret varsa çalışır.
+   */
+  mergePendingFor: string | null;
+  markMergePending: (userId: string) => void;
+  /** Birleştirme bitti — yalnız işaret hâlâ bu kullanıcıya aitse kaldırılır. */
+  clearMergePending: (userId: string) => void;
+
   // Actions
-  addItem: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>) => void;
-  setBuyNow: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>) => void;
+  /** `quantity` (varsayılan 1): ürün detayındaki adet seçici; stok/sipariş sınırını aşamaz. */
+  addItem: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>, quantity?: number) => void;
+  setBuyNow: (item: Omit<CartItem, 'id' | 'quantity' | 'addedAt'>, quantity?: number) => void;
   clearBuyNow: () => void;
   addToCart: (productId: string) => Promise<void>;
   removeItem: (itemId: string) => void;
   removeByProductId: (productId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
-  cleanExpiredItems: () => void;
+  /**
+   * Sunucunun bildirdiği taze satın alınabilir adedi satıra yazar (sepete eklerken donan
+   * `stock` yerine). Adet seçici ve `updateQuantity` tavanı bu değerle hesaplanır.
+   */
+  syncStock: (productId: string, stock: number) => void;
   onPurchaseComplete: (productIds: string[]) => void;
   toggleSelected: (itemId: string) => void;
   setAllSelected: (selected: boolean) => void;
@@ -71,25 +88,8 @@ interface CartState {
   isInCart: (productId: string) => boolean;
 }
 
-const CART_EXPIRY_HOURS = 24;
-
-/** API tavanı: sunucu DTO'su sepet/sipariş adedini 99 ile sınırlar. */
-const CART_MAX_QTY = 99;
-
-/**
- * Bir sepet satırının çıkabileceği azami adet: yakalanan stok ile sipariş-başı
- * limitin küçüğü, API tavanı (99) ile sınırlı. Bilgi yoksa 99'a düşer
- * (eski davranış; gerçek doğrulama yine checkout'ta yapılır).
- */
-export function maxAllowedQty(item: {
-  stock?: number | null;
-  maxQuantityPerOrder?: number | null;
-}): number {
-  const caps = [item.stock, item.maxQuantityPerOrder].filter(
-    (n): n is number => typeof n === 'number' && n > 0,
-  );
-  return caps.length ? Math.min(CART_MAX_QTY, ...caps) : CART_MAX_QTY;
-}
+export { maxAllowedQty } from './cartLimits';
+import { maxAllowedQty } from './cartLimits';
 
 /** Sepetten düşen satırların seçim kaydını da düşürür (bayat id birikmesin). */
 function pruneDeselected(deselectedIds: string[], removedItemIds: string[]): string[] {
@@ -104,13 +104,22 @@ export const useCartStore = create<CartState>()(
       isLoading: false,
       buyNowItem: null,
       deselectedIds: [],
+      mergePendingFor: null,
 
-      setBuyNow: (item) => {
+      markMergePending: (userId: string) => {
+        if (get().mergePendingFor !== userId) set({ mergePendingFor: userId });
+      },
+
+      clearMergePending: (userId: string) => {
+        if (get().mergePendingFor === userId) set({ mergePendingFor: null });
+      },
+
+      setBuyNow: (item, quantity = 1) => {
         set({
           buyNowItem: {
             ...item,
             id: `buynow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            quantity: 1,
+            quantity: Math.max(1, Math.min(quantity, maxAllowedQty(item))),
             addedAt: Date.now(),
           },
         });
@@ -120,7 +129,7 @@ export const useCartStore = create<CartState>()(
         set({ buyNowItem: null });
       },
 
-      addItem: (item) => {
+      addItem: (item, quantity = 1) => {
         const items = get().items;
         const existingIndex = items.findIndex(i => i.productId === item.productId);
 
@@ -132,7 +141,7 @@ export const useCartStore = create<CartState>()(
             stock: item.stock,
             maxQuantityPerOrder: item.maxQuantityPerOrder,
           };
-          merged.quantity = Math.min(merged.quantity + 1, maxAllowedQty(merged));
+          merged.quantity = Math.min(merged.quantity + quantity, maxAllowedQty(merged));
           merged.addedAt = Date.now();
           newItems[existingIndex] = merged;
           set({ items: newItems, lastUpdated: Date.now() });
@@ -141,7 +150,7 @@ export const useCartStore = create<CartState>()(
           const newItem: CartItem = {
             ...item,
             id: `cart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            quantity: 1,
+            quantity: Math.max(1, Math.min(quantity, maxAllowedQty(item))),
             addedAt: Date.now(),
           };
           set({ items: [...items, newItem], lastUpdated: Date.now() });
@@ -205,24 +214,19 @@ export const useCartStore = create<CartState>()(
       },
 
       clearCart: () => {
-        set({ items: [], deselectedIds: [], lastUpdated: Date.now() });
+        // Boş sepette birleştirilecek bir şey kalmaz (çıkış da buradan geçer).
+        set({ items: [], deselectedIds: [], mergePendingFor: null, lastUpdated: Date.now() });
       },
 
-      cleanExpiredItems: () => {
-        const now = Date.now();
-        const expiryMs = CART_EXPIRY_HOURS * 60 * 60 * 1000;
-        const items = get().items.filter(item => {
-          return (now - item.addedAt) < expiryMs;
+      syncStock: (productId: string, stock: number) => {
+        // 0/negatif yazılmaz: `maxAllowedQty` 0'ı "bilinmiyor" sayar ve tavanı 99'a gevşetirdi.
+        if (!Number.isFinite(stock) || stock < 1) return;
+        const items = get().items;
+        if (!items.some((i) => i.productId === productId && i.stock !== stock)) return;
+        set({
+          items: items.map((i) => (i.productId === productId ? { ...i, stock } : i)),
+          lastUpdated: Date.now(),
         });
-        
-        if (items.length !== get().items.length) {
-          const keptIds = items.map((i) => i.id);
-          set({
-            items,
-            deselectedIds: get().deselectedIds.filter((id) => keptIds.includes(id)),
-            lastUpdated: Date.now(),
-          });
-        }
       },
 
       // Remove purchased items from cart
@@ -269,7 +273,12 @@ export const useCartStore = create<CartState>()(
       name: 'tarodan-cart',
       storage: createJSONStorage(() => AsyncStorage),
       // buyNowItem geçicidir; yalnızca sepet kalıcı yazılır.
-      partialize: (state) => ({ items: state.items, lastUpdated: state.lastUpdated }),
+      partialize: (state) => ({
+        items: state.items,
+        lastUpdated: state.lastUpdated,
+        // Birleştirme bekliyor işareti kalıcı: geçici hatada sonraki açılışta yeniden denenir.
+        mergePendingFor: state.mergePendingFor,
+      }),
     }
   )
 );

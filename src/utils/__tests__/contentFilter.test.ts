@@ -8,12 +8,17 @@
  * basıyordu. Regex şemasız değerleri de kabul edecek şekilde genişletildi;
  * çözüm `resolveImageUrl`'e bırakılır (bu dosyanın kapsamı dışında).
  */
+// API kökü test ortamında sabit: mutlak `[IMG:]` hedefi yalnız bu origin'deki mesaj eki ucu olabilir.
+jest.mock('@/lib/api/baseUrl', () => ({ resolveApiBaseUrl: () => 'https://api.tarodan.com/api' }));
+
 import { parseMessageContent, formatMessagePreview, embedImageInMessage } from '../contentFilter';
 
+const OWN = 'https://api.tarodan.com/api/media/message-attachment/a1';
+
 describe('parseMessageContent — [IMG:] ayrıştırma (task 4)', () => {
-  it('mutlak http(s) URL yakalar (mevcut davranış — regresyon)', () => {
-    const { text, images } = parseMessageContent('bak [IMG:https://cdn.x.com/a.jpg]');
-    expect(images).toEqual(['https://cdn.x.com/a.jpg']);
+  it('kendi mesaj eki ucumuzu (mutlak URL) yakalar', () => {
+    const { text, images } = parseMessageContent(`bak [IMG:${OWN}]`);
+    expect(images).toEqual([OWN]);
     expect(text).toBe('bak');
   });
 
@@ -111,13 +116,8 @@ describe('parseMessageContent — [IMG:] şema beyaz listesi (I1)', () => {
     expect(parseMessageContent('[IMG:dev/../../secret.jpg]').images).toEqual([]);
   });
 
-  it('meşru hedefler etkilenmez: http(s), `/` relatif, çıplak key', () => {
-    expect(parseMessageContent('[IMG:https://cdn.x.com/a.jpg]').images).toEqual([
-      'https://cdn.x.com/a.jpg',
-    ]);
-    expect(parseMessageContent('[IMG:http://10.0.2.2:3001/api/media/x]').images).toEqual([
-      'http://10.0.2.2:3001/api/media/x',
-    ]);
+  it('meşru hedefler etkilenmez: kendi mesaj eki ucu, `/` relatif, çıplak key', () => {
+    expect(parseMessageContent(`[IMG:${OWN}]`).images).toEqual([OWN]);
     expect(parseMessageContent('[IMG:/photos/x.jpg]').images).toEqual(['/photos/x.jpg']);
     expect(parseMessageContent('[IMG:dev/messages/x.jpg]').images).toEqual([
       'dev/messages/x.jpg',
@@ -125,10 +125,55 @@ describe('parseMessageContent — [IMG:] şema beyaz listesi (I1)', () => {
   });
 
   it('karışık mesajda yalnız geçerli hedef render edilir', () => {
-    const { images } = parseMessageContent(
-      '[IMG:file:///etc/passwd] [IMG:https://cdn.x.com/ok.jpg]'
-    );
-    expect(images).toEqual(['https://cdn.x.com/ok.jpg']);
+    const { images } = parseMessageContent(`[IMG:file:///etc/passwd] [IMG:${OWN}]`);
+    expect(images).toEqual([OWN]);
+  });
+});
+
+/**
+ * Token sızıntısı (HIGH) — mesaj eki `authenticated` render ediliyor; bearer'ı
+ * YALNIZ `AppImage` + `isApiMessageAttachmentUrl` (sıkı origin+yol kontrolü) belirler.
+ * Ayrıştırıcı ise eski mesajlardaki S3/CDN https görsellerini göstermeye devam eder
+ * (bearer'sız yüklenir); userinfo / ters bölü / dizin çıkışı gibi numaralar atılır.
+ */
+describe('parseMessageContent — mutlak http(s) hedefler', () => {
+  const accepted = [
+    ['eski mesajdaki S3/CDN https görseli', 'https://cdn.x.com/a.jpg'],
+    ['presigned S3 (sorgulu)', 'https://bucket.s3.eu-central-1.amazonaws.com/dev/messages/a.jpg?X-Amz-Signature=abc&X-Amz-Expires=60'],
+    ['yabancı host mesaj eki yolu (bearer yine gitmez)', 'https://evil.example/api/media/message-attachment/a1'],
+    ['dev: sunucunun döndürdüğü localhost', 'http://localhost:3000/api/media/message-attachment/a1'],
+    ['Türkçe karakterli yüzde kodlu yol', 'https://cdn.x.com/dev/%C3%A7ocuk%20resmi.jpg'],
+  ] as const;
+
+  it.each(accepted)('%s kabul edilir', (_label, target) => {
+    expect(parseMessageContent(`[IMG:${target}]`).images).toEqual([target]);
+  });
+
+  const rejected = [
+    ['userinfo ile host kandırma', 'https://api.tarodan.com@evil.example/api/media/message-attachment/a1'],
+    ['dizin çıkışı', 'https://api.tarodan.com/api/media/message-attachment/../../users/me'],
+    ['yüzde kodlu çıkış', 'https://api.tarodan.com/api/media/message-attachment/%2e%2e%2fx'],
+    ['ters bölü', 'https://api.tarodan.com\\@evil.example/api/media/message-attachment/a1'],
+    ['bozuk yüzde kodlama', 'https://cdn.x.com/a%E0%A4%A.jpg'],
+    ['hostsuz', 'https:///a.jpg'],
+  ] as const;
+
+  it.each(rejected)('%s reddedilir', (_label, target) => {
+    expect(parseMessageContent(`[IMG:${target}]`).images).toEqual([]);
+  });
+
+  it('host ve şema büyük/küçük harf duyarsız eşleşir', () => {
+    const upper = 'HTTPS://API.TARODAN.COM/api/media/message-attachment/a1';
+    expect(parseMessageContent(`[IMG:${upper}]`).images).toEqual([upper]);
+  });
+
+  it('eski https görseli önizlemede 📷 Fotoğraf basar', () => {
+    expect(formatMessagePreview('[IMG:https://cdn.x.com/a.jpg]')).toBe('📷 Fotoğraf');
+  });
+
+  it('reddedilen işaret metinde görünmez ve önizlemede 📷 basmaz', () => {
+    expect(parseMessageContent('bak [IMG:https://x@evil.example/x.jpg]').text).toBe('bak');
+    expect(formatMessagePreview('[IMG:https://x@evil.example/x.jpg]')).toBe('');
   });
 
   it('formatMessagePreview reddedilen hedef için 📷 Fotoğraf BASMAZ', () => {
@@ -139,7 +184,7 @@ describe('parseMessageContent — [IMG:] şema beyaz listesi (I1)', () => {
 
 describe('formatMessagePreview — hem mutlak URL hem çıplak key için 📷 Fotoğraf basar (task 4)', () => {
   it('mutlak URL', () => {
-    expect(formatMessagePreview('[IMG:https://cdn.x.com/a.jpg]')).toBe('📷 Fotoğraf');
+    expect(formatMessagePreview(`[IMG:${OWN}]`)).toBe('📷 Fotoğraf');
   });
 
   it('çıplak S3 key — düzeltmeden önce ham metin sızıyordu', () => {
@@ -164,5 +209,20 @@ describe('embedImageInMessage — gönderim tarafı (regresyon)', () => {
 
   it('boş metinde yalnız işareti döner', () => {
     expect(embedImageInMessage('', 'dev/messages/x.jpg')).toBe('[IMG:dev/messages/x.jpg]');
+  });
+
+  it('sunucunun döndürdüğü URL istemci API tabanından farklı origin olsa da (dev localhost) fırlatmaz', () => {
+    expect(embedImageInMessage('', 'http://localhost:3000/api/media/message-attachment/x')).toBe(
+      '[IMG:http://localhost:3000/api/media/message-attachment/x]'
+    );
+    expect(embedImageInMessage('', 'https://cdn.x.com/a.jpg')).toBe('[IMG:https://cdn.x.com/a.jpg]');
+  });
+
+  it('geçersiz hedefle işaret KURMAZ (`]`, boşluk, yerel şema, userinfo, dizin çıkışı)', () => {
+    expect(() => embedImageInMessage('', 'dev/x].jpg')).toThrow();
+    expect(() => embedImageInMessage('', 'dev/x y.jpg')).toThrow();
+    expect(() => embedImageInMessage('', 'file:///etc/passwd')).toThrow();
+    expect(() => embedImageInMessage('', 'https://a@evil.example/x.jpg')).toThrow();
+    expect(() => embedImageInMessage('', 'https://cdn.x.com/../x.jpg')).toThrow();
   });
 });

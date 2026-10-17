@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Card, Text, Button, StatusBadge, theme } from '@/ui';
-import { useTradeStatusConfig } from '@/lib/shared/tradeStatus';
-import { Ionicons } from '@expo/vector-icons';
+import { Alert, SectionCard, Text, Button, StatusBadge, theme, Icon, ButtonRow } from '@/ui';
+import { useTradeStatusConfig, type TradeViewerRole } from '@/lib/shared/tradeStatus';
 import { router } from 'expo-router';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -14,6 +13,7 @@ import {
   formatCountdown,
 } from '../_lib/status';
 import { TradeProgressStepper } from './TradeProgressStepper';
+import { useCountdown } from '../_hooks/useCountdown';
 import type { Trade, TFn } from '../_lib/types';
 
 const { colors } = theme;
@@ -22,12 +22,11 @@ const { colors } = theme;
 export function TradeStatusHeader({
   trade,
   t,
-  now,
   hasPaymentStep,
+  viewerRole,
 }: {
   trade: Trade;
   t: TFn;
-  now: number;
   /**
    * `view.hasPaymentStep` (tek kaynak `_lib/derive.ts`). v2'de eşit takasta bile
    * ödeme aşaması vardır; buradaki eski `cashAmount > 0` türetmesi
@@ -35,9 +34,11 @@ export function TradeStatusHeader({
    * gösteriyordu.
    */
   hasPaymentStep: boolean;
+  /** Bakan tarafın rolü — gönderi/teslim etiketleri "siz / karşı taraf" diye seçilir. */
+  viewerRole?: TradeViewerRole;
 }) {
   // Etiket/renk/ikon TEK kaynaktan, çevrilmiş hâlde.
-  const statusDetail = useTradeStatusDetail();
+  const statusDetail = useTradeStatusDetail(viewerRole);
   const statusInfoBase = statusDetail[trade.status] ?? statusDetail.pending!;
   // `NEW_STATUS_KEYS` override'ı KALDIRILDI: paylaşılan harita zaten her durum
   // için katalog anahtarı taşıyor, override ikinci bir anahtar seti
@@ -45,177 +46,140 @@ export function TradeStatusHeader({
   // seti yaratıyordu ("Depoya Gönderim" / "Depoya Gönderiliyor").
   const statusInfo = statusInfoBase;
   // Rozet de aynı tek kaynaktan — banner ile rozet farklı kelime göstermesin.
-  const badgeConfig = useTradeStatusConfig();
+  const badgeConfig = useTradeStatusConfig(viewerRole);
   const hasBadge = !!badgeConfig[trade.status];
-  const countdown = formatCountdown(deadlineForStatus(trade), now);
   const statusDescriptions = buildStatusDescriptions(t);
   const statusDescription = statusDescriptions[trade.status];
 
   return (
     <>
-      {/* Status Banner */}
+      {/* Status Banner — durum ikonu işlevsel (durumu anlatır), kalır */}
       <View style={[styles.statusBanner, { backgroundColor: statusInfo.color + '15' }]}>
-        <Ionicons name={statusInfo.icon as any} size={24} color={statusInfo.color} />
-        <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
+        <Icon name={statusInfo.icon} size={theme.iconSize.lg} color={statusInfo.color} />
+        <Text variant="body" weight="semibold" style={[styles.statusText, { color: statusInfo.color }]}>
+          {statusInfo.label}
+        </Text>
         {hasBadge ? <StatusBadge status={trade.status} config={badgeConfig} size="sm" /> : null}
       </View>
 
       {/* Status description — özel kartı olan statülerde tekrar olmasın diye gizlenir. */}
       {statusDescription &&
         !['completed', 'at_warehouse', 'admin_reviewing', 'returning'].includes(trade.status) && (
-          <View style={styles.descCard}>
+          <Alert variant="info">
             <Text variant="bodySm" tone="body">{statusDescription}</Text>
             {trade.cancelReason && (trade.status === 'cancelled' || trade.status === 'rejected') ? (
-              <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[1] }}>
+              <Text variant="caption" tone="muted">
                 {t('common.reason')}: {trade.cancelReason}
               </Text>
             ) : null}
-          </View>
+          </Alert>
         )}
 
-      {/* Countdown */}
-      {countdown && (
-        <View style={styles.countdownCard}>
-          <Ionicons name="time-outline" size={20} color={colors.primary[600]!} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.countdownText}>{countdown}</Text>
-            <Text variant="caption" tone="muted">{t('trade.countdownHint')}</Text>
-          </View>
-        </View>
-      )}
+      {/* Countdown — saniyelik tik yalnız bu kartı render eder */}
+      <TradeCountdownCard deadline={deadlineForStatus(trade)} t={t} />
 
       {/* Progress Stepper (depo-escrow akışı) */}
       {STEP_FLOW_STATUSES.has(trade.status) && (
-        <Card style={styles.card}>
+        <SectionCard>
           <TradeProgressStepper status={trade.status} hasCash={hasPaymentStep} />
-        </Card>
+        </SectionCard>
       )}
 
       {/* Completed summary */}
       {trade.status === 'completed' && (
-        <Card style={{ ...styles.card, ...styles.completedCard }}>
-          <View style={styles.completedHeader}>
-            <Ionicons name="checkmark-done-circle" size={28} color={colors.success[600]!} />
-            <Text variant="h3" style={{ color: colors.success[700]!, flex: 1 }}>{t('trade.completedSummaryTitle')}</Text>
-          </View>
-          <Text variant="caption" tone="muted" style={{ marginBottom: theme.spacing[3] }}>
-            {t('trade.completedSummaryDesc')}
-          </Text>
+        <SectionCard title={t('trade.completedSummaryTitle')} style={styles.completedCard} bodyStyle={styles.stack}>
+          <Text variant="bodySm" tone="muted">{t('trade.completedSummaryDesc')}</Text>
           <View style={styles.summaryDateRow}>
-            <Text variant="caption" tone="muted">{t('trade.createdAt')}</Text>
+            <Text variant="bodySm" tone="muted">{t('trade.createdAt')}</Text>
             <Text variant="bodySm">{format(new Date(trade.createdAt), 'd MMM yyyy', { locale: tr })}</Text>
           </View>
           {trade.acceptedAt ? (
             <View style={styles.summaryDateRow}>
-              <Text variant="caption" tone="muted">{t('trade.statusAccepted')}</Text>
+              <Text variant="bodySm" tone="muted">{t('trade.statusAccepted')}</Text>
               <Text variant="bodySm">{format(new Date(trade.acceptedAt), 'd MMM yyyy', { locale: tr })}</Text>
             </View>
           ) : null}
           {trade.completedAt ? (
             <View style={styles.summaryDateRow}>
-              <Text variant="caption" tone="muted">{t('trade.statusCompleted')}</Text>
+              <Text variant="bodySm" tone="muted">{t('trade.statusCompleted')}</Text>
               <Text variant="bodySm">{format(new Date(trade.completedAt), 'd MMM yyyy', { locale: tr })}</Text>
             </View>
           ) : null}
-          <View style={styles.completedActions}>
-            <Button variant="outline" title={t('trade.myTrades')} onPress={() => router.replace('/trades' as any)} style={{ flex: 1 }} />
-            <Button variant="primary" title={t('mobile.guestBrowseListings')} onPress={() => router.push('/search')} style={{ flex: 1 }} />
-          </View>
-        </Card>
+          <ButtonRow style={{ marginTop: theme.spacing[2] }}>
+            <Button variant="outline" title={t('trade.myTrades')} onPress={() => router.replace('/trades' as any)} />
+            <Button variant="primary" title={t('mobile.guestBrowseListings')} onPress={() => router.push('/search')} />
+          </ButtonRow>
+        </SectionCard>
       )}
 
       {/* Warehouse review banner */}
       {(trade.status === 'at_warehouse' || trade.status === 'admin_reviewing') && (
-        <Card style={{ ...styles.card, ...styles.infoBanner }}>
-          <View style={styles.bannerRow}>
-            <View style={styles.bannerIconCircle}>
-              <Ionicons name="shield-checkmark" size={22} color={colors.white} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text variant="label" style={{ color: colors.info[700]! }}>{t('trade.warehouseBannerTitle')}</Text>
-              <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>
-                {t('trade.warehouseBannerDesc')}
-              </Text>
-            </View>
-          </View>
-        </Card>
+        <Alert variant="info" title={t('trade.warehouseBannerTitle')}>
+          {t('trade.warehouseBannerDesc')}
+        </Alert>
       )}
 
       {/* Returning banner */}
       {trade.status === 'returning' && (
-        <Card style={{ ...styles.card, ...styles.warningBanner }}>
-          <View style={styles.bannerRow}>
-            <View style={[styles.bannerIconCircle, { backgroundColor: colors.warning[500]! }]}>
-              <Ionicons name="return-up-back" size={22} color={colors.white} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text variant="label" style={{ color: colors.warning[800]! }}>{t('trade.returningBannerTitle')}</Text>
-              <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[0.5] }}>{t('trade.returningBannerDesc')}</Text>
-              {trade.cancelReason ? (
-                <Text variant="caption" tone="muted" style={{ marginTop: theme.spacing[1] }}>{t('common.reason')}: {trade.cancelReason}</Text>
-              ) : null}
-            </View>
-          </View>
-        </Card>
+        <Alert variant="warning" title={t('trade.returningBannerTitle')}>
+          <Text variant="bodySm" tone="muted">{t('trade.returningBannerDesc')}</Text>
+          {trade.cancelReason ? (
+            <Text variant="caption" tone="muted">{t('common.reason')}: {trade.cancelReason}</Text>
+          ) : null}
+        </Alert>
       )}
     </>
   );
 }
 
+/**
+ * Kalan süre kartı. Saniyelik `now` BURADA tutulur (ekranın tepesinde değil): tik yalnız bu küçük
+ * kartı yeniden çizer; son tarih yoksa / dolduysa / ekran odakta değilse hiç tıklamaz.
+ */
+const TradeCountdownCard = React.memo(function TradeCountdownCard({
+  deadline,
+  t,
+}: {
+  deadline: string | null;
+  t: TFn;
+}) {
+  const now = useCountdown(deadline);
+  const countdown = formatCountdown(deadline, now);
+  if (!countdown) return null;
+  return (
+    <View style={styles.countdownCard}>
+      <Text variant="h3" weight="bold" style={styles.countdownText}>{countdown}</Text>
+      <Text variant="caption" tone="muted">{t('trade.countdownHint')}</Text>
+    </View>
+  );
+});
+
 const styles = StyleSheet.create({
   statusBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: theme.spacing[4],
-    marginHorizontal: theme.spacing[4],
-    marginTop: theme.spacing[4],
-    borderRadius: 12,
+    padding: theme.spacing[3],
+    borderRadius: theme.radiusRole.card,
     gap: theme.spacing[2],
   },
-  statusText: { fontSize: 16, fontWeight: '600', flex: 1 },
-  card: { margin: theme.spacing[4], marginTop: theme.spacing[0], backgroundColor: colors.surface.DEFAULT },
-  descCard: {
-    marginHorizontal: theme.spacing[4],
-    marginTop: theme.spacing[3],
-    padding: theme.spacing[3],
-    borderRadius: theme.radius['2xl'],
-    backgroundColor: colors.surface.DEFAULT,
-    borderWidth: 1,
-    borderColor: colors.border.subtle,
-  },
+  statusText: { flex: 1 },
   countdownCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing[2.5],
-    marginHorizontal: theme.spacing[4],
-    marginTop: theme.spacing[3],
     padding: theme.spacing[3],
-    borderRadius: theme.radius['2xl'],
+    borderRadius: theme.radiusRole.card,
     backgroundColor: colors.primary[50]!,
     borderWidth: 1,
     borderColor: colors.primary[100]!,
+    gap: theme.spacing[0.5],
   },
-  countdownText: { fontSize: 18, fontWeight: '700', color: colors.primary[800]!, fontFamily: 'Courier' },
-  completedCard: { backgroundColor: colors.success[50]!, borderWidth: 1, borderColor: colors.success[200]! },
-  completedHeader: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[2.5], marginBottom: theme.spacing[2] },
+  countdownText: { color: colors.primary[800]!, fontFamily: 'Courier' },
+  stack: { gap: theme.spacing[2] },
+  completedCard: { backgroundColor: colors.success[50]!, borderColor: colors.success[200]! },
   summaryDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: theme.spacing[1.5],
-    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: theme.spacing[2],
+    borderTopWidth: 1,
     borderTopColor: colors.success[200]!,
-  },
-  completedActions: { flexDirection: 'row', gap: theme.spacing[3], marginTop: theme.spacing[4] },
-  infoBanner: { backgroundColor: colors.info[50]!, borderWidth: 1, borderColor: colors.info[200]! },
-  warningBanner: { backgroundColor: colors.warning[50]!, borderWidth: 1, borderColor: colors.warning[200]! },
-  bannerRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing[3] },
-  bannerIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.info[500]!,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

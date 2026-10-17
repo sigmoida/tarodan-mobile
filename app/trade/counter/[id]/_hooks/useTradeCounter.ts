@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { tradesApi, productsApi } from '@/lib/api';
+import { qk, useAppMutation } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
+import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import { itemId, offerSignature, type Trade, type TradeItem } from '../_lib/types';
 
 /**
@@ -16,9 +18,8 @@ import { itemId, offerSignature, type Trade, type TradeItem } from '../_lib/type
 export function useTradeCounter() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuthStore();
-  const queryClient = useQueryClient();
-  const [snack, setSnack] = useState<string | null>(null);
+  const user = useAuthStore((s) => s.user);
+  const { requireIdentity, isChecking: checkingIdentity } = useRequireLegalIdentity();
 
   const handleBack = () => {
     if (router.canGoBack()) router.back();
@@ -26,7 +27,7 @@ export function useTradeCounter() {
   };
 
   const tradeQuery = useQuery<Trade | null>({
-    queryKey: ['trade', id],
+    queryKey: qk.trades.detail(String(id ?? '')),
     queryFn: async () => {
       if (!id) return null;
       const response = await tradesApi.getOne(id);
@@ -75,7 +76,7 @@ export function useTradeCounter() {
 
   // Kullanıcının aktif ürünleri (takasa uygun)
   const myProductsQuery = useQuery({
-    queryKey: ['my-tradeable-products', user?.id],
+    queryKey: qk.trades.myTradeableForCounter(user?.id),
     queryFn: async () => {
       if (!user?.id) return [];
       const response = await productsApi.getAll({ sellerId: user.id, tradeOnly: true, status: 'active' });
@@ -88,7 +89,7 @@ export function useTradeCounter() {
 
   // Karşı tarafın takasa uygun ürünleri
   const theirProductsQuery = useQuery({
-    queryKey: ['other-tradeable-products', otherPartyId],
+    queryKey: qk.trades.sellerTradeableForCounter(otherPartyId),
     queryFn: async () => {
       if (!otherPartyId) return [];
       const response = await productsApi.getAll({ sellerId: otherPartyId, tradeOnly: true, status: 'active' });
@@ -105,8 +106,8 @@ export function useTradeCounter() {
     theirProductsQuery.refetch,
   );
 
-  const counterMutation = useMutation({
-    mutationFn: async () => {
+  const counterMutation = useAppMutation(
+    async () => {
       const cashValue = parseFloat(cashAmount) || 0;
       const finalCash = cashDirection === 'offer' ? cashValue : -cashValue;
       return tradesApi.counter(id!, {
@@ -118,15 +119,16 @@ export function useTradeCounter() {
         message: message || undefined,
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trade', id] });
-      queryClient.invalidateQueries({ queryKey: ['trades'] });
-      setSnack(t('trade.counterOfferSent'));
-      setTimeout(() => router.replace(`/trade/${id}` as any), 1200);
+    {
+      invalidates: [qk.trades.detail(id!), qk.trades.all],
+      error: t('trade.counterOfferFailed'),
+      onSuccess: () => {
+        // Önce ekran değişir, sonra toast — bekleme yok.
+        router.replace(`/trade/${id}` as any);
+        toast.success(t('trade.counterOfferSent'));
+      },
     },
-    onError: (e: any) =>
-      appAlert(t('common.error'), e?.response?.data?.message || t('trade.counterOfferFailed')),
-  });
+  );
 
   const myProducts = myProductsQuery.data ?? [];
   const theirProducts = theirProductsQuery.data ?? [];
@@ -153,9 +155,10 @@ export function useTradeCounter() {
     }
   };
 
-  const handleSubmit = () => {
-    if (selectedMine.length === 0 && selectedTheirs.length === 0) {
-      appAlert(t('common.error'), t('trade.selectAtLeastOneOffer'));
+  const handleSubmit = async () => {
+    // API iki tarafta da en az 1 ürün ister (CounterTradeDto ArrayMinSize(1)); web ile aynı kural.
+    if (selectedMine.length === 0 || selectedTheirs.length === 0) {
+      toast.error(t('trade.selectAtLeastOneOffer'));
       return;
     }
     const currentSig = offerSignature(selectedMine, selectedTheirs, cashDirection, cashAmount);
@@ -166,6 +169,9 @@ export function useTradeCounter() {
       );
       return;
     }
+    // B4: karşı teklif (nakitli ya da değil) yeni bir takas teklifi — başlatmayla
+    // aynı kural, önce yasal kimlik. Vazgeçerse teklif gönderilmez.
+    if (!(await requireIdentity())) return;
     counterMutation.mutate();
   };
 
@@ -193,10 +199,10 @@ export function useTradeCounter() {
     toggleTheirs,
     handleSubmit,
     counterMutation,
+    /** Gönderim sürüyor: kimlik kontrolü ya da karşı teklif isteği. */
+    submitPending: checkingIdentity || counterMutation.isPending,
     refreshing,
     onRefresh,
-    snack,
-    setSnack,
   };
 }
 

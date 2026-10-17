@@ -110,6 +110,9 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'language.turkish',
     'language.english',
     // Özel adlar, marka ve teknik kısaltmalar.
+    // Sıralama etiketleri A-Z / Z-A (harf aralığı, iki dilde aynı).
+    'page.listings.listingstoolbar.aZ',
+    'page.listings.listingstoolbar.zA',
     'product.limitedEdition',
     'product.limitedBadge',
     'product.model',
@@ -121,6 +124,8 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     // İki haneli yıl format ipucu ("YY") — çevrilecek bir sözcük yok.
     'payment.expYearPlaceholder',
     'membership.premium',
+    // Satıcı kartı Premium rozeti: üyelik adı iki dilde de "Premium".
+    'seller.premiumBadge',
     // Kurumsal üyelik rozeti: "Business" marka adı, iki dilde de aynı kalır.
     'home.businessBadge',
     'mobile.guestGarageTitle',
@@ -128,14 +133,6 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'order.invoiceNo',
     // "Plan:" iki dilde de aynı sözcük.
     'membership.planLabel',
-    // Ölçek etiketleri ve iletişim değerleri — çevrilecek bir sözcük yok.
-    'information.sizeGuide.scale18',
-    'information.sizeGuide.scale24',
-    'information.sizeGuide.scale43',
-    'information.sizeGuide.scale64',
-    'information.sizeGuide.note64',
-    'information.contactInfo.emailValue',
-    'information.contactInfo.phoneValue',
     // Yalnız ayraç + sürüm numarası (" · v3"); çevrilecek sözcük yok.
     'sellerDocument.versionSuffix',
     // Yalnız ayraç + interpolasyon (" · {level}"); çevrilecek sözcük yok.
@@ -151,12 +148,21 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     // İçerik filtresi etiketleri: platform/marka adları, çevrilmez.
     'message.violationLabelWhatsapp',
     'message.violationLabelTelegram',
+    // İlan kaldırma nedeni platformları: marka adları, çevrilmez (web kataloğunda da aynı).
+    'status.listingRemoval.platform.letgo',
+    'status.listingRemoval.platform.instagram',
+    'status.listingRemoval.platform.dolap',
+    'status.listingRemoval.platform.sahibinden',
+    // Yalnız "{title}: {reason}" şablonu; çevrilecek sözcük yok.
+    'profile.expiredListings.failedItem',
   ]);
 
   /**
    * `admin.*` ve saf-interpolasyonlu `server.notification.*` mesajları toplu
    * muaf: birincisi mobil arayüzde hiç render edilmiyor (katalog ana repoyla
    * paylaşıldığı için burada duruyor), ikincisi yalnız `{argüman}` taşıyor.
+   * (Yasal belge metinleri artık katalogda değil: ekranlar web'in uygulama
+   * modu sayfasını WebView'de gösteriyor — `@/lib/legal/webDocs`.)
    */
   const isBulkExempt = (key: string) =>
     key.startsWith('admin.') || /^server\.notification\..*\.message$/.test(key);

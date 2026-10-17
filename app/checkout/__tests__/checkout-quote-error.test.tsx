@@ -2,12 +2,12 @@
  * checkout-quote-error · quote hata verdiğinde ekran KİLİTLENMEZ.
  *
  * Eski davranış (bulgu I2): `total = Number(summary?.total ?? 0)` yüzünden hata
- * halinde butonda "Onayla ve Öde (0,00 TL)" yazıyordu ve buton ETKİNDİ —
+ * halinde butonda "Öde (0,00 TL)" yazıyordu ve buton ETKİNDİ —
  * TanStack Query v5'te `isLoading = isPending && isFetching`, yani hata halinde
  * `false`, dolayısıyla `disabled={loading || quoteLoading}` savunması düşüyordu.
  * Basınca guard "Fiyat bilgisi yükleniyor…" diyordu ama hiçbir şey yüklenmiyordu:
  * `retry` tükendikten sonra `refetchOnWindowFocus: false` olduğu için sorgu
- * kendiliğinden tazelenmiyor ve ekranda retry düğmesi yoktu (CLAUDE.md §11).
+ * kendiliğinden tazelenmiyor ve ekranda retry düğmesi yoktu (src/ui/CLAUDE.md › Empty and error states).
  *
  * Beklenen: ErrorState + "Tekrar Dene" (paylaşılan primitive), butonda TUTAR
  * BASILMAZ ve buton devre dışı; retry başarılı olunca ekran normale döner.
@@ -82,14 +82,11 @@ const GOOD_QUOTE = {
   },
 };
 
-/** Üye akışında adım 3'e (Onayla ve Öde) kadar ilerle. */
-async function goToStep3() {
+/** Üye akışı: kayıtlı adres seç, "Ödeme Yap" görünene dek bekle (tek sayfa). */
+async function goToPay() {
   await waitFor(() => expect(screen.getByText('Ali Veli')).toBeOnTheScreen());
   fireEvent.press(screen.getByText('Ali Veli'));
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText('Kargo Seçimi')).toBeOnTheScreen());
-  fireEvent.press(screen.getByText('Devam Et'));
-  await waitFor(() => expect(screen.getByText(/Onayla ve Öde/)).toBeOnTheScreen());
+  await waitFor(() => expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen());
 }
 
 /**
@@ -120,7 +117,7 @@ describe('Quote hatası — checkout kilitlenmez', () => {
     });
 
     renderWithProviders(<CheckoutScreen />);
-    await goToStep3();
+    await goToPay();
 
     // Özet kartı yerine ErrorState + retry düğmesi.
     await waitFor(() => expect(screen.getByTestId('order-summary-error')).toBeOnTheScreen());
@@ -131,7 +128,7 @@ describe('Quote hatası — checkout kilitlenmez', () => {
     // yanlışlıkla eşleşiyordu.)
     expect(screen.queryByText('0,00 TL')).toBeNull();
     // Buton tutarsız: parantezli tutar basılmıyor.
-    expect(screen.getByText('Onayla ve Öde')).toBeOnTheScreen();
+    expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen();
 
     // Kupon dışı 400 kupona yorulmadı — "Kupon Geçersiz" başlığı YOK.
     expect(screen.queryByText(/Kupon Geçersiz/)).toBeNull();
@@ -139,7 +136,7 @@ describe('Quote hatası — checkout kilitlenmez', () => {
     // Devre dışı: basınca sipariş oluşturma denenmez.
     acceptDistanceSales();
     await act(async () => {
-      fireEvent.press(screen.getByText('Onayla ve Öde'));
+      fireEvent.press(screen.getByText('Ödeme Yap'));
     });
     expect(ordersApi.checkout).not.toHaveBeenCalled();
   });
@@ -150,7 +147,7 @@ describe('Quote hatası — checkout kilitlenmez', () => {
       .mockResolvedValue(GOOD_QUOTE);
 
     renderWithProviders(<CheckoutScreen />);
-    await goToStep3();
+    await goToPay();
 
     await waitFor(() => expect(screen.getByTestId('order-summary-error')).toBeOnTheScreen());
 
@@ -163,6 +160,9 @@ describe('Quote hatası — checkout kilitlenmez', () => {
     // negatif iddiası daha tazeyken düşüyordu (flake — bu turdan önce de vardı).
     await waitFor(() => expect(screen.getByText('165,00 TL')).toBeOnTheScreen(), { timeout: 5000 });
     expect(screen.queryByTestId('order-summary-error')).toBeNull();
-    expect(screen.getByText(/Onayla ve Öde \(165,00 TL\)/)).toBeOnTheScreen();
+    // Tutar geri geldi → (sözleşme onaylanınca) buton etkin; etikete tutar basılmaz.
+    acceptDistanceSales();
+    await waitFor(() => expect(screen.getByTestId('checkout-pay-button')).not.toBeDisabled());
+    expect(screen.getByText('Ödeme Yap')).toBeOnTheScreen();
   });
 });

@@ -1,5 +1,4 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 import {
   Controller,
   FormProvider,
@@ -8,7 +7,7 @@ import {
   type UseFormReturn,
 } from 'react-hook-form';
 import { Input, type InputProps } from '../Input';
-import { theme } from '../../lib/theme';
+import { Alert } from '../Alert';
 
 /**
  * RHF-connected form primitives for React Native. Pair with `useZodForm`:
@@ -80,28 +79,14 @@ export function FormInput({ name, transform, ...props }: FormInputProps) {
   );
 }
 
-/** Form-level error banner — shows the RHF `root` error (e.g. a server error). */
+/** Form-level error — shows the RHF `root` error (e.g. a server error) in the shared `Alert` (danger). */
 export function FormError() {
   const { formState } = useFormContext();
   const message = formState.errors.root?.message as string | undefined;
   if (!message) return null;
   return (
-    <View style={styles.banner}>
-      <Text style={styles.text}>{message}</Text>
-    </View>
+    <Alert variant="danger" testID="form-error">
+      {message}
+    </Alert>
   );
 }
-
-const styles = StyleSheet.create({
-  banner: {
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.danger[200]!,
-    backgroundColor: theme.colors.danger[50]!,
-    padding: theme.spacing[3],
-  },
-  text: {
-    color: theme.colors.danger[700]!,
-    fontSize: theme.typography.fontSize.sm,
-  },
-});

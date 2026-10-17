@@ -4,7 +4,93 @@
  */
 import { notificationRoute, toMobileRoute } from '../notificationRoute';
 
+/**
+ * Yol enjeksiyonu (HIGH) — çözülmüş kimlik expo-router parametresi olarak API yoluna
+ * giriyordu (`x/../../offers/<id>/accept`). Biçim dışı kimlik rotaya hiç girmez.
+ */
+describe('kimlik biçimi doğrulaması', () => {
+  it('?thread= kodlanmış yol içerirse sohbet listesine düşer', () => {
+    expect(toMobileRoute('/messages?thread=x%2F..%2F..%2Foffers%2Fo1%2Faccept')).toBe('/messages');
+    expect(toMobileRoute('/messages?thread=%E0%A4%A')).toBe('/messages');
+    expect(toMobileRoute('/messages?thread=3f2c1a9e-0b7d-4c1e-9a55-2d1f0e6b7c8a')).toBe(
+      '/messages/3f2c1a9e-0b7d-4c1e-9a55-2d1f0e6b7c8a',
+    );
+  });
+
+  it('yol segmentinde kodlanmış ayraç / nokta varsa link eşlenmez', () => {
+    expect(toMobileRoute('/trades/x%2F..%2Foffers')).toBeNull();
+    expect(toMobileRoute('/orders/a%3Fb')).toBeNull();
+    expect(toMobileRoute('/listings/..')).toBeNull();
+    expect(toMobileRoute('/trades/t-1')).toBe('/trade/t-1');
+  });
+
+  it('slug segmentleri (nokta, @, :, yüzde kodlu Türkçe harf) düşmez', () => {
+    expect(toMobileRoute('/listings/vintage-araba.v2')).toBe('/product/vintage-araba.v2');
+    expect(toMobileRoute('/listings/ak%C4%B1ll%C4%B1-%C3%A7ocuk-oyuncağ%C4%B1')).toBe(
+      '/product/ak%C4%B1ll%C4%B1-%C3%A7ocuk-oyuncağ%C4%B1',
+    );
+    expect(toMobileRoute('/collections/ali@koleksiyon')).toBe('/collections/ali@koleksiyon');
+    expect(toMobileRoute('/seller/magaza:tr')).toBe('/seller/magaza:tr');
+    expect(toMobileRoute('/favorites')).toBe('/favorites');
+    expect(toMobileRoute('/pricing')).toBe('/pricing');
+  });
+
+  it('kimlik bekleyen rotalar (sipariş / takas / iade / satış / düzenleme) kimlik biçimini şart koşar', () => {
+    expect(toMobileRoute('/orders/ak%C4%B1ll%C4%B1')).toBeNull();
+    expect(toMobileRoute('/orders/o.1')).toBeNull();
+    expect(toMobileRoute('/trades/t@1')).toBeNull();
+    expect(toMobileRoute('/refund-requests/r:1')).toBeNull();
+    expect(toMobileRoute('/seller/orders/o.1')).toBeNull();
+    expect(toMobileRoute('/profile/orders/o.1')).toBeNull();
+    expect(toMobileRoute('/listings/p.1/edit')).toBeNull();
+    expect(toMobileRoute('/orders/3f2c1a9e-0b7d-4c1e-9a55-2d1f0e6b7c8a')).toBe(
+      '/orders/3f2c1a9e-0b7d-4c1e-9a55-2d1f0e6b7c8a',
+    );
+    expect(toMobileRoute('/seller/orders/o_1')).toBe('/sales/o_1');
+  });
+
+  it('yol kaçışı / aşırı uzun / kontrol karakterli / boşluklu segment eşlenmez', () => {
+    for (const bad of [
+      '/listings/.',
+      '/listings/..',
+      '/listings/%2e%2e',
+      '/listings/a%5Cb',
+      '/listings/a%2Fb',
+      '/listings/a%00b',
+      '/listings/a%0Ab',
+      '/listings/a%20b',
+      '/listings/a%3Fb',
+      '/listings/a%23b',
+      '/listings/a%E0%A4%A',
+      `/listings/${'a'.repeat(129)}`,
+    ]) {
+      expect(toMobileRoute(bad)).toBeNull();
+    }
+    expect(toMobileRoute(`/listings/${'a'.repeat(128)}`)).toBe(`/product/${'a'.repeat(128)}`);
+  });
+
+  it('bildirim linki: slug\'lı ürün yolu çözülür', () => {
+    expect(notificationRoute({ type: 'x', link: '/listings/vintage-araba.v2', data: {} })).toBe(
+      '/product/vintage-araba.v2',
+    );
+  });
+
+  it('data kimlikleri biçim dışıysa yok sayılır (sayı kabul)', () => {
+    expect(notificationRoute({ data: { tradeId: '../offers/o1/accept' } })).toBeNull();
+    expect(notificationRoute({ data: { threadId: 't/../x', orderId: 'o 1' } })).toBeNull();
+    expect(notificationRoute({ data: { orderId: 42 } })).toBe('/orders/42');
+  });
+});
+
 describe('toMobileRoute — derin bağlantı yolları', () => {
+  it('web ilan listesi filtre/sıralama sorgusuyla mobil ilan listesine gider', () => {
+    expect(toMobileRoute('/listings')).toBe('/search');
+    expect(toMobileRoute('/tr/listings?discountOnly=true&sortBy=price_asc')).toBe(
+      '/search?discountOnly=true&sortBy=price_asc',
+    );
+    expect(toMobileRoute('/listings/42')).toBe('/product/42');
+  });
+
   it('e-posta doğrulama token\'ını korur', () => {
     expect(toMobileRoute('/verify-email?token=abc123')).toBe('/verify-email?token=abc123');
   });
@@ -186,4 +272,97 @@ it('hem sipariş hem grup kimliği varsa siparişi açar', () => {
       },
     }),
   ).toBe('/orders/0cd43fd3-376a-4ef5-b42e-6f74f15b5eec');
+});
+
+/** Parite C-1.5: üyelik bildirimleri ve audience taşımayan satıcı tipleri. */
+describe('notificationRoute — C-1.5', () => {
+  it('/membership linki mobil üyelik ekranına gider', () => {
+    for (const type of ['membership_renewal_card_required', 'membership_expiring', 'membership_expired']) {
+      expect(notificationRoute({ type, link: '/membership', data: {} })).toBe('/membership');
+    }
+    expect(toMobileRoute('/membership')).toBe('/membership');
+    expect(toMobileRoute('/en/membership')).toBe('/membership');
+  });
+
+  it('audience taşımayan satıcı bildirimi, link /seller/orders/… ise SATIŞ ekranına gider', () => {
+    // API satıcı linkini /seller/orders/{{orderId}} olarak üretir (tip listesi yok).
+    for (const type of [
+      'order_cancelled_seller',
+      'order_cancelled_by_platform_seller',
+      'order_preparing_extended_seller',
+      'product_sold',
+      'refund_request_received_seller',
+      'refund_return_shipped_seller',
+      'refund_return_delivered_seller',
+      'refund_completed_seller',
+      'refund_auto_accepted_seller',
+    ]) {
+      expect(notificationRoute({ type, link: '/seller/orders/o1', data: { orderId: 'o1' } })).toBe(
+        '/sales/o1',
+      );
+    }
+    // locale önekli ve data.link üzerinden gelen biçimler
+    expect(
+      notificationRoute({ type: 'x', link: '/en/seller/orders/o1', data: { orderId: 'o1' } }),
+    ).toBe('/sales/o1');
+    expect(
+      notificationRoute({ type: 'x', link: null, data: { orderId: 'o1', link: '/seller/orders/o1' } }),
+    ).toBe('/sales/o1');
+  });
+
+  it('sıra: audience, link deseni, son çare tip adı', () => {
+    expect(
+      notificationRoute({ type: 'order_paid', link: '/profile/orders/o1', data: { orderId: 'o1', audience: 'seller' } }),
+    ).toBe('/sales/o1');
+    // audience=buyer tip yedeğinden önce gelir
+    expect(
+      notificationRoute({ type: 'order_cancelled_seller', link: null, data: { orderId: 'o1', audience: 'buyer' } }),
+    ).toBe('/orders/o1');
+    // başka bir (alıcı) link varsa tip yedeğine düşülmez
+    expect(
+      notificationRoute({ type: 'order_cancelled_seller', link: '/profile/orders/o1', data: { orderId: 'o1' } }),
+    ).toBe('/orders/o1');
+  });
+
+  it("push dokunuşu: link ve audience yokken tip yedeği satıcıyı /sales'e götürür", () => {
+    // Push payload'ı `{ ...dto.data, type }` — push.ts: notificationRoute({ type: data.type, link: data.link, data }).
+    for (const type of [
+      'order_cancelled_seller',
+      'order_cancelled_by_platform_seller',
+      'order_preparing_extended_seller',
+      'product_sold',
+      'cargo_movement_missing',
+      'refund_request_received_seller',
+      'refund_return_shipped_seller',
+      'refund_return_delivered_seller',
+      'refund_completed_seller',
+      'refund_auto_accepted_seller',
+    ]) {
+      expect(notificationRoute({ type, link: undefined, data: { orderId: 'o1', type } })).toBe('/sales/o1');
+    }
+    // type yalnız data içinde gelse de çalışır
+    expect(notificationRoute({ data: { orderId: 'o1', type: 'order_cancelled_seller' } })).toBe('/sales/o1');
+  });
+
+  it('push dokunuşu: alıcı tipleri (link/audience yok) alıcı ekranında kalır', () => {
+    for (const type of ['order_cancelled', 'order_cancelled_by_platform', 'order_shipped', 'refund_approved']) {
+      expect(notificationRoute({ type, data: { orderId: 'o1', type } })).toBe('/orders/o1');
+    }
+    expect(notificationRoute({ data: { orderId: 'o1', type: 'order_cancelled' } })).toBe('/orders/o1');
+  });
+
+  it('toMobileRoute: /seller/orders/:id -> /sales/:id, satıcı profili aynı kalır', () => {
+    expect(toMobileRoute('/seller/orders/o1')).toBe('/sales/o1');
+    expect(toMobileRoute('/en/seller/orders/o1')).toBe('/sales/o1');
+    expect(toMobileRoute('/seller/orders')).toBe('/sales');
+    expect(toMobileRoute('/seller/u1')).toBe('/seller/u1');
+  });
+
+  it('alıcı tipleri (order_cancelled, *_by_platform) alıcı ekranında kalır', () => {
+    for (const type of ['order_cancelled', 'order_cancelled_by_platform', 'order_preparing_extended']) {
+      expect(notificationRoute({ type, link: '/profile/orders/o1', data: { orderId: 'o1' } })).toBe(
+        '/orders/o1',
+      );
+    }
+  });
 });

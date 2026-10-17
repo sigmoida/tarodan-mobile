@@ -3,37 +3,28 @@ import { useState } from 'react';
 import { Linking } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
-import { elogoInvoicesApi, sellerInvoiceApi } from '@/lib/api';
+import { sellerInvoiceApi } from '@/lib/api';
 import { qk } from '@/lib/query';
+import { isTrustedDocumentUrl } from '@/lib/security/trustedDocumentUrl';
+import { useOrderElogoInvoices } from '@/hooks/useOrderElogoInvoices';
+import type { Notify } from '../_lib/types';
 
 /** Yüklenebilecek fatura PDF'i için üst sınır (backend de sınırlıyor). */
 const MAX_INVOICE_BYTES = 10 * 1024 * 1024;
 
-type Notify = (message: string, variant: 'success' | 'danger' | 'default') => void;
-
-/** eLogo e-Arşiv + kurumsal satıcı faturası query'leri + görüntüleme handler'ları. */
+/**
+ * eLogo e-Arşiv belgeleri (taraf başına üç belge, liste) + kurumsal satıcı
+ * faturası query'leri + görüntüleme handler'ları.
+ */
 export function useOrderInvoices(id: string, orderStatus: string | undefined, notify: Notify) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const invoiceEnabled =
-    !!id &&
-    !!orderStatus &&
-    orderStatus !== 'pending' &&
-    orderStatus !== 'cancelled' &&
-    orderStatus !== 'refunded';
+  // Web kuralı: ödeme öncesi (`pending_payment` → UI `pending`) ve iptal
+  // edilmiş siparişte fatura kartları yok. İade edilmiş siparişte belgeler
+  // (iade belgesi dahil) görünmeye devam eder.
+  const invoiceEnabled = !!id && !!orderStatus && orderStatus !== 'pending' && orderStatus !== 'cancelled';
 
-  const { data: elogoInvoice } = useQuery({
-    queryKey: qk.orders.elogoInvoice(id),
-    enabled: invoiceEnabled,
-    queryFn: async () => {
-      try {
-        const res = await elogoInvoicesApi.byOrder(id);
-        return res.data ?? null;
-      } catch {
-        return null;
-      }
-    },
-  });
+  const elogo = useOrderElogoInvoices(id, invoiceEnabled, (message) => notify(message, 'danger'));
 
   const { data: sellerInvoice } = useQuery({
     queryKey: qk.orders.sellerInvoice(id),
@@ -48,30 +39,16 @@ export function useOrderInvoices(id: string, orderStatus: string | undefined, no
     },
   });
 
-  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
-  const viewInvoice = async () => {
-    if (!elogoInvoice?.id) return;
-    setDownloadingInvoice(true);
-    try {
-      const res = await elogoInvoicesApi.pdf(elogoInvoice.id);
-      const url = res.data?.url;
-      if (url) await Linking.openURL(url);
-      else notify(t('order.invoiceNotReady'), 'danger');
-    } catch {
-      notify(t('order.invoiceOpenFailed'), 'danger');
-    } finally {
-      setDownloadingInvoice(false);
-    }
-  };
-
   const [downloadingSellerInvoice, setDownloadingSellerInvoice] = useState(false);
   const viewSellerInvoice = async () => {
     setDownloadingSellerInvoice(true);
     try {
       const res = await sellerInvoiceApi.download(id);
       const url = res.data?.url;
-      if (url) await Linking.openURL(url);
-      else notify(t('order.invoiceNotFound'), 'danger');
+      if (!url) notify(t('order.invoiceNotFound'), 'danger');
+      // Yalnız https + izinli host (`trustedDocumentUrl`); değilse "açılamadı".
+      else if (!isTrustedDocumentUrl(url)) notify(t('order.invoiceOpenFailed'), 'danger');
+      else await Linking.openURL(url);
     } catch {
       notify(t('order.invoiceOpenFailed'), 'danger');
     } finally {
@@ -118,10 +95,13 @@ export function useOrderInvoices(id: string, orderStatus: string | undefined, no
   };
 
   return {
-    elogoInvoice,
+    elogoInvoices: elogo.invoices,
+    openElogoInvoice: elogo.openInvoice,
+    openingElogoInvoiceId: elogo.openingId,
+    elogoLoadFailed: elogo.loadFailed,
+    /** Pull-to-refresh ve "Tekrar Dene" — e-Arşiv listesini yeniden çeker. */
+    refreshElogoInvoices: elogo.refresh,
     sellerInvoice,
-    viewInvoice,
-    downloadingInvoice,
     viewSellerInvoice,
     downloadingSellerInvoice,
     pickAndUploadSellerInvoice,

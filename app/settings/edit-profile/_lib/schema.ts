@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { TFunction } from 'i18next';
 
 import { getPhoneInvalidMessage } from '@/utils/phone';
+import { usernameSchema } from '@/utils/validation';
 
 export const MAX_BIO_LENGTH = 500; // Backend DTO (UpdateProfileDto) bio'yu 500 ile sınırlar — web ile aynı.
 
@@ -60,3 +61,24 @@ export type ProfileForm = {
   taxId?: string;
   taxOffice?: string;
 };
+
+// ── Kullanıcı adı belirleme (bölüm içi form) ────────────────────────────────
+// Kural tek kaynaktan gelir: `@/utils/validation` (CLAUDE.md › Principles). Bu dosya yalnız formun
+// alan şeklini (`{ username }`) tanımlar.
+export const buildClaimUsernameSchema = (t: TFunction) =>
+  z.object({ username: usernameSchema(t) });
+
+// ── E-posta değiştirme (bölüm içi iki adım) ─────────────────────────────────
+export const buildEmailChangeSchema = (t: TFunction) =>
+  z.object({
+    newEmail: z
+      .string()
+      .trim()
+      .min(1, t('validation.emailRequired'))
+      .email(t('validation.invalidEmail')),
+  });
+
+export const buildEmailCodeSchema = (t: TFunction) =>
+  z.object({
+    code: z.string().trim().regex(/^\d{6}$/, t('validation.sixDigitCode')),
+  });

@@ -2,7 +2,7 @@
 
 **Tarih:** 2026-07-30
 **Branch:** `feat/mobil-api-parite`
-**Girdi:** `docs/mobile-parity/` (00–13) + üretilen `docs/mobile-api-reference.html` (295 endpoint)
+**Girdi:** `docs/mobile-parity/` (00–13) + üretilen `docs/mobile-parity/mobile-api-reference.html` (295 endpoint)
 
 ---
 

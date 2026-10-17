@@ -1,275 +1,160 @@
-import { View, ScrollView, StyleSheet, RefreshControl, KeyboardAvoidingView, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  Button,
-  Card,
-  Spinner,
-  Text,
-  Textarea,
-  StatusBadge,
-  theme,
-  ScreenHeader,
-  appAlert,
-} from '@/ui';
-import type { BadgeVariant } from '@/ui';
-import { useState, useCallback } from 'react';
-import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
-import { supportApi } from '@/lib/api';
-import { useAuthStore } from '@/stores/authStore';
-import { captureException } from '@/services/sentry';
+import { Button, PageHeader, SectionCard, StatusBadge, Text, Textarea, theme } from '@/ui';
+import { PageShell } from '@/components/common/PageShell';
+import { buildTicketStatusConfig } from './_lib/status';
+import {
+  buildCategoryLabels,
+  formatTicketDate,
+  formatTicketDateTime,
+  type TicketMessage,
+} from './_lib/types';
+import { useSupportTicket } from './_hooks/useSupportTicket';
+import { SupportTicketSkeleton } from './_components/SupportTicketSkeleton';
 
-const { colors } = theme;
+const { colors, spacing, radius } = theme;
 
-const buildTicketStatusConfig = (t: TFunction): Record<string, { label: string; variant: BadgeVariant }> => ({
-  open: { label: t('support.open'), variant: 'info' },
-  in_progress: { label: t('support.inProgress'), variant: 'warning' },
-  waiting_customer: { label: t('support.waitingCustomer'), variant: 'primary' },
-  resolved: { label: t('support.resolved'), variant: 'success' },
-  closed: { label: t('support.closed'), variant: 'default' },
-});
-
-const buildCategoryLabels = (t: TFunction): Record<string, string> => ({
-  shipping: t('support.category.shipping'),
-  payment: t('support.category.payment'),
-  account: t('support.category.account'),
-  product: t('support.category.product'),
-  trade: t('support.category.trade'),
-  technical: t('support.category.technical'),
-  other: t('support.category.other'),
-});
-
-interface TicketMessage {
-  id: string;
-  senderId: string;
-  senderName?: string;
-  content: string;
-  isInternal?: boolean;
-  createdAt?: string;
+/** Mesaj balonu — web: `rounded-2xl`, kendi mesajım primary-500 + `rounded-br-sm`, karşı taraf kenarlıklı. */
+function MessageBubble({ message, mine, name }: { message: TicketMessage; mine: boolean; name: string }) {
+  return (
+    <View style={[styles.bubbleRow, mine && styles.bubbleRowMine]}>
+      <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
+        <View style={styles.bubbleMeta}>
+          <Text variant="caption" weight="medium" tone={mine ? 'inverted' : 'heading'}>
+            {name}
+          </Text>
+          <Text variant="caption" tone={mine ? 'inverted' : 'muted'} style={mine ? styles.timeMine : undefined}>
+            {formatTicketDateTime(message.createdAt)}
+          </Text>
+        </View>
+        <Text variant="bodySm" tone={mine ? 'inverted' : 'body'}>
+          {message.content}
+        </Text>
+      </View>
+    </View>
+  );
 }
 
-interface TicketDetail {
-  id: string;
-  ticketNumber?: string;
-  creatorId: string;
-  subject: string;
-  category: string;
-  status: string;
-  messages?: TicketMessage[];
-  createdAt?: string;
-}
-
-function formatDate(value?: string): string {
-  if (!value) return '';
-  try {
-    return new Date(value).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
-  } catch {
-    return '';
-  }
-}
-
-function formatDateTime(value?: string): string {
-  if (!value) return '';
-  try {
-    return new Date(value).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return '';
-  }
-}
-
+/**
+ * Destek talebi detayı — web `support/[id]` düzeni: PageHeader (konu + #numara/kategori/tarih +
+ * durum rozeti) + mesajlar SectionCard'ı. Yanıt alanı telefonda sabit alt bar (sohbet kalıbı: etiketsiz kompakt girdi + Gönder, klavye açıkken
+ * görünür alan korunur);
+ * kapalı talepte bilgi notu. Sorgu/mutasyon `useSupportTicket`'ta.
+ */
 export default function SupportTicketDetailScreen() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { isAuthenticated } = useAuthStore();
-  const queryClient = useQueryClient();
-  const insets = useSafeAreaInsets();
-  const [refreshing, setRefreshing] = useState(false);
-  const [reply, setReply] = useState('');
-  const ticketStatusConfig = buildTicketStatusConfig(t);
-  const categoryLabels = buildCategoryLabels(t);
-
-  const { data: ticket, isLoading, refetch } = useQuery({
-    queryKey: ['support-tickets', 'detail', id],
-    queryFn: async () => {
-      // getTicketById tek bir ticket DTO döndürür → res.data ticket.
-      const res: any = await supportApi.getTicket(id as string);
-      return (res?.data ?? res) as TicketDetail;
-    },
-    enabled: isAuthenticated && !!id,
-  });
-
-  const replyMutation = useMutation({
-    mutationFn: (content: string) => supportApi.addMessage(id as string, { content }),
-    onSuccess: () => {
-      setReply('');
-      queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
-      refetch();
-    },
-    onError: (e: any) => {
-      captureException(e, { level: 'error', tags: { flow: 'support.ticket.reply' } });
-      appAlert(t('common.error'), e?.response?.data?.message || t('support.replyFailed'));
-    },
-  });
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
-  }, [refetch]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (isAuthenticated && id) refetch();
-    }, [isAuthenticated, id, refetch]),
-  );
-
-  if (isLoading && !ticket) {
-    return (
-      <View style={styles.container}>
-        <ScreenHeader title={t('support.ticketTitle')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/support'))} />
-        <View style={styles.loadingContainer}><Spinner size="lg" /></View>
-      </View>
-    );
-  }
+  const f = useSupportTicket();
+  const title = t('support.ticketTitle');
+  const onBack = () => (router.canGoBack() ? router.back() : router.replace('/support'));
+  const { ticket } = f;
 
   if (!ticket) {
     return (
-      <View style={styles.container}>
-        <ScreenHeader title={t('support.ticketTitle')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/support'))} />
-        <View style={styles.emptyContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color={colors.text.subtle} />
-          <Text variant="h3" style={styles.emptyTitle}>{t('support.notFound')}</Text>
-        </View>
-      </View>
+      <PageShell
+        title={title}
+        onBack={onBack}
+        loading={f.isLoading}
+        loadingFallback={<SupportTicketSkeleton />}
+        error={f.loadFailed || undefined}
+        onRetry={f.retry}
+        empty={!f.isLoading}
+        emptyState={{ icon: 'exclamation-circle', title: t('support.notFound'), subtitle: t('emptyState.notFoundHint') }}
+      />
     );
   }
 
   const isClosed = ticket.status === 'closed';
   const messages = (ticket.messages ?? []).filter((m) => !m.isInternal);
+  const categoryLabels = buildCategoryLabels(t);
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('support.ticketTitle')} onBack={() => (router.canGoBack() ? router.back() : router.replace('/support'))} />
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
-      >
-        <ScrollView
-          style={styles.scroll}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary[600]!]} />}
-        >
-          {/* Başlık + durum */}
-          <Card variant="elevated" style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text variant="caption" style={styles.muted}>
-                #{ticket.ticketNumber ?? String(ticket.id).slice(0, 8)}
-              </Text>
-              <StatusBadge status={ticket.status} config={ticketStatusConfig} size="sm" />
-            </View>
-            <Text variant="h3" style={styles.subject}>{ticket.subject}</Text>
-            <Text variant="caption" style={styles.muted}>
-              {categoryLabels[ticket.category] ?? ticket.category}
-              {ticket.createdAt ? ` · ${formatDate(ticket.createdAt)}` : ''}
-            </Text>
-          </Card>
-
-          {/* Mesajlar */}
-          <View style={styles.messages}>
-            {messages.map((message) => {
-              const mine = message.senderId === ticket.creatorId;
-              return (
-                <View key={message.id} style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
-                  <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
-                    <View style={styles.bubbleMeta}>
-                      <Text variant="caption" style={[styles.bubbleSender, mine && styles.bubbleSenderMine]}>
-                        {mine ? t('support.you') : message.senderName || t('support.team')}
-                      </Text>
-                      <Text variant="caption" style={[styles.bubbleTime, mine && styles.bubbleTimeMine]}>
-                        {formatDateTime(message.createdAt)}
-                      </Text>
-                    </View>
-                    <Text variant="body" style={mine ? styles.bubbleTextMine : undefined}>
-                      {message.content}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-
-          <View style={{ height: 16 }} />
-        </ScrollView>
-
-        {/* Sabit yanıt alanı — ScrollView dışında, ekranın altına sabitlenmiş.
-            KeyboardAvoidingView klavye açılınca yukarı iter; insets.bottom home
-            indicator boşluğunu bırakır. */}
-        {isClosed ? (
-          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-            <Text variant="body" tone="muted" style={styles.closedText}>
-              {t('support.closedNotice')}
-            </Text>
-          </View>
+    <PageShell
+      title={title}
+      onBack={onBack}
+      refreshing={f.refreshing}
+      onRefresh={f.onRefresh}
+      footer={
+        isClosed ? (
+          <Text variant="bodySm" tone="muted" align="center">
+            {t('support.closedNotice')}
+          </Text>
         ) : (
-          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+          <>
             <Textarea
-              label={t('support.replyLabel')}
-              value={reply}
-              onChangeText={setReply}
-              rows={3}
+              accessibilityLabel={t('support.replyLabel')}
+              value={f.reply}
+              onChangeText={f.setReply}
+              rows={2}
               placeholder={t('message.typeMessage')}
-              style={styles.replyInput}
             />
             <Button
               variant="primary"
-              title={t('common.send')}
-              icon="send"
-              onPress={() => replyMutation.mutate(reply.trim())}
-              isLoading={replyMutation.isPending}
-              disabled={replyMutation.isPending || reply.trim().length < 1}
+              size="lg"
               fullWidth
+              title={t('common.send')}
+              onPress={() => f.replyMutation.mutate(f.reply.trim())}
+              isLoading={f.replyMutation.isPending}
+              disabled={f.replyMutation.isPending || f.reply.trim().length < 1}
             />
+          </>
+        )
+      }
+    >
+      <PageHeader
+        title={ticket.subject}
+        description={
+          <View style={styles.meta}>
+            <Text variant="caption" tone="muted">
+              #{ticket.ticketNumber ?? String(ticket.id).slice(0, 8)}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {categoryLabels[ticket.category] ?? ticket.category}
+              {ticket.createdAt ? ` · ${formatTicketDate(ticket.createdAt)}` : ''}
+            </Text>
           </View>
-        )}
-      </KeyboardAvoidingView>
-    </View>
+        }
+        actions={<StatusBadge status={ticket.status} config={buildTicketStatusConfig(t)} size="sm" />}
+      />
+
+      <SectionCard>
+        <View style={styles.messages}>
+          {messages.map((message) => {
+            const mine = message.senderId === ticket.creatorId;
+            return (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                mine={mine}
+                name={mine ? t('support.you') : message.senderName || t('support.team')}
+              />
+            );
+          })}
+        </View>
+      </SectionCard>
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface.alt },
-  flex: { flex: 1 },
-  scroll: { flex: 1, paddingHorizontal: theme.spacing[4], paddingTop: theme.spacing[3] },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: theme.spacing[8] },
-  emptyTitle: { marginTop: theme.spacing[4] },
-  card: { marginBottom: theme.spacing[3] },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing[2] },
-  muted: { color: colors.text.muted },
-  subject: { marginBottom: theme.spacing[1] },
-  messages: { gap: theme.spacing[2.5], marginBottom: theme.spacing[3] },
-  bubbleRow: { flexDirection: 'row' },
+  meta: { gap: spacing[0.5], marginTop: spacing[0.5] },
+  messages: { gap: spacing[4] },
+  bubbleRow: { flexDirection: 'row', justifyContent: 'flex-start' },
   bubbleRowMine: { justifyContent: 'flex-end' },
-  bubbleRowTheirs: { justifyContent: 'flex-start' },
-  bubble: { maxWidth: '82%', borderRadius: theme.radius['3xl'], paddingHorizontal: theme.spacing[3.5], paddingVertical: theme.spacing[2.5] },
-  bubbleMine: { backgroundColor: colors.primary[600]!, borderBottomRightRadius: theme.radius.md },
-  bubbleTheirs: { backgroundColor: colors.surface.DEFAULT, borderWidth: 1, borderColor: colors.border.DEFAULT, borderBottomLeftRadius: theme.radius.md },
-  bubbleMeta: { flexDirection: 'row', justifyContent: 'space-between', gap: theme.spacing[2.5], marginBottom: 3 },
-  bubbleSender: { color: colors.text.heading, fontWeight: '600' },
-  bubbleSenderMine: { color: colors.white },
-  bubbleTime: { color: colors.text.muted },
-  bubbleTimeMine: { color: colors.white, opacity: 0.8 },
-  bubbleTextMine: { color: colors.white },
-  closedText: { textAlign: 'center' },
-  replyInput: { marginBottom: theme.spacing[3] },
-  footer: {
-    backgroundColor: colors.surface.DEFAULT,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.DEFAULT,
-    paddingHorizontal: theme.spacing[4],
-    paddingTop: theme.spacing[3],
+  bubble: {
+    maxWidth: '80%',
+    gap: spacing[1],
+    borderRadius: radius['2xl'],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
   },
+  bubbleMine: { backgroundColor: colors.primary[500], borderBottomRightRadius: radius.sm },
+  bubbleTheirs: {
+    backgroundColor: colors.surface.DEFAULT,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    borderBottomLeftRadius: radius.sm,
+  },
+  bubbleMeta: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing[3] },
+  timeMine: { opacity: 0.7 },
 });

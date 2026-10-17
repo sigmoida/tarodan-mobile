@@ -1,161 +1,122 @@
-import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
-
-import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { RefreshControl, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { manufacturersApi } from '@/lib/api';
-import { theme, Text, Input } from '@/ui';
-import { ScreenHeader, ScreenLoader, ErrorState, EmptyState } from '@/components/common';
-import { resolveImageUrl } from '@/utils/imageUrl';
-const { colors } = theme;
+import {
+  EmptyState,
+  ErrorState,
+  Input,
+  SkeletonBlock,
+  SkeletonLine,
+  Text,
+  pageListContentStyle,
+  theme,
+  ListRowCard,
+  useDelayedLoading,
+  usePageScrollHandler,
+} from '@/ui';
+import { listWindowing } from '@/lib/list/windowing';
+import { PageShell } from '@/components/common/PageShell';
+import { EntityLogo } from '@/components/catalog/EntityLogo';
+import { listingCount } from '@/utils/catalogListings';
+import { useManufacturers, type Manufacturer } from './_hooks/useManufacturers';
 
-interface Manufacturer {
-  id: string;
-  name: string;
-  slug: string;
-  logo?: string | null;
-  productCount?: number;
-  _count?: { products: number };
-}
+const { colors, radiusRole, spacing } = theme;
+const SKELETON_ROWS = [0, 1, 2, 3, 4, 5];
 
+const renderManufacturer = ({ item }: { item: Manufacturer }) => <ManufacturerRow item={item} />;
+const manufacturerKey = (item: Manufacturer) => item.id;
+
+const ManufacturerRow = React.memo(function ManufacturerRow({ item }: { item: Manufacturer }) {
+  const { t } = useTranslation();
+  const count = listingCount(item);
+  return (
+    <ListRowCard onPress={() => router.push(`/ureticiler/${item.slug}` as any)}>
+      <EntityLogo logo={item.logo} name={item.name} />
+      <View style={styles.body}>
+        <Text variant="body" weight="semibold" numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text variant="caption" tone="muted">
+          {t('payment.itemsCount', { count })}
+        </Text>
+      </View>
+    </ListRowCard>
+  );
+});
+
+/**
+ * Üreticiler (web `/manufacturers`): arama + üretici satırları. Eski "Markalar" listesi
+ * (`/brands`) buraya yönlenir. Kontrolcü `useManufacturers`.
+ */
 export default function ManufacturersScreen() {
   const { t } = useTranslation();
-  const [search, setSearch] = useState('');
-
-  const { data, isLoading, error, refetch, isRefetching } = useQuery<Manufacturer[]>({
-    queryKey: ['manufacturers'],
-    queryFn: async () => {
-      const response = await manufacturersApi.findAll();
-      const payload = response.data?.data ?? response.data ?? [];
-      return Array.isArray(payload) ? payload : [];
-    },
-  });
-
-  const items = useMemo(() => {
-    const all = data ?? [];
-    if (!search.trim()) return all;
-    const q = search.trim().toLowerCase();
-    return all.filter(m => m.name.toLowerCase().includes(q));
-  }, [data, search]);
-
-  const renderItem = ({ item }: { item: Manufacturer }) => {
-    const count = item.productCount ?? item._count?.products;
-    return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => router.push(`/ureticiler/${item.slug}` as any)}
-      activeOpacity={0.8}
-    >
-      <View style={styles.logoWrap}>
-        {item.logo ? (
-          <Image source={{ uri: resolveImageUrl(item.logo) }} style={styles.logo} resizeMode="contain" />
-        ) : (
-          <Text style={styles.logoFallback}>{item.name.charAt(0).toUpperCase()}</Text>
-        )}
-      </View>
-      <View style={styles.body}>
-        <Text style={styles.name}>{item.name}</Text>
-        {typeof count === 'number' ? (
-          <Text style={styles.count}>{t('payment.itemsCount', { count })}</Text>
-        ) : null}
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={colors.text.subtle} />
-    </TouchableOpacity>
-    );
-  };
+  const f = useManufacturers();
+  const page = usePageScrollHandler();
+  // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
+  const showSkeleton = useDelayedLoading(f.isLoading);
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('nav.manufacturers')} />
-
-      <View style={styles.searchBar}>
-        <Input
-          value={search}
-          onChangeText={setSearch}
-          placeholder={t('product.searchManufacturers')}
-          leftIconName="search"
-        />
-      </View>
-
-      {isLoading ? (
-        <ScreenLoader />
-      ) : error ? (
-        <ErrorState fullscreen onRetry={() => refetch()} />
-      ) : items.length === 0 ? (
-        <EmptyState
-          fullscreen
-          icon="business-outline"
-          title={search ? t('common.noResults') : t('product.noManufacturersYet')}
-          subtitle={search ? t('search.tryDifferent') : undefined}
-        />
-      ) : (
-        <FlatList
-          data={items}
-          renderItem={renderItem}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.list}
-          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-          refreshing={isRefetching}
-          onRefresh={refetch}
-        />
-      )}
-    </View>
+    <PageShell title={t('nav.manufacturers')} mode="list" scroll={page}>
+      <Animated.FlatList
+        {...page.listProps}
+        data={f.isLoading || f.error ? [] : f.items}
+        keyExtractor={manufacturerKey}
+        renderItem={renderManufacturer}
+        {...listWindowing}
+        contentContainerStyle={page.contentStyle(styles.content)}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={f.refreshing}
+            onRefresh={f.onRefresh}
+            progressViewOffset={page.topInset}
+            colors={[colors.primary[600]!]}
+            tintColor={colors.primary[600]!}
+          />
+        }
+        ListHeaderComponent={
+          <Input
+            value={f.search}
+            onChangeText={f.setSearch}
+            placeholder={t('product.searchManufacturers')}
+            leftIconName="magnifying-glass"
+          />
+        }
+        ListEmptyComponent={
+          f.isLoading || showSkeleton ? (
+            showSkeleton ? (
+              <View style={styles.skeleton} testID="manufacturers-skeleton">
+                {SKELETON_ROWS.map((i) => (
+                  <ListRowCard key={i}>
+                    {/* EntityLogo md kutusu (48pt) + ad / ilan sayısı satırları */}
+                    <SkeletonBlock width={spacing[12]} height={spacing[12]} borderRadius={radiusRole.card} />
+                    <View style={styles.body}>
+                      <SkeletonLine variant="body" width="55%" />
+                      <SkeletonLine variant="caption" width="30%" />
+                    </View>
+                  </ListRowCard>
+                ))}
+              </View>
+            ) : null
+          ) : f.error ? (
+            <ErrorState onRetry={() => f.refetch()} />
+          ) : (
+            <EmptyState
+              icon="magnifying-glass"
+              title={f.hasAny ? t('common.noResults') : t('product.noManufacturersYet')}
+              subtitle={f.hasAny ? t('search.tryDifferent') : t('emptyState.manufacturersHint')}
+            />
+          )
+        }
+      />
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.alt,
-  },
-  searchBar: {
-    marginHorizontal: theme.spacing[4],
-    marginTop: theme.spacing[3],
-    marginBottom: theme.spacing[1],
-  },
-  list: {
-    padding: theme.spacing[4],
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.DEFAULT,
-    borderRadius: 12,
-    padding: theme.spacing[3],
-    gap: theme.spacing[3],
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border.DEFAULT,
-  },
-  logoWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: theme.radius['2xl'],
-    backgroundColor: colors.surface.alt,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logo: {
-    width: 40,
-    height: 40,
-  },
-  logoFallback: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.primary[600]!,
-  },
-  body: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text.heading,
-  },
-  count: {
-    fontSize: 12,
-    color: colors.text.muted,
-    marginTop: theme.spacing[0.5],
-  },
+  content: { ...pageListContentStyle, gap: spacing[2], flexGrow: 1 },
+  skeleton: { gap: spacing[2] },
+  body: { flex: 1, minWidth: 0 },
 });

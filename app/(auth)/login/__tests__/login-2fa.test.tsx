@@ -18,6 +18,7 @@ jest.mock('@/lib/api', () => ({
     login: jest.fn(),
     getProfile: jest.fn(() => Promise.resolve({ data: { user: {} } })),
     resendVerification: jest.fn(),
+    checkEmail: jest.fn(() => Promise.resolve({ data: { exists: true, hasPassword: true } })),
   },
 }));
 import { authApi } from '@/lib/api';
@@ -41,8 +42,11 @@ jest.mock('@/stores/authStore', () => ({
 
 import LoginScreen from '../index';
 
-const fillCredentials = () => {
+// Giriş iki aşamalı: e-posta → "Devam Et" (check-email) → şifre.
+const fillCredentials = async () => {
   fireEvent.changeText(screen.getByTestId('login-email-input'), 'a@b.com');
+  fireEvent.press(screen.getByTestId('login-continue-button'));
+  await waitFor(() => expect(screen.getByTestId('login-password-input')).toBeTruthy());
   fireEvent.changeText(screen.getByTestId('login-password-input'), 'Password1');
 };
 
@@ -51,7 +55,7 @@ beforeEach(() => jest.clearAllMocks());
 it('requires2FA yanıtında oturum açmaz, kod alanını gösterir', async () => {
   (authApi.login as jest.Mock).mockResolvedValue({ data: { requires2FA: true } });
   renderWithProviders(<LoginScreen />);
-  fillCredentials();
+  await fillCredentials();
   fireEvent.press(screen.getByTestId('login-submit-button'));
 
   await waitFor(() => expect(screen.getByTestId('login-2fa-code-input')).toBeTruthy());
@@ -61,7 +65,7 @@ it('requires2FA yanıtında oturum açmaz, kod alanını gösterir', async () =>
 it('kodu aynı kimlik bilgileriyle birlikte gönderir', async () => {
   (authApi.login as jest.Mock).mockResolvedValueOnce({ data: { requires2FA: true } });
   renderWithProviders(<LoginScreen />);
-  fillCredentials();
+  await fillCredentials();
   fireEvent.press(screen.getByTestId('login-submit-button'));
   await waitFor(() => expect(screen.getByTestId('login-2fa-code-input')).toBeTruthy());
 
@@ -78,7 +82,7 @@ it('kodu aynı kimlik bilgileriyle birlikte gönderir', async () => {
 it('yedek kod biçimini (XXXX-XXXX) kabul eder', async () => {
   (authApi.login as jest.Mock).mockResolvedValueOnce({ data: { requires2FA: true } });
   renderWithProviders(<LoginScreen />);
-  fillCredentials();
+  await fillCredentials();
   fireEvent.press(screen.getByTestId('login-submit-button'));
   await waitFor(() => expect(screen.getByTestId('login-2fa-code-input')).toBeTruthy());
 
@@ -94,7 +98,7 @@ it('yedek kod biçimini (XXXX-XXXX) kabul eder', async () => {
 it('geçersiz biçimde kodu göndermez', async () => {
   (authApi.login as jest.Mock).mockResolvedValueOnce({ data: { requires2FA: true } });
   renderWithProviders(<LoginScreen />);
-  fillCredentials();
+  await fillCredentials();
   fireEvent.press(screen.getByTestId('login-submit-button'));
   await waitFor(() => expect(screen.getByTestId('login-2fa-code-input')).toBeTruthy());
 
@@ -104,4 +108,18 @@ it('geçersiz biçimde kodu göndermez', async () => {
 
   await waitFor(() => expect(screen.getByText(/6 haneli kod/i)).toBeTruthy());
   expect(authApi.login).not.toHaveBeenCalled();
+});
+
+it('"Farklı e-posta kullan" 2FA adımını sıfırlar (kod alanı kalmaz)', async () => {
+  (authApi.login as jest.Mock).mockResolvedValueOnce({ data: { requires2FA: true } });
+  renderWithProviders(<LoginScreen />);
+  await fillCredentials();
+  fireEvent.press(screen.getByTestId('login-submit-button'));
+  await waitFor(() => expect(screen.getByTestId('login-2fa-code-input')).toBeTruthy());
+
+  fireEvent.press(screen.getByTestId('login-change-email-button'));
+  await waitFor(() => expect(screen.getByTestId('login-email-input')).toBeTruthy());
+  fireEvent.press(screen.getByTestId('login-continue-button'));
+  await waitFor(() => expect(screen.getByTestId('login-password-input')).toBeTruthy());
+  expect(screen.queryByTestId('login-2fa-code-input')).toBeNull();
 });

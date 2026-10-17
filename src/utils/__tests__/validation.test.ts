@@ -1,10 +1,8 @@
 /**
  * Saf validasyon kuralları (B katmanı). Form/UI yok — şema doğrudan test edilir.
- * J41: şifre kuralları · J42: 18 yaş kuralı.
+ * J42: 18 yaş kuralı (J41 şifre kuralları: `./passwordPolicy.test.ts`).
  */
 import {
-  
-  strongPasswordSchema as _strongPasswordSchema,
   isAdult,
   displayNameSchema as _displayNameSchema,
   emailSchema as _emailSchema,
@@ -19,7 +17,6 @@ import { schemaT } from '@/test-utils';
 // Şemalar artık `t`'yi argüman alan FABRİKALAR (gerekçe: `../validation` başı).
 // Testler kuralları sınıyor, çeviriyi değil — bu yüzden hepsi gerçek katalogla
 // bir kez kuruluyor ve gövdeler olduğu gibi kalıyor.
-const strongPasswordSchema = _strongPasswordSchema(schemaT);
 const requiredTrPhoneSchema = _requiredTrPhoneSchema(schemaT);
 const optionalTrPhoneSchema = _optionalTrPhoneSchema(schemaT);
 const emailSchema = _emailSchema(schemaT);
@@ -28,30 +25,6 @@ const displayNameSchema = _displayNameSchema(schemaT);
 // PHONE_INVALID_MESSAGE kaldırıldı (React-dışı sabit → i18n çağrı-anı okuması);
 // mesaj artık şemanın kendi `t('validation.invalidPhone')` çağrısından gelir.
 const PHONE_INVALID_MESSAGE = schemaT('validation.invalidPhone');
-
-describe('J41 · şifre kuralları (strongPasswordSchema)', () => {
-  it('8 karakterden kısa reddedilir', () => {
-    const r = strongPasswordSchema.safeParse('Ab1');
-    expect(r.success).toBe(false);
-    if (!r.success) expect(r.error.issues[0].message).toBe('Şifre en az 8 karakter olmalıdır');
-  });
-
-  it('büyük harfsiz reddedilir', () => {
-    const r = strongPasswordSchema.safeParse('demo1234');
-    expect(r.success).toBe(false);
-    if (!r.success) expect(r.error.issues.map((i) => i.message)).toContain('Büyük harf gerekli');
-  });
-
-  it('rakamsız reddedilir', () => {
-    const r = strongPasswordSchema.safeParse('Demoabcd');
-    expect(r.success).toBe(false);
-    if (!r.success) expect(r.error.issues.map((i) => i.message)).toContain('Rakam gerekli');
-  });
-
-  it('güçlü şifre kabul edilir', () => {
-    expect(strongPasswordSchema.safeParse('Demo1234').success).toBe(true);
-  });
-});
 
 describe('J42 · 18 yaş kuralı (isAdult)', () => {
   it('18 yaşından küçük doğum tarihi false', () => {
@@ -71,7 +44,7 @@ describe('J42 · 18 yaş kuralı (isAdult)', () => {
 
 /**
  * `usernameSchema` — kayıt, kurumsal davet ve kullanıcı adı talebi ekranlarının
- * ORTAK kuralı (§5). Sınır testleri register route'undan buraya taşındı; üç
+ * ORTAK kuralı (CLAUDE.md › Principles). Sınır testleri register route'undan buraya taşındı; üç
  * ekranın da davranışı bu tek şemadan türüyor.
  */
 describe('usernameSchema (üç ekranın tek kaynağı)', () => {
@@ -136,7 +109,7 @@ describe('usernameSchema (üç ekranın tek kaynağı)', () => {
 
 /**
  * `toHandle` — register/corporate-invite/settings-username ekranlarının üçünün
- * de kullandığı ortak alan-dönüşümü (§5, önceden 3 kopya `(t) => t.toLowerCase()`).
+ * de kullandığı ortak alan-dönüşümü (CLAUDE.md › Principles, önceden 3 kopya `(t) => t.toLowerCase()`).
  * Bilinçli olarak transliterasyon YAPMAZ — yalnız küçük harfe çevirir.
  */
 describe('toHandle (üç ekranın ortak alan dönüşümü)', () => {
