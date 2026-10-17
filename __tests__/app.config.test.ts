@@ -152,7 +152,6 @@ describe('app.config — Sentry upload guard on EAS builds', () => {
     }
     expect(message).toContain('EAS build profile "production" sets SENTRY_ALLOW_FAILURE=true:');
     expect(message).toContain("Remove it from this profile's environment, or set SENTRY_DISABLE_AUTO_UPLOAD=true");
-    expect(message).toContain('SENTRY_DISABLE_AUTO_UPLOAD=true');
     expect(message).toContain('docs/RELEASE.md, "Sentry source maps and debug symbols"');
   });
 
@@ -166,13 +165,55 @@ describe('app.config — Sentry upload guard on EAS builds', () => {
     },
   );
 
-  it.each(['SENTRY_CLI_EXTRA_ARGS', 'SENTRY_CLI_RN_XCODE_EXTRA_ARGS', 'SENTRY_CLI_DEBUG_FILES_UPLOAD_EXTRA_ARGS'])(
+  it.each(['SENTRY_CLI_EXTRA_ARGS', 'SENTRY_CLI_RN_XCODE_EXTRA_ARGS'])(
     'stops a production build that passes --allow-failure to sentry-cli through %s',
     (name) => {
       const env = easBuild('production', { ...secrets, [name]: '--log-level=info  --allow-failure' });
       expect(() => assertSentryBuildReady(env, jest.fn())).toThrow(`sets --allow-failure in ${name}:`);
     },
   );
+
+  // sentry-xcode.sh runs the call through `sh -c`, which strips these again.
+  it.each(['"--allow-failure"', "'--allow-failure'", '--allow\\-failure'])(
+    'sees a quoted or escaped flag (%s) the shell would still pass on',
+    (args) => {
+      const env = easBuild('production', { ...secrets, SENTRY_CLI_EXTRA_ARGS: args });
+      expect(() => assertSentryBuildReady(env, jest.fn())).toThrow('sets --allow-failure in SENTRY_CLI_EXTRA_ARGS:');
+    },
+  );
+
+  it('ignores --allow-failure on the dSYM call, which never fails the build anyway', () => {
+    const env = easBuild('production', { ...secrets, SENTRY_CLI_DEBUG_FILES_UPLOAD_EXTRA_ARGS: '--allow-failure' });
+    expect(() => assertSentryBuildReady(env, jest.fn())).not.toThrow();
+  });
+
+  it.each(['SENTRY_DISABLE_XCODE_DEBUG_UPLOAD', 'SENTRY_DISABLE_NATIVE_DEBUG_UPLOAD'])(
+    'warns on a production build that skips native symbols with %s=true',
+    (name) => {
+      const warn = jest.fn();
+      expect(() => assertSentryBuildReady(easBuild('production', { ...secrets, [name]: 'true' }), warn)).not.toThrow();
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining(`${name}=true on a production EAS build`));
+    },
+  );
+
+  it.each(['TRUE', 'true ', '1'])('does not warn on a partial skip the Sentry scripts ignore (%j)', (value) => {
+    const warn = jest.fn();
+    assertSentryBuildReady(easBuild('production', { ...secrets, SENTRY_DISABLE_XCODE_DEBUG_UPLOAD: value }), warn);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('warns once, for the full opt-out, when a partial skip is set too', () => {
+    const warn = jest.fn();
+    const env = easBuild('production', {
+      EXPO_PUBLIC_SENTRY_DSN: secrets.EXPO_PUBLIC_SENTRY_DSN,
+      SENTRY_DISABLE_AUTO_UPLOAD: 'true',
+      SENTRY_DISABLE_XCODE_DEBUG_UPLOAD: 'true',
+    });
+    assertSentryBuildReady(env, warn);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/^\[app\.config\] SENTRY_DISABLE_AUTO_UPLOAD=true/));
+  });
 
   it('names every allow-failure source it finds', () => {
     const env = easBuild('production', {
@@ -284,7 +325,6 @@ describe('app.config — Sentry upload guard on EAS builds', () => {
       'SENTRY_ALLOW_FAILURE',
       'SENTRY_CLI_EXTRA_ARGS',
       'SENTRY_CLI_RN_XCODE_EXTRA_ARGS',
-      'SENTRY_CLI_DEBUG_FILES_UPLOAD_EXTRA_ARGS',
       'EXPO_PUBLIC_SENTRY_DSN',
     ];
     const saved = keys.map((k) => [k, process.env[k]] as const);
