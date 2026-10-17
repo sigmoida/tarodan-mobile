@@ -1,5 +1,6 @@
 import type { HeroCta, HeroSlide, LocalizedText } from '@/lib/api/hero';
 import { isPurchaseLink, resolveAdLink } from '@/lib/ads/openAdLink';
+import { parseStrictUrl } from '@/lib/security/url';
 
 /**
  * Hero görünüm kuralları — saf fonksiyonlar (web `lib/heroView.ts`
@@ -23,6 +24,23 @@ export function heroImageUrl(slide: Pick<HeroSlide, 'imageUrl' | 'mobileImageUrl
   return slide.mobileImageUrl?.trim() || slide.imageUrl;
 }
 
+/**
+ * Mağaza bağlantısı mı (App Store / Google Play) — web `@tarodan/types`
+ * `heroStoreLinkKind` karşılığı (aynı kural). Web'de bu CTA'lar koyu mağaza
+ * butonu olarak çizilir; uygulamada GİZLENİR: kullanıcı zaten uygulamada.
+ */
+export type HeroStoreLinkKind = 'appStore' | 'googlePlay';
+
+export function heroStoreLinkKind(href: string | null | undefined): HeroStoreLinkKind | null {
+  // RN'nin `URL`'i host/yol okumayı tam desteklemez: katı ayrıştırıcı (`@/lib/security/url`).
+  const url = parseStrictUrl(href, { allowHttp: true });
+  if (!url) return null;
+  const host = url.host.replace(/^www\./, '');
+  if (host === 'apps.apple.com' || host === 'itunes.apple.com') return 'appStore';
+  if (host === 'play.google.com' && /^\/store\/apps(\/|$)/i.test(url.path)) return 'googlePlay';
+  return null;
+}
+
 export interface ResolvedHeroCta {
   label: string;
   href: string;
@@ -30,7 +48,9 @@ export interface ResolvedHeroCta {
 
 /**
  * CTA'yı çizilebilir hâle getirir. Bağlantıyı admin yazar: güvensiz şema,
- * satın alma hedefi ya da boş etiket varsa CTA HİÇ çizilmez (`null`).
+ * satın alma hedefi, mağaza bağlantısı (App Store / Google Play — uygulamadaki
+ * kullanıcıya "uygulamayı indir" anlamsız) ya da boş etiket varsa CTA HİÇ
+ * çizilmez (`null`). Slaytın tek CTA'ları mağaza bağlantısıysa slayt butonsuz çizilir.
  */
 export function resolveHeroCta(
   cta: HeroCta | null | undefined,
@@ -39,7 +59,7 @@ export function resolveHeroCta(
   if (!cta) return null;
   const label = pickLocalized(cta.label, locale);
   // Satın alma hedefi de güvensiz şema da `blocked`: ikisinde de buton çizilmez.
-  if (!label || resolveAdLink(cta.href).kind === 'blocked') return null;
+  if (!label || heroStoreLinkKind(cta.href) || resolveAdLink(cta.href).kind === 'blocked') return null;
   return { label, href: cta.href };
 }
 

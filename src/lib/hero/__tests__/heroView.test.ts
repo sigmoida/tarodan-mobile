@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import type { HeroSlide } from '@/lib/api/hero';
 import {
   heroImageUrl,
+  heroStoreLinkKind,
   pickLocalized,
   resolveHeroCta,
   visibleSlides,
@@ -130,5 +131,40 @@ describe('resolveHeroCta / satın alma kapısı', () => {
       label: 'Git',
       href: 'https://example.org/membership',
     });
+  });
+});
+
+describe('mağaza bağlantılı CTA (App Store / Google Play)', () => {
+  const IOS = 'https://apps.apple.com/tr/app/id6786614139';
+  const ANDROID = 'https://play.google.com/store/apps/details?id=com.tarodan.app';
+
+  it('heroStoreLinkKind: App Store / iTunes / Google Play uygulama sayfası tanınır', () => {
+    expect(heroStoreLinkKind(IOS)).toBe('appStore');
+    expect(heroStoreLinkKind('https://itunes.apple.com/app/id1')).toBe('appStore');
+    expect(heroStoreLinkKind(ANDROID)).toBe('googlePlay');
+    expect(heroStoreLinkKind('HTTPS://Play.Google.com/store/apps/details?id=x')).toBe('googlePlay');
+  });
+
+  it('heroStoreLinkKind: başka adres, Play\'in uygulama dışı sayfası, site içi yol → null', () => {
+    for (const href of [
+      '/listings',
+      'https://play.google.com/store/movies',
+      'https://apple.com/app',
+      'https://apps.apple.com.evil.example/app',
+      'javascript:alert(1)',
+      '',
+      null,
+      undefined,
+    ]) {
+      expect(heroStoreLinkKind(href)).toBeNull();
+    }
+  });
+
+  it('uygulamada mağaza CTA\'sı çizilmez; tek CTA\'ları mağaza olan slayt butonsuz kalır', () => {
+    const s = slide({ cta1: { label: { tr: 'Android' }, href: ANDROID }, cta2: { label: { tr: 'iOS' }, href: IOS } });
+    expect(visibleSlides([s], 'tr')).toEqual([s]);
+    expect(resolveHeroCta(s.cta1, 'tr')).toBeNull();
+    expect(resolveHeroCta(s.cta2, 'tr')).toBeNull();
+    expect(resolveHeroCta({ label: { tr: 'Gez' }, href: '/listings' }, 'tr')).toEqual({ label: 'Gez', href: '/listings' });
   });
 });

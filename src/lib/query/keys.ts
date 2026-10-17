@@ -400,7 +400,7 @@ export const qk = {
      * Platform anahtarda: parametresiz eski istek önbelleği yenisiyle karışmasın.
      */
     slides: (placement: string, platform: string) => ["hero", "slides", placement, platform] as const,
-    /** Tüm slayt önbellekleri (kalıcı önbellek izin listesi). */
+    /** Tüm slayt önbellekleri (önek). Kalıcı önbellekte BİLEREK yok — bkz. `persist.ts`. */
     slidesAll: ["hero", "slides"] as const,
   },
 
