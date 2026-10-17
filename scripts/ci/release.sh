@@ -133,12 +133,12 @@ REQUIRED_PUBLIC_ENV="EXPO_PUBLIC_ENVIRONMENT EXPO_PUBLIC_API_URL EXPO_PUBLIC_WEB
 # sızmış değer `load_profile_env`'de silinir, profilde varsa `assert_no_test_hooks` durur.
 TEST_HOOK_ENV="EXPO_PUBLIC_MAESTRO EXPO_PUBLIC_MAESTRO_NO_AUTOLOGIN EXPO_PUBLIC_MAESTRO_EMAIL EXPO_PUBLIC_MAESTRO_PASSWORD"
 
-# Profil env'ini bu kabuğa export eder. Process substitution (`< <(...)`)
-# KULLANILMAZ: içindeki hata set -e'ye ulaşmaz ve döngü boş env ile sessizce
-# devam ederdi (→ API adresi boş bir OTA). Önce çıktı alınır, hata varsa durulur.
-# Runner'dan sızmış eski değerler önce temizlenir: doğrulama yalnız eas.json'dan
-# gelen değerleri görsün (test kancası değişkenleri dahil — `eas update` runner
-# env'ini bundle'a gömer).
+# Exports the profile env into this shell. No process substitution (`< <(...)`): an
+# error inside it would not reach set -e and the loop would carry on with an empty
+# env (-> an OTA with no API address). The output is read first and errors stop.
+# Values leaked from the runner are cleared first, so the checks see only what
+# eas.json provides (test hook variables included: `eas update` embeds the runner
+# env in the bundle).
 load_profile_env() {
   local profile="$1" lines line key
   lines="$(profile_env "$profile")" || die "eas.json build.$profile env'i okunamadı"
@@ -199,18 +199,28 @@ eas_build_environment() {
   ' "$ROOT/eas.json" "$1"
 }
 
-# Store build'i öncesi: profil env'i (eas.json) ve EAS sunucusundaki ortam değişkenleri
-# (profilin kullandığı ortam; proje VE hesap kapsamı) test kancası taşımıyor mu? EAS bulut
-# build'i runner env'ini değil eas.json + EAS ortam değişkenlerini kullanır; hepsi burada
-# denetlenir. `eas env:list` okunamazsa build DURUR (kapalı-başarısız).
+# Before a store build: do the profile env (eas.json) and the EAS server variables of
+# the environment the profile uses (project AND account scope) carry no test hook? An
+# EAS cloud build uses eas.json + the EAS variables, not the runner env; all of them
+# are checked here. If `eas env:list` cannot be read the build STOPS (fail closed).
 assert_release_build_env() {
   local profile="$1" environment vars
   ( load_profile_env "$profile"; assert_no_test_hooks "$profile" ) || exit 1
   environment="$(eas_build_environment "$profile")" || die "no EAS environment for build.$profile"
   vars="$(eas_env_vars "$environment" "the $profile build")" || exit 1
-  if printf '%s\n' "$vars" | grep -q '^EXPO_PUBLIC_MAESTRO'; then
-    die "EAS $environment environment defines an EXPO_PUBLIC_MAESTRO* variable; Maestro/E2E test hooks never go into the $profile build."
-  fi
+  assert_no_eas_test_hooks "$vars" "$environment" "the $profile build"
+}
+
+# The EAS variables (eas_env_vars output) define none of TEST_HOOK_ENV. Deliberately
+# not anchored to the line start: a fail-closed guard must still match if eas-cli
+# changes its line layout. <what> names what is refused.
+assert_no_eas_test_hooks() {
+  local vars="$1" environment="$2" what="$3" key
+  for key in $TEST_HOOK_ENV; do
+    if printf '%s\n' "$vars" | grep -Eq "(^|[^A-Z0-9_])$key="; then
+      die "EAS $environment environment defines $key (an EXPO_PUBLIC_MAESTRO* test hook); Maestro/E2E test hooks never go into $what."
+    fi
+  done
 }
 
 # `NAME=value` lines of an EAS environment, project and account scope together, with
@@ -499,18 +509,18 @@ set_version() {
 assert_ota_eas_env() {
   local profile="$1" branch="$2" environment="$3" all keys key
   all="$(eas_env_vars "$environment" "the $branch OTA")" || exit 1
-  if printf '%s\n' "$all" | grep -q '^EXPO_PUBLIC_MAESTRO'; then
-    die "EAS $environment environment defines an EXPO_PUBLIC_MAESTRO* variable; Maestro/E2E test hooks never go into an OTA."
-  fi
+  assert_no_eas_test_hooks "$all" "$environment" "the $branch OTA"
   keys="$(profile_env "$profile" | sed 's/=.*//')" || die "eas.json build.$profile env could not be read"
   for key in $keys; do
-    if printf '%s\n' "$all" | grep -q "^$key="; then
+    if printf '%s\n' "$all" | grep -q "^[[:space:]]*$key="; then
       die "EAS $environment environment defines $key, which eas update --environment would use instead of eas.json build.$profile.env.$key (eas build keeps the eas.json value). Remove it from one of the two."
     fi
   done
+  # The DSN must be readable by eas update: a "secret" EAS variable exists only on
+  # the EAS builders (env:list says so in place of the value) and an empty one is none.
   if [ "$branch" = production ] && [ -z "${EXPO_PUBLIC_SENTRY_DSN:-}" ] \
-    && ! printf '%s\n' "$all" | grep -q '^EXPO_PUBLIC_SENTRY_DSN='; then
-    die "EXPO_PUBLIC_SENTRY_DSN is not set in the EAS $environment environment; a production OTA without it reports nothing to Sentry."
+    && ! printf '%s\n' "$all" | grep '^[[:space:]]*EXPO_PUBLIC_SENTRY_DSN=.' | grep -vq 'only be accessed on EAS builder'; then
+    die "EXPO_PUBLIC_SENTRY_DSN is missing, empty or of 'secret' visibility in the EAS $environment environment (eas update cannot read secret variables); a production OTA without it reports nothing to Sentry. Store it as plain text or sensitive."
   fi
 }
 
@@ -518,14 +528,18 @@ assert_ota_eas_env() {
 # SENTRY_PROJECT, or the `@sentry/react-native/expo` plugin options in the Expo config
 # (the script reads `npx expo config --json`). Checked BEFORE publishing.
 assert_sentry_upload_config() {
-  [ -n "${SENTRY_ORG:-}" ] && [ -n "${SENTRY_PROJECT:-}" ] && return 0
-  npx expo config --json | node -e '
+  local config
+  # The upload script reads the Expo config unless all three are set.
+  [ -n "${SENTRY_ORG:-}" ] && [ -n "${SENTRY_PROJECT:-}" ] && [ -n "${SENTRY_URL:-}" ] && return 0
+  config="$(npx expo config --json)" \
+    || die "npx expo config failed (see above); the Sentry upload config cannot be checked. Nothing was published."
+  printf '%s' "$config" | node -e '
     let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
       const p = (JSON.parse(s).plugins || []).find((x) => Array.isArray(x) && x[0] === "@sentry/react-native/expo");
       const o = (p && p[1]) || {};
       process.exit(o.organization && o.project ? 0 : 1);
     });' \
-    || die "No Sentry org/project for the source map upload (SENTRY_ORG/SENTRY_PROJECT or the @sentry/react-native/expo plugin options in app.json). Nothing was published."
+    || die "No Sentry org/project for the source map upload: the @sentry/react-native/expo plugin options in app.json (organization, project), or SENTRY_ORG + SENTRY_PROJECT + SENTRY_URL. Nothing was published."
 }
 
 publish_ota() {
@@ -547,6 +561,9 @@ publish_ota() {
     eas update --branch "$branch" --platform "$platform" --environment "$environment" \
       --message "$message" --non-interactive
     if [ -n "${SENTRY_AUTH_TOKEN:-}" ]; then
+      # The upload script exits 0 even when it finds no source map; require them.
+      [ -n "$(find dist -name '*.map' -print -quit 2>/dev/null)" ] \
+        || die "The OTA IS published, but eas update wrote no source maps to dist/, so nothing can go to Sentry. Do NOT re-run this job: that publishes a second update."
       npx sentry-expo-upload-sourcemaps dist \
         || die "The OTA IS published, but its source maps were NOT uploaded to Sentry, so its stack traces stay unreadable. Do NOT re-run this job: that publishes a second update. Fix the cause before the next OTA."
     else

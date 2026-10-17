@@ -96,8 +96,16 @@ switch (args[0]) {
     if (fs.existsSync(p)) process.stdout.write(fs.readFileSync(p, 'utf8'));
     break;
   }
+  case 'update': {
+    // Like the real export: a bundle and its source map under ./dist
+    // (FAKE_UPDATE_NO_MAPS=1 leaves the map out).
+    const out = path.join(process.cwd(), 'dist/_expo/static/js/ios');
+    fs.mkdirSync(out, { recursive: true });
+    fs.writeFileSync(path.join(out, 'index.hbc'), '');
+    if (!process.env.FAKE_UPDATE_NO_MAPS) fs.writeFileSync(path.join(out, 'index.hbc.map'), '{}');
+    break;
+  }
   case 'submit':
-  case 'update':
     break;
   default:
     console.error(`fake eas: beklenmeyen komut ${args.join(' ')}`);

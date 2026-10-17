@@ -382,11 +382,42 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     expect(r.easCalls('update')).toHaveLength(0);
   });
 
-  it('SENTRY_ORG + SENTRY_PROJECT replace the plugin options', () => {
+  it('SENTRY_ORG + SENTRY_PROJECT + SENTRY_URL replace the plugin options (all three, as the upload script needs)', () => {
+    const env = { FAKE_NO_SENTRY_PLUGIN: '1', SENTRY_ORG: 'org', SENTRY_PROJECT: 'project' };
+    expect(ota('production', 'production', { env }).status).not.toBe(0);
+    expect(ota('production', 'production', { env: { ...env, SENTRY_URL: 'https://sentry.io/' } }).status).toBe(0);
+  });
+
+  it.each([
+    ['empty', 'EXPO_PUBLIC_SENTRY_DSN=\n'],
+    [
+      'secret visibility (eas update cannot read it)',
+      "EXPO_PUBLIC_SENTRY_DSN=***** (This is a secret env variable that can only be accessed on EAS builder and can't be read in any UI. Learn more.)\n",
+    ],
+  ])('a DSN that is %s does not count', (_n, line) => {
+    const r = ota('production', 'production', { fakeFiles: { 'eas-env-production-project.txt': line } });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('a sensitive DSN counts (eas update can read it)', () => {
+    const line = 'EXPO_PUBLIC_SENTRY_DSN=***** (This is a sensitive env variable. To access it, run command with --include-sensitive flag. Learn more.)\n';
+    expect(ota('production', 'production', { fakeFiles: { 'eas-env-production-project.txt': line } }).status).toBe(0);
+  });
+
+  it('no source map in the export fails the job (the upload script would exit 0)', () => {
+    const r = ota('production', 'production', { env: { FAKE_UPDATE_NO_MAPS: '1' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('wrote no source maps');
+    expect(r.log.some((l) => l.startsWith('npx sentry-expo-upload-sourcemaps'))).toBe(false);
+  });
+
+  it('a test hook that is not at the line start is still caught (fail closed)', () => {
     const r = ota('production', 'production', {
-      env: { FAKE_NO_SENTRY_PLUGIN: '1', SENTRY_ORG: 'org', SENTRY_PROJECT: 'project' },
+      fakeFiles: { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\n  EXPO_PUBLIC_MAESTRO_PASSWORD=x\n' },
     });
-    expect(r.status).toBe(0);
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('EXPO_PUBLIC_MAESTRO_PASSWORD');
   });
 
   it('a DSN leaked from the runner does not count (only eas.json / EAS values do)', () => {
@@ -500,7 +531,7 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
       fakeFiles: { [`eas-env-${env}-${scope}.txt`]: 'EXPO_PUBLIC_SENTRY_DSN=*****\nEXPO_PUBLIC_MAESTRO=1\n' },
     });
     expect(r.status).not.toBe(0);
-    expect(r.all).toContain(`EAS ${env} environment defines an EXPO_PUBLIC_MAESTRO`);
+    expect(r.all).toContain(`EAS ${env} environment defines EXPO_PUBLIC_MAESTRO`);
     expect(r.easCalls('build')).toHaveLength(0);
   });
 
