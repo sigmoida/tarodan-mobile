@@ -300,7 +300,7 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
       fakeFiles: { ...DSN_ENV, ...opts.fakeFiles },
     });
 
-  it('production OTA eas.json\'daki production env\'iyle yayınlanır', () => {
+  it('production OTA is published with the eas.json production env and the production EAS environment', () => {
     const r = ota('production', 'production');
     expect(r.status).toBe(0);
     expect(r.easCalls('update')).toEqual([
@@ -375,8 +375,39 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     expect(r.easCalls('update')).toHaveLength(0);
   });
 
+  it('no Sentry org/project for the upload -> nothing is published', () => {
+    const r = ota('production', 'production', { env: { FAKE_NO_SENTRY_PLUGIN: '1' } });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('Sentry org/project');
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('SENTRY_ORG + SENTRY_PROJECT replace the plugin options', () => {
+    const r = ota('production', 'production', {
+      env: { FAKE_NO_SENTRY_PLUGIN: '1', SENTRY_ORG: 'org', SENTRY_PROJECT: 'project' },
+    });
+    expect(r.status).toBe(0);
+  });
+
+  it('a DSN leaked from the runner does not count (only eas.json / EAS values do)', () => {
+    const r = ota('production', 'production', {
+      env: { EXPO_PUBLIC_SENTRY_DSN: 'https://leaked@example.invalid/1' },
+      fakeFiles: { 'eas-env-production-project.txt': '' },
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.easCalls('update')).toHaveLength(0);
+  });
+
+  it('only variable NAMES are matched, not a value that mentions one', () => {
+    const r = ota('production', 'production', {
+      fakeFiles: { 'eas-env-production-project.txt': 'EXPO_PUBLIC_SENTRY_DSN=*****\nNOTE=see EXPO_PUBLIC_API_URL=x\n' },
+    });
+    expect(r.status).toBe(0);
+  });
+
   it('staging OTA without the token publishes with a warning (no DSN required)', () => {
-    const r = ota('staging', 'preview', { env: { SENTRY_AUTH_TOKEN: '' }, fakeFiles: { 'eas-env-production-project.txt': '' } });
+    // The preview environment has no DSN (no fake file): staging does not require one.
+    const r = ota('staging', 'preview', { env: { SENTRY_AUTH_TOKEN: '' } });
     expect(r.status).toBe(0);
     expect(r.easCalls('update')[0]).toContain('--environment preview');
     expect(r.all).toContain('::warning::SENTRY_AUTH_TOKEN is not set');
@@ -469,7 +500,7 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
       fakeFiles: { [`eas-env-${env}-${scope}.txt`]: 'EXPO_PUBLIC_SENTRY_DSN=*****\nEXPO_PUBLIC_MAESTRO=1\n' },
     });
     expect(r.status).not.toBe(0);
-    expect(r.all).toContain(`EAS ${env} ortamında (${scope} kapsamı)`);
+    expect(r.all).toContain(`EAS ${env} environment defines an EXPO_PUBLIC_MAESTRO`);
     expect(r.easCalls('build')).toHaveLength(0);
   });
 

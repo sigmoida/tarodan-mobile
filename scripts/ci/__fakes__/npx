@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-// Sahte npx — yalnız src/config/__tests__/releaseScript.test.ts için.
+// Fake npx, only for src/config/__tests__/releaseScript.test.ts.
 //   npx expo-updates fingerprint:generate --platform P
-//       → {"hash": $FAKE_FP_<P> ya da "fp-<P>-<EXPO_PUBLIC_ENVIRONMENT>"}
-//       (varsayılan değer, profil env'inin gerçekten yüklendiğini test edilebilir kılar)
-//   npx expo config --type public --json
-//       → android.package / ios.bundleIdentifier ($FAKE_ANDROID_PACKAGE ile ezilebilir)
+//       -> {"hash": $FAKE_FP_<P> or "fp-<P>-<EXPO_PUBLIC_ENVIRONMENT>"}
+//       (the default proves that the profile env was really loaded)
+//   npx expo config [--type public] --json
+//       -> android.package / ios.bundleIdentifier ($FAKE_ANDROID_PACKAGE overrides) and
+//          the Sentry plugin with organization + project ($FAKE_NO_SENTRY_PLUGIN drops it)
 //   npx sentry-expo-upload-sourcemaps dist
 //       → succeeds (logged); fails with $FAKE_SENTRY_UPLOAD_FAIL
 const fs = require('fs');
@@ -25,6 +26,9 @@ if (args[0] === 'expo-updates' && args[1] === 'fingerprint:generate') {
       name: env === 'preview' ? 'Tarodan (Staging)' : 'Tarodan',
       ios: { bundleIdentifier: id },
       android: { package: process.env.FAKE_ANDROID_PACKAGE || id },
+      plugins: process.env.FAKE_NO_SENTRY_PLUGIN
+        ? ['@sentry/react-native/expo']
+        : [['@sentry/react-native/expo', { organization: 'org', project: 'project' }]],
     }),
   );
 } else if (args[0] === 'sentry-expo-upload-sourcemaps') {
@@ -34,6 +38,6 @@ if (args[0] === 'expo-updates' && args[1] === 'fingerprint:generate') {
     process.exit(1);
   }
 } else {
-  console.error(`fake npx: beklenmeyen komut ${args.join(' ')}`);
+  console.error(`fake npx: unexpected command ${args.join(' ')}`);
   process.exit(2);
 }
