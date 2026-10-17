@@ -2067,6 +2067,7 @@
     "isPrivate": "Private",
     "addToCollection": "Add to Collection",
     "removeFromCollection": "Remove from Collection",
+    "openProductHint": "Opens the product page",
     "noCollections": "No collections yet",
     "collectionCreated": "Collection created!",
     "collectionUpdated": "Collection updated!",

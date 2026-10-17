@@ -9,8 +9,9 @@ import { theme } from '@/ui';
  * `ProductTopBar`'ın kaydırma kenarı için dışarı verilir (`useProductScroll`).
  *
  * Bilerek pull-to-refresh YOK: galeri durum çubuğunun altına uzandığı için yerel yenileme
- * göstergesi durum çubuğu ile yüzen üst barın arasına düşüyordu. Veri, sorgunun ön plana
- * dönüş / ekrana odaklanma tazelemesiyle güncel kalır; iOS esnemesi (bounce) korunur.
+ * göstergesi durum çubuğu ile yüzen üst barın arasına düşüyordu. Veri güncel kalır: ekrana
+ * dönüşte (odak) detay + yorumlar bayatsa ya da 30 sn'den eskiyse `useRefetchStaleOnFocus` ile,
+ * uygulama ön plana dönünce sorgu istemcisinin `focusManager`'ıyla tazelenir. iOS esnemesi korunur.
  */
 export function ProductScrollView({
   onScroll,

@@ -38,13 +38,25 @@ describe('ListingPickerRow', () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it('seçili: dolu kutu + "çıkar" etiketi; busy iken devre dışı', () => {
+  it('seçili: dolu kutu; etiket sabit (durum accessibilityState ile), sol blok etiket + ipucu taşır', () => {
+    renderWithProviders(<ListingPickerRow listing={listing} added busy={false} onToggle={jest.fn()} />);
+
+    const toggle = screen.getByTestId('add-items-toggle-l-1');
+    expect(toggle.props.accessibilityState).toMatchObject({ checked: true });
+    expect(toggle.props.accessibilityLabel).toBe(`Koleksiyona Ekle: ${listing.title}`);
+    expect(screen.UNSAFE_getByType(CheckboxIndicator).props.checked).toBe(true);
+    const open = screen.getByLabelText(listing.title);
+    expect(open.props.accessibilityHint).toBe('Ürün sayfasını açar');
+  });
+
+  it('bekleyen istek: kutu yerine yükleme göstergesi, dokunuş yok sayılır', () => {
     const onToggle = jest.fn();
     renderWithProviders(<ListingPickerRow listing={listing} added busy onToggle={onToggle} />);
 
     const toggle = screen.getByTestId('add-items-toggle-l-1');
-    expect(toggle.props.accessibilityState).toMatchObject({ checked: true, disabled: true });
-    expect(screen.UNSAFE_getByType(CheckboxIndicator).props.checked).toBe(true);
+    expect(toggle.props.accessibilityState).toMatchObject({ checked: true, disabled: true, busy: true });
+    expect(screen.UNSAFE_queryByType(CheckboxIndicator)).toBeNull();
+    expect(screen.getByLabelText('Yükleniyor')).toBeOnTheScreen();
     fireEvent.press(toggle);
     expect(onToggle).not.toHaveBeenCalled();
   });

@@ -63,3 +63,10 @@ export function rippleClip(): ViewStyle | undefined {
 export function showPressedStyle(pressed: boolean): boolean {
   return pressed && Platform.OS !== 'android';
 }
+
+/**
+ * Paylaşılan iOS basılı stili (opaklık) — kendi `Pressable`'ını çizen küçük kontroller (ör. satır
+ * içi seçim kutusu) yerel opaklık değeri tanımlamaz: `showPressedStyle(pressed) && pressedStyle`.
+ * Değer `GlassIconButton` basılı opaklığıyla aynı.
+ */
+export const pressedStyle: ViewStyle = { opacity: 0.7 };

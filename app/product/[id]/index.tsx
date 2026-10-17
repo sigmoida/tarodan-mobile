@@ -5,6 +5,8 @@ import { theme, toast } from '@/ui';
 import { useLocalSearchParams, router } from 'expo-router';
 import { PageShell } from '@/components/common/PageShell';
 import { useTransitionReady } from '@/hooks/useTransitionReady';
+import { FOCUS_LIST_STALE_MS, useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
+import { qk } from '@/lib/query';
 import { useAuthStore } from '@/stores/authStore';
 import { isOwnProduct } from '@/hooks/useFavoriteToggle';
 import { SignupPrompt } from '@/components/SignupPrompt';
@@ -64,6 +66,10 @@ export default function ProductDetailScreen() {
   const sectionsReady = useTransitionReady();
   const { data: reviews } = useProductReviews(productId, !!id && sectionsReady);
   const { data: similar } = useSimilarProducts(productId, full && sectionsReady);
+  // Çekip-yenile yok: ekrana dönüşte detay + yorumlar bayatsa ya da 30 sn'den eskiyse sessizce tazelenir.
+  useRefetchStaleOnFocus([qk.products.detail(productId), qk.products.reviews(productId)], true, {
+    maxAgeMs: FOCUS_LIST_STALE_MS,
+  });
   const guest = useGuestPrompt(productId, isAuthenticated);
   const scroll = useProductScroll();
 

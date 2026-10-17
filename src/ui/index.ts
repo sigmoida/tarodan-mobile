@@ -88,6 +88,7 @@ export {
 	androidRipple,
 	rippleClip,
 	showPressedStyle,
+	pressedStyle,
 	type RippleOptions,
 	type RippleTone,
 } from './lib/pressableFeedback';

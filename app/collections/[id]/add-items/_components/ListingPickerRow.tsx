@@ -1,7 +1,16 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
 import { AppImage } from '@/components/AppImage';
-import { CheckboxIndicator, Text, ListRowCard, androidRipple, showPressedStyle, theme } from '@/ui';
+import {
+  CheckboxIndicator,
+  ListRowCard,
+  LoadingIndicator,
+  Text,
+  androidRipple,
+  pressedStyle,
+  showPressedStyle,
+  theme,
+} from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { styles } from '../_lib/styles';
@@ -39,6 +48,8 @@ export const ListingPickerRow = React.memo(function ListingPickerRow({
         style={styles.rowContent}
         onPress={() => router.push(`/product/${listing.id}`)}
         accessibilityRole="button"
+        accessibilityLabel={listing.title}
+        accessibilityHint={t('collection.openProductHint')}
       >
         <AppImage source={listing.images} recyclingKey={String(listing.id)} style={styles.thumb} />
         <View style={styles.rowInfo}>
@@ -57,12 +68,19 @@ export const ListingPickerRow = React.memo(function ListingPickerRow({
         disabled={busy}
         hitSlop={TOGGLE_HIT_SLOP}
         android_ripple={androidRipple({ borderless: true, radius: theme.minTouchTarget / 2 })}
-        style={({ pressed }) => [styles.toggle, showPressedStyle(pressed) && styles.togglePressed]}
+        style={({ pressed }) => [styles.toggle, showPressedStyle(pressed) && pressedStyle]}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: added, disabled: busy, busy }}
-        accessibilityLabel={added ? t('collection.removeFromCollection') : t('collection.addToCollection')}
+        accessibilityLabel={`${t('collection.addToCollection')}: ${listing.title}`}
       >
-        <CheckboxIndicator checked={added} size={CHECKBOX_SIZE} />
+        {/* Bekleyen istek: kutu yerine aynı yuvada küçük gösterge — yok sayılan dokunuş anlaşılır. */}
+        {busy ? (
+          <View style={styles.toggleSlot}>
+            <LoadingIndicator size="sm" accessibilityLabel={t('common.loading')} />
+          </View>
+        ) : (
+          <CheckboxIndicator checked={added} size={CHECKBOX_SIZE} />
+        )}
       </Pressable>
     </ListRowCard>
   );

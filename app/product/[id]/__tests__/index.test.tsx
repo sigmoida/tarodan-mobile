@@ -9,6 +9,7 @@ import { renderWithProviders } from '@/test-utils';
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
   useLocalSearchParams: () => ({ id: 'p1' }),
+  useFocusEffect: jest.fn(),
 }));
 
 // Geçiş sinyali testte elle sürülür (gerçek kanca `src/hooks/__tests__/useTransitionReady` altında).
@@ -123,6 +124,8 @@ describe('Ürün detay ekranı', () => {
     const { RefreshControl } = jest.requireActual('react-native');
     expect(screen.UNSAFE_queryAllByType(RefreshControl)).toHaveLength(0);
     expect(screen.UNSAFE_root.findAll((n: { props?: { refreshControl?: unknown } }) => n.props?.refreshControl != null)).toHaveLength(0);
+    // Tazelik yerine odak tazelemesi (`useRefetchStaleOnFocus`) bağlı.
+    expect(jest.requireMock('expo-router').useFocusEffect).toHaveBeenCalled();
   });
 
   it('yüzen adalar: geri, ⋮ menü, paylaş, favori; sepet adası yok; üst bar başlığı yok', async () => {
