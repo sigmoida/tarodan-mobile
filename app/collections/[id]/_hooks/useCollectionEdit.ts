@@ -151,6 +151,7 @@ export function useCollectionEdit() {
     coverImage,
     pickCoverImage,
     updateMutation,
+    deleteMutation,
     handleDelete,
     handleRemoveItem,
     onSubmit,

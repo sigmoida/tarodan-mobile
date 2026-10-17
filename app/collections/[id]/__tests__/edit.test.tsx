@@ -7,6 +7,7 @@
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
+import { appAlert } from '@/ui';
 
 let mockParams: Record<string, string> = { id: 'col-1' };
 jest.mock('expo-router', () => ({
@@ -105,5 +106,21 @@ describe('J30 · Koleksiyon düzenle formu (mobil)', () => {
     expect(
       await screen.findByText('Bu koleksiyonu düzenleme yetkiniz yok'),
     ).toBeOnTheScreen();
+  });
+
+  it('silme sabit alt barda (Kaydet altında); "Tehlikeli Bölge" kartı yok; onay diyaloğu korunur', async () => {
+    (appAlert as jest.Mock).mockClear?.();
+    getMock.mockResolvedValue({ data: collectionFixture() });
+    renderWithProviders(<EditCollectionScreen />);
+    const del = await screen.findByTestId('collection-delete-button');
+    expect(screen.getByTestId('collection-save-button')).toBeOnTheScreen();
+    expect(screen.queryByText('Tehlikeli Bölge')).toBeNull();
+    fireEvent.press(del);
+    expect(appAlert).toHaveBeenCalledWith(
+      'Koleksiyonu Sil',
+      expect.any(String),
+      expect.arrayContaining([expect.objectContaining({ style: 'destructive' })]),
+    );
+    expect(api.delete).not.toHaveBeenCalled();
   });
 });
