@@ -13,7 +13,8 @@ name: Master Flow (source guard + hotfix back-merge)
 # pull_request_target reads it from the TARGET branch (master); a PR cannot change
 # it. The trigger is dangerous (write token + secrets) only if PR code runs; here:
 #   - source-guard checks out NOTHING; it reads the event metadata and asks the
-#     GitHub API about commit ancestry (`gh api .../compare`, read-only);
+#     GitHub API about commit ancestry (`gh api .../compare`, read-only, one call
+#     per commit the hotfix adds over master);
 #   - every value from the PR (branch name, head sha, repo name) is read through
 #     `env:` only, never injected into `run:` with `${{ }}` (no script injection);
 #   - hotfix-backmerge runs only for a merged hotfix/* PR from this repo and checks
@@ -56,23 +57,41 @@ jobs:
               echo "OK: development -> master" ;;
             hotfix/*)
               # A hotfix skips check-release-version and its JS-only merge ships as a
-              # production OTA, so it may carry nothing from development that master
-              # does not already have: what it shares with development (their merge
-              # base) must be on master. A hotfix/* cut from development, or one that
-              # merged development later, fails here. Any API error fails (closed).
-              base="$(gh api "repos/$REPO/compare/development...$HEAD_SHA" --jq .merge_base_commit.sha)"
-              if [ -z "$base" ] || [ "$base" = null ]; then
-                echo "::error::Could not find where $HEAD_REF meets development; the hotfix cannot be checked."
+              # production OTA, so none of the commits it adds over master may be on
+              # development: those are unreleased development code (a hotfix cut from
+              # development, or one that merged development or a branch development
+              # already merged). Every added commit is checked on its own, so no merge
+              # base (there can be several) is trusted. Any API error, an empty or
+              # unexpected answer, or more than max_commits commits fails (closed).
+              max_commits=250
+              shas="$(gh api "repos/$REPO/compare/master...$HEAD_SHA?per_page=100" --paginate --jq '.commits[].sha')"
+              count="$(printf '%s\n' "$shas" | grep -c . || true)"
+              if [ "$count" -eq 0 ]; then
+                echo "::error::The API lists no commits that $HEAD_REF adds over master; the hotfix cannot be checked."
                 exit 1
               fi
-              status="$(gh api "repos/$REPO/compare/$base...master" --jq .status)"
-              case "$status" in
-                identical|ahead)
-                  echo "OK: $HEAD_REF -> master (cut from master; shares $base with development, which master contains)" ;;
-                *)
-                  echo "::error::$HEAD_REF carries development commits that are not on master (merge base with development: $base, compare status: $status). A hotfix must be cut from master: git switch -c hotfix/<name> origin/master, then cherry-pick the fix. Unreleased development code must go through a development -> master release PR. A hotfix merged into development before master also trips this check: cut a hotfix branch with a new name from origin/master, cherry-pick the fix commits onto it, open that PR and ask for this one to be closed; the back-merge carries it into development after the master merge."
-                  exit 1 ;;
-              esac ;;
+              if [ "$count" -gt "$max_commits" ]; then
+                echo "::error::$HEAD_REF adds $count commits over master (more than $max_commits); a hotfix is a small fix cut from master. Unreleased development code must go through a development -> master release PR."
+                exit 1
+              fi
+              for sha in $shas; do
+                if ! printf '%s' "$sha" | grep -Eqx '[0-9a-f]{40}'; then
+                  echo "::error::The API listed '$sha' as a commit of $HEAD_REF; the hotfix cannot be checked."
+                  exit 1
+                fi
+                # identical | ahead: development contains the commit.
+                status="$(gh api "repos/$REPO/compare/$sha...development?per_page=1" --jq .status)"
+                case "$status" in
+                  behind|diverged) ;;
+                  identical|ahead)
+                    echo "::error::$HEAD_REF carries development commits that are not on master ($sha is on development; compare status: $status). A hotfix must be cut from master: git switch -c hotfix/<name> origin/master, then cherry-pick the fix. Unreleased development code must go through a development -> master release PR. A hotfix merged into development before master also trips this check: cut a hotfix branch with a new name from origin/master, cherry-pick the fix commits onto it, open that PR and ask for this one to be closed; the back-merge carries it into development after the master merge."
+                    exit 1 ;;
+                  *)
+                    echo "::error::Could not tell whether development contains $sha (compare status: '$status'); the hotfix cannot be checked."
+                    exit 1 ;;
+                esac
+              done
+              echo "OK: $HEAD_REF -> master (cut from master; none of its $count commits over master is on development)" ;;
             *)
               echo "::error::A PR into master must come from 'development' or a 'hotfix/*' branch (source: '$HEAD_REF'). Merge the change into development, or for an urgent fix cut hotfix/<name> from master."
               exit 1 ;;

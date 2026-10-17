@@ -1913,22 +1913,38 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
       jobs: Record<string, { steps: { run?: string }[] }>;
     }
   ).jobs['source-guard'].steps.find((s) => s.run)?.run;
-  // Answers the two compare calls from a real local repo, the way the REST API does:
-  // `.merge_base_commit.sha` is the merge base, `.status` is identical | ahead (head
-  // contains base) | behind | diverged. FAKE_GH_FAIL makes every call fail,
-  // FAKE_GH_FAIL_JQ=<jq> only that call; FAKE_GH_BASE / FAKE_GH_STATUS replace the
-  // answer of that call (an API that answers `null` or nothing).
+  // Answers the guard's compare calls from a real local repo, the way the REST API
+  // does (`compare/A...B`, query string ignored): `.commits[].sha` lists the commits
+  // B adds over the merge base of A and B (`git rev-list $(merge-base A B)..B`;
+  // GitHub, like git, picks one merge base), `.status` is identical | ahead (B
+  // contains A) | behind | diverged. FAKE_GH_FAIL makes every call fail,
+  // FAKE_GH_FAIL_JQ=<jq> only the calls with that jq; FAKE_GH_COMMITS /
+  // FAKE_GH_STATUS replace the answer of those calls (an API that answers `null`,
+  // nothing or something unexpected).
   const GH_FAKE = [
     '#!/usr/bin/env bash',
     'echo "gh $*" >> "$FAKE_GH_LOG"',
     '[ -z "${FAKE_GH_FAIL:-}" ] || { echo "fake gh: HTTP 502" >&2; exit 1; }',
-    '[ "${FAKE_GH_FAIL_JQ:-}" != "$4" ] || { echo "fake gh: HTTP 502" >&2; exit 1; }',
-    'case "$1 $2 $3" in api\\ repos/*/compare/*\\ --jq) ;; *) echo "fake gh: unexpected $*" >&2; exit 2 ;; esac',
-    'spec="${2#repos/*/compare/}"; a="${spec%%...*}"; b="${spec#*...}"',
+    'path=""; jq=""',
+    '[ "$1" = api ] || { echo "fake gh: unexpected $*" >&2; exit 2; }',
+    'shift',
+    'while [ $# -gt 0 ]; do',
+    '  case "$1" in',
+    '    --paginate) ;;',
+    '    --jq) shift; jq="$1" ;;',
+    '    repos/*/compare/*) path="$1" ;;',
+    '    *) echo "fake gh: unexpected argument $1" >&2; exit 2 ;;',
+    '  esac',
+    '  shift',
+    'done',
+    '[ -n "$path" ] && [ -n "$jq" ] || { echo "fake gh: unexpected call" >&2; exit 2; }',
+    '[ "${FAKE_GH_FAIL_JQ:-}" != "$jq" ] || { echo "fake gh: HTTP 502" >&2; exit 1; }',
+    'spec="${path#repos/*/compare/}"; spec="${spec%%[?]*}"; a="${spec%%...*}"; b="${spec#*...}"',
     'g() { git -C "$FAKE_GIT_DIR" "$@"; }',
-    'case "$4" in',
-    '  .merge_base_commit.sha)',
-    '    if [ -n "${FAKE_GH_BASE+x}" ]; then echo "$FAKE_GH_BASE"; else g merge-base "$a" "$b"; fi ;;',
+    'case "$jq" in',
+    "  '.commits[].sha')",
+    '    if [ -n "${FAKE_GH_COMMITS+x}" ]; then printf "%s" "$FAKE_GH_COMMITS"; exit 0; fi',
+    '    mb="$(g merge-base "$a" "$b")" || exit 1; g rev-list "$mb..$b" ;;',
     '  .status)',
     '    if [ -n "${FAKE_GH_STATUS+x}" ]; then echo "$FAKE_GH_STATUS"; exit 0; fi',
     '    ra="$(g rev-parse "$a^{commit}")" || exit 1; rb="$(g rev-parse "$b^{commit}")" || exit 1',
@@ -1936,7 +1952,7 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     '    elif g merge-base --is-ancestor "$ra" "$rb"; then echo ahead',
     '    elif g merge-base --is-ancestor "$rb" "$ra"; then echo behind',
     '    else echo diverged; fi ;;',
-    '  *) echo "fake gh: unexpected jq $4" >&2; exit 2 ;;',
+    '  *) echo "fake gh: unexpected jq $jq" >&2; exit 2 ;;',
     'esac',
     '',
   ].join('\n');
@@ -2023,25 +2039,26 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     repo.commit('feat: released');
     release();
     repo.commit('feat: unreleased on development');
+    const unreleased = repo.git(['rev-parse', 'development']);
     const r = guard(branchFrom('hotfix/crash', 'development'), 'hotfix/crash');
     expect(r.status).not.toBe(0);
     expect(r.all).toContain('::error::hotfix/crash carries development commits that are not on master');
-    expect(r.all).toContain(`(merge base with development: ${repo.git(['rev-parse', 'development'])}, compare status: diverged)`);
+    expect(r.all).toContain(`(${unreleased} is on development; compare status: identical)`);
     expect(r.all).toContain('A hotfix must be cut from master: git switch -c hotfix/<name> origin/master');
     expect(r.all).not.toContain('OK:');
   });
 
-  it('a hotfix cut from a development that already contains master fails too (status behind)', () => {
-    // development took master back (the hotfix back-merge) and then moved on: the merge
-    // base contains master, so the compare says `behind`, which is not admitted.
+  it('a hotfix cut from a development that already contains master fails too', () => {
+    // development took master back (the hotfix back-merge) and then moved on: master is
+    // the merge base, and what the hotfix adds over it includes development commits.
     repo.commit('feat: released');
     release();
     repo.git(['merge', '-q', '--no-ff', '-m', 'Merge master', 'master']);
-    repo.commit('feat: unreleased on development');
+    const unreleased = repo.commit('feat: unreleased on development');
     const r = guard(branchFrom('hotfix/crash', 'development'), 'hotfix/crash');
     expect(r.status).not.toBe(0);
     expect(r.all).toContain('carries development commits that are not on master');
-    expect(r.all).toContain('compare status: behind)');
+    expect(r.all).toContain(`(${unreleased} is on development; compare status: identical)`);
   });
 
   it('a hotfix cut from master passes while master is ahead of development (earlier hotfix not back-merged)', () => {
@@ -2052,16 +2069,15 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     repo.commit('feat: unreleased on development');
     const r = guard(branchFrom('hotfix/second', 'master'), 'hotfix/second');
     expect(r.status).toBe(0);
-    expect(r.all).toContain('OK: hotfix/second -> master (cut from master; shares');
+    expect(r.all).toContain('OK: hotfix/second -> master (cut from master; none of its 1 commits over master is on development)');
   });
 
-  // KNOWN GAP (flip to `it` when fixed): GitHub's compare gives ONE merge base. A
-  // feature branch that was cut before a release and merged into development after it
-  // gives development and a hotfix that merges it two merge bases: the released
-  // development tip (on master) and the feature tip (not on master). Git (and the fake)
-  // picks the newer one, the released tip, so the guard admits unreleased feature code
-  // into a production OTA. Checking only one merge base cannot see this.
-  it.failing('a hotfix that merges a feature branch already merged into development fails', () => {
+  // Criss-cross: a feature branch cut before a release and merged into development
+  // after it gives development and a hotfix that merges it two merge bases, the
+  // released development tip (on master) and the feature tip (not on master). A check
+  // of one merge base (GitHub's compare gives one) admitted it; the guard checks every
+  // commit the hotfix adds over master instead, so the feature commit is found.
+  it('a hotfix that merges a feature branch already merged into development fails', () => {
     const at = (date: string, fn: () => void) => {
       Object.assign(repo.env, { GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date });
       try {
@@ -2081,10 +2097,15 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
       repo.git(['merge', '-q', '--no-ff', '-m', 'Merge feat', 'feat/unreleased']);
       repo.git(['switch', '-q', 'development']);
     });
-    // The hotfix does carry a development commit that master lacks:
+    // The hotfix does carry a development commit that master lacks, and there are two
+    // merge bases (the case a single merge base check misses):
     expect(() => repo.git(['merge-base', '--is-ancestor', 'feat/unreleased', 'master'])).toThrow();
+    expect(repo.git(['merge-base', '--all', 'development', 'hotfix/crash']).split('\n')).toHaveLength(2);
+    const feature = repo.git(['rev-parse', 'feat/unreleased']);
     const r = guard('hotfix/crash', 'hotfix/crash');
     expect(r.status).not.toBe(0);
+    expect(r.all).toContain(`::error::hotfix/crash carries development commits that are not on master (${feature} is on development; compare status: ahead)`);
+    expect(r.all).not.toContain('OK:');
   });
 
   it('a hotfix cut from master that merged development later fails', () => {
@@ -2105,7 +2126,7 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     release();
     const r = guard(branchFrom('hotfix/crash', 'development'), 'hotfix/crash');
     expect(r.status).toBe(0);
-    expect(r.all).toContain('OK: hotfix/crash -> master (cut from master; shares');
+    expect(r.all).toContain('OK: hotfix/crash -> master (cut from master; none of its 1 commits over master is on development)');
   });
 
   it('an API failure fails the guard (closed)', () => {
@@ -2116,7 +2137,7 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     expect(r.gh).toHaveLength(1);
   });
 
-  it('a failing status call fails the guard (closed), after a good merge base', () => {
+  it('a failing status call fails the guard (closed), after a good commit list', () => {
     const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_FAIL_JQ: '.status' });
     expect(r.status).not.toBe(0);
     expect(r.all).toContain('fake gh: HTTP 502');
@@ -2124,18 +2145,58 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     expect(r.gh).toHaveLength(2);
   });
 
-  it.each([['null'], ['']])('a merge base answered as %j fails with its own message, before the status call', (base) => {
-    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_BASE: base });
+  it('an empty commit list fails with its own message, before any status call', () => {
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_COMMITS: '' });
     expect(r.status).not.toBe(0);
-    expect(r.all).toContain('::error::Could not find where hotfix/crash meets development; the hotfix cannot be checked.');
+    expect(r.all).toContain('::error::The API lists no commits that hotfix/crash adds over master; the hotfix cannot be checked.');
     expect(r.gh).toHaveLength(1);
   });
 
-  it.each([[''], ['null'], ['behind'], ['diverged']])('a compare status %j is not admitted', (status) => {
+  it.each([['null'], ['abc123'], ['HEAD']])('a commit listed as %j fails before any status call', (sha) => {
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_COMMITS: `${sha}\n` });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain(`::error::The API listed '${sha}' as a commit of hotfix/crash; the hotfix cannot be checked.`);
+    expect(r.gh).toHaveLength(1);
+  });
+
+  it('more than 250 commits over master fail before any status call', () => {
+    const shas = Array.from({ length: 251 }, (_v, i) => i.toString(16).padStart(40, '0')).join('\n');
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_COMMITS: `${shas}\n` });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain('::error::hotfix/crash adds 251 commits over master (more than 250)');
+    expect(r.gh).toHaveLength(1);
+  });
+
+  it('every commit the hotfix adds is checked: one compare call per commit', () => {
+    branchFrom('hotfix/crash', 'master');
+    repo.git(['switch', '-q', 'hotfix/crash']);
+    repo.commit('fix: second part');
+    repo.git(['switch', '-q', 'development']);
+    const r = guard('hotfix/crash', 'hotfix/crash');
+    expect(r.status).toBe(0);
+    expect(r.all).toContain('none of its 2 commits over master is on development');
+    expect(r.gh).toHaveLength(3);
+    expect(r.gh[0]).toBe(`gh api repos/tarodan/tarodan-mobile/compare/master...${repo.git(['rev-parse', 'hotfix/crash'])}?per_page=100 --paginate --jq .commits[].sha`);
+  });
+
+  it.each([[''], ['null'], ['unknown']])('a compare status %j fails (closed)', (status) => {
     const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_STATUS: status });
     expect(r.status).not.toBe(0);
-    expect(r.all).toContain(`compare status: ${status})`);
+    expect(r.all).toContain(`::error::Could not tell whether development contains`);
+    expect(r.all).toContain(`(compare status: '${status}')`);
     expect(r.all).not.toContain('OK:');
+  });
+
+  it.each([['identical'], ['ahead']])('a compare status %j (development contains the commit) fails', (status) => {
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_STATUS: status });
+    expect(r.status).not.toBe(0);
+    expect(r.all).toContain(`is on development; compare status: ${status})`);
+  });
+
+  it.each([['behind'], ['diverged']])('a compare status %j (development lacks the commit) passes', (status) => {
+    const r = guard(branchFrom('hotfix/crash', 'master'), 'hotfix/crash', { FAKE_GH_STATUS: status });
+    expect(r.status).toBe(0);
+    expect(r.all).toContain('OK: hotfix/crash -> master');
   });
 
   it('development passes without any API call', () => {

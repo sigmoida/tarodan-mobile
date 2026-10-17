@@ -17,9 +17,11 @@ onaylar ve Android durumu. Workflow'lar: `mobile-staging.yml`,
 it is red when the source branch is neither `development` nor `hotfix/*`, when the
 PR comes from a fork, or when a `hotfix/*` branch was **not cut from master**. A
 hotfix skips the release version check and a JS-only one ships as an OTA, so it may
-not carry unreleased development code: the guard asks the GitHub API for the merge
-base of the hotfix head and `development` and fails unless master already contains
-it (a hotfix cut from development, or one that merged development later, fails).
+not carry unreleased development code: the guard asks the GitHub API for every
+commit the hotfix adds over master (at most 250) and fails if `development` contains
+any of them. So a hotfix cut from development fails, as does one that merged
+development, or a feature branch development already merged, or one that was merged
+into development before master. Any API error fails the check too.
 It must be a required check for `master` in the ruleset. The workflow runs on
 `pull_request_target`: the file is read from **master**, not from the PR, so a PR
 cannot change the guard (the job checks out no PR code and reads the branch name and
@@ -372,9 +374,11 @@ trigger it. Re-running it is safe: an existing tag or Release is left alone.
 ## Hotfix
 
 1. Cut `hotfix/<name>` **from master** (`git switch -c hotfix/<name> origin/master`)
-   and make the fix (cherry-pick it if it is already on development). A hotfix
-   branch cut from development, or one that merges development, is refused by
-   `Master source guard`.
+   and make the fix (cherry-pick it if it is already on development; the cherry-pick
+   is a new commit). Do not merge development, or any branch development has
+   merged, into the hotfix, and do not merge the hotfix into development before
+   master (the back-merge does that afterwards): `Master source guard` refuses a
+   hotfix that adds any commit development already has.
 2. Open the `hotfix/<name>` -> `master` PR (the guard allows it) and merge it. If
    only JS changed, a production OTA is prepared and **waits for your approval**
    (Actions -> the run -> "Review deployments"). The OTA reaches the binary of the

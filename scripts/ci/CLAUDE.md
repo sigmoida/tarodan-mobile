@@ -25,9 +25,13 @@ change one:
   `expo.version` must equal `next-version`. Runs in `ci.yml` on PRs into master
   (merge ref, required check) and in the production `plan` after the merge.
   Skipping hotfixes by branch name is safe only because `Master source guard`
-  (`master-flow.yml`, required) admits a `hotfix/*` head only when its merge base
-  with `development` is already on master (two read-only `gh api .../compare`
-  calls, no checkout): a hotfix cut from development fails there.
+  (`master-flow.yml`, required) admits a `hotfix/*` head only when none of the
+  commits it adds over master is on `development`. It lists those commits
+  (`gh api .../compare/master...<head> --paginate`, at most 250) and checks each one
+  against `development` (one read-only compare per commit, no checkout). No merge
+  base is trusted, because a criss-cross history has several. A hotfix cut from
+  development, or one that merged development or a branch development already
+  merged, fails there; so does any API error or unexpected answer.
 - `plan <staging|production>`: the single per-platform decision loop
   (`ota | build | wait | skip | blocked`). Production: a `development` merge (or an
   unknown source) is always a store build and never an OTA; `hotfix/*` follows the
