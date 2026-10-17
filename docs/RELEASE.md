@@ -416,8 +416,12 @@ cannot get its symbols later (the dSYMs and Hermes maps exist only inside that
 build), so a silent skip would ship 1.1.0 with unreadable crashes. Failing at
 the "Read app config" step, a few minutes in and with the fix in the message, is
 cheaper than failing at the end of the native build, which is what `sentry-cli`
-does on its own. Staging
-profiles are not affected. To ship a production build without symbols on
+does on its own. Staging and development builds are never blocked (they keep
+`SENTRY_DISABLE_AUTO_UPLOAD=true` and need no DSN). Note that the `staging` store
+profile sets no `environment`, so EAS builds it with the **`production`**
+variables: it receives the production DSN and sees `SENTRY_AUTH_TOKEN` (unused
+there), and any change to the `production` environment reaches staging store
+builds too. To ship a production build without symbols on
 purpose (for example during a Sentry outage), set `SENTRY_DISABLE_AUTO_UPLOAD=true`
 in the EAS `production` environment; the build logs a warning. Remove it again
 afterwards.
@@ -454,7 +458,8 @@ afterwards.
    `.env*` files or a commit.
 
 4. **Check names only:** `eas env:list production --format short` must list
-   `EXPO_PUBLIC_SENTRY_DSN` and `SENTRY_AUTH_TOKEN` (the secret shows masked).
+   `EXPO_PUBLIC_SENTRY_DSN` and `SENTRY_AUTH_TOKEN` (the secret shows masked), and
+   `eas env:list preview --format short` must list `EXPO_PUBLIC_SENTRY_DSN`.
 5. **After the first production build:** in Sentry, Project Settings -> Source Maps
    shows an artifact bundle with the build's Debug ID, and Debug Files shows the
    iOS dSYMs. Trigger a test error on a TestFlight build and confirm the stack
