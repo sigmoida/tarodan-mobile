@@ -44,19 +44,19 @@ the reference targets (`see src/ui/CLAUDE.md › Loading`).
 
 ## Architecture
 
-| Layer | Where | Rule file |
-| --- | --- | --- |
-| Routes (thin screens, `_hooks`, `_lib`, `_modals`) | `app/` | `app/CLAUDE.md` |
-| Primitives, loading, sheets, feedback, forms | `src/ui` (`@/ui`, vendored `@tarodan/ui-native`) | `src/ui/CLAUDE.md` |
-| Design tokens (synced copy) and role tokens | `src/theme` (`theme` via `@/ui`) | `src/theme/CLAUDE.md` |
-| Axios surface by domain | `src/lib/api` (`@/lib/api`) | `src/lib/api/CLAUDE.md` |
-| Server state, query keys, mutations | `src/lib/query` (`@/lib/query`) | `src/lib/query/CLAUDE.md` |
-| Client/UI state only | `src/stores` | `src/stores/CLAUDE.md` |
-| Feature composites (`ProductCard`, shells, ...) | `src/components/<feature>` | `src/components/CLAUDE.md` |
-| Message catalog (tr + en) | `src/i18n` | `src/i18n/CLAUDE.md` |
-| Deep-link path table, well-known files | `src/lib/deeplinks` | `src/lib/deeplinks/CLAUDE.md` |
-| Release pipeline helpers | `scripts/ci` | `scripts/ci/CLAUDE.md` |
-| E2E flows | `maestro/` | `maestro/README.md` |
+| Layer                                              | Where                                            | Rule file                     |
+| -------------------------------------------------- | ------------------------------------------------ | ----------------------------- |
+| Routes (thin screens, `_hooks`, `_lib`, `_modals`) | `app/`                                           | `app/CLAUDE.md`               |
+| Primitives, loading, sheets, feedback, forms       | `src/ui` (`@/ui`, vendored `@tarodan/ui-native`) | `src/ui/CLAUDE.md`            |
+| Design tokens (synced copy) and role tokens        | `src/theme` (`theme` via `@/ui`)                 | `src/theme/CLAUDE.md`         |
+| Axios surface by domain                            | `src/lib/api` (`@/lib/api`)                      | `src/lib/api/CLAUDE.md`       |
+| Server state, query keys, mutations                | `src/lib/query` (`@/lib/query`)                  | `src/lib/query/CLAUDE.md`     |
+| Client/UI state only                               | `src/stores`                                     | `src/stores/CLAUDE.md`        |
+| Feature composites (`ProductCard`, shells, ...)    | `src/components/<feature>`                       | `src/components/CLAUDE.md`    |
+| Message catalog (tr + en)                          | `src/i18n`                                       | `src/i18n/CLAUDE.md`          |
+| Deep-link path table, well-known files             | `src/lib/deeplinks`                              | `src/lib/deeplinks/CLAUDE.md` |
+| Release pipeline helpers                           | `scripts/ci`                                     | `scripts/ci/CLAUDE.md`        |
+| E2E flows                                          | `maestro/`                                       | `maestro/README.md`           |
 
 - Cross-route hooks go in `src/hooks/`; everything else is colocated with its route
   or feature. `@tarodan/*` packages are vendored under `src/`; there are no external
@@ -68,6 +68,20 @@ the reference targets (`see src/ui/CLAUDE.md › Loading`).
   App Router groups + `_folders` -> expo-router groups + `_folders`; TanStack Query +
   `lib/api/*` -> the same; Tailwind token classes -> `theme` from `@/ui`. Server
   Components / `generateMetadata` have no native equivalent.
+
+## Process
+
+Full flow: tarodan-ops `CLAUDE.md` › Process. In this repo:
+
+- The hub `architect` plans and assigns each task by intensity and risk:
+  `react-native-developer` (mid, Sonnet) for contained work,
+  `react-native-developer-senior` (Opus) for payment, session, push, native modules,
+  performance. Each works in its own worktree/branch and commits its own work.
+- Mid work is reviewed by the senior with `/code-review`; IMPORTANT findings are
+  fixed and re-checked (no self-approval). The senior self-reviews its own branch
+  with `/code-review` before handing over.
+- Payment, session, push and other critical paths also get a test review by
+  `qa-engineer-senior`. The orchestrator merges locally; the user approves pushes.
 
 ## Commits and branches
 
@@ -85,9 +99,13 @@ husky + commitlint + lint-staged (run `pnpm exec husky` once per clone/worktree)
   commit**: native modules, native `app.json`/`app.config.js` fields, config plugins,
   permissions, privacy manifest, `eas.json`, `package.json` scripts, `.gitignore`.
 - Branches `<type>/<kebab-description>` (`feat fix refactor perf chore ci docs test
-  hotfix`); checked on pre-push. Merges are `--no-ff`; no squash.
+hotfix`); checked on pre-push. Merges are `--no-ff`; no squash.
 - **No push without the user's explicit approval.** Agents commit on their own branch
   and stop there.
+- `.claude/settings.json` (versioned) asks before push / PR / `eas`, and denies
+  force-push, `--no-verify`, `git stash`, branch deletes and `.env` reads. A
+  `git push origin :branch` delete is not caught locally; the GitHub ruleset protects
+  `development` and `master`. Agents and skills: `.claude/agents/`, `.claude/skills/`.
 
 ## Verification
 
