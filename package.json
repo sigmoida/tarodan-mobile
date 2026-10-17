@@ -141,7 +141,7 @@
     "*.{ts,tsx,js,jsx}": [
       "eslint --fix"
     ],
-    "*.{json,md}": [
+    "{*,!(.claude)/**/*}.{json,md}": [
       "prettier --write"
     ]
   }
