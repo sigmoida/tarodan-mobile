@@ -69,7 +69,8 @@ tarodan-ops `qa/device-checklist.md` before the store build).
 
 ## 5. Ordering against the API
 
-- Deploy order: web -> API -> mobile.
+- Deploy order: a needed mobile OTA first, then API, web and admin together from one
+  tarodan-app release, then mobile store builds, flags last.
 - A mobile JS fix that the new API needs ships as an OTA **before** the API deploy.
 - Flags and admin settings flip only after the mobile version that supports them is
   live (e.g. `distance_sales_consent_required` stays off until mobile sends

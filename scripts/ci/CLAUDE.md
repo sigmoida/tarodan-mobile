@@ -64,8 +64,8 @@ change one:
 - `eas update` does not read the `eas.json` profile env; `release.sh` loads it so the
   OTA fingerprint and `EXPO_PUBLIC_*` values match the build.
 - Production steps stay behind the `production` / `production-build` GitHub
-  Environments. The production freeze (tarodan-ops ADR 0010) blocks any production
-  run until the user lifts it.
+  Environments. The production freeze (tarodan-ops ADR 0010) was lifted on
+  2026-10-17; every production run still needs the user's approval.
 - Tags are `mobile-v<version>` (`TAG_PREFIX` in `release.sh`), set by
   `release-bookkeeping` in `mobile-production.yml` on the released master commit. CI
   never writes to `development` (no post-release bump).
