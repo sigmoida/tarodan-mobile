@@ -60,9 +60,18 @@ describe('DateField (iOS)', () => {
 });
 
 describe('defaultMinimumDate', () => {
-  it('is today minus 100 years at local start of day (web DatePicker window)', () => {
-    const min = defaultMinimumDate(new Date(2026, 9, 19, 15, 30));
-    expect(min).toEqual(new Date(1926, 9, 19));
+  const now = new Date(2026, 9, 19, 15, 30);
+
+  it('is 1 January of today minus 100 years without a maximum (web DatePicker window)', () => {
+    expect(defaultMinimumDate(undefined, now)).toEqual(new Date(1926, 0, 1));
+  });
+
+  it('counts back from the maximum year when it is earlier (18+ birth date: 1908 like web)', () => {
+    expect(defaultMinimumDate(new Date(2008, 9, 19), now)).toEqual(new Date(1908, 0, 1));
+  });
+
+  it('ignores a maximum later than today', () => {
+    expect(defaultMinimumDate(new Date(2030, 0, 1), now)).toEqual(new Date(1926, 0, 1));
   });
 });
 
@@ -83,7 +92,7 @@ describe.each(['android', 'ios'] as const)('DateField minimumDate (%s)', (os) =>
   it('sends the default minimum when the caller gives none (Android pre-1970 clamp)', () => {
     const maximumDate = new Date(2008, 0, 1);
     const picker = openPicker({ maximumDate });
-    expect(picker.minimumDate).toEqual(defaultMinimumDate());
+    expect(picker.minimumDate).toEqual(defaultMinimumDate(maximumDate));
     expect(picker.minimumDate!.getTime()).toBeLessThan(new Date(1970, 0, 1).getTime());
     expect(picker.maximumDate).toBe(maximumDate);
   });
@@ -96,6 +105,12 @@ describe.each(['android', 'ios'] as const)('DateField minimumDate (%s)', (os) =>
   it('opens on a pre-1970 value and keeps it', () => {
     const picker = openPicker({ value: '1950-03-07', maximumDate: new Date(2008, 0, 1) });
     expect(picker.value).toEqual(new Date(1950, 2, 7));
+  });
+
+  it('widens the default floor to a stored value older than the window', () => {
+    const picker = openPicker({ value: '1900-05-02', maximumDate: new Date(2008, 0, 1) });
+    expect(picker.minimumDate).toEqual(new Date(1900, 4, 2));
+    expect(picker.value).toEqual(new Date(1900, 4, 2));
   });
 });
 
