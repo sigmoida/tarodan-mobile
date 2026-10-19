@@ -35,6 +35,23 @@ export interface DateFieldProps {
 /** iOS `UIDatePicker` spinner'ının doğal yüksekliği (pt). */
 const IOS_SPINNER_HEIGHT = 216;
 
+/** How many years back the picker reaches when the caller gives no `minimumDate` (web parity). */
+const DEFAULT_MIN_DATE_YEARS_BACK = 100;
+
+/**
+ * Default earliest selectable date: today minus 100 years, local start of day. Same
+ * window as the web `DatePicker` year list (`today.y - 100`).
+ *
+ * Do NOT drop this default. On Android, `@react-native-community/datetimepicker`
+ * (RNDatePickerDialogFragment) clamps a picked date to `minDate` whenever a
+ * `maximumDate` is set but no `minimumDate` is; the unset minimum is treated as the
+ * epoch, so every date before 1970-01-01 snaps back to 1970. Always sending a
+ * minimum avoids that clamp (iOS has none).
+ */
+export function defaultMinimumDate(now: Date = new Date()): Date {
+  return new Date(now.getFullYear() - DEFAULT_MIN_DATE_YEARS_BACK, now.getMonth(), now.getDate());
+}
+
 /** i18n dili -> `Intl`/native picker locale etiketi (bkz. `@/utils/format`). */
 function activeDateLocale(language: string): string {
   return language === 'en' ? 'en-US' : 'tr-TR';
@@ -98,6 +115,7 @@ export const DateField: React.FC<DateFieldProps> = ({
   const { t } = useTranslation();
   const dateLocale = activeDateLocale(i18nInstance.language);
   const resolvedPlaceholder = placeholder ?? t('auth.birthDatePlaceholder');
+  const resolvedMinimumDate = minimumDate ?? defaultMinimumDate();
   const selectedDate = parseLocalDate(value);
   const fallbackDate = selectedDate ?? maximumDate ?? new Date();
 
@@ -142,7 +160,7 @@ export const DateField: React.FC<DateFieldProps> = ({
           value={fallbackDate}
           mode="date"
           display="default"
-          minimumDate={minimumDate}
+          minimumDate={resolvedMinimumDate}
           maximumDate={maximumDate}
           onChange={onAndroidChange}
         />
@@ -182,7 +200,7 @@ export const DateField: React.FC<DateFieldProps> = ({
             display="spinner"
             locale={dateLocale}
             themeVariant="light"
-            minimumDate={minimumDate}
+            minimumDate={resolvedMinimumDate}
             maximumDate={maximumDate}
             onChange={onIOSChange}
             style={styles.iosPicker}
