@@ -32,11 +32,20 @@ jest.mock("react-i18next", () => ({
 }));
 
 const mockLogout = jest.fn((_opts?: unknown) => Promise.resolve());
-jest.mock("@/stores/authStore", () => ({
-  useAuthStore: (sel?: (state: unknown) => unknown) => {
-    const state = { logout: mockLogout };
-    return sel ? sel(state) : state;
-  },
+let mockSession: { isAuthenticated: boolean; token: string | null } = {
+  isAuthenticated: true,
+  token: "access-token",
+};
+jest.mock("@/stores/authStore", () => {
+  const state = () => ({ ...mockSession, logout: mockLogout });
+  const useAuthStore = (sel?: (s: unknown) => unknown) => (sel ? sel(state()) : state());
+  useAuthStore.getState = state;
+  return { useAuthStore };
+});
+
+const mockCapture = jest.fn();
+jest.mock("@/services/logger", () => ({
+  logger: { captureException: (...a: unknown[]) => mockCapture(...a) },
 }));
 
 jest.mock("@/lib/api", () => ({
@@ -56,6 +65,8 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
     mockReplace.mockClear();
     mockBack.mockClear();
     mockLogout.mockClear();
+    mockCapture.mockClear();
+    mockSession = { isAuthenticated: true, token: "access-token" };
     mockParams = { token: "valid-token" };
   });
 
@@ -147,7 +158,7 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
     );
   });
 
-  it("J46.8 success → local session ends (no server calls) before the success view", async () => {
+  it("J46.8 signed-in success → local session ends (no server revoke) before the success view", async () => {
     mockReset.mockResolvedValue({});
     renderWithProviders(<ResetPasswordScreen />);
     setPasswords(STRONG, STRONG);
@@ -157,7 +168,7 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
       expect(screen.getByText("auth.resetSuccessTitle")).toBeOnTheScreen(),
     );
     expect(mockLogout).toHaveBeenCalledTimes(1);
-    expect(mockLogout).toHaveBeenCalledWith({ reason: "user", skipServer: true });
+    expect(mockLogout).toHaveBeenCalledWith({ skipServer: true });
 
     fireEvent.press(screen.getByText("auth.loginTitle"));
     expect(mockReplace).toHaveBeenCalledWith("/(auth)/login");
@@ -179,7 +190,7 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
     );
   });
 
-  it("J46.10 a failing logout never shows as a failed reset", async () => {
+  it("J46.10 a failing logout never shows as a failed reset and is reported", async () => {
     mockLogout.mockRejectedValueOnce(new Error("storage blocked"));
     mockReset.mockResolvedValue({});
     renderWithProviders(<ResetPasswordScreen />);
@@ -190,6 +201,23 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
       expect(screen.getByText("auth.resetSuccessTitle")).toBeOnTheScreen(),
     );
     expect(screen.queryByText("auth.resetFailed")).toBeNull();
+    expect(mockCapture).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({ tags: { flow: "auth.resetPassword.logout" } }),
+    );
+  });
+
+  it("J46.12 guest success → no logout, so the guest cart and local data stay", async () => {
+    mockSession = { isAuthenticated: false, token: null };
+    mockReset.mockResolvedValue({});
+    renderWithProviders(<ResetPasswordScreen />);
+    setPasswords(STRONG, STRONG);
+    fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
+
+    await waitFor(() =>
+      expect(screen.getByText("auth.resetSuccessTitle")).toBeOnTheScreen(),
+    );
+    expect(mockLogout).not.toHaveBeenCalled();
   });
 
   it("J46.11 failed reset → no logout, form error stays", async () => {
