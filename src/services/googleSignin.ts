@@ -28,14 +28,11 @@ function ensureConfigured() {
 }
 
 /**
- * Android'de Google girişi AÇIK mı — build başına bayrak. BİLİNÇLİ karar:
- * Android henüz Play'de değil; bayrak `'true'` olana kadar buton Android'de
- * gizli (belgesi `.env.example`, profiller `eas.json`'da `"false"`). Google Cloud'da
- * Android OAuth istemcisine imza SHA-1'i (Play App Signing + upload) kayıtlı
- * değilken giriş `DEVELOPER_ERROR` ile düşüyor (docs/RELEASE.md). Bayrak
- * yalnız SHA-1 kaydı doğrulanmış build profilinde `'true'` yapılır; yoksa
- * buton hiç görünmez. Doğrudan `process.env.EXPO_PUBLIC_*` erişimi: Expo
- * değeri derleme anında inline'lar.
+ * Is Google sign-in ON for Android? A per-build flag, on purpose: without an Android OAuth
+ * client (package name + signing SHA-1) in Google Cloud, sign-in dies with `DEVELOPER_ERROR`
+ * (docs/ANDROID_RELEASE.md, section 9). The flag is `'true'` only in the `eas.json` profiles
+ * whose client exists (`easProfiles.test.ts` pins them); elsewhere the button stays hidden.
+ * Read `process.env.EXPO_PUBLIC_*` directly: Expo inlines the value at build time.
  */
 const ANDROID_ENABLED = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED === 'true';
 
