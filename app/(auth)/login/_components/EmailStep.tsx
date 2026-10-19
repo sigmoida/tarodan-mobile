@@ -7,24 +7,30 @@ import { Button, Input, Text } from '@/ui';
 import { styles } from '../_lib/styles';
 import type { LoginController } from '../_hooks/useLogin';
 import { SocialButtons } from '@/components/auth/SocialButtons';
+import { getVisibleSocialProviders } from '@/components/auth/socialProviders';
 
 /**
- * Adım 1 (web "identify"): Google / Apple, "VEYA" ayıracı, e-posta, "Devam Et". E-posta
- * kayıtlı değilse alanın altında "Üye Ol" bağlantılı uyarı çıkar (web `notRegistered`).
+ * Step 1 (web "identify"): Google / Apple, the "or" divider, e-mail, "Continue". The divider
+ * and the Apple/Google terms copy show only when at least one provider button is rendered
+ * (none on Android while Google is off). When the e-mail is not registered, a warning with a
+ * "Sign up" link appears under the field (web `notRegistered`).
  */
 export function EmailStep({ f }: { f: LoginController }) {
   const { t } = useTranslation();
   const { control, formState: { errors } } = f.form;
+  const hasSocial = getVisibleSocialProviders(f.social).any;
 
   return (
     <View style={styles.form}>
       <SocialButtons social={f.social} busy={f.loginMutation.isPending} testIDPrefix="login" />
 
-      <View style={styles.dividerRow}>
-        <View style={styles.dividerLine} />
-        <Text variant="caption" tone="muted" style={styles.upper}>{t('common.or')}</Text>
-        <View style={styles.dividerLine} />
-      </View>
+      {hasSocial ? (
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text variant="caption" tone="muted" style={styles.upper}>{t('common.or')}</Text>
+          <View style={styles.dividerLine} />
+        </View>
+      ) : null}
 
       <Controller
         control={control}
@@ -80,7 +86,7 @@ export function EmailStep({ f }: { f: LoginController }) {
           (2. adıma yalnız bu adımdan geçilir). */}
       <View style={styles.terms}>
         <Text variant="caption" tone="muted">
-          {t('auth.loginTermsNotice')}
+          {t(hasSocial ? 'auth.loginTermsNotice' : 'auth.loginTermsNoticeNoSocial')}
         </Text>
         {/* Tek satır metin: bağlantılar iç içe Text, aralarındaki boşluk gerçek boşluk karakteri
             (HStack `gap` ham sayıyı pt alır — `gap={1}` 1pt'ydi, "ve" bitişik görünüyordu). */}

@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { appAlert } from '@/ui';
 import { authApi } from '@/lib/api';
 import { signInWithGoogle } from '@/services/googleSignin';
+import { isGoogleDeveloperError } from '@/services/googleSigninErrors';
+import { captureException } from '@/services/sentry';
 import { signInWithApple, isAppleAvailable } from '@/services/appleSignin';
 import { useAuthStore, type User } from '@/stores/authStore';
 
@@ -95,12 +97,23 @@ export function useSocialSignIn({ onPasswordLoginRequired }: SocialSignInOptions
       if (!(await completeLogin(response.data as SocialLoginResponse))) return;
       router.push('/' as never);
     } catch (e: any) {
-      // İptal sessiz geçilir; diğer her hata KULLANICIYA gösterilir (önceden
-      // sessiz yutuluyordu → "takılıyor" görüntüsü). Native status code'u da
-      // ekle: DEVELOPER_ERROR → Google Cloud'da Android OAuth client/SHA-1 eksik.
+      // Cancellation is silent; every other error is SHOWN to the user (swallowing it
+      // used to look like a hang). The native status code is appended.
       if (e?.code === 'SIGN_IN_CANCELLED' || e?.code === '-5') return;
       if (isTwoFactorPasswordRequired(e)) {
         requirePasswordLogin();
+        return;
+      }
+      // DEVELOPER_ERROR = the Android OAuth client / signing SHA-1 is missing in Google
+      // Cloud. The raw native text is useless to the user: show a readable message and
+      // report it, because the fix is on our side (docs/ANDROID_RELEASE.md, section 9).
+      if (isGoogleDeveloperError(e)) {
+        captureException(e, {
+          level: 'error',
+          tags: { flow: 'auth.google', reason: 'developer_error' },
+          extra: { code: e?.code },
+        });
+        appAlert(t('auth.googleSignInFailedTitle'), t('auth.googleDeveloperError'));
         return;
       }
       const apiMsg = e?.response?.data?.message;

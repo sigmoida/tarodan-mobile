@@ -2,7 +2,7 @@ import React from 'react';
 import Svg, { Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { Button, theme } from '@/ui';
-import { isGoogleConfigured } from '@/services/googleSignin';
+import { getVisibleSocialProviders } from './socialProviders';
 import type { useSocialSignIn } from '@/hooks/useSocialSignIn';
 
 const { colors } = theme;
@@ -60,10 +60,11 @@ export interface SocialButtonsProps {
 export function SocialButtons({ social, busy = false, apple = true, testIDPrefix }: SocialButtonsProps) {
   const { t } = useTranslation();
   const locked = busy || social.googleLoading || social.appleLoading;
+  const visible = getVisibleSocialProviders(social, { apple });
 
   return (
     <>
-      {isGoogleConfigured() ? (
+      {visible.google ? (
         <Button
           testID={`${testIDPrefix}-google-button`}
           variant="outline"
@@ -79,7 +80,7 @@ export function SocialButtons({ social, busy = false, apple = true, testIDPrefix
         />
       ) : null}
 
-      {apple && social.appleAvailable ? (
+      {visible.apple ? (
         <Button
           testID={`${testIDPrefix}-apple-button`}
           variant="outline"
