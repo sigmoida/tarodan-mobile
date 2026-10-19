@@ -11,8 +11,8 @@ import { getVisibleSocialProviders } from '@/components/auth/socialProviders';
 
 /**
  * Step 1 (web "identify"): Google / Apple, the "or" divider, e-mail, "Continue". The divider
- * and the Apple/Google terms copy show only when at least one provider button is rendered
- * (none on Android while Google is off). When the e-mail is not registered, a warning with a
+ * shows only when at least one provider button is rendered (none on Android while Google
+ * is off). When the e-mail is not registered, a warning with a
  * "Sign up" link appears under the field (web `notRegistered`).
  */
 export function EmailStep({ f }: { f: LoginController }) {
@@ -80,16 +80,17 @@ export function EmailStep({ f }: { f: LoginController }) {
         disabled={f.identifying || f.googleLoading || f.appleLoading}
       />
 
-      {/* Apple 1.2: koşullar kayıttan VEYA girişten önce gösterilmeli. Apple/Google
-          ile devam et ilk kullanımda hesap açar ve kayıt ekranındaki onay
-          kutusundan geçmez — bildirim bu yüzden giriş akışının ilk adımında duruyor
-          (2. adıma yalnız bu adımdan geçilir). */}
+      {/* Apple 1.2: the terms must show before registering OR signing in. "Continue with
+          Apple/Google" creates an account on first use and skips the register screen's
+          consent checkbox, so the notice sits on the first step of the login flow (step 2
+          is reached only through it). The copy is provider-neutral, so it stays true on
+          every platform whichever provider buttons show. */}
       <View style={styles.terms}>
         <Text variant="caption" tone="muted">
-          {t(hasSocial ? 'auth.loginTermsNotice' : 'auth.loginTermsNoticeNoSocial')}
+          {t('auth.loginTermsNotice')}
         </Text>
-        {/* Tek satır metin: bağlantılar iç içe Text, aralarındaki boşluk gerçek boşluk karakteri
-            (HStack `gap` ham sayıyı pt alır — `gap={1}` 1pt'ydi, "ve" bitişik görünüyordu). */}
+        {/* One line of text: the links are nested Text and the space between them is a real
+            space character (HStack `gap` takes raw pt; `gap={1}` was 1pt and "and" touched). */}
         <Text variant="caption" tone="muted">
           <Text testID="login-terms-link" variant="caption" tone="primary" weight="semibold" onPress={() => router.push('/terms')}>
             {t('footer.terms')}

@@ -343,8 +343,7 @@
     "loginFailed": "Sign-in failed.",
     "signingIn": "Signing in…",
     "continueWithApple": "Continue with Apple",
-    "loginTermsNotice": "By signing in or continuing with Apple or Google, you agree to our Terms of Use and Privacy Policy.",
-    "loginTermsNoticeNoSocial": "By signing in, you agree to our Terms of Use and Privacy Policy.",
+    "loginTermsNotice": "By signing in or continuing, you agree to our Terms of Use and Privacy Policy.",
     "continueAsGuest": "Continue as Guest",
     "corporateUpgradeTitle": "Business Membership",
     "corporateUpgradeBody": "Your business details are complete. Switch to a business membership to use its benefits.",
@@ -356,7 +355,6 @@
     "unexpectedLoginResponse": "The sign-in response arrived in an unexpected shape. Please try again.",
     "googleSignInFailedTitle": "Google sign-in failed",
     "googleNotConfigured": "Google sign-in is not configured on this platform",
-    "googleDeveloperError": "Google sign-in is not available in this version of the app right now. Please sign in with your e-mail address, or try again later.",
     "googleIdTokenMissing": "Couldn't get a Google idToken",
     "appleSignInFailedTitle": "Apple sign-in failed",
     "appleIdentityTokenMissing": "Couldn't get an Apple identityToken",
@@ -3515,6 +3513,8 @@
     }
   },
   "mobile": {
+    "googleDeveloperError": "Google sign-in is not available in this version of the app right now. Please sign in with your e-mail address, or try again later.",
+    "googleOnlyAccountNoGoogle": "This account was created with Google. To sign in here, set a password.",
     "tabBarSell": "Create Listing",
     "tabBarExpandHint": "Shows the tab bar",
     "addressTitlePlaceholder": "e.g. Home, Work",

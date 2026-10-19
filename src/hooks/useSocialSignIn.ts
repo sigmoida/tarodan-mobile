@@ -91,8 +91,12 @@ export function useSocialSignIn({ onPasswordLoginRequired }: SocialSignInOptions
   const handleGoogle = async () => {
     if (googleLoading) return;
     setGoogleLoading(true);
+    // Native errors are told apart from API errors: a native code (e.g. DEVELOPER_ERROR = 10)
+    // must not be matched against an error from `authApi.loginWithGoogle`.
+    let nativeStep = true;
     try {
       const idToken = await signInWithGoogle();
+      nativeStep = false;
       const response = await authApi.loginWithGoogle(idToken);
       if (!(await completeLogin(response.data as SocialLoginResponse))) return;
       router.push('/' as never);
@@ -104,21 +108,21 @@ export function useSocialSignIn({ onPasswordLoginRequired }: SocialSignInOptions
         requirePasswordLogin();
         return;
       }
+      const code = e?.code ? ` (${t('common.errorCodeSuffix', { code: e.code })})` : '';
       // DEVELOPER_ERROR = the Android OAuth client / signing SHA-1 is missing in Google
-      // Cloud. The raw native text is useless to the user: show a readable message and
-      // report it, because the fix is on our side (docs/ANDROID_RELEASE.md, section 9).
-      if (isGoogleDeveloperError(e)) {
+      // Cloud. The raw native text is useless to the user: show a readable message (with the
+      // code, for support) and report it, because the fix is on our side
+      // (docs/ANDROID_RELEASE.md, section 9). The native error carries no user data.
+      if (nativeStep && isGoogleDeveloperError(e)) {
         captureException(e, {
           level: 'error',
-          tags: { flow: 'auth.google', reason: 'developer_error' },
-          extra: { code: e?.code },
+          tags: { flow: 'auth.google', reason: 'developer_error', code: String(e?.code ?? '') },
         });
-        appAlert(t('auth.googleSignInFailedTitle'), t('auth.googleDeveloperError'));
+        appAlert(t('auth.googleSignInFailedTitle'), `${t('mobile.googleDeveloperError')}${code}`);
         return;
       }
       const apiMsg = e?.response?.data?.message;
       const detail = apiMsg || e?.message || t('common.unknownError');
-      const code = e?.code ? ` (${t('common.errorCodeSuffix', { code: e.code })})` : '';
       appAlert(t('auth.googleSignInFailedTitle'), `${detail}${code}`);
     } finally {
       setGoogleLoading(false);

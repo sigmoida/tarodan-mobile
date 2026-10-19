@@ -20,7 +20,10 @@ jest.mock('@/services/appleSignin', () => ({
   signInWithApple: jest.fn(),
   isAppleAvailable: () => Promise.resolve(false),
 }));
-jest.mock('@/lib/api', () => ({ authApi: { loginWithGoogle: jest.fn(), loginWithApple: jest.fn() } }));
+const mockLoginWithGoogle = jest.fn();
+jest.mock('@/lib/api', () => ({
+  authApi: { loginWithGoogle: (...a: unknown[]) => mockLoginWithGoogle(...a), loginWithApple: jest.fn() },
+}));
 const mockCapture = jest.fn();
 jest.mock('@/services/sentry', () => ({ captureException: (...a: unknown[]) => mockCapture(...a) }));
 
@@ -51,7 +54,7 @@ describe('isGoogleDeveloperError', () => {
 });
 
 describe('useSocialSignIn — Google DEVELOPER_ERROR', () => {
-  it('shows a readable message (no raw native text, no code suffix) and reports to Sentry', async () => {
+  it('shows a readable message (no raw native text, with the code) and reports to Sentry', async () => {
     mockSignInWithGoogle.mockRejectedValueOnce(nativeDeveloperError);
     const { result } = renderHook(() => useSocialSignIn());
 
@@ -59,11 +62,29 @@ describe('useSocialSignIn — Google DEVELOPER_ERROR', () => {
       await result.current.handleGoogle();
     });
 
-    expect(mockAlert).toHaveBeenCalledWith('auth.googleSignInFailedTitle', 'auth.googleDeveloperError');
+    expect(mockAlert).toHaveBeenCalledWith(
+      'auth.googleSignInFailedTitle',
+      'mobile.googleDeveloperError (common.errorCodeSuffix)',
+    );
     expect(mockCapture).toHaveBeenCalledWith(
       nativeDeveloperError,
-      expect.objectContaining({ tags: { flow: 'auth.google', reason: 'developer_error' } }),
+      expect.objectContaining({ tags: { flow: 'auth.google', reason: 'developer_error', code: '10' } }),
     );
+  });
+
+  it('does not treat an API error with code 10 as a native DEVELOPER_ERROR', async () => {
+    mockSignInWithGoogle.mockResolvedValueOnce('id-token');
+    mockLoginWithGoogle.mockRejectedValueOnce(
+      Object.assign(new Error('server said no'), { code: '10', response: { data: { message: 'api message' } } }),
+    );
+    const { result } = renderHook(() => useSocialSignIn());
+
+    await act(async () => {
+      await result.current.handleGoogle();
+    });
+
+    expect(mockCapture).not.toHaveBeenCalled();
+    expect(mockAlert).toHaveBeenCalledWith('auth.googleSignInFailedTitle', 'api message (common.errorCodeSuffix)');
   });
 
   it('does not report a user cancellation', async () => {
