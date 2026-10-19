@@ -31,6 +31,14 @@ jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (k: string) => k }),
 }));
 
+const mockLogout = jest.fn((_opts?: unknown) => Promise.resolve());
+jest.mock("@/stores/authStore", () => ({
+  useAuthStore: (sel?: (state: unknown) => unknown) => {
+    const state = { logout: mockLogout };
+    return sel ? sel(state) : state;
+  },
+}));
+
 jest.mock("@/lib/api", () => ({
   authApi: { resetPassword: jest.fn() },
 }));
@@ -47,6 +55,7 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
     mockReset.mockReset();
     mockReplace.mockClear();
     mockBack.mockClear();
+    mockLogout.mockClear();
     mockParams = { token: "valid-token" };
   });
 
@@ -136,5 +145,60 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
     await waitFor(() =>
       expect(screen.getByText("Token süresi doldu")).toBeOnTheScreen(),
     );
+  });
+
+  it("J46.8 success → local session ends (no server calls) before the success view", async () => {
+    mockReset.mockResolvedValue({});
+    renderWithProviders(<ResetPasswordScreen />);
+    setPasswords(STRONG, STRONG);
+    fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
+
+    await waitFor(() =>
+      expect(screen.getByText("auth.resetSuccessTitle")).toBeOnTheScreen(),
+    );
+    expect(mockLogout).toHaveBeenCalledTimes(1);
+    expect(mockLogout).toHaveBeenCalledWith({ reason: "user", skipServer: true });
+
+    fireEvent.press(screen.getByText("auth.loginTitle"));
+    expect(mockReplace).toHaveBeenCalledWith("/(auth)/login");
+  });
+
+  it("J46.9 success view waits for the logout to finish", async () => {
+    let finish!: () => void;
+    mockLogout.mockImplementationOnce(() => new Promise<void>((r) => (finish = r)));
+    mockReset.mockResolvedValue({});
+    renderWithProviders(<ResetPasswordScreen />);
+    setPasswords(STRONG, STRONG);
+    fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
+
+    await waitFor(() => expect(mockLogout).toHaveBeenCalled());
+    expect(screen.queryByText("auth.resetSuccessTitle")).toBeNull();
+    finish();
+    await waitFor(() =>
+      expect(screen.getByText("auth.resetSuccessTitle")).toBeOnTheScreen(),
+    );
+  });
+
+  it("J46.10 a failing logout never shows as a failed reset", async () => {
+    mockLogout.mockRejectedValueOnce(new Error("storage blocked"));
+    mockReset.mockResolvedValue({});
+    renderWithProviders(<ResetPasswordScreen />);
+    setPasswords(STRONG, STRONG);
+    fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
+
+    await waitFor(() =>
+      expect(screen.getByText("auth.resetSuccessTitle")).toBeOnTheScreen(),
+    );
+    expect(screen.queryByText("auth.resetFailed")).toBeNull();
+  });
+
+  it("J46.11 failed reset → no logout, form error stays", async () => {
+    mockReset.mockRejectedValue({ response: { data: { message: "Token expired" } } });
+    renderWithProviders(<ResetPasswordScreen />);
+    setPasswords(STRONG, STRONG);
+    fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
+
+    await waitFor(() => expect(screen.getByText("Token expired")).toBeOnTheScreen());
+    expect(mockLogout).not.toHaveBeenCalled();
   });
 });

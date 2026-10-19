@@ -7,25 +7,32 @@ import { Button } from "@/ui";
 import { Form, FormError, FormInput, useZodForm } from "@/ui/form";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { authApi } from "@/lib/api";
-// Doğrudan modül yolu: testler `@/lib/api` barrel'ını mock'luyor.
+// Direct module path: tests mock the `@/lib/api` barrel.
 import { apiErrorMessage } from "@/lib/api/errorText";
 import { useAppMutation } from "@/lib/query";
+import { useAuthStore } from "@/stores/authStore";
 import { passwordHint, passwordSchema, refinePasswordMatch } from "@/utils/passwordPolicy";
 
-/** Yeni şifre + tekrar: kural tek kaynak (`passwordSchema`), eşleşme zod refine. */
+/** New password + confirmation: the rule has one source (`passwordSchema`), the match is a zod refine. */
 const resetPasswordSchema = (t: TFunction) =>
   z
     .object({ password: passwordSchema(t), confirmPassword: z.string() })
     .superRefine(refinePasswordMatch(t, "password", "confirmPassword"));
 
 /**
- * Yeni şifre belirle (e-postadaki bağlantı). Şifre alanının altında yazarken yalnız eksik
- * kurallar; gönderim hataları alanların altında (zod), sunucu/token hatası formda kalıcı
- * (`FormError`). Başarı: ayrı ekran → giriş.
+ * Set a new password (link from the reset e-mail). While typing, only the missing rules show
+ * under the password field; submit errors show under the fields (zod); a server/token error
+ * stays in the form (`FormError`). Success: a separate view -> login.
+ *
+ * The screen is reachable while signed in (the auth layout has no guest gate). A successful
+ * reset makes the API revoke every refresh token of the user, so the local session is dead:
+ * it is ended through the existing logout path, local only (`skipServer`), before the success
+ * view shows (same as web `useResetPassword`).
  */
 export default function ResetPasswordScreen() {
   const { t } = useTranslation();
   const { token } = useLocalSearchParams<{ token: string }>();
+  const logout = useAuthStore((s) => s.logout);
   const [success, setSuccess] = useState(false);
   const form = useZodForm(
     useMemo(() => resetPasswordSchema(t), [t]),
@@ -37,11 +44,28 @@ export default function ResetPasswordScreen() {
     (newPassword: string) => authApi.resetPassword(token as string, newPassword),
     {
       silentError: true,
-      onSuccess: () => setSuccess(true),
       onError: (e) =>
         form.setError("root", { message: apiErrorMessage(e, t("auth.resetFailed"), "all") }),
     },
   );
+
+  const submitReset = async (newPassword: string) => {
+    try {
+      await reset.mutateAsync(newPassword);
+    } catch {
+      return; // `onError` above already shows the failure in the form
+    }
+    // Outside the try above: the password has changed and the token is used up, so nothing
+    // after this point may report a failed reset. The API just revoked every refresh token,
+    // so the local session is dead: end it before the success view (local only, a server
+    // call would just get a 401). Unconditional, like web: a no-op cleanup for a guest.
+    try {
+      await logout({ reason: "user", skipServer: true });
+    } catch {
+      // `logout` logs its own failed steps; never surface cleanup as a failed reset.
+    }
+    setSuccess(true);
+  };
 
   const onSubmit = () => {
     form.clearErrors("root");
@@ -50,7 +74,7 @@ export default function ResetPasswordScreen() {
         form.setError("root", { message: t("auth.resetTokenMissing") });
         return;
       }
-      reset.mutate(values.password);
+      return submitReset(values.password);
     })();
   };
 
