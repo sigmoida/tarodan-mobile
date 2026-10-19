@@ -5,17 +5,28 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { DateField } from '@/ui';
+import { defaultMinimumDate } from '../DateField';
+
+// Props of the latest native picker render, so tests can assert what the wrapper sends.
+let mockPickerProps: { minimumDate?: Date; maximumDate?: Date; value: Date } | null = null;
 
 jest.mock('@react-native-community/datetimepicker', () => {
   const { View } = jest.requireActual('react-native');
   const React = jest.requireActual('react');
   return {
     __esModule: true,
-    default: (props: { onChange: (e: unknown, d?: Date) => void }) =>
-      React.createElement(View, {
+    default: (props: {
+      onChange: (e: unknown, d?: Date) => void;
+      minimumDate?: Date;
+      maximumDate?: Date;
+      value: Date;
+    }) => {
+      mockPickerProps = props;
+      return React.createElement(View, {
         testID: 'native-date-picker',
         onTouchEnd: () => props.onChange({ type: 'set' }, new Date(2001, 4, 9)),
-      }),
+      });
+    },
   };
 });
 
@@ -45,5 +56,70 @@ describe('DateField (iOS)', () => {
     fireEvent(screen.getByTestId('native-date-picker'), 'touchEnd');
     fireEvent.press(within(screen.getByTestId('birth-sheet-footer')).getByText('Vazgeç'));
     expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('defaultMinimumDate', () => {
+  const now = new Date(2026, 9, 19, 15, 30);
+
+  it('is 1 January of today minus 100 years without a maximum (web DatePicker window)', () => {
+    expect(defaultMinimumDate(undefined, now)).toEqual(new Date(1926, 0, 1));
+  });
+
+  it('counts back from the maximum year when it is earlier (18+ birth date: 1908 like web)', () => {
+    expect(defaultMinimumDate(new Date(2008, 9, 19), now)).toEqual(new Date(1908, 0, 1));
+  });
+
+  it('ignores a maximum later than today', () => {
+    expect(defaultMinimumDate(new Date(2030, 0, 1), now)).toEqual(new Date(1926, 0, 1));
+  });
+});
+
+describe.each(['android', 'ios'] as const)('DateField minimumDate (%s)', (os) => {
+  beforeEach(() => {
+    mockPickerProps = null;
+    jest.replaceProperty(Platform, 'OS', os);
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  const openPicker = (props: Partial<React.ComponentProps<typeof DateField>>) => {
+    render(<DateField label="Birth" onChange={jest.fn()} testID="birth" {...props} />);
+    fireEvent.press(screen.getByTestId('birth'));
+    expect(mockPickerProps).not.toBeNull();
+    return mockPickerProps!;
+  };
+
+  it('sends the default minimum when the caller gives none (Android pre-1970 clamp)', () => {
+    const maximumDate = new Date(2008, 0, 1);
+    const picker = openPicker({ maximumDate });
+    expect(picker.minimumDate).toEqual(defaultMinimumDate(maximumDate));
+    expect(picker.minimumDate!.getTime()).toBeLessThan(new Date(1970, 0, 1).getTime());
+    expect(picker.maximumDate).toBe(maximumDate);
+  });
+
+  it('keeps an explicit minimum', () => {
+    const minimumDate = new Date(2020, 5, 1);
+    expect(openPicker({ minimumDate }).minimumDate).toBe(minimumDate);
+  });
+
+  it('opens on a pre-1970 value and keeps it', () => {
+    const picker = openPicker({ value: '1950-03-07', maximumDate: new Date(2008, 0, 1) });
+    expect(picker.value).toEqual(new Date(1950, 2, 7));
+  });
+
+  it('widens the default floor to a stored value older than the window', () => {
+    const picker = openPicker({ value: '1900-05-02', maximumDate: new Date(2008, 0, 1) });
+    expect(picker.minimumDate).toEqual(new Date(1900, 4, 2));
+    expect(picker.value).toEqual(new Date(1900, 4, 2));
+  });
+});
+
+describe('DateField pre-1970 round trip (iOS)', () => {
+  it('shows a 1950 value and writes the same day back on confirm', () => {
+    const onChange = jest.fn();
+    render(<DateField label="Birth" value="1950-03-07" onChange={onChange} testID="birth" />);
+    fireEvent.press(screen.getByTestId('birth'));
+    fireEvent.press(within(screen.getByTestId('birth-sheet-footer')).getByTestId('birth-confirm'));
+    expect(onChange).toHaveBeenCalledWith('1950-03-07');
   });
 });
