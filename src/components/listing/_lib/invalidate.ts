@@ -9,7 +9,8 @@ import { qk } from '@/lib/query';
  *  - İlanlarım listesi + sayaçlar, profil istatistikleri,
  *  - ürün detayı (`productId` verilirse yalnız o, yoksa tüm detaylar),
  *  - genel ürün listeleri / arama / ilanlar ekranı,
- *  - ana sayfa akışları (öne çıkan koleksiyoncu / işletme; `products.all` boost+popüler'i de kapsar).
+ *  - ana sayfa akışları (öne çıkan koleksiyoncu / işletme; `products.all` boost+popüler'i de kapsar),
+ *  - takas seçicilerindeki "takasa uygun ürünlerim" (yeni takas + karşı teklif; önek ikisini de kapsar).
  */
 export function listingCacheKeys(productId?: string): QueryKey[] {
   return [
@@ -21,6 +22,7 @@ export function listingCacheKeys(productId?: string): QueryKey[] {
     qk.products.searchAll,
     qk.products.featuredCollector,
     qk.products.featuredBusiness,
+    qk.trades.myTradeableAll,
   ];
 }
 
