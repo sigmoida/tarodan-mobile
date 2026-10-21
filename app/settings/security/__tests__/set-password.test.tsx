@@ -12,6 +12,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { qk } from '@/lib/query';
 import { renderWithProviders } from '@/test-utils';
 import { backMock, canGoBackMock, resetRouterMocks } from '@/test-utils/router-mock';
+import { expectCachesFreeOf } from '@/test-utils/cacheSecrets';
 import i18n from '@/i18n/config';
 
 jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').routerMock);
@@ -186,6 +187,14 @@ describe('settings/security/set-password', () => {
     await waitFor(() => expect(backMock).toHaveBeenCalledTimes(1));
     expect(mockReauth).toHaveBeenCalledTimes(1);
     expect(mockSetPassword).toHaveBeenCalledTimes(1);
+  });
+
+  it('the new password and the step-up token are gone from the query caches once the screen is', async () => {
+    const { queryClient, unmount } = fillAndSubmit();
+    await confirmWithGoogle();
+    await waitFor(() => expect(backMock).toHaveBeenCalled());
+
+    await expectCachesFreeOf(queryClient, unmount, ['tok-1', 'Yeni1234', 'google-id-token']);
   });
 
   it('Android fallback: no linked provider this device shows -> the set-password mail, no step-up', async () => {

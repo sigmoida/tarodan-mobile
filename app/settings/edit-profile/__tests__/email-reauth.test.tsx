@@ -8,6 +8,7 @@ import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils/render';
 import { resetRouterMocks } from '@/test-utils/router-mock';
+import { expectCachesFreeOf } from '@/test-utils/cacheSecrets';
 
 jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').routerMock);
 jest.mock('@/ui', () => ({
@@ -31,9 +32,10 @@ jest.mock('@/stores/authStore', () => ({
 }));
 const mockRequest = jest.fn();
 const mockReauth = jest.fn();
+const mockGetSignInMethods = jest.fn();
 jest.mock('@/lib/api', () => ({
   authApi: {
-    getSignInMethods: () => Promise.resolve({ data: { hasPassword: true, providers: [] } }),
+    getSignInMethods: () => mockGetSignInMethods(),
     reauth: (proof: unknown) => mockReauth(proof),
     requestEmailChange: (email: string, token?: string) => mockRequest(email, token),
     verifyEmailChange: jest.fn(),
@@ -64,6 +66,7 @@ beforeEach(() => {
   resetRouterMocks();
   mockReauth.mockResolvedValue({ data: { reauthToken: 'tok-1', expiresAt: new Date(Date.now() + 300_000).toISOString() } });
   mockRequest.mockResolvedValue({ data: { message: 'ok' } });
+  mockGetSignInMethods.mockResolvedValue({ data: { hasPassword: true, providers: [] } });
 });
 
 it('confirm step first, then the request with `reauthToken`; the code step opens', async () => {
@@ -134,4 +137,25 @@ it('a request error after the confirm step shows under the e-mail field', async 
 
   expect(await screen.findByText('This e-mail is in use.')).toBeTruthy();
   expect(screen.queryByTestId('email-change-code')).toBeNull();
+});
+
+it('the step-up token and the password are gone from the query caches once the screen is', async () => {
+  const { queryClient, unmount } = renderWithProviders(<EmailChangeScreen />);
+  await sendCode();
+  await confirmPassword();
+  await screen.findByTestId('email-change-code');
+
+  await expectCachesFreeOf(queryClient, unmount, ['tok-1', 'Secret123']);
+});
+
+it('Android, Apple-only account (cannot confirm here): the code request goes without a token, as 1.0.5 sends it', async () => {
+  mockGetSignInMethods.mockResolvedValue({
+    data: { hasPassword: false, providers: [{ provider: 'apple', email: null, linkedAt: '2026-10-01T00:00:00.000Z' }] },
+  });
+  renderWithProviders(<EmailChangeScreen />);
+  await sendCode();
+
+  expect(await screen.findByTestId('email-change-code')).toBeTruthy();
+  expect(mockRequest.mock.calls).toEqual([['yeni@ornek.com', undefined]]);
+  expect(mockReauth).not.toHaveBeenCalled();
 });

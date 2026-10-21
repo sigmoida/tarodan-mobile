@@ -10,6 +10,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils/render';
 import { toast } from '@/ui';
 import { dismissToMock, resetRouterMocks } from '@/test-utils/router-mock';
+import { expectCachesFreeOf } from '@/test-utils/cacheSecrets';
 
 jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').routerMock);
 jest.mock('@/ui', () => ({
@@ -126,4 +127,13 @@ it('Android, Apple-only account (cannot confirm here): deletes without a token, 
   await waitFor(() => expect(mockDelete).toHaveBeenCalledWith(undefined));
   expect(mockReauth).not.toHaveBeenCalled();
   expect(toast.success).toHaveBeenCalled();
+});
+
+it('the step-up token and the password are gone from the query caches once the screen is', async () => {
+  const { queryClient, unmount } = renderWithProviders(<DeleteAccountScreen />);
+  await typeKeywordAndSubmit();
+  await confirmPassword();
+  await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('tok-1'));
+
+  await expectCachesFreeOf(queryClient, unmount, ['tok-1', 'Secret123']);
 });
