@@ -30,3 +30,6 @@ export function isPickerLoading(query: {
 }): boolean {
   return query.isLoading || (query.isFetching && !query.isFetchedAfterMount && !query.data?.length);
 }
+
+/** Page size of the paged trade pickers ("Show more" loads this many). */
+export const TRADE_PICKER_PAGE_SIZE = 20;
