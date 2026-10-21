@@ -83,6 +83,20 @@ describe('discountSchema: amount text (shared TL amount parser, web parity)', ()
     expect(errorsOf({ ...base(), value: '12,5' })).toEqual({});
   });
 
+  it('a percent is at most 100 to the cent, read from comma text: 100 passes, 100,01 does not', () => {
+    const TOO_HIGH = "Yüzde indirim 100'den büyük olamaz.";
+    for (const type of ['percentage', 'bulk_quantity'] as const) {
+      const f = { ...base(), type, minQuantity: '2' };
+      expect(errorsOf({ ...f, value: '100' })).toEqual({});
+      expect(errorsOf({ ...f, value: '100,00' })).toEqual({});
+      expect(errorsOf({ ...f, value: '99,99' })).toEqual({});
+      expect(errorsOf({ ...f, value: '100,01' })).toEqual({ value: TOO_HIGH });
+      expect(errorsOf({ ...f, value: '0' })).toEqual({ value: 'Geçerli bir indirim değeri girin.' });
+    }
+    // A fixed TL amount has no 100 cap.
+    expect(errorsOf({ ...fixed(), value: '100,01' })).toEqual({});
+  });
+
   it('a fixed amount must be above 0; empty or zero bounds are no bound', () => {
     expect(errorsOf({ ...fixed(), value: '0,00' })).toEqual({ value: 'Geçerli bir indirim değeri girin.' });
     expect(errorsOf({ ...fixed(), value: '' })).toEqual({ value: 'Geçerli bir indirim değeri girin.' });

@@ -32,3 +32,32 @@ describe.each([
     expect(issues(schema.safeParse({ amount: text }))).toEqual([t('validation.enterValidAmount')]);
   });
 });
+
+/** The bounds compare the parsed amount to the cent: a decimal comma is never cut to whole TL. */
+describe('counter bounds on decimal-comma amounts', () => {
+  const firstIssue = (r: { success: boolean; error?: { issues: { message: string }[] } }) =>
+    r.success ? null : r.error!.issues[0]!.message;
+
+  it('seller counter: above the current offer and at most the product price, to the cent', () => {
+    const schema = sellerCounterSchema(100, 400, t);
+    expect(schema.parse({ amount: '100,01' })).toEqual({ amount: 100.01 });
+    expect(schema.parse({ amount: '400,00' })).toEqual({ amount: 400 });
+    expect(firstIssue(schema.safeParse({ amount: '100,00' }))).toBe(
+      t('offer.counterMustBeHigher', { amount: '100,00 TL' }),
+    );
+    expect(firstIssue(schema.safeParse({ amount: '400,01' }))).toBe(
+      t('offer.counterMustNotExceedPrice', { amount: '400,00 TL' }),
+    );
+  });
+
+  it('buyer counter: below the seller amount, to the cent', () => {
+    const schema = buyerCounterSchema(400, t);
+    expect(schema.parse({ amount: '399,99' })).toEqual({ amount: 399.99 });
+    expect(schema.safeParse({ amount: '400,00' }).success).toBe(false);
+  });
+
+  it('floor: a cent below the floor is refused', () => {
+    expect(sellerCounterSchema(100, 400, t, 250).safeParse({ amount: '249,99' }).success).toBe(false);
+    expect(buyerCounterSchema(400, t, 250).parse({ amount: '250,00' })).toEqual({ amount: 250 });
+  });
+});
