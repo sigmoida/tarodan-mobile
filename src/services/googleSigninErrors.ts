@@ -16,3 +16,14 @@ export function isGoogleDeveloperError(error: unknown): boolean {
     (typeof e?.message === 'string' && e.message.includes('DEVELOPER_ERROR'))
   );
 }
+
+/**
+ * The user closed the Google sheet. `signInWithGoogle` rethrows the SDK's `{ type: 'cancelled' }`
+ * answer as `SIGN_IN_CANCELLED`; older SDKs rejected with that code or iOS `-5`.
+ */
+export const GOOGLE_SIGN_IN_CANCELLED = 'SIGN_IN_CANCELLED';
+
+export function isGoogleCancel(error: unknown): boolean {
+  const code = String((error as { code?: unknown } | null | undefined)?.code ?? '');
+  return code === GOOGLE_SIGN_IN_CANCELLED || code === '-5';
+}
