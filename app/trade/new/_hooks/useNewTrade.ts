@@ -134,12 +134,14 @@ export function useNewTrade() {
   // is not loaded (the settled list has more pages) comes from its own row: the pick is pinned at
   // the top until its page loads, refreshed from the list row once it does, and pruned if every
   // page loads without it (`usePagedPicks`). A settled, complete list without it gets no pick,
-  // and neither does a cached row from an earlier open (the listing may be sold since).
+  // and neither does a cached row or list from an earlier open (the listing may be sold since):
+  // both sources wait for their first successful fetch of this open.
   const preselectedFor = useRef<string | null>(null);
   const addTheirPick = theirPicks.add;
+  const theirListFresh = theirList.fetchedThisOpen;
   const theirMayHoldTarget = !theirList.isLoading && theirList.hasMore && targetRowFresh;
   useEffect(() => {
-    if (!listingId || preselectedFor.current === listingId) return;
+    if (!listingId || preselectedFor.current === listingId || !theirListFresh) return;
     const target =
       theirList.rows.find((p) => p.id === listingId) ??
       (theirMayHoldTarget && isPreselectableTarget(targetProduct, listingId, targetSellerId)
@@ -149,7 +151,7 @@ export function useNewTrade() {
       preselectedFor.current = listingId;
       addTheirPick(target);
     }
-  }, [listingId, theirList.rows, theirMayHoldTarget, targetProduct, targetSellerId, addTheirPick]);
+  }, [listingId, theirListFresh, theirList.rows, theirMayHoldTarget, targetProduct, targetSellerId, addTheirPick]);
 
   const invalidateTradeRelatedQueries = () => {
     queryClient.invalidateQueries({ queryKey: qk.trades.all });

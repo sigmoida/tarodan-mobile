@@ -433,6 +433,21 @@ describe('new-trade target preselection, paged seller list', () => {
     expect(result.current.selectedTheirItems).toEqual([]);
   });
 
+  it('a cached seller list from an earlier open does not preselect: the fresh list lacks it', async () => {
+    const client = makeClient();
+    client.setQueryData(qk.trades.sellerTradeable('u1', 'seller-1'), {
+      pages: [{ items: [row('t25'), ...range('t', 1, 19)], page: 1, totalPages: 2 }],
+      pageParams: [1],
+    });
+    // t25 is sold since: its fresh row says so, and the fresh list (more pages) lacks it.
+    mockedGetOne.mockResolvedValue({ data: { data: { ...target, status: 'sold' } } });
+    mockedAll.mockImplementation(server('t', () => 24));
+    const { result } = await openForTarget(client);
+    await waitFor(() => expect(ids(result.current.theirProducts)).not.toContain('t25'));
+    expect(result.current.theirHasMore).toBe(true);
+    expect(result.current.selectedTheirItems).toEqual([]);
+  });
+
   it('a pinned target that every loaded page lacks is pruned and never sent', async () => {
     let total = 25;
     mockedGetOne.mockResolvedValue({ data: { data: target } });
