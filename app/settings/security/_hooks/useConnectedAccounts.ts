@@ -47,6 +47,9 @@ class CredentialFailure {
   constructor(readonly cause: unknown) {}
 }
 
+/** The screen was left mid-flow: stop silently, open no sheet, send nothing. */
+class ScreenLeft {}
+
 /**
  * Connected accounts (web `useConnectedAccounts`): connect and disconnect Google and Apple, both
  * behind the step-up of `useReauth` (one step-up and one in-memory token for the screen).
@@ -81,6 +84,15 @@ export function useConnectedAccounts() {
   const unlink = useDoUnlinkProvider();
   const writeMethods = useWriteSignInMethods();
   const lock = useRef(false);
+  // The step-up token dies with the screen (`useReauth`); a flow it already handed a token to
+  // must not open a sheet or write after the user has left.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const [busyProvider, setBusyProvider] = useState<SignInProvider | null>(null);
 
   // Which providers this device shows, read once before any row renders: the async Apple check
@@ -148,6 +160,7 @@ export function useConnectedAccounts() {
         if (!held || Date.now() - held.at > CREDENTIAL_REUSE_MS) {
           // The confirm step (or a provider sheet it opened) has just closed.
           await afterSheetClosed();
+          if (!mounted.current) throw new ScreenLeft();
           try {
             held = { credential: await requestProviderCredential(provider), at: Date.now() };
           } catch (error) {
@@ -157,10 +170,12 @@ export function useConnectedAccounts() {
           // step, which must not be presented over the closing sheet (iOS modal rule).
           await afterSheetClosed();
         }
+        if (!mounted.current) throw new ScreenLeft();
         return link.mutateAsync({ credential: held.credential, reauthToken });
       });
       settle(outcome, t('profile.connectedAccounts.connectSuccess', { provider: SIGN_IN_PROVIDER_NAMES[provider] }));
     } catch (error) {
+      if (error instanceof ScreenLeft) return;
       if (error instanceof CredentialFailure) credentialFailed(provider, error.cause);
       else fail(error, 'provider_link', provider);
     } finally {

@@ -108,6 +108,7 @@ function setPlatform(os: 'ios' | 'android') {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockAfterClose.mockImplementation((next: () => void) => next());
   resetRouterMocks();
   setPlatform('ios');
   mockGoogleConfigured = true;
@@ -403,6 +404,45 @@ describe('connect', () => {
     } finally {
       now.mockRestore();
     }
+  });
+
+  it('leaving the screen while the sheet is open: nothing is linked, nothing is said', async () => {
+    let resolveSheet!: (v: unknown) => void;
+    mockSignInWithApple.mockReturnValueOnce(new Promise((r) => (resolveSheet = r)));
+    const { unmount } = await renderScreen();
+    fireEvent.press(screen.getByTestId('connected-apple-connect'));
+    await confirmPassword();
+    await waitFor(() => expect(mockSignInWithApple).toHaveBeenCalled());
+    unmount();
+    await act(async () => {
+      resolveSheet({ identityToken: 'apple-id-token', authorizationCode: 'apple-code' });
+    });
+    expect(mockLinkApple).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('leaving the screen right after the confirm step: no sheet opens', async () => {
+    // Hold every close wait, as the real helper does, and release them by hand.
+    const held: (() => void)[] = [];
+    mockAfterClose.mockImplementation((next: () => void) => {
+      held.push(next);
+    });
+    const { unmount } = await renderScreen();
+    fireEvent.press(screen.getByTestId('connected-apple-connect'));
+    fireEvent.changeText(await screen.findByTestId('reauth-password-input'), 'Secret123');
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('reauth-confirm'));
+    });
+    await waitFor(() => expect(mockReauth).toHaveBeenCalled());
+    // The action now waits for the confirm step's close before it opens the sheet.
+    await waitFor(() => expect(held.length).toBeGreaterThan(0));
+    unmount();
+    await act(async () => {
+      while (held.length) held.shift()!();
+    });
+    expect(mockSignInWithApple).not.toHaveBeenCalled();
+    expect(mockLinkApple).not.toHaveBeenCalled();
   });
 
   it('a fault that is no API answer: the plain line (never its text) and a Sentry report', async () => {
