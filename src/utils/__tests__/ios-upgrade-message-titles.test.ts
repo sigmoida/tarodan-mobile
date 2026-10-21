@@ -1,7 +1,7 @@
 /**
  * Bulgu C · iOS'ta getUpgradeMessage'ın `switch` dalı yalnızca 'tradeFeature'
  * ve 'collectionFeature' tiplerini ayrı ele alıyor, geri kalan HER ŞEYİ
- * (addressLimit, savedSearchLimit, imageLimit, messageLimit, featureListing,
+ * (addressLimit, imageLimit, messageLimit, featureListing,
  * valueLimit) 'default'a düşürüp ilan-limiti başlığını döndürüyordu. Örneğin
  * adres limiti dolduğunda kullanıcı "İlan Limitine Ulaştınız" görüyordu.
  * Her promptType artık kendi (non-iOS ile aynı) başlığını korur; mesaj nötr
@@ -28,7 +28,6 @@ describe('iOS · getUpgradeMessage her promptType için kendi başlığını kor
     ['featureListing', 'upgradePrompt.featureListingTitle'],
     ['messageLimit', 'upgradePrompt.messageLimitTitle'],
     ['addressLimit', 'address.limitTitle'],
-    ['savedSearchLimit', 'membership.savedSearchLimitTitle'],
     ['imageLimit', 'upgradePrompt.imageLimitTitle'],
     ['valueLimit', 'membership.valueLimitTitle'],
   ];

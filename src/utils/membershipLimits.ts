@@ -7,7 +7,7 @@ import type { TFunction } from 'i18next';
 import { theme } from '@/ui';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { SERVER_MAX_ADDRESSES } from '@/lib/addressLimit';
-import { useAuthStore, MembershipTier, MembershipLimits } from '../stores/authStore';
+import { useAuthStore, MembershipTier } from '../stores/authStore';
 
 const { colors } = theme;
 
@@ -16,7 +16,6 @@ export const FREE_MEMBER_LIMITS = {
   maxListings: 10,
   maxImagesPerListing: 5,
   maxAddresses: SERVER_MAX_ADDRESSES, // sunucu tüm katmanlarda 3 (bkz. @/lib/addressLimit)
-  maxSavedSearches: 5,
   maxMessagesPerDay: 50,
   listingExpireDays: 60,
   maxReviewChars: 500,
@@ -35,7 +34,6 @@ export const PREMIUM_MEMBER_LIMITS = {
   maxListings: -1, // Unlimited
   maxImagesPerListing: 15,
   maxAddresses: SERVER_MAX_ADDRESSES, // sunucu tüm katmanlarda 3 (bkz. @/lib/addressLimit)
-  maxSavedSearches: -1, // Unlimited
   maxMessagesPerDay: -1, // Unlimited
   listingExpireDays: -1, // Never expire
   maxReviewChars: 2000,
@@ -65,8 +63,7 @@ export type FeatureCheck =
   | 'followSellers'
   | 'reportContent'
   | 'blockUsers'
-  | 'viewAnalytics'
-  | 'saveSearch';
+  | 'viewAnalytics';
 
 // Upgrade prompt types
 export type UpgradePromptType =
@@ -76,7 +73,6 @@ export type UpgradePromptType =
   | 'featureListing'
   | 'messageLimit'
   | 'addressLimit'
-  | 'savedSearchLimit'
   | 'imageLimit'
   | 'valueLimit';
 
@@ -120,7 +116,6 @@ export const canPerformAction = (action: FeatureCheck): boolean => {
     case 'reportContent':
     case 'blockUsers':
     case 'viewAnalytics':
-    case 'saveSearch':
       return true;
     
     default:
@@ -171,8 +166,6 @@ export const getUpgradeMessage = (t: TFunction, promptType: UpgradePromptType): 
         return { title: t('upgradePrompt.messageLimitTitle'), message: neutral };
       case 'addressLimit':
         return { title: t('address.limitTitle'), message: neutral };
-      case 'savedSearchLimit':
-        return { title: t('membership.savedSearchLimitTitle'), message: neutral };
       case 'imageLimit':
         return { title: t('upgradePrompt.imageLimitTitle'), message: neutral };
       case 'valueLimit':
@@ -211,11 +204,6 @@ export const getUpgradeMessage = (t: TFunction, promptType: UpgradePromptType): 
       return {
         title: t('address.limitTitle'),
         message: t('address.limitBody', { max: FREE_MEMBER_LIMITS.maxAddresses }),
-      };
-    case 'savedSearchLimit':
-      return {
-        title: t('membership.savedSearchLimitTitle'),
-        message: t('membership.savedSearchLimitMessage'),
       };
     case 'imageLimit':
       return {
@@ -330,7 +318,7 @@ export const shouldShowUpgradePrompt = (
 
 // Get remaining count for a limit
 export const getRemainingCount = (
-  limitType: 'listings' | 'addresses' | 'savedSearches' | 'images'
+  limitType: 'listings' | 'addresses' | 'images'
 ): number => {
   const { user, limits } = useAuthStore.getState();
   
@@ -344,10 +332,6 @@ export const getRemainingCount = (
     case 'addresses':
       // Would need address count from API
       return limits.maxAddresses;
-    
-    case 'savedSearches':
-      // Would need saved search count from API
-      return limits.maxSavedSearches;
     
     case 'images':
       return limits.maxImagesPerListing;

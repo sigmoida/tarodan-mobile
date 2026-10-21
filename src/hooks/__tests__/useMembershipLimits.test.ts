@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/stores/authStore';
 import { mapServerLimits } from '../useMembershipLimits';
 
 describe('mapServerLimits', () => {
@@ -51,8 +52,6 @@ describe('mapServerLimits', () => {
 });
 
 describe('isAdFree — authStore bindirmesi', () => {
-  const { useAuthStore } = require('@/stores/authStore');
-
   const setTier = (tier: string) =>
     useAuthStore.setState({ user: { membershipTier: tier } as any, serverLimits: null });
 
@@ -67,4 +66,27 @@ describe('isAdFree — authStore bindirmesi', () => {
     useAuthStore.getState().setServerLimits(mapServerLimits({ isAdFree: true })!);
     expect(useAuthStore.getState().serverLimits?.isAdFree).toBe(true);
   });
+});
+
+describe('maxSavedSearches — the server value only (saved-searches delta 2026-10-21)', () => {
+  it('is mapped, and 0 is kept (a valid limit, never `|| 5`)', () => {
+    expect(mapServerLimits({ maxSavedSearches: 20 })!.maxSavedSearches).toBe(20);
+    expect(mapServerLimits({ maxSavedSearches: 0 })!.maxSavedSearches).toBe(0);
+  });
+
+  it('a missing or non-number field leaves the key out (no client default)', () => {
+    expect('maxSavedSearches' in mapServerLimits({ canTrade: true })!).toBe(false);
+    expect('maxSavedSearches' in mapServerLimits({ maxSavedSearches: '5' as unknown as number })!).toBe(false);
+  });
+
+  it.each(['free', 'basic', 'premium', 'business'])(
+    'the %s tier has no client-side value before the server answers, and there is no -1 "unlimited"',
+    (tier) => {
+      useAuthStore.setState({ user: { membershipTier: tier } as never, serverLimits: null });
+      useAuthStore.getState().setServerLimits({});
+      expect(useAuthStore.getState().limits?.maxSavedSearches).toBeUndefined();
+      useAuthStore.getState().setServerLimits(mapServerLimits({ maxSavedSearches: 50 })!);
+      expect(useAuthStore.getState().limits?.maxSavedSearches).toBe(50);
+    },
+  );
 });

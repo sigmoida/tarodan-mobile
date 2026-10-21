@@ -19,14 +19,15 @@ import { useAuthStore, type ServerLimitsOverride } from '@/stores/authStore';
  *
  * Bunların istemcideki `MembershipLimits` karşılığı olan **beşinin beşi de**
  * aşağıda eşleniyor. Kalan alanlar ya türetilmiş sayaç (`remaining*`) ya da
- * istemcide zaten hesaplanan bilgi. `MembershipLimits`'in diğer 10 alanı
- * (`maxAddresses`, `maxSavedSearches`, `maxMessagesPerDay`, `listingExpireDays`,
+ * istemcide zaten hesaplanan bilgi. Sonradan eklenen `maxSavedSearches`
+ * (saved-searches delta, 2026-10-21) da eşleniyor. `MembershipLimits`'in diğer 9 alanı
+ * (`maxAddresses`, `maxMessagesPerDay`, `listingExpireDays`,
  * `maxReviewChars`, `maxValuePerListing`, `canFeatureListings`, `canBulkUpload`,
  * `canScheduleListings`, `priorityInSearch`) sunucu tarafından **hiç
  * yayınlanmıyor** — public ayar ucu da boş (`{}`).
  *
  * Yani "sunucudan gelen alanları genişlet" diye bir iş YOK: gelen her şey
- * zaten okunuyor. Kalan 10 alanın istemci sabiti olması bilinçli bir durum;
+ * zaten okunuyor. Kalan 9 alanın istemci sabiti olması bilinçli bir durum;
  * değişmesi için önce backend'in bunları yayınlaması gerekir.
  */
 export type ServerLimitsDto = {
@@ -36,6 +37,8 @@ export type ServerLimitsDto = {
   canTrade?: boolean;
   /** Sunucu belirlerse (admin kutusu) bool; belirlemezse `null`/yok. */
   isAdFree?: boolean | null;
+  /** Effective tier's saved-search limit (0 to 1000). 0 is valid; there is no "unlimited" (-1). */
+  maxSavedSearches?: number;
 };
 
 export function mapServerLimits(dto: ServerLimitsDto | null): ServerLimitsOverride | null {
@@ -50,6 +53,8 @@ export function mapServerLimits(dto: ServerLimitsDto | null): ServerLimitsOverri
   // aynı). authStore'daki sabit tier tablosuna DÜŞÜLMEZ — aksi halde ücretli
   // üye sunucu hiçbir şey demediği halde sessizce reklamsız kalırdı.
   out.isAdFree = dto.isAdFree === true;
+  // Saved-search limit: the server value only (no client table); a missing field stays missing.
+  if (typeof dto.maxSavedSearches === 'number') out.maxSavedSearches = dto.maxSavedSearches;
   return out;
 }
 
