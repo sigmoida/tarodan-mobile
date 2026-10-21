@@ -232,23 +232,23 @@ describe('giriş — adım 2 (şifre)', () => {
   });
 });
 
-describe('giriş — Google ile açılmış (şifresiz) hesap', () => {
+describe('login: account without a password (Google, Apple or both)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetRouterMocks();
   });
 
-  it('şifre alanı yok; Google + Şifre belirle; Şifre belirle forgot-password e-postası yollar', async () => {
+  it('no password field; the providers this device shows + Set a password, which mails the link', async () => {
     mockCheck.mockResolvedValue({ data: { exists: true, hasPassword: false } });
     mockForgot.mockResolvedValue({});
     renderWithProviders(<LoginScreen />);
     fireEvent.changeText(screen.getByTestId('login-email-input'), 'g@b.com');
     fireEvent.press(screen.getByTestId('login-continue-button'));
-    await waitFor(() => expect(screen.getByTestId('login-google-only-notice')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByTestId('login-no-password-notice')).toBeOnTheScreen());
     expect(screen.queryByTestId('login-password-input')).toBeNull();
     expect(screen.getByTestId('login-google-button')).toBeOnTheScreen();
-    // Apple bu dalda anlamsız (web aynı).
-    expect(screen.queryByTestId('login-apple-button')).toBeNull();
+    // Provider-neutral step (plan D5): an Apple-only account signs in with Apple here (iOS, web).
+    expect(screen.getByTestId('login-apple-button')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByTestId('login-set-password-button'));
     await waitFor(() => expect(mockForgot).toHaveBeenCalledWith('g@b.com'));

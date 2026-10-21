@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, theme } from '@/ui';
 import { getVisibleSocialProviders } from './socialProviders';
 import type { useSocialSignIn } from '@/hooks/useSocialSignIn';
+import type { SignInProvider } from '@/types/sign-in-methods';
 
 const { colors } = theme;
 
@@ -40,12 +41,49 @@ function AppleMark({ size, color }: { size: number; color: string }) {
   );
 }
 
+export interface ProviderButtonProps {
+  provider: SignInProvider;
+  title: string;
+  accessibilityLabel?: string;
+  onPress: () => void;
+  isLoading?: boolean;
+  disabled?: boolean;
+  testID: string;
+}
+
+/**
+ * One provider button (outline, brand mark on the left): the single look for "Continue with"
+ * on login/register and "Confirm with" in the step-up. Brand marks are the one exception to the
+ * decorative-icon rule (web shows them in the same place).
+ */
+export function ProviderButton({ provider, title, accessibilityLabel, onPress, isLoading, disabled, testID }: ProviderButtonProps) {
+  return (
+    <Button
+      testID={testID}
+      variant="outline"
+      size="lg"
+      fullWidth
+      // eslint-disable-next-line tarodan/restrict-button-icon
+      leftIcon={
+        provider === 'google' ? (
+          <GoogleMark size={theme.iconSize.md} />
+        ) : (
+          <AppleMark size={theme.iconSize.md} color={colors.text.body} />
+        )
+      }
+      title={title}
+      accessibilityLabel={accessibilityLabel ?? title}
+      onPress={onPress}
+      isLoading={isLoading}
+      disabled={disabled}
+    />
+  );
+}
+
 export interface SocialButtonsProps {
   social: ReturnType<typeof useSocialSignIn>;
   /** Başka bir işlem sürerken (ör. şifreyle giriş) iki düğmeyi de kilitler. */
   busy?: boolean;
-  /** Google-only dalında Apple anlamsız (web aynı) — `false`. */
-  apple?: boolean;
   /** testID öneki: `login` → `login-google-button` / `login-apple-button`. */
   testIDPrefix: 'login' | 'register';
 }
@@ -57,21 +95,17 @@ export interface SocialButtonsProps {
  * kuralının istisnasıdır (web aynı yerde logo gösterir). Giriş ve kayıt ekranlarının ortak
  * düğmeleri (CLAUDE.md › Principles).
  */
-export function SocialButtons({ social, busy = false, apple = true, testIDPrefix }: SocialButtonsProps) {
+export function SocialButtons({ social, busy = false, testIDPrefix }: SocialButtonsProps) {
   const { t } = useTranslation();
   const locked = busy || social.googleLoading || social.appleLoading;
-  const visible = getVisibleSocialProviders(social, { apple });
+  const visible = getVisibleSocialProviders(social);
 
   return (
     <>
       {visible.google ? (
-        <Button
+        <ProviderButton
+          provider="google"
           testID={`${testIDPrefix}-google-button`}
-          variant="outline"
-          size="lg"
-          fullWidth
-          // eslint-disable-next-line tarodan/restrict-button-icon
-          leftIcon={<GoogleMark size={theme.iconSize.md} />}
           title={social.googleLoading ? t('auth.signingIn') : t('auth.continueWithGoogle')}
           accessibilityLabel={t('auth.continueWithGoogle')}
           onPress={social.handleGoogle}
@@ -81,13 +115,9 @@ export function SocialButtons({ social, busy = false, apple = true, testIDPrefix
       ) : null}
 
       {visible.apple ? (
-        <Button
+        <ProviderButton
+          provider="apple"
           testID={`${testIDPrefix}-apple-button`}
-          variant="outline"
-          size="lg"
-          fullWidth
-          // eslint-disable-next-line tarodan/restrict-button-icon
-          leftIcon={<AppleMark size={theme.iconSize.md} color={colors.text.body} />}
           title={social.appleLoading ? t('auth.signingIn') : t('auth.continueWithApple')}
           accessibilityLabel={t('auth.continueWithApple')}
           onPress={social.handleApple}

@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { appAlert } from '@/ui';
 import { authApi } from '@/lib/api';
 import { signInWithGoogle } from '@/services/googleSignin';
-import { isGoogleDeveloperError } from '@/services/googleSigninErrors';
+import { isGoogleCancel, isGoogleDeveloperError } from '@/services/googleSigninErrors';
 import { captureException } from '@/services/sentry';
-import { signInWithApple, isAppleAvailable } from '@/services/appleSignin';
+import { signInWithApple } from '@/services/appleSignin';
+import { isAppleCancel } from '@/services/appleSigninErrors';
 import { useAuthStore, type User } from '@/stores/authStore';
+import { useAppleAvailability } from './useAppleAvailability';
 
 /**
  * Sunucu sözleşmesi (`SocialLoginService.buildUserAuthResponse`): 2FA'sı açık hesap Google/Apple
@@ -52,11 +54,7 @@ export function useSocialSignIn({ onPasswordLoginRequired }: SocialSignInOptions
   const login = useAuthStore((s) => s.login);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
-  const [appleAvailable, setAppleAvailable] = useState(false);
-
-  useEffect(() => {
-    isAppleAvailable().then(setAppleAvailable);
-  }, []);
+  const appleAvailable = useAppleAvailability();
 
   /** 2FA'lı hesap: açıklama + parola adımına geçiş (dialog kapandıktan sonra). */
   const requirePasswordLogin = () => {
@@ -103,7 +101,7 @@ export function useSocialSignIn({ onPasswordLoginRequired }: SocialSignInOptions
     } catch (e: any) {
       // Cancellation is silent; every other error is SHOWN to the user (swallowing it
       // used to look like a hang). The native status code is appended.
-      if (e?.code === 'SIGN_IN_CANCELLED' || e?.code === '-5') return;
+      if (isGoogleCancel(e)) return;
       if (isTwoFactorPasswordRequired(e)) {
         requirePasswordLogin();
         return;
@@ -137,8 +135,8 @@ export function useSocialSignIn({ onPasswordLoginRequired }: SocialSignInOptions
       if (!(await completeLogin(response.data as SocialLoginResponse))) return;
       router.push('/' as never);
     } catch (e: any) {
-      // Kullanıcı iptali sessiz geçilir.
-      if (e?.code === 'ERR_REQUEST_CANCELED') return;
+      // A user cancel stays silent.
+      if (isAppleCancel(e)) return;
       if (isTwoFactorPasswordRequired(e)) {
         requirePasswordLogin();
         return;

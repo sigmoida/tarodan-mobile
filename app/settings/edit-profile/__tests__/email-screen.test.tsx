@@ -27,8 +27,11 @@ jest.mock('@/stores/authStore', () => ({
   },
 }));
 
+// No sign-in methods route here (404: an API before the step-up): the code request goes
+// without a token, as before. The step-up: `email-reauth.test.tsx`.
 jest.mock('@/lib/api', () => ({
   authApi: {
+    getSignInMethods: () => Promise.reject({ isAxiosError: true, response: { status: 404, data: {} } }),
     requestEmailChange: jest.fn(() => Promise.resolve({ data: { message: 'ok' } })),
     verifyEmailChange: jest.fn(() => Promise.resolve({ data: { email: 'yeni@ornek.com' } })),
   },
@@ -114,7 +117,7 @@ describe('E-posta değiştir ekranı', () => {
   it('geçerli e-posta ile kod istenir ve kod adımına geçilir (toast)', async () => {
     renderSection();
     await goToCodeStep();
-    expect(requestChange).toHaveBeenCalledWith('yeni@ornek.com');
+    expect(requestChange).toHaveBeenCalledWith('yeni@ornek.com', undefined);
     expect(screen.getByText('yeni@ornek.com adresine gönderilen 6 haneli kodu girin.')).toBeTruthy();
     expect(await screen.findByText('Doğrulama kodu yeni e-postanıza gönderildi')).toBeTruthy();
   });
@@ -204,7 +207,7 @@ describe('E-posta değiştir ekranı', () => {
       expect(screen.getByText('Kodu tekrar gönder')).toBeTruthy();
       fireEvent.press(screen.getByTestId('email-change-resend'));
       await waitFor(() => expect(requestChange).toHaveBeenCalledTimes(2));
-      expect(requestChange).toHaveBeenLastCalledWith('yeni@ornek.com');
+      expect(requestChange).toHaveBeenLastCalledWith('yeni@ornek.com', undefined);
       // İstek başarılı → sayaç yeniden başlar.
       expect(await screen.findByText('Tekrar gönder (60s)')).toBeTruthy();
     });

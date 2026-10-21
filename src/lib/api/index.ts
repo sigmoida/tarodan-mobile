@@ -22,6 +22,7 @@ import { mediaApi, uploadApi } from "./media";
 export * from "./client";
 export * from "./app-config";
 export * from "./errorText";
+export * from "./reauthError";
 export * from "./auth";
 export * from "./consents";
 export * from "./legalIdentity";

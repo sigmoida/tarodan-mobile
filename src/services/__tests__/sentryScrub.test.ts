@@ -159,6 +159,63 @@ describe('scrubEvent — oturum/ödeme belirteçleri, OTP, 2FA sırları', () =>
   });
 });
 
+describe('scrubEvent: step-up token and provider proofs (sign-in methods delta 2026-10-21)', () => {
+  it('drops the step-up token (body and header) and the Google / Apple proofs, keeps diagnostics', () => {
+    const event = {
+      extra: {
+        status: 403,
+        errorCode: 'REAUTH_REQUIRED',
+        url: '/users/me',
+        code: 'ERR_BAD_REQUEST',
+        body: { reauthToken: 'STEPUP-BODY' },
+        proof: {
+          password: 'PW-1',
+          newPassword: 'PW-2',
+          idToken: 'GOOGLE-ID',
+          identityToken: 'APPLE-ID',
+          authorizationCode: 'APPLE-CODE',
+        },
+        payload: { reauthToken: 'STEPUP-NESTED' },
+        headers: { 'X-Reauth-Token': 'STEPUP-HEADER', 'x-request-id': 'r-7' },
+      },
+    };
+    const cleaned = scrubEvent(event);
+    const text = JSON.stringify(cleaned);
+    for (const secret of ['STEPUP-BODY', 'STEPUP-NESTED', 'STEPUP-HEADER', 'PW-1', 'PW-2', 'GOOGLE-ID', 'APPLE-ID', 'APPLE-CODE']) {
+      expect(text).not.toContain(secret);
+    }
+    expect(cleaned.extra.headers['x-request-id']).toBe('r-7');
+    expect(cleaned.extra.errorCode).toBe('REAUTH_REQUIRED');
+    expect(cleaned.extra.code).toBe('ERR_BAD_REQUEST');
+    expect(cleaned.extra.status).toBe(403);
+  });
+
+  it('a bare `code` in a request body (verification or Google auth code) never leaves; an error `code` stays', () => {
+    const event = {
+      request: { url: '/api/auth/email/verify-change', data: { code: '482913' } },
+      extra: {
+        code: 'ERR_NETWORK',
+        config: { url: '/auth/reauth', data: '{"provider":"google","code":"4/0AbCdEf"}' },
+        response: { status: 400, data: { errorCode: 'REAUTH_FAILED' } },
+      },
+    };
+    const cleaned = scrubEvent(event);
+    const text = JSON.stringify(cleaned);
+    expect(text).not.toContain('482913');
+    expect(text).not.toContain('4/0AbCdEf');
+    expect(cleaned.extra.code).toBe('ERR_NETWORK');
+    expect(cleaned.request.url).toBe('/api/auth/email/verify-change');
+  });
+
+  it('the release console log drops them too', () => {
+    const { scrubForConsole } = jest.requireActual('@/lib/logger/scrub');
+    const text = JSON.stringify(
+      scrubForConsole({ ctx: { reauthToken: 'STEPUP-1', authorizationCode: 'APPLE-CODE', identityToken: 'APPLE-ID', idToken: 'GOOGLE-ID' } }),
+    );
+    for (const secret of ['STEPUP-1', 'APPLE-CODE', 'APPLE-ID', 'GOOGLE-ID']) expect(text).not.toContain(secret);
+  });
+});
+
 describe('scrubEvent — adres sorgusundaki sırlar (http / navigasyon breadcrumb, span)', () => {
   it('http breadcrumb: url sorgusundaki belirteç maskelenir, yol ve masum parametre kalır', () => {
     const crumb = {

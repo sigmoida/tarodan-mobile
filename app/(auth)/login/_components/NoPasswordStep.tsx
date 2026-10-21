@@ -9,22 +9,23 @@ import { SocialButtons } from '@/components/auth/SocialButtons';
 import { getVisibleSocialProviders } from '@/components/auth/socialProviders';
 
 /**
- * Step 2 (alternative, web "googleOnly"): the account was created with Google and has no
- * password. Sign in with Google, or "Set a password" (the link goes to the e-mail). Apple makes
- * no sense here (same on web), so it is left out on purpose. Where no Google button renders
- * (Android while Google is off) the notice only offers the password, not a missing button.
+ * Step 2 (alternative, web `googleOnly`): the account has no password. Sign in with the
+ * provider linked to it (Google, or Apple on iOS; the client does not know which one, so both
+ * buttons this device can show are offered, as on web), or "Set a password" (the link goes to
+ * the e-mail). The notice claims nothing about how the account was created (plan D5). Where no
+ * provider button renders (Android while Google is off) the notice only offers the password.
  */
-export function GoogleOnlyStep({ f }: { f: LoginController }) {
+export function NoPasswordStep({ f }: { f: LoginController }) {
   const { t } = useTranslation();
-  const hasGoogle = getVisibleSocialProviders(f.social, { apple: false }).google;
+  const hasProvider = getVisibleSocialProviders(f.social).any;
 
   return (
     <View style={styles.form}>
       <ResolvedEmail email={f.email} onChange={f.back} />
-      <Text testID="login-google-only-notice" variant="bodySm" tone="body" style={styles.notice}>
-        {t(hasGoogle ? 'auth.googleOnlyAccount' : 'mobile.googleOnlyAccountNoGoogle')}
+      <Text testID="login-no-password-notice" variant="bodySm" tone="body" style={styles.notice}>
+        {t(hasProvider ? 'auth.noPasswordAccount' : 'mobile.noPasswordAccountNoProvider')}
       </Text>
-      <SocialButtons social={f.social} busy={f.loginMutation.isPending} apple={false} testIDPrefix="login" />
+      <SocialButtons social={f.social} busy={f.loginMutation.isPending} testIDPrefix="login" />
       <Button
         testID="login-set-password-button"
         variant="outline"

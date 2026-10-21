@@ -1,7 +1,7 @@
 /**
  * Android while Google sign-in is off (and no Apple): no provider button is rendered, so the
- * login form must not show the "or" divider, and the Google-only step must not point to a
- * Google button that is not there. The terms notice is provider-neutral everywhere.
+ * login form must not show the "or" divider, and the no-password step must not point to a
+ * provider button that is not there. The terms notice is provider-neutral everywhere.
  */
 import React from 'react';
 import { render } from '@testing-library/react-native';
@@ -72,26 +72,43 @@ describe('LoginForm — no provider button', () => {
   });
 });
 
-describe('LoginForm — Google-only account step', () => {
+describe('LoginForm — account without a password (provider-neutral, plan D5)', () => {
   beforeEach(() => mockIsGoogleConfigured.mockReset());
 
-  it('without a Google button, only offers to set a password', () => {
+  it('without any provider button, only offers to set a password', () => {
     mockIsGoogleConfigured.mockReturnValue(false);
     const { getByTestId, queryByTestId, getByText, queryByText } = render(
-      <Harness appleAvailable step="googleOnly" />,
+      <Harness appleAvailable={false} step="noPassword" />,
     );
     expect(queryByTestId('login-google-button')).toBeNull();
     expect(queryByTestId('login-apple-button')).toBeNull();
-    expect(queryByText('auth.googleOnlyAccount')).toBeNull();
-    expect(getByText('mobile.googleOnlyAccountNoGoogle')).toBeTruthy();
+    expect(queryByText('auth.noPasswordAccount')).toBeNull();
+    expect(getByText('mobile.noPasswordAccountNoProvider')).toBeTruthy();
     expect(getByTestId('login-set-password-button')).toBeTruthy();
   });
 
-  it('with the Google button, keeps the web notice', () => {
+  it('with Google, offers it with the neutral notice', () => {
     mockIsGoogleConfigured.mockReturnValue(true);
-    const { getByTestId, getByText } = render(<Harness appleAvailable step="googleOnly" />);
+    const { getByTestId, getByText, queryByTestId } = render(<Harness appleAvailable={false} step="noPassword" />);
     expect(getByTestId('login-google-button')).toBeTruthy();
-    expect(getByText('auth.googleOnlyAccount')).toBeTruthy();
+    expect(queryByTestId('login-apple-button')).toBeNull();
+    expect(getByText('auth.noPasswordAccount')).toBeTruthy();
+  });
+
+  it('an Apple-only account on iOS (Google off): Apple shows, the notice names no provider', () => {
+    mockIsGoogleConfigured.mockReturnValue(false);
+    const { getByTestId, getByText, queryByTestId } = render(<Harness appleAvailable step="noPassword" />);
+    expect(getByTestId('login-apple-button')).toBeTruthy();
+    expect(queryByTestId('login-google-button')).toBeNull();
+    expect(getByText('auth.noPasswordAccount')).toBeTruthy();
+  });
+
+  it('on iOS with both providers, both buttons show (web shows both too)', () => {
+    mockIsGoogleConfigured.mockReturnValue(true);
+    const { getByTestId } = render(<Harness appleAvailable step="noPassword" />);
+    expect(getByTestId('login-google-button')).toBeTruthy();
+    expect(getByTestId('login-apple-button')).toBeTruthy();
+    expect(getByTestId('login-no-password-notice')).toBeTruthy();
   });
 });
 

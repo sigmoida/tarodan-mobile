@@ -4,19 +4,19 @@ import { styles } from '../_lib/styles';
 import type { LoginController } from '../_hooks/useLogin';
 import { EmailStep } from './EmailStep';
 import { PasswordStep } from './PasswordStep';
-import { GoogleOnlyStep } from './GoogleOnlyStep';
+import { NoPasswordStep } from './NoPasswordStep';
 
 /**
- * Giriş formu (web `LoginForm`, iki aşamalı): `step`e göre e-posta / şifre / Google-only adımı.
- * Ayrı "misafir olarak devam et" düğmesi yok — çıkış yolu üst bardaki (her zaman görünen) geri oku.
- * Çerçeve/kart yok — başlık ve kabuk `AuthShell`'de.
+ * Login form (web `LoginForm`, two steps): the e-mail, password or no-password step by `step`.
+ * No separate "continue as guest" button: the way out is the always visible back arrow.
+ * No frame or card: the title and shell live in `AuthShell`.
  */
 export function LoginForm({ f }: { f: LoginController }) {
   return (
     <View style={styles.root}>
       {f.step === 'email' ? <EmailStep f={f} /> : null}
       {f.step === 'password' ? <PasswordStep f={f} /> : null}
-      {f.step === 'googleOnly' ? <GoogleOnlyStep f={f} /> : null}
+      {f.step === 'noPassword' ? <NoPasswordStep f={f} /> : null}
     </View>
   );
 }

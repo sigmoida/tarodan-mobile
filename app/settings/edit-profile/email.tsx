@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
+import { ReauthModal } from '@/components/auth/ReauthModal';
 import { goBackOrHome } from '@/components/common/goBackOrHome';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { useEmailChangeFlow } from './_hooks/useEmailChangeFlow';
@@ -28,6 +29,7 @@ export default function EmailChangeScreen() {
   return (
     <PageShell
       title={t('profile.changeEmail')}
+      overlay={<ReauthModal {...f.reauthModal} />}
       footer={
         isCodeStep ? (
           <Button

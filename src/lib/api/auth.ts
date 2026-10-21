@@ -1,5 +1,11 @@
 import { api, guestApi } from './client';
 import type { ConsentDocumentKey } from '@/lib/shared/legalConsent';
+import type {
+  ReauthRequest,
+  ReauthResponse,
+  SetPasswordRequest,
+  SignInMethods,
+} from '@/types/sign-in-methods';
 
 // Auth API - Web ile aynı endpoint'ler
 export const authApi = {
@@ -145,10 +151,30 @@ export const authApi = {
   sendPhoneCode: (phone: string) => api.post('/auth/phone/send-code', { phone }),
   /** SMS doğrulama kodunu doğrula */
   verifyPhone: (code: string) => api.post('/auth/phone/verify', { code }),
-  /** E-posta değişikliği kodu gönder — kod YENİ adrese gider (throttle 3/dk). */
-  requestEmailChange: (newEmail: string) =>
-    api.post<{ message: string }>('/auth/email/request-change', { newEmail }),
+  /**
+   * Send the e-mail change code to the NEW address (throttle 3/min). `reauthToken` is the
+   * step-up token, sent in the body; without one the request passes only while the API
+   * setting `auth_require_reauth_for_sensitive_actions` is off.
+   */
+  requestEmailChange: (newEmail: string, reauthToken?: string) =>
+    api.post<{ message: string }>('/auth/email/request-change', {
+      newEmail,
+      ...(reauthToken ? { reauthToken } : {}),
+    }),
   /** E-posta değişikliği kodunu doğrula (throttle 10/dk). */
   verifyEmailChange: (code: string) =>
     api.post<{ message: string; email: string }>('/auth/email/verify-change', { code }),
+  // ---- Sign-in methods and step-up (contract delta 2026-10-21) ----
+  /** The signed-in account's password flag and linked providers. */
+  getSignInMethods: () => api.get<SignInMethods>('/auth/sign-in-methods'),
+  /**
+   * Step-up: one proof (the password, or a fresh provider sign-in for an account without
+   * one) for a short-lived opaque token. Errors are never 401: `403 REAUTH_FAILED`,
+   * `400 REAUTH_METHOD_NOT_ALLOWED`, `429 REAUTH_LOCKED`, `503 REAUTH_UNAVAILABLE`. The
+   * token is kept in memory only (`useReauth`).
+   */
+  reauth: (proof: ReauthRequest) => api.post<ReauthResponse>('/auth/reauth', proof),
+  /** First password for an account without one; answers the fresh `SignInMethods`. */
+  setPassword: (body: SetPasswordRequest) =>
+    api.post<SignInMethods>('/auth/password/set', body),
 };

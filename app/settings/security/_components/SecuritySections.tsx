@@ -5,20 +5,36 @@ import { Badge } from '@/ui';
 import type { SecurityHub } from '../_hooks/useSecurityHub';
 import { SettingsActionCard } from './SettingsActionCard';
 
-/** Şifre / 2FA / telefon doğrulama / oturumlar / hesabı sil — hepsi aynı kart kalıbı (`SettingsActionCard`). */
+/** Password / 2FA / phone / sessions / delete account: one card pattern (`SettingsActionCard`). */
 export function SecuritySections({ f }: { f: SecurityHub }) {
   const { t } = useTranslation();
   return (
     <>
-      <SettingsActionCard
-        title={t('mobile.password')}
-        description={t('profile.security.passwordDesc')}
-        action={{
-          label: t('profile.change'),
-          onPress: f.openPassword,
-          testID: 'security-password-button',
-        }}
-      />
+      {f.passwordMode === 'set' ? (
+        <SettingsActionCard
+          title={t('profile.security.setPasswordTitle')}
+          description={t('profile.security.setPasswordIntro')}
+          action={{
+            label: t('auth.setPassword'),
+            onPress: f.openSetPassword,
+            disabled: f.sendingSetPasswordMail,
+            isLoading: f.sendingSetPasswordMail,
+            testID: 'security-set-password-button',
+          }}
+        />
+      ) : (
+        <SettingsActionCard
+          title={t('mobile.password')}
+          description={t('profile.security.passwordDesc')}
+          action={{
+            label: t('profile.change'),
+            onPress: f.openPassword,
+            disabled: f.passwordMode === 'loading',
+            isLoading: f.passwordMode === 'loading',
+            testID: 'security-password-button',
+          }}
+        />
+      )}
 
       <SettingsActionCard
         title={t('security.twoFactorSection')}
@@ -67,8 +83,8 @@ export function SecuritySections({ f }: { f: SecurityHub }) {
         }}
       />
 
-      {/* Hesabı sil — profil sekmesinden buraya taşındı (web `DangerZoneSection` eşi): yazarak onaylanan
-          ayrı ekrana (`settings/delete-account`) gider; silme burada çağrılmaz. */}
+      {/* Delete account (web `DangerZoneSection`): opens the typed-confirmation screen
+          (`settings/delete-account`); nothing is deleted here. */}
       <SettingsActionCard
         title={t('settings.dangerZone')}
         description={t('settings.deleteAccountDetails')}

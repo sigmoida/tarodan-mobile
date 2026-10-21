@@ -280,9 +280,15 @@
     "googleSignInFailed": "Google sign-in failed.",
     "emailNotRegistered": "This email address is not registered.",
     "useDifferentEmail": "Use a different email",
-    "googleOnlyAccount": "This account was created with Google. Sign in with Google, or set a password.",
+    "noPasswordAccount": "This account has no password. Sign in with the method connected to it, or set a password.",
     "setPassword": "Set a password",
     "setPasswordEmailSent": "A link to set your password was sent to your email.",
+    "reauth": {
+      "title": "Confirm it's you",
+      "body": "Before we continue, we need to confirm this account is yours.",
+      "withPassword": "Confirm with your password",
+      "withProvider": "Confirm with {provider}"
+    },
     "or": "or",
     "emailNotVerifiedBanner": "Your email is not verified yet. Please check your inbox or spam folder for the verification link.",
     "goToVerificationPage": "Go to verification page",
@@ -359,7 +365,7 @@
     "appleSignInFailedTitle": "Apple sign-in failed",
     "appleIdentityTokenMissing": "Couldn't get an Apple identityToken",
     "socialTwoFactorTitle": "Sign in with your password",
-    "socialTwoFactorBody": "Two-step verification is enabled on this account. Please sign in with your e-mail address and password; you will then be asked for your verification code.",
+    "socialTwoFactorBody": "Two-factor authentication is enabled on this account. Please sign in with your e-mail address and password; you will then be asked for your verification code.",
     "emailInvalidShort": "Enter a valid e-mail address",
     "passwordRequired": "Password cannot be empty",
     "backToHome": "Back to home",
@@ -2487,7 +2493,12 @@
       "twoFactorOff": "Add an app-based extra layer of security",
       "manage": "Manage",
       "setUp": "Set up",
-      "passwordDesc": "Change your account password regularly"
+      "passwordDesc": "Change your account password regularly",
+      "setPasswordTitle": "Set a Password",
+      "setPasswordIntro": "You can currently sign in only with Google or Apple. Set a password to sign in with your email address too.",
+      "setPasswordAction": "Set Password",
+      "setPasswordSuccess": "Your password has been set.",
+      "passwordFirstFor2fa": "You need to set a password before you can turn on two-factor authentication."
     },
     "emailChangeLeaveTitle": "Email not verified",
     "emailChangeLeaveBody": "If you leave without entering the code, your email won't change and you'll need to request a new code.",
@@ -3517,7 +3528,7 @@
   },
   "mobile": {
     "googleDeveloperError": "Google sign-in is not available in this version of the app right now. Please sign in with your e-mail address, or try again later.",
-    "googleOnlyAccountNoGoogle": "This account was created with Google. To sign in here, set a password.",
+    "noPasswordAccountNoProvider": "This account has no password. Set a password to sign in here.",
     "tabBarSell": "Create Listing",
     "tabBarExpandHint": "Shows the tab bar",
     "addressTitlePlaceholder": "e.g. Home, Work",
