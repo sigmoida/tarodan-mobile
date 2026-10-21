@@ -18,6 +18,7 @@ import { appAlert, toast } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
 import { resetRouterMocks } from '@/test-utils/router-mock';
 import { expectCachesFreeOf } from '@/test-utils/cacheSecrets';
+import { qk } from '@/lib/query';
 import i18n from '@/i18n/config';
 import type { MessageKey } from '@/i18n/lib/generated/keys';
 
@@ -272,6 +273,35 @@ describe('last-method rule (D1)', () => {
     await renderScreen();
     expect(screen.getByTestId('connected-google-disconnect')).toBeEnabled();
     expect(screen.getByTestId('connected-apple-disconnect')).toBeEnabled();
+    // Both linked: no Connect for either (at most one Google and one Apple).
+    expect(screen.queryByTestId('connected-google-connect')).toBeNull();
+    expect(screen.queryByTestId('connected-apple-connect')).toBeNull();
+  });
+
+  it('Android, no password, Apple only: Disconnect Apple is off with the D1 hint, not the iOS-only one', async () => {
+    setPlatform('android');
+    mockAppleAvailable = false;
+    mockGetSignInMethods.mockResolvedValue(answer(methods(false, 'apple')));
+    await renderScreen();
+    expect(screen.getByTestId('connected-apple-disconnect')).toBeDisabled();
+    expect(screen.getByTestId('connected-apple-hint')).toHaveTextContent(t('profile.connectedAccounts.lastMethodHint'));
+    expect(screen.queryByTestId('connected-apple-connect')).toBeNull();
+  });
+
+  it('the freshest methods decide at the tap: Apple just became the last method, nothing is asked', async () => {
+    mockGetSignInMethods.mockResolvedValue(answer(methods(false, 'google', 'apple')));
+    const { queryClient } = await renderScreen();
+    const appleDisconnect = screen.getByTestId('connected-apple-disconnect');
+    expect(appleDisconnect).toBeEnabled();
+    // Another device removed Google; the tap lands before the row has re-rendered.
+    await act(async () => {
+      queryClient.setQueryData(qk.auth.signInMethods, methods(false, 'apple'));
+      fireEvent.press(appleDisconnect);
+    });
+    await waitFor(() => expect(screen.getByTestId('connected-apple-disconnect')).toBeDisabled());
+    expect(alertMock).not.toHaveBeenCalled();
+    expect(mockReauth).not.toHaveBeenCalled();
+    expect(mockUnlink).not.toHaveBeenCalled();
   });
 });
 
@@ -314,6 +344,9 @@ describe('connect', () => {
     const sheet = mockSignInWithApple.mock.invocationCallOrder[0]!;
     const linkAt = mockLinkApple.mock.invocationCallOrder[0]!;
     expect(waits.some((at) => at > sheet && at < linkAt)).toBe(true);
+    // The sheet itself waits for the confirm step to close (no native sheet over the modal).
+    const reauthAt = mockReauth.mock.invocationCallOrder[0]!;
+    expect(waits.some((at) => at > reauthAt && at < sheet)).toBe(true);
     // The answer updates the list without a reload.
     await waitFor(() =>
       expect(within(row('apple')).getByText(t('profile.connectedAccounts.connected'))).toBeTruthy(),
@@ -531,6 +564,35 @@ describe('connect', () => {
     expect(mockLinkApple).toHaveBeenCalledTimes(1);
   });
 
+  it('two taps in one frame (before the row re-renders) run one flow: one sheet, one link', async () => {
+    await renderScreen();
+    const connect = screen.getByTestId('connected-apple-connect');
+    await act(async () => {
+      fireEvent.press(connect);
+      fireEvent.press(connect);
+    });
+    await confirmPassword();
+    await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+    expect(mockSignInWithApple).toHaveBeenCalledTimes(1);
+    expect(mockLinkApple).toHaveBeenCalledTimes(1);
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a 401', apiError(401)],
+    ['a stale session', { isAxiosError: true, code: 'SESSION_STALE', message: 'stale' }],
+  ])('%s on link: silent here (the client owns the sign-out), no toast, no Sentry', async (_label, ended) => {
+    mockLinkApple.mockRejectedValueOnce(ended);
+    await renderScreen();
+    fireEvent.press(screen.getByTestId('connected-apple-connect'));
+    await confirmPassword();
+    await waitFor(() => expect(mockLinkApple).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByTestId('connected-apple-connect')).toBeEnabled());
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(mockCapture).not.toHaveBeenCalled();
+  });
+
   it('Android, no password and no linked provider shown here: told why, the mail offered, no sheet', async () => {
     setPlatform('android');
     mockAppleAvailable = false;
@@ -638,6 +700,38 @@ describe('disconnect', () => {
     });
   });
 
+  it('a 401 on unlink: silent here (the client owns the sign-out), no toast, no Sentry', async () => {
+    mockUnlink.mockRejectedValueOnce(apiError(401));
+    await renderScreen();
+    fireEvent.press(screen.getByTestId('connected-apple-disconnect'));
+    await answerAlert('destructive');
+    await confirmPassword();
+    await waitFor(() => expect(mockUnlink).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByTestId('connected-apple-disconnect')).toBeEnabled());
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(mockCapture).not.toHaveBeenCalled();
+  });
+
+  it('Android, no password, Google off: D1 lets Apple go but this device cannot confirm, so it explains first', async () => {
+    setPlatform('android');
+    mockGoogleConfigured = false;
+    mockAppleAvailable = false;
+    mockGetSignInMethods.mockResolvedValue(answer(methods(false, 'google', 'apple')));
+    await renderScreen();
+    expect(screen.getByTestId('connected-apple-disconnect')).toBeEnabled();
+    fireEvent.press(screen.getByTestId('connected-apple-disconnect'));
+    await waitFor(() => expect(alertMock).toHaveBeenCalledTimes(1));
+    // The explanation with the set-password mail, never the disconnect confirmation first.
+    const [title, message] = alertMock.mock.calls[0]!;
+    expect(title).toBe(t('auth.reauth.title'));
+    expect(message).toContain(t('mobile.noPasswordAccountNoProvider'));
+    await waitFor(() => expect(screen.getByTestId('connected-apple-disconnect')).toBeEnabled());
+    expect(alertMock).toHaveBeenCalledTimes(1);
+    expect(mockReauth).not.toHaveBeenCalled();
+    expect(mockUnlink).not.toHaveBeenCalled();
+  });
+
   it('the token is reused for a second write within its life (one confirm step)', async () => {
     mockUnlink.mockImplementation(writes(methods(true, 'google')));
     await renderScreen();
@@ -655,7 +749,7 @@ describe('disconnect', () => {
 });
 
 describe('secrets', () => {
-  it('the step-up token, the password and the provider credential leave the caches with the screen', async () => {
+  it('connect Apple: the step-up token, the password and the provider credential leave the caches with the screen', async () => {
     const { queryClient, unmount } = await renderScreen();
     fireEvent.press(screen.getByTestId('connected-apple-connect'));
     await confirmPassword('Secret123');
@@ -663,5 +757,33 @@ describe('secrets', () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalled());
 
     await expectCachesFreeOf(queryClient, unmount, ['tok-1', 'Secret123', 'apple-id-token', 'apple-code']);
+  });
+
+  it('connect Google after a Google step-up: neither idToken nor the step-up token stays in a cache', async () => {
+    mockGetSignInMethods.mockResolvedValue(answer(methods(false, 'apple')));
+    mockSignInWithGoogle.mockResolvedValue('google-link-token');
+    mockLinkGoogle.mockImplementation(writes(methods(false, 'apple', 'google')));
+    const { queryClient, unmount } = await renderScreen();
+    fireEvent.press(screen.getByTestId('connected-google-connect'));
+    // No password: the confirm step offers Apple (linked and shown on iOS).
+    fireEvent.press(await screen.findByTestId('reauth-apple-button'));
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    expect(mockReauth).toHaveBeenCalledWith({ provider: 'apple', identityToken: 'apple-id-token' });
+    expect(mockLinkGoogle).toHaveBeenCalledWith({ idToken: 'google-link-token', reauthToken: 'tok-1' });
+
+    await expectCachesFreeOf(queryClient, unmount, ['tok-1', 'apple-id-token', 'apple-code', 'google-link-token']);
+  });
+
+  it('disconnect: the step-up token and the password leave the caches with the screen', async () => {
+    mockGetSignInMethods.mockResolvedValue(answer(methods(true, 'google', 'apple')));
+    mockUnlink.mockImplementation(writes(methods(true, 'google')));
+    const { queryClient, unmount } = await renderScreen();
+    fireEvent.press(screen.getByTestId('connected-apple-disconnect'));
+    await answerAlert('destructive');
+    await confirmPassword('Secret123');
+    await waitFor(() => expect(mockUnlink).toHaveBeenCalled());
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+
+    await expectCachesFreeOf(queryClient, unmount, ['tok-1', 'Secret123']);
   });
 });
