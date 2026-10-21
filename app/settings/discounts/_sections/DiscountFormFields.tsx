@@ -17,7 +17,6 @@ const TYPE_CHIPS: Array<{ type: DiscountType; labelKey: MessageKey }> = [
 ];
 
 const digitsOnly = (v: string) => v.replace(/[^0-9]/g, '');
-const decimal = (v: string) => v.replace(',', '.');
 
 /**
  * İndirim formunun alanları (eski modal gövdesinden aynen): ad, açıklama, kod
@@ -104,8 +103,8 @@ export function DiscountFormFields({ f }: { f: DiscountFormController }) {
           ) : null}
           <FormInput
             name="value"
+            testID="discount-value"
             label={type === 'fixed_amount' ? t('discount.valueLabelFixed') : t('discount.valueLabelPercent')}
-            transform={decimal}
             keyboardType="numeric"
             containerStyle={styles.input}
           />
@@ -172,15 +171,15 @@ export function DiscountFormFields({ f }: { f: DiscountFormController }) {
       <Text variant="label" style={styles.sectionLabel}>{t('discount.limitsLabel')}</Text>
       <FormInput
         name="minCartValue"
+        testID="discount-min-cart"
         label={t('discount.minCartLabel')}
-        transform={decimal}
         keyboardType="numeric"
         containerStyle={styles.input}
       />
       <FormInput
         name="maxDiscountAmount"
+        testID="discount-max-discount"
         label={t('discount.maxDiscountLabel')}
-        transform={decimal}
         keyboardType="numeric"
         containerStyle={styles.input}
       />

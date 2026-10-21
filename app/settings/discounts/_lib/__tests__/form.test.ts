@@ -19,6 +19,25 @@ describe('buildDiscountPayload', () => {
   });
 });
 
+describe('buildDiscountPayload: amount text (shared TL amount parser, web parity)', () => {
+  it('sends a decimal comma and plain thousands exactly', () => {
+    const p = buildDiscountPayload({
+      ...base(),
+      type: 'fixed_amount',
+      value: '1250,50',
+      minCartValue: '1000',
+      maxDiscountAmount: '99.90',
+    });
+    expect(p).toMatchObject({ value: 1250.5, minCartValue: 1000, maxDiscountAmount: 99.9 });
+  });
+
+  it('a zero bound is no bound: left out on create, cleared (null) on update', () => {
+    const fields = { ...base(), minCartValue: '0', maxDiscountAmount: '0,00' };
+    expect(buildDiscountPayload(fields)).toMatchObject({ minCartValue: undefined, maxDiscountAmount: undefined });
+    expect(buildDiscountPayload(fields, true)).toMatchObject({ minCartValue: null, maxDiscountAmount: null });
+  });
+});
+
 describe('buildDiscountPayload — güncelleme (PATCH): temizlenen alanlar null', () => {
   it('bogo -> yüzde: buyQuantity/getQuantity null gider (sunucuda eski değer kalmaz)', () => {
     const p = buildDiscountPayload({ ...base(), type: 'percentage', buyQuantity: '2', getQuantity: '1' }, true);
@@ -52,7 +71,7 @@ describe('buildDiscountPayload — güncelleme (PATCH): temizlenen alanlar null'
 });
 
 describe('gösterim', () => {
-  const t = (k: string, p?: Record<string, unknown>) => `${k}:${JSON.stringify(p)}`;
+  const t = (k: string, p?: Record<string, string | number>) => `${k}:${JSON.stringify(p)}`;
   const d = (o: Partial<Discount>) => ({ value: 0, type: 'percentage', ...o }) as Discount;
   it('valueLabel', () => {
     expect(valueLabel(d({ type: 'bogo', buyQuantity: 2, getQuantity: 1 }))).toBe('2+1');
@@ -60,8 +79,8 @@ describe('gösterim', () => {
     expect(valueLabel(d({ type: 'percentage', value: 10 }))).toBe('%10');
   });
   it('quantitySummary yalnız adet koşullu türlerde', () => {
-    expect(quantitySummary(d({ type: 'bogo', buyQuantity: 2, getQuantity: 1 }), t as any)).toContain('discount.bogoSummary');
-    expect(quantitySummary(d({ type: 'bulk_quantity', minQuantity: 3, value: 15 }), t as any)).toContain('discount.bulkSummary');
-    expect(quantitySummary(d({ type: 'percentage' }), t as any)).toBeNull();
+    expect(quantitySummary(d({ type: 'bogo', buyQuantity: 2, getQuantity: 1 }), t)).toContain('discount.bogoSummary');
+    expect(quantitySummary(d({ type: 'bulk_quantity', minQuantity: 3, value: 15 }), t)).toContain('discount.bulkSummary');
+    expect(quantitySummary(d({ type: 'percentage' }), t)).toBeNull();
   });
 });

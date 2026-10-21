@@ -1,16 +1,20 @@
 import type { TFunction } from 'i18next';
 import type { MessageKey } from '@/i18n/lib';
 import { z } from 'zod';
+import { parseTlAmount, tlAmountInputValue } from '@/lib/shared/tlAmount';
 import type { Discount } from './types';
 
 /**
- * İndirim formu şeması (colocated, src/ui/CLAUDE.md › Forms). Kurallar API ile aynı
- * (`assertQuantityTypeShape`): bogo -> al/bedava >= 1; bulk_quantity -> en az
- * adet >= 2 ve yüzde 1-100. Adet koşullu kampanya KODSUZ-otomatiktir.
+ * The discount form schema (colocated, src/ui/CLAUDE.md › Forms). The rules match the API
+ * (`assertQuantityTypeShape`): bogo -> buy/get >= 1; bulk_quantity -> minimum quantity >= 2
+ * and a percent of 1-100. A quantity campaign has no code: it applies automatically.
  *
- * Alanlar giriş kutularından geldiği için string tutulur (`z.input` = `z.output`);
- * sayıya çevirme gövde kurucuda (`buildDiscountPayload`). Koşullu kurallar
- * `superRefine` ile ALAN YOLUNA bağlanır: hata, ilgili girdinin altında görünür.
+ * The fields come from text inputs, so they stay strings (`z.input` = `z.output`); the numbers
+ * are read in the payload builder (`buildDiscountPayload`). The value and the TL amounts are
+ * read by the shared TL amount parser, as on web: "1.000" is refused
+ * (`validation.amountFormatRefused` for TL, the value copy for a percent), never read as 1.
+ * Conditional rules are bound to the FIELD PATH with `superRefine`, so the error shows under
+ * the input it is about.
  */
 export const DISCOUNT_TYPES = ['percentage', 'fixed_amount', 'bogo', 'bulk_quantity'] as const;
 
@@ -45,12 +49,17 @@ export function discountSchema(t: TFunction) {
 
       if (!v.name.trim()) fail('name', 'discount.nameRequired');
 
-      const valueNum = parseFloat(v.value);
+      // bogo has no value. A percentage stays within 0-100 and every value is above zero; a
+      // refused percent gets the value copy (the format copy speaks of kuruş).
       if (v.type !== 'bogo') {
-        if (!valueNum || valueNum <= 0) fail('value', 'discount.valueInvalid');
-        else if ((v.type === 'percentage' || v.type === 'bulk_quantity') && valueNum > 100) {
-          fail('value', 'discount.percentTooHigh');
-        }
+        const parsed = parseTlAmount(v.value);
+        if (parsed.status === 'refused' && v.type === 'fixed_amount') {
+          fail('value', 'validation.amountFormatRefused');
+        } else if (parsed.status !== 'ok') fail('value', 'discount.valueInvalid');
+        else if (v.type !== 'fixed_amount' && parsed.amount > 100) fail('value', 'discount.percentTooHigh');
+      }
+      for (const path of ['minCartValue', 'maxDiscountAmount'] as const) {
+        if (parseTlAmount(v[path]).status === 'refused') fail(path, 'validation.amountFormatRefused');
       }
       if (v.type === 'bogo') {
         if (!(parseInt(v.buyQuantity, 10) >= 1)) fail('buyQuantity', 'discount.buyQuantityMin1');
@@ -99,14 +108,15 @@ export const discountToFormValues = (d: Discount): DiscountFormValues => ({
   name: d.name,
   description: d.description ?? '',
   type: d.type,
-  value: String(d.value),
+  // Comma decimals, no grouping: the text the amount parser reads back (web `fromDiscount`).
+  value: tlAmountInputValue(Number(d.value)),
   buyQuantity: d.buyQuantity?.toString() ?? '',
   getQuantity: d.getQuantity?.toString() ?? '',
   minQuantity: d.minQuantity?.toString() ?? '',
   scope: d.scope === 'product' ? 'product' : 'seller',
   targetProductIds: d.targetProductIds ?? [],
-  minCartValue: d.minCartValue?.toString() ?? '',
-  maxDiscountAmount: d.maxDiscountAmount?.toString() ?? '',
+  minCartValue: tlAmountInputValue(Number(d.minCartValue)),
+  maxDiscountAmount: tlAmountInputValue(Number(d.maxDiscountAmount)),
   usageLimitTotal: d.usageLimitTotal?.toString() ?? '',
   usageLimitPerUser: String(d.usageLimitPerUser ?? 1),
   isStackable: d.isStackable,
