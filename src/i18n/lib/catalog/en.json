@@ -3647,7 +3647,7 @@
     "settingsGroupPayment": "Payments & Bank",
     "settingsGroupPreferences": "Preferences",
     "connectedAccounts": {
-      "appleIosOnly": "Apple sign-in can only be connected on iPhone and iPad.",
+      "appleIosOnly": "Apple sign-in can only be connected on iPhone and iPad. You can also connect your Apple account on the Tarodan website.",
       "googleUnavailableAndroid": "Google sign-in is currently turned off on Android. You can connect your Google account on the Tarodan website."
     }
   },

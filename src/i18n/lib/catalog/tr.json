@@ -3647,7 +3647,7 @@
     "settingsGroupPayment": "Ödeme ve Banka",
     "settingsGroupPreferences": "Tercihler",
     "connectedAccounts": {
-      "appleIosOnly": "Apple ile giriş yalnızca iPhone ve iPad'de bağlanabilir.",
+      "appleIosOnly": "Apple ile giriş yalnızca iPhone ve iPad'de bağlanabilir. Apple hesabını Tarodan web sitesinden de bağlayabilirsin.",
       "googleUnavailableAndroid": "Google ile giriş şu anda Android'de kapalı. Google hesabınızı Tarodan web sitesinden bağlayabilirsiniz."
     }
   },
