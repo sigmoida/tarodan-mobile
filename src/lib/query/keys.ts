@@ -227,9 +227,9 @@ export const qk = {
      */
     sellerTradeable: (userId: string | undefined, sellerId: string) =>
       ["seller-tradeable-products", userId, sellerId, "new"] as const,
-    /** Karşı teklif: karşı tarafın takasa uygun ürünleri (farklı uç → ayrı yaprak). */
-    sellerTradeableForCounter: (sellerId: string | undefined) =>
-      ["seller-tradeable-products", sellerId, "counter"] as const,
+    /** Counter offer, their side (its own leaf, same reason as `sellerTradeable`). */
+    sellerTradeableForCounter: (userId: string | undefined, sellerId: string | undefined) =>
+      ["seller-tradeable-products", userId, sellerId, "counter"] as const,
   },
 
   offers: {

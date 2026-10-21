@@ -35,7 +35,10 @@ zustand store.
   both pickers. A new cache that lists the user's own listings joins that set. All
   trade pickers (both sides) also refetch on every open and on screen focus
   (`app/trade/_lib/picker.ts`, `useRefetchStaleOnFocus`), because a listing can change
-  where no client mutation runs (admin approval, the other party's edits).
+  where no client mutation runs (admin approval, the other party's edits). The pickers are
+  paged `useInfiniteQuery`s (`app/trade/_hooks/usePagedPicker.ts`, "Show more" button, server
+  `tradeOnly` filter): a refetch reloads every loaded page, their keys carry the user id, and
+  the same `myTradeableAll` prefix reaches them.
 - In a modal form: close the modal, then `mutate` (see `src/ui/CLAUDE.md` › iOS modal
   rule).
 

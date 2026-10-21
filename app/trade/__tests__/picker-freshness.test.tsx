@@ -175,12 +175,12 @@ describe('picker refetch on screen focus', () => {
     const client = makeClient();
     const { result } = renderHook(() => useTradeCounter(), { wrapper: wrapperFor(client) });
     await waitFor(() => expect(result.current.loadingMyProducts).toBe(false));
-    const callsBefore = mockedAll.mock.calls.length;
+    const callsBefore = mockedMy.mock.calls.length;
 
-    mockedAll.mockResolvedValue({ data: { data: [listing('approved-2')] } });
+    mockedMy.mockResolvedValue({ data: { data: [listing('approved-2')] } });
     await act(async () => refocus());
     await waitFor(() => expect(result.current.myProducts.map((p: { id: string }) => p.id)).toEqual(['approved-2']));
-    expect(mockedAll.mock.calls.length).toBeGreaterThan(callsBefore);
+    expect(mockedMy.mock.calls.length).toBeGreaterThan(callsBefore);
   });
 });
 
@@ -298,9 +298,9 @@ describe('counter-offer picker', () => {
   it('refetches my listings on open although the cached list is fresh, with loading instead of empty', async () => {
     mockParams = { id: 'trade-1' };
     const client = makeClient();
-    client.setQueryData(qk.trades.myTradeableForCounter('u1'), []);
+    client.setQueryData(qk.trades.myTradeableForCounter('u1'), cachedPages([]));
     let resolve!: (v: unknown) => void;
-    mockedAll.mockReturnValueOnce(new Promise((r) => (resolve = r)));
+    mockedMy.mockReturnValueOnce(new Promise((r) => (resolve = r)));
 
     const { result } = renderHook(() => useTradeCounter(), { wrapper: wrapperFor(client) });
 
@@ -318,7 +318,7 @@ describe('counter-offer picker', () => {
       data: { id: 'trade-1', initiatorId: 'u1', receiverId: 'u2', initiatorItems: [], receiverItems: [] },
     });
     const client = makeClient();
-    client.setQueryData(qk.trades.sellerTradeableForCounter('u2'), []);
+    client.setQueryData(qk.trades.sellerTradeableForCounter('u1', 'u2'), cachedPages([]));
     let resolve!: (v: unknown) => void;
     mockedAll.mockImplementation(({ sellerId }: { sellerId: string }) =>
       sellerId === 'u2' ? new Promise((r) => (resolve = r)) : Promise.resolve({ data: { data: [] } }),
@@ -343,6 +343,7 @@ describe('counter-offer picker on screen focus', () => {
       data: { id: 'trade-1', initiatorId: 'u1', receiverId: 'u2', initiatorItems: [], receiverItems: [] },
     });
     const lists: Record<string, string[]> = { u1: ['mine-1'], u2: ['theirs-1'] };
+    mockedMy.mockImplementation(() => Promise.resolve({ data: { data: lists.u1!.map((id) => listing(id)) } }));
     mockedAll.mockImplementation(({ sellerId }: { sellerId: string }) =>
       Promise.resolve({ data: { data: (lists[sellerId] ?? []).map((id) => listing(id)) } }),
     );

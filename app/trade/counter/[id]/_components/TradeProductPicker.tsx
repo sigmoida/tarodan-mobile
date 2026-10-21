@@ -3,10 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { EmptyState, SectionCard, Spinner, Text } from '@/ui';
 
 import { TradePickCard } from '@/components/trade/TradePickCard';
+import { ShowMoreButton } from '../../../_components/ShowMoreButton';
 import { styles } from '../_lib/styles';
-import { itemId, type TradeItem } from '../_lib/types';
+import type { CounterProduct } from '../_lib/counterProducts';
 
-/** Başlıklı, çoklu seçimli takas ürün listesi — yeni takas teklifiyle aynı `TradePickCard`. */
+/** Titled, multi-select trade product list; the same `TradePickCard` as the new trade offer. */
 export function TradeProductPicker({
   title,
   subtitle,
@@ -14,14 +15,23 @@ export function TradeProductPicker({
   isLoading,
   selected,
   toggle,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
+  showMoreTestID,
 }: {
   title: string;
   subtitle: string;
-  products: any[];
+  products: CounterProduct[];
   /** Loading wins over the empty state (see `isPickerLoading`). */
   isLoading: boolean;
-  selected: TradeItem[];
-  toggle: (p: any) => void;
+  selected: CounterProduct[];
+  toggle: (p: CounterProduct) => void;
+  /** More pages exist on the server: show the "Show more" button. */
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  onLoadMore: () => void;
+  showMoreTestID?: string;
 }) {
   const { t } = useTranslation();
   return (
@@ -32,14 +42,22 @@ export function TradeProductPicker({
       ) : products.length === 0 ? (
         <EmptyState placement="inline" icon="arrows-right-left" title={t('trade.noEligibleProducts')} subtitle={t('emptyState.tradeEligibleHint')} />
       ) : (
-        products.map((p) => (
-          <TradePickCard
-            key={p.id}
-            product={p}
-            selected={!!selected.find((x) => itemId(x) === p.id)}
-            onToggle={() => toggle(p)}
+        <>
+          {products.map((p) => (
+            <TradePickCard
+              key={p.id}
+              product={p}
+              selected={selected.some((x) => x.id === p.id)}
+              onToggle={() => toggle(p)}
+            />
+          ))}
+          <ShowMoreButton
+            hasMore={hasMore}
+            isLoadingMore={isLoadingMore}
+            onPress={onLoadMore}
+            testID={showMoreTestID}
           />
-        ))
+        </>
       )}
     </SectionCard>
   );

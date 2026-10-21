@@ -17,7 +17,7 @@ jest.mock('expo-router', () => ({
 jest.mock('@/lib/api', () => ({
   legalIdentityApi: { getStatus: jest.fn(), submit: jest.fn() },
   tradesApi: { getOne: jest.fn(), counter: jest.fn(() => Promise.resolve({ data: {} })) },
-  productsApi: { getAll: jest.fn() },
+  productsApi: { getAll: jest.fn(), getMyListings: jest.fn() },
 }));
 
 import { legalIdentityApi, productsApi, tradesApi } from '@/lib/api';
@@ -73,9 +73,9 @@ beforeEach(() => {
       },
     },
   });
-  (productsApi.getAll as jest.Mock).mockImplementation((params: any) =>
-    Promise.resolve({ data: { data: params?.sellerId === 'user-initiator' ? [myProduct] : [theirProduct] } }),
-  );
+  // My side is `GET /products/my`; their side is the public list.
+  (productsApi.getMyListings as jest.Mock).mockResolvedValue({ data: { data: [myProduct] } });
+  (productsApi.getAll as jest.Mock).mockResolvedValue({ data: { data: [theirProduct] } });
   useAuthStore.setState({ isAuthenticated: true, isLoading: false, user: { id: 'user-initiator' } as any });
 });
 

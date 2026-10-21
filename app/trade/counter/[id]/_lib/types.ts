@@ -1,13 +1,13 @@
 export interface TradeItem {
   id: string;
   productId: string;
-  product?: {
-    id: string;
-    title: string;
-    price: number;
-    images?: Array<{ url?: string; cardUrl?: string }> | string[];
-  };
   quantity: number;
+  /** Flat fields the API returns for an item of a trade (`TradeItemResponseDto`). */
+  productTitle?: string;
+  productImage?: string;
+  productImages?: Array<{ cardUrl?: string; detailUrl?: string }>;
+  /** Value at trade time, not the current price. */
+  valueAtTrade?: number;
 }
 
 export interface Trade {
@@ -26,10 +26,16 @@ export interface Trade {
   receiverItems?: TradeItem[];
 }
 
-export const itemId = (p: any) => p?.productId ?? p?.id;
+/** The product id of a trade item (`productId`) or of a picker row (`id`). */
+export const itemId = (p: { productId?: string; id?: string } | null | undefined) => p?.productId ?? p?.id;
 
-// Teklifin değişip değişmediğini saptamak için imza (ürün setleri + nakit yön/tutar).
-export function offerSignature(mine: any[], theirs: any[], dir: string, cash: string): string {
+// Signature to detect whether the offer changed (item sets + cash direction/amount).
+export function offerSignature(
+  mine: ReadonlyArray<{ productId?: string; id?: string }>,
+  theirs: ReadonlyArray<{ productId?: string; id?: string }>,
+  dir: string,
+  cash: string,
+): string {
   const cashVal = parseFloat(cash) || 0;
   const m = mine.map(itemId).filter(Boolean).sort().join(',');
   const t = theirs.map(itemId).filter(Boolean).sort().join(',');

@@ -19,7 +19,7 @@ jest.mock('expo-router', () => ({
 
 jest.mock('@/lib/api', () => ({
   tradesApi: { getOne: jest.fn(), counter: jest.fn() },
-  productsApi: { getAll: jest.fn() },
+  productsApi: { getAll: jest.fn(), getMyListings: jest.fn() },
 }));
 import { tradesApi, productsApi } from '@/lib/api';
 
@@ -40,6 +40,7 @@ import TradeCounterScreen from '../[id]';
 const getOneMock = tradesApi.getOne as jest.Mock;
 const counterMock = tradesApi.counter as jest.Mock;
 const getAllMock = productsApi.getAll as jest.Mock;
+const getMyMock = productsApi.getMyListings as jest.Mock;
 
 function tradeFixture(overrides: Record<string, unknown> = {}) {
   return {
@@ -68,11 +69,9 @@ const theirProduct = {
 
 function mountWithProducts(trade = tradeFixture()) {
   getOneMock.mockResolvedValue({ data: { data: trade } });
-  // İlk getAll çağrısı benim ürünlerim (sellerId=user.id), ikincisi karşı taraf.
-  getAllMock.mockImplementation((params: any) => {
-    const list = params?.sellerId === 'user-initiator' ? [myProduct] : [theirProduct];
-    return Promise.resolve({ data: { data: list } });
-  });
+  // My side is `GET /products/my`; their side is the public list.
+  getMyMock.mockResolvedValue({ data: { data: [myProduct] } });
+  getAllMock.mockResolvedValue({ data: { data: [theirProduct] } });
 }
 
 describe('J6 · Karşı teklif formu', () => {
@@ -80,6 +79,7 @@ describe('J6 · Karşı teklif formu', () => {
     getOneMock.mockReset();
     counterMock.mockReset();
     getAllMock.mockReset();
+    getMyMock.mockReset();
     mockParams = { id: 'trade-1' };
     mockUser = { id: 'user-initiator' };
     (appAlert as jest.Mock).mockImplementation(() => {});
@@ -137,6 +137,7 @@ describe('J6 · Karşı teklif formu', () => {
   it('J6.5 both pickers show loading, not the empty state, until their lists settle', async () => {
     getOneMock.mockResolvedValue({ data: { data: tradeFixture() } });
     const pending: Array<(v: unknown) => void> = [];
+    getMyMock.mockImplementation(() => new Promise((r) => pending.push(r)));
     getAllMock.mockImplementation(() => new Promise((r) => pending.push(r)));
     renderWithProviders(<TradeCounterScreen />);
 

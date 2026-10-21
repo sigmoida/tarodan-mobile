@@ -27,6 +27,10 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
         isLoading={f.loadingMyProducts}
         selected={f.selectedMine}
         toggle={f.toggleMine}
+        hasMore={f.myHasMore}
+        isLoadingMore={f.myLoadingMore}
+        onLoadMore={f.loadMoreMine}
+        showMoreTestID="counter-my-show-more"
       />
 
       <View style={styles.swapWrap}>
@@ -40,6 +44,10 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
         isLoading={f.loadingTheirProducts}
         selected={f.selectedTheirs}
         toggle={f.toggleTheirs}
+        hasMore={f.theirHasMore}
+        isLoadingMore={f.theirLoadingMore}
+        onLoadMore={f.loadMoreTheirs}
+        showMoreTestID="counter-their-show-more"
       />
 
       <SectionCard title={t('trade.cashDifferenceLine')}>
