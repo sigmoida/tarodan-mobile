@@ -1,5 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View, type LayoutChangeEvent, type ListRenderItemInfo } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+  type LayoutChangeEvent,
+  type ListRenderItemInfo,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppImage } from '@/components/AppImage';
 import { androidRipple, theme } from '@/ui';
@@ -12,8 +20,18 @@ export const THUMB_SIZE = 60;
 const THUMB_GAP = spacing[2];
 const THUMB_BORDER = 2;
 const THUMB_STEP = THUMB_SIZE + THUMB_GAP;
-/** Side padding of the strip; part of every item offset in `getItemLayout`. */
 const STRIP_PADDING = spacing[4];
+
+/**
+ * Scroll offset that puts thumbnail `index` in the middle of a `viewport`-wide strip, clamped to the
+ * content (the list itself clamps only at 0, and an iOS scroll view with bounce keeps an offset past
+ * the end, which would leave blank space after the last thumbnail).
+ */
+export function centredThumbOffset(index: number, count: number, viewport: number): number {
+  const content = 2 * STRIP_PADDING + count * THUMB_SIZE + Math.max(count - 1, 0) * THUMB_GAP;
+  const centre = STRIP_PADDING + index * THUMB_STEP + THUMB_SIZE / 2;
+  return Math.min(Math.max(centre - viewport / 2, 0), Math.max(content - viewport, 0));
+}
 
 type StripProps = {
   images: ProductImage[];
@@ -41,24 +59,24 @@ function ThumbList({ images, selectedIndex, onSelect, testID }: StripProps) {
   const listRef = useRef<FlatList<ProductImage>>(null);
   const total = images.length;
   const selected = Math.min(Math.max(selectedIndex, 0), total - 1);
-  // The list's own width. Centring waits for it: before the first layout the list computes the
-  // offset with a zero viewport and lands off by half a thumbnail.
+  // Both callers span the window, so its width places the first frame; the measured width of the
+  // list then corrects it in place on the first layout.
+  const { width: windowWidth } = useWindowDimensions();
+  const [initialOffset] = useState(() => ({ x: centredThumbOffset(selected, total, windowWidth), y: 0 }));
   const [viewport, setViewport] = useState(0);
   const centred = useRef(false);
 
   // Centre the selected thumbnail: in place on the first layout, animated afterwards.
   useEffect(() => {
     if (viewport <= 0) return;
-    listRef.current?.scrollToIndex({ index: selected, viewPosition: 0.5, animated: centred.current });
+    listRef.current?.scrollToOffset({
+      offset: centredThumbOffset(selected, total, viewport),
+      animated: centred.current,
+    });
     centred.current = true;
-  }, [selected, viewport]);
+  }, [selected, total, viewport]);
 
   const onLayout = useCallback((e: LayoutChangeEvent) => setViewport(e.nativeEvent.layout.width), []);
-
-  const getItemLayout = useCallback(
-    (_: unknown, index: number) => ({ length: THUMB_STEP, offset: STRIP_PADDING + THUMB_STEP * index, index }),
-    [],
-  );
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<ProductImage>) => {
@@ -90,7 +108,10 @@ function ThumbList({ images, selectedIndex, onSelect, testID }: StripProps) {
       keyExtractor={(_, index) => String(index)}
       // Selection lives outside `data`, so tell the list to re-render the items when it changes.
       extraData={selected}
-      getItemLayout={getItemLayout}
+      // At most 15 small card images (the listing limit): render them all, so a strip opened at a
+      // late photo has no blank cells before the list catches up.
+      initialNumToRender={total}
+      contentOffset={initialOffset}
       onLayout={onLayout}
       ItemSeparatorComponent={ThumbGap}
       renderItem={renderItem}

@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import type { FlatList } from 'react-native';
 import type { ProductImage } from '../_lib/types';
 
@@ -11,9 +11,12 @@ type ScrollEvent = { nativeEvent: { contentOffset: { x: number } } };
  * A thumbnail tap selects its page at once and animates the pager there. The scroll events of that
  * animation would report every page in between and make the selection flicker through them, so
  * while a tap is animating only the target page is reported. Reporting goes back to normal when the
- * target is reached, when the user starts dragging, or when the scroll comes to rest; at rest the
- * page actually shown is reported, so an interrupted animation cannot leave the selection on a page
- * the pager never reached.
+ * target is reached, when the user touches the pager, or when the scroll comes to rest; at rest the
+ * page actually shown is reported, so an interrupted animation does not leave the selection on a
+ * page the pager never reached.
+ *
+ * `pagerProps` go on the pager `FlatList` as a whole (ref, scroll handlers, page layout), so no
+ * caller can forget one of the release paths.
  */
 export function useThumbPager({
   width,
@@ -54,8 +57,9 @@ export function useThumbPager({
     [onPageChange, pageAt],
   );
 
-  // The user takes over: their swipe reports pages again.
-  const onScrollBeginDrag = useCallback(() => {
+  // The user takes over (a touch can stop the animation without becoming a drag): their swipe
+  // reports pages again.
+  const release = useCallback(() => {
     targetPage.current = null;
   }, []);
 
@@ -80,5 +84,25 @@ export function useThumbPager({
     [current, onPageChange, total, width],
   );
 
-  return { pagerRef, onScroll, onScrollBeginDrag, onMomentumScrollEnd, scrollToPage };
+  const getItemLayout = useCallback(
+    (_: unknown, index: number) => ({ length: width, offset: width * index, index }),
+    [width],
+  );
+
+  const pagerProps = useMemo(
+    () => ({
+      ref: pagerRef,
+      horizontal: true,
+      pagingEnabled: true,
+      getItemLayout,
+      onScroll,
+      onTouchStart: release,
+      onScrollBeginDrag: release,
+      onMomentumScrollEnd,
+      scrollEventThrottle: 16,
+    }),
+    [getItemLayout, onMomentumScrollEnd, onScroll, release],
+  );
+
+  return { pagerProps, scrollToPage };
 }

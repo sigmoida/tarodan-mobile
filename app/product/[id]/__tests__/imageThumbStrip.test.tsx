@@ -1,13 +1,13 @@
 /**
  * Shared thumbnail strip: card-size URLs (detail fallback), selected state, accessibility,
- * layout-gated centring of the selected thumbnail and the single-image guard.
+ * clamped centring of the selected thumbnail and the single-image guard.
  */
 import React from 'react';
-import { FlatList } from 'react-native';
+import { Dimensions, FlatList } from 'react-native';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { Image } from 'expo-image';
 import { renderWithProviders } from '@/test-utils';
-import { ImageThumbStrip } from '../_components/ImageThumbStrip';
+import { ImageThumbStrip, centredThumbOffset } from '../_components/ImageThumbStrip';
 
 const images = [
   { url: 'https://x/a-detail.jpg', detailUrl: 'https://x/a-detail.jpg', cardUrl: 'https://x/a-card.jpg' },
@@ -56,31 +56,39 @@ describe('ImageThumbStrip', () => {
     expect(onSelect).toHaveBeenCalledWith(2);
   });
 
-  it('centres the selected thumbnail only after the strip has its width, then follows the selection', () => {
-    const scrollToIndex = jest.spyOn(FlatList.prototype, 'scrollToIndex').mockImplementation(() => undefined);
+  it('opens centred and follows the selection, in place first and animated afterwards', () => {
+    const scrollToOffset = jest.spyOn(FlatList.prototype, 'scrollToOffset').mockImplementation(() => undefined);
     try {
       const { rerender, onSelect } = setup({ selectedIndex: 1 });
-      // Before the first layout the list would centre against a zero-wide viewport.
-      expect(scrollToIndex).not.toHaveBeenCalled();
-      fireEvent(screen.getByTestId('strip-thumbs'), 'layout', {
-        nativeEvent: { layout: { x: 0, y: 0, width: 390, height: 60 } },
-      });
-      expect(scrollToIndex).toHaveBeenLastCalledWith({ index: 1, viewPosition: 0.5, animated: false });
+      const list = screen.getByTestId('strip-thumbs');
+      const { width } = Dimensions.get('window');
+      // The first frame is placed from the window width; no scroll before the list is measured.
+      expect(list.props.contentOffset).toEqual({ x: centredThumbOffset(1, 3, width), y: 0 });
+      expect(scrollToOffset).not.toHaveBeenCalled();
+      fireEvent(list, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 200, height: 60 } } });
+      expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: centredThumbOffset(1, 3, 200), animated: false });
       rerender(<ImageThumbStrip images={images} selectedIndex={2} onSelect={onSelect} testID="strip" />);
-      expect(scrollToIndex).toHaveBeenLastCalledWith({ index: 2, viewPosition: 0.5, animated: true });
+      expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: centredThumbOffset(2, 3, 200), animated: true });
     } finally {
-      scrollToIndex.mockRestore();
+      scrollToOffset.mockRestore();
     }
   });
 
-  it('counts the side padding in the item offsets so centring is exact', () => {
-    setup();
-    const list = screen.UNSAFE_getByType(FlatList);
-    const padding = list.props.contentContainerStyle.paddingHorizontal;
-    expect(padding).toBeGreaterThan(0);
-    expect(list.props.getItemLayout(null, 0).offset).toBe(padding);
-    const step = list.props.getItemLayout(null, 1).offset - padding;
-    expect(list.props.getItemLayout(null, 2).offset).toBe(padding + 2 * step);
+  describe('centredThumbOffset', () => {
+    // 15 thumbnails (the listing limit): 16 + 15 * 60 + 14 * 8 + 16 = 1044 pt of content.
+    it('puts a middle thumbnail in the centre of the strip', () => {
+      // Thumbnail 7 spans 16 + 7 * 68 = 492 .. 552, centre 522; half of a 390 pt strip is 195.
+      expect(centredThumbOffset(7, 15, 390)).toBe(327);
+    });
+
+    it('never scrolls before the start or past the end of the content', () => {
+      expect(centredThumbOffset(0, 15, 390)).toBe(0);
+      expect(centredThumbOffset(14, 15, 390)).toBe(1044 - 390);
+    });
+
+    it('does not scroll when every thumbnail fits', () => {
+      expect(centredThumbOffset(2, 3, 390)).toBe(0);
+    });
   });
 
   it('falls back to the detail URL when an image has no card variant', () => {

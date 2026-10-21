@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { FlatList, Pressable, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
@@ -7,7 +7,7 @@ import { IMAGE_PLACEHOLDER, resolveImageUrl } from '@/utils/imageUrl';
 import { GlassSurface, Text, theme } from '@/ui';
 import type { ProductImage } from '../_lib/types';
 import { useThumbPager } from '../_hooks/useThumbPager';
-import { ImageThumbStrip, THUMB_SIZE } from './ImageThumbStrip';
+import { ImageThumbStrip } from './ImageThumbStrip';
 
 const { spacing } = theme;
 
@@ -43,17 +43,11 @@ export function ProductGallery({
   currentImage,
   onPageChange,
   onOpenViewer,
-  reserveStrip = false,
 }: {
   images: ProductImage[];
   currentImage: number;
   onPageChange: (page: number) => void;
   onOpenViewer: (index: number) => void;
-  /**
-   * Keep the strip's space when there is one image: the list-cache placeholder carries only the
-   * cover, and the full product may bring more.
-   */
-  reserveStrip?: boolean;
 }) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -61,8 +55,8 @@ export function ProductGallery({
   const pager = useThumbPager({ width, total, current: currentImage, onPageChange });
 
   // So swiping never shows an empty frame, prefetch the neighbours (expo-image disk + memory cache;
-  // AppImage uses the same `memory-disk` policy). The key is the URL set: the screen builds a new
-  // `images` array on every render, but the same neighbours are not requested again.
+  // AppImage uses the same `memory-disk` policy). The key is the URL set, not the array: a refetch
+  // brings a new `images` array, but the same neighbours are not requested again.
   const neighborKey = neighborImageUrls(images, currentImage).join('\n');
   useEffect(() => {
     if (!neighborKey || typeof Image.prefetch !== 'function') return;
@@ -72,6 +66,9 @@ export function ProductGallery({
       // prefetching is only a speed-up: a failure must not affect display
     }
   }, [neighborKey]);
+
+  // One style object per width, so the memoised page images skip re-renders of the screen.
+  const pageStyle = useMemo(() => ({ width, aspectRatio: 1 }), [width]);
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<ProductImage>) => (
@@ -87,35 +84,23 @@ export function ProductGallery({
           recyclingKey={
             typeof item === 'string' ? item : (item.detailUrl ?? item.url ?? String(index))
           }
-          style={{ width, aspectRatio: 1 }}
+          style={pageStyle}
           contentFit="cover"
         />
       </Pressable>
     ),
-    [onOpenViewer, t, width],
-  );
-
-  const getItemLayout = useCallback(
-    (_: unknown, index: number) => ({ length: width, offset: width * index, index }),
-    [width],
+    [onOpenViewer, pageStyle, t],
   );
 
   return (
     <View>
       <View style={{ width, aspectRatio: 1 }}>
         <FlatList
-          ref={pager.pagerRef}
+          {...pager.pagerProps}
           data={images}
-          horizontal
-          pagingEnabled
           showsHorizontalScrollIndicator={false}
           keyExtractor={(_, index) => String(index)}
           renderItem={renderItem}
-          getItemLayout={getItemLayout}
-          onScroll={pager.onScroll}
-          onScrollBeginDrag={pager.onScrollBeginDrag}
-          onMomentumScrollEnd={pager.onMomentumScrollEnd}
-          scrollEventThrottle={16}
           initialNumToRender={1}
           maxToRenderPerBatch={2}
           windowSize={3}
@@ -149,12 +134,6 @@ export function ProductGallery({
             testID="product-gallery"
           />
         </View>
-      ) : reserveStrip ? (
-        // Keeps the strip's height while the list-cache placeholder (one image) is shown, so the
-        // title does not jump when the full product brings the other images.
-        <View style={styles.stripWrap} testID="product-gallery-thumbs-reserved">
-          <View style={styles.stripReserve} />
-        </View>
       ) : null}
     </View>
   );
@@ -170,5 +149,4 @@ const styles = StyleSheet.create({
   },
   counter: { paddingHorizontal: spacing[3] },
   stripWrap: { paddingTop: spacing[3] },
-  stripReserve: { height: THUMB_SIZE },
 });

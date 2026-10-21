@@ -92,11 +92,6 @@ function ViewerBody({
     ),
     [zoomed, pageHeight],
   );
-  const pageLayout = useCallback(
-    (_: unknown, i: number) => ({ length: width, offset: width * i, index: i }),
-    [width],
-  );
-
   return (
     <>
       <StatusBar style="dark" />
@@ -118,12 +113,10 @@ function ViewerBody({
       </View>
 
       <FlatList
-        ref={pager.pagerRef}
+        {...pager.pagerProps}
         testID="image-viewer-pager"
         style={styles.pager}
         data={images}
-        horizontal
-        pagingEnabled
         scrollEnabled={!zoomed}
         showsHorizontalScrollIndicator={false}
         // A thumbnail jump changes the key: the pages remount and the old zoom resets.
@@ -131,15 +124,10 @@ function ViewerBody({
         renderItem={renderPage}
         // Re-render the mounted pages when the zoom flag or the page height changes.
         extraData={renderPage}
-        getItemLayout={pageLayout}
         initialScrollIndex={startIndex}
         initialNumToRender={1}
         maxToRenderPerBatch={1}
         windowSize={3}
-        scrollEventThrottle={16}
-        onScroll={pager.onScroll}
-        onScrollBeginDrag={pager.onScrollBeginDrag}
-        onMomentumScrollEnd={pager.onMomentumScrollEnd}
         onLayout={(e) => setPageHeight(e.nativeEvent.layout.height)}
       />
 
