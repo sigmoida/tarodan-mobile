@@ -8,6 +8,7 @@ import React from 'react';
 import { act, fireEvent, renderHook, screen, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderWithProviders } from '@/test-utils';
+import i18n from '@/i18n/config';
 import { qk } from '@/lib/query';
 import { invalidateListingCaches } from '@/components/listing/_lib/invalidate';
 
@@ -364,5 +365,79 @@ describe('counter picker keys and invalidation', () => {
       invalidateListingCaches(client);
     });
     await waitFor(() => expect(result.current.myProducts).toHaveLength(27));
+  });
+});
+
+describe('counter pickers, loading on open and load errors (web B5 rules)', () => {
+  it('a cached list from an earlier open is not pickable until this open\'s fetch settles', async () => {
+    const client = makeClient();
+    client.setQueryData(qk.trades.myTradeableForCounter('u1'), {
+      pages: [{ items: range('old', 1, 3), page: 1, totalPages: 1 }],
+      pageParams: [1],
+    });
+    let resolveMine!: (value: unknown) => void;
+    mockedMy.mockImplementation(() => new Promise((resolve) => (resolveMine = resolve)));
+    const { result } = await mount(client);
+    // The cached rows exist, but the picker reads as loading (web: `dataUpdatedAt < openedAt`).
+    expect(result.current.myProducts.some((p) => p.id === 'old1')).toBe(true);
+    expect(result.current.loadingMyProducts).toBe(true);
+
+    await act(async () => resolveMine(body(range('new', 1, 2), 1, 1)));
+    await waitFor(() => expect(result.current.loadingMyProducts).toBe(false));
+    expect(ids(result.current.myProducts)).toEqual(['mine-t', 'new1', 'new2']);
+  });
+
+  it('a later background refetch keeps the list on screen (no spinner)', async () => {
+    mockedMy.mockImplementation(server(() => range('m', 1, 2)));
+    const { result } = await mount();
+    await waitFor(() => expect(result.current.loadingMyProducts).toBe(false));
+    mockedMy.mockImplementation(() => new Promise(() => undefined));
+    await act(async () => refocus());
+    expect(mockedMy).toHaveBeenCalledTimes(2);
+    expect(result.current.loadingMyProducts).toBe(false);
+    expect(ids(result.current.myProducts)).toEqual(['mine-t', 'm1', 'm2']);
+  });
+
+  it('a failed first load shows the error state with the load-failed copy; retry loads the list', async () => {
+    mockedMy.mockImplementation(server(() => range('m', 1, 2)));
+    mockedMy.mockRejectedValueOnce(new Error('network'));
+    renderWithProviders(<TradeCounterScreen />);
+    expect(await screen.findByText(i18n.t('collection.productsLoadFailed'))).toBeOnTheScreen();
+    expect(screen.queryByText('Car m1')).toBeNull();
+
+    fireEvent.press(screen.getByText(i18n.t('mobile.errorRetry')));
+    expect(await screen.findByText('Car m1')).toBeOnTheScreen();
+    expect(screen.queryByTestId('error-state')).toBeNull();
+    expect(mockedMy).toHaveBeenCalledTimes(2);
+  });
+
+  it('a failed refetch keeps the lists and the picks, with no error state', async () => {
+    mockedMy.mockImplementation(server(() => range('m', 1, 2)));
+    const { result } = await mount();
+    await waitFor(() => expect(result.current.myProducts).toHaveLength(3));
+    act(() => result.current.toggleMine(result.current.myProducts.find((p) => p.id === 'm1')!));
+
+    mockedMy.mockRejectedValue(new Error('network'));
+    await act(async () => refocus());
+    await waitFor(() => expect(mockedMy).toHaveBeenCalledTimes(2));
+    await act(() => Promise.resolve());
+    expect(result.current.pickersFailed).toBe(false);
+    expect(result.current.loadingMyProducts).toBe(false);
+    expect(ids(result.current.myProducts)).toEqual(['mine-t', 'm1', 'm2']);
+    expect(ids(result.current.selectedMine)).toEqual(['mine-t', 'm1']);
+  });
+
+  it('a failed background refetch of the trade keeps the editor on screen', async () => {
+    mockedMy.mockImplementation(server(() => range('m', 1, 2)));
+    const { queryClient } = renderWithProviders(<TradeCounterScreen />);
+    expect(await screen.findByText('Car m1')).toBeOnTheScreen();
+
+    mockedGetOne.mockRejectedValue(new Error('network'));
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: qk.trades.detail('trade-1') });
+    });
+    expect(queryClient.getQueryState(qk.trades.detail('trade-1'))?.status).toBe('error');
+    expect(screen.queryByTestId('error-state')).toBeNull();
+    expect(screen.getByText('Car m1')).toBeOnTheScreen();
   });
 });

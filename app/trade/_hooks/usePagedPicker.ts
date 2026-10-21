@@ -2,14 +2,20 @@ import { useCallback, useMemo } from 'react';
 import { useInfiniteQuery, type QueryKey } from '@tanstack/react-query';
 import { nextPageFromInfo, readPageInfo, flattenPagesUnique, type PageInfo } from '@/lib/query/infinite';
 import { readList } from '@/utils/apiEnvelope';
-import { isPickerLoading, TRADE_PICKER_QUERY_OPTIONS } from '../_lib/picker';
+import {
+  isPickerLoadFailed,
+  isPickerLoading,
+  isPickerLoadingUntilFresh,
+  TRADE_PICKER_QUERY_OPTIONS,
+} from '../_lib/picker';
 
 type PickerPage<T> = PageInfo & { items: T[] };
 
 /**
  * One paged trade picker list ("Show more"), shared by every picker (new trade and counter
  * offer, both sides): one `useInfiniteQuery`, rows de-duplicated across pages, the picker
- * freshness rules (`TRADE_PICKER_QUERY_OPTIONS`) and the loading rule (`isPickerLoading`).
+ * freshness rules (`TRADE_PICKER_QUERY_OPTIONS`) and the loading rule (`isPickerLoading`; with
+ * `untilFresh`, the counter-offer rule `isPickerLoadingUntilFresh`).
  *
  * The server filters (`tradeOnly`, `tradeEligible`), so every page is full and
  * `meta.totalPages` counts only eligible rows. A refetch (open, screen focus, app foreground,
@@ -22,10 +28,13 @@ export function usePagedPicker<T extends { id: string }>({
   queryKey,
   fetchPage,
   enabled,
+  untilFresh = false,
 }: {
   queryKey: QueryKey;
   fetchPage: (page: number) => Promise<{ data?: unknown }>;
   enabled: boolean;
+  /** Loading until this open's own fetch settles, even over a cached non-empty list. */
+  untilFresh?: boolean;
 }) {
   const query = useInfiniteQuery({
     queryKey,
@@ -53,12 +62,16 @@ export function usePagedPicker<T extends { id: string }>({
   return {
     rows,
     /** Loading wins over the empty state until this screen's own fetch settles. */
-    isLoading: isPickerLoading({
-      isLoading: query.isLoading,
-      isFetching: query.isFetching,
-      isFetchedAfterMount: query.isFetchedAfterMount,
-      data: rows,
-    }),
+    isLoading: untilFresh
+      ? isPickerLoadingUntilFresh(query)
+      : isPickerLoading({
+          isLoading: query.isLoading,
+          isFetching: query.isFetching,
+          isFetchedAfterMount: query.isFetchedAfterMount,
+          data: rows,
+        }),
+    /** The first load failed and nothing is loaded (not a failed refetch or "Show more"). */
+    loadFailed: isPickerLoadFailed(query),
     hasMore: !!query.hasNextPage,
     isLoadingMore: query.isFetchingNextPage,
     loadMore,

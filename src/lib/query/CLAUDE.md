@@ -38,7 +38,8 @@ zustand store.
   where no client mutation runs (admin approval, the other party's edits). The pickers are
   paged `useInfiniteQuery`s (`app/trade/_hooks/usePagedPicker.ts`, "Show more" button, server
   `tradeOnly` filter): a refetch reloads every loaded page, their keys carry the user id, and
-  the same `myTradeableAll` prefix reaches them.
+  the same `myTradeableAll` prefix reaches them. The counter-offer pickers read as loading
+  until the open's own fetch settles, even over a cached list (`untilFresh`, web parity).
 - In a modal form: close the modal, then `mutate` (see `src/ui/CLAUDE.md` › iOS modal
   rule).
 

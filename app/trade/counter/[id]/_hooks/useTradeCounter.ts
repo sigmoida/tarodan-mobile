@@ -61,7 +61,8 @@ export function useTradeCounter() {
 
   // Both pickers page through the API ("Show more"); the server filters (`tradeOnly`), so the
   // only client work is merging in the items already in the trade (they stay pickable whatever
-  // their status).
+  // their status). Same loading rule as the web counter editor (`untilFresh`): a cached list from
+  // an earlier open is not pickable until this open's fetch settles.
   // My side: counter validation accepts any own active item, so no `tradeEligible` here.
   const myList = usePagedPicker<CounterProduct>({
     queryKey: qk.trades.myTradeableForCounter(user?.id),
@@ -73,6 +74,7 @@ export function useTradeCounter() {
         limit: TRADE_PICKER_PAGE_SIZE,
       }),
     enabled: !!user?.id,
+    untilFresh: true,
   });
   // Their side: newest first is a stable order (the default relevance order moves with view
   // counts between page fetches and can skip a listing at a page boundary).
@@ -88,6 +90,7 @@ export function useTradeCounter() {
         limit: TRADE_PICKER_PAGE_SIZE,
       }),
     enabled: !!otherPartyId,
+    untilFresh: true,
   });
 
   const myLoaded = useMemo(
@@ -140,6 +143,15 @@ export function useTradeCounter() {
     setInitialSig(offerSignature(mySide, theirSide, initDir, initCash));
     setInitializedId(trade.id);
   }, [trade, initializedId, user, mySide, theirSide, selectMine, selectTheirs]);
+
+  // A picker whose first load failed has nothing to pick from (web closes the editor with
+  // `collection.productsLoadFailed`); the screen shows its error state with a retry instead.
+  // A failed refetch or "Show more" keeps the loaded pages and the picks (`loadFailed` is false).
+  const pickersFailed = myList.loadFailed || theirList.loadFailed;
+  const retryPickers = () => {
+    if (myList.loadFailed) void myList.refetch();
+    if (theirList.loadFailed) void theirList.refetch();
+  };
 
   const { refreshing, onRefresh } = useRefresh(
     tradeQuery.refetch,
@@ -215,6 +227,8 @@ export function useTradeCounter() {
     theirHasMore: theirList.hasMore,
     theirLoadingMore: theirList.isLoadingMore,
     loadMoreTheirs: theirList.loadMore,
+    pickersFailed,
+    retryPickers,
     selectedMine,
     selectedTheirs,
     cashAmount,
