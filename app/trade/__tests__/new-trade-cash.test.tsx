@@ -7,6 +7,8 @@ import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { makeTestQueryClient } from '@/test-utils';
+import { toast } from '@/ui';
+import trCatalog from '@/i18n/lib/catalog/tr.json';
 
 let mockParams: Record<string, string> = {};
 jest.mock('expo-router', () => ({
@@ -58,7 +60,8 @@ afterEach(() => {
   useAuthStore.setState({ isAuthenticated: false, user: null });
 });
 
-async function submitWithCash(text: string, direction: 'offer' | 'request' = 'offer') {
+/** The wizard with one item picked on each side and an address, ready to send. */
+async function openReady() {
   const hook = renderHook(() => useNewTrade(), { wrapper });
   await waitFor(() => expect(hook.result.current.myProducts).toHaveLength(1));
   await waitFor(() => expect(hook.result.current.theirProducts).toHaveLength(1));
@@ -66,7 +69,14 @@ async function submitWithCash(text: string, direction: 'offer' | 'request' = 'of
     hook.result.current.toggleMyItem(hook.result.current.myProducts[0]!);
     hook.result.current.toggleTheirItem(hook.result.current.theirProducts[0]!);
     hook.result.current.setTradeAddressId('addr-1');
-    hook.result.current.setCashAmount(text);
+  });
+  return hook;
+}
+
+async function submitWithCash(text: string, direction: 'offer' | 'request' = 'offer') {
+  const hook = await openReady();
+  act(() => {
+    hook.result.current.changeCashText(text);
     hook.result.current.setCashDirection(direction);
   });
   await act(async () => {
@@ -101,8 +111,60 @@ describe('new trade · cash difference in the payload', () => {
     expect(body.cashAmount).toBe(-12.5);
   });
 
-  it.each([[''], ['0'], ['1.250,50']])('%p sends no cashAmount, as on web', async (text) => {
+  it.each([[''], ['0'], ['0,00']])('%p sends no cashAmount, as on web', async (text) => {
     const { body } = await submitWithCash(text, 'request');
     expect(body.cashAmount).toBeUndefined();
+  });
+});
+
+describe('new trade · a refused cash amount blocks the wizard (web parity)', () => {
+  let errorToast: jest.SpyInstance;
+  beforeEach(() => {
+    errorToast = jest.spyOn(toast, 'error').mockImplementation(() => 1);
+  });
+  afterEach(() => errorToast.mockRestore());
+
+  it('"1.000" typed key by key (one thousand) is not sent as 1 TL, until an accepted change', async () => {
+    const hook = await openReady();
+    act(() => hook.result.current.setStep(2));
+    for (const typed of ['1', '1.', '1.0', '1.00', '1.000']) {
+      act(() => hook.result.current.changeCashText(typed));
+    }
+    expect(hook.result.current.cashAmount).toBe('1.00');
+    expect(hook.result.current.cashRefused).toBe(true);
+
+    // Step 2 does not go on to the review, and sending is refused too.
+    act(() => hook.result.current.goToReview());
+    expect(hook.result.current.step).toBe(2);
+    await act(async () => {
+      await hook.result.current.handleSubmit();
+    });
+    expect(errorToast).toHaveBeenCalledTimes(2);
+    expect(errorToast).toHaveBeenCalledWith(trCatalog.trade.cashFormatRefused);
+    expect(tradesApi.create).not.toHaveBeenCalled();
+    expect(hook.result.current.cashRefused).toBe(true);
+
+    // An accepted change clears the refusal: the review opens and that amount is sent.
+    act(() => hook.result.current.changeCashText('1000'));
+    expect(hook.result.current.cashRefused).toBe(false);
+    act(() => hook.result.current.goToReview());
+    expect(hook.result.current.step).toBe(3);
+    await act(async () => {
+      await hook.result.current.handleSubmit();
+    });
+    await waitFor(() => expect(tradesApi.create).toHaveBeenCalledTimes(1));
+    expect((tradesApi.create as jest.Mock).mock.calls[0][0].cashAmount).toBe(1000);
+  });
+
+  it.each([['1.005'], ['1.250,50']])('a pasted %p is refused, keeps the previous amount and blocks sending', async (typed) => {
+    const hook = await openReady();
+    act(() => hook.result.current.changeCashText('12,50'));
+    act(() => hook.result.current.changeCashText(typed));
+    expect(hook.result.current.cashAmount).toBe('12,50');
+    expect(hook.result.current.cashRefused).toBe(true);
+    await act(async () => {
+      await hook.result.current.handleSubmit();
+    });
+    expect(tradesApi.create).not.toHaveBeenCalled();
   });
 });

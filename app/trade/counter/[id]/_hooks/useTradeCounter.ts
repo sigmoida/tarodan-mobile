@@ -13,6 +13,7 @@ import { getProductEffectivePrice } from '@/utils/productPrice';
 import { TRADE_PICKER_PAGE_SIZE } from '../../../_lib/picker';
 import { usePagedPicker } from '../../../_hooks/usePagedPicker';
 import { usePagedPicks } from '../../../_hooks/usePagedPicks';
+import { useCashAmount } from '../../../_hooks/useCashAmount';
 import { cashInputValue, parseCashAmount, signedCashAmount, type CashDirection } from '../../../_lib/cash';
 import { offerSignature, type Trade, type TradeItem } from '../_lib/types';
 import { mergeTradeItems, type CounterProduct } from '../_lib/counterProducts';
@@ -48,7 +49,7 @@ export function useTradeCounter() {
 
   const trade = tradeQuery.data;
 
-  const [cashAmount, setCashAmount] = useState('');
+  const { cashAmount, cashRefused, changeCashText, resetCashAmount } = useCashAmount();
   const [cashDirection, setCashDirection] = useState<CashDirection>('offer');
   const [message, setMessage] = useState('');
   const [initializedId, setInitializedId] = useState<string | null>(null);
@@ -138,12 +139,14 @@ export function useTradeCounter() {
       initDir = trade.cashPayerId && user?.id
         ? (trade.cashPayerId === user.id ? 'offer' : 'request')
         : 'offer';
-      setCashAmount(initCash);
-      setCashDirection(initDir);
     }
+    // Always, so another trade opening here starts from its own amount, with no refusal left
+    // over from the previous one (and the same amount `initialSig` is built from).
+    resetCashAmount(initCash);
+    setCashDirection(initDir);
     setInitialSig(offerSignature(mySide, theirSide, initDir, initCash));
     setInitializedId(trade.id);
-  }, [trade, initializedId, user, mySide, theirSide, selectMine, selectTheirs]);
+  }, [trade, initializedId, user, mySide, theirSide, selectMine, selectTheirs, resetCashAmount]);
 
   // A picker whose first load failed has nothing to pick from (web closes the editor with
   // `collection.productsLoadFailed`); the screen shows its error state with a retry instead.
@@ -191,6 +194,13 @@ export function useTradeCounter() {
   const toggleTheirs = (p: CounterProduct) => theirPicks.toggle(p.id);
 
   const handleSubmit = async () => {
+    // Web refuses to send while the cash field holds a refused amount. Here the field keeps the
+    // last sendable text instead ("1.000" stops at "1.00"), so the refusal itself blocks:
+    // otherwise 1 TL would go out for one thousand. Cleared by the next accepted change.
+    if (cashRefused) {
+      toast.error(t('trade.cashFormatRefused'));
+      return;
+    }
     // The API wants at least 1 item on both sides (CounterTradeDto ArrayMinSize(1)); same rule as web.
     if (selectedMine.length === 0 || selectedTheirs.length === 0) {
       toast.error(t('trade.selectAtLeastOneOffer'));
@@ -232,7 +242,8 @@ export function useTradeCounter() {
     selectedMine,
     selectedTheirs,
     cashAmount,
-    setCashAmount,
+    cashRefused,
+    changeCashText,
     cashDirection,
     setCashDirection,
     message,

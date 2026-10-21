@@ -1,8 +1,9 @@
 /**
- * The new-trade cash field (step 2) goes through the shared `nextCashInput` mask, the same as
- * the counter offer: a decimal comma is kept, and a change that could not be sent as typed (a
- * second separator, a third decimal) keeps the previous value. The setter gets an updater, so
- * two changes before a re-render each build on the latest value.
+ * The new-trade cash field (step 2) is the shared `CashAmountInput` driven by the shared
+ * `useCashAmount` state, the same as the counter offer: a decimal comma is kept, a change that
+ * could not be sent as typed keeps the previous value, and the refusal shows in the field's error
+ * slot until an accepted change. The mask itself is pinned in `cash.test` and `useCashAmount.test`;
+ * blocking the wizard while refused in `new-trade-cash.test`.
  */
 import React from 'react';
 import { AccessibilityInfo, TextInput } from 'react-native';
@@ -10,6 +11,7 @@ import { fireEvent, screen } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import trCatalog from '@/i18n/lib/catalog/tr.json';
 import { Step2TheirItems } from '../_components/NewTradeSteps';
+import { useCashAmount } from '../../_hooks/useCashAmount';
 import type { NewTradeController } from '../_hooks/useNewTrade';
 
 jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').routerMock);
@@ -17,58 +19,54 @@ jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').ro
 const CASH_HELPER = trCatalog.trade.cashHelper;
 const CASH_REFUSED = trCatalog.trade.cashFormatRefused;
 
-function renderStep(initial: string) {
-  let value = initial;
-  const setCashAmount = jest.fn((next: string | ((prev: string) => string)) => {
-    value = typeof next === 'function' ? next(value) : next;
-  });
-  const f = {
-    loadingTheirProducts: false,
-    theirProducts: [],
-    selectedTheirItems: [],
-    theirHasMore: false,
-    theirLoadingMore: false,
-    loadMoreTheirs: jest.fn(),
-    cashDirection: 'offer',
-    setCashDirection: jest.fn(),
-    cashAmount: initial,
-    setCashAmount,
-  } as unknown as NewTradeController;
-  renderWithProviders(<Step2TheirItems f={f} />);
+/** Step 2 with the real cash state; the rest of the controller is a stub. */
+function render() {
+  let latest = '';
+  function Step() {
+    const cash = useCashAmount();
+    latest = cash.cashAmount;
+    const f = {
+      loadingTheirProducts: false,
+      theirProducts: [],
+      selectedTheirItems: [],
+      theirHasMore: false,
+      theirLoadingMore: false,
+      loadMoreTheirs: jest.fn(),
+      cashDirection: 'offer',
+      setCashDirection: jest.fn(),
+      ...cash,
+    } as unknown as NewTradeController;
+    return <Step2TheirItems f={f} />;
+  }
+  renderWithProviders(<Step />);
   const input = screen.UNSAFE_getAllByType(TextInput).filter((n) => n.props.keyboardType === 'numeric');
   expect(input).toHaveLength(1);
-  return { input: input[0]!, current: () => value };
+  return { input: input[0]!, current: () => latest };
 }
 
 describe('new trade · cash field', () => {
   it('keeps a decimal comma and drops other characters', () => {
-    const { input, current } = renderStep('');
+    const { input, current } = render();
     fireEvent.changeText(input, '12,50');
     expect(current()).toBe('12,50');
-    fireEvent.changeText(input, '12a3,5x');
-    expect(current()).toBe('123,5');
+    fireEvent.changeText(input, '-12a,5x');
+    expect(current()).toBe('12,5');
   });
 
-  it('builds each change on the latest value, not the one of the last render', () => {
-    // Two changes before a re-render: the second is refused and must keep the first, not fall
-    // back to the rendered '' (the controller's `cashAmount` is not updated in between here).
-    const { input, current } = renderStep('');
+  it.each([['12,505'], ['1.250,50'], ['12,5,0'], ['1.000']])('refuses %p and keeps the previous value', (typed) => {
+    const { input, current } = render();
     fireEvent.changeText(input, '12,50');
-    fireEvent.changeText(input, '12,505');
-    expect(current()).toBe('12,50');
-  });
-
-  it.each([['12,505'], ['1.250,50'], ['12,5,0']])('refuses %p and keeps the previous value', (typed) => {
-    const { input, current } = renderStep('12,50');
     fireEvent.changeText(input, typed);
     expect(current()).toBe('12,50');
+    expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
   });
 
   it('shows the helper, puts a refusal in its place (as on web) and clears it on an accepted change', () => {
     // The RN jest preset mocks it already, so spyOn returns that shared mock: start it from zero.
     const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
     announce.mockClear();
-    const { input, current } = renderStep('12,50');
+    const { input, current } = render();
+    fireEvent.changeText(input, '12,50');
     expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
     expect(screen.queryByText(CASH_REFUSED)).toBeNull();
 
@@ -88,7 +86,7 @@ describe('new trade · cash field', () => {
   });
 
   it('does not warn when only letters or spaces are dropped', () => {
-    const { input } = renderStep('');
+    const { input } = render();
     fireEvent.changeText(input, '12 TL');
     expect(screen.queryByText(CASH_REFUSED)).toBeNull();
   });

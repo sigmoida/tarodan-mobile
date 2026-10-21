@@ -499,7 +499,7 @@ describe('new-trade target preselection, paged seller list', () => {
     await waitFor(() => expect(ids(result.current.selectedTheirItems)).toEqual(['t1']));
     expect(ids(result.current.theirProducts)).not.toContain('t25');
 
-    act(() => result.current.setCashAmount('10'));
+    act(() => result.current.changeCashText('10'));
     act(() => result.current.setTradeAddressId('addr-1'));
     await act(async () => {
       await result.current.handleSubmit();

@@ -11,7 +11,9 @@
  *
  * The field itself only takes what can be sent (`nextCashInput`): one separator and at most two
  * decimals. So text that would be no amount ("1.250,50") or a rounded one ("12,505") cannot be
- * typed, and a dot typed as Turkish thousands grouping ("1.250") stops visibly at "1.25".
+ * typed, and a dot typed as Turkish thousands grouping ("1.250") stops visibly at "1.25". As on
+ * web, such a refused change also blocks sending until an accepted change (`useCashAmount`), so
+ * "1.000" meant as one thousand is never sent as 1 TL.
  */
 
 /** Who pays the cash difference, seen from the user: `offer` = I pay, `request` = they pay. */

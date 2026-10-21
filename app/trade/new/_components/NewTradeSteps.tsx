@@ -126,7 +126,12 @@ export function Step2TheirItems({ f }: StepProps) {
             style={styles.chip}
           />
         </View>
-        <CashAmountInput label={t('trade.amountLabelSymbol')} value={f.cashAmount} onChange={f.setCashAmount} />
+        <CashAmountInput
+          label={t('trade.amountLabelSymbol')}
+          value={f.cashAmount}
+          refused={f.cashRefused}
+          onChangeText={f.changeCashText}
+        />
       </SectionCard>
     </>
   );
@@ -258,7 +263,7 @@ export function NewTradeFooter({ f }: StepProps) {
           size="lg"
           title={t('common.continueShort')}
           disabled={noTheirs}
-          onPress={() => f.setStep(3)}
+          onPress={f.goToReview}
           testID="new-trade-step2-continue"
         />
       ) : (

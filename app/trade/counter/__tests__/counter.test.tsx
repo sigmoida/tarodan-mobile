@@ -6,8 +6,8 @@
  */
 import React from 'react';
 import { TextInput } from 'react-native';
-import { appAlert } from '@/ui';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { appAlert, toast } from '@/ui';
+import { act, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import trCatalog from '@/i18n/lib/catalog/tr.json';
 import { formatPrice } from '@/utils/format';
@@ -238,16 +238,29 @@ describe('J6 · Karşı teklif formu', () => {
       expect(screen.getByText(formatPrice(amount))).toBeOnTheScreen();
     });
 
-    it('a refused paste keeps the typed amount, which is the one sent', async () => {
+    it('"1.000" typed key by key (one thousand) is not sent as 1 TL: send is blocked until an accepted change', async () => {
+      const errorToast = jest.spyOn(toast, 'error').mockImplementation(() => 1);
       mountWithProducts(tradeForReceiver());
       counterMock.mockResolvedValue({ data: {} });
       renderWithProviders(<TradeCounterScreen />);
       await waitFor(() => expect(screen.getByText('Karşı Ürün')).toBeOnTheScreen());
-      fireEvent.changeText(cashInput(), '12,50');
-      fireEvent.changeText(cashInput(), '1.250,50');
+      for (const typed of ['1', '1.', '1.0', '1.00', '1.000']) fireEvent.changeText(cashInput(), typed);
+      expect(screen.getByDisplayValue('1.00')).toBeOnTheScreen();
       expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
+
       fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
-      expect((await sentBody()).cashAmount).toBe(12.5);
+      expect(errorToast).toHaveBeenCalledWith(CASH_REFUSED);
+      // The refusal is still on screen, and nothing was sent.
+      expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
+      await act(() => Promise.resolve());
+      expect(counterMock).not.toHaveBeenCalled();
+
+      // An accepted change clears the refusal and sends that amount.
+      fireEvent.changeText(cashInput(), '1000');
+      expect(screen.queryByText(CASH_REFUSED)).toBeNull();
+      fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
+      expect((await sentBody()).cashAmount).toBe(1000);
+      errorToast.mockRestore();
     });
 
     it('a decimal comma that they pay is sent negative', async () => {
