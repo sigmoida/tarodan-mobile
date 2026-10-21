@@ -45,8 +45,9 @@ export function signedCashAmount(raw: string, direction: CashDirection): number 
  * (unlike `formatPrice`): the field takes one separator only. Not a positive amount: empty.
  *
  * Unlike the shared `tlAmountInputValue`, it fixes the amount to cents: the prefill skips the
- * typing mask, so text the parser refuses ("12,345", or a float artifact) would be sent as no
- * cash without a word. The column is cents (`Decimal(10, 2)`), so nothing real is moved.
+ * typing mask, so text the parser refuses ("12,345", or a float artifact such as 0.1 + 0.2) would
+ * block the counter. The API returns the `Decimal(10, 2)` column as exact cents, so for those
+ * amounts this only drops float noise (`toFixed` rounds the binary value, not half away).
  */
 export function cashInputValue(amount: number): string {
   if (!Number.isFinite(amount) || amount <= 0) return '';

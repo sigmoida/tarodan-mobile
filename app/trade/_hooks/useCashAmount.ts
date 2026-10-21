@@ -20,10 +20,13 @@ export function useCashAmount() {
     setCashAmount((previous) => nextCashInput(previous, typed));
   }, []);
 
-  /** An amount set by the screen, not typed (the counter prefill): no refusal applies to it. */
+  /**
+   * An amount set by the screen, not typed (the counter prefill). It clears a typed refusal, but
+   * text the parser refuses still blocks sending, so a bad prefill is never sent as no cash.
+   */
   const resetCashAmount = useCallback((value: string) => {
     setCashAmount(value);
-    setCashRefused(false);
+    setCashRefused(isCashInputRefused(value));
   }, []);
 
   return { cashAmount, cashRefused, changeCashText, resetCashAmount };
