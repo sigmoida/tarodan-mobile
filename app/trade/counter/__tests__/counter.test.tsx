@@ -72,6 +72,10 @@ const theirProduct = {
   isTradeEnabled: true, status: 'active', images: [],
 };
 
+const CASH_HELPER = 'Kuruş için virgül kullanın, örn. 1250,50';
+const CASH_REFUSED =
+  'Tutar kabul edilmedi. Binlik ayracı kullanmayın; kuruş için virgül kullanın, örn. 1250,50';
+
 /** The cash field: the only numeric input on the screen. */
 function cashInput() {
   const numericInputs = screen
@@ -169,6 +173,26 @@ describe('J6 · Karşı teklif formu', () => {
     expect(screen.getByDisplayValue('12,50')).toBeOnTheScreen();
   });
 
+  it('J6.4b the cash field shows its helper, warns about a refused paste and clears it on the next accepted change', async () => {
+    mountWithProducts();
+    renderWithProviders(<TradeCounterScreen />);
+    await waitFor(() => expect(screen.getByText('Nakit fark')).toBeOnTheScreen());
+    expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
+    expect(screen.queryByText(CASH_REFUSED)).toBeNull();
+
+    const input = cashInput();
+    fireEvent.changeText(input, '12,50');
+    fireEvent.changeText(input, '1.250,50');
+    expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
+    expect(screen.getByDisplayValue('12,50')).toBeOnTheScreen();
+    // The helper stays while the warning shows.
+    expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
+
+    fireEvent.changeText(input, '12,5');
+    expect(screen.queryByText(CASH_REFUSED)).toBeNull();
+    expect(screen.getByDisplayValue('12,5')).toBeOnTheScreen();
+  });
+
   describe('J6.6 cash difference in the submitted payload (web parity), as the receiver', () => {
     beforeEach(() => {
       mockUser = RECEIVER;
@@ -212,6 +236,18 @@ describe('J6 · Karşı teklif formu', () => {
       // The summary shows the same amount that is sent.
       expect(screen.getByText('Ödeyeceğim nakit')).toBeOnTheScreen();
       expect(screen.getByText(formatPrice(amount))).toBeOnTheScreen();
+    });
+
+    it('a refused paste keeps the typed amount, which is the one sent', async () => {
+      mountWithProducts(tradeForReceiver());
+      counterMock.mockResolvedValue({ data: {} });
+      renderWithProviders(<TradeCounterScreen />);
+      await waitFor(() => expect(screen.getByText('Karşı Ürün')).toBeOnTheScreen());
+      fireEvent.changeText(cashInput(), '12,50');
+      fireEvent.changeText(cashInput(), '1.250,50');
+      expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
+      fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
+      expect((await sentBody()).cashAmount).toBe(12.5);
     });
 
     it('a decimal comma that they pay is sent negative', async () => {

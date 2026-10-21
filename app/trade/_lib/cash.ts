@@ -61,12 +61,26 @@ export function cashInputValue(amount: number): string {
 /** What the field may hold while typing: digits, then one separator and up to two decimals. */
 const CASH_TYPING_PATTERN = /^\d*(?:[.,]\d{0,2})?$/;
 
+/** The typed text without other characters (letters, `-`, spaces). */
+function stripCashInput(typed: string): string {
+  return typed.replace(/[^\d.,]/g, '');
+}
+
 /**
  * The field's next value: the typed text without other characters (letters, `-`, spaces), or
  * the previous value when the change would not be a sendable amount (a second separator, a
  * third decimal), so what the field shows is always what is sent.
  */
 export function nextCashInput(previous: string, typed: string): string {
-  const cleaned = typed.replace(/[^\d.,]/g, '');
+  const cleaned = stripCashInput(typed);
   return CASH_TYPING_PATTERN.test(cleaned) ? cleaned : previous;
+}
+
+/**
+ * Whether `nextCashInput` would refuse this typed or pasted text (and keep the previous value),
+ * so a field can tell the user instead of dropping the change silently. It depends on the typed
+ * text only; stripped characters (letters, spaces) are not a refusal.
+ */
+export function isCashInputRefused(typed: string): boolean {
+  return !CASH_TYPING_PATTERN.test(stripCashInput(typed));
 }

@@ -18,9 +18,6 @@ export const styles = StyleSheet.create({
   chip: {
     flex: 1,
   },
-  cashInput: {
-    marginTop: theme.spacing[3],
-  },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -13,6 +13,10 @@ import type { NewTradeController } from '../_hooks/useNewTrade';
 
 jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').routerMock);
 
+const CASH_HELPER = 'Kuruş için virgül kullanın, örn. 1250,50';
+const CASH_REFUSED =
+  'Tutar kabul edilmedi. Binlik ayracı kullanmayın; kuruş için virgül kullanın, örn. 1250,50';
+
 function renderStep(initial: string) {
   let value = initial;
   const setCashAmount = jest.fn((next: string | ((prev: string) => string)) => {
@@ -58,5 +62,26 @@ describe('new trade · cash field', () => {
     const { input, current } = renderStep('12,50');
     fireEvent.changeText(input, typed);
     expect(current()).toBe('12,50');
+  });
+
+  it('always shows the helper, warns about a refused change and clears it on an accepted one', () => {
+    const { input, current } = renderStep('12,50');
+    expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
+    expect(screen.queryByText(CASH_REFUSED)).toBeNull();
+
+    fireEvent.changeText(input, '1.250,50');
+    expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
+    expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
+    expect(current()).toBe('12,50');
+
+    fireEvent.changeText(input, '12,5');
+    expect(screen.queryByText(CASH_REFUSED)).toBeNull();
+    expect(current()).toBe('12,5');
+  });
+
+  it('does not warn when only letters or spaces are dropped', () => {
+    const { input } = renderStep('');
+    fireEvent.changeText(input, '12 TL');
+    expect(screen.queryByText(CASH_REFUSED)).toBeNull();
   });
 });

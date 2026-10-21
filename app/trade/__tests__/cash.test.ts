@@ -5,7 +5,7 @@
  * (thousands grouping, letters, two separators) into "", and only a value above 0 is sent.
  * The column is `Decimal(10, 2)`, so the stored amount is rounded half away from zero to cents.
  */
-import { cashInputValue, nextCashInput, parseCashAmount, signedCashAmount } from '../_lib/cash';
+import { cashInputValue, isCashInputRefused, nextCashInput, parseCashAmount, signedCashAmount } from '../_lib/cash';
 
 describe('parseCashAmount', () => {
   it.each([
@@ -154,5 +154,22 @@ describe('nextCashInput', () => {
   it('every value it lets through parses to exactly what is shown', () => {
     expect(parseCashAmount(nextCashInput('', '12,50'))).toBe(12.5);
     expect(parseCashAmount(nextCashInput('', '12,'))).toBe(12);
+  });
+});
+
+describe('isCashInputRefused', () => {
+  it('is true exactly when nextCashInput keeps the previous value', () => {
+    for (const typed of ['1.250,50', '12,5,0', '12,505', '1.250', '1,250.']) {
+      expect(isCashInputRefused(typed)).toBe(true);
+      expect(nextCashInput('prev', typed)).toBe('prev');
+    }
+    for (const typed of ['', '12', '12,', '12,50', '12.50', ',5']) {
+      expect(isCashInputRefused(typed)).toBe(false);
+    }
+  });
+
+  it('does not count stripped characters as a refusal', () => {
+    expect(isCashInputRefused('12a3,5x')).toBe(false);
+    expect(isCashInputRefused('-5 TL')).toBe(false);
   });
 });

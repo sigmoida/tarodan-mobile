@@ -1,12 +1,12 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, ButtonRow, Chip, Input, SectionCard, Text, Textarea, theme, Icon } from '@/ui';
+import { Alert, Button, ButtonRow, Chip, SectionCard, Text, Textarea, theme, Icon } from '@/ui';
 
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import { TradeProductPicker } from './TradeProductPicker';
-import { nextCashInput } from '../../../_lib/cash';
+import { CashAmountInput } from '../../../_components/CashAmountInput';
 import type { TradeCounterController } from '../_hooks/useTradeCounter';
 
 const { colors } = theme;
@@ -68,13 +68,7 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
             style={styles.chip}
           />
         </View>
-        <Input
-          label={t('trade.amountLabelTL')}
-          value={f.cashAmount}
-          onChangeText={(v: string) => f.setCashAmount((prev) => nextCashInput(prev, v))}
-          keyboardType="numeric"
-          containerStyle={styles.cashInput}
-        />
+        <CashAmountInput label={t('trade.amountLabelTL')} value={f.cashAmount} onChange={f.setCashAmount} />
       </SectionCard>
 
       <SectionCard title={t('trade.messageOptionalLabel')}>

@@ -14,6 +14,10 @@ import type { TradeCounterController } from '../[id]/_hooks/useTradeCounter';
 
 jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').routerMock);
 
+const CASH_HELPER = 'Kuruş için virgül kullanın, örn. 1250,50';
+const CASH_REFUSED =
+  'Tutar kabul edilmedi. Binlik ayracı kullanmayın; kuruş için virgül kullanın, örn. 1250,50';
+
 function renderBody(initial: string) {
   let value = initial;
   const setCashAmount = jest.fn((next: string | ((prev: string) => string)) => {
@@ -75,5 +79,20 @@ describe('counter offer · cash field', () => {
     const { input, current } = renderBody('12,50');
     fireEvent.changeText(input, typed);
     expect(current()).toBe('12,50');
+  });
+
+  it('always shows the helper, warns about a refused change and clears it on an accepted one', () => {
+    const { input, current } = renderBody('12,50');
+    expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
+    expect(screen.queryByText(CASH_REFUSED)).toBeNull();
+
+    fireEvent.changeText(input, '1.250,50');
+    expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
+    expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
+    expect(current()).toBe('12,50');
+
+    fireEvent.changeText(input, '12,5');
+    expect(screen.queryByText(CASH_REFUSED)).toBeNull();
+    expect(current()).toBe('12,5');
   });
 });
