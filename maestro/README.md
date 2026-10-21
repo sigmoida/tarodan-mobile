@@ -63,9 +63,9 @@ Aynı flow'lar farklı build'lere karşı koşabilsin diye: iOS'ta EAS `maestro`
 `.staging` ekli kimlik üretir (`com.tarodan.app.staging`, `app.config.js`; iOS ve Android
 aynı). Yerel dev-client ise her iki platformda `com.tarodan.app`dır.
 
-| Hedef | iOS | Android |
-|---|---|---|
-| `dev` (yerel dev-client, varsayılan) | `com.tarodan.app` | `com.tarodan.app` |
+| Hedef                                     | iOS                       | Android                   |
+| ----------------------------------------- | ------------------------- | ------------------------- |
+| `dev` (yerel dev-client, varsayılan)      | `com.tarodan.app`         | `com.tarodan.app`         |
 | `staging` (EAS `maestro` profili build'i) | `com.tarodan.app.staging` | `com.tarodan.app.staging` |
 
 - `pnpm maestro:dev <flow>` değeri `app-id.sh`'tan alıp `--env APP_ID=...` ile geçirir.
@@ -85,25 +85,25 @@ aynı). Yerel dev-client ise her iki platformda `com.tarodan.app`dır.
 
 Her flow YAML başında `tags:` bloğu ile bir öncelik kategorisine atanır:
 
-| Tag | Ne zaman koşar | İçerdiği | Toplam koşum |
-|-----|---------------|----------|-------------|
-| `smoke` | Her PR (Maestro Cloud workflow) | 01-smoke, 01-01-login-happy, 03-search, 05-ilanlarim-diagnostic, D-01 | ~2 dk 30 sn |
-| `regression` | Nightly + release öncesi | 01-02, 01-03, 01-12, 02-auth-login, D-02, D-03, D-04, D-05, E-03, E-07 | ~6 dk |
-| `manual` | Yerel + fixture'a bağlı (CI'da koşulmaz) | E-01, E-02, E-04, E-05, E-06, E-08 | — |
-| `placeholder` | Deprecated (D-01 ile kapatıldı) | 04-checkout-bypass | — |
+| Tag           | Ne zaman koşar                           | İçerdiği                                                               | Toplam koşum |
+| ------------- | ---------------------------------------- | ---------------------------------------------------------------------- | ------------ |
+| `smoke`       | Her PR (Maestro Cloud workflow)          | 01-smoke, 01-01-login-happy, 03-search, 05-ilanlarim-diagnostic, D-01  | ~2 dk 30 sn  |
+| `regression`  | Nightly + release öncesi                 | 01-02, 01-03, 01-12, 02-auth-login, D-02, D-03, D-04, D-05, E-03, E-07 | ~6 dk        |
+| `manual`      | Yerel + fixture'a bağlı (CI'da koşulmaz) | E-01, E-02, E-04, E-05, E-06, E-08                                     | —            |
+| `placeholder` | Deprecated (D-01 ile kapatıldı)          | 04-checkout-bypass                                                     | —            |
 
 ### Yeni E-XX flow'ları (kapsam genişletme)
 
-| Flow | Senaryo | Ön koşul / fixture |
-|------|---------|--------------------|
-| E-01 | Stockout dedicated page (deep link) | `STOCKOUT_PRODUCT_ID` env (gerçek satılmış ürün UUID'si) |
-| E-02 | Iade talep akışı (modal → Hasarlı geldi → submit) | Zeynep'in `payment.status=completed` siparişi olmalı |
-| E-03 | Tekliflerim listesi açılır | `pnpm db:seed` (default seed) |
-| E-04 | `shipping_to_warehouse` takasında otomatik kargo kartı | Zeynep'te bu durumda aktif takas seed'li olmalı |
-| E-05 | Üyelik Yönet ekranı (Otomatik Yenileme + İptal) | `PREMIUM_EMAIL` (ahmet@demo.com) aktif premium aboneliği |
-| E-06 | Cash takas `awaiting_payment` → "Ödeme Yap" CTA | Zeynep'te `cashPayerId === user`, status `awaiting_payment` takas |
-| E-07 | Bildirimler tab smoke | `pnpm db:seed` |
-| E-08 | Push deep-link routing simülasyonu (`tarodan://products/unavailable/{id}`) | `STOCKOUT_PRODUCT_ID` env |
+| Flow | Senaryo                                                                    | Ön koşul / fixture                                                |
+| ---- | -------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| E-01 | Stockout dedicated page (deep link)                                        | `STOCKOUT_PRODUCT_ID` env (gerçek satılmış ürün UUID'si)          |
+| E-02 | Iade talep akışı (modal → Hasarlı geldi → submit)                          | Zeynep'in `payment.status=completed` siparişi olmalı              |
+| E-03 | Tekliflerim listesi açılır                                                 | `pnpm db:seed` (default seed)                                     |
+| E-04 | `shipping_to_warehouse` takasında otomatik kargo kartı                     | Zeynep'te bu durumda aktif takas seed'li olmalı                   |
+| E-05 | Üyelik Yönet ekranı (Otomatik Yenileme + İptal)                            | `PREMIUM_EMAIL` (ahmet@demo.com) aktif premium aboneliği          |
+| E-06 | Cash takas `awaiting_payment` → "Ödeme Yap" CTA                            | Zeynep'te `cashPayerId === user`, status `awaiting_payment` takas |
+| E-07 | Bildirimler tab smoke                                                      | `pnpm db:seed`                                                    |
+| E-08 | Push deep-link routing simülasyonu (`tarodan://products/unavailable/{id}`) | `STOCKOUT_PRODUCT_ID` env                                         |
 
 **Not (manual tag):** E-01, E-02, E-04, E-05, E-06, E-08 backend fixture'ına bağımlıdır. CI Maestro Cloud workflow `--include-tags smoke` veya `regression` koşar; `manual` tag'li flow'lar yerelde elle koşulur.
 
@@ -111,33 +111,35 @@ Her flow YAML başında `tags:` bloğu ile bir öncelik kategorisine atanır:
 
 01-XX/D-XX/E-XX smoke seti ekran açılır kontrolleri yapar; F-XX seti **5–15 adımlık gerçek user journey**'ler ile state geçişlerini, recovery yollarını ve happy/error path'leri birlikte kapsar.
 
-| Flow | Senaryo | Tag | Önkoşul / Seed user |
-|------|---------|-----|---------------------|
-| F-01 | Register form → verify-email gate | `manual` | timestamp-bazlı `REG_EMAIL` env (her run override) |
-| F-02 | Yanlış şifre → recover with right (form reload yok) | `regression` | zeynep |
-| F-03 | Forgot password → success notice | `regression` | zeynep |
-| F-04 | Logout superset (input cleared, no toast error) | `regression` | zeynep |
-| F-05 | Tab navigation (Ana Sayfa/Favoriler/Sepet/Profil) + üst bar Mesajlar/Bildirimler + arama alanından arama | `smoke` | zeynep |
-| F-06 | Search → product detail → back nav | `smoke` | zeynep |
-| F-07 | Category drill-down (3-deep) | `regression` | zeynep |
-| F-08 | Favorite toggle (list + detail) | `manual` | zeynep — heart accessibility label kararsız |
-| F-09 | Add to cart → cart screen → remove | `regression` | zeynep |
-| F-10 | Make offer → Tekliflerim'de görünür | `manual` | **mehmet** (kendi listing değil) |
-| F-11 | Bypass checkout end-to-end → order created | `manual` | zeynep + `PAYMENT_BYPASS=true` apps/api/.env + kayıtlı adres |
-| F-12 | Stockout deep-link redirect | `manual` | `STOCKOUT_PRODUCT_ID` env |
-| F-13 | Address create → edit → delete | `regression` | zeynep |
-| F-14 | Initiate trade flow | `manual` | **ali** + tradeAvailable fixture |
-| F-15 | Trade detail status display | `manual` | zeynep — aktif takas fixture |
-| F-16 | Language toggle (TR ↔ EN) | `regression` | zeynep |
-| F-17 | Notification prefs persistence | `regression` | zeynep |
-| F-18 | Empty cart checkout blocked | `smoke` | zeynep |
-| F-19 | Offer modal validation + recovery | `manual` | mehmet |
+| Flow | Senaryo                                                                                                  | Tag          | Önkoşul / Seed user                                                                                |
+| ---- | -------------------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------- |
+| F-01 | Register form → verify-email gate                                                                        | `manual`     | timestamp-bazlı `REG_EMAIL` env (her run override)                                                 |
+| F-02 | Yanlış şifre → recover with right (form reload yok)                                                      | `regression` | zeynep                                                                                             |
+| F-03 | Forgot password → success notice                                                                         | `regression` | zeynep                                                                                             |
+| F-04 | Logout superset (input cleared, no toast error)                                                          | `regression` | zeynep                                                                                             |
+| F-05 | Tab navigation (Ana Sayfa/Favoriler/Sepet/Profil) + üst bar Mesajlar/Bildirimler + arama alanından arama | `smoke`      | zeynep                                                                                             |
+| F-06 | Search → product detail → back nav                                                                       | `smoke`      | zeynep                                                                                             |
+| F-07 | Category drill-down (3-deep)                                                                             | `regression` | zeynep                                                                                             |
+| F-08 | Favorite toggle (list + detail)                                                                          | `manual`     | zeynep — heart accessibility label kararsız                                                        |
+| F-09 | Add to cart → cart screen → remove                                                                       | `regression` | zeynep                                                                                             |
+| F-10 | Make offer → Tekliflerim'de görünür                                                                      | `manual`     | **mehmet** (kendi listing değil)                                                                   |
+| F-11 | Bypass checkout end-to-end → order created                                                               | `manual`     | zeynep + `PAYMENT_BYPASS=true` apps/api/.env + kayıtlı adres                                       |
+| F-12 | Stockout deep-link redirect                                                                              | `manual`     | `STOCKOUT_PRODUCT_ID` env                                                                          |
+| F-13 | Address create → edit → delete                                                                           | `regression` | zeynep                                                                                             |
+| F-14 | Initiate trade flow                                                                                      | `manual`     | **ali** + tradeAvailable fixture                                                                   |
+| F-15 | Trade detail status display                                                                              | `manual`     | zeynep — aktif takas fixture                                                                       |
+| F-16 | Language toggle (TR ↔ EN)                                                                                | `regression` | zeynep                                                                                             |
+| F-17 | Notification prefs persistence                                                                           | `regression` | zeynep                                                                                             |
+| F-18 | Empty cart checkout blocked                                                                              | `smoke`      | zeynep                                                                                             |
+| F-19 | Offer modal validation + recovery                                                                        | `manual`     | mehmet                                                                                             |
+| F-26 | E-mail change: wrong step-up password stays in the confirm step, no sign-out, cancel                     | `manual`     | zeynep; an API with `POST /auth/reauth`; one wrong proof per run counts toward the step-up lockout |
 
 **CI eligible (smoke + regression):** F-02, F-03, F-04, F-05, F-06, F-07, F-09, F-13, F-16, F-17, F-18 (= 11 flow). Manual: F-01, F-08, F-10, F-11, F-12, F-14, F-15, F-19 (= 8 flow, fixture/seed user'a veya `PAYMENT_BYPASS` env'e bağımlı).
 
 **`PAYMENT_BYPASS=true` gereksinimi:** F-11 dev modda bypass üzerinden checkout chain'i bitirir. Olmadan PayTR iframe'i Maestro'nun erişemeyeceği WebView'a düşer.
 
 **Seed user kullanımı:**
+
 - `zeynep@demo.com` (FREE, default) — F-02, F-03, F-04, F-05, F-06, F-07, F-09, F-11, F-12, F-13, F-15, F-16, F-17, F-18
 - `mehmet@demo.com` — F-10, F-19 (kendi listing'ine offer yapmayan ikinci kullanıcı)
 - `ali@demo.com` (BUSINESS) — F-14 (trade initiator)
@@ -145,6 +147,7 @@ Her flow YAML başında `tags:` bloğu ile bir öncelik kategorisine atanır:
 - F-01: timestamp-bazlı yeni email; her run override'lı.
 
 Çalıştırma örnekleri:
+
 ```bash
 maestro test maestro/flows --include-tags smoke         # her PR
 maestro test maestro/flows --include-tags regression    # nightly
@@ -207,12 +210,12 @@ Maestro staging **release** build'ine karşı koşacaksa (dev client / Metro yok
 şifre alanı ve auto-login açar; bu yüzden **insan testçilere giden hiçbir build'de
 olmamalı**. Bu iş için `eas.json`'da `preview`'dan türeyen ayrı bir profil var:
 
-| Profil | `extends` | Kanal | `EXPO_PUBLIC_MAESTRO` | Kime |
-|---|---|---|---|---|
-| `preview` | - | `staging` | yok | iç testçiler (APK / ad-hoc IPA) |
-| `staging` | - | `staging` | yok | TestFlight "Tarodan Staging" |
-| `production` | - | `production` | yok | mağaza |
-| **`maestro`** | `preview` | **`maestro`** | **`1`** | yalnız Maestro koşumu |
+| Profil        | `extends` | Kanal         | `EXPO_PUBLIC_MAESTRO` | Kime                            |
+| ------------- | --------- | ------------- | --------------------- | ------------------------------- |
+| `preview`     | -         | `staging`     | yok                   | iç testçiler (APK / ad-hoc IPA) |
+| `staging`     | -         | `staging`     | yok                   | TestFlight "Tarodan Staging"    |
+| `production`  | -         | `production`  | yok                   | mağaza                          |
+| **`maestro`** | `preview` | **`maestro`** | **`1`**               | yalnız Maestro koşumu           |
 
 - `maestro` profili preview'ın staging API/Web adreslerini ve `EXPO_PUBLIC_ENVIRONMENT=preview`
   değerini devralır (iOS ve Android paket adı `com.tarodan.app.staging`; Android build'i staging `google-services.json` ister, bkz. `docs/ANDROID_RELEASE.md`);
@@ -232,6 +235,7 @@ olmamalı**. Bu iş için `eas.json`'da `preview`'dan türeyen ayrı bir profil 
 
   (`EXPO_PUBLIC_*` değerleri her halükarda bundle'a gömülür; bu yüzden test hesabı yalnız
   staging'de geçerli, üretim verisi olmayan bir hesap olmalıdır. Production hesabı KULLANMA.)
+
 - Maestro build'leri sürüm numarası yakmaz: profilde `ios.autoIncrement` ve `android.autoIncrement`
   `false`. (`preview`/`production` her build'de `buildNumber` / `versionCode` artırır; `extends`
   bunu devralırdı, test koşumları mağaza sayaçlarını tüketmemeli.)
@@ -256,6 +260,7 @@ Bu profilin çıktısı mağazaya/TestFlight'a **gönderilmez** (`eas submit` yo
 `.github/workflows/ci.yml`'in `e2e-test` job'u Jest ile **tüm `*.e2e-spec.ts`** dosyalarını koşar — `payment-bypass.e2e-spec.ts` (B-001 regression) dahil. PR açılınca veya `development` branch'ine push edilince **otomatik tetiklenir**, ekstra ayar gerekmez.
 
 Yerel doğrulama:
+
 ```bash
 cd apps/api
 pnpm test:e2e --testPathPattern=payment-bypass
@@ -288,13 +293,13 @@ açılması yeterli.
 
 ## F-XX flow envanteri (yeni eklenenler)
 
-| Flow | Tag | Pre-condition |
-|---|---|---|
-| F-20 | manual | zeynep'in `shipping_to_warehouse` takası + manuel `prisma.tradeShipment.update`'ler |
-| F-21 | manual | zeynep'in `shipping_to_recipients` takası + outbound shipment.status='delivered' |
-| F-22 | regression | zeynep'in en az bir sales order'ı (seed.ts default'lar yeterli) |
-| F-23 | smoke | `EXPO_PUBLIC_MAESTRO=1` + dev client + saved address |
-| F-24 | manual | zeynep'in delivered order'ı (14 gün içinde) + manual RefundRequest.status update |
+| Flow | Tag        | Pre-condition                                                                                                                            |
+| ---- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| F-20 | manual     | zeynep'in `shipping_to_warehouse` takası + manuel `prisma.tradeShipment.update`'ler                                                      |
+| F-21 | manual     | zeynep'in `shipping_to_recipients` takası + outbound shipment.status='delivered'                                                         |
+| F-22 | regression | zeynep'in en az bir sales order'ı (seed.ts default'lar yeterli)                                                                          |
+| F-23 | smoke      | `EXPO_PUBLIC_MAESTRO=1` + dev client + saved address                                                                                     |
+| F-24 | manual     | zeynep'in delivered order'ı (14 gün içinde) + manual RefundRequest.status update                                                         |
 | F-25 | regression | zeynep girişli; profili düzenle bölümleri (kullanıcı adı / e-posta "Değiştir" → alan açılır → "Vazgeç"); kod doğrulaması otomasyonda YOK |
 
 ## CI keyboard requirement
@@ -352,7 +357,7 @@ Maestro kod yolları **production build'lere sızmaz** çünkü:
    `EXPO_PUBLIC_MAESTRO` set edilmediği için `IS_MAESTRO` `undefined === '1'`, yani
    sabit `false` olur; Maestro şubeleri hiçbir koşulda çalışmaz.
 2. EAS `production` profili hiçbir `EXPO_PUBLIC_MAESTRO*` değişkeni taşımaz — bu
-   [src/config/__tests__/maestro.test.ts](../src/config/__tests__/maestro.test.ts)
+   [src/config/**tests**/maestro.test.ts](../src/config/__tests__/maestro.test.ts)
    içinde `eas.json` okunarak birim testiyle çivilidir (CI'da kırılır).
 3. Test kimlik bilgileri kodda **yok** — yalnız env'den okunur; env yoksa
    auto-login denenmez.
