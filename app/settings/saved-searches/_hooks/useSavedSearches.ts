@@ -87,6 +87,8 @@ export function useSavedSearches() {
     total,
     limit,
     atLimit,
+    /** The count is known only once the list has loaded (no "0 / N" while loading or after a failure). */
+    showCount: limit !== undefined && query.data !== undefined,
     colors,
     isLoading: query.isLoading,
     /** The list could not be read and nothing is cached: an error state, not "no saved searches". */

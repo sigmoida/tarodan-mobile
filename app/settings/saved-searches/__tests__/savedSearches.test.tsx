@@ -50,6 +50,11 @@ const search = (over: Partial<SavedSearch> = {}): SavedSearch => ({
   ...over,
 });
 
+/** Presses the button of an `appAlert` / `confirm` call by its style. */
+type AlertButton = { style?: string; onPress?: () => void };
+const pressButton = (buttons: AlertButton[], style: 'cancel' | 'destructive') =>
+  buttons.find((b) => b.style === style)?.onPress?.();
+
 const page = (data: SavedSearch[], total = data.length, pageNo = 1, totalPages = 1) => ({
   data: { data, meta: { total, page: pageNo, limit: 100, totalPages } },
 });
@@ -57,7 +62,7 @@ const page = (data: SavedSearch[], total = data.length, pageNo = 1, totalPages =
 const setSession = (limit: number | undefined, isAuthenticated = true) =>
   useAuthStore.setState({
     isAuthenticated,
-    limits: limit === undefined ? null : ({ maxSavedSearches: limit } as any),
+    limits: limit === undefined ? null : ({ maxSavedSearches: limit } as never),
   });
 
 describe('saved searches · screen', () => {
@@ -166,16 +171,51 @@ describe('saved searches · screen', () => {
     const [title, message, buttons] = alertMock.mock.calls[0];
     expect(title).toBe('Aramayı sil');
     expect(message).toBe('"BMW 1/18" aramasını silmek istediğinize emin misiniz?');
-    await act(async () => buttons.find((b: any) => b.style === 'cancel').onPress());
+    await act(async () => pressButton(buttons, 'cancel'));
     expect(remove).not.toHaveBeenCalled();
 
     fireEvent.press(screen.getByTestId('saved-search-delete'));
     list.mockResolvedValue(page([]));
-    await act(async () => alertMock.mock.calls[1][2].find((b: any) => b.style === 'destructive').onPress());
+    await act(async () => pressButton(alertMock.mock.calls[1][2], 'destructive'));
     await waitFor(() => expect(remove).toHaveBeenCalledWith('s1'));
     await waitFor(() => expect(toastMock.success).toHaveBeenCalledWith('Arama silindi'));
     // The list is refetched after the delete.
     expect(await screen.findByText('Kayıtlı Arama Yok')).toBeOnTheScreen();
+  });
+
+  it('delete of a row already gone (404 notFound): the server message, and the list is refetched', async () => {
+    list.mockResolvedValue(page([search()]));
+    remove.mockRejectedValue({
+      response: { status: 404, data: { i18nKey: 'server.savedSearch.notFound', message: 'Kayıtlı arama bulunamadı.' } },
+    });
+    renderWithProviders(<SavedSearchesScreen />);
+    await screen.findByText('BMW 1/18');
+    expect(list).toHaveBeenCalledTimes(1);
+
+    // Deleted on another device meanwhile: the next read no longer has it.
+    list.mockResolvedValue(page([]));
+    fireEvent.press(screen.getByTestId('saved-search-delete'));
+    await act(async () => pressButton(alertMock.mock.calls[0][2], 'destructive'));
+
+    await waitFor(() => expect(toastMock.error).toHaveBeenCalledWith('Kayıtlı arama bulunamadı.'));
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('Kayıtlı Arama Yok')).toBeOnTheScreen();
+  });
+
+  it('the count waits for the list: no "0 / N" while loading', async () => {
+    let resolveList: (value: unknown) => void = () => undefined;
+    list.mockReturnValueOnce(new Promise((r) => (resolveList = r)));
+    renderWithProviders(<SavedSearchesScreen />);
+    expect(screen.queryByText(/\/ 5 arama$/)).toBeNull();
+    await act(async () => resolveList(page([search()])));
+    expect(await screen.findByText('1 / 5 arama')).toBeOnTheScreen();
+  });
+
+  it('a failed load shows no count', async () => {
+    list.mockRejectedValueOnce(new Error('offline'));
+    renderWithProviders(<SavedSearchesScreen />);
+    expect(await screen.findByText('Kayıtlı aramalar yüklenemedi')).toBeOnTheScreen();
+    expect(screen.queryByText(/\/ 5 arama$/)).toBeNull();
   });
 
   it('delete failure is a toast', async () => {
@@ -184,7 +224,7 @@ describe('saved searches · screen', () => {
     renderWithProviders(<SavedSearchesScreen />);
     await screen.findByText('BMW 1/18');
     fireEvent.press(screen.getByTestId('saved-search-delete'));
-    await act(async () => alertMock.mock.calls[0][2].find((b: any) => b.style === 'destructive').onPress());
+    await act(async () => pressButton(alertMock.mock.calls[0][2], 'destructive'));
     await waitFor(() => expect(toastMock.error).toHaveBeenCalled());
   });
 

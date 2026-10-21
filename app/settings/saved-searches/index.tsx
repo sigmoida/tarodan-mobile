@@ -32,7 +32,7 @@ export default function SavedSearchesScreen() {
       title={t('search.savedTitle')}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       right={
-        f.limit !== undefined ? (
+        f.showCount ? (
           <TopBarLabel>{t('search.countOfLimit', { count: f.total, limit: f.limit })}</TopBarLabel>
         ) : undefined
       }
