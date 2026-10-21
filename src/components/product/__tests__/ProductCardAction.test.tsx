@@ -9,6 +9,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { toast } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
 import { useCartStore } from '@/stores/cartStore';
+import { resetCartToggleStateForTests } from '@/hooks/useCartToggle';
 import { containers } from '@/theme';
 import { ProductCard, type ProductCardProduct } from '../ProductCard';
 
@@ -60,6 +61,7 @@ let toastError: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  resetCartToggleStateForTests();
   mockAuth = { isAuthenticated: false, user: null };
   useCartStore.setState({ items: [], deselectedIds: [], mergePendingFor: null });
   toastSuccess = jest.spyOn(toast, 'success').mockImplementation(() => 1);
@@ -134,7 +136,8 @@ describe('ProductCard action: cart toggle', () => {
     renderWithProviders(<ProductCard product={listing} />);
     const button = cartButton()!;
     expect(button.props.accessibilityLabel).toBe('Hot Wheels Supra ürününü sepete ekle');
-    expect(button.props.accessibilityState).toEqual(expect.objectContaining({ selected: false }));
+    // The label says what a press does; no `selected` beside a changing label.
+    expect(button.props.accessibilityState?.selected).toBeUndefined();
 
     fireEvent.press(button);
     await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Ürün sepete eklendi'));
@@ -153,7 +156,7 @@ describe('ProductCard action: cart toggle', () => {
 
     const inCart = cartButton()!;
     expect(inCart.props.accessibilityLabel).toBe('Hot Wheels Supra ürününü sepetten çıkar');
-    expect(inCart.props.accessibilityState).toEqual(expect.objectContaining({ selected: true }));
+    expect(inCart.props.accessibilityState?.selected).toBeUndefined();
 
     fireEvent.press(inCart);
     await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Ürün sepetten çıkarıldı'));
@@ -183,6 +186,54 @@ describe('ProductCard action: cart toggle', () => {
     fireEvent.press(cartButton()!);
     await waitFor(() => expect(cartApi.removeItem).toHaveBeenCalledWith('p1'));
     await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Ürün sepetten çıkarıldı'));
+  });
+
+  it('member: while one card writes, a second card of the same listing ignores its press', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'buyer-1' } };
+    let resolveAdd: ((v: unknown) => void) | undefined;
+    (cartApi.addItem as jest.Mock).mockImplementationOnce(() => new Promise((r) => (resolveAdd = r)));
+    renderWithProviders(
+      <>
+        <ProductCard product={listing} />
+        <ProductCard product={listing} />
+      </>,
+    );
+    const [first, second] = screen.getAllByTestId('product-card-cart-p1');
+    fireEvent.press(first!);
+    fireEvent.press(second!);
+    expect(cartApi.removeItem).not.toHaveBeenCalled();
+    expect(useCartStore.getState().items).toHaveLength(1);
+    await act(async () => resolveAdd?.({ data: {} }));
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledTimes(1));
+  });
+
+  it('member: a removal the server does not apply puts the line back and says why, no success toast', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'buyer-1' } };
+    renderWithProviders(<ProductCard product={listing} />);
+    fireEvent.press(cartButton()!);
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Ürün sepete eklendi'));
+    toastSuccess.mockClear();
+
+    (cartApi.removeItem as jest.Mock).mockRejectedValueOnce({ response: { status: 503, data: {} } });
+    fireEvent.press(cartButton()!);
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('Sepetten çıkarılamadı'));
+    expect(useCartStore.getState().items.map((i) => i.productId)).toEqual(['p1']);
+    expect(toastSuccess).not.toHaveBeenCalled();
+    expect(cartButton()!.props.accessibilityLabel).toBe('Hot Wheels Supra ürününü sepetten çıkar');
+  });
+
+  it('member: a 404 on removal means the server cart did not hold the line; the removal stands', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'buyer-1' } };
+    renderWithProviders(<ProductCard product={listing} />);
+    fireEvent.press(cartButton()!);
+    await waitFor(() => expect(useCartStore.getState().items).toHaveLength(1));
+    await waitFor(() => expect(cartButton()!.props.accessibilityState).toEqual(expect.objectContaining({ busy: false })));
+
+    (cartApi.removeItem as jest.Mock).mockRejectedValueOnce({ response: { status: 404, data: {} } });
+    fireEvent.press(cartButton()!);
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Ürün sepetten çıkarıldı'));
+    expect(useCartStore.getState().items).toHaveLength(0);
+    expect(toastError).not.toHaveBeenCalled();
   });
 
   it('member: a line the server refuses is undone, its message shown, no success toast', async () => {

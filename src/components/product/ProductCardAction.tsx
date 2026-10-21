@@ -1,9 +1,7 @@
-import React from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { productCardAction, type ProductCardAction } from '@/types';
 import type { CartListing } from '@/lib/cart/cartItemFromListing';
-import { ProductCardCartButton, type CardActionPresentation } from './ProductCardCartButton';
 
 /** The listing fields the card action reads (the inputs of `productCardAction` plus the cart line). */
 export interface ProductCardActionListing extends CartListing {
@@ -23,6 +21,7 @@ export interface ProductCardActionListing extends CartListing {
  *
  * Mobile passes `canBoost: CAN_BUY_DIGITAL` (off on both stores, tarodan-ops ADR 0003, 0015), so
  * the seller's own listing gets no button at all: no boost button, no hint, no link to the web.
+ * The card draws only `add_to_cart`; a `boost` result (digital sales on) renders nothing too.
  * The seller id is `seller.id`, else `sellerId` (web `toProductCardListing`).
  */
 export function useProductCardAction(listing: ProductCardActionListing): ProductCardAction {
@@ -37,26 +36,4 @@ export function useProductCardAction(listing: ProductCardActionListing): Product
     },
     { userId, canBoost: CAN_BUY_DIGITAL },
   );
-}
-
-/**
- * The button for a computed action, or nothing. `boost` renders nothing on mobile even if the
- * rule ever returned it: there is no purchase surface for a digital good in the app (ADR 0015).
- */
-export function ProductCardActionButton({
-  listing,
-  action,
-  presentation,
-}: {
-  listing: ProductCardActionListing;
-  action: ProductCardAction;
-  presentation: CardActionPresentation;
-}) {
-  switch (action.kind) {
-    case 'add_to_cart':
-      return <ProductCardCartButton listing={listing} presentation={presentation} />;
-    case 'boost':
-    case 'none':
-      return null;
-  }
 }

@@ -12,9 +12,10 @@ export type CardActionPresentation = 'icon' | 'text';
  * The listing card's cart toggle (web `ProductCardCartButton`): "Sepete Ekle", or "Sepetten
  * Çıkar" when the listing is already in the cart (D10).
  *
- * - `icon`: the icon-only toggle names the listing (`product.cardAction.*Aria`) and states its
- *   in-cart state with `selected` (web `aria-pressed`), a solid icon and the danger colour, so
- *   colour is not the only cue.
+ * - `icon`: the icon-only toggle names the listing and what a press does
+ *   (`product.cardAction.*Aria`, like web), with a solid icon and the danger colour once in the
+ *   cart, so colour is not the only cue. Web adds `aria-pressed`; mobile does not pair a changing
+ *   label with `selected` (VoiceOver would read "remove ..., selected").
  * - `text`: the same toggle with its visible label.
  *
  * While a member's write runs the button looks busy and ignores presses (`useCartToggle`).
@@ -63,7 +64,9 @@ export function ProductCardCartButton({
           ? t('product.cardAction.removeFromCartAria', { title: listing.title })
           : t('product.cardAction.addToCartAria', { title: listing.title })
       }
-      accessibilityState={{ selected: inCart, busy: isPending }}
+      // The label states what a press does ("... sepetten çıkar" once in the cart); no `selected`
+      // with it, or VoiceOver reads a contradiction ("..., selected"; see the card heart).
+      accessibilityState={{ busy: isPending }}
       style={busyStyle}
       testID={testID}
     />

@@ -1,5 +1,6 @@
 import type { CartItem } from '@/stores/cartStore';
-import { getImageUrl } from '@/utils/imageUrl';
+import { resolveImageUrl } from '@/utils/imageUrl';
+import { asLabel } from '@/utils/format';
 import { getProductEffectivePrice, type ProductPriceFields } from '@/utils/productPrice';
 
 /** The listing fields a list card has, enough to put the listing in the local cart. */
@@ -11,6 +12,8 @@ export interface CartListing extends ProductPriceFields {
   availableQuantity?: number | null;
   quantity?: number | null;
   maxQuantityPerOrder?: number | null;
+  brand?: unknown;
+  scale?: unknown;
   sellerId?: string | null;
   seller?: { id?: string | null; displayName?: string | null } | null;
 }
@@ -30,9 +33,12 @@ export function cartItemFromListing(
     price: getProductEffectivePrice(listing),
     stock: listing.availableQuantity ?? listing.quantity ?? null,
     maxQuantityPerOrder: listing.maxQuantityPerOrder ?? null,
-    imageUrl: getImageUrl(listing.imageUrl ?? listing.images),
+    imageUrl: resolveImageUrl(listing.imageUrl ?? listing.images),
+    brand: asLabel(listing.brand, ''),
+    scale: asLabel(listing.scale, ''),
     seller: {
-      id: String(listing.sellerId ?? listing.seller?.id ?? 'unknown'),
+      // The same seller id as the card action (`seller.id`, else `sellerId`; web `toProductCardListing`).
+      id: String(listing.seller?.id ?? listing.sellerId ?? 'unknown'),
       displayName: listing.seller?.displayName || sellerFallbackName,
     },
   };

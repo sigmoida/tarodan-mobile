@@ -41,7 +41,7 @@ Marketplace components built from `@/ui` primitives, grouped by feature
   `canBoost: CAN_BUY_DIGITAL`. Other people's active, in-stock listings (guests too) get the cart
   toggle (`ProductCardCartButton`, `useCartToggle`); the viewer's own listing gets **no button**
   (no boost button, hint or web link; tarodan-ops ADR 0015). A `footer` or `showAction={false}`
-  (pickers, a collection's custom item) turns it off. The card draws it as a sibling of its
+  (pickers, collection items: web shows none there) turns it off. The card draws it as a sibling of its
   `Pressable` over a spacer in the price row. Text or icon-only by the card's measured width
   against `theme.containers.cardWide`; the list row is icon-only (web below `xs`).
 - Badges: a boosted listing shows "Öne Çıkan" (`product.boostedBadge`; screen readers get

@@ -64,6 +64,11 @@ interface CartState {
   addToCart: (productId: string) => Promise<void>;
   removeItem: (itemId: string) => void;
   removeByProductId: (productId: string) => void;
+  /**
+   * Puts a removed line back (same id and quantity; selected again), unless the listing is
+   * in the cart again by then: the undo of a removal the server refused (`useCartSync`).
+   */
+  restoreItem: (item: CartItem) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   /**
@@ -198,6 +203,11 @@ export const useCartStore = create<CartState>()(
           deselectedIds: pruneDeselected(get().deselectedIds, removedIds),
           lastUpdated: Date.now(),
         });
+      },
+
+      restoreItem: (item: CartItem) => {
+        if (get().items.some((i) => i.productId === item.productId)) return;
+        set({ items: [...get().items, item], lastUpdated: Date.now() });
       },
 
       updateQuantity: (itemId, quantity) => {

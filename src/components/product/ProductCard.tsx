@@ -20,10 +20,10 @@ import { formatPrice } from '@/utils/format';
 import { OutOfStockOverlay } from './OutOfStockOverlay';
 import { PRODUCT_CARD_METRICS } from './productCardMetrics';
 import { getProductSalePercent, isProductTradeBadgeVisible, selectProductCardBadges, type ProductCardBadge } from './productCardBadges';
-import { ProductCardActionButton, useProductCardAction } from './ProductCardAction';
-import type { CardActionPresentation } from './ProductCardCartButton';
+import { useProductCardAction } from './ProductCardAction';
+import { ProductCardCartButton } from './ProductCardCartButton';
 
-const { colors, spacing, radiusRole, iconSize, containers } = theme;
+const { colors, spacing, radiusRole, iconSize, containers, minTouchTarget } = theme;
 
 /** Takas rozeti ikonu — sabit referans (kart yeniden render olunca yeni element üretilmez). */
 const TRADE_ICON = <Icon name="arrows-right-left" size={iconSize.sm} color={colors.text.inverted} />;
@@ -85,8 +85,8 @@ export interface ProductCardProps {
   /** Görselin sol üstünde. */
   overlayStart?: React.ReactNode;
   /**
-   * Kartın altında, kart dokunuşunun dışında (ör. sepete ekle düğmesi). When set, the card shows no
-   * action of its own in the price row (web).
+   * Below the card, outside the card's press target (for example an add-to-cart button). When set,
+   * the card shows no action of its own in the price row (web).
    */
   footer?: React.ReactNode;
   /**
@@ -113,6 +113,11 @@ const PM = PRODUCT_CARD_METRICS;
 
 /** The card action's box before it is measured: the icon-only `sm` button (32pt). */
 const ACTION_BOX = iconButtonBoxSize('sm');
+/**
+ * Padding of the action's absolute wrapper up to the 44pt touch target: Android does not deliver
+ * touches outside a parent's bounds, so the button's own `hitSlop` must fall inside the wrapper.
+ */
+const ACTION_SLOP = Math.max(0, (minTouchTarget - ACTION_BOX) / 2);
 
 /** Kalbin görsel köşesine uzaklığı (rozetlerle aynı iç boşluk). */
 const FAVORITE_INSET = spacing[1.5];
@@ -255,21 +260,26 @@ function ProductCardBase({
 }: ProductCardProps) {
   const { t } = useTranslation();
   // The card action gives way to a caller's footer (web). The viewer comes from the auth store.
+  // Only the cart toggle is ever drawn: `boost` (own listing, digital sales on) renders nothing on
+  // mobile (ADR 0015), like `none`.
   const action = useProductCardAction(product);
   const withAction = showAction && !footer && action.kind === 'add_to_cart';
   // Text or icon-only by the CARD's measured width (web container query `@card-wide`); until the
-  // first layout the icon shows, which is what a phone grid keeps.
-  const [cardWidth, setCardWidth] = useState(0);
+  // first layout the icon shows, which is what a phone grid keeps. A boolean, so a phone card does
+  // not re-render on its first layout.
+  const [isWide, setWide] = useState(false);
   const onCardLayout =
-    withAction && layout === 'grid' ? (e: LayoutChangeEvent) => setCardWidth(e.nativeEvent.layout.width) : undefined;
-  const presentation: CardActionPresentation = cardWidth >= containers.cardWide ? 'text' : 'icon';
+    withAction && layout === 'grid'
+      ? (e: LayoutChangeEvent) => setWide(e.nativeEvent.layout.width >= containers.cardWide)
+      : undefined;
   // The action is drawn as the card Pressable's SIBLING (like the heart): pressing it never opens
   // the listing, and VoiceOver can reach it (an accessible Pressable hides its children). A spacer
   // of the action's measured size holds its place at the end of the price line, so the price row
   // wraps like web; the action sits over the spacer at the body's bottom-right corner.
   const [actionSize, setActionSize] = useState({ width: ACTION_BOX, height: ACTION_BOX });
   const onActionLayout = (e: LayoutChangeEvent) => {
-    const { width, height } = e.nativeEvent.layout;
+    const width = e.nativeEvent.layout.width - 2 * ACTION_SLOP;
+    const height = e.nativeEvent.layout.height - 2 * ACTION_SLOP;
     setActionSize((cur) => (cur.width === width && cur.height === height ? cur : { width, height }));
   };
   // Liste: görsel satırda dikey ortalı (web `items-center`; konum gövde yüksekliğine bağlı) — kalp
@@ -299,16 +309,15 @@ function ProductCardBase({
     [product],
   );
   const listBoosted = listBadges.some((b) => b.kind === 'boosted');
-  // Ekran okuyucu: görünen rozetler başlığa eklenir (grid: yığın; liste: indirim, öne çıkan, takas).
+  // Screen readers: the visible badges join the card label (grid: the stack; list: discount, boosted, trade).
   const visibleBadges: ProductCardBadge[] = layout === 'list' ? listBadges : overlayStart ? [] : badges;
   const actionSpacer = withAction ? <View style={actionSize} testID="product-card-action-spacer" /> : null;
   const actionButton = withAction ? (
     <View style={layout === 'list' ? styles.listAction : styles.gridAction} onLayout={onActionLayout}>
-      <ProductCardActionButton
+      <ProductCardCartButton
         listing={product}
-        action={action}
         // The list row mirrors web below `xs` (the price on its own full-width line): icon-only there.
-        presentation={layout === 'list' ? 'icon' : presentation}
+        presentation={layout === 'grid' && isWide ? 'text' : 'icon'}
       />
     </View>
   ) : null;
@@ -581,8 +590,9 @@ const styles = StyleSheet.create({
   // Over the price row's spacer: the body's bottom-right corner (inside the card border).
   gridAction: {
     position: 'absolute',
-    right: PM.borderWidth + PM.grid.bodyPadding,
-    bottom: PM.borderWidth + PM.grid.bodyPadding,
+    right: PM.borderWidth + PM.grid.bodyPadding - ACTION_SLOP,
+    bottom: PM.borderWidth + PM.grid.bodyPadding - ACTION_SLOP,
+    padding: ACTION_SLOP,
     zIndex: 1,
   },
   gridFooter: { paddingHorizontal: spacing[2.5], paddingBottom: spacing[2.5] },
@@ -628,8 +638,9 @@ const styles = StyleSheet.create({
   // Over the price line's spacer: the row's bottom-right corner (inside the card border).
   listAction: {
     position: 'absolute',
-    right: PM.borderWidth + PM.list.padding,
-    bottom: PM.borderWidth + PM.list.padding,
+    right: PM.borderWidth + PM.list.padding - ACTION_SLOP,
+    bottom: PM.borderWidth + PM.list.padding - ACTION_SLOP,
+    padding: ACTION_SLOP,
     zIndex: 1,
   },
   listFooter: { marginTop: spacing[2] },

@@ -21,11 +21,8 @@ export const PRODUCT_CARD_METRICS = {
     metaGap: spacing[1.5],
     priceTopPadding: PRICE_TOP_PADDING,
     priceLineHeight: typography.fontSize.base * typography.lineHeight.normal,
-    /**
-     * The price row's height on every card, its top border and padding included (border-box): the
-     * card action's height, so cards with and without an action line up (web `min-h-8`).
-     */
-    priceRowMinHeight: controlHeight.sm + PRICE_TOP_PADDING + 1,
+    /** The price row's minimum height, its top border and padding included (web border-box `min-h-8`). */
+    priceRowMinHeight: controlHeight.sm,
   },
   list: {
     radius: radiusRole.card,

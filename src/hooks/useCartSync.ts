@@ -90,7 +90,7 @@ export function useCartSync() {
       const after = useCartStore.getState().items.find((i) => i.productId === item.productId);
       const added = (after?.quantity ?? 0) - (before?.quantity ?? 0);
       if (added <= 0) {
-        // tavandaydı: yerel değişmedi, sunucu çağrısı yok
+        // Already at the cap: nothing changed locally, no server call.
         onSettled?.('applied');
         return;
       }
@@ -103,16 +103,45 @@ export function useCartSync() {
       }, !before).then(onSettled);
     },
 
-    /** `onSettled` as in `add`. */
+    /**
+     * Without `onSettled` (the cart screen) the local removal is final and a server error is only
+     * reported, as before. With it (the card toggle, web parity) a member's removal the server did
+     * not apply is undone: the line comes back and the reason is shown (`rejected`). A 404 means
+     * the server cart did not hold the line, so the removal stands.
+     */
     removeByProductId: (productId: string, onSettled?: OnCartWriteSettled) => {
+      const before = useCartStore.getState().items.find((i) => i.productId === productId);
       useCartStore.getState().removeByProductId(productId);
-      void mirror(() => cartApi.removeItem(productId), 'cart.remove').then(onSettled);
+      if (!onSettled) {
+        void mirror(() => cartApi.removeItem(productId), 'cart.remove');
+        return;
+      }
+      if (!isAuthenticated) {
+        onSettled('applied');
+        return;
+      }
+      cartApi.removeItem(productId).then(
+        () => {
+          void queryClient.invalidateQueries({ queryKey: qk.cart.mine });
+          onSettled('applied');
+        },
+        (error: unknown) => {
+          captureException(error, { level: 'warning', tags: { flow: 'cart.remove' } });
+          if ((error as { response?: { status?: number } })?.response?.status === 404) {
+            onSettled('applied');
+            return;
+          }
+          if (before) useCartStore.getState().restoreItem(before);
+          toast.error(errorText(error, i18n.t('product.removeFromCartFailed')));
+          onSettled('rejected');
+        },
+      );
     },
 
     removeItem: (itemId: string) => {
       const line = useCartStore.getState().items.find((i) => i.id === itemId);
       useCartStore.getState().removeItem(itemId);
-      if (line) mirror(() => cartApi.removeItem(line.productId), 'cart.remove');
+      if (line) void mirror(() => cartApi.removeItem(line.productId), 'cart.remove');
     },
 
     setQuantity: (itemId: string, quantity: number) => {
@@ -125,7 +154,7 @@ export function useCartSync() {
       const after = useCartStore.getState().items.find((i) => i.id === itemId);
       const applied = after?.quantity ?? 0;
       if (after && applied === line.quantity) return; // değişmedi: sunucu çağrısı yok
-      mirror(() => cartApi.updateItem(line.productId, applied), 'cart.update', (message) => {
+      void mirror(() => cartApi.updateItem(line.productId, applied), 'cart.update', (message) => {
         // Sunucu reddetti: yerel adedi sunucudakine (önceki hâl) geri al, taze sepeti çek.
         if (useCartStore.getState().items.some((i) => i.id === itemId)) {
           useCartStore.getState().updateQuantity(itemId, line.quantity);
@@ -137,7 +166,7 @@ export function useCartSync() {
 
     clear: () => {
       useCartStore.getState().clearCart();
-      mirror(() => cartApi.clear(), 'cart.clear');
+      void mirror(() => cartApi.clear(), 'cart.clear');
     },
   };
 }
