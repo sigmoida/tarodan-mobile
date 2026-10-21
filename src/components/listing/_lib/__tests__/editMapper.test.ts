@@ -113,7 +113,7 @@ describe('toFormValues — kaynak seçimi', () => {
   });
 
   it('fiyatı ÜST SEVİYEDEN değil `edit`ten okur', () => {
-    // Üst seviyede 999 var; doğru cevap 551.07 (field text: a decimal comma).
+    // The top level has 999; the right answer is 551.07 (field text: a decimal comma).
     expect(toFormValues(RESPONSE)!.values.price).toBe('551,07');
   });
 

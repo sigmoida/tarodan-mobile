@@ -1,13 +1,13 @@
 import { tlAmountValue } from '@/lib/shared/tlAmount';
 
 /**
- * İlan indirimi — form durumu ↔ API payload'ı ve komisyon önizlemesinin hangi
- * fiyatla sorulacağı. Web `packages/listing-form/src/form/sale-data.ts` +
- * `NewListingContext` (`saleIsActive`) paritesi; saf, test edilebilir.
+ * Listing discount: form state <-> API payload, and which price the commission preview asks
+ * with. Parity with web `packages/listing-form/src/form/sale-data.ts` + `NewListingContext`
+ * (`saleIsActive`); pure and testable.
  *
- * Formdaki "Fiyat" indirim ÖNCESİ fiyattır; indirimli fiyat ondan küçükse
- * indirim uygulanır. Etkin fiyatı sunucu türetir — istemci yalnız önizleme
- * için "şu an hangi fiyattan satılır" sorusunu cevaplar.
+ * The form's "Price" is the price BEFORE the discount; the discount applies when the discount
+ * price is lower. The server derives the effective price; the client only answers "what does
+ * it sell for now" for the preview.
  *
  * The price and the discount price are field text read by the shared `tlAmountValue`; text
  * that is not an amount reads as none here, so the form blocks it first

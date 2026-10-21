@@ -35,7 +35,7 @@ describe('priceFieldError', () => {
     expect(priceFieldError(t, '1', NONE)).toBeNull();
   });
 
-  it('boş değer biçim kuralına bırakılır', () => {
+  it('leaves empty or zero text to the schema format rule', () => {
     expect(priceFieldError(t, '', MIN)).toBeNull();
     expect(priceFieldError(t, '0', MIN)).toBeNull();
   });
