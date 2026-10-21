@@ -44,15 +44,15 @@ describe('offerSignature', () => {
     ['12,50', '12,5'],
     ['12', '12,00'],
     ['1250', '1250,'],
-    // Rounded to cents first, as the amount that is sent (and stored) is.
-    ['12,505', '12,51'],
   ])('%p and %p are the same amount, so the same offer', (a, b) => {
     for (const dir of ['offer', 'request'] as const) {
       expect(offerSignature(mine, theirs, dir, a)).toBe(offerSignature(mine, theirs, dir, b));
     }
   });
 
-  it.each([[''], ['0'], ['0,00'], ['0,004'], ['1.250,50']])(
+  // A third decimal is refused by the shared parser, not rounded (the field mask never lets
+  // one in), so it is no amount like grouping.
+  it.each([[''], ['0'], ['0,00'], ['0,004'], ['1.250,50'], ['12,505']])(
     'without an amount (%p) the payer is not sent, so the payer chip alone is no change',
     (cash) => {
       expect(offerSignature(mine, theirs, 'offer', cash)).toBe(offerSignature(mine, theirs, 'request', cash));
