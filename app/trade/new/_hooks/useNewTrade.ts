@@ -15,6 +15,7 @@ import { isPreselectableTarget, targetSellerOf, type TargetListing } from '../_l
 import { isFetchedThisOpen, TRADE_PICKER_PAGE_SIZE, TRADE_PICKER_QUERY_OPTIONS } from '../../_lib/picker';
 import { usePagedPicker } from '../../_hooks/usePagedPicker';
 import { usePagedPicks } from '../../_hooks/usePagedPicks';
+import { parseCashAmount, signedCashAmount, type CashDirection } from '../../_lib/cash';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
@@ -47,7 +48,7 @@ export function useNewTrade() {
 
   const [step, setStep] = useState(1); // 1: Select my items, 2: Select their items, 3: Review
   const [cashAmount, setCashAmount] = useState('');
-  const [cashDirection, setCashDirection] = useState<'offer' | 'request'>('offer'); // offer = I pay, request = they pay
+  const [cashDirection, setCashDirection] = useState<CashDirection>('offer');
   const [message, setMessage] = useState('');
   const [tradeAddressId, setTradeAddressId] = useState<string | null>(null);
 
@@ -165,16 +166,11 @@ export function useNewTrade() {
 
   const createTradeMutation = useAppMutation(
     async () => {
-      const cashVal = parseFloat(cashAmount.replace(',', '.')) || 0;
-      let finalCash: number | undefined;
-      if (cashVal > 0) {
-        finalCash = cashDirection === 'offer' ? cashVal : -cashVal;
-      }
       return tradesApi.create({
         receiverId: targetSellerId,
         initiatorItems: selectedMyItems.map((p) => ({ productId: p.id, quantity: 1 })),
         receiverItems: selectedTheirItems.map((p) => ({ productId: p.id, quantity: 1 })),
-        cashAmount: finalCash,
+        cashAmount: signedCashAmount(cashAmount, cashDirection),
         message: message.trim() || undefined,
         shippingAddressId: tradeAddressId || undefined,
       });
@@ -204,7 +200,7 @@ export function useNewTrade() {
 
   const myTotal = selectedMyItems.reduce((sum, p) => sum + getProductEffectivePrice(p), 0);
   const theirTotal = selectedTheirItems.reduce((sum, p) => sum + getProductEffectivePrice(p), 0);
-  const cashValue = parseFloat(cashAmount.replace(',', '.')) || 0;
+  const cashValue = parseCashAmount(cashAmount) ?? 0;
   const cashPayer: 'initiator' | 'receiver' = cashDirection === 'offer' ? 'initiator' : 'receiver';
 
   /**
@@ -237,8 +233,7 @@ export function useNewTrade() {
   const toggleTheirItem = (product: Product) => theirPicks.toggle(product.id);
 
   const handleSubmit = async () => {
-    const cashVal = parseFloat(cashAmount.replace(',', '.')) || 0;
-    if (selectedMyItems.length === 0 && cashVal <= 0) {
+    if (selectedMyItems.length === 0 && cashValue <= 0) {
       toast.error(t('trade.selectAtLeastOne'));
       return;
     }

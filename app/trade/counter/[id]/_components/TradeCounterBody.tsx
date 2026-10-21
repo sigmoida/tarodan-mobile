@@ -6,6 +6,7 @@ import { Alert, Button, ButtonRow, Chip, Input, SectionCard, Text, Textarea, the
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import { TradeProductPicker } from './TradeProductPicker';
+import { nextCashInput } from '../../../_lib/cash';
 import type { TradeCounterController } from '../_hooks/useTradeCounter';
 
 const { colors } = theme;
@@ -70,7 +71,7 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
         <Input
           label={t('trade.amountLabelTL')}
           value={f.cashAmount}
-          onChangeText={(v: string) => f.setCashAmount(v.replace(/[^\d.]/g, ''))}
+          onChangeText={(v: string) => f.setCashAmount((prev) => nextCashInput(prev, v))}
           keyboardType="numeric"
           containerStyle={styles.cashInput}
         />
