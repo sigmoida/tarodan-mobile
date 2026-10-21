@@ -1,9 +1,8 @@
 /**
- * J6 · Takas karşı teklif formu — mobil UI dilimi.
- * Nakit fark girişi (tutar + yön chip), mesaj alanı, özet render,
- * "Karşı Teklif Gönder" buton enable/disable (ürün seçimi), ürün seçince
- * counter mutation (tradesApi.counter) çağrısı, hata/yükleme durumu.
- * Backend takas rolleri/escrow backend-only.
+ * J6 · Trade counter-offer form, the mobile UI slice: the cash difference (amount + payer
+ * chips), the message field, the summary, the send button enable/disable (item selection), the
+ * counter mutation (`tradesApi.counter`) and its payload, and the loading state. Trade roles and
+ * escrow are backend-only.
  */
 import React from 'react';
 import { TextInput } from 'react-native';
@@ -37,7 +36,7 @@ jest.mock('@/stores/authStore', () => ({
   },
 }));
 
-// Kapı bu testin konusu değil (bkz. legal-identity-gate.test): geçti say.
+// The gate is not under test here (see legal-identity-gate.test): it passes.
 jest.mock('@/hooks/useLegalIdentity', () =>
   jest.requireActual('@/test-utils/legalIdentity').legalIdentityGatePassMock);
 
@@ -243,11 +242,12 @@ describe('J6 · Karşı teklif formu', () => {
       ['user-other'],
       // They (the initiator) pay 12.50: prefilled as "they pay".
       ['user-initiator'],
-    ])('the current amount (payer %p) typed with a comma is the same offer', async (payerId) => {
+    ])('the current amount (payer %p) retyped another way is the same offer', async (payerId) => {
       mountWithProducts(tradeForReceiver({ cashAmount: 12.5, cashPayerId: payerId }));
       renderWithProviders(<TradeCounterScreen />);
-      await waitFor(() => expect(screen.getByDisplayValue('12.5')).toBeOnTheScreen());
-      fireEvent.changeText(cashInput(), '12,50');
+      // Prefilled with a decimal comma, as the keyboard types it.
+      await waitFor(() => expect(screen.getByDisplayValue('12,50')).toBeOnTheScreen());
+      fireEvent.changeText(cashInput(), '12.5');
       fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
       await waitFor(() => expect(appAlert).toHaveBeenCalled());
       expect(counterMock).not.toHaveBeenCalled();
@@ -257,7 +257,7 @@ describe('J6 · Karşı teklif formu', () => {
       mountWithProducts(tradeForReceiver({ cashAmount: 12.5, cashPayerId: 'user-other' }));
       counterMock.mockResolvedValue({ data: {} });
       renderWithProviders(<TradeCounterScreen />);
-      await waitFor(() => expect(screen.getByDisplayValue('12.5')).toBeOnTheScreen());
+      await waitFor(() => expect(screen.getByDisplayValue('12,50')).toBeOnTheScreen());
       fireEvent.press(screen.getByText('Karşı taraf ödeyecek'));
       fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
       // Negative: the original initiator pays (API `counter`, cashAmount < 0).

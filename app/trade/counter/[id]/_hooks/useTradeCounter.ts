@@ -13,7 +13,7 @@ import { getProductEffectivePrice } from '@/utils/productPrice';
 import { TRADE_PICKER_PAGE_SIZE } from '../../../_lib/picker';
 import { usePagedPicker } from '../../../_hooks/usePagedPicker';
 import { usePagedPicks } from '../../../_hooks/usePagedPicks';
-import { parseCashAmount, signedCashAmount, type CashDirection } from '../../../_lib/cash';
+import { cashInputValue, parseCashAmount, signedCashAmount, type CashDirection } from '../../../_lib/cash';
 import { offerSignature, type Trade, type TradeItem } from '../_lib/types';
 import { mergeTradeItems, type CounterProduct } from '../_lib/counterProducts';
 
@@ -131,7 +131,7 @@ export function useTradeCounter() {
     let initDir: CashDirection = 'offer';
     let initCash = '';
     if (trade.cashAmount) {
-      initCash = Math.abs(Number(trade.cashAmount)).toString();
+      initCash = cashInputValue(Math.abs(Number(trade.cashAmount)));
       // The direction comes from cashPayerId (the backend stores the cash amount as an
       // absolute value): if I am the payer it is 'offer' (I pay), otherwise 'request'
       // (the other party pays).

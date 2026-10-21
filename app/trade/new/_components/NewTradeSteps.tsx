@@ -129,7 +129,7 @@ export function Step2TheirItems({ f }: StepProps) {
         <Input
           label={t('trade.amountLabelSymbol')}
           value={f.cashAmount}
-          onChangeText={(v: string) => f.setCashAmount(nextCashInput(f.cashAmount, v))}
+          onChangeText={(v: string) => f.setCashAmount((prev) => nextCashInput(prev, v))}
           keyboardType="numeric"
           containerStyle={styles.cashInput}
         />

@@ -5,7 +5,7 @@
  * (thousands grouping, letters, two separators) into "", and only a value above 0 is sent.
  * The column is `Decimal(10, 2)`, so the stored amount is rounded half away from zero to cents.
  */
-import { nextCashInput, parseCashAmount, signedCashAmount } from '../_lib/cash';
+import { cashInputValue, nextCashInput, parseCashAmount, signedCashAmount } from '../_lib/cash';
 
 describe('parseCashAmount', () => {
   it.each([
@@ -73,6 +73,22 @@ describe('signedCashAmount', () => {
     for (const raw of ['', '0', '0,00', 'abc', '1.250,50']) {
       expect(signedCashAmount(raw, 'offer')).toBeUndefined();
       expect(signedCashAmount(raw, 'request')).toBeUndefined();
+    }
+  });
+});
+
+describe('cashInputValue', () => {
+  it('prints an amount with a decimal comma, cents when there are any', () => {
+    expect(cashInputValue(12.5)).toBe('12,50');
+    expect(cashInputValue(0.05)).toBe('0,05');
+    expect(cashInputValue(1250)).toBe('1250');
+  });
+
+  it('round-trips through the field and the parser', () => {
+    for (const amount of [12.5, 0.05, 1250, 99999999.99]) {
+      const text = cashInputValue(amount);
+      expect(nextCashInput('', text)).toBe(text);
+      expect(parseCashAmount(text)).toBe(amount);
     }
   });
 });

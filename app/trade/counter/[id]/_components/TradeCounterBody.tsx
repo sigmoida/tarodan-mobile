@@ -71,7 +71,7 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
         <Input
           label={t('trade.amountLabelTL')}
           value={f.cashAmount}
-          onChangeText={(v: string) => f.setCashAmount(nextCashInput(f.cashAmount, v))}
+          onChangeText={(v: string) => f.setCashAmount((prev) => nextCashInput(prev, v))}
           keyboardType="numeric"
           containerStyle={styles.cashInput}
         />

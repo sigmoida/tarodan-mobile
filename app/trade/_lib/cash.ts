@@ -33,7 +33,7 @@ export function parseCashAmount(raw: string | null | undefined): number | undefi
   // Whole cents from the digits themselves: no binary floating-point step before rounding.
   const roundUp = Number(fraction.charAt(2) || '0') >= 5 ? 1 : 0;
   const cents = Number(whole || '0') * 100 + Number(fraction.slice(0, 2).padEnd(2, '0')) + roundUp;
-  // No client maximum, as on web: the API answers an amount too large for its column.
+  // No client maximum, as on web: an amount too large for the column fails on the API.
   if (!Number.isFinite(cents) || cents <= 0) return undefined;
   return cents / 100;
 }
@@ -46,6 +46,14 @@ export function signedCashAmount(raw: string, direction: CashDirection): number 
   const amount = parseCashAmount(raw);
   if (amount === undefined) return undefined;
   return direction === 'offer' ? amount : -amount;
+}
+
+/**
+ * The field's text for an amount already in the offer (counter prefill): a decimal comma, as the
+ * Turkish keyboard types and `formatPrice` prints, so editing it needs no separator change.
+ */
+export function cashInputValue(amount: number): string {
+  return (Number.isInteger(amount) ? String(amount) : amount.toFixed(2)).replace('.', ',');
 }
 
 /** What the field may hold while typing: digits, then one separator and up to two decimals. */
