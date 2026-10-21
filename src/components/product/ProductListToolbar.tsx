@@ -16,6 +16,10 @@ export interface ProductListToolbarProps {
   filterCount?: number;
   layout?: 'grid' | 'list';
   onLayoutChange?: (layout: 'grid' | 'list') => void;
+  /** Verilirse denetim satırında "Bu aramayı kaydet" düğmesi çizilir (arama ekranı). */
+  onSave?: () => void;
+  /** Kaydedilecek arama yok: düğme pasif. */
+  saveDisabled?: boolean;
   /** Küçük muted sonuç sayısı metni ("61 ilan"); verilmezse çizilmez. */
   resultLabel?: string;
   chips?: ActiveFilterChip[];
@@ -39,6 +43,8 @@ export function ProductListToolbar({
   filterCount,
   layout,
   onLayoutChange,
+  onSave,
+  saveDisabled,
   resultLabel,
   chips = [],
   onClearFilters,
@@ -55,6 +61,8 @@ export function ProductListToolbar({
         filterCount={filterCount}
         layout={layout}
         onLayoutChange={onLayoutChange}
+        onSave={onSave}
+        saveDisabled={saveDisabled}
       />
       {extra}
       {resultLabel ? (

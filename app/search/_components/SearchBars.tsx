@@ -17,6 +17,9 @@ export interface SearchBarsProps {
   filterCount: number;
   layout: 'grid' | 'list';
   onLayoutChange: (layout: 'grid' | 'list') => void;
+  /** "Bu aramayı kaydet" (web `ListingsToolbar`); `saveDisabled` = boş arama, kaydedilecek bir şey yok. */
+  onSave: () => void;
+  saveDisabled: boolean;
   isLoading: boolean;
   total: number;
   chips: SearchController['activeChips'];
@@ -40,6 +43,8 @@ function SearchBarsBase({
   filterCount,
   layout,
   onLayoutChange,
+  onSave,
+  saveDisabled,
   isLoading,
   total,
   chips,
@@ -73,6 +78,8 @@ function SearchBarsBase({
         filterCount={filterCount}
         layout={layout}
         onLayoutChange={onLayoutChange}
+        onSave={onSave}
+        saveDisabled={saveDisabled}
         resultLabel={isLoading ? t('search.searching') : t('search.resultsFound', { count: total })}
         chips={chips}
         onClearFilters={onClearFilters}

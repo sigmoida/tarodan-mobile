@@ -18,6 +18,8 @@ import { styles } from './_lib/searchStyles';
 import { SEARCH_DRAW_DISTANCE, SEARCH_NUM_COLUMNS } from './_lib/searchConstants';
 import { useTransitionReady } from '@/hooks/useTransitionReady';
 import { useSearch } from './_hooks/useSearch';
+import { useSaveSearch } from './_hooks/useSaveSearch';
+import { SaveSearchModal } from './_modals/SaveSearchModal';
 import { SearchBars } from './_components/SearchBars';
 import { SearchHeaderField, SearchSuggestionsLayer } from './_components/SearchHeader';
 
@@ -46,6 +48,7 @@ const NO_ITEMS: any[] = [];
 export default function SearchScreen() {
   const { t } = useTranslation();
   const f = useSearch();
+  const saveSearch = useSaveSearch(f.filters, f.options);
   const ready = useTransitionReady();
 
   // Stable renderItem (#75) — memoized ProductCard bails out on unchanged rows.
@@ -161,6 +164,8 @@ export default function SearchScreen() {
             filterCount={f.activeFiltersCount}
             layout={f.layout}
             onLayoutChange={f.setLayout}
+            onSave={saveSearch.start}
+            saveDisabled={saveSearch.draft.isEmpty}
             isLoading={f.isLoading}
             total={f.total}
             chips={f.activeChips}
@@ -224,6 +229,8 @@ export default function SearchScreen() {
           resultCount={f.total}
           countLoading={f.isFetching && !f.isFetchingNextPage}
         />
+
+        <SaveSearchModal draft={saveSearch.draft} isOpen={saveSearch.open} onClose={saveSearch.close} />
 
         {/* Sort Modal */}
         <ProductSortModal
