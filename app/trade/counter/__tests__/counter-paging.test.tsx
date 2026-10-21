@@ -344,6 +344,9 @@ describe('counter picker keys and invalidation', () => {
 
     useAuthStore.setState({ user: { id: 'u3' } as never });
     mockedGetOne.mockResolvedValue({ data: { data: { ...tradeFixture(), initiatorId: 'u3' } } });
+    // The cached trade is u3's too, so the first render already pages the same other party (u2)
+    // that u1 paged: only the user id in the key keeps u1's view of u2's list away from u3.
+    client.setQueryData(qk.trades.detail('trade-1'), { ...tradeFixture(), initiatorId: 'u3' });
     mockedMy.mockImplementation(server(() => range('c', 1, 1)));
     mockedAll.mockImplementation(server(() => range('d', 1, 1)));
     const second = renderHook(() => useTradeCounter(), { wrapper: wrapperFor(client) });

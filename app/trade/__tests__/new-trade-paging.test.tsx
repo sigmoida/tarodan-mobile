@@ -343,18 +343,26 @@ describe('new-trade pickers reload every loaded page', () => {
 describe('new-trade picker keys and invalidation', () => {
   it('keys the cache by user: a user switch never shows another user\'s list', async () => {
     const client = makeClient();
+    mockParams = { targetSellerId: 'seller-1' };
     mockedMy.mockImplementation(server('u1-', () => 3));
+    mockedAll.mockImplementation(server('seen-by-u1-', () => 2));
     const first = renderHook(() => useNewTrade(), { wrapper: wrapperFor(client) });
     await waitFor(() => expect(first.result.current.myProducts).toHaveLength(3));
+    await waitFor(() => expect(first.result.current.theirProducts).toHaveLength(2));
     first.unmount();
 
     useAuthStore.setState({ user: { id: 'u2' } as never });
     mockedMy.mockImplementation(server('u2-', () => 1));
+    mockedAll.mockImplementation(server('seen-by-u2-', () => 1));
     const second = renderHook(() => useNewTrade(), { wrapper: wrapperFor(client) });
-    // u1's cached rows are not served to u2, not even for one render.
+    // u1's cached rows are not served to u2, not even for one render: neither u1's own listings
+    // nor the seller's public list as u1 saw it (it hides the sellers the viewer blocked).
     expect(second.result.current.myProducts).toEqual([]);
+    expect(second.result.current.theirProducts).toEqual([]);
     await waitFor(() => expect(ids(second.result.current.myProducts)).toEqual(['u2-1']));
+    await waitFor(() => expect(ids(second.result.current.theirProducts)).toEqual(['seen-by-u2-1']));
     expect(client.getQueryData(qk.trades.myTradeable('u1', undefined))).toBeDefined();
+    expect(client.getQueryData(qk.trades.sellerTradeable('u1', 'seller-1'))).toBeDefined();
   });
 
   it('a listing change (listing cache set) reloads the infinite my picker', async () => {
@@ -430,6 +438,33 @@ describe('new-trade target preselection, paged seller list', () => {
     mockedAll.mockImplementation(server('t', () => 24));
     const { result } = await openForTarget(client);
     expect(result.current.theirHasMore).toBe(true);
+    expect(result.current.selectedTheirItems).toEqual([]);
+  });
+
+  it('a cached target row is not used while this open\'s row is still loading', async () => {
+    const client = makeClient();
+    // An earlier open cached the target as active; this open's row is still in flight.
+    client.setQueryData(targetKey, target);
+    let resolveTarget!: (value: unknown) => void;
+    mockedGetOne.mockImplementation(() => new Promise((resolve) => (resolveTarget = resolve)));
+    mockedAll.mockImplementation(server('t', () => 24));
+    mockParams = { targetProductId: 't25', targetSellerId: 'seller-1' };
+    const { result } = renderHook(() => useNewTrade(), { wrapper: wrapperFor(client) });
+
+    // The seller list settles first (this open, more pages, no target on page 1).
+    await waitFor(() => expect(result.current.theirProducts).toHaveLength(20));
+    await waitFor(() =>
+      expect(client.getQueryState(qk.trades.sellerTradeable('u1', 'seller-1'))?.fetchStatus).toBe('idle'),
+    );
+    await act(() => Promise.resolve());
+    expect(mockedGetOne).toHaveBeenCalledWith('t25');
+    expect(result.current.theirHasMore).toBe(true);
+    expect(result.current.selectedTheirItems).toEqual([]);
+
+    // This open's row says sold: still no pick.
+    await act(async () => resolveTarget({ data: { data: { ...target, status: 'sold' } } }));
+    await waitFor(() => expect(client.getQueryState(targetKey)?.fetchStatus).toBe('idle'));
+    await act(() => Promise.resolve());
     expect(result.current.selectedTheirItems).toEqual([]);
   });
 
