@@ -203,6 +203,35 @@ describe('password accounts', () => {
     expect(action).toHaveBeenCalledTimes(2);
   });
 
+  it('after a second refusal the next call asks first (the refused token is never resent)', async () => {
+    const required = apiError(403, 'REAUTH_REQUIRED');
+    const action = jest
+      .fn()
+      .mockRejectedValueOnce(required)
+      .mockRejectedValueOnce(required)
+      .mockResolvedValueOnce('ok');
+    mockReauth
+      .mockResolvedValueOnce(ok(TOKEN_1))
+      .mockResolvedValueOnce(ok(TOKEN_2))
+      .mockResolvedValueOnce(ok('step-up-token-3-ccccccccccccccccccccccccccccccc'));
+    setup(action);
+    fireEvent.press(screen.getByTestId('run'));
+    await confirmPassword();
+    await confirmPassword();
+    await waitFor(() => expect(lastResult()).toEqual({ thrown: required }));
+
+    fireEvent.press(screen.getByTestId('run'));
+    expect(await screen.findByTestId('reauth-password-input')).toBeTruthy();
+    expect(action).toHaveBeenCalledTimes(2);
+    await confirmPassword();
+    await waitFor(() => expect(lastResult()).toEqual({ status: 'done', value: 'ok' }));
+    expect(action.mock.calls.map(([token]) => token)).toEqual([
+      TOKEN_1,
+      TOKEN_2,
+      'step-up-token-3-ccccccccccccccccccccccccccccccc',
+    ]);
+  });
+
   it('another action error is thrown as is, without a second prompt', async () => {
     const blocked = apiError(400, undefined, 'blocked');
     const action = jest.fn().mockRejectedValue(blocked);

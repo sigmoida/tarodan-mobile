@@ -20,6 +20,7 @@ import { isAppleCancel } from '@/services/appleSigninErrors';
 import { captureException } from '@/services/sentry';
 import {
   SIGN_IN_METHODS_ERROR_CODES,
+  type ReauthMethod,
   type ReauthRequest,
   type SignInProvider,
 } from '@/types/sign-in-methods';
@@ -113,15 +114,17 @@ export function useReauth(flow: ReauthFlow) {
   }, []);
 
   // An unmounted screen never resumes its action; the token dies with it.
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    // Set again on every mount: a Fast Refresh re-runs effects on the same refs, and a stale
+    // `false` would make every obtain() answer cancelled.
+    mountedRef.current = true;
+    return () => {
       mountedRef.current = false;
       tokenRef.current = null;
       pendingRef.current?.resolve({ kind: 'cancelled' });
       pendingRef.current = null;
-    },
-    [],
-  );
+    };
+  }, []);
 
   /** Open the step, or join the one already waiting. */
   const open = useCallback((next: ReauthPrompt): Promise<Obtained> => {
@@ -212,7 +215,7 @@ export function useReauth(flow: ReauthFlow) {
   );
 
   const confirm = useCallback(
-    async (proof: ReauthRequest, method: 'password' | SignInProvider) => {
+    async (proof: ReauthRequest, method: ReauthMethod) => {
       setPending(true);
       let data;
       try {
@@ -348,7 +351,15 @@ export function useReauth(flow: ReauthFlow) {
           explainUnavailable(error);
           return CANCELLED;
         }
-        return { status: 'done', value: await action(again.token) };
+        try {
+          return { status: 'done', value: await action(again.token) };
+        } catch (retryError) {
+          // Refused twice (web parity): the next write asks first instead of resending it.
+          if (isReauthRequired(retryError) && tokenRef.current?.token === again.token) {
+            tokenRef.current = null;
+          }
+          throw retryError;
+        }
       }
     },
     [explainUnavailable, obtain],
