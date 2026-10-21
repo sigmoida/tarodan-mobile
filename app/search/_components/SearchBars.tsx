@@ -24,7 +24,7 @@ export interface SearchBarsProps {
   total: number;
   chips: SearchController['activeChips'];
   onClearFilters: () => void;
-  /** Vitrin girişi bağlamı ("Takas vitrini", "Popüler ilanlar"…); null → çizilmez. */
+  /** The showcase entry context ("Trade showcase", "Popular listings"...); null: not drawn. */
   contextLabel?: string | null;
 }
 

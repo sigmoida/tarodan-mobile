@@ -4,9 +4,9 @@ import { membershipApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore, type ServerLimitsOverride } from '@/stores/authStore';
 
-// NOT: `ServerLimitsOverride` store'da tanımlıdır. Bu hook zaten store'u
-// import ettiği için tipi burada tanımlayıp store'a import ettirmek
-// döngüsel bağımlılık yaratırdı.
+// NOTE: `ServerLimitsOverride` is defined in the store. This hook already imports
+// the store, so defining the type here and importing it into the store would
+// create an import cycle.
 
 /**
  * The raw entitlement envelope from the server (GET /membership/me/limits).

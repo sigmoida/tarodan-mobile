@@ -7,11 +7,11 @@ import { ActiveFilterChips, type ActiveFilterChip } from './ActiveFilterChips';
 const { spacing } = theme;
 
 export interface ProductListToolbarProps {
-  /** Arama kutusu (varsa) — en üstte. */
+  /** The search box (if any), at the top. */
   search?: React.ReactNode;
   sortLabel: string;
   onSort: () => void;
-  /** Verilmezse "Filtreler" düğmesi çizilmez (filtre paneli olmayan liste). */
+  /** Without it there is no "Filters" button (a list without a filter sheet). */
   onFilter?: () => void;
   filterCount?: number;
   layout?: 'grid' | 'list';
@@ -20,20 +20,20 @@ export interface ProductListToolbarProps {
   onSave?: () => void;
   /** Nothing to save: the button is disabled. */
   saveDisabled?: boolean;
-  /** Küçük muted sonuç sayısı metni ("61 ilan"); verilmezse çizilmez. */
+  /** Small muted result count text ("61 listings"); not drawn when missing. */
   resultLabel?: string;
   chips?: ActiveFilterChip[];
   onClearFilters?: () => void;
-  /** Ekrana özgü ek satır (ör. kategori ölçek çipleri) — denetim satırının altında. */
+  /** A screen-specific extra row (e.g. the category scale chips), below the control row. */
   extra?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
 
 /**
- * Ürün listelerinin TEK araç çubuğu (listings, arama, kategori…). Sıra her ekranda aynı:
- * arama kutusu (varsa) → [Filtreler (sayaç)] [Sıralama] … [ızgara/liste] → ekrana özgü ek satır →
- * küçük muted sonuç sayısı → kaldırılabilir aktif filtre çipleri + "Temizle". Ekranlar kendi
- * araç çubuğunu dizmez; yalnız veri/geri çağrıları geçer.
+ * The ONE toolbar of the product lists (listings, search, category...). The order is the same on
+ * every screen: search box (if any) -> [Filters (count)] [Sort] ... [grid/list] -> screen-specific
+ * extra row -> small muted result count -> removable active filter chips + "Clear". Screens never
+ * lay out their own toolbar; they only pass data and callbacks.
  */
 export function ProductListToolbar({
   search,

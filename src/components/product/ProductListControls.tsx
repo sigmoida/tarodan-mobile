@@ -27,7 +27,7 @@ export function ProductListControls({
   onSort: () => void;
   onFilter?: () => void;
   filterCount?: number;
-  /** Verilirse ızgara/liste anahtarı çizilir (web `ProductLayoutSelector`). */
+  /** When given, the grid/list toggle is drawn (web `ProductLayoutSelector`). */
   layout?: 'grid' | 'list';
   onLayoutChange?: (layout: 'grid' | 'list') => void;
   /** When given, the "Save this search" icon button is drawn. */
