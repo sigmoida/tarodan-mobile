@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
-// listingsApi → productsApi (parite migrasyonu); userApi.getMyProducts → productsApi.getMyListings
+// listingsApi -> productsApi (parity migration); userApi.getMyProducts -> productsApi.getMyListings
 import { productsApi as listingsApi, tradesApi, productsApi, type TradePaymentQuoteSide } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { qk, retryUnlessClientError, useAppMutation } from '@/lib/query';
@@ -11,6 +11,7 @@ import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { useAuthStore } from '@/stores/authStore';
 import { getProductEffectivePrice } from '@/utils/productPrice';
 import { firstQueryParam, type Product } from '../_lib/types';
+import { isPickerLoading, TRADE_PICKER_QUERY_OPTIONS } from '../../_lib/picker';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 
@@ -63,23 +64,23 @@ export function useNewTrade() {
   const targetSellerId =
     targetSellerIdParam || targetProduct?.seller?.id || targetProduct?.sellerId || '';
 
-  const { data: myProducts, isLoading: loadingMyProducts } = useQuery({
+  const myProductsQuery = useQuery({
     queryKey: qk.trades.myTradeable(user?.id, listingId),
     queryFn: async () => {
-      // tradeEligible: aktif takasta olan veya müsait stoğu olmayan ürünler backend'de elenir
+      // tradeEligible: the backend drops listings in an active trade or without free stock
       const response = await productsApi.getMyListings({ status: 'active', tradeEligible: true });
       const raw = response.data?.data || response.data?.products || response.data || [];
       const list = Array.isArray(raw) ? raw : [];
+      // The target listing (if any) is never offered; without one, every eligible listing shows.
       return list.filter(
-        (p: Product) =>
-          p.status === 'active' &&
-          p.isTradeEnabled !== false &&
-          listingId &&
-          p.id !== listingId,
+        (p: Product) => p.status === 'active' && p.isTradeEnabled !== false && p.id !== listingId,
       );
     },
     enabled: isAuthenticated && canTrade && !!user?.id,
+    ...TRADE_PICKER_QUERY_OPTIONS,
   });
+  const myProducts = myProductsQuery.data;
+  const loadingMyProducts = isPickerLoading(myProductsQuery);
 
   const { data: theirProducts, isLoading: loadingTheirProducts } = useQuery({
     queryKey: qk.trades.sellerTradeable(targetSellerId),

@@ -30,6 +30,11 @@ zustand store.
   `useState`.
 - A shared invalidation set lives in one helper (e.g. `useInvalidateOffers`,
   `src/components/listing/_lib/invalidate.ts`).
+- The listing invalidation set (`listingCacheKeys`) includes the trade pickers' "my
+  tradeable listings" prefix (`qk.trades.myTradeableAll`): a listing change must reach
+  both pickers. A new cache that lists the user's own listings joins that set. The
+  pickers also refetch on every open (`app/trade/_lib/picker.ts`), because a listing can
+  change outside the app session (admin approval) where no mutation runs.
 - In a modal form: close the modal, then `mutate` (see `src/ui/CLAUDE.md` › iOS modal
   rule).
 

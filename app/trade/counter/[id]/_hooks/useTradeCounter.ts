@@ -8,6 +8,7 @@ import { qk, useAppMutation } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useAuthStore } from '@/stores/authStore';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
+import { isPickerLoading, TRADE_PICKER_QUERY_OPTIONS } from '../../../_lib/picker';
 import { itemId, offerSignature, type Trade, type TradeItem } from '../_lib/types';
 
 /**
@@ -85,6 +86,7 @@ export function useTradeCounter() {
       return list.filter((p: any) => p.isTradeEnabled && p.status === 'active');
     },
     enabled: !!user?.id,
+    ...TRADE_PICKER_QUERY_OPTIONS,
   });
 
   // Karşı tarafın takasa uygun ürünleri
@@ -132,6 +134,8 @@ export function useTradeCounter() {
 
   const myProducts = myProductsQuery.data ?? [];
   const theirProducts = theirProductsQuery.data ?? [];
+  const loadingMyProducts = isPickerLoading(myProductsQuery);
+  const loadingTheirProducts = theirProductsQuery.isLoading;
 
   const myTotal = selectedMine.reduce((sum, p) => sum + (p.product?.price ?? 0), 0);
   const theirTotal = selectedTheirs.reduce((sum, p) => sum + (p.product?.price ?? 0), 0);
@@ -183,6 +187,8 @@ export function useTradeCounter() {
     handleBack,
     myProducts,
     theirProducts,
+    loadingMyProducts,
+    loadingTheirProducts,
     selectedMine,
     selectedTheirs,
     cashAmount,

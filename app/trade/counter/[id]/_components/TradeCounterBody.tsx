@@ -24,6 +24,7 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
         title={t('trade.counterMyItemsTitle')}
         subtitle={t('trade.counterMyItemsSubtitle')}
         products={f.myProducts}
+        isLoading={f.loadingMyProducts}
         selected={f.selectedMine}
         toggle={f.toggleMine}
       />
@@ -36,6 +37,7 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
         title={t('trade.counterTheirItemsTitle')}
         subtitle={t('trade.counterTheirItemsSubtitle', { name: f.amIInitiator ? trade.receiverName : trade.initiatorName })}
         products={f.theirProducts}
+        isLoading={f.loadingTheirProducts}
         selected={f.selectedTheirs}
         toggle={f.toggleTheirs}
       />
