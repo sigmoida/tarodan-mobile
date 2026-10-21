@@ -1647,6 +1647,8 @@
     "counterTheirItemsTitle": "Items I Want",
     "counterTheirItemsSubtitle": "Select the items you want from {name}.",
     "amountLabelTL": "Amount (TL)",
+    "cashHelper": "Use a comma for kuruş, for example 1250,50",
+    "cashFormatRefused": "This amount was not accepted. Do not use thousands separators; use a comma for kuruş, for example 1250,50",
     "messageOptionalLabel": "Message (optional)",
     "counterMessagePlaceholderLong": "Leave a note for the other party...",
     "summaryTitle": "Summary",
