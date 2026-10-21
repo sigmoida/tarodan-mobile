@@ -4,26 +4,26 @@ import { useTranslation } from 'react-i18next';
 import { CheckboxIndicator, EmptyState, Input, RadioIndicator, Text, theme } from '@/ui';
 
 export interface FilterOption {
-  /** Seçimin karşılaştırma değeri + liste anahtarı. */
+  /** The value a selection is compared by, and the row key. */
   id: string;
   label: string;
   /** Catalog colour swatch (a data hex, e.g. the colour options); drawn before the label. */
   swatch?: string | null;
 }
 
-/** Arama kutusu bu uzunluğun ÜSTÜNDEKİ listelerde çıkar (web `FilterOptionList` SEARCH_AFTER). */
+/** Lists LONGER than this get a search box (web `FilterOptionList` SEARCH_AFTER). */
 export const FILTER_SEARCH_AFTER = 8;
-/** Kapalı liste bu kadar satır gösterir; fazlası "Tümünü göster" ile açılır. */
+/** A collapsed list shows this many rows; "Show all" opens the rest. */
 export const FILTER_COLLAPSED_COUNT = 8;
 /**
- * Açık liste / arama sonucu en çok bu kadar satır çizer (filtre paneli tek ScrollView —
- * yüzlerce model satırı birden bağlanmasın); fazlası için aramayı daraltma ipucu gösterilir.
+ * An expanded list or a search result draws at most this many rows (the filter panel is one
+ * ScrollView, so hundreds of model rows must not mount at once); past it a hint asks to refine.
  */
 export const FILTER_EXPANDED_MAX = 60;
 
 const { colors, spacing, minTouchTarget } = theme;
 
-/** Türkçe büyük/küçük harf duyarsız eşleşme (İ/ı). */
+/** Case-insensitive match with Turkish casing (İ/ı). */
 const norm = (s: string) => s.toLocaleLowerCase('tr').trim();
 
 /**
@@ -111,9 +111,9 @@ interface FilterOptionListProps {
 }
 
 /**
- * Filtre panelindeki her seçenek listesinin TEK gövdesi (web `FilterOptionList` karşılığı):
- * uzun listede arama kutusu, kapalıyken ilk 8 satır + "Tümünü göster (N)", arama/açık listede
- * en çok 60 satır + daraltma ipucu, eşleşme yoksa `EmptyState`. Arama durumu burada tutulur.
+ * The ONE body of every option list in the filter panel (web `FilterOptionList`): a search box on
+ * long lists, the first 8 rows + "Show all (N)" while collapsed, at most 60 rows + a refine hint
+ * when searching or expanded, an `EmptyState` when nothing matches. The search state lives here.
  */
 export function FilterOptionList({
   options,
