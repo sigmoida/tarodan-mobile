@@ -17,6 +17,10 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockParams,
 }));
 
+// The screen tests assert what the loaded screen shows, not the skeleton timing: without this
+// the delayed-skeleton timer can re-show the skeleton over found content on a busy machine.
+jest.mock('@/ui/loading/useDelayedLoading', () => require('@/test-utils/loading').immediateLoadingMock);
+
 jest.mock('@/lib/api', () => ({
   tradesApi: { getOne: jest.fn(), counter: jest.fn() },
   productsApi: { getAll: jest.fn(), getMyListings: jest.fn() },

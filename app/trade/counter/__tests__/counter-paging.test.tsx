@@ -30,6 +30,10 @@ jest.mock('expo-router', () => {
 });
 const refocus = () => mockFocusCallbacks.forEach((cb) => cb());
 
+// The screen tests assert what the loaded screen shows, not the skeleton timing: without this
+// the delayed-skeleton timer can re-show the skeleton over found content on a busy machine.
+jest.mock('@/ui/loading/useDelayedLoading', () => require('@/test-utils/loading').immediateLoadingMock);
+
 jest.mock('@/hooks/useLegalIdentity', () => require('@/test-utils/legalIdentity').legalIdentityGatePassMock);
 
 jest.mock('@/lib/api', () => ({
