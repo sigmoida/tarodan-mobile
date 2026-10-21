@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { qk } from '@/lib/query';
 
 let mockParams: Record<string, string> = {};
@@ -255,13 +255,36 @@ describe('new-trade picker, seller side', () => {
     act(() => result.current.toggleTheirItem(t2));
     expect(result.current.selectedTheirItems.map((p) => p.id)).toEqual(['t2']);
 
-    // A foreground refetch brings a changed list (new reference): the selection stays.
+    // The app comes back to the foreground (AppState -> focusManager) with a changed list (new
+    // reference): the picker refetches and the selection stays.
     mockedAll.mockResolvedValue({ data: { data: [listing('t1', { price: 90 }), listing('t2')] } });
-    await act(async () => {
-      await client.refetchQueries({ queryKey: qk.trades.sellerTradeable('seller-1') });
-    });
-    await waitFor(() => expect(result.current.theirProducts?.[0]?.price).toBe(90));
+    const callsBefore = mockedAll.mock.calls.length;
+    try {
+      await act(async () => {
+        focusManager.setFocused(false);
+        focusManager.setFocused(true);
+      });
+      await waitFor(() => expect(result.current.theirProducts?.[0]?.price).toBe(90));
+    } finally {
+      focusManager.setFocused(undefined);
+    }
+    expect(mockedAll.mock.calls.length).toBeGreaterThan(callsBefore);
     expect(result.current.selectedTheirItems.map((p) => p.id)).toEqual(['t2']);
+  });
+
+  it('screen focus refetches the seller list; the user\'s picks stay', async () => {
+    mockParams = { listing: 't1', targetSellerId: 'seller-1' };
+    mockedAll.mockResolvedValue({ data: { data: [listing('t1')] } });
+    const { result } = renderHook(() => useNewTrade(), { wrapper: wrapperFor(makeClient()) });
+    await waitFor(() => expect(result.current.selectedTheirItems.map((p) => p.id)).toEqual(['t1']));
+    expect(mockedAll).toHaveBeenCalledTimes(1);
+
+    // The seller lists another listing while the user is on another screen.
+    mockedAll.mockResolvedValue({ data: { data: [listing('t1'), listing('t3')] } });
+    await act(async () => refocus());
+    await waitFor(() => expect(result.current.theirProducts?.map((p: { id: string }) => p.id)).toEqual(['t1', 't3']));
+    expect(mockedAll).toHaveBeenCalledTimes(2);
+    expect(result.current.selectedTheirItems.map((p) => p.id)).toEqual(['t1']);
   });
 });
 
@@ -304,6 +327,37 @@ describe('counter-offer picker', () => {
     await act(async () => resolve({ data: { data: [listing('theirs-1')] } }));
     await waitFor(() => expect(result.current.theirProducts.map((p: { id: string }) => p.id)).toEqual(['theirs-1']));
     expect(result.current.loadingTheirProducts).toBe(false);
+  });
+});
+
+describe('counter-offer picker on screen focus', () => {
+  it('refetches the other party\'s listings and keeps both picks', async () => {
+    mockParams = { id: 'trade-1' };
+    (tradesApi.getOne as jest.Mock).mockResolvedValue({
+      data: { id: 'trade-1', initiatorId: 'u1', receiverId: 'u2', initiatorItems: [], receiverItems: [] },
+    });
+    const lists: Record<string, string[]> = { u1: ['mine-1'], u2: ['theirs-1'] };
+    mockedAll.mockImplementation(({ sellerId }: { sellerId: string }) =>
+      Promise.resolve({ data: { data: (lists[sellerId] ?? []).map((id) => listing(id)) } }),
+    );
+    const { result } = renderHook(() => useTradeCounter(), { wrapper: wrapperFor(makeClient()) });
+    await waitFor(() => expect(result.current.theirProducts.map((p: { id: string }) => p.id)).toEqual(['theirs-1']));
+    await waitFor(() => expect(result.current.myProducts.map((p: { id: string }) => p.id)).toEqual(['mine-1']));
+    act(() => result.current.toggleMine(result.current.myProducts[0]));
+    act(() => result.current.toggleTheirs(result.current.theirProducts[0]));
+    const theirCalls = () => mockedAll.mock.calls.filter(([p]) => p?.sellerId === 'u2').length;
+    const before = theirCalls();
+
+    // The other party lists a new trade-enabled listing while the user is away.
+    lists.u2 = ['theirs-1', 'theirs-2'];
+    await act(async () => refocus());
+    await waitFor(() =>
+      expect(result.current.theirProducts.map((p: { id: string }) => p.id)).toEqual(['theirs-1', 'theirs-2']),
+    );
+    expect(theirCalls()).toBeGreaterThan(before);
+    expect(result.current.loadingTheirProducts).toBe(false);
+    expect(result.current.selectedMine).toHaveLength(1);
+    expect(result.current.selectedTheirs).toHaveLength(1);
   });
 });
 
