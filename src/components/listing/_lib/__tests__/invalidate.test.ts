@@ -48,11 +48,11 @@ describe('invalidateListingCaches — ilan değişince tek paylaşılan küme', 
     });
   });
 
-  it('takas seçicilerindeki "takasa uygun ürünlerim" (yeni takas + karşı teklif) bayatlar', () => {
+  it('invalidates the trade pickers\' "my tradeable listings" (new trade + counter offer)', () => {
     const stale = staleAfter('p1');
     expect(stale.tradeNew).toBe(true);
     expect(stale.tradeCounter).toBe(true);
-    // Başka kullanıcıların ürünleri benim ilan değişikliğimle bayatlamaz.
+    // Other users' listings do not go stale when my listing changes.
     expect(stale.tradeSeller).toBe(false);
   });
 
