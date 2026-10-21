@@ -6,7 +6,7 @@ import { Alert, Button, Chip, EmptyState, Divider, SectionCard, Spinner, Stepper
 import { TradeAddressPicker } from '@/components/common';
 import { TradePickCard } from '@/components/trade/TradePickCard';
 import { ShowMoreButton } from '../../_components/ShowMoreButton';
-import { sanitizeCashInput } from '../../_lib/cash';
+import { nextCashInput } from '../../_lib/cash';
 import { AppImage } from '@/components/AppImage';
 import { getProductEffectivePrice } from '@/utils/productPrice';
 import { formatPrice } from '@/utils/format';
@@ -129,7 +129,7 @@ export function Step2TheirItems({ f }: StepProps) {
         <Input
           label={t('trade.amountLabelSymbol')}
           value={f.cashAmount}
-          onChangeText={(v: string) => f.setCashAmount(sanitizeCashInput(v))}
+          onChangeText={(v: string) => f.setCashAmount(nextCashInput(f.cashAmount, v))}
           keyboardType="numeric"
           containerStyle={styles.cashInput}
         />

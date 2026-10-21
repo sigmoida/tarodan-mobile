@@ -1,4 +1,4 @@
-import { parseCashAmount } from '../../../_lib/cash';
+import { parseCashAmount, type CashDirection } from '../../../_lib/cash';
 
 export interface TradeItem {
   id: string;
@@ -39,7 +39,7 @@ export const itemId = (p: { productId?: string; id?: string } | null | undefined
 export function offerSignature(
   mine: ReadonlyArray<{ productId?: string; id?: string }>,
   theirs: ReadonlyArray<{ productId?: string; id?: string }>,
-  dir: string,
+  dir: CashDirection,
   cash: string,
 ): string {
   const amount = parseCashAmount(cash);

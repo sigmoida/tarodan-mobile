@@ -82,11 +82,15 @@ function cashInput() {
   return numericInputs[0];
 }
 
-/** A trade whose items are already picked on both sides (the counter starts from them). */
-const tradeWithItems = (overrides: Record<string, unknown> = {}) =>
+/**
+ * A trade as its receiver sees it (only the receiver may counter, API `counter`): the items are
+ * already picked on both sides; mine are the receiver items, theirs the initiator items.
+ */
+const RECEIVER = { id: 'user-other' };
+const tradeForReceiver = (overrides: Record<string, unknown> = {}) =>
   tradeFixture({
-    initiatorItems: [{ id: 'ti-1', productId: 'prod-mine', productTitle: 'Benim Ürünüm', valueAtTrade: 200, quantity: 1 }],
-    receiverItems: [{ id: 'ti-2', productId: 'prod-theirs', productTitle: 'Karşı Ürün', valueAtTrade: 300, quantity: 1 }],
+    initiatorItems: [{ id: 'ti-1', productId: 'prod-theirs', productTitle: 'Karşı Ürün', valueAtTrade: 300, quantity: 1 }],
+    receiverItems: [{ id: 'ti-2', productId: 'prod-mine', productTitle: 'Benim Ürünüm', valueAtTrade: 200, quantity: 1 }],
     ...overrides,
   });
 
@@ -148,7 +152,7 @@ describe('J6 · Karşı teklif formu', () => {
     expect(body.initiatorItems).toEqual([{ productId: 'prod-mine', quantity: 1 }]);
   });
 
-  it('J6.4 the cash field keeps digits and both decimal separators only', async () => {
+  it('J6.4 the cash field only takes what can be sent: one separator, two decimals', async () => {
     mountWithProducts();
     renderWithProviders(<TradeCounterScreen />);
     await waitFor(() => expect(screen.getByText('Nakit fark')).toBeOnTheScreen());
@@ -158,19 +162,29 @@ describe('J6 · Karşı teklif formu', () => {
     // A Turkish keyboard types a decimal comma: it stays (it used to be dropped, 12,50 -> 1250).
     fireEvent.changeText(input, '12,50');
     expect(screen.getByDisplayValue('12,50')).toBeOnTheScreen();
+    // A third decimal or a second separator (thousands grouping) is refused, not sent silently
+    // rounded or dropped.
+    fireEvent.changeText(input, '12,505');
+    expect(screen.getByDisplayValue('12,50')).toBeOnTheScreen();
+    fireEvent.changeText(input, '1.250,50');
+    expect(screen.getByDisplayValue('12,50')).toBeOnTheScreen();
   });
 
-  describe('J6.6 cash difference in the submitted payload (web parity)', () => {
+  describe('J6.6 cash difference in the submitted payload (web parity), as the receiver', () => {
+    beforeEach(() => {
+      mockUser = RECEIVER;
+    });
+
     /** Opens the counter with both items picked, types the cash, optionally flips the payer, sends. */
     async function submitWithCash(text: string, payer?: 'Ben ödeyeceğim' | 'Karşı taraf ödeyecek') {
-      mountWithProducts(tradeWithItems());
+      mountWithProducts(tradeForReceiver());
       counterMock.mockResolvedValue({ data: {} });
       renderWithProviders(<TradeCounterScreen />);
       await waitFor(() => {
         expect(screen.getByText('Benim Ürünüm')).toBeOnTheScreen();
         expect(screen.getByText('Karşı Ürün')).toBeOnTheScreen();
       });
-      // Both the trade's own items are preselected; a change in the cash terms is the new offer.
+      // Both of the trade's own items are preselected; a change in the cash terms is the new offer.
       fireEvent.changeText(cashInput(), text);
       if (payer) fireEvent.press(screen.getByText(payer));
       fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
@@ -184,11 +198,13 @@ describe('J6 · Karşı teklif formu', () => {
     it.each([
       ['12,50', 12.5],
       ['12.50', 12.5],
-      ['12,505', 12.51],
-    ])('%p that I pay is sent as %p', async (text, amount) => {
+      ['12,5', 12.5],
+      ['1250', 1250],
+    ])('%p that I pay is sent as %p (positive: the counterer pays)', async (text, amount) => {
       await submitWithCash(text);
       const body = await sentBody();
       expect(body).toEqual({
+        // Model B: what I give becomes initiatorItems.
         initiatorItems: [{ productId: 'prod-mine', quantity: 1 }],
         receiverItems: [{ productId: 'prod-theirs', quantity: 1 }],
         cashAmount: amount,
@@ -204,11 +220,11 @@ describe('J6 · Karşı teklif formu', () => {
       expect((await sentBody()).cashAmount).toBe(-12.5);
     });
 
-    it.each([['0'], ['0,00'], ['1.250,50']])(
+    it.each([[''], ['0'], ['0,00']])(
       '%p sends no cashAmount (never 0 or -0), as on web',
       async (text) => {
-        // Change the items so the offer differs without cash: drop their item, keep mine.
-        mountWithProducts(tradeWithItems({ receiverItems: [] }));
+        // Change the items so the offer differs without cash: their item unpicked at first.
+        mountWithProducts(tradeForReceiver({ initiatorItems: [] }));
         counterMock.mockResolvedValue({ data: {} });
         renderWithProviders(<TradeCounterScreen />);
         await waitFor(() => expect(screen.getByText('Karşı Ürün')).toBeOnTheScreen());
@@ -217,24 +233,18 @@ describe('J6 · Karşı teklif formu', () => {
         fireEvent.press(screen.getByText('Karşı taraf ödeyecek'));
         fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
         const body = await sentBody();
-        expect(body.cashAmount).toBeUndefined();
+        expect('cashAmount' in body ? body.cashAmount : undefined).toBeUndefined();
         expect(Object.is(body.cashAmount, -0)).toBe(false);
       },
     );
 
-    it('an empty field sends no cashAmount', async () => {
-      mountWithProducts(tradeWithItems({ receiverItems: [] }));
-      counterMock.mockResolvedValue({ data: {} });
-      renderWithProviders(<TradeCounterScreen />);
-      await waitFor(() => expect(screen.getByText('Karşı Ürün')).toBeOnTheScreen());
-      fireEvent.press(screen.getByText('Karşı Ürün'));
-      fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
-      expect((await sentBody()).cashAmount).toBeUndefined();
-    });
-
-    it('the current amount typed with a comma is the same offer, not a new one', async () => {
-      // Trade: 12.50 that I (the initiator) pay. Typing 12,50 again changes nothing.
-      mountWithProducts(tradeWithItems({ cashAmount: 12.5, cashPayerId: 'user-initiator' }));
+    it.each([
+      // I (the receiver) pay 12.50: prefilled as "I pay".
+      ['user-other'],
+      // They (the initiator) pay 12.50: prefilled as "they pay".
+      ['user-initiator'],
+    ])('the current amount (payer %p) typed with a comma is the same offer', async (payerId) => {
+      mountWithProducts(tradeForReceiver({ cashAmount: 12.5, cashPayerId: payerId }));
       renderWithProviders(<TradeCounterScreen />);
       await waitFor(() => expect(screen.getByDisplayValue('12.5')).toBeOnTheScreen());
       fireEvent.changeText(cashInput(), '12,50');
@@ -243,8 +253,19 @@ describe('J6 · Karşı teklif formu', () => {
       expect(counterMock).not.toHaveBeenCalled();
     });
 
+    it('the prefilled payer is mine when I pay: the same amount they pay is a new offer', async () => {
+      mountWithProducts(tradeForReceiver({ cashAmount: 12.5, cashPayerId: 'user-other' }));
+      counterMock.mockResolvedValue({ data: {} });
+      renderWithProviders(<TradeCounterScreen />);
+      await waitFor(() => expect(screen.getByDisplayValue('12.5')).toBeOnTheScreen());
+      fireEvent.press(screen.getByText('Karşı taraf ödeyecek'));
+      fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
+      // Negative: the original initiator pays (API `counter`, cashAmount < 0).
+      expect((await sentBody()).cashAmount).toBe(-12.5);
+    });
+
     it('flipping the payer with no amount is the same offer (no payer is sent)', async () => {
-      mountWithProducts(tradeWithItems());
+      mountWithProducts(tradeForReceiver());
       renderWithProviders(<TradeCounterScreen />);
       await waitFor(() => expect(screen.getByText('Karşı Ürün')).toBeOnTheScreen());
       fireEvent.press(screen.getByText('Karşı taraf ödeyecek'));

@@ -5,7 +5,7 @@
  * (thousands grouping, letters, two separators) into "", and only a value above 0 is sent.
  * The column is `Decimal(10, 2)`, so the stored amount is rounded half away from zero to cents.
  */
-import { parseCashAmount, sanitizeCashInput, signedCashAmount } from '../_lib/cash';
+import { nextCashInput, parseCashAmount, signedCashAmount } from '../_lib/cash';
 
 describe('parseCashAmount', () => {
   it.each([
@@ -77,11 +77,30 @@ describe('signedCashAmount', () => {
   });
 });
 
-describe('sanitizeCashInput', () => {
-  it('keeps digits and both decimal separators, drops everything else', () => {
-    expect(sanitizeCashInput('12,50')).toBe('12,50');
-    expect(sanitizeCashInput('12.50')).toBe('12.50');
-    expect(sanitizeCashInput('12a3,5x')).toBe('123,5');
-    expect(sanitizeCashInput('-5 TL')).toBe('5');
+describe('nextCashInput', () => {
+  it('takes digits with one decimal separator and up to two decimals', () => {
+    for (const typed of ['', '1', '12', '12,', '12,5', '12,50', '12.50', ',5', '0']) {
+      expect(nextCashInput('prev', typed)).toBe(typed);
+    }
+  });
+
+  it('drops other characters', () => {
+    expect(nextCashInput('', '12a3,5x')).toBe('123,5');
+    expect(nextCashInput('', '-5 TL')).toBe('5');
+  });
+
+  it('keeps the previous value when the change could not be sent as typed', () => {
+    // A second separator: thousands grouping is no amount, so it cannot be typed.
+    expect(nextCashInput('1.250', '1.250,')).toBe('1.250');
+    expect(nextCashInput('1,250', '1,250.')).toBe('1,250');
+    expect(nextCashInput('', '1.250,50')).toBe('');
+    // A third decimal: "1.250" (meant as 1250) stops visibly at 1.25; 12,505 is not rounded.
+    expect(nextCashInput('1.25', '1.250')).toBe('1.25');
+    expect(nextCashInput('12,50', '12,505')).toBe('12,50');
+  });
+
+  it('every value it lets through parses to exactly what is shown', () => {
+    expect(parseCashAmount(nextCashInput('', '12,50'))).toBe(12.5);
+    expect(parseCashAmount(nextCashInput('', '12,'))).toBe(12);
   });
 });

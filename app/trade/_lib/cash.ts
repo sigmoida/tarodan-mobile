@@ -8,6 +8,10 @@
  * offer carries cash only when the value is above 0; otherwise `cashAmount` is left out. The
  * API stores the amount in a `Decimal(10, 2)` column, which rounds to cents (half away from
  * zero); rounding here first means the amount the user sees is the amount stored.
+ *
+ * The field itself only takes what can be sent (`nextCashInput`): one separator and at most two
+ * decimals. So text that would be no amount ("1.250,50") or a rounded one ("12,505") cannot be
+ * typed, and a dot typed as Turkish thousands grouping ("1.250") stops visibly at "1.25".
  */
 
 /** Who pays the cash difference, seen from the user: `offer` = I pay, `request` = they pay. */
@@ -44,7 +48,15 @@ export function signedCashAmount(raw: string, direction: CashDirection): number 
   return direction === 'offer' ? amount : -amount;
 }
 
-/** Keystroke filter for the field: digits and both decimal separators, nothing else. */
-export function sanitizeCashInput(value: string): string {
-  return value.replace(/[^\d.,]/g, '');
+/** What the field may hold while typing: digits, then one separator and up to two decimals. */
+const CASH_TYPING_PATTERN = /^\d*(?:[.,]\d{0,2})?$/;
+
+/**
+ * The field's next value: the typed text without other characters (letters, `-`, spaces), or
+ * the previous value when the change would not be a sendable amount (a second separator, a
+ * third decimal), so what the field shows is always what is sent.
+ */
+export function nextCashInput(previous: string, typed: string): string {
+  const cleaned = typed.replace(/[^\d.,]/g, '');
+  return CASH_TYPING_PATTERN.test(cleaned) ? cleaned : previous;
 }
