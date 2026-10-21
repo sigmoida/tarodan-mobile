@@ -49,6 +49,16 @@ export function isPickerLoadingUntilFresh(query: {
 }
 
 /**
+ * The data is this open's, not only an older open's cache: a fetch of this mount settled and the
+ * latest fetch succeeded. Not monotonic within an open: a later failed refetch or "Show more"
+ * turns it off until the next success. Used to gate what must not act on stale rows (the
+ * new-trade target preselection).
+ */
+export function isFetchedThisOpen(query: { isFetchedAfterMount: boolean; isSuccess: boolean }): boolean {
+  return query.isFetchedAfterMount && query.isSuccess;
+}
+
+/**
  * The first load failed and nothing is loaded (web: `isError && !isFetching && !data`). A failed
  * background refetch or "Show more" keeps the loaded pages, so it is not a load failure
  * (`isError` is set then too, hence the `data` check); a retry in flight is not one either.

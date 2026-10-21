@@ -12,7 +12,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { getProductEffectivePrice } from '@/utils/productPrice';
 import { firstQueryParam, type Product } from '../_lib/types';
 import { isPreselectableTarget, targetSellerOf, type TargetListing } from '../_lib/target';
-import { TRADE_PICKER_PAGE_SIZE, TRADE_PICKER_QUERY_OPTIONS } from '../../_lib/picker';
+import { isFetchedThisOpen, TRADE_PICKER_PAGE_SIZE, TRADE_PICKER_QUERY_OPTIONS } from '../../_lib/picker';
 import { usePagedPicker } from '../../_hooks/usePagedPicker';
 import { usePagedPicks } from '../../_hooks/usePagedPicks';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
@@ -68,7 +68,7 @@ export function useNewTrade() {
   });
   const targetProduct = targetQuery.data;
   // The row of this open (not an older open's cached copy): only it may preselect the target.
-  const targetRowFresh = targetQuery.isFetchedAfterMount && targetQuery.isSuccess;
+  const targetRowFresh = isFetchedThisOpen(targetQuery);
 
   const targetSellerId = targetSellerIdParam || targetSellerOf(targetProduct) || '';
 

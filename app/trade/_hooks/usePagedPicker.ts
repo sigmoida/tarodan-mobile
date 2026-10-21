@@ -3,6 +3,7 @@ import { useInfiniteQuery, type QueryKey } from '@tanstack/react-query';
 import { nextPageFromInfo, readPageInfo, flattenPagesUnique, type PageInfo } from '@/lib/query/infinite';
 import { readList } from '@/utils/apiEnvelope';
 import {
+  isFetchedThisOpen,
   isPickerLoadFailed,
   isPickerLoading,
   isPickerLoadingUntilFresh,
@@ -70,8 +71,8 @@ export function usePagedPicker<T extends { id: string }>({
           isFetchedAfterMount: query.isFetchedAfterMount,
           data: rows,
         }),
-    /** A fetch of this mount (this open) succeeded: the rows are not only an older open's cache. */
-    fetchedThisOpen: query.isFetchedAfterMount && query.isSuccess,
+    /** The rows are this open's, not only an older open's cache (`isFetchedThisOpen`). */
+    fetchedThisOpen: isFetchedThisOpen(query),
     /** The first load failed and nothing is loaded (not a failed refetch or "Show more"). */
     loadFailed: isPickerLoadFailed(query),
     hasMore: !!query.hasNextPage,
