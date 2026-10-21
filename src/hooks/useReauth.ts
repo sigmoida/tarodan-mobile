@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { appAlert, runAfterModalClose } from '@/ui';
+import { appAlert, MODAL_CLOSE_DELAY_MS, runAfterModalClose } from '@/ui';
 import { authApi } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import {
@@ -11,11 +11,11 @@ import {
   signInMethodsErrorCode,
 } from '@/lib/api/reauthError';
 import { isNotFoundError } from '@/lib/query/errors';
-import { confirmableProviders, getVisibleSocialProviders } from '@/components/auth/socialProviders';
+import { confirmableProviders, visibleSocialProvidersNow } from '@/components/auth/socialProviders';
 import type { ReauthPrompt } from '@/components/auth/ReauthModal';
 import { signInWithGoogle } from '@/services/googleSignin';
 import { isGoogleCancel, isGoogleDeveloperError } from '@/services/googleSigninErrors';
-import { isAppleAvailable, signInWithApple } from '@/services/appleSignin';
+import { signInWithApple } from '@/services/appleSignin';
 import { isAppleCancel } from '@/services/appleSigninErrors';
 import { captureException } from '@/services/sentry';
 import {
@@ -25,6 +25,7 @@ import {
 } from '@/types/sign-in-methods';
 import { useSendSetPasswordMailToSelf } from './useSendSetPasswordMail';
 import { signInMethodsQuery } from './useSignInMethods';
+import type { SignInMethods } from '@/types/sign-in-methods';
 
 /** Which sensitive action asked for the step-up (Sentry tag, the API's `auth.flow` names). */
 export type ReauthFlow = 'password_set' | 'account_delete' | 'email_change';
@@ -85,8 +86,16 @@ export function useReauth(flow: ReauthFlow) {
   const tokenRef = useRef<{ token: string; expiresAt: number } | null>(null);
   const pendingRef = useRef<{ promise: Promise<Obtained>; resolve: (r: Obtained) => void } | null>(null);
   const lastPromptRef = useRef<ReauthPrompt | null>(null);
-  const [prompt, setPrompt] = useState<ReauthPrompt | null>(null);
+  const [prompt, setPromptState] = useState<ReauthPrompt | null>(null);
   const [pending, setPending] = useState(false);
+  const mountedRef = useRef(true);
+  const closedAtRef = useRef(0);
+
+  /** Every close is stamped: a reopen within the close animation waits for it (iOS modal rule). */
+  const setPrompt = useCallback((next: ReauthPrompt | null) => {
+    if (next === null) closedAtRef.current = Date.now();
+    setPromptState(next);
+  }, []);
 
   const liveToken = useCallback((): string | null => {
     const cached = tokenRef.current;
@@ -106,6 +115,7 @@ export function useReauth(flow: ReauthFlow) {
   // An unmounted screen never resumes its action; the token dies with it.
   useEffect(
     () => () => {
+      mountedRef.current = false;
       tokenRef.current = null;
       pendingRef.current?.resolve({ kind: 'cancelled' });
       pendingRef.current = null;
@@ -122,9 +132,16 @@ export function useReauth(flow: ReauthFlow) {
     });
     pendingRef.current = { promise, resolve };
     lastPromptRef.current = next;
-    setPrompt(next);
+    // A reopen right after a close (the REAUTH_REQUIRED retry) waits for the close animation.
+    if (Date.now() - closedAtRef.current < MODAL_CLOSE_DELAY_MS) {
+      runAfterModalClose(() => {
+        if (pendingRef.current?.promise === promise) setPrompt(next);
+      });
+    } else {
+      setPrompt(next);
+    }
     return promise;
-  }, []);
+  }, [setPrompt]);
 
   /** Back to the step (wrong proof, sheet closed, retry) once the last layer has closed. */
   const show = useCallback((next: ReauthPrompt) => {
@@ -133,7 +150,7 @@ export function useReauth(flow: ReauthFlow) {
     runAfterModalClose(() => {
       if (pendingRef.current) setPrompt(next);
     });
-  }, []);
+  }, [setPrompt]);
 
   const showLast = useCallback(
     (error: string | null) => {
@@ -146,7 +163,7 @@ export function useReauth(flow: ReauthFlow) {
   /** Which proof to ask for, from the sign-in methods (re-read when `refresh`). */
   const evaluate = useCallback(
     async (refresh: boolean): Promise<Evaluated> => {
-      let methods;
+      let methods: SignInMethods | undefined;
       try {
         methods = refresh
           ? await queryClient.fetchQuery({ ...signInMethodsQuery, staleTime: 0 })
@@ -155,17 +172,20 @@ export function useReauth(flow: ReauthFlow) {
         if (isSessionEndedError(error)) return { done: { kind: 'cancelled' } };
         // No such route: an API before the step-up, which needs no token.
         if (isNotFoundError(error)) return { done: { kind: 'unavailable' } };
-        if (isServerOrNetworkFailure(error)) {
-          captureException(error, { level: 'error', tags: { flow: 'auth.reauth', reauthFor: flow, step: 'methods' } });
+        // A failed re-read keeps the methods already known (web: only a failed first load shows
+        // the error).
+        methods = queryClient.getQueryData<SignInMethods>(signInMethodsQuery.queryKey);
+        if (!methods) {
+          if (isServerOrNetworkFailure(error)) {
+            captureException(error, { level: 'error', tags: { flow: 'auth.reauth', reauthFor: flow, step: 'methods' } });
+          }
+          return {
+            prompt: { variant: 'loadError', providers: [], error: apiErrorMessage(error, t('error.somethingWrongDesc')) },
+          };
         }
-        return {
-          prompt: { variant: 'loadError', providers: [], error: apiErrorMessage(error, t('error.somethingWrongDesc')) },
-        };
       }
       if (methods?.hasPassword) return { prompt: { variant: 'password', providers: [], error: null } };
-      // Asked now, not from a hook's first render (which starts as "no Apple" until it resolves).
-      const visible = getVisibleSocialProviders({ appleAvailable: await isAppleAvailable() });
-      const providers = confirmableProviders(methods ?? { providers: [] }, visible);
+      const providers = confirmableProviders(methods ?? { providers: [] }, await visibleSocialProvidersNow());
       if (providers.length === 0) return { done: { kind: 'unavailable' } };
       return { prompt: { variant: 'provider', providers, error: null } };
     },
@@ -178,6 +198,14 @@ export function useReauth(flow: ReauthFlow) {
       if (live) return { kind: 'token', token: live };
       if (pendingRef.current) return pendingRef.current.promise;
       const next = await evaluate(refresh);
+      // While this call read the methods, the screen may have gone, or another call may have
+      // confirmed (use its token) or opened the step (join it).
+      if (!mountedRef.current) return { kind: 'cancelled' };
+      const confirmed = liveToken();
+      if (confirmed) return { kind: 'token', token: confirmed };
+      // Re-read the ref: TypeScript keeps the narrowing from before the await.
+      const waiting = pendingRef.current as { promise: Promise<Obtained> } | null;
+      if (waiting) return waiting.promise;
       return 'done' in next ? next.done : open(next.prompt);
     },
     [evaluate, liveToken, open],
@@ -202,7 +230,8 @@ export function useReauth(flow: ReauthFlow) {
           const next = await evaluate(true);
           if (!pendingRef.current) return;
           if ('done' in next) finish(next.done);
-          else show({ ...next.prompt, error: message });
+          // A load error keeps its own message (the retry is about it).
+          else show(next.prompt.variant === 'loadError' ? next.prompt : { ...next.prompt, error: message });
           return;
         }
         showLast(message);
@@ -225,14 +254,14 @@ export function useReauth(flow: ReauthFlow) {
   const onCancel = useCallback(() => {
     setPrompt(null);
     finish({ kind: 'cancelled' });
-  }, [finish]);
+  }, [finish, setPrompt]);
 
   const onSubmitPassword = useCallback(
     (password: string) => {
       setPrompt(null);
       void confirm({ password }, 'password');
     },
-    [confirm],
+    [confirm, setPrompt],
   );
 
   const onProvider = useCallback(
@@ -251,13 +280,15 @@ export function useReauth(flow: ReauthFlow) {
             showLast(null);
             return;
           }
-          // Same reading as the login screen: a build fault, shown as plain copy and reported.
+          // A build fault (Android OAuth client / SHA-1): plain copy instead of the native text,
+          // and reported, as on the login screen. The login copy ("sign in with your e-mail")
+          // does not fit a signed-in user, so the generic Google failure line is shown.
           if (provider === 'google' && isGoogleDeveloperError(error)) {
             captureException(error, {
               level: 'error',
               tags: { flow: 'auth.reauth', reauthFor: flow, method: provider, reason: 'developer_error' },
             });
-            showLast(t('mobile.googleDeveloperError'));
+            showLast(t('auth.googleSignInFailed'));
             return;
           }
           showLast(apiErrorMessage(error, t('error.somethingWrongDesc')));
@@ -266,7 +297,7 @@ export function useReauth(flow: ReauthFlow) {
         await confirm(proof, provider);
       });
     },
-    [confirm, flow, showLast, t],
+    [confirm, flow, setPrompt, showLast, t],
   );
 
   const onRetry = useCallback(() => {
@@ -278,14 +309,17 @@ export function useReauth(flow: ReauthFlow) {
       if ('done' in next) finish(next.done);
       else show(next.prompt);
     });
-  }, [evaluate, finish, show]);
+  }, [evaluate, finish, setPrompt, show]);
 
   const { send: sendSetPasswordMail } = mail;
 
   /** The server now requires the step-up and this device cannot give it. */
   const explainUnavailable = useCallback(
     (error: unknown) => {
-      appAlert(t('auth.reauth.title'), apiErrorMessage(error, t('auth.reauth.body')), [
+      // The server's "confirm it's you", then why this device cannot: no password and no
+      // provider to show here; the way out is a password by mail.
+      const message = `${apiErrorMessage(error, t('auth.reauth.body'))}\n\n${t('mobile.noPasswordAccountNoProvider')}`;
+      appAlert(t('auth.reauth.title'), message, [
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('auth.setPassword'), onPress: sendSetPasswordMail },
       ]);

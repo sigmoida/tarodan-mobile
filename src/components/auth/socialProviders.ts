@@ -1,4 +1,5 @@
 import { isGoogleConfigured } from '@/services/googleSignin';
+import { isAppleAvailable } from '@/services/appleSignin';
 import type { useSocialSignIn } from '@/hooks/useSocialSignIn';
 import type { SignInMethods, SignInProvider } from '@/types/sign-in-methods';
 
@@ -21,6 +22,14 @@ export function getVisibleSocialProviders(
   const google = isGoogleConfigured();
   const apple = social.appleAvailable;
   return { google, apple, any: google || apple };
+}
+
+/**
+ * `getVisibleSocialProviders` with the Apple check made now: a hook's first render reports
+ * "no Apple" until its async check resolves, so a decision taken on a tap must not use it.
+ */
+export async function visibleSocialProvidersNow(): Promise<VisibleSocialProviders> {
+  return getVisibleSocialProviders({ appleAvailable: await isAppleAvailable() });
 }
 
 /**

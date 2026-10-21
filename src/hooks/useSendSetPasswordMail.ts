@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import i18n from '@/i18n/config';
 import { authApi } from '@/lib/api';
 import { useAppMutation } from '@/lib/query';
@@ -27,12 +28,10 @@ export function useSendSetPasswordMail() {
 export function useSendSetPasswordMailToSelf() {
   const email = useAuthStore((s) => s.user?.email ?? null);
   const { mutate, isPending } = useSendSetPasswordMail();
-  return {
-    send: () => {
-      if (isPending) return;
-      if (email) mutate(email);
-      else toast.error(i18n.t('auth.couldNotSendEmail'));
-    },
-    isPending,
-  };
+  const send = useCallback(() => {
+    if (isPending) return;
+    if (email) mutate(email);
+    else toast.error(i18n.t('auth.couldNotSendEmail'));
+  }, [email, isPending, mutate]);
+  return { send, isPending };
 }

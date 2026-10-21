@@ -131,7 +131,8 @@ describe('başarı', () => {
     await press();
     await press();
     expect(mockDelete).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId('delete-account-confirm-input').props.editable).toBe(false);
+    // The confirm-step check runs first, so the pending state lands a tick later.
+    await waitFor(() => expect(screen.getByTestId('delete-account-confirm-input').props.editable).toBe(false));
     expect(isDisabled()).toBe(true);
 
     await act(async () => resolve({ data: {} }));

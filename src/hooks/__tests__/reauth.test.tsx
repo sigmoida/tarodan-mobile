@@ -15,6 +15,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { appAlert, Button } from '@/ui';
+import { QueryClient } from '@tanstack/react-query';
 import { renderWithProviders } from '@/test-utils';
 import { ReauthModal } from '@/components/auth/ReauthModal';
 import i18n from '@/i18n/config';
@@ -381,8 +382,9 @@ describe('accounts without a password', () => {
       expect(action).toHaveBeenCalledTimes(1);
       const [title, message, buttons] = (appAlert as jest.Mock).mock.calls[0]!;
       expect(title).toBe(i18n.t('auth.reauth.title'));
-      // The server's localised REAUTH_REQUIRED message, then the one way out: a password by mail.
-      expect(message).toBe('server says no');
+      // The server's localised REAUTH_REQUIRED message, why this device cannot confirm, and the
+      // one way out: a password by mail.
+      expect(message).toBe(`server says no\n\n${i18n.t('mobile.noPasswordAccountNoProvider')}`);
       await act(async () => {
         buttons.find((b: { text: string }) => b.text === i18n.t('auth.setPassword')).onPress();
       });
@@ -441,7 +443,7 @@ describe('accounts without a password', () => {
     expect(action).toHaveBeenCalledWith(TOKEN_2);
   });
 
-  it('Google DEVELOPER_ERROR shows the login copy, reported; not the raw native text', async () => {
+  it('Google DEVELOPER_ERROR shows a plain Google failure line, reported; not the raw native text', async () => {
     mockGetSignInMethods.mockResolvedValue(linked('google'));
     const nativeError = Object.assign(new Error('DEVELOPER_ERROR: Follow troubleshooting'), { code: '10' });
     mockSignInWithGoogle.mockRejectedValueOnce(nativeError);
@@ -451,9 +453,25 @@ describe('accounts without a password', () => {
     await act(async () => {
       fireEvent.press(googleButton);
     });
-    expect(await screen.findByText(i18n.t('mobile.googleDeveloperError'))).toBeTruthy();
+    expect(await screen.findByText(i18n.t('auth.googleSignInFailed'))).toBeTruthy();
     expect(screen.queryByText(/DEVELOPER_ERROR/)).toBeNull();
     expect(mockCapture).toHaveBeenCalledWith(nativeError, expect.objectContaining({ level: 'error' }));
+  });
+});
+
+describe('re-reads', () => {
+  it('a REAUTH_REQUIRED retry whose methods re-read fails keeps the known methods (password field, no load error)', async () => {
+    mockGetSignInMethods.mockResolvedValueOnce(withPassword).mockRejectedValue(apiError(500, undefined, 'Server error'));
+    mockReauth.mockResolvedValueOnce(ok(TOKEN_1)).mockResolvedValueOnce(ok(TOKEN_2));
+    const action = jest.fn().mockRejectedValueOnce(apiError(403, 'REAUTH_REQUIRED')).mockResolvedValueOnce('ok');
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+    renderWithProviders(<Harness action={action} />, { queryClient });
+    fireEvent.press(screen.getByTestId('run'));
+    await confirmPassword();
+    await confirmPassword();
+    await waitFor(() => expect(lastResult()).toEqual({ status: 'done', value: 'ok' }));
+    expect(screen.queryByText('Server error')).toBeNull();
+    expect(action.mock.calls).toEqual([[TOKEN_1], [TOKEN_2]]);
   });
 });
 

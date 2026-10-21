@@ -1,8 +1,8 @@
+import { useRef } from 'react';
 import { router } from 'expo-router';
-import { canConfirmOnDevice, getVisibleSocialProviders } from '@/components/auth/socialProviders';
+import { canConfirmOnDevice, visibleSocialProvidersNow } from '@/components/auth/socialProviders';
 import { useSendSetPasswordMailToSelf } from '@/hooks/useSendSetPasswordMail';
 import { useSignInMethods } from '@/hooks/useSignInMethods';
-import { isAppleAvailable } from '@/services/appleSignin';
 
 /**
  * "Set a password" from the security hub or the 2FA hint. The set-password screen needs the
@@ -15,16 +15,20 @@ export function useOpenSetPassword() {
   const { methods } = useSignInMethods();
   const mail = useSendSetPasswordMailToSelf();
 
+  // The availability check is async: a second tap meanwhile must not push or mail twice.
+  const busy = useRef(false);
   const open = async () => {
-    if (methods) {
-      // Asked at tap time: a hook's first render reports "no Apple" until the check resolves.
-      const visible = getVisibleSocialProviders({ appleAvailable: await isAppleAvailable() });
-      if (!canConfirmOnDevice(methods, visible)) {
+    if (busy.current) return;
+    busy.current = true;
+    try {
+      if (methods && !canConfirmOnDevice(methods, await visibleSocialProvidersNow())) {
         mail.send();
         return;
       }
+      router.push('/settings/security/set-password');
+    } finally {
+      busy.current = false;
     }
-    router.push('/settings/security/set-password');
   };
 
   return { open: () => void open(), sending: mail.isPending };
