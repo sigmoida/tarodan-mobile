@@ -14,7 +14,8 @@
  *    devam eder ve bayat `carModelId` maskelenir.
  */
 import React from 'react';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
+import trCatalog from '@/i18n/lib/catalog/tr.json';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../test-utils';
 
@@ -323,5 +324,69 @@ describe('etiket yedeği — liste yüklenince `.find()` kazanır', () => {
     await screen.findByText('Değişiklikleri Kaydet');
     await waitFor(() => expect(screen.getByText('Model Seçin')).toBeOnTheScreen());
     expect(screen.queryByText('ID. Buzz')).toBeNull();
+  });
+});
+
+describe('price text (shared TL amount parser, web parity)', () => {
+  const REFUSED = trCatalog.validation.amountFormatRefused;
+  const SALE_PLACEHOLDER = 'İndirim yoksa boş bırakın';
+  const withEdit = (over: Record<string, unknown>) =>
+    (productsApi.getMyById as jest.Mock).mockResolvedValue({
+      data: { data: { ...EDIT_RESPONSE, edit: { ...EDIT_RESPONSE.edit, ...over } } },
+    });
+  const openEdit = async () => {
+    wireApi();
+    renderWithProviders(<ListingForm mode="edit" productId="p1" />);
+    await screen.findByText('Değişiklikleri Kaydet');
+  };
+  let errorToast: jest.SpyInstance;
+  beforeEach(() => {
+    errorToast = jest.spyOn(toast, 'error').mockImplementation(() => 1);
+  });
+  afterEach(() => errorToast.mockRestore());
+
+  it('prefills the price and the discount price with a decimal comma, no grouping', async () => {
+    withEdit({ price: 400, oldPrice: 1250.5 });
+    await openEdit();
+    expect(screen.getByPlaceholderText('0,00').props.value).toBe('1250,50');
+    expect(screen.getByPlaceholderText(SALE_PLACEHOLDER).props.value).toBe('400');
+  });
+
+  it('"1.000" is Turkish grouping: refused under the field and on save, no request, never 1 TL', async () => {
+    await openEdit();
+    fireEvent.changeText(screen.getByPlaceholderText('0,00'), '1.000');
+    expect(await screen.findByText(REFUSED)).toBeOnTheScreen();
+    fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
+    await waitFor(() => expect(errorToast).toHaveBeenCalledWith(REFUSED));
+    expect(productsApi.update).not.toHaveBeenCalled();
+  });
+
+  it('a refused discount price blocks the save instead of silently clearing the sale', async () => {
+    await openEdit();
+    fireEvent.changeText(screen.getByPlaceholderText(SALE_PLACEHOLDER), '1.000');
+    // Refused at once under the discount field (before blur or save), as the price field is.
+    expect(await screen.findByText(REFUSED)).toBeOnTheScreen();
+    fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
+    await waitFor(() => expect(errorToast).toHaveBeenCalledWith(REFUSED));
+    expect(productsApi.update).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['1000', 1000],
+    ['1250,50', 1250.5],
+  ])('sends %p exactly as %p', async (text, amount) => {
+    await openEdit();
+    fireEvent.changeText(screen.getByPlaceholderText('0,00'), text);
+    fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
+    await waitFor(() => expect(productsApi.update).toHaveBeenCalled());
+    expect((productsApi.update as jest.Mock).mock.calls[0][1].price).toBe(amount);
+  });
+
+  it('sends a comma discount price exactly', async () => {
+    await openEdit();
+    fireEvent.changeText(screen.getByPlaceholderText(SALE_PLACEHOLDER), '450,50');
+    fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
+    await waitFor(() => expect(productsApi.update).toHaveBeenCalled());
+    expect((productsApi.update as jest.Mock).mock.calls[0][1]).toMatchObject({ originalPrice: 500, salePrice: 450.5 });
   });
 });

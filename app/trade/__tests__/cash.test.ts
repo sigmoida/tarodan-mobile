@@ -1,10 +1,12 @@
 /**
- * The cash difference of a trade offer (new trade and counter offer). Web reads the same field
- * from an `<input type="number" step="0.01">` + `parseFloat`: the browser accepts one decimal
- * separator (`,` on a Turkish locale, or `.`), turns anything it cannot read as a number
- * (thousands grouping, letters, two separators) into "", and only a value above 0 is sent.
- * The column is `Decimal(10, 2)`, so the stored amount is rounded half away from zero to cents.
+ * The cash difference of a trade offer (new trade and counter offer). The text is read by the
+ * shared TL amount parser (`@/lib/shared/tlAmount`), as web reads its trade cash field: one
+ * separator (`,` or `.`) and at most two decimals. Grouping, a third decimal, letters and an
+ * amount too long to hold exactly are refused, never read as another amount, and only a value
+ * above 0 is sent. The typing mask (`nextCashInput`) lets in only what the parser accepts.
  */
+import { isTlAmountRefused } from '@/lib/shared/tlAmount';
+
 import { cashInputValue, isCashInputRefused, nextCashInput, parseCashAmount, signedCashAmount } from '../_lib/cash';
 
 describe('parseCashAmount', () => {
@@ -19,14 +21,9 @@ describe('parseCashAmount', () => {
     ['12,', 12],
     ['007', 7],
     [' 12,50 ', 12.5],
-    // Rounded to cents like the Decimal(10, 2) column (half away from zero), exactly.
-    ['12,505', 12.51],
-    ['12,504', 12.5],
-    ['1.005', 1.01],
-    ['0,005', 0.01],
     ['99999999,99', 99999999.99],
-    // A dot alone is a decimal separator, as in the web number input: 1.250 is 1.25, not 1250.
-    ['1.250', 1.25],
+    // A dot alone is a decimal separator: 1.25 is 1.25.
+    ['1.25', 1.25],
   ])('%p -> %p', (raw, expected) => {
     expect(parseCashAmount(raw)).toBe(expected);
   });
@@ -47,32 +44,26 @@ describe('parseCashAmount', () => {
     ['1,250.50'],
     ['1.2.3'],
     ['1e3'],
+    // A dot with three digits is Turkish grouping (one thousand), not 1 TL or 1.25 TL.
+    ['1.000'],
+    ['1.250'],
   ])('%p -> no amount', (raw) => {
     expect(parseCashAmount(raw)).toBeUndefined();
   });
 
   it('has no client maximum, like web: the API decides', () => {
     expect(parseCashAmount('1000000000000')).toBe(1e12);
-    // Only a value too long to be a finite number (web: Infinity, sent as null) is no amount.
+    // Only a value too long to be held exactly in cents is no amount: never a wrong amount.
+    expect(parseCashAmount('9'.repeat(17))).toBeUndefined();
     expect(parseCashAmount('9'.repeat(400))).toBeUndefined();
   });
 
-  it.each([
-    // A rounded-up cent carries into the whole amount.
-    ['0,995', 1],
-    ['9,999', 10],
-    ['99,995', 100],
-    // Only the third decimal decides: the rest is past half a cent or not.
-    ['12,5049', 12.5],
-    ['1,0050', 1.01],
-    ['1,00499', 1],
-  ])('rounds %p to %p, half away from zero at the cent', (raw, expected) => {
-    expect(parseCashAmount(raw)).toBe(expected);
-  });
-
-  it.each([['0,0049'], ['0,00499'], ['0.004']])('%p rounds to 0 cents: no amount', (raw) => {
-    expect(parseCashAmount(raw)).toBeUndefined();
-  });
+  it.each([['12,505'], ['12,504'], ['1.005'], ['0,005'], ['0,995'], ['12,5049'], ['0,0049'], ['0.004']])(
+    '%p has a third decimal: refused, not rounded (the field mask never lets one in)',
+    (raw) => {
+      expect(parseCashAmount(raw)).toBeUndefined();
+    },
+  );
 
   it('takes ASCII digits only (no other numeral systems, no spaces inside)', () => {
     expect(parseCashAmount('١٢')).toBeUndefined();
@@ -91,14 +82,13 @@ describe('signedCashAmount', () => {
     expect(signedCashAmount('12,50', 'request')).toBe(-12.5);
   });
 
-  it('rounds the amount, not the signed value: they pay 12,505 is -12.51', () => {
-    expect(signedCashAmount('12,505', 'offer')).toBe(12.51);
-    expect(signedCashAmount('12,505', 'request')).toBe(-12.51);
-    expect(signedCashAmount('0,005', 'request')).toBe(-0.01);
+  it('signs the parsed amount exactly: they pay 0,01 is -0.01', () => {
+    expect(signedCashAmount('0,01', 'request')).toBe(-0.01);
+    expect(signedCashAmount('1250,50', 'request')).toBe(-1250.5);
   });
 
   it('is undefined (never 0 or -0) without an amount, whoever pays', () => {
-    for (const raw of ['', '0', '0,00', '0,004', '-5', 'abc', '1.250,50']) {
+    for (const raw of ['', '0', '0,00', '0,004', '-5', 'abc', '1.250,50', '1.000', '12,505']) {
       expect(signedCashAmount(raw, 'offer')).toBeUndefined();
       expect(signedCashAmount(raw, 'request')).toBeUndefined();
     }
@@ -116,6 +106,14 @@ describe('cashInputValue', () => {
     expect(cashInputValue(Number.NaN)).toBe('');
     expect(cashInputValue(0)).toBe('');
     expect(cashInputValue(Number.POSITIVE_INFINITY)).toBe('');
+  });
+
+  it('fixes the prefill to cents, so the parser never refuses it and the cash is never dropped', () => {
+    expect(cashInputValue(0.1 + 0.2)).toBe('0,30');
+    expect(cashInputValue(12.349)).toBe('12,35');
+    for (const amount of [0.1 + 0.2, 12.349, 1250.5]) {
+      expect(isTlAmountRefused(cashInputValue(amount))).toBe(false);
+    }
   });
 
   it('round-trips through the field and the parser', () => {
@@ -159,7 +157,20 @@ describe('nextCashInput', () => {
 
 describe('isCashInputRefused', () => {
   // `prev` holds letters, so no accepted (stripped) value can equal it.
-  it.each(['1.250,50', '12,5,0', '12,505', '1.250', '1,250.', '..', ',,', '1 . 2 , 3', '12,5😀05'])(
+  it.each([
+    '1.250,50',
+    '12,5,0',
+    '12,505',
+    '1.250',
+    '1.000',
+    '1,250.',
+    '..',
+    ',,',
+    '1 . 2 , 3',
+    '12,5😀05',
+    // Too long to hold exactly in cents: refused at the field, never sent as a rounded amount.
+    '9'.repeat(17),
+  ])(
     'refuses %j and nextCashInput keeps the previous value',
     (typed) => {
       expect(isCashInputRefused(typed)).toBe(true);
@@ -174,6 +185,12 @@ describe('isCashInputRefused', () => {
       expect(nextCashInput('prev', typed)).not.toBe('prev');
     },
   );
+
+  it('lets in only text the parser reads: every accepted value is an amount or empty', () => {
+    for (const typed of ['12', '12,', ',', '0', '12,50', '007', '99999999,99', '12 TL', '-5']) {
+      expect(isTlAmountRefused(nextCashInput('prev', typed))).toBe(false);
+    }
+  });
 
   it('does not count stripped characters as a refusal: they are dropped', () => {
     expect(nextCashInput('prev', '-5 TL')).toBe('5');

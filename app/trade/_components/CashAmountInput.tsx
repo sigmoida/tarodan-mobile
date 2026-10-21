@@ -22,7 +22,7 @@ type CashAmountInputProps = {
  */
 export function CashAmountInput({ label, value, refused, onChangeText }: CashAmountInputProps) {
   const { t } = useTranslation();
-  const refusedText = t('trade.cashFormatRefused');
+  const refusedText = t('validation.amountFormatRefused');
 
   useEffect(() => {
     if (refused) AccessibilityInfo.announceForAccessibility?.(refusedText);

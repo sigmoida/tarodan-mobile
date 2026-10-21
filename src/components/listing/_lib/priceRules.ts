@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import { formatPrice, formatPriceNumber } from '@/utils/format';
 import type { PriceLimits } from '@/lib/shared/priceLimits';
+import { isTlAmountRefused, parseTlAmount } from '@/lib/shared/tlAmount';
 import { salePayload, type SaleFields } from './sale';
 
 /**
@@ -13,11 +14,12 @@ import { salePayload, type SaleFields } from './sale';
  * sınır hatası verilmez. Yüklenen kaydın bu değerleri `PriceBaseline` olarak taşınır.
  */
 
-/** Yüklenmiş ilanda saklı fiyat değerleri (form dizgesi); oluşturmada boş / yok. */
+/** The prices stored on the loaded listing (API number text); empty or none on create. */
 export type PriceBaseline = readonly string[];
 
-const isStored = (value: string, baseline: PriceBaseline | null | undefined): boolean =>
-  !!baseline?.some((b) => b !== '' && Number(b) === Number(value));
+/** Whether the candidate amount equals one of the stored prices (the API text is a plain number). */
+const isStored = (amount: number, baseline: PriceBaseline | null | undefined): boolean =>
+  !!baseline?.some((b) => b !== '' && Number(b) === amount);
 
 /** Aday tutarın sınır ihlali (min / max); yoksa `null`. Mesajlar sunucu metinleriyle aynı. */
 function limitViolation(
@@ -35,22 +37,29 @@ function limitViolation(
   return null;
 }
 
-/** Fiyat alanı hatası; geçerli / boş / sınır yok / saklı değere eşit → `null`. */
+/**
+ * The price field error, read with the shared TL amount parser: text that is not an amount
+ * ("1.000" grouping) is refused first, so it is never also reported as below the minimum.
+ * Valid, empty, no limits or equal to a stored price -> `null` (the 1 TL minimum is the schema's).
+ */
 export function priceFieldError(
   t: TFunction,
   value: string,
   limits: PriceLimits,
   baseline?: PriceBaseline | null,
 ): string | null {
-  const n = Number(value);
-  if (!value.trim() || Number.isNaN(n)) return null; // biçim kuralı şemada
-  if (isStored(value, baseline)) return null;
-  return limitViolation(t, n, limits, 'server.product.priceBelowMinimum');
+  const parsed = parseTlAmount(value);
+  if (parsed.status === 'refused') return t('validation.amountFormatRefused');
+  if (parsed.status !== 'ok') return null;
+  if (isStored(parsed.amount, baseline)) return null;
+  return limitViolation(t, parsed.amount, limits, 'server.product.priceBelowMinimum');
 }
 
 /**
- * İndirimli fiyat hatası (min VE max — sunucu ikisini de denetler). Yalnız indirim
- * GERÇEKTEN uygulanacaksa (`salePayload`: 0'dan büyük ve fiyattan küçük) denetlenir.
+ * The discount price error, which blocks the submit. Text that is not an amount comes first:
+ * `salePayload` would read it as "no discount" and silently clear the sale (web
+ * `saleDataError`). Then the limits (min AND max, the server checks both), only for a discount
+ * that will apply (`salePayload`: above 0 and below the price).
  */
 export function salePriceFieldError(
   t: TFunction,
@@ -58,10 +67,11 @@ export function salePriceFieldError(
   limits: PriceLimits,
   baseline?: PriceBaseline | null,
 ): string | null {
+  if (isTlAmountRefused(fields.salePrice)) return t('validation.amountFormatRefused');
   if (limits.minPrice == null && limits.maxPrice == null) return null;
   const sale = salePayload(fields).salePrice;
   if (sale == null) return null;
-  if (isStored(fields.salePrice, baseline)) return null;
+  if (isStored(sale, baseline)) return null;
   return limitViolation(t, sale, limits, 'listing.salePriceBelowMinimum');
 }
 

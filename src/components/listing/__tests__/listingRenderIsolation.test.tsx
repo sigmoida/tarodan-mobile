@@ -151,8 +151,8 @@ describe('ilan formu — yazarken render yalıtımı', () => {
     const runs = mockControllerRuns;
     const options = mockOptionsRenders;
     const shipping = mockShippingRenders;
-    fireEvent.changeText(screen.getByPlaceholderText('0.00'), '1');
-    fireEvent.changeText(screen.getByPlaceholderText('0.00'), '15');
+    fireEvent.changeText(screen.getByPlaceholderText('0,00'), '1');
+    fireEvent.changeText(screen.getByPlaceholderText('0,00'), '15');
     expect(mockControllerRuns).toBe(runs);
     expect(mockOptionsRenders).toBe(options);
     // Kargo bölümü fiyatı render etmeden izler (tutar gecikmeli): tuş vuruşunda çizilmez.

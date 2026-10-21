@@ -1,11 +1,17 @@
+import { tlAmountValue } from '@/lib/shared/tlAmount';
+
 /**
- * İlan indirimi — form durumu ↔ API payload'ı ve komisyon önizlemesinin hangi
- * fiyatla sorulacağı. Web `packages/listing-form/src/form/sale-data.ts` +
- * `NewListingContext` (`saleIsActive`) paritesi; saf, test edilebilir.
+ * Listing discount: form state <-> API payload, and which price the commission preview asks
+ * with. Parity with web `packages/listing-form/src/form/sale-data.ts` + `NewListingContext`
+ * (`saleIsActive`); pure and testable.
  *
- * Formdaki "Fiyat" indirim ÖNCESİ fiyattır; indirimli fiyat ondan küçükse
- * indirim uygulanır. Etkin fiyatı sunucu türetir — istemci yalnız önizleme
- * için "şu an hangi fiyattan satılır" sorusunu cevaplar.
+ * The form's "Price" is the price BEFORE the discount; the discount applies when the discount
+ * price is lower. The server derives the effective price; the client only answers "what does
+ * it sell for now" for the preview.
+ *
+ * The price and the discount price are field text read by the shared `tlAmountValue`; text
+ * that is not an amount reads as none here, so the form blocks it first
+ * (`salePriceFieldError`, the schema's price rule).
  */
 
 export interface SaleFields {
@@ -48,8 +54,8 @@ const asIso = (day: string): string | null => (day ? new Date(day).toISOString()
  * ise ürünü indirimli açar.
  */
 export function salePayload({ price, salePrice, saleStartDate, saleEndDate }: SaleFields): SalePayload {
-  const formPrice = Number(price);
-  const sale = salePrice ? Number(salePrice) : 0;
+  const formPrice = tlAmountValue(price);
+  const sale = tlAmountValue(salePrice);
   const hasSale = sale > 0 && formPrice > sale && sale !== formPrice;
   if (!hasSale) {
     return { originalPrice: null, salePrice: null, saleStartDate: null, saleEndDate: null };
@@ -82,12 +88,14 @@ export function saleStartsLater(fields: SaleFields, now: number = Date.now()): s
 }
 
 /**
- * Komisyon önizlemesinin sorulacağı tutar: indirim BUGÜN geçerliyse indirimli
- * fiyat, değilse normal fiyat. Satıcının göreceği hak ediş, alıcının o an
- * ödeyeceği fiyattan hesaplanır.
+ * The amount the commission preview asks for: the discount price when the discount applies
+ * TODAY, otherwise the price, so the seller's earning comes from what a buyer pays now. It is
+ * the parsed amount as number text ("1250,50" -> "1250.5"), never the typed text, and empty
+ * when the field holds no amount (empty, zero or refused), so nothing is asked (web parity).
  */
 export function commissionPreviewAmount(fields: SaleFields, now: number = Date.now()): string {
-  return isSaleActive(fields, now) ? String(Number(fields.salePrice)) : fields.price;
+  const amount = tlAmountValue(isSaleActive(fields, now) ? fields.salePrice : fields.price);
+  return amount > 0 ? String(amount) : '';
 }
 
 /** `YYYY-MM-DD` → yerel dilde uzun tarih ("21 Ekim 2026"); bozuk girdide aynen döner. */

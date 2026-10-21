@@ -62,6 +62,19 @@ describe('useCommissionPreview', () => {
     expect(mockPreview).toHaveBeenCalledWith({ amount: 400, categoryId: 'cat-1', packageTier: undefined });
   });
 
+  it('sends the parsed amount, never the typed text (shared TL amount parser)', async () => {
+    const { result } = setup('1250,50', 'cat-1');
+    await waitFor(() => expect(result.current.commissionPreview).not.toBeNull());
+    expect(mockPreview).toHaveBeenCalledWith({ amount: 1250.5, categoryId: 'cat-1', packageTier: undefined });
+  });
+
+  it('asks nothing for refused text: "1.000" is never asked as 1 TL', async () => {
+    const { result } = setup('1.000', 'cat-1');
+    await new Promise((r) => setTimeout(r, 500));
+    expect(mockPreview).not.toHaveBeenCalled();
+    expect(result.current.commissionEnabled).toBe(false);
+  });
+
   it('kategori yoksa sorulmaz, önizleme yok, enabled=false', async () => {
     const { result } = setup('400', '');
     await new Promise((r) => setTimeout(r, 500));

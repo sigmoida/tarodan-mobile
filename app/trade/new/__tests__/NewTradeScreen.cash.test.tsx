@@ -54,7 +54,7 @@ import { useAuthStore, type User } from '@/stores/authStore';
 import NewTradeScreen from '../index';
 
 const CASH_HELPER = trCatalog.trade.cashHelper;
-const CASH_REFUSED = trCatalog.trade.cashFormatRefused;
+const CASH_REFUSED = trCatalog.validation.amountFormatRefused;
 const REVIEW_TITLE = trCatalog.trade.productsYouOffer;
 const createMock = tradesApi.create as jest.Mock;
 

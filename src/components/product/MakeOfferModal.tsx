@@ -22,6 +22,7 @@ import { IS_MAESTRO } from '@/config/maestro';
 import { usePriceLimits } from '@/hooks/usePriceLimits';
 import { offerNotificationPrompt } from '@/lib/notifications/prePrompt';
 import { offerPriceFloor } from '@/lib/shared/priceLimits';
+import { parseTlAmount, tlAmountInputValue } from '@/lib/shared/tlAmount';
 import { formatPrice } from '../../utils/format';
 import { MIN_OFFER_RATIO, offerPresets } from './offerPresets';
 
@@ -79,10 +80,18 @@ export default function MakeOfferModal({
     onDismiss();
   };
 
+  // The shared TL amount parser (web parity): "1.000" is one thousand to a Turkish user, so
+  // grouping is refused, never read as 1 TL.
+  const parsed = parseTlAmount(amount);
+  const numeric = parsed.status === 'ok' ? parsed.amount : 0;
+
   const handleSubmit = () => {
     msg.clear();
-    const numeric = parseFloat(amount);
-    if (!numeric || numeric <= 0) {
+    if (parsed.status === 'refused') {
+      msg.error(t('validation.amountFormatRefused'));
+      return;
+    }
+    if (parsed.status === 'empty') {
       msg.error(t('offer.enterPositiveAmount'));
       return;
     }
@@ -105,7 +114,6 @@ export default function MakeOfferModal({
     createOfferMutation.mutate(vars);
   };
 
-  const numeric = parseFloat(amount) || 0;
   const discount = listPrice > 0 && numeric > 0 ? listPrice - numeric : 0;
   const discountPct = listPrice > 0 && numeric > 0 ? Math.round(((listPrice - numeric) / listPrice) * 100) : 0;
   // Hızlı teklif: liste fiyatından −%5/−%10/−%15 (tam TL); serbest giriş de açık.
@@ -130,7 +138,9 @@ export default function MakeOfferModal({
           testID="offer-amount-input"
           label={`${t('offer.yourOfferAmount')} *`}
           value={amount}
-          onChangeText={(v: string) => setAmount(v.replace(/[^\d.,]/g, '').replace(',', '.'))}
+          // Other characters are dropped; the separator is kept as typed, so the parser can
+          // tell a decimal comma from grouping.
+          onChangeText={(v: string) => setAmount(v.replace(/[^\d.,]/g, ''))}
           // Maestro: numeric klavyede return tuşu yok → hideKeyboard çalışmıyor.
           // Test modunda default klavye (return var); input zaten rakam-dışını filtreler.
           keyboardType={IS_MAESTRO ? 'default' : 'numeric'}
@@ -148,7 +158,7 @@ export default function MakeOfferModal({
                 selected={numeric === p.amount}
                 onPress={() => {
                   msg.clear();
-                  setAmount(String(p.amount));
+                  setAmount(tlAmountInputValue(p.amount));
                 }}
               />
             ))}
@@ -185,7 +195,8 @@ export default function MakeOfferModal({
           variant="primary"
           title={t('offer.sendOffer')}
           onPress={handleSubmit}
-          disabled={!numeric || createOfferMutation.isPending}
+          // Refused text keeps the button on, so pressing it says why (`amountFormatRefused`).
+          disabled={parsed.status === 'empty' || createOfferMutation.isPending}
         />
       </ButtonRow>
       <ModalMessage state={msg.state} />

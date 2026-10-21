@@ -35,8 +35,8 @@ import { offersApi } from '@/lib/api';
 
 let mockUser: { id: string } | null = { id: 'seller-1' };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: (sel?: (state: any) => unknown) => {
-    const state: any = { user: mockUser };
+  useAuthStore: (sel?: (state: { user: { id: string } | null }) => unknown) => {
+    const state = { user: mockUser };
     return sel ? sel(state) : state;
   },
 }));
@@ -153,5 +153,33 @@ describe('teklif detayı — karşı teklif (CounterOfferModal)', () => {
 
     await waitFor(() => expect(errorMock).toHaveBeenCalledWith('Karşı teklif verilemez'));
     expect(alertMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('offer detail: counter amount text (shared TL amount parser, web parity)', () => {
+  const openCounter = async () => {
+    api.getOne.mockResolvedValue({ data: { data: offerFixture({ product: { id: 'p1', title: 'Deri Ceket', price: 2000 } }) } });
+    renderWithProviders(<OfferDetailScreen />);
+    fireEvent.press(await screen.findByText(i18n.t('offer.counterOfferCta')));
+    return screen.findByPlaceholderText(i18n.t('offer.amountPlaceholderTl'));
+  };
+
+  it('"1.000" is Turkish grouping: refused in the modal, no request, never 1 TL', async () => {
+    fireEvent.changeText(await openCounter(), '1.000');
+    fireEvent.press(screen.getByText(i18n.t('common.submit')));
+
+    await waitFor(() => expect(screen.getByText(i18n.t('validation.amountFormatRefused'))).toBeTruthy());
+    expect(api.counter).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['1000', 1000],
+    ['1250,50', 1250.5],
+  ])('%p is sent exactly as %p', async (text, amount) => {
+    api.counter.mockResolvedValue({});
+    fireEvent.changeText(await openCounter(), text);
+    fireEvent.press(screen.getByText(i18n.t('common.submit')));
+
+    await waitFor(() => expect(api.counter).toHaveBeenCalledWith('offer-1', amount));
   });
 });

@@ -198,7 +198,7 @@ export function useTradeCounter() {
     // last sendable text instead ("1.000" stops at "1.00"), so the refusal itself blocks:
     // otherwise 1 TL would go out for one thousand. Cleared by the next accepted change.
     if (cashRefused) {
-      toast.error(t('trade.cashFormatRefused'));
+      toast.error(t('validation.amountFormatRefused'));
       return;
     }
     // The API wants at least 1 item on both sides (CounterTradeDto ArrayMinSize(1)); same rule as web.

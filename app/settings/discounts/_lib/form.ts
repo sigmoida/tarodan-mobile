@@ -1,4 +1,5 @@
 import type { CreateDiscountPayload, UpdateDiscountPayload } from '@/lib/api';
+import { tlAmountValue } from '@/lib/shared/tlAmount';
 import { isQuantityType } from './types';
 import type { DiscountFormValues } from './schema';
 
@@ -18,6 +19,12 @@ export function buildDiscountPayload(
   const quantityType = isQuantityType(form.type);
   // Temizlenen alan: güncellemede null (sunucuda silinir), oluşturmada atlanır.
   const cleared = isUpdate ? null : undefined;
+  // An optional TL bound, read by the shared parser (the schema refused malformed text): no
+  // amount ("", "0", "0,00") is no bound, so a zero never goes out as a 0 TL cap or threshold.
+  const optionalAmount = (raw: string) => {
+    const amount = tlAmountValue(raw);
+    return amount > 0 ? amount : cleared;
+  };
   return {
     // Adet koşullu kampanya kod istemez (sunucu kodsuz çalıştırır).
     code: quantityType ? cleared : form.code.trim() || undefined,
@@ -25,14 +32,14 @@ export function buildDiscountPayload(
     description: form.description.trim() || cleared,
     type: form.type,
     // bogo'da değer kullanılmaz; bedava adet buy/get'ten gelir.
-    value: form.type === 'bogo' ? 0 : parseFloat(form.value),
+    value: form.type === 'bogo' ? 0 : tlAmountValue(form.value),
     buyQuantity: form.type === 'bogo' ? parseInt(form.buyQuantity, 10) : cleared,
     getQuantity: form.type === 'bogo' ? parseInt(form.getQuantity, 10) : cleared,
     minQuantity: form.type === 'bulk_quantity' ? parseInt(form.minQuantity, 10) : cleared,
     scope: form.scope,
     targetProductIds: form.scope === 'product' ? form.targetProductIds : [],
-    minCartValue: form.minCartValue ? parseFloat(form.minCartValue) : cleared,
-    maxDiscountAmount: form.maxDiscountAmount ? parseFloat(form.maxDiscountAmount) : cleared,
+    minCartValue: optionalAmount(form.minCartValue),
+    maxDiscountAmount: optionalAmount(form.maxDiscountAmount),
     usageLimitTotal: form.usageLimitTotal ? parseInt(form.usageLimitTotal, 10) : cleared,
     usageLimitPerUser: parseInt(form.usageLimitPerUser, 10) || 1,
     isStackable: form.isStackable,

@@ -184,6 +184,63 @@ describe('oluşturmada indirim payload', () => {
 });
 
 /**
+ * Create reads the price and the discount price with the shared TL amount parser (web parity):
+ * a decimal comma is sent exactly, and "1.000" (one thousand to a Turkish seller) never goes out
+ * as 1 TL; it blocks the create with the format copy.
+ */
+describe('create: amount text (shared TL amount parser)', () => {
+  const REFUSED = 'Tutar kabul edilmedi. Binlik ayracı kullanmayın; kuruş için virgül kullanın, örn. 1250,50';
+  let errorToast: jest.SpyInstance;
+
+  beforeEach(() => {
+    mockGet.mockReset();
+    mockPost.mockReset();
+    wireApi();
+    mockUpload.mockImplementation(uploadResponder());
+    (productsApi.create as jest.Mock).mockReset();
+    (productsApi.create as jest.Mock).mockResolvedValue({ data: {} });
+    (appAlert as jest.Mock).mockImplementation(() => undefined);
+    errorToast = jest.spyOn(toast, 'error').mockImplementation(() => 1);
+  });
+  afterEach(() => errorToast.mockRestore());
+
+  it('sends a comma price and a comma discount price exactly', async () => {
+    const { result } = renderForm();
+    await fillAndPickImages(result);
+    act(() => {
+      result.current.setPrice('1250,50');
+      result.current.setSalePrice('1000,25');
+      result.current.setSaleStartDate('2026-08-10');
+      result.current.setSaleEndDate('2026-08-20');
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(productsApi.create).toHaveBeenCalledWith(
+      expect.objectContaining({ price: 1250.5, originalPrice: 1250.5, salePrice: 1000.25 }),
+    );
+  });
+
+  it.each([
+    ['the price', 'setPrice'],
+    ['the discount price', 'setSalePrice'],
+  ] as const)('"1.000" in %s blocks the create: never 1 TL, never a silently cleared sale', async (_name, setter) => {
+    const { result } = renderForm();
+    await fillAndPickImages(result);
+    act(() => result.current[setter]('1.000'));
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(errorToast).toHaveBeenCalledWith(REFUSED);
+    expect(productsApi.create).not.toHaveBeenCalled();
+  });
+});
+
+/**
  * Sunucu 2026-07-29'dan beri (`0096579da`) rengi ve kutu durumunu zorunlu
  * tutuyor; mobil ikisini de göndermediği için her ilan 400 alıyordu.
  */
