@@ -183,7 +183,7 @@ describe('saved searches · screen', () => {
     expect(await screen.findByText('Kayıtlı Arama Yok')).toBeOnTheScreen();
   });
 
-  it('delete of a row already gone (404 notFound): the server message, and the list is refetched', async () => {
+  it('delete of a row already gone (404 notFound) counts as deleted, and the list is refetched', async () => {
     list.mockResolvedValue(page([search()]));
     remove.mockRejectedValue({
       response: { status: 404, data: { i18nKey: 'server.savedSearch.notFound', message: 'Kayıtlı arama bulunamadı.' } },
@@ -197,7 +197,8 @@ describe('saved searches · screen', () => {
     fireEvent.press(screen.getByTestId('saved-search-delete'));
     await act(async () => pressButton(alertMock.mock.calls[0][2], 'destructive'));
 
-    await waitFor(() => expect(toastMock.error).toHaveBeenCalledWith('Kayıtlı arama bulunamadı.'));
+    await waitFor(() => expect(toastMock.success).toHaveBeenCalledWith('Arama silindi'));
+    expect(toastMock.error).not.toHaveBeenCalled();
     await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
     expect(await screen.findByText('Kayıtlı Arama Yok')).toBeOnTheScreen();
   });
