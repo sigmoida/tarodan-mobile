@@ -34,10 +34,11 @@ export function isPickerLoading(query: {
 /**
  * The stricter rule of the counter-offer pickers (web `useCounterOfferEditor`: loading while
  * `dataUpdatedAt < openedAt`): loading until this open's own fetch settles, even over a cached
- * non-empty list, so an older open's list is never pickable. The counter screen is its own
- * route, so an open is a mount and `isFetchedAfterMount` marks the first settled fetch of this
- * open (a failed one too, so the spinner never stays). Later background refetches (focus,
- * foreground, pull-to-refresh, "Show more") keep the list on screen.
+ * non-empty list, so an older open's list is not pickable while the fresh one loads. The counter
+ * screen is its own route, so an open is a mount and `isFetchedAfterMount` marks the first
+ * settled fetch of this open. A failed one settles too, so the spinner never stays; then the
+ * cached list shows, as on web. Later background refetches (focus, foreground,
+ * pull-to-refresh, "Show more") keep the list on screen.
  */
 export function isPickerLoadingUntilFresh(query: {
   isLoading: boolean;

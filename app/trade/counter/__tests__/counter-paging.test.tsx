@@ -368,6 +368,9 @@ describe('counter picker keys and invalidation', () => {
   });
 });
 
+/** TanStack notifies observers on a timer (`notifyManager`): let the screen re-render. */
+const flushQueryNotifications = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+
 describe('counter pickers, loading on open and load errors (web B5 rules)', () => {
   it('a cached list from an earlier open is not pickable until this open\'s fetch settles', async () => {
     const client = makeClient();
@@ -436,8 +439,39 @@ describe('counter pickers, loading on open and load errors (web B5 rules)', () =
     await act(async () => {
       await queryClient.refetchQueries({ queryKey: qk.trades.detail('trade-1') });
     });
+    await flushQueryNotifications();
     expect(queryClient.getQueryState(qk.trades.detail('trade-1'))?.status).toBe('error');
     expect(screen.queryByTestId('error-state')).toBeNull();
     expect(screen.getByText('Car m1')).toBeOnTheScreen();
+  });
+
+  it('a 4xx on a refetch of the trade (gone or no longer mine) shows the error state', async () => {
+    mockedMy.mockImplementation(server(() => range('m', 1, 2)));
+    const { queryClient } = renderWithProviders(<TradeCounterScreen />);
+    expect(await screen.findByText('Car m1')).toBeOnTheScreen();
+
+    mockedGetOne.mockRejectedValue(Object.assign(new Error('not found'), { response: { status: 404 } }));
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: qk.trades.detail('trade-1') });
+    });
+    await flushQueryNotifications();
+    expect(screen.getByTestId('error-state')).toBeOnTheScreen();
+    expect(screen.queryByText('Car m1')).toBeNull();
+  });
+
+  it('when the trade and a picker both failed, one retry reloads both', async () => {
+    mockedGetOne.mockRejectedValueOnce(new Error('network'));
+    mockedMy.mockImplementation(server(() => range('m', 1, 2)));
+    mockedMy.mockRejectedValueOnce(new Error('network'));
+    const { queryClient } = renderWithProviders(<TradeCounterScreen />);
+    // The my picker does not wait for the trade, so both fail on the first open.
+    await waitFor(() => expect(queryClient.getQueryState(qk.trades.myTradeableForCounter('u1'))?.status).toBe('error'));
+    expect(await screen.findByTestId('error-state')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText(i18n.t('mobile.errorRetry')));
+    expect(await screen.findByText('Car m1')).toBeOnTheScreen();
+    expect(screen.queryByTestId('error-state')).toBeNull();
+    expect(mockedGetOne).toHaveBeenCalledTimes(2);
+    expect(mockedMy).toHaveBeenCalledTimes(2);
   });
 });
