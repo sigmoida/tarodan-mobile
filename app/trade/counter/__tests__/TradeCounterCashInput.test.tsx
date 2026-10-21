@@ -6,17 +6,17 @@
  * cannot see this; here the controller's `cashAmount` stays at its first value.
  */
 import React from 'react';
-import { TextInput } from 'react-native';
+import { AccessibilityInfo, TextInput } from 'react-native';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
+import trCatalog from '@/i18n/lib/catalog/tr.json';
 import { TradeCounterBody } from '../[id]/_components/TradeCounterBody';
 import type { TradeCounterController } from '../[id]/_hooks/useTradeCounter';
 
 jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').routerMock);
 
-const CASH_HELPER = 'Kuruş için virgül kullanın, örn. 1250,50';
-const CASH_REFUSED =
-  'Tutar kabul edilmedi. Binlik ayracı kullanmayın; kuruş için virgül kullanın, örn. 1250,50';
+const CASH_HELPER = trCatalog.trade.cashHelper;
+const CASH_REFUSED = trCatalog.trade.cashFormatRefused;
 
 function renderBody(initial: string) {
   let value = initial;
@@ -81,18 +81,26 @@ describe('counter offer · cash field', () => {
     expect(current()).toBe('12,50');
   });
 
-  it('always shows the helper, warns about a refused change and clears it on an accepted one', () => {
+  it('shows the helper, puts a refusal in its place (as on web) and clears it on an accepted change', () => {
+    // The RN jest preset mocks it already, so spyOn returns that shared mock: start it from zero.
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    announce.mockClear();
     const { input, current } = renderBody('12,50');
     expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
     expect(screen.queryByText(CASH_REFUSED)).toBeNull();
 
     fireEvent.changeText(input, '1.250,50');
     expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
-    expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
+    expect(screen.queryByText(CASH_HELPER)).toBeNull();
     expect(current()).toBe('12,50');
+    // The field text does not change, so a screen reader is told once, not on every refused key.
+    fireEvent.changeText(input, '12,5,0');
+    expect(announce).toHaveBeenCalledTimes(1);
+    expect(announce).toHaveBeenCalledWith(CASH_REFUSED);
 
     fireEvent.changeText(input, '12,5');
     expect(screen.queryByText(CASH_REFUSED)).toBeNull();
+    expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
     expect(current()).toBe('12,5');
   });
 });

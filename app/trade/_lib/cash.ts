@@ -72,14 +72,14 @@ function stripCashInput(typed: string): string {
  * third decimal), so what the field shows is always what is sent.
  */
 export function nextCashInput(previous: string, typed: string): string {
-  const cleaned = stripCashInput(typed);
-  return CASH_TYPING_PATTERN.test(cleaned) ? cleaned : previous;
+  return isCashInputRefused(typed) ? previous : stripCashInput(typed);
 }
 
 /**
- * Whether `nextCashInput` would refuse this typed or pasted text (and keep the previous value),
- * so a field can tell the user instead of dropping the change silently. It depends on the typed
- * text only; stripped characters (letters, spaces) are not a refusal.
+ * Whether `nextCashInput` refuses this typed or pasted text (and keeps the previous value), so a
+ * field can tell the user instead of dropping the change silently. `nextCashInput` decides with
+ * this function, so the two cannot disagree. It depends on the typed text only; stripped
+ * characters (letters, spaces) are not a refusal.
  */
 export function isCashInputRefused(typed: string): boolean {
   return !CASH_TYPING_PATTERN.test(stripCashInput(typed));

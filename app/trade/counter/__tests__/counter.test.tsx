@@ -9,6 +9,7 @@ import { TextInput } from 'react-native';
 import { appAlert } from '@/ui';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
+import trCatalog from '@/i18n/lib/catalog/tr.json';
 import { formatPrice } from '@/utils/format';
 
 let mockParams: Record<string, string> = { id: 'trade-1' };
@@ -72,9 +73,8 @@ const theirProduct = {
   isTradeEnabled: true, status: 'active', images: [],
 };
 
-const CASH_HELPER = 'Kuruş için virgül kullanın, örn. 1250,50';
-const CASH_REFUSED =
-  'Tutar kabul edilmedi. Binlik ayracı kullanmayın; kuruş için virgül kullanın, örn. 1250,50';
+const CASH_HELPER = trCatalog.trade.cashHelper;
+const CASH_REFUSED = trCatalog.trade.cashFormatRefused;
 
 /** The cash field: the only numeric input on the screen. */
 function cashInput() {
@@ -173,7 +173,7 @@ describe('J6 · Karşı teklif formu', () => {
     expect(screen.getByDisplayValue('12,50')).toBeOnTheScreen();
   });
 
-  it('J6.4b the cash field shows its helper, warns about a refused paste and clears it on the next accepted change', async () => {
+  it('J6.4b the cash field shows its helper, shows a refused paste in its place and clears it on the next accepted change', async () => {
     mountWithProducts();
     renderWithProviders(<TradeCounterScreen />);
     await waitFor(() => expect(screen.getByText('Nakit fark')).toBeOnTheScreen());
@@ -185,8 +185,8 @@ describe('J6 · Karşı teklif formu', () => {
     fireEvent.changeText(input, '1.250,50');
     expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
     expect(screen.getByDisplayValue('12,50')).toBeOnTheScreen();
-    // The helper stays while the warning shows.
-    expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
+    // As on web, the refusal takes the helper's place while it shows.
+    expect(screen.queryByText(CASH_HELPER)).toBeNull();
 
     fireEvent.changeText(input, '12,5');
     expect(screen.queryByText(CASH_REFUSED)).toBeNull();
