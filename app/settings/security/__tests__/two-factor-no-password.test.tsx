@@ -63,7 +63,7 @@ it('no password: the hint and "Set a password", no `enable` call, no raw error',
   expect(mockSetup).not.toHaveBeenCalled();
 
   fireEvent.press(screen.getByTestId('two-factor-set-password'));
-  expect(pushMock).toHaveBeenLastCalledWith('/settings/security/set-password');
+  await waitFor(() => expect(pushMock).toHaveBeenLastCalledWith('/settings/security/set-password'));
 });
 
 it('no password on Android without the linked provider: "Set a password" sends the mail', async () => {

@@ -2,6 +2,7 @@ import i18n from '@/i18n/config';
 import { authApi } from '@/lib/api';
 import { useAppMutation } from '@/lib/query';
 import { toast } from '@/ui';
+import { useAuthStore } from '@/stores/authStore';
 
 /**
  * "Set a password" by e-mail: sends the reset link (`POST /auth/forgot-password`) to the given
@@ -17,4 +18,21 @@ export function useSendSetPasswordMail() {
     silentError: true,
     onError: () => toast.error(i18n.t('auth.couldNotSendEmail')),
   });
+}
+
+/**
+ * The same mail to the signed-in user's own address (the Android fallback of the security
+ * screens and the confirm step). Without a stored address it says the mail could not be sent.
+ */
+export function useSendSetPasswordMailToSelf() {
+  const email = useAuthStore((s) => s.user?.email ?? null);
+  const { mutate, isPending } = useSendSetPasswordMail();
+  return {
+    send: () => {
+      if (isPending) return;
+      if (email) mutate(email);
+      else toast.error(i18n.t('auth.couldNotSendEmail'));
+    },
+    isPending,
+  };
 }

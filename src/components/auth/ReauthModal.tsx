@@ -1,18 +1,23 @@
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Modal, ModalFooter, ModalMessage, Text, VStack, theme } from '@/ui';
+import { Button, Modal, ModalFooter, ModalMessage, Text, VStack } from '@/ui';
 import { Form, FormInput, useZodForm } from '@/ui/form';
 import type { SignInProvider } from '@/types/sign-in-methods';
-import { AppleMark, GoogleMark } from './SocialButtons';
+import { ProviderButton } from './SocialButtons';
 import { SIGN_IN_PROVIDER_NAMES } from './socialProviders';
 import { reauthPasswordSchema } from './_lib/reauthSchema';
 
 /** What the confirm step asks for; `null` = closed. Built by `useReauth`. */
 export interface ReauthPrompt {
-  variant: 'password' | 'provider';
+  /**
+   * `password`: the account has one. `provider`: one button per linked provider this device
+   * shows. `loadError`: the sign-in methods could not be read (web `LoadErrorAlert`): the error
+   * and a retry, never a guess about which proof to ask for.
+   */
+  variant: 'password' | 'provider' | 'loadError';
   /** Linked providers this device can show (provider variant only). */
   providers: SignInProvider[];
-  /** The last proof's failure, shown inside the modal (never an alert over it). */
+  /** The last failure, shown inside the modal (never an alert over it). */
   error: string | null;
 }
 
@@ -23,14 +28,16 @@ export interface ReauthModalProps {
   onSubmitPassword: (password: string) => void;
   /** The hook closes the modal, then opens the provider's native sheet. */
   onProvider: (provider: SignInProvider) => void;
+  /** Read the sign-in methods again (load-error variant); the hook closes the modal first. */
+  onRetry: () => void;
 }
 
 /**
  * "Confirm it's you" (web `ReauthModal`): the password field when the account has one, else one
- * "Confirm with {provider}" button per linked provider this device shows. Mounted in the
- * screen's always-rendered `overlay`; all state lives in `useReauth`.
+ * "Confirm with {provider}" button per linked provider this device shows, or the load error with
+ * a retry. Mounted in the screen's always-rendered `overlay`; all state lives in `useReauth`.
  */
-export function ReauthModal({ prompt, onCancel, onSubmitPassword, onProvider }: ReauthModalProps) {
+export function ReauthModal({ prompt, onCancel, onSubmitPassword, onProvider, onRetry }: ReauthModalProps) {
   const { t } = useTranslation();
   const form = useZodForm(useMemo(() => reauthPasswordSchema(t), [t]), {
     defaultValues: { password: '' },
@@ -44,33 +51,31 @@ export function ReauthModal({ prompt, onCancel, onSubmitPassword, onProvider }: 
   }, [isOpen]);
 
   const submit = form.handleSubmit(({ password }) => onSubmitPassword(password));
-  const isPassword = prompt?.variant === 'password';
+  const variant = prompt?.variant;
+
+  let footer: React.ReactNode = (
+    <Button variant="outline" fullWidth title={t('common.cancel')} onPress={onCancel} testID="reauth-cancel" />
+  );
+  if (variant === 'password' || variant === 'loadError') {
+    footer = (
+      <ModalFooter
+        onCancel={onCancel}
+        onConfirm={variant === 'password' ? submit : onRetry}
+        confirmLabel={variant === 'password' ? t('common.confirm') : t('common.tryAgain')}
+        confirmTestID={variant === 'password' ? 'reauth-confirm' : 'reauth-retry'}
+        cancelTestID="reauth-cancel"
+      />
+    );
+  }
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onCancel}
-      title={t('auth.reauth.title')}
-      footer={
-        isPassword ? (
-          <ModalFooter
-            onCancel={onCancel}
-            onConfirm={submit}
-            confirmLabel={t('common.confirm')}
-            confirmTestID="reauth-confirm"
-            cancelTestID="reauth-cancel"
-          />
-        ) : (
-          <Button variant="outline" fullWidth title={t('common.cancel')} onPress={onCancel} testID="reauth-cancel" />
-        )
-      }
-    >
+    <Modal isOpen={isOpen} onClose={onCancel} title={t('auth.reauth.title')} footer={footer}>
       <VStack gap={3}>
         <Text variant="bodySm" tone="muted">
           {t('auth.reauth.body')}
         </Text>
         <ModalMessage state={prompt?.error ? { type: 'error', text: prompt.error } : null} />
-        {isPassword ? (
+        {variant === 'password' ? (
           <Form form={form}>
             <FormInput
               name="password"
@@ -87,27 +92,18 @@ export function ReauthModal({ prompt, onCancel, onSubmitPassword, onProvider }: 
               testID="reauth-password-input"
             />
           </Form>
-        ) : (
-          prompt?.providers.map((provider) => (
-            <Button
-              key={provider}
-              testID={`reauth-${provider}-button`}
-              variant="outline"
-              size="lg"
-              fullWidth
-              // eslint-disable-next-line tarodan/restrict-button-icon
-              leftIcon={
-                provider === 'google' ? (
-                  <GoogleMark size={theme.iconSize.md} />
-                ) : (
-                  <AppleMark size={theme.iconSize.md} color={theme.colors.text.body} />
-                )
-              }
-              title={t('auth.reauth.withProvider', { provider: SIGN_IN_PROVIDER_NAMES[provider] })}
-              onPress={() => onProvider(provider)}
-            />
-          ))
-        )}
+        ) : null}
+        {variant === 'provider'
+          ? prompt?.providers.map((provider) => (
+              <ProviderButton
+                key={provider}
+                provider={provider}
+                testID={`reauth-${provider}-button`}
+                title={t('auth.reauth.withProvider', { provider: SIGN_IN_PROVIDER_NAMES[provider] })}
+                onPress={() => onProvider(provider)}
+              />
+            ))
+          : null}
       </VStack>
     </Modal>
   );

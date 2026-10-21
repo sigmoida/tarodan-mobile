@@ -7,6 +7,7 @@ import { signInWithGoogle } from '@/services/googleSignin';
 import { isGoogleCancel, isGoogleDeveloperError } from '@/services/googleSigninErrors';
 import { captureException } from '@/services/sentry';
 import { signInWithApple } from '@/services/appleSignin';
+import { isAppleCancel } from '@/services/appleSigninErrors';
 import { useAuthStore, type User } from '@/stores/authStore';
 import { useAppleAvailability } from './useAppleAvailability';
 
@@ -134,8 +135,8 @@ export function useSocialSignIn({ onPasswordLoginRequired }: SocialSignInOptions
       if (!(await completeLogin(response.data as SocialLoginResponse))) return;
       router.push('/' as never);
     } catch (e: any) {
-      // Kullanıcı iptali sessiz geçilir.
-      if (e?.code === 'ERR_REQUEST_CANCELED') return;
+      // A user cancel stays silent.
+      if (isAppleCancel(e)) return;
       if (isTwoFactorPasswordRequired(e)) {
         requirePasswordLogin();
         return;

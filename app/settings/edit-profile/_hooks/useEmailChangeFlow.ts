@@ -21,8 +21,9 @@ import { useRefreshAccount } from './useRefreshAccount';
  * keyboard). Leaving the screen cancels.
  *
  * Step-up: each code request (first and resend) runs the confirm step first and sends its token
- * as `reauthToken` (`useReauth`, reused while the server accepts it). A device that cannot confirm
- * sends no token, which the API accepts while `auth_require_reauth_for_sensitive_actions` is off.
+ * as `reauthToken` (`useReauth().runGated`, reused until shortly before it expires). A device that
+ * cannot confirm sends no token, which the API accepts while
+ * `auth_require_reauth_for_sensitive_actions` is off.
  */
 export function useEmailChangeFlow({ onVerified }: { onVerified?: () => void } = {}) {
   const { t } = useTranslation();
@@ -58,10 +59,7 @@ export function useEmailChangeFlow({ onVerified }: { onVerified?: () => void } =
     // (or a corrected address) under the e-mail field. Read now, before any await.
     const isResend = newEmail === pendingEmail && phase === 'codeSent';
     try {
-      const outcome = await reauth.run(
-        (reauthToken) => request.mutateAsync({ newEmail, reauthToken }),
-        { allowUnconfirmed: true },
-      );
+      const outcome = await reauth.runGated((reauthToken) => request.mutateAsync({ newEmail, reauthToken }));
       if (outcome.status !== 'done') return;
       setPendingEmail(newEmail);
       codeForm.reset({ code: '' });

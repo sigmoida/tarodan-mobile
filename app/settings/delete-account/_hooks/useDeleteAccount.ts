@@ -31,10 +31,11 @@ function goHomeTab(): void {
  *
  * - Typed confirmation: no request until the keyword is typed (`canSubmit`).
  * - Step-up: the confirm step runs first and its token goes in `X-Reauth-Token`
- *   (`useReauth`). A device that cannot confirm (no password, no linked provider shown here)
- *   still sends the request without a token, which the API accepts while
- *   `auth_require_reauth_for_sensitive_actions` is off: deletion is never blocked on the device
- *   (App Store 5.1.1(v), Play account deletion). Cancelling the confirm step sends nothing.
+ *   (`useReauth().runGated`). A device that cannot confirm (no password, no linked provider shown
+ *   here) still sends the request without a token, which the API accepts while
+ *   `auth_require_reauth_for_sensitive_actions` is off; once it is on, the user is offered the
+ *   set-password mail first (App Store 5.1.1(v), Play account deletion: see the compat note).
+ *   Cancelling the confirm step sends nothing.
  * - No double submit: a ref lock (two taps in one frame) plus `busy`; it stays locked after
  *   success (while sign-out and navigation run).
  * - The deletion error and the sign-out have separate `try`s: a refusal shows the blockers
@@ -60,7 +61,7 @@ export function useDeleteAccount() {
 
   const confirmed = matchesDeleteKeyword(confirmText, keyword);
   const busy = mutation.isPending || reauth.pending || deleted;
-  const { run } = reauth;
+  const { runGated } = reauth;
 
   const submit = useCallback(async () => {
     if (lock.current || !confirmed) return;
@@ -68,7 +69,7 @@ export function useDeleteAccount() {
     setFailure(null);
 
     try {
-      const outcome = await run((token) => mutation.mutateAsync(token), { allowUnconfirmed: true });
+      const outcome = await runGated((token) => mutation.mutateAsync(token));
       if (outcome.status !== 'done') {
         lock.current = false;
         return;
@@ -95,7 +96,7 @@ export function useDeleteAccount() {
       logger.captureException(error, { level: 'warning', tags: { flow: 'accountDeleted' } });
     }
     goHomeTab();
-  }, [confirmed, logout, mutation, run, t]);
+  }, [confirmed, logout, mutation, runGated, t]);
 
   return {
     keyword,

@@ -8,6 +8,7 @@ import {
   SIGN_IN_METHODS_ERROR_CODES,
   type SignInMethodsErrorCode,
 } from '@/types/sign-in-methods';
+import { isNoResponseNetworkError } from '@/lib/network/networkFailure';
 
 /**
  * `SESSION_STALE` of `./client`, read by value (as `@/lib/network/networkFailure` does) so this
@@ -45,12 +46,11 @@ export function isSessionEndedError(error: unknown): boolean {
 }
 
 /**
- * Worth a Sentry report: no answer (network, timeout) or a 5xx. Expected 4xx answers
- * (wrong proof, lockout, conflicts) are never reported (`src/lib/api/CLAUDE.md` › Errors).
+ * Worth a Sentry report: no answer (network, timeout; not a cancel) or a 5xx. Expected 4xx
+ * answers (wrong proof, lockout, conflicts) are never reported (`src/lib/api/CLAUDE.md` › Errors).
  */
 export function isServerOrNetworkFailure(error: unknown): boolean {
-  if (isSessionStaleError(error)) return false;
+  if (isNoResponseNetworkError(error)) return true;
   const status = (error as ErrorShape)?.response?.status;
-  if (status === undefined) return !!(error as { isAxiosError?: unknown } | null)?.isAxiosError;
   return typeof status === 'number' && status >= 500;
 }

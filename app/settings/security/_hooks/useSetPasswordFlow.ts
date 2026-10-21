@@ -40,10 +40,7 @@ export function useSetPasswordFlow() {
     if (lock.current) return;
     lock.current = true;
     try {
-      const outcome = await reauth.run((reauthToken) => {
-        if (!reauthToken) throw new Error('Set password without a step-up token');
-        return setPassword.mutateAsync({ newPassword, reauthToken });
-      });
+      const outcome = await reauth.run((reauthToken) => setPassword.mutateAsync({ newPassword, reauthToken }));
       if (outcome.status === 'unavailable') {
         reauth.sendSetPasswordMail();
         return;

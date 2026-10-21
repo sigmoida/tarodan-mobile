@@ -75,7 +75,7 @@ beforeEach(() => {
   canGoBackMock.mockReturnValue(true);
   mockGoogleConfigured = true;
   mockGetSignInMethods.mockResolvedValue({ data: googleOnly });
-  mockReauth.mockResolvedValue({ data: { reauthToken: 'tok-1', expiresAt: '2026-10-21T10:05:00.000Z' } });
+  mockReauth.mockResolvedValue({ data: { reauthToken: 'tok-1', expiresAt: new Date(Date.now() + 300_000).toISOString() } });
   mockSetPassword.mockResolvedValue({ data: withPassword });
 });
 

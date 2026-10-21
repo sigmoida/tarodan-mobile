@@ -215,7 +215,7 @@ describe('settings/security hub: password card mode (sign-in methods)', () => {
     expect(screen.getByText(i18n.t('profile.security.setPasswordIntro'))).toBeTruthy();
     expect(screen.queryByTestId('security-password-button')).toBeNull();
     fireEvent.press(button);
-    expect(pushMock).toHaveBeenLastCalledWith('/settings/security/set-password');
+    await waitFor(() => expect(pushMock).toHaveBeenLastCalledWith('/settings/security/set-password'));
     expect(mockForgotPassword).not.toHaveBeenCalled();
   });
 
@@ -224,9 +224,10 @@ describe('settings/security hub: password card mode (sign-in methods)', () => {
     mockGetSignInMethods.mockResolvedValue(linked('apple'));
     renderWithProviders(<SecuritySettingsScreen />);
     const button = await screen.findByTestId('security-set-password-button');
-    await act(() => Promise.resolve());
+    // Tapped at once: the Apple check runs at tap time, not from a first render's "no Apple".
     fireEvent.press(button);
-    expect(pushMock).toHaveBeenLastCalledWith('/settings/security/set-password');
+    await waitFor(() => expect(pushMock).toHaveBeenLastCalledWith('/settings/security/set-password'));
+    expect(mockForgotPassword).not.toHaveBeenCalled();
   });
 
   it.each([

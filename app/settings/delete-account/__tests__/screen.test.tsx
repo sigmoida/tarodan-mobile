@@ -28,11 +28,11 @@ jest.mock('@/stores/authStore', () => ({
   },
 }));
 
-// The sign-in methods cannot be read here (an API before the step-up), so the confirm step is
+// No sign-in methods route here (404: an API before the step-up), so the confirm step is
 // skipped and the deletion goes without a token, as before. The step-up: `reauth.test.tsx`.
 jest.mock('@/lib/api', () => ({
   userApi: { deleteAccount: jest.fn() },
-  authApi: { getSignInMethods: () => Promise.reject(new Error('no sign-in methods route')) },
+  authApi: { getSignInMethods: () => Promise.reject({ isAxiosError: true, response: { status: 404, data: {} } }) },
   errorText: jest.requireActual('@/lib/api/errorText').errorText,
 }));
 import { userApi } from '@/lib/api';

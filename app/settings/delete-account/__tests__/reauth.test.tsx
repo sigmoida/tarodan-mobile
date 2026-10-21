@@ -59,7 +59,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   resetRouterMocks();
   mockGetSignInMethods.mockResolvedValue({ data: { hasPassword: true, providers: [] } });
-  mockReauth.mockResolvedValue({ data: { reauthToken: 'tok-1', expiresAt: '2026-10-21T10:05:00.000Z' } });
+  mockReauth.mockResolvedValue({ data: { reauthToken: 'tok-1', expiresAt: new Date(Date.now() + 300_000).toISOString() } });
   mockDelete.mockResolvedValue({ data: {} });
 });
 

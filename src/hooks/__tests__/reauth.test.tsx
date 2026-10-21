@@ -67,11 +67,12 @@ jest.mock('@/services/sentry', () => ({
   captureException: (...args: unknown[]) => mockCapture(...args),
 }));
 
-import { useReauth, type ReauthOutcome, type RunOptions } from '../useReauth';
+import { REAUTH_EXPIRY_MARGIN_MS, useReauth, type ReauthOutcome } from '../useReauth';
 
 const TOKEN_1 = 'step-up-token-1-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const TOKEN_2 = 'step-up-token-2-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
-const ok = (reauthToken: string) => ({ data: { reauthToken, expiresAt: '2026-10-21T10:05:00.000Z' } });
+/** A token that lives the API's 300 s from now (device clock). */
+const ok = (reauthToken: string) => ({ data: { reauthToken, expiresAt: new Date(Date.now() + 300_000).toISOString() } });
 const apiError = (status: number, errorCode?: string, message = 'server says no') => ({
   isAxiosError: true,
   response: { status, data: { statusCode: status, message, errorCode } },
@@ -87,7 +88,7 @@ const linked = (...providers: ('google' | 'apple')[]) => ({
 type Result = ReauthOutcome<unknown> | { thrown: unknown };
 let results: Result[] = [];
 
-function Harness({ action, options }: { action: jest.Mock; options?: RunOptions }) {
+function Harness({ action, gated }: { action: jest.Mock; gated?: boolean }) {
   const reauth = useReauth('account_delete');
   return (
     <>
@@ -96,7 +97,7 @@ function Harness({ action, options }: { action: jest.Mock; options?: RunOptions 
         title="run"
         onPress={async () => {
           try {
-            results.push(await reauth.run(action, options));
+            results.push(await (gated ? reauth.runGated(action) : reauth.run(action)));
           } catch (thrown) {
             results.push({ thrown });
           }
@@ -107,8 +108,8 @@ function Harness({ action, options }: { action: jest.Mock; options?: RunOptions 
   );
 }
 
-function setup(action: jest.Mock, options?: RunOptions) {
-  return renderWithProviders(<Harness action={action} options={options} />);
+function setup(action: jest.Mock, { gated = false }: { gated?: boolean } = {}) {
+  return renderWithProviders(<Harness action={action} gated={gated} />);
 }
 
 async function confirmPassword(password = 'Secret123') {
@@ -361,7 +362,7 @@ describe('accounts without a password', () => {
     it('setting-gated route: the call goes without a token (the setting is off)', async () => {
       mockGetSignInMethods.mockResolvedValue(linked('apple'));
       const action = jest.fn().mockResolvedValue('deleted');
-      setup(action, { allowUnconfirmed: true });
+      setup(action, { gated: true });
       await act(async () => {
         fireEvent.press(screen.getByTestId('run'));
       });
@@ -372,7 +373,7 @@ describe('accounts without a password', () => {
     it('setting-gated route while the setting is on: explains and offers the set-password mail', async () => {
       mockGetSignInMethods.mockResolvedValue(linked('apple'));
       const action = jest.fn().mockRejectedValue(apiError(403, 'REAUTH_REQUIRED'));
-      setup(action, { allowUnconfirmed: true });
+      setup(action, { gated: true });
       await act(async () => {
         fireEvent.press(screen.getByTestId('run'));
       });
@@ -380,7 +381,8 @@ describe('accounts without a password', () => {
       expect(action).toHaveBeenCalledTimes(1);
       const [title, message, buttons] = (appAlert as jest.Mock).mock.calls[0]!;
       expect(title).toBe(i18n.t('auth.reauth.title'));
-      expect(message).toBe(i18n.t('mobile.noPasswordAccountNoProvider'));
+      // The server's localised REAUTH_REQUIRED message, then the one way out: a password by mail.
+      expect(message).toBe('server says no');
       await act(async () => {
         buttons.find((b: { text: string }) => b.text === i18n.t('auth.setPassword')).onPress();
       });
@@ -388,15 +390,136 @@ describe('accounts without a password', () => {
     });
   });
 
-  it('the sign-in methods cannot be read: `unavailable` (the gated routes still go, without a token)', async () => {
-    mockGetSignInMethods.mockRejectedValue(apiError(500));
+  it('the sign-in methods route is missing (404, an API before the step-up): `unavailable`, the gated call goes without a token', async () => {
+    mockGetSignInMethods.mockRejectedValue(apiError(404));
     const action = jest.fn().mockResolvedValue('ok');
-    setup(action, { allowUnconfirmed: true });
+    setup(action, { gated: true });
     await act(async () => {
       fireEvent.press(screen.getByTestId('run'));
     });
     await waitFor(() => expect(lastResult()).toEqual({ status: 'done', value: 'ok' }));
     expect(action).toHaveBeenCalledWith(undefined);
+  });
+
+  it('the sign-in methods cannot be read (5xx/network): the error and a retry, never a guess', async () => {
+    const down = apiError(500, undefined, 'Server error');
+    mockGetSignInMethods.mockRejectedValueOnce(down).mockResolvedValue(withPassword);
+    const action = jest.fn().mockResolvedValue('ok');
+    setup(action, { gated: true });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('run'));
+    });
+    expect(await screen.findByText('Server error')).toBeTruthy();
+    expect(action).not.toHaveBeenCalled();
+    expect(mockCapture).toHaveBeenCalledWith(down, expect.objectContaining({ level: 'error' }));
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('reauth-retry'));
+    });
+    await confirmPassword();
+    await waitFor(() => expect(lastResult()).toEqual({ status: 'done', value: 'ok' }));
+    expect(action).toHaveBeenCalledWith(TOKEN_1);
+  });
+
+  it('400 REAUTH_METHOD_NOT_ALLOWED (a password was set elsewhere): re-reads the methods and asks for the password', async () => {
+    mockGetSignInMethods.mockResolvedValueOnce(linked('google')).mockResolvedValue(withPassword);
+    mockReauth
+      .mockRejectedValueOnce(apiError(400, 'REAUTH_METHOD_NOT_ALLOWED', 'Confirm with your password.'))
+      .mockResolvedValueOnce(ok(TOKEN_2));
+    const action = jest.fn().mockResolvedValue('ok');
+    setup(action);
+    fireEvent.press(screen.getByTestId('run'));
+    const googleButton = await screen.findByTestId('reauth-google-button');
+    await act(async () => {
+      fireEvent.press(googleButton);
+    });
+
+    expect(await screen.findByText('Confirm with your password.')).toBeTruthy();
+    expect(screen.queryByTestId('reauth-google-button')).toBeNull();
+    await confirmPassword();
+    await waitFor(() => expect(lastResult()).toEqual({ status: 'done', value: 'ok' }));
+    expect(action).toHaveBeenCalledWith(TOKEN_2);
+  });
+
+  it('Google DEVELOPER_ERROR shows the login copy, reported; not the raw native text', async () => {
+    mockGetSignInMethods.mockResolvedValue(linked('google'));
+    const nativeError = Object.assign(new Error('DEVELOPER_ERROR: Follow troubleshooting'), { code: '10' });
+    mockSignInWithGoogle.mockRejectedValueOnce(nativeError);
+    setup(jest.fn());
+    fireEvent.press(screen.getByTestId('run'));
+    const googleButton = await screen.findByTestId('reauth-google-button');
+    await act(async () => {
+      fireEvent.press(googleButton);
+    });
+    expect(await screen.findByText(i18n.t('mobile.googleDeveloperError'))).toBeTruthy();
+    expect(screen.queryByText(/DEVELOPER_ERROR/)).toBeNull();
+    expect(mockCapture).toHaveBeenCalledWith(nativeError, expect.objectContaining({ level: 'error' }));
+  });
+});
+
+describe('token lifetime and sharing (web parity)', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('reused until 15 s before expiresAt, then asked again', async () => {
+    const now = Date.parse('2026-10-21T10:00:00.000Z');
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(now);
+    mockReauth
+      .mockResolvedValueOnce({ data: { reauthToken: TOKEN_1, expiresAt: new Date(Date.now() + 300_000).toISOString() } })
+      .mockResolvedValueOnce({ data: { reauthToken: TOKEN_2, expiresAt: '2026-10-21T10:10:00.000Z' } });
+    const action = jest.fn().mockResolvedValue('ok');
+    setup(action);
+    fireEvent.press(screen.getByTestId('run'));
+    await confirmPassword();
+    await waitFor(() => expect(results).toHaveLength(1));
+
+    clock.mockReturnValue(now + 5 * 60_000 - REAUTH_EXPIRY_MARGIN_MS - 1);
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('run'));
+    });
+    await waitFor(() => expect(results).toHaveLength(2));
+    expect(action).toHaveBeenNthCalledWith(2, TOKEN_1);
+
+    clock.mockReturnValue(now + 5 * 60_000 - REAUTH_EXPIRY_MARGIN_MS);
+    fireEvent.press(screen.getByTestId('run'));
+    await confirmPassword();
+    await waitFor(() => expect(results).toHaveLength(3));
+    expect(action).toHaveBeenNthCalledWith(3, TOKEN_2);
+    expect(mockReauth).toHaveBeenCalledTimes(2);
+  });
+
+  it('an unreadable expiresAt is used for that call only, never cached', async () => {
+    mockReauth.mockResolvedValue({ data: { reauthToken: TOKEN_1, expiresAt: 'not a date' } });
+    const action = jest.fn().mockResolvedValue('ok');
+    setup(action);
+    fireEvent.press(screen.getByTestId('run'));
+    await confirmPassword();
+    await waitFor(() => expect(results).toHaveLength(1));
+    fireEvent.press(screen.getByTestId('run'));
+    expect(await screen.findByTestId('reauth-password-input')).toBeTruthy();
+  });
+
+  it('two calls asking at once share one confirm step', async () => {
+    const action = jest.fn().mockResolvedValue('ok');
+    setup(action);
+    fireEvent.press(screen.getByTestId('run'));
+    fireEvent.press(screen.getByTestId('run'));
+    await confirmPassword();
+    await waitFor(() => expect(results).toHaveLength(2));
+    expect(results).toEqual([{ status: 'done', value: 'ok' }, { status: 'done', value: 'ok' }]);
+    expect(mockReauth).toHaveBeenCalledTimes(1);
+  });
+
+  it('a proof that lands after the screen is gone is never kept or used', async () => {
+    let answer!: (v: unknown) => void;
+    mockReauth.mockReturnValueOnce(new Promise((r) => (answer = r)));
+    const action = jest.fn();
+    const { unmount } = setup(action);
+    fireEvent.press(screen.getByTestId('run'));
+    await confirmPassword();
+    unmount();
+    await act(async () => answer(ok(TOKEN_1)));
+    await waitFor(() => expect(lastResult()).toEqual({ status: 'cancelled' }));
+    expect(action).not.toHaveBeenCalled();
   });
 });
 

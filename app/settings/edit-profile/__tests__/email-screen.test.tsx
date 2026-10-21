@@ -27,11 +27,11 @@ jest.mock('@/stores/authStore', () => ({
   },
 }));
 
-// The sign-in methods cannot be read here (an API before the step-up): the code request goes
+// No sign-in methods route here (404: an API before the step-up): the code request goes
 // without a token, as before. The step-up: `email-reauth.test.tsx`.
 jest.mock('@/lib/api', () => ({
   authApi: {
-    getSignInMethods: () => Promise.reject(new Error('no sign-in methods route')),
+    getSignInMethods: () => Promise.reject({ isAxiosError: true, response: { status: 404, data: {} } }),
     requestEmailChange: jest.fn(() => Promise.resolve({ data: { message: 'ok' } })),
     verifyEmailChange: jest.fn(() => Promise.resolve({ data: { email: 'yeni@ornek.com' } })),
   },
