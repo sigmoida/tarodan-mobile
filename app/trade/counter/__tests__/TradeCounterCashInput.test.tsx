@@ -101,6 +101,11 @@ describe('counter offer · cash field', () => {
     expect(screen.queryByText(CASH_REFUSED)).toBeNull();
     expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
     expect(current()).toBe('12,5');
+
+    // A new refusal after an accepted change is news again: announced once more.
+    fireEvent.changeText(input, '12,555');
+    expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
+    expect(announce).toHaveBeenCalledTimes(2);
   });
 
   it('does not warn when only letters or spaces are dropped', () => {

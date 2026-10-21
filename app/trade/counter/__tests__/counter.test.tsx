@@ -263,6 +263,33 @@ describe('J6 · Karşı teklif formu', () => {
       errorToast.mockRestore();
     });
 
+    it('another trade opening here starts from its own cash terms: no amount, payer or refusal left over', async () => {
+      const first = tradeForReceiver({ id: 'trade-1', cashAmount: 12.5, cashPayerId: 'user-initiator' });
+      // No cash in the second trade: before this fix its prefill kept the first trade's amount.
+      const second = tradeForReceiver({ id: 'trade-2', cashAmount: 0, cashPayerId: null });
+      mountWithProducts(first);
+      getOneMock.mockImplementation((id: string) =>
+        Promise.resolve({ data: { data: id === 'trade-2' ? second : first } }));
+      counterMock.mockResolvedValue({ data: {} });
+      const view = renderWithProviders(<TradeCounterScreen />);
+      await waitFor(() => expect(screen.getByDisplayValue('12,50')).toBeOnTheScreen());
+      fireEvent.changeText(cashInput(), '1.250,50');
+      expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
+
+      mockParams = { id: 'trade-2' };
+      view.rerender(<TradeCounterScreen />);
+      await waitFor(() => expect(getOneMock).toHaveBeenCalledWith('trade-2'));
+      await waitFor(() => expect(cashInput().props.value).toBe(''));
+      expect(screen.queryByText(CASH_REFUSED)).toBeNull();
+      expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
+
+      // The payer is back to "I pay" (the first trade had "they pay"): 5 goes out positive.
+      fireEvent.changeText(cashInput(), '5');
+      fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
+      expect((await sentBody()).cashAmount).toBe(5);
+      expect(counterMock.mock.calls[0][0]).toBe('trade-2');
+    });
+
     it('a decimal comma that they pay is sent negative', async () => {
       await submitWithCash('12,50', 'Karşı taraf ödeyecek');
       expect((await sentBody()).cashAmount).toBe(-12.5);
