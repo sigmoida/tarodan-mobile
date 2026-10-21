@@ -57,7 +57,7 @@ export function useNewTrade() {
   // The target listing. Also fetched when the seller id is a param (the product page sends
   // both): their side is paged, so the target may sit on a page that is not loaded yet, and is
   // then preselected from this row. Fresh on every open, like the pickers (web `useTradeTarget`).
-  const { data: targetProduct } = useQuery<TargetListing | null>({
+  const targetQuery = useQuery<TargetListing | null>({
     queryKey: qk.trades.targetListing(listingId ?? ''),
     queryFn: async () => {
       const res = await listingsApi.getOne(listingId!);
@@ -66,6 +66,9 @@ export function useNewTrade() {
     enabled: !!listingId && canTrade,
     ...TRADE_PICKER_QUERY_OPTIONS,
   });
+  const targetProduct = targetQuery.data;
+  // The row of this open (not an older open's cached copy): only it may preselect the target.
+  const targetRowFresh = targetQuery.isFetchedAfterMount && targetQuery.isSuccess;
 
   const targetSellerId = targetSellerIdParam || targetSellerOf(targetProduct) || '';
 
@@ -130,10 +133,11 @@ export function useNewTrade() {
   // a pick made while the target was still missing from a cached list. A target on a page that
   // is not loaded (the settled list has more pages) comes from its own row: the pick is pinned at
   // the top until its page loads, refreshed from the list row once it does, and pruned if every
-  // page loads without it (`usePagedPicks`). A settled, complete list without it gets no pick.
+  // page loads without it (`usePagedPicks`). A settled, complete list without it gets no pick,
+  // and neither does a cached row from an earlier open (the listing may be sold since).
   const preselectedFor = useRef<string | null>(null);
   const addTheirPick = theirPicks.add;
-  const theirMayHoldTarget = !theirList.isLoading && theirList.hasMore;
+  const theirMayHoldTarget = !theirList.isLoading && theirList.hasMore && targetRowFresh;
   useEffect(() => {
     if (!listingId || preselectedFor.current === listingId) return;
     const target =
