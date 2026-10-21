@@ -22,6 +22,7 @@ import i18n from '@/i18n/config';
 import type { MessageKey } from '@/i18n/lib/generated/keys';
 
 jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').routerMock);
+const mockAfterClose = jest.fn((next: () => void) => next());
 jest.mock('@/ui', () => {
   const actual = jest.requireActual('@/ui');
   const { confirmWith } = jest.requireActual('@/ui/components/AlertDialog');
@@ -31,7 +32,7 @@ jest.mock('@/ui', () => {
     appAlert,
     confirm: (options: unknown) => confirmWith(appAlert, options),
     // The real helper waits for the close animation; the order is what matters here.
-    runAfterModalClose: (next: () => void) => next(),
+    runAfterModalClose: (next: () => void) => mockAfterClose(next),
     toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn(), dismiss: jest.fn() }),
   };
 });
@@ -75,6 +76,7 @@ const mockCapture = jest.fn();
 jest.mock('@/services/sentry', () => ({ captureException: (...a: unknown[]) => mockCapture(...a) }));
 
 import ConnectedAccountsScreen from '../connected-accounts';
+import { CREDENTIAL_REUSE_MS } from '../_hooks/useConnectedAccounts';
 
 type Provider = 'google' | 'apple';
 const methods = (hasPassword: boolean, ...providers: Provider[]) => ({
@@ -306,6 +308,11 @@ describe('connect', () => {
       reauthToken: 'tok-1',
     });
     expect(toast.success).toHaveBeenCalledWith(t('profile.connectedAccounts.connectSuccess', { provider: 'Apple' }));
+    // The link (and so a possible reopen of the confirm step) waits for the sheet to close.
+    const waits = mockAfterClose.mock.invocationCallOrder;
+    const sheet = mockSignInWithApple.mock.invocationCallOrder[0]!;
+    const linkAt = mockLinkApple.mock.invocationCallOrder[0]!;
+    expect(waits.some((at) => at > sheet && at < linkAt)).toBe(true);
     // The answer updates the list without a reload.
     await waitFor(() =>
       expect(within(row('apple')).getByText(t('profile.connectedAccounts.connected'))).toBeTruthy(),
@@ -377,7 +384,7 @@ describe('connect', () => {
       answer({ reauthToken: `tok-${mockReauth.mock.calls.length}`, expiresAt: new Date(clock + 300_000).toISOString() }),
     );
     mockLinkApple.mockImplementationOnce(async () => {
-      clock += 5 * 60_000; // the user took long on the second confirm step
+      clock += CREDENTIAL_REUSE_MS + 1; // the user took long on the second confirm step
       throw apiError(403, 'REAUTH_REQUIRED');
     });
     mockSignInWithApple

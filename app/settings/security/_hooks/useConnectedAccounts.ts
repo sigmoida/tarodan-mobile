@@ -66,9 +66,11 @@ class CredentialFailure {
  *   404/409 refusal re-reads the methods and shows the server's message (`LAST_SIGN_IN_METHOD`
  *   reads as the D1 hint). Nothing here signs out: only a 401 does, in the client.
  * - One flow at a time: a ref lock stops double taps; `busyProvider` spans the whole flow
- *   (sheet, confirmation, step-up, write), which no single mutation's variables cover.
- * - Sentry: only 5xx and network failures of the writes, and the Google DEVELOPER_ERROR, tagged
- *   with the flow and the provider; never a token, a provider e-mail or a cancel.
+ *   (Connect: step-up, sheet, write; Disconnect: confirmation, step-up, write), which no single
+ *   mutation's variables cover.
+ * - Sentry: 5xx and network failures of the writes, faults that are no API answer, and the
+ *   Google DEVELOPER_ERROR, tagged with the flow and the provider; never a token, a provider
+ *   e-mail or a cancel.
  */
 export function useConnectedAccounts() {
   const { t } = useTranslation();
@@ -101,7 +103,7 @@ export function useConnectedAccounts() {
   /** Can this device give the step-up? Unknown methods: let the step-up itself decide. */
   const canConfirmHere = async () => {
     const methods = currentMethods();
-    return !methods || canConfirmOnDevice(methods, await visibleSocialProvidersNow());
+    return !methods || canConfirmOnDevice(methods, visible ?? (await visibleSocialProvidersNow()));
   };
 
   const settle = <T,>(outcome: ReauthOutcome<T>, success: string) => {
@@ -151,6 +153,9 @@ export function useConnectedAccounts() {
           } catch (error) {
             throw new CredentialFailure(error);
           }
+          // The native sheet has just closed: a `REAUTH_REQUIRED` answer reopens the confirm
+          // step, which must not be presented over the closing sheet (iOS modal rule).
+          await afterSheetClosed();
         }
         return link.mutateAsync({ credential: held.credential, reauthToken });
       });
