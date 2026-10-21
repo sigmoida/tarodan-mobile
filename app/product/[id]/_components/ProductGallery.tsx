@@ -96,7 +96,6 @@ export function ProductGallery({
     <View>
       <View style={{ width, aspectRatio: 1 }}>
         <FlatList
-          {...pager.pagerProps}
           data={images}
           showsHorizontalScrollIndicator={false}
           keyExtractor={(_, index) => String(index)}
@@ -104,6 +103,7 @@ export function ProductGallery({
           initialNumToRender={1}
           maxToRenderPerBatch={2}
           windowSize={3}
+          {...pager.pagerProps}
         />
 
         {total > 1 && (

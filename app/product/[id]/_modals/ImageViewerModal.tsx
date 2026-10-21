@@ -92,6 +92,7 @@ function ViewerBody({
     ),
     [zoomed, pageHeight],
   );
+
   return (
     <>
       <StatusBar style="dark" />
@@ -113,7 +114,6 @@ function ViewerBody({
       </View>
 
       <FlatList
-        {...pager.pagerProps}
         testID="image-viewer-pager"
         style={styles.pager}
         data={images}
@@ -129,6 +129,7 @@ function ViewerBody({
         maxToRenderPerBatch={1}
         windowSize={3}
         onLayout={(e) => setPageHeight(e.nativeEvent.layout.height)}
+        {...pager.pagerProps}
       />
 
       {total > 1 ? (

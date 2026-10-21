@@ -139,19 +139,27 @@ describe('ProductGallery', () => {
       expect(onPageChange).toHaveBeenLastCalledWith(1);
     });
 
-    it.each(['scrollBeginDrag', 'touchStart'])(
-      'hands page reporting back to the user on %s during a tap animation',
-      (event) => {
-        const { onPageChange } = setup({ currentImage: 0 });
-        const { width } = Dimensions.get('window');
-        const pager = screen.UNSAFE_getAllByType(FlatList)[0]!;
-        fireEvent.press(screen.getByTestId('product-gallery-thumb-2'));
-        onPageChange.mockClear();
-        fireEvent(pager, event, { nativeEvent: { contentOffset: { x: width / 2, y: 0 } } });
-        fireEvent.scroll(pager, { nativeEvent: { contentOffset: { x: width, y: 0 } } });
-        expect(onPageChange).toHaveBeenLastCalledWith(1);
-      },
-    );
+    it('hands page reporting back to the user when they drag during a tap animation', () => {
+      const { onPageChange } = setup({ currentImage: 0 });
+      const { width } = Dimensions.get('window');
+      const pager = screen.UNSAFE_getAllByType(FlatList)[0]!;
+      fireEvent.press(screen.getByTestId('product-gallery-thumb-2'));
+      onPageChange.mockClear();
+      fireEvent(pager, 'scrollBeginDrag', { nativeEvent: { contentOffset: { x: width / 2, y: 0 } } });
+      fireEvent.scroll(pager, { nativeEvent: { contentOffset: { x: width, y: 0 } } });
+      expect(onPageChange).toHaveBeenLastCalledWith(1);
+    });
+
+    it('keeps the tap target through a plain touch (Android does not stop the animation on it)', () => {
+      const { onPageChange } = setup({ currentImage: 0 });
+      const { width } = Dimensions.get('window');
+      const pager = screen.UNSAFE_getAllByType(FlatList)[0]!;
+      fireEvent.press(screen.getByTestId('product-gallery-thumb-2'));
+      onPageChange.mockClear();
+      fireEvent(pager, 'touchStart', { nativeEvent: {} });
+      fireEvent.scroll(pager, { nativeEvent: { contentOffset: { x: width, y: 0 } } });
+      expect(onPageChange).not.toHaveBeenCalled();
+    });
 
     it('re-tapping the selected thumbnail only realigns the pager', () => {
       const scrollToOffset = jest.spyOn(FlatList.prototype, 'scrollToOffset');

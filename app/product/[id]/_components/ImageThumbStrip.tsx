@@ -108,8 +108,8 @@ function ThumbList({ images, selectedIndex, onSelect, testID }: StripProps) {
       keyExtractor={(_, index) => String(index)}
       // Selection lives outside `data`, so tell the list to re-render the items when it changes.
       extraData={selected}
-      // At most 15 small card images (the listing limit): render them all, so a strip opened at a
-      // late photo has no blank cells before the list catches up.
+      // A listing has a few dozen small card images at most (15 to 20 by membership tier): render
+      // them all, so a strip opened at a late photo has no blank cells before the list catches up.
       initialNumToRender={total}
       contentOffset={initialOffset}
       onLayout={onLayout}

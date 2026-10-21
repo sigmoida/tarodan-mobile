@@ -75,7 +75,7 @@ describe('ImageThumbStrip', () => {
   });
 
   describe('centredThumbOffset', () => {
-    // 15 thumbnails (the listing limit): 16 + 15 * 60 + 14 * 8 + 16 = 1044 pt of content.
+    // 15 thumbnails: 16 + 15 * 60 + 14 * 8 + 16 = 1044 pt of content.
     it('puts a middle thumbnail in the centre of the strip', () => {
       // Thumbnail 7 spans 16 + 7 * 68 = 492 .. 552, centre 522; half of a 390 pt strip is 195.
       expect(centredThumbOffset(7, 15, 390)).toBe(327);

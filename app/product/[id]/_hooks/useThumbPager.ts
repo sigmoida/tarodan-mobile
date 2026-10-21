@@ -11,12 +11,12 @@ type ScrollEvent = { nativeEvent: { contentOffset: { x: number } } };
  * A thumbnail tap selects its page at once and animates the pager there. The scroll events of that
  * animation would report every page in between and make the selection flicker through them, so
  * while a tap is animating only the target page is reported. Reporting goes back to normal when the
- * target is reached, when the user touches the pager, or when the scroll comes to rest; at rest the
- * page actually shown is reported, so an interrupted animation does not leave the selection on a
- * page the pager never reached.
+ * target is reached, when the user starts dragging, or when a scroll comes to rest (momentum end);
+ * at rest the page actually shown is reported. A plain touch does not release the target: on
+ * Android it does not stop a programmatic scroll, so releasing on it would bring the flicker back.
  *
- * `pagerProps` go on the pager `FlatList` as a whole (ref, scroll handlers, page layout), so no
- * caller can forget one of the release paths.
+ * `pagerProps` go on the pager `FlatList` as a whole (ref, paging, page layout, scroll handlers),
+ * spread last so no caller overrides one of the release paths by accident.
  */
 export function useThumbPager({
   width,
@@ -57,8 +57,7 @@ export function useThumbPager({
     [onPageChange, pageAt],
   );
 
-  // The user takes over (a touch can stop the animation without becoming a drag): their swipe
-  // reports pages again.
+  // The user takes over: their swipe reports pages again.
   const release = useCallback(() => {
     targetPage.current = null;
   }, []);
@@ -96,7 +95,6 @@ export function useThumbPager({
       pagingEnabled: true,
       getItemLayout,
       onScroll,
-      onTouchStart: release,
       onScrollBeginDrag: release,
       onMomentumScrollEnd,
       scrollEventThrottle: 16,
