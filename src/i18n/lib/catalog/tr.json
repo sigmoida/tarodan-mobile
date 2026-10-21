@@ -3160,11 +3160,6 @@
     "benefitBadgeAndStats": "Kurumsal rozet ve istatistik paneli",
     "businessAccountSeparateNote": "İşletme hesabı, bireysel hesabınızdan ayrı bir hesaptır. Mevcut hesabınız işletmeye dönüştürülmez; vergi ve şirket bilgilerinizle ayrı bir kurumsal hesap açmanız gerekir.",
     "cancel": "Vazgeç",
-    "badgeFastShipper": "Hızlı Kargo",
-    "badgeTrustedSeller": "Güvenilir",
-    "badgeResponsive": "Hızlı Yanıt",
-    "badgeEliteCollector": "Elit Koleksiyoner",
-    "badgeHallOfFame": "Onur Listesi",
     "listingsCount": "İlanlar ({count})",
     "reviewsCount": "Değerlendirmeler ({count})",
     "collectionsCount": "Koleksiyonlar ({count})",
@@ -3174,7 +3169,29 @@
     "sendMessage": "Mesaj Gönder",
     "loginToMessage": "Mesaj göndermek için üye girişi yapın",
     "itemsListing": "İlan",
-    "salesLabel": "Satış"
+    "salesLabel": "Satış",
+    "trustScore": {
+      "badge": "Güven skoru {rating}/5 · {level}",
+      "badgeNew": "Güven skoru: Yeni satıcı",
+      "levels": {
+        "excellent": "Çok güvenilir",
+        "trusted": "Güvenilir",
+        "fair": "Orta",
+        "developing": "Gelişmekte",
+        "new": "Yeni satıcı"
+      },
+      "info": {
+        "title": "Güven skoru nasıl hesaplanır?",
+        "intro": "Güven skoru, satıcının Tarodan'daki gerçek işlemlerinden 0 ile 5 arasında hesaplanır:",
+        "ratings": "Alıcı ve takas değerlendirmeleri (her kişinin oyu bir kez sayılır)",
+        "reliability": "Siparişleri iptal etmeden ve satıcı kaynaklı iade olmadan tamamlama",
+        "onTime": "Siparişleri süresi içinde kargoya verme",
+        "volume": "Tamamlanan satış ve takas sayısı",
+        "tenure": "Tarodan'daki hesap yaşı",
+        "newSeller": "En az {count} tamamlanmış işlemi ve {counterparties} farklı alıcısı olmayan satıcılar \"Yeni satıcı\" olarak görünür.",
+        "updated": "Skor her gün güncellenir."
+      }
+    }
   },
   "sellerDashboard": {
     "title": "Satıcı Panosu",

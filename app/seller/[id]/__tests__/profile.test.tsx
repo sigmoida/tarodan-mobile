@@ -32,7 +32,6 @@ const base = () => ({
     isVerified: true,
     followersCount: 3,
     stats: { totalListings: 2, totalSales: 5, totalTrades: 1, averageRating: 4.5, totalRatings: 2 },
-    badges: ['fast_shipper'],
   },
   products: [
     { id: 'p1', title: 'Ferrari F40', price: 100, images: [] },
@@ -64,6 +63,42 @@ describe('satıcı profili', () => {
     expect(screen.getByText('Takipçi')).toBeTruthy();
     expect(screen.queryByText('4.5')).toBeNull(); // ortalama puan başlıkta değil, değerlendirmeler kartında
     expect(screen.getByText('3')).toBeTruthy(); // takipçi sayacı ızgarada
+  });
+
+  it('güven skoru: yalnız `trust` okunur, 2 ondalıkla "Güven skoru 3,74/5 · Orta"', () => {
+    const f = base();
+    mockProfile.mockReturnValue({
+      ...f,
+      seller: { ...f.seller, trust: { rating: 3.74, level: 'fair', formulaVersion: 1 } },
+    });
+    render(<SellerProfileScreen />);
+    expect(screen.getByText('Güven skoru 3,74/5 · Orta')).toBeTruthy();
+  });
+
+  it('yeni satıcı: "Güven skoru: Yeni satıcı"', () => {
+    const f = base();
+    mockProfile.mockReturnValue({
+      ...f,
+      seller: { ...f.seller, trust: { rating: null, level: 'new', formulaVersion: 1 } },
+    });
+    render(<SellerProfileScreen />);
+    expect(screen.getByText('Güven skoru: Yeni satıcı')).toBeTruthy();
+  });
+
+  it('`trust` null ya da yok: rozet yok; eski trustScore/trustLevel asla /100 olarak çizilmez', () => {
+    const f = base();
+    mockProfile.mockReturnValue({
+      ...f,
+      seller: { ...f.seller, isPremium: true, trust: null, trustScore: 75, trustLevel: 'Orta' },
+    });
+    const { unmount } = render(<SellerProfileScreen />);
+    expect(screen.queryByTestId('seller-trust-badge')).toBeNull();
+    expect(screen.queryByText(/\/100/)).toBeNull();
+    unmount();
+    mockProfile.mockReturnValue({ ...f, seller: { ...f.seller, isPremium: true, trustScore: 75, trustLevel: 'Orta' } });
+    render(<SellerProfileScreen />);
+    expect(screen.queryByTestId('seller-trust-badge')).toBeNull();
+    expect(screen.queryByText(/\/100/)).toBeNull();
   });
 
   it('ilanlar sekmesi ProductCard ızgarası; sekme sayıları etikette', () => {

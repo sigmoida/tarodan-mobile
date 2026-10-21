@@ -3160,11 +3160,6 @@
     "benefitBadgeAndStats": "Corporate badge and statistics dashboard",
     "businessAccountSeparateNote": "A business account is separate from your individual account. Your current account is not converted into a business account — you need to open a separate corporate account with your tax and company details.",
     "cancel": "Cancel",
-    "badgeFastShipper": "Fast Shipper",
-    "badgeTrustedSeller": "Trusted",
-    "badgeResponsive": "Responsive",
-    "badgeEliteCollector": "Elite Collector",
-    "badgeHallOfFame": "Hall of Fame",
     "listingsCount": "Listings ({count})",
     "reviewsCount": "Reviews ({count})",
     "collectionsCount": "Collections ({count})",
@@ -3174,7 +3169,29 @@
     "sendMessage": "Send Message",
     "loginToMessage": "Log in to send a message",
     "itemsListing": "Listings",
-    "salesLabel": "Sales"
+    "salesLabel": "Sales",
+    "trustScore": {
+      "badge": "Trust score {rating}/5 · {level}",
+      "badgeNew": "Trust score: New seller",
+      "levels": {
+        "excellent": "Excellent",
+        "trusted": "Trusted",
+        "fair": "Fair",
+        "developing": "Developing",
+        "new": "New seller"
+      },
+      "info": {
+        "title": "How is the trust score calculated?",
+        "intro": "The trust score is calculated from the seller's real activity on Tarodan, on a scale from 0 to 5:",
+        "ratings": "Ratings from buyers and trade partners (each person counts once)",
+        "reliability": "Completing orders without cancellations or returns caused by the seller",
+        "onTime": "Handing orders to the carrier on time",
+        "volume": "Number of completed sales and trades",
+        "tenure": "Account age on Tarodan",
+        "newSeller": "Sellers without at least {count} completed transactions with {counterparties} different buyers are shown as \"New seller\".",
+        "updated": "The score is updated every day."
+      }
+    }
   },
   "sellerDashboard": {
     "title": "Seller Dashboard",
