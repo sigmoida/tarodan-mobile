@@ -273,6 +273,7 @@ describe('ProductFilterSheet · web parity filters', () => {
     ['filter-pre-order', 'preOrder'],
     ['filter-limited', 'limited'],
     ['filter-set', 'set'],
+    ['filter-discount-only', 'discountOnly'],
   ])('%s toggles %s', (testID, key) => {
     const onChange = setup();
     fireEvent.press(screen.getByTestId(testID));

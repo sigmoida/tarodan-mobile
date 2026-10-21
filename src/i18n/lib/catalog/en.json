@@ -7721,8 +7721,6 @@
   "filter": {
     "searchSectionTitle": "Search",
     "clearSearchLabel": "Clear search",
-    "discountOnlyLabel": "Discounted Only",
-    "tradeOnlyChip": "Tradeable",
     "resultsLoading": "Loading results…",
     "showResultsCount": "Show {count} Results",
     "showAllOptions": "Show all ({count})",

@@ -7721,8 +7721,6 @@
   "filter": {
     "searchSectionTitle": "Arama",
     "clearSearchLabel": "Aramayı temizle",
-    "discountOnlyLabel": "Sadece İndirimli",
-    "tradeOnlyChip": "Takaslı",
     "resultsLoading": "Sonuçlar yükleniyor…",
     "showResultsCount": "{count} Sonuç Göster",
     "showAllOptions": "Tümünü göster ({count})",

@@ -467,7 +467,8 @@ function FilterSheetBody({
           <Checkbox
             checked={filters.discountOnly}
             onChange={(v) => onChange({ ...filters, discountOnly: v })}
-            label={t('filter.discountOnlyLabel')}
+            label={t('product.onSale')}
+            testID="filter-discount-only"
           />
         </View>
       </View>

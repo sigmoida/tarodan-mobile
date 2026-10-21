@@ -110,4 +110,13 @@ describe('buildActiveChips · web parity filters', () => {
     ]);
     expect(remove(f, 'limited')).toMatchObject({ preOrder: true, limited: false, set: true });
   });
+
+  it('trade and discount chips use the shared web keys (product.tradeAvailable, product.onSale)', () => {
+    const f = { ...EMPTY_FILTERS, tradeOnly: true, discountOnly: true };
+    expect(chipsOf(f).map((c) => [c.key, c.label])).toEqual([
+      ['trade', 'product.tradeAvailable'],
+      ['disc', 'product.onSale'],
+    ]);
+    expect(remove(f, 'disc')).toMatchObject({ tradeOnly: true, discountOnly: false });
+  });
 });
