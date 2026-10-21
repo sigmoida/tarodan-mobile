@@ -27,6 +27,8 @@ function Metric({ label, value }: { label: string; value: React.ReactNode }) {
 export function SellerProfileCard({ f }: { f: SellerProfileController }) {
   const { t, i18n } = useTranslation();
   const { seller, products } = f;
+  // The screen renders the card only once the profile loaded; the guard narrows the type.
+  if (!seller) return null;
   // Only the member-since date next to the avatar; the rating is in the reviews card, followers in the grid.
   const memberSince = seller.createdAt
     ? t('seller.memberSincePrefix', {
