@@ -14,10 +14,14 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'trade-1' }),
 }));
 
+// The screen tests assert what the loaded screen shows, not the skeleton timing: without this
+// the delayed-skeleton timer can re-show the skeleton over found content on a busy machine.
+jest.mock('@/ui/loading/useDelayedLoading', () => require('@/test-utils/loading').immediateLoadingMock);
+
 jest.mock('@/lib/api', () => ({
   legalIdentityApi: { getStatus: jest.fn(), submit: jest.fn() },
   tradesApi: { getOne: jest.fn(), counter: jest.fn(() => Promise.resolve({ data: {} })) },
-  productsApi: { getAll: jest.fn() },
+  productsApi: { getAll: jest.fn(), getMyListings: jest.fn() },
 }));
 
 import { legalIdentityApi, productsApi, tradesApi } from '@/lib/api';
@@ -39,7 +43,12 @@ const gateOpened = () =>
 /** Formu değiştir (ürün ya da yalnız nakit) ve "Karşı Teklif Gönder"e bas. */
 async function changeAndSend(kind: 'product' | 'cash') {
   renderWithProviders(<TradeCounterScreen />);
-  await waitFor(() => expect(screen.getByText('Benim Ürünüm')).toBeOnTheScreen());
+  // Their list starts only once the trade names the other party, so it can render after mine:
+  // wait for both before pressing either.
+  await waitFor(() => {
+    expect(screen.getByText('Benim Ürünüm')).toBeOnTheScreen();
+    expect(screen.getByText('Karşı Ürün')).toBeOnTheScreen();
+  });
   // API iki tarafta da en az 1 ürün ister (CounterTradeDto ArrayMinSize(1)): iki taraftan da seç.
   fireEvent.press(screen.getByText('Karşı Ürün'));
   if (kind === 'product') {
@@ -73,9 +82,9 @@ beforeEach(() => {
       },
     },
   });
-  (productsApi.getAll as jest.Mock).mockImplementation((params: any) =>
-    Promise.resolve({ data: { data: params?.sellerId === 'user-initiator' ? [myProduct] : [theirProduct] } }),
-  );
+  // My side is `GET /products/my`; their side is the public list.
+  (productsApi.getMyListings as jest.Mock).mockResolvedValue({ data: { data: [myProduct] } });
+  (productsApi.getAll as jest.Mock).mockResolvedValue({ data: { data: [theirProduct] } });
   useAuthStore.setState({ isAuthenticated: true, isLoading: false, user: { id: 'user-initiator' } as any });
 });
 

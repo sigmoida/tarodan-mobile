@@ -17,9 +17,13 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockParams,
 }));
 
+// The screen tests assert what the loaded screen shows, not the skeleton timing: without this
+// the delayed-skeleton timer can re-show the skeleton over found content on a busy machine.
+jest.mock('@/ui/loading/useDelayedLoading', () => require('@/test-utils/loading').immediateLoadingMock);
+
 jest.mock('@/lib/api', () => ({
   tradesApi: { getOne: jest.fn(), counter: jest.fn() },
-  productsApi: { getAll: jest.fn() },
+  productsApi: { getAll: jest.fn(), getMyListings: jest.fn() },
 }));
 import { tradesApi, productsApi } from '@/lib/api';
 
@@ -40,6 +44,7 @@ import TradeCounterScreen from '../[id]';
 const getOneMock = tradesApi.getOne as jest.Mock;
 const counterMock = tradesApi.counter as jest.Mock;
 const getAllMock = productsApi.getAll as jest.Mock;
+const getMyMock = productsApi.getMyListings as jest.Mock;
 
 function tradeFixture(overrides: Record<string, unknown> = {}) {
   return {
@@ -68,11 +73,9 @@ const theirProduct = {
 
 function mountWithProducts(trade = tradeFixture()) {
   getOneMock.mockResolvedValue({ data: { data: trade } });
-  // İlk getAll çağrısı benim ürünlerim (sellerId=user.id), ikincisi karşı taraf.
-  getAllMock.mockImplementation((params: any) => {
-    const list = params?.sellerId === 'user-initiator' ? [myProduct] : [theirProduct];
-    return Promise.resolve({ data: { data: list } });
-  });
+  // My side is `GET /products/my`; their side is the public list.
+  getMyMock.mockResolvedValue({ data: { data: [myProduct] } });
+  getAllMock.mockResolvedValue({ data: { data: [theirProduct] } });
 }
 
 describe('J6 · Karşı teklif formu', () => {
@@ -80,6 +83,7 @@ describe('J6 · Karşı teklif formu', () => {
     getOneMock.mockReset();
     counterMock.mockReset();
     getAllMock.mockReset();
+    getMyMock.mockReset();
     mockParams = { id: 'trade-1' };
     mockUser = { id: 'user-initiator' };
     (appAlert as jest.Mock).mockImplementation(() => {});
@@ -107,7 +111,12 @@ describe('J6 · Karşı teklif formu', () => {
     mountWithProducts();
     counterMock.mockResolvedValue({ data: {} });
     renderWithProviders(<TradeCounterScreen />);
-    await waitFor(() => expect(screen.getByText('Benim Ürünüm')).toBeOnTheScreen());
+    // Their list starts only once the trade names the other party, so it can render after mine:
+    // wait for both before pressing either.
+    await waitFor(() => {
+      expect(screen.getByText('Benim Ürünüm')).toBeOnTheScreen();
+      expect(screen.getByText('Karşı Ürün')).toBeOnTheScreen();
+    });
     fireEvent.press(screen.getByText('Benim Ürünüm'));
     // Yalnız bir taraf seçiliyken gönder pasif (API iki tarafta da en az 1 ürün ister).
     fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
@@ -137,11 +146,13 @@ describe('J6 · Karşı teklif formu', () => {
   it('J6.5 both pickers show loading, not the empty state, until their lists settle', async () => {
     getOneMock.mockResolvedValue({ data: { data: tradeFixture() } });
     const pending: Array<(v: unknown) => void> = [];
+    getMyMock.mockImplementation(() => new Promise((r) => pending.push(r)));
     getAllMock.mockImplementation(() => new Promise((r) => pending.push(r)));
     renderWithProviders(<TradeCounterScreen />);
 
     await waitFor(() => expect(pending).toHaveLength(2));
-    expect(screen.getByText('Vereceğim Ürünler')).toBeOnTheScreen();
+    // Their fetch starts in the commit that loads the trade; the editor shows one render later.
+    await waitFor(() => expect(screen.getByText('Vereceğim Ürünler')).toBeOnTheScreen());
     expect(screen.getAllByTestId('loading-indicator').length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByText('Takasa uygun ürün bulunamadı.')).toBeNull();
 

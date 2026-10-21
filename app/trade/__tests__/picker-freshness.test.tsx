@@ -55,6 +55,12 @@ import { isPickerLoading } from '../_lib/picker';
 const mockedMy = productsApi.getMyListings as jest.Mock;
 const mockedAll = productsApi.getAll as jest.Mock;
 
+/** A cached infinite picker list: one loaded page, no more pages. */
+const cachedPages = (rows: unknown[]) => ({
+  pages: [{ items: rows, page: 1, totalPages: 1 }],
+  pageParams: [1],
+});
+
 const listing = (id: string, over: Record<string, unknown> = {}) => ({
   id,
   title: `Car ${id}`,
@@ -110,7 +116,7 @@ describe('isPickerLoading', () => {
 describe('new-trade picker', () => {
   it('refetches on open although the cached (empty) list is fresh, and shows loading, not empty, meanwhile', async () => {
     const client = makeClient();
-    client.setQueryData(qk.trades.myTradeable('u1', undefined), []);
+    client.setQueryData(qk.trades.myTradeable('u1', undefined), cachedPages([]));
     let resolve!: (v: unknown) => void;
     mockedMy.mockReturnValueOnce(new Promise((r) => (resolve = r)));
 
@@ -134,11 +140,11 @@ describe('new-trade picker', () => {
     expect(result.current.myProducts).toEqual([]);
   });
 
-  it('without a listing id (targetSellerId entry) the eligible listings still show', async () => {
+  it('without a listing id (targetSellerId entry) every listing the server returns shows', async () => {
     mockParams = { targetSellerId: 'seller-1' };
-    mockedMy.mockResolvedValue({ data: { data: [listing('a'), listing('b', { isTradeEnabled: false })] } });
+    mockedMy.mockResolvedValue({ data: { data: [listing('a'), listing('b')] } });
     const { result } = renderHook(() => useNewTrade(), { wrapper: wrapperFor(makeClient()) });
-    await waitFor(() => expect(result.current.myProducts?.map((p: { id: string }) => p.id)).toEqual(['a']));
+    await waitFor(() => expect(result.current.myProducts?.map((p: { id: string }) => p.id)).toEqual(['a', 'b']));
   });
 
   it('with a target listing id that listing is excluded', async () => {
@@ -169,12 +175,12 @@ describe('picker refetch on screen focus', () => {
     const client = makeClient();
     const { result } = renderHook(() => useTradeCounter(), { wrapper: wrapperFor(client) });
     await waitFor(() => expect(result.current.loadingMyProducts).toBe(false));
-    const callsBefore = mockedAll.mock.calls.length;
+    const callsBefore = mockedMy.mock.calls.length;
 
-    mockedAll.mockResolvedValue({ data: { data: [listing('approved-2')] } });
+    mockedMy.mockResolvedValue({ data: { data: [listing('approved-2')] } });
     await act(async () => refocus());
     await waitFor(() => expect(result.current.myProducts.map((p: { id: string }) => p.id)).toEqual(['approved-2']));
-    expect(mockedAll.mock.calls.length).toBeGreaterThan(callsBefore);
+    expect(mockedMy.mock.calls.length).toBeGreaterThan(callsBefore);
   });
 });
 
@@ -200,7 +206,7 @@ describe('new-trade picker, seller side', () => {
   it('a target that arrives with the refetch is added to a pick the user made meanwhile', async () => {
     mockParams = { listing: 't1', targetSellerId: 'seller-1' };
     const client = makeClient();
-    client.setQueryData(qk.trades.sellerTradeable('seller-1'), [listing('a')]);
+    client.setQueryData(qk.trades.sellerTradeable('u1', 'seller-1'), cachedPages([listing('a')]));
     let resolve!: (v: unknown) => void;
     mockedAll.mockReturnValueOnce(new Promise((r) => (resolve = r)));
 
@@ -217,7 +223,7 @@ describe('new-trade picker, seller side', () => {
     mockParams = { listing: 't1', targetSellerId: 'seller-1' };
     const client = makeClient();
     // Fresh cache from an earlier visit, taken before the target listing existed.
-    client.setQueryData(qk.trades.sellerTradeable('seller-1'), [listing('old')]);
+    client.setQueryData(qk.trades.sellerTradeable('u1', 'seller-1'), cachedPages([listing('old')]));
     mockedAll.mockResolvedValue({ data: { data: [listing('old'), listing('t1')] } });
 
     const { result } = renderHook(() => useNewTrade(), { wrapper: wrapperFor(client) });
@@ -230,7 +236,7 @@ describe('new-trade picker, seller side', () => {
   it('shows loading, not empty, while a cached empty seller list refetches', async () => {
     mockParams = { targetSellerId: 'seller-1' };
     const client = makeClient();
-    client.setQueryData(qk.trades.sellerTradeable('seller-1'), []);
+    client.setQueryData(qk.trades.sellerTradeable('u1', 'seller-1'), cachedPages([]));
     let resolve!: (v: unknown) => void;
     mockedAll.mockReturnValueOnce(new Promise((r) => (resolve = r)));
 
@@ -292,9 +298,9 @@ describe('counter-offer picker', () => {
   it('refetches my listings on open although the cached list is fresh, with loading instead of empty', async () => {
     mockParams = { id: 'trade-1' };
     const client = makeClient();
-    client.setQueryData(qk.trades.myTradeableForCounter('u1'), []);
+    client.setQueryData(qk.trades.myTradeableForCounter('u1'), cachedPages([]));
     let resolve!: (v: unknown) => void;
-    mockedAll.mockReturnValueOnce(new Promise((r) => (resolve = r)));
+    mockedMy.mockReturnValueOnce(new Promise((r) => (resolve = r)));
 
     const { result } = renderHook(() => useTradeCounter(), { wrapper: wrapperFor(client) });
 
@@ -312,7 +318,7 @@ describe('counter-offer picker', () => {
       data: { id: 'trade-1', initiatorId: 'u1', receiverId: 'u2', initiatorItems: [], receiverItems: [] },
     });
     const client = makeClient();
-    client.setQueryData(qk.trades.sellerTradeableForCounter('u2'), []);
+    client.setQueryData(qk.trades.sellerTradeableForCounter('u1', 'u2'), cachedPages([]));
     let resolve!: (v: unknown) => void;
     mockedAll.mockImplementation(({ sellerId }: { sellerId: string }) =>
       sellerId === 'u2' ? new Promise((r) => (resolve = r)) : Promise.resolve({ data: { data: [] } }),
@@ -337,6 +343,7 @@ describe('counter-offer picker on screen focus', () => {
       data: { id: 'trade-1', initiatorId: 'u1', receiverId: 'u2', initiatorItems: [], receiverItems: [] },
     });
     const lists: Record<string, string[]> = { u1: ['mine-1'], u2: ['theirs-1'] };
+    mockedMy.mockImplementation(() => Promise.resolve({ data: { data: lists.u1!.map((id) => listing(id)) } }));
     mockedAll.mockImplementation(({ sellerId }: { sellerId: string }) =>
       Promise.resolve({ data: { data: (lists[sellerId] ?? []).map((id) => listing(id)) } }),
     );
@@ -364,7 +371,7 @@ describe('counter-offer picker on screen focus', () => {
 describe('isPickerLoading on a failed fetch', () => {
   it('settles after the error, so the spinner cannot stay forever', async () => {
     const client = makeClient();
-    client.setQueryData(qk.trades.myTradeable('u1', undefined), []);
+    client.setQueryData(qk.trades.myTradeable('u1', undefined), cachedPages([]));
     mockedMy.mockRejectedValueOnce(new Error('network'));
     const { result } = renderHook(() => useNewTrade(), { wrapper: wrapperFor(client) });
     expect(result.current.loadingMyProducts).toBe(true);

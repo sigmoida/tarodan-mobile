@@ -16,6 +16,7 @@ describe('web ile eşitlenen ortak metinler', () => {
   it.each([
     ['common.loading', 'Yükleniyor', 'Loading'],
     ['common.sending', 'Gönderiliyor', 'Sending'],
+    ['common.loadMore', 'Daha fazla göster', 'Show more'],
     ['checkout.emptyCart', 'Sepetiniz boş', 'Your cart is empty'],
     ['product.productCode', 'İlan No', 'Listing No'],
     ['information.contactInfo.addressValue', 'İzmir/Türkiye', 'Izmir, Turkey'],

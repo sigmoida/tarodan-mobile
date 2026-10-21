@@ -5,6 +5,7 @@ import { Alert, Button, Chip, EmptyState, Divider, SectionCard, Spinner, Stepper
 
 import { TradeAddressPicker } from '@/components/common';
 import { TradePickCard } from '@/components/trade/TradePickCard';
+import { ShowMoreButton } from '../../_components/ShowMoreButton';
 import { AppImage } from '@/components/AppImage';
 import { getProductEffectivePrice } from '@/utils/productPrice';
 import { formatPrice } from '@/utils/format';
@@ -39,7 +40,7 @@ export function Step1MyItems({ f }: StepProps) {
       <SectionCard title={t('trade.selectMyItemsTitle')}>
         {f.loadingMyProducts ? (
           <Spinner size="md" style={styles.spinner} />
-        ) : f.myProducts?.length === 0 ? (
+        ) : f.myProducts.length === 0 ? (
           <EmptyState placement="inline"
             icon="tag"
             title={t('trade.noListingsForTrade')}
@@ -48,14 +49,22 @@ export function Step1MyItems({ f }: StepProps) {
             onAction={() => navigateTo('/(tabs)/sell')}
           />
         ) : (
-          f.myProducts?.map((product: Product) => (
-            <TradePickCard
-              key={product.id}
-              product={product}
-              selected={!!f.selectedMyItems.find((p) => p.id === product.id)}
-              onToggle={() => f.toggleMyItem(product)}
+          <>
+            {f.myProducts.map((product: Product) => (
+              <TradePickCard
+                key={product.id}
+                product={product}
+                selected={!!f.selectedMyItems.find((p) => p.id === product.id)}
+                onToggle={() => f.toggleMyItem(product)}
+              />
+            ))}
+            <ShowMoreButton
+              hasMore={f.myHasMore}
+              isLoadingMore={f.myLoadingMore}
+              onPress={f.loadMoreMine}
+              testID="new-trade-my-show-more"
             />
-          ))
+          </>
         )}
       </SectionCard>
     </>
@@ -72,21 +81,29 @@ export function Step2TheirItems({ f }: StepProps) {
       <SectionCard title={t('trade.selectWantedItemsTitle')}>
         {f.loadingTheirProducts ? (
           <Spinner size="md" style={styles.spinner} />
-        ) : f.theirProducts?.length === 0 ? (
+        ) : f.theirProducts.length === 0 ? (
           <EmptyState placement="inline"
             icon="arrows-right-left"
             title={t('trade.noProductsFromSeller')}
             subtitle={t('emptyState.tradeEligibleHint')}
           />
         ) : (
-          f.theirProducts?.map((product: Product) => (
-            <TradePickCard
-              key={product.id}
-              product={product}
-              selected={!!f.selectedTheirItems.find((p) => p.id === product.id)}
-              onToggle={() => f.toggleTheirItem(product)}
+          <>
+            {f.theirProducts.map((product: Product) => (
+              <TradePickCard
+                key={product.id}
+                product={product}
+                selected={!!f.selectedTheirItems.find((p) => p.id === product.id)}
+                onToggle={() => f.toggleTheirItem(product)}
+              />
+            ))}
+            <ShowMoreButton
+              hasMore={f.theirHasMore}
+              isLoadingMore={f.theirLoadingMore}
+              onPress={f.loadMoreTheirs}
+              testID="new-trade-their-show-more"
             />
-          ))
+          </>
         )}
       </SectionCard>
 
@@ -212,7 +229,7 @@ export function Step3Review({ f }: StepProps) {
  */
 export function newTradeFooterVisible(f: NewTradeController): boolean {
   if (f.step !== 1) return true;
-  return !f.loadingMyProducts && (f.myProducts?.length ?? 0) > 0;
+  return !f.loadingMyProducts && f.myProducts.length > 0;
 }
 
 /**

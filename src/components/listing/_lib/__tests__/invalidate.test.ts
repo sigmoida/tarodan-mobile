@@ -19,7 +19,7 @@ function staleAfter(productId?: string) {
     featuredBusiness: qk.products.featuredBusiness,
     tradeNew: qk.trades.myTradeable('u1', 'p9'),
     tradeCounter: qk.trades.myTradeableForCounter('u1'),
-    tradeSeller: qk.trades.sellerTradeable('s1'),
+    tradeSeller: qk.trades.sellerTradeable('u1', 's1'),
     unrelated: qk.orders.all,
   };
   for (const [name, queryKey] of Object.entries(probes)) {
