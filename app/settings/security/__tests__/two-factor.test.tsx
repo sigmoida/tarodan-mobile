@@ -1,8 +1,9 @@
 /**
- * İki adımlı doğrulama EKRANI: 2FA kapalıyken açılışta doğrudan kurulum (enable bir kez; QR + anahtar
- * + kod; yanlış kod alanın altında) → yedek kodlar aynı ekranda; açıkken
- * kapat / yedek kod yenile DİYALOGLARI kendi formunu taşır, geçerli kodda ÖNCE kapanır SONRA
- * mutation (src/ui/CLAUDE.md › iOS modal rule); yenilenen kodlar diyalogda değil ekranın kartında gösterilir.
+ * The two-factor authentication SCREEN: while 2FA is off the setup starts on open (`enable` once;
+ * QR + secret + code; a wrong code shows under the field), then the backup codes on the same
+ * screen; while it is on, the disable / regenerate DIALOGS own their form, close FIRST on a valid
+ * code and THEN mutate (src/ui/CLAUDE.md › iOS modal rule); regenerated codes show in the screen's
+ * card, not in the dialog.
  */
 import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
@@ -55,6 +56,8 @@ const mockApi = {
 jest.mock('@/lib/api', () => ({
   authApi: {
     getTwoFactorStatus: () => mockApi.getTwoFactorStatus(),
+    // An account with a password (the no-password hint: `two-factor-no-password.test.tsx`).
+    getSignInMethods: () => Promise.resolve({ data: { hasPassword: true, providers: [] } }),
     setupTwoFactor: () => mockApi.setupTwoFactor(),
     verifyTwoFactor: (c: string) => mockApi.verifyTwoFactor(c),
     disableTwoFactor: (c: string) => mockApi.disableTwoFactor(c),
