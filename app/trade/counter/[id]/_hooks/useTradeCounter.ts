@@ -6,8 +6,10 @@ import { appAlert, toast } from '@/ui';
 import { tradesApi, productsApi } from '@/lib/api';
 import { qk, useAppMutation } from '@/lib/query';
 import { useRefresh } from '@/hooks/useRefresh';
+import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { useAuthStore } from '@/stores/authStore';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
+import { isPickerLoading, TRADE_PICKER_QUERY_OPTIONS } from '../../../_lib/picker';
 import { itemId, offerSignature, type Trade, type TradeItem } from '../_lib/types';
 
 /**
@@ -74,7 +76,7 @@ export function useTradeCounter() {
     setInitializedId(trade.id);
   }, [trade, initializedId, user]);
 
-  // Kullanıcının aktif ürünleri (takasa uygun)
+  // The user's own active, trade-enabled listings
   const myProductsQuery = useQuery({
     queryKey: qk.trades.myTradeableForCounter(user?.id),
     queryFn: async () => {
@@ -85,9 +87,10 @@ export function useTradeCounter() {
       return list.filter((p: any) => p.isTradeEnabled && p.status === 'active');
     },
     enabled: !!user?.id,
+    ...TRADE_PICKER_QUERY_OPTIONS,
   });
 
-  // Karşı tarafın takasa uygun ürünleri
+  // The other party's trade-enabled listings
   const theirProductsQuery = useQuery({
     queryKey: qk.trades.sellerTradeableForCounter(otherPartyId),
     queryFn: async () => {
@@ -98,7 +101,14 @@ export function useTradeCounter() {
       return list.filter((p: any) => p.isTradeEnabled && p.status === 'active');
     },
     enabled: !!otherPartyId,
+    ...TRADE_PICKER_QUERY_OPTIONS,
   });
+
+  // Back on the screen (e.g. from a notification): refetch both pickers.
+  useRefetchStaleOnFocus([
+    qk.trades.myTradeableForCounter(user?.id),
+    qk.trades.sellerTradeableForCounter(otherPartyId),
+  ]);
 
   const { refreshing, onRefresh } = useRefresh(
     tradeQuery.refetch,
@@ -132,6 +142,8 @@ export function useTradeCounter() {
 
   const myProducts = myProductsQuery.data ?? [];
   const theirProducts = theirProductsQuery.data ?? [];
+  const loadingMyProducts = isPickerLoading(myProductsQuery);
+  const loadingTheirProducts = isPickerLoading(theirProductsQuery);
 
   const myTotal = selectedMine.reduce((sum, p) => sum + (p.product?.price ?? 0), 0);
   const theirTotal = selectedTheirs.reduce((sum, p) => sum + (p.product?.price ?? 0), 0);
@@ -183,6 +195,8 @@ export function useTradeCounter() {
     handleBack,
     myProducts,
     theirProducts,
+    loadingMyProducts,
+    loadingTheirProducts,
     selectedMine,
     selectedTheirs,
     cashAmount,

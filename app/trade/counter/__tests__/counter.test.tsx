@@ -11,8 +11,9 @@ import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
 let mockParams: Record<string, string> = { id: 'trade-1' };
+// The shared router mock carries `useFocusEffect` (the pickers refetch on screen focus).
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
+  ...require('@/test-utils/router-mock').routerMock,
   useLocalSearchParams: () => mockParams,
 }));
 
@@ -131,5 +132,20 @@ describe('J6 · Karşı teklif formu', () => {
     const input = numericInputs[0];
     fireEvent.changeText(input, '12a3.5x');
     expect(screen.getByDisplayValue('123.5')).toBeOnTheScreen();
+  });
+
+  it('J6.5 both pickers show loading, not the empty state, until their lists settle', async () => {
+    getOneMock.mockResolvedValue({ data: { data: tradeFixture() } });
+    const pending: Array<(v: unknown) => void> = [];
+    getAllMock.mockImplementation(() => new Promise((r) => pending.push(r)));
+    renderWithProviders(<TradeCounterScreen />);
+
+    await waitFor(() => expect(pending).toHaveLength(2));
+    expect(screen.getByText('Vereceğim Ürünler')).toBeOnTheScreen();
+    expect(screen.getAllByTestId('loading-indicator').length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText('Takasa uygun ürün bulunamadı.')).toBeNull();
+
+    pending.forEach((resolve) => resolve({ data: { data: [] } }));
+    await waitFor(() => expect(screen.getAllByText('Takasa uygun ürün bulunamadı.')).toHaveLength(2));
   });
 });

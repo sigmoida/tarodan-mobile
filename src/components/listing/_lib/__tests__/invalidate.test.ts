@@ -17,6 +17,9 @@ function staleAfter(productId?: string) {
     search: qk.products.search('araba', { a: 1 }),
     featuredCollector: qk.products.featuredCollector,
     featuredBusiness: qk.products.featuredBusiness,
+    tradeNew: qk.trades.myTradeable('u1', 'p9'),
+    tradeCounter: qk.trades.myTradeableForCounter('u1'),
+    tradeSeller: qk.trades.sellerTradeable('s1'),
     unrelated: qk.orders.all,
   };
   for (const [name, queryKey] of Object.entries(probes)) {
@@ -43,6 +46,14 @@ describe('invalidateListingCaches — ilan değişince tek paylaşılan küme', 
       featuredCollector: true,
       featuredBusiness: true,
     });
+  });
+
+  it('invalidates the trade pickers\' "my tradeable listings" (new trade + counter offer)', () => {
+    const stale = staleAfter('p1');
+    expect(stale.tradeNew).toBe(true);
+    expect(stale.tradeCounter).toBe(true);
+    // Other users' listings do not go stale when my listing changes.
+    expect(stale.tradeSeller).toBe(false);
   });
 
   it('productId verilince yalnız o ürünün detayı; ilgisiz anahtar dokunulmaz', () => {
