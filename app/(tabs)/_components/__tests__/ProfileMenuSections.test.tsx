@@ -72,8 +72,8 @@ it('işletme paneli yalnız business katmanında, Alışveriş grubunda', () => 
 });
 
 describe('ProfileCard — yatay kompakt kimlik başlığı', () => {
-  // Eski alanlar verilse bile başlık rozet çizmez (ücretli + premium profil + skor).
-  const trustF = { ...f, isPaidTier: true, isPremiumProfile: true, trustScore: 87, showTrustScore: true };
+  // Even for a paid-tier member the header draws no badge row.
+  const paidF = { ...f, isPaidTier: true };
 
   it('ad ve e-posta tek satır; "Profili düzenle" kimlik satırının sağında kalem (metin düğme yok)', () => {
     renderWithProviders(<ProfileCard f={f} />);
@@ -101,12 +101,9 @@ describe('ProfileCard — yatay kompakt kimlik başlığı', () => {
     expect(StyleSheet.flatten(screen.getByText('AY').props.style).color).toBe(avatarPlaceholderColors.foreground);
   });
 
-  it('rozet satırı yok: üyelik rozeti, güven skoru ve görünürlük çipi hiçbir durumda çizilmez', () => {
-    renderWithProviders(<ProfileCard f={trustF} />);
+  it('rozet satırı yok: üyelik rozeti hiçbir durumda çizilmez', () => {
+    renderWithProviders(<ProfileCard f={paidF} />);
     expect(screen.queryByTestId('profile-badges')).toBeNull();
-    expect(screen.queryByTestId('profile-trust-visibility')).toBeNull();
     expect(screen.queryByText(i18n.t('profile.tierMemberBadge', { tier: 'Premium' }))).toBeNull();
-    expect(screen.queryByText(i18n.t('seller.trustScoreLabel', { score: 87 }))).toBeNull();
-    expect(screen.queryByText(i18n.t('mobile.profileTrustPublic'))).toBeNull();
   });
 });

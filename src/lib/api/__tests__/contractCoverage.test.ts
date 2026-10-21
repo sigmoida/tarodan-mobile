@@ -517,15 +517,11 @@ const KNOWN_UNDECLARED: Record<string, Set<string>> = {
     'me.membership.tier.maxTotalListings',
     'me.stats.averageRating',
     'me.stats.totalListings',
-    // ── `me.isPremium` / `trustScore` / `trustLevel` / `showTrustScore`: OKUNUYOR
-    // — ama bu 3 dosyanın HİÇBİRİNDEN değil ─────────────────────────────────
-    // `app/(tabs)/_hooks/useProfileData.ts` `userApi.getProfile()`'ı (AYNI
-    // `/users/me` ucu) İKİNCİ kez, HAM `any`-cast ile çağırıyor
-    // (`meProfile`, satır ~58-70) ve dördünü de doğrudan okuyor — bu üç tip
-    // kaynağından hiçbirinde İSİM olarak geçmiyorlar çünkü orada bir TİP değil,
-    // dinamik erişim var. Guard'ın ADI aradığı yer yalnız "tip bildiren"
-    // dosyalar; bu alanlar bildirilmiş bir TİPTEN değil ham sorgu kodundan
-    // okunuyor — guard'ın kapsamadığı ama gerçekte OKUNAN alanlar sınıfı.
+    // ── `me.isPremium` / `trustScore` / `trustLevel` / `showTrustScore`: not read ──
+    // The only reader was the "show my trust score" switch (`useTrustVisibility`), removed with
+    // the seller trust rework: the seller page reads `trust` from `GET /users/:id/profile`, and
+    // `GET /users/me` `trust` has no mobile reader. The API still sends the deprecated fields
+    // for older app versions (contract delta 2026-10-21-seller-trust-score).
     'me.isPremium',
     'me.trustScore',
     'me.trustLevel',

@@ -33,7 +33,7 @@ jest.mock('@/stores/authStore', () => {
 jest.mock('@/lib/api', () => ({
   userApi: {
     updateProfile: jest.fn(() => Promise.resolve({ data: {} })),
-    getProfile: jest.fn(() => Promise.resolve({ data: { isPremium: false, trustScore: null } })),
+    getProfile: jest.fn(() => Promise.resolve({ data: {} })),
   },
   mediaApi: { uploadAvatar: jest.fn() },
   authApi: { checkUsernameAvailability: jest.fn(), requestEmailChange: jest.fn(), verifyEmailChange: jest.fn() },

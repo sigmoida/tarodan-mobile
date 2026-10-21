@@ -135,8 +135,6 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'membership.planLabel',
     // Yalnız ayraç + sürüm numarası (" · v3"); çevrilecek sözcük yok.
     'sellerDocument.versionSuffix',
-    // Yalnız ayraç + interpolasyon (" · {level}"); çevrilecek sözcük yok.
-    'seller.trustScoreLevelSuffix',
     // Yalnız saf interpolasyon ("{current}/{max}"); çevrilecek sözcük yok.
     'ratingModal.charCount',
     // Uluslararası kısaltma — İngilizce'de de "IBAN".
