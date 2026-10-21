@@ -31,6 +31,9 @@ import type { ProductFilterOptions } from '../hooks/useProductFilterOptions';
 
 const { colors, spacing } = theme;
 
+/** Stable empty selection for a group nothing is picked in (keeps the list's memo intact). */
+const NO_SELECTION: readonly string[] = [];
+
 type Props = {
   visible: boolean;
   onClose: () => void;
@@ -162,14 +165,19 @@ function FilterSheetBody({
           },
     );
 
+  // Custom attribute groups are multi-select (OR within a group), as web `toggleCustomAttribute`:
+  // a tap adds or removes one value, the group key goes away with its last value. A URL or saved
+  // search can carry several values per group (`attr.rarity=common,rare`); all of them stay.
   const toggleCustomAttribute = (groupSlug: string, attrSlug: string) => {
-    // Her custom attribute grubu tekli seçim: aynı değere tekrar basınca kaldır,
-    // farklı değere basınca önceki seçimi değiştir. (web ile parite)
     const current = filters.customAttributes?.[groupSlug] ?? [];
-    const isSelected = current.includes(attrSlug);
+    const remaining = current.filter((slug) => slug !== attrSlug);
     const nextMap = { ...(filters.customAttributes ?? {}) };
-    if (isSelected) delete nextMap[groupSlug];
-    else nextMap[groupSlug] = [attrSlug];
+    if (remaining.length < current.length) {
+      if (remaining.length > 0) nextMap[groupSlug] = remaining;
+      else delete nextMap[groupSlug];
+    } else {
+      nextMap[groupSlug] = [...current, attrSlug];
+    }
     onChange({ ...filters, customAttributes: nextMap });
   };
 
@@ -353,9 +361,10 @@ function FilterSheetBody({
           <View style={styles.section}>
             <SectionTitle>{group.name}</SectionTitle>
             <FilterOptionList
-              options={group.attributes.map((a) => ({ id: a.slug, label: a.label }))}
-              selectedId={filters.customAttributes?.[group.slug]?.[0]}
+              options={group.attributes.map((a) => ({ id: a.slug, label: a.label, swatch: a.color }))}
+              selectedIds={filters.customAttributes?.[group.slug] ?? NO_SELECTION}
               onSelect={(o) => toggleCustomAttribute(group.slug, o.id)}
+              testID={`filter-attr-${group.slug}`}
             />
           </View>
         </View>

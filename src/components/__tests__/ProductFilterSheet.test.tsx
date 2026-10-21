@@ -279,3 +279,61 @@ describe('ProductFilterSheet · web parity filters', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ [key]: true }));
   });
 });
+
+describe('ProductFilterSheet · custom attribute groups (multi-select, web toggleCustomAttribute)', () => {
+  const RARITY = {
+    slug: 'rarity',
+    name: 'Nadirlik',
+    manufacturerSlug: null,
+    attributes: [
+      { slug: 'common', label: 'Yaygın', color: null },
+      { slug: 'rare', label: 'Nadir', color: null },
+    ],
+  };
+  const setup = (customAttributes: Record<string, string[]>) => {
+    const onChange = jest.fn();
+    render(
+      <ProductFilterSheet
+        visible
+        onClose={jest.fn()}
+        filters={{ ...EMPTY_FILTERS, customAttributes }}
+        onChange={onChange}
+        onClear={jest.fn()}
+        options={options({ customAttributes: [RARITY] })}
+        resultCount={0}
+      />,
+    );
+    return onChange;
+  };
+  const checkedRows = () =>
+    within(screen.getByTestId('filter-attr-rarity'))
+      .getAllByRole('checkbox')
+      .map((r) => r.props.accessibilityState.checked);
+
+  it('shows every value a URL or saved search carries as checked', () => {
+    setup({ rarity: ['common', 'rare'] });
+    expect(checkedRows()).toEqual([true, true]);
+  });
+
+  it('a tap adds a value next to the picked one instead of replacing it', () => {
+    const onChange = setup({ rarity: ['common'] });
+    fireEvent.press(screen.getByText('Nadir'));
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ customAttributes: { rarity: ['common', 'rare'] } }),
+    );
+  });
+
+  it('unchecking one value keeps the others; the last one drops the group', () => {
+    const onChange = setup({ rarity: ['common', 'rare'] });
+    fireEvent.press(screen.getByText('Nadir'));
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ customAttributes: { rarity: ['common'] } }),
+    );
+  });
+
+  it('removing the only value drops the group key', () => {
+    const onChange = setup({ rarity: ['rare'] });
+    fireEvent.press(screen.getByText('Nadir'));
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ customAttributes: {} }));
+  });
+});
