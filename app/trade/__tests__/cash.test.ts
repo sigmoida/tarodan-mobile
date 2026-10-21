@@ -108,6 +108,14 @@ describe('cashInputValue', () => {
     expect(cashInputValue(Number.POSITIVE_INFINITY)).toBe('');
   });
 
+  it('fixes the prefill to cents, so the parser never refuses it and the cash is never dropped', () => {
+    expect(cashInputValue(0.1 + 0.2)).toBe('0,30');
+    expect(cashInputValue(12.349)).toBe('12,35');
+    for (const amount of [0.1 + 0.2, 12.349, 1250.5]) {
+      expect(isTlAmountRefused(cashInputValue(amount))).toBe(false);
+    }
+  });
+
   it('round-trips through the field and the parser', () => {
     // Amounts as the API returns them (`parseFloat` of the Decimal(10, 2) column), including
     // cents whose binary form is not exact (0.1, 0.29, 19.99).

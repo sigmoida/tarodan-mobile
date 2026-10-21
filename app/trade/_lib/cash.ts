@@ -1,4 +1,4 @@
-import { parseTlAmount, tlAmountInputValue } from '@/lib/shared/tlAmount';
+import { parseTlAmount } from '@/lib/shared/tlAmount';
 
 /**
  * The cash difference of a trade offer, shared by the new-trade wizard and the counter offer.
@@ -40,13 +40,17 @@ export function signedCashAmount(raw: string, direction: CashDirection): number 
 }
 
 /**
- * The field's text for an amount already in the offer (counter prefill), from the shared
- * `tlAmountInputValue`: a decimal comma, as the Turkish keyboard types it, so editing it needs
- * no separator change, and no thousands grouping (unlike `formatPrice`): the field takes one
- * separator only. Not a positive amount: empty.
+ * The field's text for an amount already in the offer (counter prefill): a decimal comma, as the
+ * Turkish keyboard types it, so editing it needs no separator change. No thousands grouping
+ * (unlike `formatPrice`): the field takes one separator only. Not a positive amount: empty.
+ *
+ * Unlike the shared `tlAmountInputValue`, it fixes the amount to cents: the prefill skips the
+ * typing mask, so text the parser refuses ("12,345", or a float artifact) would be sent as no
+ * cash without a word. The column is cents (`Decimal(10, 2)`), so nothing real is moved.
  */
 export function cashInputValue(amount: number): string {
-  return tlAmountInputValue(amount);
+  if (!Number.isFinite(amount) || amount <= 0) return '';
+  return (Number.isInteger(amount) ? String(amount) : amount.toFixed(2)).replace('.', ',');
 }
 
 /** The typed text without other characters (letters, `-`, spaces). */
