@@ -40,6 +40,10 @@ export * from './seller-trust';
 // Saved searches (vendored from tarodan-app `packages/types`)
 export * from './saved-search';
 
+// Listing boost shapes and the listing card action rule (vendored from tarodan-app `packages/types`)
+export * from './boost';
+export * from './product-card-action';
+
 // Common types
 export interface PaginationMeta {
   total: number;

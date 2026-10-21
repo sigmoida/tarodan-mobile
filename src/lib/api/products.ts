@@ -1,5 +1,6 @@
 import { api } from './client';
 import { apiPath } from './path';
+import type { BoostOptionsResponse } from '@/types';
 
 /**
  * İlan kaldırma nedeni — silme (`DELETE` gövdesi) ve pasife alma (`PATCH`)
@@ -11,35 +12,6 @@ export interface ListingRemovalPayload {
   removalReason?: string;
   removalPlatform?: string;
   removalDetail?: string;
-}
-
-/**
- * Response of `GET /products/:id/boost/options`, mirroring the API
- * (`product-boost.service.ts` `getBoostOptions`). Local until the shared
- * `BoostOptionsResponse` is vendored into `src/types` (listing-boost plan, LB5).
- * `label` is a server-side Turkish string; the UI builds its own from `durationDays`.
- */
-export interface BoostDurationOption {
-  durationDays: number;
-  /** Effective price (campaign applied). */
-  price: number;
-  listPrice: number;
-  campaign: boolean;
-  label: string;
-}
-
-export interface BoostPackage {
-  id: string;
-  name: string;
-  slug: string;
-  showcaseOnHome: boolean;
-  options: BoostDurationOption[];
-}
-
-export interface BoostOptionsResponse {
-  enabled: boolean;
-  productPrice: number;
-  packages: BoostPackage[];
 }
 
 // Products API - Web ile aynı endpoint'ler
