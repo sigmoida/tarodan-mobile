@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -10,14 +10,13 @@ import {
   isSessionEndedError,
   signInMethodsErrorCode,
 } from '@/lib/api/reauthError';
-import { useAppleAvailability } from '@/hooks/useAppleAvailability';
 import { useReauth, type ReauthOutcome } from '@/hooks/useReauth';
 import { useSignInMethods, useWriteSignInMethods } from '@/hooks/useSignInMethods';
 import {
   SIGN_IN_PROVIDER_NAMES,
   canConfirmOnDevice,
-  getVisibleSocialProviders,
   visibleSocialProvidersNow,
+  type VisibleSocialProviders,
 } from '@/components/auth/socialProviders';
 import {
   isProviderCancel,
@@ -33,17 +32,32 @@ import { useDoUnlinkProvider } from './useDoUnlinkProvider';
 
 type Write = 'provider_link' | 'provider_unlink';
 
-/** Resolves once a native sheet or dialog that just closed has finished (iOS modal rule). */
+/** Resolves once a modal or native sheet that just closed has finished (iOS modal rule). */
 const afterSheetClosed = () => new Promise<void>((resolve) => runAfterModalClose(resolve));
+
+/**
+ * How long a provider credential is reused for a `REAUTH_REQUIRED` retry. Apple's one-time
+ * `authorizationCode` lives about 5 minutes; an older credential is asked for again, so the API
+ * can still exchange the code and later revoke the Apple token.
+ */
+export const CREDENTIAL_REUSE_MS = 4 * 60_000;
+
+/** The provider's sheet failed or was closed (not an API answer). */
+class CredentialFailure {
+  constructor(readonly cause: unknown) {}
+}
 
 /**
  * Connected accounts (web `useConnectedAccounts`): connect and disconnect Google and Apple, both
  * behind the step-up of `useReauth` (one step-up and one in-memory token for the screen).
  *
- * - Connect, as web: the provider's sheet first (a cancel there costs nothing), then the confirm
- *   step, then the link. The confirm step opens only after the native sheet has closed (iOS modal
- *   rule). A `403 REAUTH_REQUIRED` retry reuses the same credential: the step-up guard runs
- *   before the route, so it was not spent.
+ * - Connect: the confirm step first, then the provider's sheet (opened only after the modal has
+ *   closed, iOS modal rule), then the link at once. Web asks the provider first only because a
+ *   browser popup must open from the click; mobile has no such rule, and this order sends Apple's
+ *   one-time `authorizationCode` (about 5 minutes) while it is fresh however long the confirm
+ *   step took. A `403 REAUTH_REQUIRED` retry reuses the credential while it is younger than
+ *   `CREDENTIAL_REUSE_MS` (the step-up guard runs before the route, so it was not spent). A
+ *   closed sheet costs nothing: the step-up token stays for the next try.
  * - Disconnect: only when `canUnlinkProvider` allows it (D1); the confirmation (with the D2
  *   re-link note) first, then the confirm step, then the unlink.
  * - A device that cannot confirm (no password and no linked provider shown here, ADR 0012) is
@@ -60,7 +74,6 @@ export function useConnectedAccounts() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const signIn = useSignInMethods();
-  const appleAvailable = useAppleAvailability();
   const reauth = useReauth('connected_accounts');
   const link = useDoLinkProvider();
   const unlink = useDoUnlinkProvider();
@@ -68,8 +81,19 @@ export function useConnectedAccounts() {
   const lock = useRef(false);
   const [busyProvider, setBusyProvider] = useState<SignInProvider | null>(null);
 
-  const visible = getVisibleSocialProviders({ appleAvailable });
-  const rows = signIn.methods ? connectedAccountRows(signIn.methods, visible, Platform.OS) : null;
+  // Which providers this device shows, read once before any row renders: the async Apple check
+  // must not make the Apple row appear a moment after the others.
+  const [visible, setVisible] = useState<VisibleSocialProviders | null>(null);
+  useEffect(() => {
+    let active = true;
+    void visibleSocialProvidersNow().then((next) => {
+      if (active) setVisible(next);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const rows = signIn.methods && visible ? connectedAccountRows(signIn.methods, visible, Platform.OS) : null;
 
   /** The freshest known methods (a write or refetch may have landed since the last render). */
   const currentMethods = () => queryClient.getQueryData<SignInMethods>(qk.auth.signInMethods) ?? signIn.methods;
@@ -88,10 +112,12 @@ export function useConnectedAccounts() {
   const fail = (error: unknown, write: Write, provider: SignInProvider) => {
     if (isSessionEndedError(error)) return;
     if (isStaleListRefusal(signInMethodsErrorCode(error))) writeMethods(undefined);
-    if (isServerOrNetworkFailure(error)) {
+    // Not an API answer (a native or JS fault): reported, and only the plain line is shown.
+    const isApiError = !!(error as { isAxiosError?: unknown } | null)?.isAxiosError;
+    if (!isApiError || isServerOrNetworkFailure(error)) {
       captureException(error, { level: 'error', tags: { flow: `auth.${write}`, provider } });
     }
-    toast.error(apiErrorMessage(error, t('common.operationFailed')));
+    toast.error(isApiError ? apiErrorMessage(error, t('common.operationFailed')) : t('common.operationFailed'));
   };
 
   /** The provider's sheet failed (not a cancel): web's plain line, never the native text. */
@@ -115,18 +141,23 @@ export function useConnectedAccounts() {
         reauth.explainUnavailable();
         return;
       }
-      let credential: ProviderCredential;
-      try {
-        credential = await requestProviderCredential(provider);
-      } catch (error) {
-        credentialFailed(provider, error);
-        return;
-      }
-      await afterSheetClosed();
-      const outcome = await reauth.run((reauthToken) => link.mutateAsync({ credential, reauthToken }));
+      let held: { credential: ProviderCredential; at: number } | null = null;
+      const outcome = await reauth.run(async (reauthToken) => {
+        if (!held || Date.now() - held.at > CREDENTIAL_REUSE_MS) {
+          // The confirm step (or a provider sheet it opened) has just closed.
+          await afterSheetClosed();
+          try {
+            held = { credential: await requestProviderCredential(provider), at: Date.now() };
+          } catch (error) {
+            throw new CredentialFailure(error);
+          }
+        }
+        return link.mutateAsync({ credential: held.credential, reauthToken });
+      });
       settle(outcome, t('profile.connectedAccounts.connectSuccess', { provider: SIGN_IN_PROVIDER_NAMES[provider] }));
     } catch (error) {
-      fail(error, 'provider_link', provider);
+      if (error instanceof CredentialFailure) credentialFailed(provider, error.cause);
+      else fail(error, 'provider_link', provider);
     } finally {
       lock.current = false;
       setBusyProvider(null);
@@ -137,6 +168,7 @@ export function useConnectedAccounts() {
     const methods = currentMethods();
     if (lock.current || !methods || !canUnlinkProvider(methods, provider)) return;
     lock.current = true;
+    setBusyProvider(provider);
     try {
       if (!(await canConfirmHere())) {
         reauth.explainUnavailable();
@@ -154,7 +186,6 @@ export function useConnectedAccounts() {
       });
       // `confirm` resolves after its dialog has closed, so the confirm step may open now.
       if (!ok) return;
-      setBusyProvider(provider);
       const outcome = await reauth.run((reauthToken) => unlink.mutateAsync({ provider, reauthToken }));
       settle(outcome, t('profile.connectedAccounts.disconnectSuccess', { provider: name }));
     } catch (error) {
@@ -167,7 +198,7 @@ export function useConnectedAccounts() {
 
   return {
     rows,
-    isLoading: signIn.isLoading,
+    isLoading: signIn.isLoading || (!!signIn.methods && !visible),
     /** Only a failed first load shows the error; cached methods stay on a failed refetch. */
     loadError: !signIn.methods && signIn.isError,
     retry: () => void signIn.refetch(),

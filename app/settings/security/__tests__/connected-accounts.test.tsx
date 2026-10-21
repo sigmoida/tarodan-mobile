@@ -5,8 +5,8 @@
  *   `appleIosOnly`) and, while Google is off there, shows `googleUnavailableAndroid` in place of
  *   Connect; a linked provider always shows its status and Disconnect;
  * - D1: Disconnect is disabled with the hint when `canUnlinkProvider` is false;
- * - Connect: the provider's sheet first, then the confirm step, then the link (Apple sends its
- *   `authorizationCode`, Google the `idToken` only); Disconnect: the confirmation with the D2
+ * - Connect: the confirm step first, then the provider's sheet, then the link at once (Apple's
+ *   one-time `authorizationCode` stays fresh; Google sends the `idToken` only); Disconnect: the confirmation with the D2
  *   re-link note, then the confirm step, then the unlink;
  * - the answer updates the list without a reload; 404/409 refusals re-read the methods;
  * - nothing signs out; only 5xx/network reach Sentry; no token or credential stays in a cache.
@@ -209,6 +209,23 @@ describe('rows per platform', () => {
     expect(screen.queryByTestId('connected-google-hint')).toBeNull();
   });
 
+  it('iOS: the Apple row is there from the first rendered row (no pop-in after the async check)', async () => {
+    let resolveApple!: (v: boolean) => void;
+    const appleSignin = jest.requireMock('@/services/appleSignin') as { isAppleAvailable: () => Promise<boolean> };
+    const original = appleSignin.isAppleAvailable;
+    appleSignin.isAppleAvailable = () => new Promise((r) => (resolveApple = r));
+    try {
+      renderWithProviders(<ConnectedAccountsScreen />);
+      await act(() => Promise.resolve());
+      expect(screen.queryByTestId('connected-google-row')).toBeNull();
+      await act(async () => resolveApple(true));
+      expect(await screen.findByTestId('connected-google-row')).toBeTruthy();
+      expect(screen.getByTestId('connected-apple-row')).toBeTruthy();
+    } finally {
+      appleSignin.isAppleAvailable = original;
+    }
+  });
+
   it('iOS build without the Google client: a Google that is not linked has no row (web parity)', async () => {
     mockGoogleConfigured = false;
     renderWithProviders(<ConnectedAccountsScreen />);
@@ -256,7 +273,7 @@ describe('last-method rule (D1)', () => {
 });
 
 describe('connect', () => {
-  it('Apple on iOS: the sheet first, then the confirm step, then the link with authorizationCode', async () => {
+  it('Apple on iOS: the confirm step first, then the sheet, then the link with authorizationCode', async () => {
     let resolveSheet!: (v: unknown) => void;
     mockSignInWithApple.mockReturnValueOnce(new Promise((r) => (resolveSheet = r)));
     // The refetch after the write never answers: only the written answer can update the row.
@@ -267,17 +284,22 @@ describe('connect', () => {
     await renderScreen();
     fireEvent.press(screen.getByTestId('connected-apple-connect'));
 
-    // The sheet is open: no confirm step over it, nothing sent.
+    // The confirm step comes first: no sheet under the modal.
+    await screen.findByTestId('reauth-password-input');
+    expect(mockSignInWithApple).not.toHaveBeenCalled();
+    expect(screen.getByTestId('connected-google-connect')).toBeDisabled();
+    await confirmPassword('Secret123');
+    expect(mockReauth).toHaveBeenCalledWith({ password: 'Secret123' });
+
+    // Then the sheet, with the modal gone; nothing is linked until it answers.
     await waitFor(() => expect(mockSignInWithApple).toHaveBeenCalledTimes(1));
     expect(screen.queryByTestId('reauth-password-input')).toBeNull();
-    expect(screen.getByTestId('connected-google-connect')).toBeDisabled();
+    expect(mockLinkApple).not.toHaveBeenCalled();
     await act(async () => {
       resolveSheet({ identityToken: 'apple-id-token', authorizationCode: 'apple-code' });
     });
 
-    await confirmPassword('Secret123');
     await waitFor(() => expect(toast.success).toHaveBeenCalled());
-    expect(mockReauth).toHaveBeenCalledWith({ password: 'Secret123' });
     expect(mockLinkApple).toHaveBeenCalledWith({
       identityToken: 'apple-id-token',
       authorizationCode: 'apple-code',
@@ -312,18 +334,23 @@ describe('connect', () => {
     });
     await waitFor(() => expect(mockLinkApple).toHaveBeenCalled());
     expect(mockReauth).toHaveBeenCalledWith({ provider: 'google', idToken: 'google-id-token' });
-    expect(mockSignInWithApple.mock.invocationCallOrder[0]).toBeLessThan(
-      mockSignInWithGoogle.mock.invocationCallOrder[0]!,
+    // The confirming Google sheet first, the Apple sheet to link after it.
+    expect(mockSignInWithGoogle.mock.invocationCallOrder[0]).toBeLessThan(
+      mockSignInWithApple.mock.invocationCallOrder[0]!,
     );
   });
 
-  it('closing the provider sheet does nothing: no step-up, no toast, the buttons come back', async () => {
+  it('closing the provider sheet links nothing, says nothing, and keeps the step-up for the next try', async () => {
     mockSignInWithApple.mockRejectedValueOnce(Object.assign(new Error('x'), { code: 'ERR_REQUEST_CANCELED' }));
     await renderScreen();
     fireEvent.press(screen.getByTestId('connected-apple-connect'));
+    await confirmPassword();
     await waitFor(() => expect(screen.getByTestId('connected-apple-connect')).toBeEnabled());
-    expect(mockReauth).not.toHaveBeenCalled();
     expect(mockLinkApple).not.toHaveBeenCalled();
+    // The next try asks for no second confirm step.
+    fireEvent.press(screen.getByTestId('connected-apple-connect'));
+    await waitFor(() => expect(mockLinkApple).toHaveBeenCalled());
+    expect(mockReauth).toHaveBeenCalledTimes(1);
     expect(toast.error).not.toHaveBeenCalled();
     expect(mockCapture).not.toHaveBeenCalled();
   });
@@ -333,19 +360,63 @@ describe('connect', () => {
     mockSignInWithGoogle.mockRejectedValueOnce(devError);
     await renderScreen();
     fireEvent.press(screen.getByTestId('connected-google-connect'));
+    await confirmPassword();
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(t('auth.googleSignInFailed')));
     expect(mockCapture).toHaveBeenCalledWith(devError, {
       level: 'error',
       tags: { flow: 'auth.provider_link', provider: 'google', reason: 'developer_error' },
     });
-    expect(mockReauth).not.toHaveBeenCalled();
+    expect(mockLinkGoogle).not.toHaveBeenCalled();
   });
 
-  it('cancelling the confirm step links nothing and frees the row', async () => {
+  it('a credential older than the reuse window is asked for again on the REAUTH_REQUIRED retry', async () => {
+    const now = jest.spyOn(Date, 'now');
+    let clock = Date.parse('2026-10-21T10:00:00.000Z');
+    now.mockImplementation(() => clock);
+    mockReauth.mockImplementation(async () =>
+      answer({ reauthToken: `tok-${mockReauth.mock.calls.length}`, expiresAt: new Date(clock + 300_000).toISOString() }),
+    );
+    mockLinkApple.mockImplementationOnce(async () => {
+      clock += 5 * 60_000; // the user took long on the second confirm step
+      throw apiError(403, 'REAUTH_REQUIRED');
+    });
+    mockSignInWithApple
+      .mockResolvedValueOnce({ identityToken: 'apple-id-1', authorizationCode: 'code-1' })
+      .mockResolvedValueOnce({ identityToken: 'apple-id-2', authorizationCode: 'code-2' });
+    try {
+      await renderScreen();
+      fireEvent.press(screen.getByTestId('connected-apple-connect'));
+      await confirmPassword();
+      await confirmPassword();
+      await waitFor(() => expect(toast.success).toHaveBeenCalled());
+      expect(mockLinkApple.mock.calls.map(([b]) => [b.authorizationCode, b.reauthToken])).toEqual([
+        ['code-1', 'tok-1'],
+        ['code-2', 'tok-2'],
+      ]);
+    } finally {
+      now.mockRestore();
+    }
+  });
+
+  it('a fault that is no API answer: the plain line (never its text) and a Sentry report', async () => {
+    const fault = new Error('The operation couldn\u2019t be completed');
+    mockLinkApple.mockRejectedValueOnce(fault);
+    await renderScreen();
+    fireEvent.press(screen.getByTestId('connected-apple-connect'));
+    await confirmPassword();
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(t('common.operationFailed')));
+    expect(mockCapture).toHaveBeenCalledWith(fault, {
+      level: 'error',
+      tags: { flow: 'auth.provider_link', provider: 'apple' },
+    });
+  });
+
+  it('cancelling the confirm step opens no sheet, links nothing and frees the row', async () => {
     await renderScreen();
     fireEvent.press(screen.getByTestId('connected-apple-connect'));
     fireEvent.press(await screen.findByTestId('reauth-cancel'));
     await waitFor(() => expect(screen.getByTestId('connected-apple-connect')).toBeEnabled());
+    expect(mockSignInWithApple).not.toHaveBeenCalled();
     expect(mockLinkApple).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
   });
@@ -462,10 +533,13 @@ describe('disconnect', () => {
     );
   });
 
-  it('cancelling the confirmation asks for nothing and sends nothing', async () => {
+  it('cancelling the confirmation asks for nothing and sends nothing; the rows wait meanwhile', async () => {
     await renderScreen();
     fireEvent.press(screen.getByTestId('connected-google-disconnect'));
+    await waitFor(() => expect(alertMock).toHaveBeenCalled());
+    expect(screen.getByTestId('connected-apple-disconnect')).toBeDisabled();
     await answerAlert('cancel');
+    await waitFor(() => expect(screen.getByTestId('connected-apple-disconnect')).toBeEnabled());
     expect(screen.queryByTestId('reauth-password-input')).toBeNull();
     expect(mockReauth).not.toHaveBeenCalled();
     expect(mockUnlink).not.toHaveBeenCalled();

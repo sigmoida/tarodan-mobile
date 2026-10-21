@@ -42,7 +42,7 @@ export function ConnectedAccountRow({ row, isBusy, isLocked, onConnect, onDiscon
         variant="outline"
         size="sm"
         title={t('profile.connectedAccounts.disconnect')}
-        accessibilityLabel={`${t('profile.connectedAccounts.disconnect')} ${name}`}
+        accessibilityLabel={`${name}: ${t('profile.connectedAccounts.disconnect')}`}
         accessibilityHint={hint ?? undefined}
         onPress={onDisconnect}
         isLoading={isBusy}
@@ -56,7 +56,7 @@ export function ConnectedAccountRow({ row, isBusy, isLocked, onConnect, onDiscon
         variant="outline"
         size="sm"
         title={t('profile.connectedAccounts.connect')}
-        accessibilityLabel={`${t('profile.connectedAccounts.connect')} ${name}`}
+        accessibilityLabel={`${name}: ${t('profile.connectedAccounts.connect')}`}
         onPress={onConnect}
         isLoading={isBusy}
         disabled={isLocked}
