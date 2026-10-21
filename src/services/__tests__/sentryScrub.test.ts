@@ -190,6 +190,23 @@ describe('scrubEvent: step-up token and provider proofs (sign-in methods delta 2
     expect(cleaned.extra.status).toBe(403);
   });
 
+  it('a bare `code` in a request body (verification or Google auth code) never leaves; an error `code` stays', () => {
+    const event = {
+      request: { url: '/api/auth/email/verify-change', data: { code: '482913' } },
+      extra: {
+        code: 'ERR_NETWORK',
+        config: { url: '/auth/reauth', data: '{"provider":"google","code":"4/0AbCdEf"}' },
+        response: { status: 400, data: { errorCode: 'REAUTH_FAILED' } },
+      },
+    };
+    const cleaned = scrubEvent(event);
+    const text = JSON.stringify(cleaned);
+    expect(text).not.toContain('482913');
+    expect(text).not.toContain('4/0AbCdEf');
+    expect(cleaned.extra.code).toBe('ERR_NETWORK');
+    expect(cleaned.request.url).toBe('/api/auth/email/verify-change');
+  });
+
   it('the release console log drops them too', () => {
     const { scrubForConsole } = jest.requireActual('@/lib/logger/scrub');
     const text = JSON.stringify(

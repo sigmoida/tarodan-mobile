@@ -81,8 +81,10 @@ const REDACTED_KEYS = new Set([
   // Step-up and provider proofs (sign-in methods delta 2026-10-21): the opaque step-up token
   // (body `reauthToken`, header `X-Reauth-Token`) and the Google / Apple sign-in proofs. Listed
   // by name even where the Sentry name pattern already catches them, so the console log and any
-  // later pattern change keep them out. The bare Google `code` stays: mobile never sends one, and
-  // `code` is the diagnostic error code field.
+  // later pattern change keep them out. A bare `code` is not listed: outside a request body it is
+  // the diagnostic error code. Inside one it is a credential (a verification or Google auth code),
+  // and request bodies never leave the device at all (`data` and `body` below drop them whole),
+  // which covers the web rule "mask a bare code in request bodies only".
   'reauthtoken',
   'x-reauth-token',
   'idtoken',
