@@ -5,19 +5,20 @@ import { parseTlAmount } from '@/lib/shared/tlAmount';
 import { priceFieldError } from './priceRules';
 
 /**
- * #81: ListingForm form alanlari icin zod schema (useZodForm). watch/setValue
- * koprusuyle mevcut f.field / f.setField sozlesmesi korunur, boylece ListingSections
- * ve ListingForm.tsx degismez. Sayisal alanlar text input'a bagli oldugu icin string
- * tutulur ve submit'te Number()'a cevrilir (payload byte-byte korunur). Not: title
- * min 5 (web min 1'den farkli, mobil davranisi korunur).
+ * #81: the zod schema of the ListingForm fields (useZodForm). The watch/setValue bridge keeps
+ * the f.field / f.setField contract, so ListingSections and ListingForm.tsx do not change.
+ * Numeric fields are bound to text inputs, so they stay strings and are read at submit time:
+ * the price with the shared TL amount parser (`tlAmountValue`, never `Number()`, which reads
+ * "1.000" as 1 and "1250,50" as NaN), the counts with `Number()`. Note: title min 5 (web
+ * min 1; the mobile rule is kept).
  *
- * Schema-DISI kalan (useState): sale/discount alanlari (salePrice/saleStartDate/
- * saleEndDate), images, customAttributes, reservedQty, reactivate
- * alanlari, productLoading. Bunlar server/UI state.
+ * Outside the schema (useState): the sale/discount fields (salePrice/saleStartDate/
+ * saleEndDate), images, customAttributes, reservedQty, the reactivate fields and
+ * productLoading. These are server/UI state.
  *
- * `t` argüman olarak alınıyor (i18n): zod mesajları şema KURULURKEN çözülüyor,
- * modül seviyesinde kurulan bir şema metnini ilk yüklenen dilde donduruyordu —
- * bkz. `src/test-utils/schema.ts`.
+ * `t` is an argument (i18n): zod messages are resolved when the schema is BUILT, so a schema
+ * built at module level froze its copy in the first loaded language; see
+ * `src/test-utils/schema.ts`.
  */
 /** Sunucu sınırları — `apps/api/src/modules/product/dto/create-product.dto.ts`. */
 export const TITLE_MAX = 200;
