@@ -364,6 +364,8 @@ describe('price text (shared TL amount parser, web parity)', () => {
   it('a refused discount price blocks the save instead of silently clearing the sale', async () => {
     await openEdit();
     fireEvent.changeText(screen.getByPlaceholderText(SALE_PLACEHOLDER), '1.000');
+    // Refused at once under the discount field (before blur or save), as the price field is.
+    expect(await screen.findByText(REFUSED)).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
     await waitFor(() => expect(errorToast).toHaveBeenCalledWith(REFUSED));
     expect(productsApi.update).not.toHaveBeenCalled();
