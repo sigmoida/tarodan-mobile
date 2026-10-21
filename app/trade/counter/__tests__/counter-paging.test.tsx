@@ -464,6 +464,43 @@ describe('counter pickers, loading on open and load errors (web B5 rules)', () =
     expect(screen.queryByText('Car m1')).toBeNull();
   });
 
+  it('a trade that never loaded (403 on open) fails the screen with the generic copy; retry loads it', async () => {
+    mockedMy.mockImplementation(server(() => range('m', 1, 2)));
+    mockedGetOne.mockRejectedValueOnce(Object.assign(new Error('forbidden'), { response: { status: 403 } }));
+    const { queryClient } = renderWithProviders(<TradeCounterScreen />);
+    expect(await screen.findByTestId('error-state')).toBeOnTheScreen();
+    // The my picker loaded fine: the failure is the trade's, so not the picker copy.
+    await waitFor(() =>
+      expect(queryClient.getQueryState(qk.trades.myTradeableForCounter('u1'))?.status).toBe('success'),
+    );
+    await flushQueryNotifications();
+    expect(screen.queryByText(i18n.t('collection.productsLoadFailed'))).toBeNull();
+    expect(screen.getByText(i18n.t('mobile.errorSomethingWrong'))).toBeOnTheScreen();
+    expect(screen.queryByTestId('trade-counter-submit')).toBeNull();
+
+    fireEvent.press(screen.getByText(i18n.t('mobile.errorRetry')));
+    expect(await screen.findByText('Car m1')).toBeOnTheScreen();
+    expect(screen.queryByTestId('error-state')).toBeNull();
+    expect(mockedGetOne).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('trade-counter-submit')).toBeOnTheScreen();
+  });
+
+  it('a 404 on open (the trade is gone) shows "not found" with no editor and no submit', async () => {
+    mockedMy.mockImplementation(server(() => range('m', 1, 2)));
+    mockedGetOne.mockRejectedValue(Object.assign(new Error('not found'), { response: { status: 404 } }));
+    const { queryClient } = renderWithProviders(<TradeCounterScreen />);
+    expect(await screen.findByText(i18n.t('trade.notFoundTitle'))).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(queryClient.getQueryState(qk.trades.myTradeableForCounter('u1'))?.status).toBe('success'),
+    );
+    await flushQueryNotifications();
+    expect(screen.getByText(i18n.t('trade.notFoundTitle'))).toBeOnTheScreen();
+    expect(screen.queryByTestId('error-state')).toBeNull();
+    expect(screen.queryByText('Car m1')).toBeNull();
+    expect(screen.queryByTestId('trade-counter-submit')).toBeNull();
+    expect(mockedCounter).not.toHaveBeenCalled();
+  });
+
   it('when the trade and a picker both failed, one retry reloads both', async () => {
     mockedGetOne.mockRejectedValueOnce(new Error('network'));
     mockedMy.mockImplementation(server(() => range('m', 1, 2)));
