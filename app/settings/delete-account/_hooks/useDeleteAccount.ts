@@ -4,6 +4,8 @@ import { router } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from '@/ui';
 import { userApi } from '@/lib/api';
+import { isServerOrNetworkFailure, isSessionEndedError } from '@/lib/api/reauthError';
+import { useReauth } from '@/hooks/useReauth';
 import { useAuthStore } from '@/stores/authStore';
 import { logger } from '@/services/logger';
 import { matchesDeleteKeyword } from '../_lib/confirm';
@@ -24,16 +26,21 @@ function goHomeTab(): void {
 }
 
 /**
- * Hesap silme controller'ı (web `useDeleteAccount` eşi). Sözleşme değişmez:
- * `DELETE /users/me`; sunucu hesabı anonimleştirir, engel varsa 400 `errors[]`/`details`.
+ * Account deletion controller (web `useDeleteAccount`): `DELETE /users/me`; the server
+ * anonymises the account, or answers 400 `errors[]`/`details` when something blocks it.
  *
- * - Onay: kullanıcı anahtar kelimeyi yazmadan (`canSubmit`) istek atılmaz.
- * - Çift gönderim yok: ref kilidi (aynı karede iki dokunuş) + `isPending`; başarıdan sonra
- *   da kilitli kalır (çıkış/yönlendirme sürerken).
- * - Silme hatası ve çıkış ayrı `try`: silme reddi → engel listesi (`failure`); silme BAŞARILI
- *   olduktan sonra çıkış düşerse yine başarı akışı ("Hesap silinemedi" gösterilmez).
- * - Başarı: toast `settings.accountDeleted` → YALNIZ yerel çıkış
- *   (`logout({ reason: 'accountDeleted' })` — sunucu token'ları sildi; ağ çağrısı yok) → ana sayfa.
+ * - Typed confirmation: no request until the keyword is typed (`canSubmit`).
+ * - Step-up: the confirm step runs first and its token goes in `X-Reauth-Token`
+ *   (`useReauth`). A device that cannot confirm (no password, no linked provider shown here)
+ *   still sends the request without a token, which the API accepts while
+ *   `auth_require_reauth_for_sensitive_actions` is off: deletion is never blocked on the device
+ *   (App Store 5.1.1(v), Play account deletion). Cancelling the confirm step sends nothing.
+ * - No double submit: a ref lock (two taps in one frame) plus `busy`; it stays locked after
+ *   success (while sign-out and navigation run).
+ * - The deletion error and the sign-out have separate `try`s: a refusal shows the blockers
+ *   (`failure`); a sign-out failure after a SUCCESSFUL deletion still runs the success path.
+ * - Success: toast `settings.accountDeleted`, then a LOCAL sign-out only
+ *   (`logout({ reason: 'accountDeleted' })`, the server already dropped the tokens), then home.
  */
 export function useDeleteAccount() {
   const { t } = useTranslation();
@@ -44,10 +51,16 @@ export function useDeleteAccount() {
   const [deleted, setDeleted] = useState(false);
   const lock = useRef(false);
 
-  const mutation = useMutation({ mutationFn: () => userApi.deleteAccount() });
+  const reauth = useReauth('account_delete');
+  const mutation = useMutation({
+    mutationFn: (reauthToken: string | undefined) => userApi.deleteAccount(reauthToken),
+    // The variables hold the step-up token: no cache entry after use.
+    gcTime: 0,
+  });
 
   const confirmed = matchesDeleteKeyword(confirmText, keyword);
-  const busy = mutation.isPending || deleted;
+  const busy = mutation.isPending || reauth.pending || deleted;
+  const { run } = reauth;
 
   const submit = useCallback(async () => {
     if (lock.current || !confirmed) return;
@@ -55,9 +68,18 @@ export function useDeleteAccount() {
     setFailure(null);
 
     try {
-      await mutation.mutateAsync();
+      const outcome = await run((token) => mutation.mutateAsync(token), { allowUnconfirmed: true });
+      if (outcome.status !== 'done') {
+        lock.current = false;
+        return;
+      }
     } catch (error) {
       lock.current = false;
+      // The client already handled an ended session (sign-out, login screen).
+      if (isSessionEndedError(error)) return;
+      if (isServerOrNetworkFailure(error)) {
+        logger.captureException(error, { level: 'error', tags: { flow: 'account_delete' } });
+      }
       const f = describeDeleteAccountError(error, t('profile.deleteAccountFailed'));
       if (f.blocked) setFailure(f);
       else toast.error(f.title);
@@ -73,7 +95,7 @@ export function useDeleteAccount() {
       logger.captureException(error, { level: 'warning', tags: { flow: 'accountDeleted' } });
     }
     goHomeTab();
-  }, [confirmed, logout, mutation, t]);
+  }, [confirmed, logout, mutation, run, t]);
 
   return {
     keyword,
@@ -84,6 +106,7 @@ export function useDeleteAccount() {
     deleted,
     failure,
     submit,
+    reauthModal: reauth.modal,
   };
 }
 
