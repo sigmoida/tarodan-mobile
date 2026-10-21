@@ -101,7 +101,7 @@ describe('ProfileCard — yatay kompakt kimlik başlığı', () => {
     expect(StyleSheet.flatten(screen.getByText('AY').props.style).color).toBe(avatarPlaceholderColors.foreground);
   });
 
-  it('rozet satırı yok: üyelik rozeti hiçbir durumda çizilmez', () => {
+  it('no badge row: the membership badge is never drawn', () => {
     renderWithProviders(<ProfileCard f={paidF} />);
     expect(screen.queryByTestId('profile-badges')).toBeNull();
     expect(screen.queryByText(i18n.t('profile.tierMemberBadge', { tier: 'Premium' }))).toBeNull();

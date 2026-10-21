@@ -43,8 +43,8 @@ export function useSellerProfile() {
         const response = await userApi.getPublicProfile(String(id));
         return (response.data as any)?.data || response.data;
       } catch (error) {
-        // Gerçek 404 (silinmiş / engellenmiş profil) → "bulunamadı" (null); ağ/5xx FIRLATILIR
-        // → ekran ErrorState + yeniden dene (önceden her hata "satıcı bulunamadı" görünüyordu).
+        // A real 404 (deleted / blocked profile) -> "not found" (null); network/5xx THROWS
+        // -> the screen shows ErrorState + retry (before, every error read "seller not found").
         if (isNotFoundError(error)) return null;
         throw error;
       }

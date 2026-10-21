@@ -86,8 +86,8 @@ beforeEach(() => {
   mockUser = { ...baseUser };
 });
 
-describe('Profili düzenle · güven skoru anahtarı kaldırıldı', () => {
-  it('görünürlük anahtarı çizilmez, ekran /users/me\'yi ikinci kez çekmez ve showTrustScore göndermez', () => {
+describe('Edit profile: the trust score switch is gone', () => {
+  it('draws no visibility switch, does not fetch /users/me a second time and never sends showTrustScore', () => {
     renderScreen();
     expect(screen.queryByTestId('edit-profile-trust-section')).toBeNull();
     expect(screen.queryByTestId('edit-profile-trust-visibility')).toBeNull();
