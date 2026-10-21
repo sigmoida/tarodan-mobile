@@ -11,6 +11,7 @@ import { renderWithProviders } from '@/test-utils';
 import { useCartStore } from '@/stores/cartStore';
 import { useCartWritesStore } from '@/stores/cartWritesStore';
 import { captureException } from '@/services/sentry';
+import { advanceSessionEpoch } from '@/lib/api/sessionState';
 import { containers } from '@/theme';
 import { ProductCard, type ProductCardProduct } from '../ProductCard';
 
@@ -228,7 +229,7 @@ describe('ProductCard action: cart toggle', () => {
 
     (cartApi.removeItem as jest.Mock).mockRejectedValueOnce({ response: { status: 503, data: {} } });
     fireEvent.press(cartButton()!);
-    await waitFor(() => expect(toastError).toHaveBeenCalledWith('Sepetten çıkarılamadı'));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('İşlem başarısız'));
     expect(useCartStore.getState().items.map((i) => i.productId)).toEqual(['p1']);
     expect(toastSuccess).not.toHaveBeenCalled();
     expect(cartButton()!.props.accessibilityLabel).toBe('Hot Wheels Supra ürününü sepetten çıkar');
@@ -265,7 +266,7 @@ describe('ProductCard action: cart toggle', () => {
       throw new Error('interceptor');
     });
     fireEvent.press(cartButton()!);
-    await waitFor(() => expect(toastError).toHaveBeenCalledWith('Sepetten çıkarılamadı'));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('İşlem başarısız'));
     expect(useCartStore.getState().items).toHaveLength(1);
     expect(toastSuccess).not.toHaveBeenCalled();
     expect(cartButton()!.props.accessibilityState).toEqual(expect.objectContaining({ busy: false }));
@@ -281,7 +282,7 @@ describe('ProductCard action: cart toggle', () => {
 
     (cartApi.removeItem as jest.Mock).mockRejectedValueOnce({ message: 'Network Error' });
     fireEvent.press(cartButton()!);
-    await waitFor(() => expect(toastError).toHaveBeenCalledWith('Sepetten çıkarılamadı'));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('İşlem başarısız'));
     expect(useCartStore.getState().items).toHaveLength(1);
     // The server may have applied it: the merge sends the restored line again.
     expect(useCartStore.getState().mergePendingFor).toBe('buyer-1');
@@ -299,11 +300,52 @@ describe('ProductCard action: cart toggle', () => {
     let rejectRemove: ((e: unknown) => void) | undefined;
     (cartApi.removeItem as jest.Mock).mockImplementationOnce(() => new Promise((_r, j) => (rejectRemove = j)));
     fireEvent.press(cartButton()!);
-    // Logout while the request runs: the auth user is gone (the cart was cleared).
+    // Logout while the request runs: the session changes and the cart is cleared.
     mockAuth = { isAuthenticated: false, user: null };
+    advanceSessionEpoch();
     await act(async () => rejectRemove?.({ response: { status: 401, data: {} } }));
     expect(useCartStore.getState().items).toHaveLength(0);
     expect(useCartStore.getState().mergePendingFor).toBeNull();
+    expect(toastError).not.toHaveBeenCalled();
+    expect(toastSuccess).not.toHaveBeenCalled();
+  });
+
+  it('member: a removal that succeeds after a re-login says nothing in the new session', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'buyer-1' } };
+    renderWithProviders(<ProductCard product={listing} />);
+    fireEvent.press(cartButton()!);
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
+    await waitFor(() => expect(cartButton()!.props.accessibilityState).toEqual(expect.objectContaining({ busy: false })));
+    toastSuccess.mockClear();
+
+    let resolveRemove: ((v: unknown) => void) | undefined;
+    (cartApi.removeItem as jest.Mock).mockImplementationOnce(() => new Promise((r) => (resolveRemove = r)));
+    fireEvent.press(cartButton()!);
+    // Same user, new session: the epoch moved on.
+    advanceSessionEpoch();
+    await act(async () => resolveRemove?.({ data: {} }));
+    expect(toastSuccess).not.toHaveBeenCalled();
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it('member: an add the server refuses after logout leaves the next session cart alone', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'buyer-1' } };
+    let rejectAdd: ((e: unknown) => void) | undefined;
+    (cartApi.addItem as jest.Mock).mockImplementationOnce(() => new Promise((_r, j) => (rejectAdd = j)));
+    renderWithProviders(<ProductCard product={listing} />);
+    fireEvent.press(cartButton()!);
+    // Logout, and the next session adds the same listing locally.
+    advanceSessionEpoch();
+    mockAuth = { isAuthenticated: false, user: null };
+    useCartStore.setState({ items: [], deselectedIds: [], mergePendingFor: null });
+    useCartWritesStore.getState().reset();
+    fireEvent.press(cartButton()!);
+    expect(useCartStore.getState().items).toHaveLength(1);
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Ürün sepete eklendi'));
+    toastSuccess.mockClear();
+
+    await act(async () => rejectAdd?.({ response: { status: 409, data: { message: 'Satılamaz' } } }));
+    expect(useCartStore.getState().items).toHaveLength(1);
     expect(toastError).not.toHaveBeenCalled();
     expect(toastSuccess).not.toHaveBeenCalled();
   });

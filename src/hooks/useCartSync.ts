@@ -8,6 +8,7 @@ import { toast } from '@/ui';
 import i18n from '@/i18n/config';
 import { errorText } from '@/lib/api/errorText';
 import { classifyCartError } from '@/lib/cart/mergeLocalCart';
+import { getSessionEpoch } from '@/lib/api/sessionState';
 
 type NewCartItem = Omit<CartItem, 'id' | 'quantity' | 'addedAt'>;
 
@@ -21,20 +22,20 @@ export type CartWriteResult = 'applied' | 'rejected';
 type OnCartWriteSettled = (result: CartWriteResult) => void;
 
 /**
- * Sepet yazma işlemleri — yerel store'a yazar, üyede sunucuya da aynalar.
+ * Cart writes: each writes the local store and, for a member, mirrors it to the server.
  *
- * Faz A kararı: checkout hâlâ yerel store'dan besleniyor, bu yüzden yerel yazma
- * OTORİTE, sunucu çağrısı best-effort. GEÇİCİ hata (5xx/ağ) kullanıcının
- * sepetini bozmaz; Sentry'ye düşer ve bir sonraki yazmada/senkronda toparlanır.
+ * Phase A decision: checkout still reads the local store, so the local write is authoritative
+ * and the server call is best effort. A transient error (5xx, network) does not break the user's
+ * cart; it goes to Sentry and is recovered by the next write or the cart merge.
  *
- * Ama **4xx başka bir şeydir**: sunucu o satırı REDDETTİ ve bu kalıcı
- * (askıya alınmış satıcı, satışa uygun olmayan ürün, stok…). Eskiden bu da
- * yutuluyordu; satır sepette kalıyor, çağıranlar "Sepete eklendi" diyordu ve
- * kullanıcı satın alınamaz bir ürünü sepetinde satın alınabilir görüyordu.
- * Artık iyimser yazma geri alınır ve sunucunun mesajı gösterilir.
+ * A 4xx is different: the server refused the line for good (suspended seller, listing not for
+ * sale, stock...). The optimistic write is undone and the server's message shown, so the cart
+ * never shows a listing that cannot be bought as buyable.
  *
- * Bileşenler store aksiyonlarını doğrudan çağırmak yerine bunu kullanmalı ki
- * iki taraf birbirinden kaymasın.
+ * A result that lands after the session changed (logout, or a new login, `getSessionEpoch`)
+ * touches nothing and shows nothing: the cart is no longer the one the write was for.
+ *
+ * Components use this instead of the store actions, so the two carts do not drift.
  */
 export function useCartSync() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -42,13 +43,13 @@ export function useCartSync() {
   const queryClient = useQueryClient();
 
   /**
-   * @param onReject KESİN retde çağrılır — iyimser yazmayı geri almak ve sunucunun mesajını
-   *   göstermek için: satırın kalıcı 4xx reddi ya da (kullanıcının kendi eylemi olduğu için)
-   *   kesin 403 (hesap düzeyi: e-posta doğrulanmadı / ban…, ya da satıra özgü). 401 / 408 / 429 /
-   *   tanınmayan 403 / 5xx / ağ geçicidir, ret DEĞİLDİR (`classifyCartError`).
-   *   Verilmezse eski davranış (yalnız raporla) korunur.
-   * @param resyncOnTransient geçici hatada satır sunucuya ulaşmadı: yerel satır KORUNUR ve
-   *   sepet birleştirmesi bekliyor işaretlenir (`useCartMergeOnLogin` sonra gönderir).
+   * @param onReject called on a final refusal, to undo the optimistic write and show the
+   *   server's message: a permanent 4xx for the line, or a definite 403 (account level: e-mail
+   *   not verified, ban...; or line specific), since the write was the user's own action. 401 /
+   *   408 / 429 / an unrecognised 403 / 5xx / network are transient, not a refusal
+   *   (`classifyCartError`). Without it the error is only reported.
+   * @param resyncOnTransient on a transient error the line may not have reached the server: the
+   *   local line stays and the cart is marked for merge (`useCartMergeOnLogin` sends it later).
    */
   const mirror = (
     run: () => Promise<unknown>,
@@ -57,13 +58,21 @@ export function useCartSync() {
     resyncOnTransient = false,
   ): Promise<CartWriteResult> => {
     if (!isAuthenticated) return Promise.resolve('applied');
+    const epoch = getSessionEpoch();
     // The executor runs `run` at once, and a synchronous throw (an interceptor) becomes a
     // rejection: it takes the same path as a failed request instead of escaping after the local
     // write.
     return new Promise((resolve) => resolve(run()))
-      .then(() => queryClient.invalidateQueries({ queryKey: qk.cart.mine }))
-      .then((): CartWriteResult => 'applied')
+      .then(async (): Promise<CartWriteResult> => {
+        if (getSessionEpoch() !== epoch) return 'rejected';
+        await queryClient.invalidateQueries({ queryKey: qk.cart.mine });
+        return 'applied';
+      })
       .catch((error): CartWriteResult => {
+        if (getSessionEpoch() !== epoch) {
+          captureException(error, { level: 'warning', tags: { flow } });
+          return 'rejected';
+        }
         const kind = classifyCartError(error);
         let result: CartWriteResult = 'applied';
         if (kind === 'rejected' || kind === 'accountBlocked' || kind === 'itemForbidden') {
@@ -112,9 +121,9 @@ export function useCartSync() {
      * not apply is undone: the line comes back where it was, with its checkout selection, and the
      * reason is shown (`rejected`). On a transient error the server may or may not have applied
      * it, so the cart is also marked for merge: the merge sends the restored line again and both
-     * carts agree. A 404 means the server cart did not hold the line: the removal stands. A
-     * failure that lands after the session ended (logout) touches nothing: the cart is no longer
-     * this user's.
+     * carts agree. A 404 means the server cart did not hold the line: the removal stands (a
+     * deliberate difference from web, whose cart is the server's: here the local line was the
+     * only copy). A result after a session change touches nothing.
      */
     removeByProductId: (productId: string, onSettled?: OnCartWriteSettled) => {
       const { items, deselectedIds } = useCartStore.getState();
@@ -126,36 +135,38 @@ export function useCartSync() {
         void mirror(() => cartApi.removeItem(productId), 'cart.remove');
         return;
       }
-      if (!isAuthenticated || !userId) {
+      if (!isAuthenticated) {
         onSettled('applied');
         return;
       }
+      const epoch = getSessionEpoch();
       const refreshServerCart = () => void queryClient.invalidateQueries({ queryKey: qk.cart.mine });
       // The executor runs at once, and a synchronous throw (an interceptor) becomes a rejection,
       // so the undo below covers it too.
       new Promise((resolve) => resolve(cartApi.removeItem(productId))).then(
         () => {
+          if (getSessionEpoch() !== epoch) return onSettled('rejected');
           refreshServerCart();
           onSettled('applied');
         },
         (error: unknown) => {
+          if (getSessionEpoch() !== epoch) {
+            captureException(error, { level: 'warning', tags: { flow: 'cart.remove' } });
+            return onSettled('rejected');
+          }
           if ((error as { response?: { status?: number } })?.response?.status === 404) {
             refreshServerCart();
             onSettled('applied');
             return;
           }
           captureException(error, { level: 'warning', tags: { flow: 'cart.remove' } });
-          if (useAuthStore.getState().user?.id !== userId) {
-            onSettled('rejected');
-            return;
-          }
           if (before) useCartStore.getState().restoreItem(before, { index, deselected });
           const kind = classifyCartError(error);
-          if (kind === 'transient' || kind === 'forbiddenUnknown') {
+          if (userId && (kind === 'transient' || kind === 'forbiddenUnknown')) {
             useCartStore.getState().markMergePending(userId);
           }
           refreshServerCart();
-          toast.error(errorText(error, i18n.t('product.removeFromCartFailed')));
+          toast.error(errorText(error, i18n.t('common.operationFailed')));
           onSettled('rejected');
         },
       );

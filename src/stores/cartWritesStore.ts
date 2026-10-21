@@ -23,16 +23,20 @@ interface CartWritesState {
 
 let nextToken = 1;
 
+/** Own keys only: a listing id such as `constructor` is not on the object's prototype chain here. */
+const has = (inFlight: Record<string, number>, productId: string) =>
+  Object.prototype.hasOwnProperty.call(inFlight, productId);
+
 export const useCartWritesStore = create<CartWritesState>((set, get) => ({
   inFlight: {},
   begin: (productId) => {
-    if (productId in get().inFlight) return null;
+    if (has(get().inFlight, productId)) return null;
     const token = nextToken++;
     set({ inFlight: { ...get().inFlight, [productId]: token } });
     return token;
   },
   end: (productId, token) => {
-    if (get().inFlight[productId] !== token) return;
+    if (!has(get().inFlight, productId) || get().inFlight[productId] !== token) return;
     const { [productId]: _ended, ...rest } = get().inFlight;
     set({ inFlight: rest });
   },
@@ -40,4 +44,4 @@ export const useCartWritesStore = create<CartWritesState>((set, get) => ({
 }));
 
 /** Whether a card cart write for the listing runs (a per-listing selector). */
-export const selectCartWriteBusy = (productId: string) => (s: CartWritesState) => productId in s.inFlight;
+export const selectCartWriteBusy = (productId: string) => (s: CartWritesState) => has(s.inFlight, productId);

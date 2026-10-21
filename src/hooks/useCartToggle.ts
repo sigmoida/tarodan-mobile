@@ -43,7 +43,7 @@ export function useCartToggle(listing: CartListing) {
       // handler: it is reported and the press says it failed.
       useCartWritesStore.getState().end(productId, token);
       captureException(error, { level: 'warning', tags: { flow: remove ? 'cart.remove' : 'cart.add' } });
-      toast.error(remove ? t('product.removeFromCartFailed') : t('cart.addToCartFailed'));
+      toast.error(t('common.operationFailed'));
     }
   };
 
