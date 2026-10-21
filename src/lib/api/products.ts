@@ -58,6 +58,8 @@ export const productsApi = {
       scales: string[];
       manufacturers: Array<{ id: string; name: string; slug: string }>;
       materials: Array<{ slug: string; label: string }>;
+      /** Global "color" attribute group; `color` is the hex swatch. */
+      colors?: Array<{ slug: string; label: string; color: string | null }>;
       // Genel gruplar (manufacturerSlug null) her zaman; üreticiye bağlılar (örn Hot Wheels)
       // yalnız `manufacturer` verilince eklenir.
       customAttributes?: Array<{

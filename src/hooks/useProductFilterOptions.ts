@@ -11,7 +11,10 @@ import { qk } from '@/lib/query';
 export type FilterCategory = { id: string; name: string; slug: string };
 export type FilterBrand = { id: string; name: string; slug: string };
 export type FilterManufacturer = { id: string; name: string; slug: string };
+export type FilterCarModel = { id: string; name: string; slug: string; brandId: string };
 export type FilterMaterial = { slug: string; label: string };
+/** `color` is the hex swatch served by the catalog (data, not a theme colour). */
+export type FilterColor = { slug: string; label: string; color: string | null };
 export type FilterCustomAttribute = { slug: string; label: string; color: string | null };
 export type FilterCustomAttributeGroup = {
   slug: string;
@@ -25,8 +28,12 @@ export type ProductFilterOptions = {
   categories: FilterCategory[];
   brands: FilterBrand[];
   manufacturers: FilterManufacturer[];
+  /** All car models; the sheet narrows them by the selected brand (web `modelsForBrand`). */
+  carModels: FilterCarModel[];
   scales: string[];
   materials: FilterMaterial[];
+  /** Colours of the global "color" attribute group (multi-select in the sheet). */
+  colors: FilterColor[];
   /**
    * Özel attribute grupları: genel olanlar (`manufacturerSlug: null`) her zaman,
    * seçili üreticiye bağlı olanlar (örn Hot Wheels) üretici seçilince eklenir.
@@ -80,6 +87,7 @@ export function useProductFilterOptions(manufacturerSlug?: string): ProductFilte
     categories,
     brands: data?.brands ?? NO_OPTIONS,
     manufacturers: data?.manufacturers ?? NO_OPTIONS,
+    carModels: data?.carModels ?? NO_OPTIONS,
     // Sunucu 16'lık sabit ölçek listesini KALDIRDI: boş dizi artık meşru bir
     // yanıt ("katalogda ölçek yok"), hata değil. Eskiden boş görünce istemci
     // listesi konuyordu ve kullanıcı katalogda karşılığı olmayan bir ölçekle
@@ -88,6 +96,7 @@ export function useProductFilterOptions(manufacturerSlug?: string): ProductFilte
     // ayırıyor, filtre bölümü boş listeye dayanıklı.
     scales: data?.scales ?? [],
     materials: data?.materials ?? [],
+    colors: data?.colors ?? NO_OPTIONS,
     customAttributes: data?.customAttributes ?? [],
     isLoading: filtersQuery.isLoading,
     isError: filtersQuery.isError,

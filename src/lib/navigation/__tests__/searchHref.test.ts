@@ -117,6 +117,12 @@ describe('filtersFromSearchParams — web /listings parametre adları', () => {
         categoryId: 'c1',
         manufacturer: 'Hot Wheels',
         manufacturerId: 'm1',
+        carModelId: 'cm1',
+        carModel: 'F40',
+        color: 'red,black',
+        preOrder: 'true',
+        limited: 'true',
+        set: 'true',
         'attr.hw-rarity': 'th, sth',
       }),
     ).toEqual({
@@ -135,6 +141,12 @@ describe('filtersFromSearchParams — web /listings parametre adları', () => {
       categoryId: 'c1',
       manufacturer: 'Hot Wheels',
       manufacturerId: 'm1',
+      carModelId: 'cm1',
+      carModel: 'F40',
+      colors: ['red', 'black'],
+      preOrder: true,
+      limited: true,
+      set: true,
       customAttributes: { 'hw-rarity': ['th', 'sth'] },
     });
     expect(filtersFromSearchParams({ q: 'mini', search: 'x' }).search).toBe('mini');
@@ -169,6 +181,20 @@ describe('curatedEntryLabelKey — vitrin bağlam başlığı', () => {
     expect(curatedEntryLabelKey({ ...trade, scale: '1:64' })).toBeNull();
     expect(curatedEntryLabelKey({ ...trade, search: 'ferrari' })).toBeNull();
     expect(curatedEntryLabelKey({ ...trade, customAttributes: { rarity: [] } })).toBe('nav.tradeShowcase');
+  });
+
+  it('the new filters count as a change too: a colour, car model, pre-order, limited or set drops the title', () => {
+    const trade = filtersFromSearchParams(paramsOf(searchEntryHref('tradeShowcase')));
+    expect(curatedEntryLabelKey({ ...trade, colors: [] })).toBe('nav.tradeShowcase');
+    for (const extra of [
+      { colors: ['red'] },
+      { carModelId: 'cm1' },
+      { preOrder: true },
+      { limited: true },
+      { set: true },
+    ]) {
+      expect(curatedEntryLabelKey({ ...trade, ...extra })).toBeNull();
+    }
   });
 });
 

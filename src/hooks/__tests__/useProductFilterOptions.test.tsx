@@ -70,3 +70,32 @@ describe('useProductFilterOptions · boş scales toleransı', () => {
     expect(result.current.materials).toEqual([]);
   });
 });
+
+describe('useProductFilterOptions · car models and colours', () => {
+  beforeEach(() => {
+    (productsApi.getFilters as jest.Mock).mockReset();
+  });
+
+  it('passes the served car models and colour swatches through as they are', async () => {
+    const carModels = [{ id: 'cm1', name: 'F40', slug: 'f40', brandId: 'b1' }];
+    const colors = [{ slug: 'red', label: 'Kırmızı', color: 'swatch-red' }];
+    (productsApi.getFilters as jest.Mock).mockResolvedValue(filters({ carModels, colors }));
+
+    const { result } = renderHook(() => useProductFilterOptions(), { wrapper });
+
+    await waitFor(() => expect(result.current.colors).toEqual(colors));
+    expect(result.current.carModels).toEqual(carModels);
+  });
+
+  it('an answer without them (or no answer yet) gives empty lists, so the sections hide', async () => {
+    (productsApi.getFilters as jest.Mock).mockResolvedValue(filters());
+
+    const { result } = renderHook(() => useProductFilterOptions(), { wrapper });
+
+    expect(result.current.carModels).toEqual([]);
+    expect(result.current.colors).toEqual([]);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.carModels).toEqual([]);
+    expect(result.current.colors).toEqual([]);
+  });
+});

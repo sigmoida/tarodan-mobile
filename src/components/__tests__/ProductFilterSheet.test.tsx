@@ -31,8 +31,10 @@ const options = (over: Partial<ProductFilterOptions> = {}): ProductFilterOptions
     { id: 'm1', name: 'Hot Wheels', slug: 'hot-wheels' },
     { id: 'm2', name: 'Majorette', slug: 'majorette' },
   ],
+  carModels: [],
   scales: [],
   materials: [],
+  colors: [],
   customAttributes: [GENERAL, SCOPED],
   isLoading: false,
   ...over,
@@ -147,28 +149,6 @@ describe('ProductFilterSheet · alt çubuk (footer)', () => {
   });
 });
 
-describe('ProductFilterSheet · kaldırılan filtreler', () => {
-  it('Model bölümü, Ön Sipariş, Limited Edition ve Set/Paket seçenekleri yok', () => {
-    render(
-      <ProductFilterSheet
-        visible
-        onClose={jest.fn()}
-        onClear={jest.fn()}
-        onChange={jest.fn()}
-        filters={EMPTY_FILTERS}
-        options={options()}
-        resultCount={0}
-      />,
-    );
-    expect(screen.queryByTestId('filter-model')).toBeNull();
-    for (const label of ['Model', 'Ön Sipariş', 'Limited Edition', 'Set / Paket']) {
-      expect(screen.queryByText(label)).toBeNull();
-    }
-    // Kalan seçenekler yerinde.
-    expect(screen.getByText('Sadece takas yapılabilir ürünleri göster')).toBeTruthy();
-  });
-});
-
 describe('ProductFilterSheet · uzun seçenek listeleri', () => {
   const brands = Array.from({ length: 20 }, (_, i) => ({ id: `b${i}`, name: `Marka ${i}`, slug: `m${i}` }));
   const renderBrands = (filters = EMPTY_FILTERS) =>
@@ -202,5 +182,159 @@ describe('ProductFilterSheet · uzun seçenek listeleri', () => {
     expect(screen.queryByText('Marka 1')).toBeNull();
     fireEvent.changeText(screen.getByTestId('filter-brand-search'), 'yok');
     expect(screen.getByTestId('filter-brand-empty')).toBeTruthy();
+  });
+});
+
+describe('ProductFilterSheet · web parity filters', () => {
+  const MODELS = [
+    { id: 'cm1', name: 'F40', slug: 'f40', brandId: 'b1' },
+    { id: 'cm2', name: 'Countach', slug: 'countach', brandId: 'b2' },
+  ];
+  const COLORS = [
+    { slug: 'red', label: 'Kırmızı', color: 'swatch-red' },
+    { slug: 'black', label: 'Siyah', color: null },
+  ];
+  const BRANDS = [
+    { id: 'b1', name: 'Ferrari', slug: 'ferrari' },
+    { id: 'b2', name: 'Lamborghini', slug: 'lamborghini' },
+  ];
+  const setup = (filters = {}, opts = options({ carModels: MODELS, colors: COLORS, brands: BRANDS })) => {
+    const onChange = jest.fn();
+    render(
+      <ProductFilterSheet
+        visible
+        onClose={jest.fn()}
+        filters={{ ...EMPTY_FILTERS, ...filters }}
+        onChange={onChange}
+        onClear={jest.fn()}
+        options={opts}
+        resultCount={0}
+      />,
+    );
+    return onChange;
+  };
+
+  it('lists every model without a brand and picks one with its id and name', () => {
+    const onChange = setup();
+    const list = screen.getByTestId('filter-model');
+    expect(within(list).getByText('F40')).toBeTruthy();
+    expect(within(list).getByText('Countach')).toBeTruthy();
+    fireEvent.press(within(list).getByText('F40'));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ carModelId: 'cm1', carModel: 'F40' }));
+  });
+
+  it('narrows the models to the selected brand', () => {
+    setup({ brandId: 'b1', brand: 'Ferrari' });
+    const list = screen.getByTestId('filter-model');
+    expect(within(list).getByText('F40')).toBeTruthy();
+    expect(within(list).queryByText('Countach')).toBeNull();
+  });
+
+  it('pressing the selected model clears it', () => {
+    const onChange = setup({ carModelId: 'cm1', carModel: 'F40' });
+    fireEvent.press(within(screen.getByTestId('filter-model')).getByText('F40'));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ carModelId: '', carModel: '' }));
+  });
+
+  it('changing the brand resets the model (web handleBrandChange)', () => {
+    const onChange = setup({ carModelId: 'cm1', carModel: 'F40' });
+    fireEvent.press(within(screen.getByTestId('filter-brand')).getByText('Lamborghini'));
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'b2', carModelId: '', carModel: '' }),
+    );
+  });
+
+  it('hides the model and colour sections when the catalog has none', () => {
+    setup({}, options());
+    expect(screen.queryByTestId('filter-model')).toBeNull();
+    expect(screen.queryByTestId('filter-color')).toBeNull();
+  });
+
+  it('colours are multi-select: pressing adds to and removes from the list', () => {
+    const onChange = setup({ colors: ['red'] });
+    const list = screen.getByTestId('filter-color');
+    expect(within(list).getAllByRole('checkbox').map((r) => r.props.accessibilityState.checked)).toEqual([
+      true,
+      false,
+    ]);
+    fireEvent.press(within(list).getByText('Siyah'));
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ colors: ['red', 'black'] }));
+    fireEvent.press(within(list).getByText('Kırmızı'));
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ colors: [] }));
+  });
+
+  it('a picked colour outside the collapsed slice stays visible', () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ slug: `c${i}`, label: `Renk ${i}`, color: null }));
+    setup({ colors: ['c11'] }, options({ colors: many }));
+    expect(within(screen.getByTestId('filter-color')).getByText('Renk 11')).toBeTruthy();
+  });
+
+  it.each([
+    ['filter-pre-order', 'preOrder'],
+    ['filter-limited', 'limited'],
+    ['filter-set', 'set'],
+    ['filter-discount-only', 'discountOnly'],
+  ])('%s toggles %s', (testID, key) => {
+    const onChange = setup();
+    fireEvent.press(screen.getByTestId(testID));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ [key]: true }));
+  });
+});
+
+describe('ProductFilterSheet · custom attribute groups (multi-select, web toggleCustomAttribute)', () => {
+  const RARITY = {
+    slug: 'rarity',
+    name: 'Nadirlik',
+    manufacturerSlug: null,
+    attributes: [
+      { slug: 'common', label: 'Yaygın', color: null },
+      { slug: 'rare', label: 'Nadir', color: null },
+    ],
+  };
+  const setup = (customAttributes: Record<string, string[]>) => {
+    const onChange = jest.fn();
+    render(
+      <ProductFilterSheet
+        visible
+        onClose={jest.fn()}
+        filters={{ ...EMPTY_FILTERS, customAttributes }}
+        onChange={onChange}
+        onClear={jest.fn()}
+        options={options({ customAttributes: [RARITY] })}
+        resultCount={0}
+      />,
+    );
+    return onChange;
+  };
+  const checkedRows = () =>
+    within(screen.getByTestId('filter-attr-rarity'))
+      .getAllByRole('checkbox')
+      .map((r) => r.props.accessibilityState.checked);
+
+  it('shows every value a URL or saved search carries as checked', () => {
+    setup({ rarity: ['common', 'rare'] });
+    expect(checkedRows()).toEqual([true, true]);
+  });
+
+  it('a tap adds a value next to the picked one instead of replacing it', () => {
+    const onChange = setup({ rarity: ['common'] });
+    fireEvent.press(screen.getByText('Nadir'));
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ customAttributes: { rarity: ['common', 'rare'] } }),
+    );
+  });
+
+  it('unchecking one value keeps the others; the last one drops the group', () => {
+    const onChange = setup({ rarity: ['common', 'rare'] });
+    fireEvent.press(screen.getByText('Nadir'));
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ customAttributes: { rarity: ['common'] } }),
+    );
+  });
+
+  it('removing the only value drops the group key', () => {
+    const onChange = setup({ rarity: ['rare'] });
+    fireEvent.press(screen.getByText('Nadir'));
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ customAttributes: {} }));
   });
 });
