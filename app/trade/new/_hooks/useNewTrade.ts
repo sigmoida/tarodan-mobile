@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,7 @@ import { firstQueryParam, type Product } from '../_lib/types';
 import { isPickerLoading, TRADE_PICKER_QUERY_OPTIONS } from '../../_lib/picker';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
+import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 
 /**
  * New-trade wizard controller — owns the 3-step state, the target/my/their
@@ -82,7 +83,7 @@ export function useNewTrade() {
   const myProducts = myProductsQuery.data;
   const loadingMyProducts = isPickerLoading(myProductsQuery);
 
-  const { data: theirProducts, isLoading: loadingTheirProducts } = useQuery({
+  const theirProductsQuery = useQuery({
     queryKey: qk.trades.sellerTradeable(targetSellerId),
     queryFn: async () => {
       const response = await listingsApi.getAll({
@@ -97,12 +98,24 @@ export function useNewTrade() {
       );
     },
     enabled: !!targetSellerId && canTrade,
+    ...TRADE_PICKER_QUERY_OPTIONS,
   });
+  const theirProducts = theirProductsQuery.data;
+  const loadingTheirProducts = isPickerLoading(theirProductsQuery);
+  // Back on the screen (e.g. from the "listing approved" notification): refetch both pickers.
+  useRefetchStaleOnFocus([
+    qk.trades.myTradeable(user?.id, listingId),
+    qk.trades.sellerTradeable(targetSellerId),
+  ]);
 
+  // Preselect the target listing once, when it first shows up. The list refetches on open and
+  // on foreground, so without the guard a changed list would wipe the user's own selection.
+  const preselectedRef = useRef(false);
   useEffect(() => {
-    if (!listingId || !theirProducts?.length) return;
+    if (preselectedRef.current || !listingId || !theirProducts?.length) return;
     const target = theirProducts.find((p: Product) => p.id === listingId);
     if (target) {
+      preselectedRef.current = true;
       setSelectedTheirItems((prev) => (prev.some((p) => p.id === listingId) ? prev : [target]));
     }
   }, [listingId, theirProducts]);
