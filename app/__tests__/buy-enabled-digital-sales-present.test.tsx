@@ -50,18 +50,18 @@ jest.mock('@/lib/api', () => ({
   paymentsApi: {
     getMyPayments: jest.fn(),
   },
+  savedSearchesApi: { list: jest.fn(), remove: jest.fn() },
 }));
-import { api, membershipApi } from '@/lib/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api, membershipApi, savedSearchesApi } from '@/lib/api';
 
 import MembershipScreen from '../membership/index';
 import SavedSearchesScreen from '../settings/saved-searches/index';
 import CollectionsScreen from '../settings/collections';
-import { STORAGE_KEY } from '../settings/saved-searches/_lib/types';
 
 const mockGetMembership = membershipApi.getCurrentMembership as jest.Mock;
 const mockGetTiers = membershipApi.getTiers as jest.Mock;
 const mockApiGet = api.get as jest.Mock;
+const mockListSavedSearches = savedSearchesApi.list as jest.Mock;
 
 describe('Android: dijital satış çağrıları yerinde — üyelik ekranı', () => {
   beforeEach(() => {
@@ -89,22 +89,23 @@ describe('Android: dijital satış çağrıları yerinde — kayıtlı aramalar 
   const savedSearch = {
     id: 's1',
     name: 'BMW 1/18',
-    query: 'bmw',
-    filters: {},
-    notifyEnabled: false,
+    query: { search: 'bmw' },
+    labels: {},
     createdAt: new Date().toISOString(),
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     resetRouterMocks();
     mockAuthState = { isAuthenticated: true, limits: { maxSavedSearches: 1 } };
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([savedSearch]));
+    mockListSavedSearches.mockResolvedValue({ data: { data: [savedSearch], meta: { total: 1, page: 1, limit: 100, totalPages: 1 } } });
   });
 
-  it('yükseltme bağlantısı görünür', async () => {
+  // The saved-search limit has no upgrade link any more: even with the gate open the text stays
+  // neutral (`search.premiumMoreSearches` is web only, tarodan-ops ADR 0003).
+  it('limit text shows; no upgrade link even with the gate open', async () => {
     renderWithProviders(<SavedSearchesScreen />);
-    await screen.findByText('savedSearch.limitReached');
-    expect(screen.getByText('membership.premium')).toBeTruthy();
+    expect(await screen.findByText('search.savedLimitReached')).toBeTruthy();
+    expect(screen.queryByText('membership.premium')).toBeNull();
   });
 });
 

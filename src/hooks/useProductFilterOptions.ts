@@ -49,7 +49,10 @@ export type ProductFilterOptions = {
 /** Yanıt yokken kararlı boş liste (her render'da yeni `[]` memo'ları bozmasın). */
 const NO_OPTIONS: never[] = [];
 
-export function useProductFilterOptions(manufacturerSlug?: string): ProductFilterOptions {
+export function useProductFilterOptions(
+  manufacturerSlug?: string,
+  { enabled = true }: { enabled?: boolean } = {},
+): ProductFilterOptions {
   const filtersQuery = useQuery({
     queryKey: qk.products.filterOptions(manufacturerSlug ?? ''),
     queryFn: async () => {
@@ -59,6 +62,7 @@ export function useProductFilterOptions(manufacturerSlug?: string): ProductFilte
       return res.data;
     },
     staleTime: 10 * 60 * 1000,
+    enabled,
   });
 
   const categoriesQuery = useQuery({
@@ -69,6 +73,7 @@ export function useProductFilterOptions(manufacturerSlug?: string): ProductFilte
       return unwrapList<{ id: string; name: string; slug: string }>(res.data);
     },
     staleTime: 10 * 60 * 1000,
+    enabled,
   });
 
   const data = filtersQuery.data;
