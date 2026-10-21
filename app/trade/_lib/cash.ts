@@ -50,9 +50,11 @@ export function signedCashAmount(raw: string, direction: CashDirection): number 
 
 /**
  * The field's text for an amount already in the offer (counter prefill): a decimal comma, as the
- * Turkish keyboard types and `formatPrice` prints, so editing it needs no separator change.
+ * Turkish keyboard types it, so editing it needs no separator change. No thousands grouping
+ * (unlike `formatPrice`): the field takes one separator only. Not a positive amount: empty.
  */
 export function cashInputValue(amount: number): string {
+  if (!Number.isFinite(amount) || amount <= 0) return '';
   return (Number.isInteger(amount) ? String(amount) : amount.toFixed(2)).replace('.', ',');
 }
 

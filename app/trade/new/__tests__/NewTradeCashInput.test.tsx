@@ -45,6 +45,15 @@ describe('new trade · cash field', () => {
     expect(current()).toBe('123,5');
   });
 
+  it('builds each change on the latest value, not the one of the last render', () => {
+    // Two changes before a re-render: the second is refused and must keep the first, not fall
+    // back to the rendered '' (the controller's `cashAmount` is not updated in between here).
+    const { input, current } = renderStep('');
+    fireEvent.changeText(input, '12,50');
+    fireEvent.changeText(input, '12,505');
+    expect(current()).toBe('12,50');
+  });
+
   it.each([['12,505'], ['1.250,50'], ['12,5,0']])('refuses %p and keeps the previous value', (typed) => {
     const { input, current } = renderStep('12,50');
     fireEvent.changeText(input, typed);

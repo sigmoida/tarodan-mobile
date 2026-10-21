@@ -84,6 +84,12 @@ describe('cashInputValue', () => {
     expect(cashInputValue(1250)).toBe('1250');
   });
 
+  it('is empty for an amount that is not a positive number', () => {
+    expect(cashInputValue(Number.NaN)).toBe('');
+    expect(cashInputValue(0)).toBe('');
+    expect(cashInputValue(Number.POSITIVE_INFINITY)).toBe('');
+  });
+
   it('round-trips through the field and the parser', () => {
     for (const amount of [12.5, 0.05, 1250, 99999999.99]) {
       const text = cashInputValue(amount);
