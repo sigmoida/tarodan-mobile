@@ -39,7 +39,7 @@ describe('buildActiveChips · üretici çipi', () => {
 });
 
 describe('buildActiveChips · genel', () => {
-  it('yalnız aktif filtreler için çip üretir (model/ön sipariş/limited/set yok)', () => {
+  it('yalnız aktif filtreler için çip üretir', () => {
     const chips = buildActiveChips({ ...EMPTY_FILTERS, brand: 'Maisto', brandId: 'b1' }, jest.fn(), t);
     expect(chips.map((c) => c.key)).toEqual(['brand']);
   });
@@ -50,5 +50,64 @@ describe('buildActiveChips · genel', () => {
     buildActiveChips(stale, setFilters, t)[0]!.onRemove();
     const updater = setFilters.mock.calls[0][0] as (p: ProductFilters) => ProductFilters;
     expect(updater({ ...stale, search: 'ferrari' })).toMatchObject({ scale: '', search: 'ferrari' });
+  });
+});
+
+describe('buildActiveChips · web parity filters', () => {
+  const names = {
+    carModels: [{ id: 'cm1', name: 'F40', slug: 'f40', brandId: 'b1' }],
+    colors: [
+      { slug: 'red', label: 'Kırmızı', color: 'swatch-red' },
+      { slug: 'black', label: 'Siyah', color: null },
+    ],
+  };
+  const chipsOf = (filters: ProductFilters, opts: Parameters<typeof buildActiveChips>[4] = names) =>
+    buildActiveChips(filters, jest.fn(), t, [], opts);
+
+  it('car model chip shows the display name, then the option name by id, then a generic label', () => {
+    expect(chipsOf({ ...EMPTY_FILTERS, carModelId: 'cm1', carModel: 'Testarossa' })[0]).toMatchObject({
+      key: 'model',
+      label: 'Testarossa',
+    });
+    expect(chipsOf({ ...EMPTY_FILTERS, carModelId: 'cm1' })[0]!.label).toBe('F40');
+    expect(chipsOf({ ...EMPTY_FILTERS, carModelId: 'cm1' }, {})[0]!.label).toBe('product.model');
+  });
+
+  it('removing the car model chip clears the id and the name', () => {
+    expect(remove({ ...EMPTY_FILTERS, carModelId: 'cm1', carModel: 'F40' }, 'model')).toMatchObject({
+      carModelId: '',
+      carModel: '',
+    });
+  });
+
+  it('removing the brand chip also clears the car model (it belongs to the brand)', () => {
+    const out = remove(
+      { ...EMPTY_FILTERS, brand: 'Ferrari', brandId: 'b1', carModelId: 'cm1', carModel: 'F40' },
+      'brand',
+    );
+    expect(out).toMatchObject({ brand: '', brandId: '', carModelId: '', carModel: '' });
+  });
+
+  it('one chip per colour, labelled from the options (slug as the fallback)', () => {
+    const chips = chipsOf({ ...EMPTY_FILTERS, colors: ['red', 'black', 'teal'] });
+    expect(chips.map((c) => [c.key, c.label])).toEqual([
+      ['color:red', 'Kırmızı'],
+      ['color:black', 'Siyah'],
+      ['color:teal', 'teal'],
+    ]);
+  });
+
+  it('removing one colour chip keeps the other colours', () => {
+    expect(remove({ ...EMPTY_FILTERS, colors: ['red', 'black'] }, 'color:red').colors).toEqual(['black']);
+  });
+
+  it('pre-order, limited and set chips use the web labels and clear their flag', () => {
+    const f = { ...EMPTY_FILTERS, preOrder: true, limited: true, set: true };
+    expect(chipsOf(f).map((c) => [c.key, c.label])).toEqual([
+      ['preOrder', 'product.preOrder'],
+      ['limited', 'product.limitedEdition'],
+      ['set', 'product.sets'],
+    ]);
+    expect(remove(f, 'limited')).toMatchObject({ preOrder: true, limited: false, set: true });
   });
 });

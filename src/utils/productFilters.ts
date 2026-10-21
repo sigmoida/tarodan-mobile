@@ -1,6 +1,6 @@
 /**
- * Web paritesi: apps/web/src/app/listings/page.tsx `filters` state'i + `buildListParams`.
- * Tüm ürün arama/listeleme ekranları (Search tab, Listings) bu tek kaynağı kullanır.
+ * Web parity: the `Filters` state of the web listings route (`listings/_lib/params.ts`) and its
+ * `buildListApiParams`. Every product search/list screen (Search, Listings) uses this single source.
  */
 import type { TFunction } from 'i18next';
 
@@ -8,19 +8,27 @@ export type ProductFilters = {
   search: string;
   brand: string;
   brandId: string;
+  /** Car model id (API filter `carModelId`) and its display name (chip label). */
+  carModelId: string;
+  carModel: string;
   scale: string;
   material: string;
+  /** Selected colour slugs (multi-select, OR); `?color=red,black` in the URL, as on web. */
+  colors: string[];
   condition: string;
   minPrice: string;
   maxPrice: string;
   tradeOnly: boolean;
   discountOnly: boolean;
+  preOrder: boolean;
+  limited: boolean;
+  set: boolean;
   sortBy: string;
   category: string;
   categoryId: string;
   manufacturer: string;
   manufacturerId: string;
-  /** Üreticiye-özel attribute seçimleri: { groupSlug: [attrSlug, ...] }. Web ile parite. */
+  /** Manufacturer-scoped attribute selections: { groupSlug: [attrSlug, ...] }. Same as web. */
   customAttributes: Record<string, string[]>;
 };
 
@@ -28,13 +36,19 @@ export const EMPTY_FILTERS: ProductFilters = {
   search: '',
   brand: '',
   brandId: '',
+  carModelId: '',
+  carModel: '',
   scale: '',
   material: '',
+  colors: [],
   condition: '',
   minPrice: '',
   maxPrice: '',
   tradeOnly: false,
   discountOnly: false,
+  preOrder: false,
+  limited: false,
+  set: false,
   sortBy: 'relevance',
   category: '',
   categoryId: '',
@@ -62,16 +76,10 @@ export function keepGeneralAttributeSelections(
 }
 
 /**
- * Web ProductQueryDto-uyumlu sort değerleri (search.tsx eski 'newest'/'sort' yerine).
- *
- * Eskiden modül-seviyesi TR literal diziydi (`buildConditionOptions`'ın
- * yukarıdaki gerekçesiyle AYNI kusur — `t()` hiç çağrılmadan hep Türkçe
- * basardı). Artık `product.sort*` anahtarlarını REUSE eden bir factory;
- * çağıran taraf `useMemo(() => buildSortOptions(t), [t])` ile kurar.
- *
- * `sortPriceLow`/`sortPriceHigh` katalog metni buradaki eski kısa etiketten
- * ("Fiyat (Düşük)"/"Fiyat (Yüksek)") daha AÇIK ("Fiyat (Düşükten Yükseğe)"/
- * "Fiyat (Yüksekten Düşüğe)") — reuse, ayrı bir kısa kopya açmak yerine.
+ * Sort values of the picker, aligned with the web `ProductQueryDto`. A factory over the existing
+ * `product.sort*` keys (built at call time: `useMemo(() => buildSortOptions(t), [t])`), so the
+ * labels follow the active language. `sortPriceLow`/`sortPriceHigh` read clearer than the old
+ * short labels, so they are reused instead of opening a second copy.
  */
 const SORT_OPTION_KEYS = [
   ['relevance', 'common.recommended'],
@@ -85,8 +93,18 @@ const SORT_OPTION_KEYS = [
   ['title_desc', 'page.listings.listingstoolbar.zA'],
 ] as const;
 
-/** Geçerli sıralama değerleri — `buildSortOptions` ile AYNI tek dizi (URL doğrulaması bunu kullanır). */
-const SORT_VALUES: ReadonlySet<string> = new Set(SORT_OPTION_KEYS.map(([value]) => value));
+/**
+ * Sorts `GET /products` serves that the picker does not offer (web neither) but a URL can carry:
+ * a saved search or a web link may hold `view_count_asc`. Accepted so such a URL keeps its order
+ * instead of falling back to the default ranking.
+ */
+const URL_ONLY_SORTS = ['view_count_asc'] as const;
+
+/** Accepted `sortBy` values of a URL: the picker's values plus `URL_ONLY_SORTS` (= every explicit `GET /products` sort). */
+const SORT_VALUES: ReadonlySet<string> = new Set<string>([
+  ...SORT_OPTION_KEYS.map(([value]) => value),
+  ...URL_ONLY_SORTS,
+]);
 
 export const buildSortOptions = (t: TFunction): { value: string; label: string }[] =>
   SORT_OPTION_KEYS.map(([value, key]) => ({ value, label: t(key) }));
@@ -114,8 +132,8 @@ export const buildConditionOptions = (t: TFunction): { value: string; label: str
 // kullanıcıya karşılığı olmayan filtre seçenekleri gösteriyordu (P2 #13).
 
 /**
- * Web listings/page.tsx `buildListParams` ile birebir aynı param mantığı.
- * brandId varsa brand'i ezme, manufacturerId varsa manufacturer'ı ezme.
+ * Same param logic as web `buildListApiParams` (same names): an id wins over its display name
+ * (`brandId` over `brand`, `manufacturerId` over `manufacturer`); `color` is the comma-joined slugs.
  */
 export function buildListParams(
   f: ProductFilters,
@@ -131,12 +149,14 @@ export function buildListParams(
   if (f.maxPrice) p.maxPrice = Number(f.maxPrice);
   if (f.brandId) p.brandId = f.brandId;
   else if (f.brand) p.brand = f.brand;
+  if (f.carModelId) p.carModelId = f.carModelId;
   if (f.scale) p.scale = f.scale;
   if (f.material) p.material = f.material;
+  if (f.colors.length > 0) p.color = f.colors.join(',');
   if (f.manufacturerId) p.manufacturerId = f.manufacturerId;
   else if (f.manufacturer) p.manufacturer = f.manufacturer;
-  // Üreticiye-özel attribute seçimleri — backend OR-grup-içi / AND-gruplar-arası uyguluyor.
-  // Boş gruplar atılır. Web buildListParams ile birebir aynı (attrGroups JSON).
+  // Manufacturer-scoped attribute selections: the backend applies OR within a group and AND across
+  // groups. Empty groups are dropped. Same as web (`attrGroups` JSON).
   if (f.customAttributes) {
     const nonEmpty = Object.fromEntries(
       Object.entries(f.customAttributes).filter(
@@ -147,7 +167,10 @@ export function buildListParams(
   }
   if (f.tradeOnly) p.tradeOnly = true;
   if (f.discountOnly) p.discountOnly = true;
-  // Web gibi: 'relevance' (Önerilen) sunucunun varsayılanı — parametre gönderilmez.
+  if (f.preOrder) p.preOrder = true;
+  if (f.limited) p.limited = true;
+  if (f.set) p.set = true;
+  // As on web: 'relevance' (Recommended) is the server default, so no parameter is sent.
   if (f.sortBy && f.sortBy !== 'relevance') p.sortBy = f.sortBy;
   return p;
 }
@@ -162,21 +185,27 @@ export function clearProductFilters(f: ProductFilters): ProductFilters {
 }
 
 /**
- * Aktif filtre sayısı — eşli anahtarlar (brand+brandId vb.) tek sayılır. `sortBy` ve `search`
- * SAYILMAZ: ikisi de "Temizle"den sonra kalır ve üst çubukta ayrıca görünür.
+ * Active filter count: paired keys (brand+brandId, ...) count once. `sortBy` and `search` are NOT
+ * counted: both survive "Clear" and show in the top bar.
  */
 export function countActiveFilters(f: ProductFilters): number {
   let count = 0;
   if (f.brand || f.brandId) count += 1;
+  if (f.carModel || f.carModelId) count += 1;
   if (f.manufacturer || f.manufacturerId) count += 1;
   if (f.category || f.categoryId) count += 1;
   if (f.scale) count += 1;
   if (f.material) count += 1;
+  // Colours count as ONE filter however many are picked (web `activeFilterCount`).
+  if (f.colors.length > 0) count += 1;
   if (f.condition) count += 1;
   if (f.minPrice || f.maxPrice) count += 1;
   if (f.tradeOnly) count += 1;
   if (f.discountOnly) count += 1;
-  // Her dolu üretici-attribute grubu bir filtre sayılır.
+  if (f.preOrder) count += 1;
+  if (f.limited) count += 1;
+  if (f.set) count += 1;
+  // Each non-empty manufacturer-attribute group counts as one filter.
   count += Object.values(f.customAttributes ?? {}).filter((v) => v.length > 0).length;
   return count;
 }
@@ -230,16 +259,17 @@ export function extractMeta(
   };
 }
 
-/** URL parametresi: expo-router `useLocalSearchParams` tekrarlı anahtarı dizi verebilir — ilki alınır. */
+/** URL param: expo-router `useLocalSearchParams` can return an array for a repeated key; the first one wins. */
 type RawParam = string | string[] | undefined;
 const firstParam = (v: RawParam): string => (Array.isArray(v) ? v[0] ?? '' : v ?? '');
 
 /**
- * Arama ekranının açılış filtreleri — URL parametrelerinden (TEK kaynak). Parametre adları web
- * `/listings` (`parseListingsFilters`) ile aynı: eski `/listings?…` bağlantıları, reklam/push/derin
- * bağlantı sorguları ve ana sayfa "Tümünü gör" adresleri `/search`'e AYNEN taşınır. Serbest metin
- * mobilde `q` (üst bar arama alanı); web adı `search` de kabul edilir. Üretici attribute'ları
- * web gibi `attr.<grup>=a,b`.
+ * The search screen's opening filters, read from URL params (single source). The names are the web
+ * `/listings` ones (`parseListingsFilters`) and what `savedSearchToRouteParams` emits, display
+ * names included (`category`, `brand`, `manufacturer`, `carModel`): old `/listings?...` links,
+ * ad/push/deep-link queries, home "See all" addresses and saved-search runs carry over to `/search`
+ * as they are. Free text is read from `q` (the legacy name) or `search` (the web name; what links and
+ * saved searches write, and what mobile now writes); both stay readable. Manufacturer attributes are `attr.<group>=a,b`, colours `color=a,b`.
  */
 export function filtersFromSearchParams(params: Record<string, RawParam>): ProductFilters {
   const get = (k: string) => firstParam(params[k]).trim();
@@ -256,13 +286,19 @@ export function filtersFromSearchParams(params: Record<string, RawParam>): Produ
     search: get('q') || get('search'),
     brand: get('brand'),
     brandId: get('brandId'),
+    carModelId: get('carModelId'),
+    carModel: get('carModel'),
     scale: get('scale'),
     material: get('material'),
+    colors: [...new Set(get('color').split(',').map((s) => s.trim()).filter(Boolean))],
     condition: get('condition'),
     minPrice: get('minPrice'),
     maxPrice: get('maxPrice'),
     tradeOnly: get('tradeOnly') === 'true',
     discountOnly: get('discountOnly') === 'true',
+    preOrder: get('preOrder') === 'true',
+    limited: get('limited') === 'true',
+    set: get('set') === 'true',
     sortBy: SORT_VALUES.has(sortBy) ? sortBy : EMPTY_FILTERS.sortBy,
     category: get('category'),
     categoryId: get('categoryId'),

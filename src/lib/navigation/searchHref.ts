@@ -35,7 +35,7 @@ const CURATED_ENTRY_LABELS: Partial<Record<SearchEntry, MessageKey>> = {
   tradeShowcase: 'nav.tradeShowcase',
 };
 
-/** Alan alan karşılaştırma (anahtar sırasından bağımsız); boş özel nitelik grupları yok sayılır. */
+/** Field-by-field comparison (key order does not matter); empty custom attribute groups are ignored. */
 const nonEmptyAttrs = (f: ProductFilters) =>
   JSON.stringify(
     Object.entries(f.customAttributes ?? {})
@@ -43,9 +43,12 @@ const nonEmptyAttrs = (f: ProductFilters) =>
       .sort(([x], [y]) => x.localeCompare(y)),
   );
 const sameFilters = (a: ProductFilters, b: ProductFilters) =>
-  (Object.keys(b) as (keyof ProductFilters)[]).every((k) =>
-    k === 'customAttributes' ? nonEmptyAttrs(a) === nonEmptyAttrs(b) : (a[k] ?? '') === (b[k] ?? ''),
-  ) && a.search.trim() === '';
+  (Object.keys(b) as (keyof ProductFilters)[]).every((k) => {
+    if (k === 'customAttributes') return nonEmptyAttrs(a) === nonEmptyAttrs(b);
+    // Colours are a list: compare by value, order included (a different pick is a different search).
+    if (k === 'colors') return a.colors.join(',') === b.colors.join(',');
+    return (a[k] ?? '') === (b[k] ?? '');
+  }) && a.search.trim() === '';
 
 /**
  * Canlı filtreler bir vitrin girişinin ön ayarıyla BİREBİR aynıysa (arama metni yok, başka filtre

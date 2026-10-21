@@ -1,12 +1,13 @@
 /**
- * Web `apps/web/src/components/SidebarFilters.tsx` paritesi — mobil filtre paneli.
- * Bölümler: Araç Türü, Marka, Ölçek, Malzeme, Üretici,
- * Durum, Fiyat, Seçenekler (takas/indirim).
+ * Web `SidebarFilters` parity: the mobile filter panel.
+ * Sections (web order): Vehicle type, Brand, Model (narrowed by the brand), Scale, Material,
+ * Colour (multi-select), Manufacturer, manufacturer attributes, Condition, Price, Options
+ * (trade, pre-order, limited, set, discount).
  *
- * Alttan açılan `BottomSheet` (`size="large"`): [Temizle] [N Sonuç Göster] gövdenin DIŞINDA
- * sabit footer'da — güvenli alan (home indicator / gezinti çubuğu) kadar alt boşluklu, klavye
- * açılınca klavyenin üstünde; `ButtonRow` ile etiket asla sarmaz (sığmazsa alt alta).
- * İçerik yalnız panel açıkken bağlanır (`FilterSheetBody`).
+ * A bottom `BottomSheet` (`size="large"`): [Clear] [N Show results] sit OUTSIDE the body in the
+ * fixed footer, padded by the safe area (home indicator / nav bar), above the keyboard when it
+ * opens; `ButtonRow` never wraps a label (stacks when it does not fit). The body mounts only
+ * while the panel is open (`FilterSheetBody`).
  */
 import { useMemo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
@@ -118,10 +119,29 @@ function FilterSheetBody({
 
   const selectBrand = (o: FilterOption) => {
     const isSel = filters.brandId === o.id;
+    // A new brand resets the model (web `handleBrandChange`): models belong to a brand.
     onChange(
-      isSel ? { ...filters, brandId: '', brand: '' } : { ...filters, brandId: o.id, brand: o.label },
+      isSel
+        ? { ...filters, brandId: '', brand: '', carModelId: '', carModel: '' }
+        : { ...filters, brandId: o.id, brand: o.label, carModelId: '', carModel: '' },
     );
   };
+
+  const selectCarModel = (o: FilterOption) =>
+    onChange(
+      filters.carModelId === o.id
+        ? { ...filters, carModelId: '', carModel: '' }
+        : { ...filters, carModelId: o.id, carModel: o.label },
+    );
+
+  // Colours are multi-select (OR within the group), kept as a slug list like web `toggleColor`.
+  const toggleColor = (o: FilterOption) =>
+    onChange({
+      ...filters,
+      colors: filters.colors.includes(o.id)
+        ? filters.colors.filter((slug) => slug !== o.id)
+        : [...filters.colors, o.id],
+    });
 
   const selectManufacturer = (o: FilterOption) =>
     // Üretici değişince YALNIZ üreticiye-özel attribute seçimlerini sıfırla (web ile
@@ -169,6 +189,18 @@ function FilterSheetBody({
   const brandOptions = useMemo(
     () => options.brands.map((b) => ({ id: b.id, label: b.name })),
     [options.brands],
+  );
+  // Models narrow to the selected brand; all of them without one (web `modelsForBrand`).
+  const carModelOptions = useMemo(
+    () =>
+      options.carModels
+        .filter((m) => !filters.brandId || m.brandId === filters.brandId)
+        .map((m) => ({ id: m.id, label: m.name })),
+    [options.carModels, filters.brandId],
+  );
+  const colorOptions = useMemo(
+    () => options.colors.map((c) => ({ id: c.slug, label: c.label, swatch: c.color })),
+    [options.colors],
   );
   const manufacturerOptions = useMemo(
     () => options.manufacturers.map((m) => ({ id: m.id, label: m.name })),
@@ -234,6 +266,25 @@ function FilterSheetBody({
         />
       </View>
 
+      {/* Model (narrowed by the brand) */}
+      {options.carModels.length > 0 && (
+        <>
+          <Divider style={styles.divider} />
+          <View style={styles.section}>
+            <SectionTitle>{t('product.model')}</SectionTitle>
+            <FilterOptionList
+              // Brand change resets the list's search and expanded state.
+              key={filters.brandId || 'all'}
+              options={carModelOptions}
+              selectedId={filters.carModelId}
+              onSelect={selectCarModel}
+              searchPlaceholder={t('product.searchModels')}
+              testID="filter-model"
+            />
+          </View>
+        </>
+      )}
+
       <Divider style={styles.divider} />
 
       {/* Ölçek */}
@@ -262,6 +313,23 @@ function FilterSheetBody({
           ))}
         </View>
       </View>
+
+      {/* Colour (multi-select) */}
+      {colorOptions.length > 0 && (
+        <>
+          <Divider style={styles.divider} />
+          <View style={styles.section}>
+            <SectionTitle>{t('product.color')}</SectionTitle>
+            <FilterOptionList
+              options={colorOptions}
+              selectedIds={filters.colors}
+              onSelect={toggleColor}
+              searchPlaceholder={t('product.color')}
+              testID="filter-color"
+            />
+          </View>
+        </>
+      )}
 
       <Divider style={styles.divider} />
 
@@ -360,6 +428,30 @@ function FilterSheetBody({
             checked={filters.tradeOnly}
             onChange={(v) => onChange({ ...filters, tradeOnly: v })}
             label={t('product.tradeOnlyHint')}
+          />
+        </View>
+        <View style={styles.optionRow}>
+          <Checkbox
+            checked={filters.preOrder}
+            onChange={(v) => onChange({ ...filters, preOrder: v })}
+            label={t('product.preOrder')}
+            testID="filter-pre-order"
+          />
+        </View>
+        <View style={styles.optionRow}>
+          <Checkbox
+            checked={filters.limited}
+            onChange={(v) => onChange({ ...filters, limited: v })}
+            label={t('product.limitedEdition')}
+            testID="filter-limited"
+          />
+        </View>
+        <View style={styles.optionRow}>
+          <Checkbox
+            checked={filters.set}
+            onChange={(v) => onChange({ ...filters, set: v })}
+            label={t('product.sets')}
+            testID="filter-set"
           />
         </View>
         <View style={styles.optionRow}>

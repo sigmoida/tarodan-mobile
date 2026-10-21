@@ -25,7 +25,9 @@ export type SetFilters = (updater: (prev: ProductFilters) => ProductFilters) => 
  * gelen başka bir güncelleme (ör. debounce'lu arama metni) ezilmez.
  */
 /** Kimlikten ad çözmek için seçenek listeleri (filtre sayfasının verisi). */
-export type ChipNameOptions = Partial<Pick<ProductFilterOptions, 'categories' | 'brands' | 'manufacturers'>>;
+export type ChipNameOptions = Partial<
+  Pick<ProductFilterOptions, 'categories' | 'brands' | 'manufacturers' | 'carModels' | 'colors'>
+>;
 
 /**
  * Çip etiketi: filtrenin taşıdığı ad → seçenek listesinden kimlikle bulunan ad → genel etiket
@@ -59,6 +61,14 @@ export function buildActiveChips(
     add('brand', chipName(filters.brand, filters.brandId, names.brands, t('product.brand')), () => ({
       brand: '',
       brandId: '',
+      // A car model belongs to its brand: clearing the brand clears the model (web handler).
+      carModelId: '',
+      carModel: '',
+    }));
+  if (filters.carModel || filters.carModelId)
+    add('model', chipName(filters.carModel, filters.carModelId, names.carModels, t('product.model')), () => ({
+      carModel: '',
+      carModelId: '',
     }));
   if (filters.manufacturer || filters.manufacturerId)
     add('manuf', chipName(filters.manufacturer, filters.manufacturerId, names.manufacturers, t('product.manufacturer')), (prev) => ({
@@ -69,11 +79,19 @@ export function buildActiveChips(
     }));
   if (filters.scale) add('scale', filters.scale, () => ({ scale: '' }));
   if (filters.material) add('mat', filters.material, () => ({ material: '' }));
+  // One chip per colour (web): removing one keeps the other picks.
+  for (const slug of filters.colors)
+    add(`color:${slug}`, names.colors?.find((c) => c.slug === slug)?.label || slug, (prev) => ({
+      colors: prev.colors.filter((s) => s !== slug),
+    }));
   if (filters.condition)
     add('cond', conditionLabel(filters.condition, t), () => ({ condition: '' }));
   if (filters.minPrice || filters.maxPrice)
     add('price', formatPriceRange(filters.minPrice, filters.maxPrice), () => ({ minPrice: '', maxPrice: '' }));
   if (filters.tradeOnly) add('trade', t('filter.tradeOnlyChip'), () => ({ tradeOnly: false }));
+  if (filters.preOrder) add('preOrder', t('product.preOrder'), () => ({ preOrder: false }));
+  if (filters.limited) add('limited', t('product.limitedEdition'), () => ({ limited: false }));
+  if (filters.set) add('set', t('product.sets'), () => ({ set: false }));
   if (filters.discountOnly) add('disc', t('filter.discountOnlyLabel'), () => ({ discountOnly: false }));
   return chips;
 }

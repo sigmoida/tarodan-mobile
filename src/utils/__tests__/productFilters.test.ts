@@ -3,8 +3,66 @@ import {
   buildListParams,
   clearProductFilters,
   countActiveFilters,
+  filtersFromSearchParams,
   flattenUniqueListings,
+  type ProductFilters,
 } from '../productFilters';
+
+const CAR_MODEL = '44444444-4444-4444-8444-444444444444';
+
+/**
+ * The URL a saved search runs with: the exact output of tarodan-app
+ * `savedSearchToRouteParams(query, labels)` (`packages/types/src/saved-search.ts`) for a search
+ * that sets every allow-listed key, with the labels of the category, brand, manufacturer and car
+ * model. Pasted as a fixture until the file is vendored into `src/types` (saved searches, C6).
+ */
+const SAVED_SEARCH_ROUTE_PARAMS = {
+  search: 'ferrari',
+  categoryId: '11111111-1111-4111-8111-111111111111',
+  brandId: '22222222-2222-4222-8222-222222222222',
+  manufacturerId: '33333333-3333-4333-8333-333333333333',
+  carModelId: CAR_MODEL,
+  scale: '1:64',
+  material: 'diecast',
+  color: 'black,red',
+  condition: 'like_new',
+  minPrice: '100',
+  maxPrice: '500',
+  tradeOnly: 'true',
+  discountOnly: 'true',
+  preOrder: 'true',
+  limited: 'true',
+  set: 'true',
+  sortBy: 'view_count_asc',
+  'attr.hw-segment': 'premium',
+  'attr.rarity': 'common,rare',
+  category: 'Diecast',
+  brand: 'Ferrari',
+  manufacturer: 'Hot Wheels',
+  carModel: 'F40',
+};
+
+/** The canonical saved query (what `GET /products` receives), in the API's own form. */
+const SAVED_SEARCH_QUERY = {
+  search: 'ferrari',
+  categoryId: '11111111-1111-4111-8111-111111111111',
+  brandId: '22222222-2222-4222-8222-222222222222',
+  manufacturerId: '33333333-3333-4333-8333-333333333333',
+  carModelId: CAR_MODEL,
+  scale: '1:64',
+  material: 'diecast',
+  color: 'black,red',
+  condition: 'like_new',
+  minPrice: 100,
+  maxPrice: 500,
+  tradeOnly: true,
+  discountOnly: true,
+  preOrder: true,
+  limited: true,
+  set: true,
+  attrGroups: '{"hw-segment":["premium"],"rarity":["common","rare"]}',
+  sortBy: 'view_count_asc',
+};
 
 describe('productFilters', () => {
   it("varsayılan sıralama web gibi 'relevance' ve sunucuya gönderilmez", () => {
@@ -12,19 +70,43 @@ describe('productFilters', () => {
     expect(buildListParams(EMPTY_FILTERS, 1, 24)).toEqual({ limit: 24, page: 1 });
   });
 
-  it('kaldırılan filtreler (model, ön sipariş, limited, set) tipte/param’da yok', () => {
-    expect(Object.keys(EMPTY_FILTERS)).not.toEqual(
-      expect.arrayContaining(['carModel', 'carModelId', 'preOrder', 'limited', 'set']),
-    );
+  it('new filters are off by default and absent from the API params', () => {
+    expect(EMPTY_FILTERS).toMatchObject({
+      carModelId: '',
+      carModel: '',
+      colors: [],
+      preOrder: false,
+      limited: false,
+      set: false,
+    });
+    expect(buildListParams(EMPTY_FILTERS, 1, 24)).toEqual({ limit: 24, page: 1 });
+  });
+
+  it('API params use the web names: carModelId, color (comma list), preOrder, limited, set', () => {
     const params = buildListParams(
-      { ...EMPTY_FILTERS, ...({ carModelId: 'm', preOrder: true, limited: true, set: true } as object) } as any,
-      1,
+      {
+        ...EMPTY_FILTERS,
+        carModelId: CAR_MODEL,
+        carModel: 'F40',
+        colors: ['red', 'black'],
+        preOrder: true,
+        limited: true,
+        set: true,
+      },
+      2,
       24,
     );
-    expect(params).not.toHaveProperty('carModelId');
-    expect(params).not.toHaveProperty('preOrder');
-    expect(params).not.toHaveProperty('limited');
-    expect(params).not.toHaveProperty('set');
+    expect(params).toEqual({
+      limit: 24,
+      page: 2,
+      carModelId: CAR_MODEL,
+      color: 'red,black',
+      preOrder: true,
+      limited: true,
+      set: true,
+    });
+    // The display name never goes to the API: the id is the filter.
+    expect(params).not.toHaveProperty('carModel');
   });
 
   it('sıralama değişince diğer param’lar AYNI kalır (yalnız sortBy eklenir/değişir)', () => {
@@ -64,6 +146,28 @@ describe('productFilters', () => {
     expect(countActiveFilters({ ...EMPTY_FILTERS, brand: 'a', brandId: 'b', tradeOnly: true })).toBe(2);
   });
 
+  it('the filter count includes car model, colours (one filter), pre-order, limited and set', () => {
+    expect(countActiveFilters({ ...EMPTY_FILTERS, carModelId: 'm', carModel: 'F40' })).toBe(1);
+    expect(countActiveFilters({ ...EMPTY_FILTERS, colors: ['red', 'black', 'blue'] })).toBe(1);
+    expect(countActiveFilters({ ...EMPTY_FILTERS, preOrder: true, limited: true, set: true })).toBe(3);
+  });
+
+  it('Clear resets the new filters like web and keeps search and sort', () => {
+    const cleared = clearProductFilters({
+      ...EMPTY_FILTERS,
+      search: 'ferrari',
+      sortBy: 'view_count_asc',
+      carModelId: 'm',
+      carModel: 'F40',
+      colors: ['red'],
+      preOrder: true,
+      limited: true,
+      set: true,
+    });
+    expect(cleared).toEqual({ ...EMPTY_FILTERS, search: 'ferrari', sortBy: 'view_count_asc' });
+    expect(countActiveFilters(cleared)).toBe(0);
+  });
+
   it('flattenUniqueListings: sayfalar arası yinelenen id elenir, sıra korunur', () => {
     const pages = [
       { items: [{ id: 'a' }, { id: 'b' }] },
@@ -71,5 +175,125 @@ describe('productFilters', () => {
     ];
     expect(flattenUniqueListings(pages).map((i) => i.id)).toEqual(['a', 'b', 'c']);
     expect(flattenUniqueListings(undefined)).toEqual([]);
+  });
+});
+
+describe('filtersFromSearchParams · web URL parity', () => {
+  it('reads a web URL: color list, pre-order and car model', () => {
+    const f = filtersFromSearchParams({
+      color: 'red,black',
+      preOrder: 'true',
+      carModelId: CAR_MODEL,
+      carModel: 'F40',
+    });
+    expect(f).toMatchObject({
+      colors: ['red', 'black'],
+      preOrder: true,
+      carModelId: CAR_MODEL,
+      carModel: 'F40',
+    });
+    expect(buildListParams(f, 1, 24)).toEqual({
+      limit: 24,
+      page: 1,
+      carModelId: CAR_MODEL,
+      color: 'red,black',
+      preOrder: true,
+    });
+    expect(countActiveFilters(f)).toBe(3);
+  });
+
+  it.each([
+    ['preOrder', 'preOrder'],
+    ['limited', 'limited'],
+    ['set', 'set'],
+    ['tradeOnly', 'tradeOnly'],
+    ['discountOnly', 'discountOnly'],
+  ] as const)('%s is on only for the exact value "true"', (param, key) => {
+    expect(filtersFromSearchParams({ [param]: 'true' })[key]).toBe(true);
+    for (const raw of ['', '1', 'TRUE', 'false', 'yes']) {
+      expect(filtersFromSearchParams({ [param]: raw })[key]).toBe(false);
+    }
+    expect(filtersFromSearchParams({})[key]).toBe(false);
+  });
+
+  it('colour slugs are trimmed, de-duplicated and blank entries dropped', () => {
+    expect(filtersFromSearchParams({ color: ' red, ,black,red,' }).colors).toEqual(['red', 'black']);
+    expect(filtersFromSearchParams({ color: '' }).colors).toEqual([]);
+    expect(filtersFromSearchParams({ color: ['red,blue', 'green'] }).colors).toEqual(['red', 'blue']);
+  });
+
+  it('free text stays readable as search (web) or q (legacy)', () => {
+    expect(filtersFromSearchParams({ search: 'ferrari' }).search).toBe('ferrari');
+    expect(filtersFromSearchParams({ q: 'ferrari' }).search).toBe('ferrari');
+  });
+
+  it('every explicit GET /products sort is accepted; unknown and "relevance" fall back to the default', () => {
+    // SAVED_SEARCH_SORTS of tarodan-app packages/types (= the `GET /products` sortBy union).
+    const served = [
+      'price_asc',
+      'price_desc',
+      'created_asc',
+      'created_desc',
+      'title_asc',
+      'title_desc',
+      'view_count_desc',
+      'view_count_asc',
+      'rating_desc',
+    ];
+    for (const sortBy of served) {
+      const f = filtersFromSearchParams({ sortBy });
+      expect(f.sortBy).toBe(sortBy);
+      expect(buildListParams(f, 1, 24).sortBy).toBe(sortBy);
+    }
+    expect(filtersFromSearchParams({ sortBy: 'newest' }).sortBy).toBe('relevance');
+    expect(filtersFromSearchParams({ sortBy: 'relevance' }).sortBy).toBe('relevance');
+    expect(buildListParams(filtersFromSearchParams({ sortBy: 'newest' }), 1, 24)).not.toHaveProperty('sortBy');
+  });
+
+  describe('a URL built by savedSearchToRouteParams', () => {
+    const f = filtersFromSearchParams(SAVED_SEARCH_ROUTE_PARAMS);
+
+    it('fills every filter, the display names included', () => {
+      expect(f).toEqual<ProductFilters>({
+        search: 'ferrari',
+        category: 'Diecast',
+        categoryId: '11111111-1111-4111-8111-111111111111',
+        brand: 'Ferrari',
+        brandId: '22222222-2222-4222-8222-222222222222',
+        manufacturer: 'Hot Wheels',
+        manufacturerId: '33333333-3333-4333-8333-333333333333',
+        carModel: 'F40',
+        carModelId: CAR_MODEL,
+        scale: '1:64',
+        material: 'diecast',
+        colors: ['black', 'red'],
+        condition: 'like_new',
+        minPrice: '100',
+        maxPrice: '500',
+        tradeOnly: true,
+        discountOnly: true,
+        preOrder: true,
+        limited: true,
+        set: true,
+        sortBy: 'view_count_asc',
+        customAttributes: { 'hw-segment': ['premium'], rarity: ['common', 'rare'] },
+      });
+    });
+
+    it('runs the same query that was saved (nothing silently dropped or broadened)', () => {
+      const { limit, page, ...rest } = buildListParams(f, 1, 24);
+      expect({ limit, page }).toEqual({ limit: 24, page: 1 });
+      expect(rest).toEqual(SAVED_SEARCH_QUERY);
+    });
+
+    it('counts every filter once (paired id + name = one)', () => {
+      // brand, car model, manufacturer, category, scale, material, colours, condition, price,
+      // trade, discount, pre-order, limited, set + two attribute groups.
+      expect(countActiveFilters(f)).toBe(16);
+    });
+
+    it('Clear leaves only search and sort', () => {
+      expect(clearProductFilters(f)).toEqual({ ...EMPTY_FILTERS, search: 'ferrari', sortBy: 'view_count_asc' });
+    });
   });
 });

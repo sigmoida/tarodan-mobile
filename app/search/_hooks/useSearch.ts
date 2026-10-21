@@ -294,12 +294,19 @@ export function useSearch() {
     }, 200);
   }, []);
 
-  // Aktif filtre çipleri (web parity: kaldırılabilir). Yalnız kimlikle gelen kategori/marka/üretici
-  // adı seçenek listelerinden çözülür (yoksa genel etiket).
-  const { customAttributes, categories, brands, manufacturers } = options;
+  // Active filter chips (web parity: removable).
+  // Names come from the option lists when the filter carries an id/slug only (deep link, saved search).
+  const { customAttributes, categories, brands, manufacturers, carModels, colors } = options;
   const activeChips = useMemo(
-    () => buildActiveChips(filters, setFilters, t, customAttributes, { categories, brands, manufacturers }),
-    [filters, customAttributes, categories, brands, manufacturers, t],
+    () =>
+      buildActiveChips(filters, setFilters, t, customAttributes, {
+        categories,
+        brands,
+        manufacturers,
+        carModels,
+        colors,
+      }),
+    [filters, customAttributes, categories, brands, manufacturers, carModels, colors, t],
   );
   // Vitrin girişi bağlamı ("Takas vitrini", "Popüler ilanlar"…): canlı filtrelerden türer, kullanıcı
   // filtre/sıralamayı değiştirince kaybolur.
