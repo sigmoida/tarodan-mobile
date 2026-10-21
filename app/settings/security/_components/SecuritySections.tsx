@@ -5,7 +5,7 @@ import { Badge } from '@/ui';
 import type { SecurityHub } from '../_hooks/useSecurityHub';
 import { SettingsActionCard } from './SettingsActionCard';
 
-/** Password / 2FA / phone / sessions / delete account: one card pattern (`SettingsActionCard`). */
+/** Password / connected accounts / 2FA / phone / sessions / delete account: one card pattern (`SettingsActionCard`). */
 export function SecuritySections({ f }: { f: SecurityHub }) {
   const { t } = useTranslation();
   return (
@@ -35,6 +35,18 @@ export function SecuritySections({ f }: { f: SecurityHub }) {
           }}
         />
       )}
+
+      {/* Connected accounts (web `ConnectedAccountsSection`, right after the password section):
+          the rows and their Connect / Disconnect live on their own screen. */}
+      <SettingsActionCard
+        title={t('profile.connectedAccounts.title')}
+        description={t('profile.connectedAccounts.description')}
+        action={{
+          label: t('profile.security.manage'),
+          onPress: f.openConnectedAccounts,
+          testID: 'security-connected-accounts-button',
+        }}
+      />
 
       <SettingsActionCard
         title={t('security.twoFactorSection')}

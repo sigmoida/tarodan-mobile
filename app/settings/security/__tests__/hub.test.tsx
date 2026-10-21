@@ -112,6 +112,19 @@ describe('settings/security hub', () => {
     expect(screen.queryByTestId('modal-root')).toBeNull();
   });
 
+  it('connected accounts: an entry card right after the password card opens its own screen', async () => {
+    renderWithProviders(<SecuritySettingsScreen />);
+    await passwordButton();
+    expect(screen.getByText(i18n.t('profile.connectedAccounts.title'))).toBeTruthy();
+    expect(screen.getByText(i18n.t('profile.connectedAccounts.description'))).toBeTruthy();
+    const ids = screen
+      .getAllByTestId(/^(security-password-button|security-connected-accounts-button|two-factor-manage-button)$/)
+      .map((node) => node.props.testID);
+    expect(ids).toEqual(['security-password-button', 'security-connected-accounts-button', 'two-factor-manage-button']);
+    fireEvent.press(screen.getByTestId('security-connected-accounts-button'));
+    expect(pushMock).toHaveBeenLastCalledWith('/settings/security/connected-accounts');
+  });
+
   it('tek kart kalıbı: her eylem aynı tip düğme (outline sm); tüm cihazlardan çıkış danger; ipuçları kartı yok', async () => {
     renderWithProviders(<SecuritySettingsScreen />);
     await passwordButton();
@@ -153,11 +166,12 @@ describe('settings/security hub', () => {
     expect(alertMock).not.toHaveBeenCalled();
   });
 
-  it('2FA açıkken "Yönet" + Aktif rozeti; kapalıyken "Ayarla"', async () => {
+  it('2FA on: the 2FA card says "Manage" with the Active badge', async () => {
     mockEnabled = true;
     renderWithProviders(<SecuritySettingsScreen />);
-    expect(await screen.findByText(i18n.t('profile.security.manage'))).toBeTruthy();
-    expect(screen.getByText(i18n.t('common.active'))).toBeTruthy();
+    // "Manage" alone also labels the connected accounts card: wait on the 2FA badge.
+    expect(await screen.findByText(i18n.t('common.active'))).toBeTruthy();
+    expect(screen.getByTestId('two-factor-manage-button')).toHaveTextContent(i18n.t('profile.security.manage'));
   });
 
   it('telefon doğrulanmışsa rozet, doğrula düğmesi yok', async () => {

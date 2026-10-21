@@ -8,7 +8,7 @@ export const QR_SIZE = 200;
 /** Adım numarası dairesi (web `h-6 w-6`). */
 const STEP_DOT = spacing[6];
 
-// Güvenlik ekranlarının (hub + şifre / 2FA / telefon) route-local stylesheet'i, token'lı.
+// Route-local stylesheet of the security screens (hub, password, 2FA, phone, connected accounts), tokens only.
 export const styles = StyleSheet.create({
   settingRow: {
     flexDirection: 'row',
@@ -23,6 +23,19 @@ export const styles = StyleSheet.create({
   },
   stack: {
     gap: spacing[3],
+  },
+  /** Connected accounts row: brand mark + name/badge/e-mail (web `flex items-center gap-3`). */
+  providerHead: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  providerTitle: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing[2],
   },
   stepHead: {
     flexDirection: 'row',
