@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { FlatList, Pressable, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
@@ -6,7 +6,8 @@ import { AppImage } from '@/components/AppImage';
 import { IMAGE_PLACEHOLDER, resolveImageUrl } from '@/utils/imageUrl';
 import { GlassSurface, Text, theme } from '@/ui';
 import type { ProductImage } from '../_lib/types';
-import { ImageThumbStrip } from './ImageThumbStrip';
+import { useThumbPager } from '../_hooks/useThumbPager';
+import { ImageThumbStrip, THUMB_SIZE } from './ImageThumbStrip';
 
 const { spacing } = theme;
 
@@ -42,19 +43,22 @@ export function ProductGallery({
   currentImage,
   onPageChange,
   onOpenViewer,
+  reserveStrip = false,
 }: {
   images: ProductImage[];
   currentImage: number;
   onPageChange: (page: number) => void;
   onOpenViewer: (index: number) => void;
+  /**
+   * Keep the strip's space when there is one image: the list-cache placeholder carries only the
+   * cover, and the full product may bring more.
+   */
+  reserveStrip?: boolean;
 }) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const total = images.length;
-  const pagerRef = useRef<FlatList<ProductImage>>(null);
-  // Page a thumbnail tap is scrolling to. While set, the scroll events of that animation must not
-  // report the pages in between (the selection would flicker through them).
-  const targetPage = useRef<number | null>(null);
+  const pager = useThumbPager({ width, total, current: currentImage, onPageChange });
 
   // So swiping never shows an empty frame, prefetch the neighbours (expo-image disk + memory cache;
   // AppImage uses the same `memory-disk` policy). The key is the URL set: the screen builds a new
@@ -91,34 +95,6 @@ export function ProductGallery({
     [onOpenViewer, t, width],
   );
 
-  const onScroll = useCallback(
-    (e: { nativeEvent: { contentOffset: { x: number } } }) => {
-      const page = Math.round(e.nativeEvent.contentOffset.x / width);
-      if (page < 0 || page >= total) return;
-      if (targetPage.current !== null) {
-        // A thumbnail tap is animating the pager: ignore the pages passed on the way.
-        if (page !== targetPage.current) return;
-        targetPage.current = null;
-      }
-      onPageChange(page);
-    },
-    [onPageChange, total, width],
-  );
-
-  // The user takes over (touch) or the animation ended: scroll events report pages again.
-  const releaseTarget = useCallback(() => {
-    targetPage.current = null;
-  }, []);
-
-  const selectThumb = useCallback(
-    (index: number) => {
-      if (index !== currentImage) targetPage.current = index;
-      onPageChange(index);
-      pagerRef.current?.scrollToOffset({ offset: index * width, animated: true });
-    },
-    [currentImage, onPageChange, width],
-  );
-
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({ length: width, offset: width * index, index }),
     [width],
@@ -128,7 +104,7 @@ export function ProductGallery({
     <View>
       <View style={{ width, aspectRatio: 1 }}>
         <FlatList
-          ref={pagerRef}
+          ref={pager.pagerRef}
           data={images}
           horizontal
           pagingEnabled
@@ -136,9 +112,9 @@ export function ProductGallery({
           keyExtractor={(_, index) => String(index)}
           renderItem={renderItem}
           getItemLayout={getItemLayout}
-          onScroll={onScroll}
-          onScrollBeginDrag={releaseTarget}
-          onMomentumScrollEnd={releaseTarget}
+          onScroll={pager.onScroll}
+          onScrollBeginDrag={pager.onScrollBeginDrag}
+          onMomentumScrollEnd={pager.onMomentumScrollEnd}
           scrollEventThrottle={16}
           initialNumToRender={1}
           maxToRenderPerBatch={2}
@@ -164,17 +140,22 @@ export function ProductGallery({
         )}
       </View>
 
-      {total > 1 && (
+      {total > 1 ? (
         <View style={styles.stripWrap}>
           <ImageThumbStrip
             images={images}
             selectedIndex={currentImage}
-            onSelect={selectThumb}
+            onSelect={pager.scrollToPage}
             testID="product-gallery"
-            contentContainerStyle={styles.stripContent}
           />
         </View>
-      )}
+      ) : reserveStrip ? (
+        // Keeps the strip's height while the list-cache placeholder (one image) is shown, so the
+        // title does not jump when the full product brings the other images.
+        <View style={styles.stripWrap} testID="product-gallery-thumbs-reserved">
+          <View style={styles.stripReserve} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -189,5 +170,5 @@ const styles = StyleSheet.create({
   },
   counter: { paddingHorizontal: spacing[3] },
   stripWrap: { paddingTop: spacing[3] },
-  stripContent: { paddingHorizontal: spacing[4] },
+  stripReserve: { height: THUMB_SIZE },
 });

@@ -60,6 +60,24 @@ describe('ImageViewerModal', () => {
     expect(selected(1)).toBe(true);
   });
 
+  it('keeps the tapped thumbnail selected while the pager animates past the pages in between', () => {
+    open();
+    const { width } = Dimensions.get('window');
+    const pager = screen.getByTestId('image-viewer-pager');
+    const metrics = {
+      contentSize: { width: width * 3, height: 600 },
+      layoutMeasurement: { width, height: 600 },
+    };
+    fireEvent.press(screen.getByTestId('image-viewer-thumb-2'));
+    fireEvent.scroll(pager, { nativeEvent: { contentOffset: { x: width, y: 0 }, ...metrics } });
+    expect(screen.getByTestId('image-viewer-counter')).toHaveTextContent('3 / 3');
+    expect(selected(2)).toBe(true);
+    fireEvent.scroll(pager, { nativeEvent: { contentOffset: { x: width * 2, y: 0 }, ...metrics } });
+    // Target reached: swipes report pages again.
+    fireEvent.scroll(pager, { nativeEvent: { contentOffset: { x: width, y: 0 }, ...metrics } });
+    expect(selected(1)).toBe(true);
+  });
+
   it('the X closes the viewer', () => {
     const onClose = open();
     fireEvent.press(screen.getByTestId('image-viewer-close'));

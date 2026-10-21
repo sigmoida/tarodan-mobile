@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef } from 'react';
-import { FlatList, Pressable, StyleSheet, View, type ListRenderItemInfo, type StyleProp, type ViewStyle } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, View, type LayoutChangeEvent, type ListRenderItemInfo } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppImage } from '@/components/AppImage';
 import { androidRipple, theme } from '@/ui';
@@ -7,11 +7,20 @@ import type { ProductImage } from '../_lib/types';
 
 const { colors, spacing, radius } = theme;
 
-/** Thumbnail edge (pt). Inside the 56-64 pt range and above the 44 pt touch target. */
+/** Thumbnail edge (pt), ADR 0013. Inside the 56-64 pt range and above the 44 pt touch target. */
 export const THUMB_SIZE = 60;
 const THUMB_GAP = spacing[2];
 const THUMB_BORDER = 2;
 const THUMB_STEP = THUMB_SIZE + THUMB_GAP;
+/** Side padding of the strip; part of every item offset in `getItemLayout`. */
+const STRIP_PADDING = spacing[4];
+
+type StripProps = {
+  images: ProductImage[];
+  selectedIndex: number;
+  onSelect: (index: number) => void;
+  testID: string;
+};
 
 /**
  * Thumbnail strip shared by the product gallery (under the main image) and the full-screen viewer.
@@ -22,32 +31,32 @@ const THUMB_STEP = THUMB_SIZE + THUMB_GAP;
  *
  * `testID` is a prefix: the list is `${testID}-thumbs` and the items are `${testID}-thumb-${index}`.
  */
-export function ImageThumbStrip({
-  images,
-  selectedIndex,
-  onSelect,
-  testID,
-  contentContainerStyle,
-}: {
-  images: ProductImage[];
-  selectedIndex: number;
-  onSelect: (index: number) => void;
-  testID: string;
-  contentContainerStyle?: StyleProp<ViewStyle>;
-}) {
+export function ImageThumbStrip(props: StripProps) {
+  if (props.images.length < 2) return null;
+  return <ThumbList {...props} />;
+}
+
+function ThumbList({ images, selectedIndex, onSelect, testID }: StripProps) {
   const { t } = useTranslation();
   const listRef = useRef<FlatList<ProductImage>>(null);
   const total = images.length;
-  const selected = Math.min(Math.max(selectedIndex, 0), Math.max(total - 1, 0));
+  const selected = Math.min(Math.max(selectedIndex, 0), total - 1);
+  // The list's own width. Centring waits for it: before the first layout the list computes the
+  // offset with a zero viewport and lands off by half a thumbnail.
+  const [viewport, setViewport] = useState(0);
+  const centred = useRef(false);
 
-  // Centre the selected thumbnail in the strip.
+  // Centre the selected thumbnail: in place on the first layout, animated afterwards.
   useEffect(() => {
-    if (total < 2) return;
-    listRef.current?.scrollToIndex({ index: selected, viewPosition: 0.5, animated: true });
-  }, [selected, total]);
+    if (viewport <= 0) return;
+    listRef.current?.scrollToIndex({ index: selected, viewPosition: 0.5, animated: centred.current });
+    centred.current = true;
+  }, [selected, viewport]);
+
+  const onLayout = useCallback((e: LayoutChangeEvent) => setViewport(e.nativeEvent.layout.width), []);
 
   const getItemLayout = useCallback(
-    (_: unknown, index: number) => ({ length: THUMB_STEP, offset: THUMB_STEP * index, index }),
+    (_: unknown, index: number) => ({ length: THUMB_STEP, offset: STRIP_PADDING + THUMB_STEP * index, index }),
     [],
   );
 
@@ -71,8 +80,6 @@ export function ImageThumbStrip({
     [onSelect, selected, t, testID, total],
   );
 
-  if (total < 2) return null;
-
   return (
     <FlatList
       ref={listRef}
@@ -83,13 +90,13 @@ export function ImageThumbStrip({
       keyExtractor={(_, index) => String(index)}
       // Selection lives outside `data`, so tell the list to re-render the items when it changes.
       extraData={selected}
-      initialScrollIndex={selected}
       getItemLayout={getItemLayout}
+      onLayout={onLayout}
       ItemSeparatorComponent={ThumbGap}
       renderItem={renderItem}
       // Fixed height so the strip is part of the first layout (no jump when the thumbnails mount).
       style={styles.list}
-      contentContainerStyle={contentContainerStyle}
+      contentContainerStyle={styles.content}
     />
   );
 }
@@ -98,6 +105,7 @@ const ThumbGap = () => <View style={styles.gap} />;
 
 const styles = StyleSheet.create({
   list: { flexGrow: 0, height: THUMB_SIZE },
+  content: { paddingHorizontal: STRIP_PADDING },
   gap: { width: THUMB_GAP },
   thumb: {
     width: THUMB_SIZE,

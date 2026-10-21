@@ -126,6 +126,56 @@ describe('ProductGallery', () => {
       expect(onPageChange).toHaveBeenLastCalledWith(1);
     });
 
+    it('reports the page shown when an interrupted tap animation comes to rest', () => {
+      const { onPageChange } = setup({ currentImage: 0 });
+      const { width } = Dimensions.get('window');
+      const pager = screen.UNSAFE_getAllByType(FlatList)[0]!;
+      fireEvent.press(screen.getByTestId('product-gallery-thumb-2'));
+      onPageChange.mockClear();
+      // The animation stops on page 1: the in-between scroll is ignored, the rest position is not.
+      fireEvent.scroll(pager, { nativeEvent: { contentOffset: { x: width, y: 0 } } });
+      expect(onPageChange).not.toHaveBeenCalled();
+      fireEvent(pager, 'momentumScrollEnd', { nativeEvent: { contentOffset: { x: width, y: 0 } } });
+      expect(onPageChange).toHaveBeenLastCalledWith(1);
+    });
+
+    it('hands page reporting back to the user when they drag during a tap animation', () => {
+      const { onPageChange } = setup({ currentImage: 0 });
+      const { width } = Dimensions.get('window');
+      const pager = screen.UNSAFE_getAllByType(FlatList)[0]!;
+      fireEvent.press(screen.getByTestId('product-gallery-thumb-2'));
+      onPageChange.mockClear();
+      fireEvent(pager, 'scrollBeginDrag', { nativeEvent: { contentOffset: { x: width / 2, y: 0 } } });
+      fireEvent.scroll(pager, { nativeEvent: { contentOffset: { x: width, y: 0 } } });
+      expect(onPageChange).toHaveBeenLastCalledWith(1);
+    });
+
+    it('re-tapping the selected thumbnail only realigns the pager', () => {
+      const scrollToOffset = jest.spyOn(FlatList.prototype, 'scrollToOffset');
+      try {
+        const { onPageChange } = setup({ currentImage: 1 });
+        const { width } = Dimensions.get('window');
+        fireEvent.press(screen.getByTestId('product-gallery-thumb-1'));
+        expect(onPageChange).toHaveBeenLastCalledWith(1);
+        expect(scrollToOffset).toHaveBeenLastCalledWith({ offset: width, animated: true });
+        // No target was armed: a later swipe reports its page straight away.
+        fireEvent.scroll(screen.UNSAFE_getAllByType(FlatList)[0]!, { nativeEvent: { contentOffset: { x: 0, y: 0 } } });
+        expect(onPageChange).toHaveBeenLastCalledWith(0);
+      } finally {
+        scrollToOffset.mockRestore();
+      }
+    });
+
+    it('reserves the strip height for a single image only while asked to (list-cache placeholder)', () => {
+      const { rerender } = renderWithProviders(
+        <ProductGallery images={[images[0]]} currentImage={0} onPageChange={jest.fn()} onOpenViewer={jest.fn()} reserveStrip />,
+      );
+      expect(screen.getByTestId('product-gallery-thumbs-reserved')).toBeTruthy();
+      expect(screen.queryByTestId('product-gallery-thumbs')).toBeNull();
+      rerender(<ProductGallery images={[images[0]]} currentImage={0} onPageChange={jest.fn()} onOpenViewer={jest.fn()} />);
+      expect(screen.queryByTestId('product-gallery-thumbs-reserved')).toBeNull();
+    });
+
     it('swiping the main image moves the selected thumbnail', () => {
       const { rerender } = renderWithProviders(
         <ProductGallery images={images} currentImage={0} onPageChange={jest.fn()} onOpenViewer={jest.fn()} />,

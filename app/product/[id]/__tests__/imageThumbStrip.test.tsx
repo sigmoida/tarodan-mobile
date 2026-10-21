@@ -1,6 +1,6 @@
 /**
- * Shared thumbnail strip: card-size URLs, selected state, accessibility, auto-scroll of the
- * selected thumbnail and the single-image guard.
+ * Shared thumbnail strip: card-size URLs (detail fallback), selected state, accessibility,
+ * layout-gated centring of the selected thumbnail and the single-image guard.
  */
 import React from 'react';
 import { FlatList } from 'react-native';
@@ -56,16 +56,37 @@ describe('ImageThumbStrip', () => {
     expect(onSelect).toHaveBeenCalledWith(2);
   });
 
-  it('scrolls the selected thumbnail into view when the selection changes', () => {
+  it('centres the selected thumbnail only after the strip has its width, then follows the selection', () => {
     const scrollToIndex = jest.spyOn(FlatList.prototype, 'scrollToIndex').mockImplementation(() => undefined);
     try {
-      const { rerender, onSelect } = setup();
-      scrollToIndex.mockClear();
+      const { rerender, onSelect } = setup({ selectedIndex: 1 });
+      // Before the first layout the list would centre against a zero-wide viewport.
+      expect(scrollToIndex).not.toHaveBeenCalled();
+      fireEvent(screen.getByTestId('strip-thumbs'), 'layout', {
+        nativeEvent: { layout: { x: 0, y: 0, width: 390, height: 60 } },
+      });
+      expect(scrollToIndex).toHaveBeenLastCalledWith({ index: 1, viewPosition: 0.5, animated: false });
       rerender(<ImageThumbStrip images={images} selectedIndex={2} onSelect={onSelect} testID="strip" />);
-      expect(scrollToIndex).toHaveBeenCalledWith({ index: 2, viewPosition: 0.5, animated: true });
+      expect(scrollToIndex).toHaveBeenLastCalledWith({ index: 2, viewPosition: 0.5, animated: true });
     } finally {
       scrollToIndex.mockRestore();
     }
+  });
+
+  it('counts the side padding in the item offsets so centring is exact', () => {
+    setup();
+    const list = screen.UNSAFE_getByType(FlatList);
+    const padding = list.props.contentContainerStyle.paddingHorizontal;
+    expect(padding).toBeGreaterThan(0);
+    expect(list.props.getItemLayout(null, 0).offset).toBe(padding);
+    const step = list.props.getItemLayout(null, 1).offset - padding;
+    expect(list.props.getItemLayout(null, 2).offset).toBe(padding + 2 * step);
+  });
+
+  it('falls back to the detail URL when an image has no card variant', () => {
+    setup({ images: [{ url: 'https://x/a-detail.jpg', detailUrl: 'https://x/a-detail.jpg' }, images[1]] });
+    const uris = screen.UNSAFE_getAllByType(Image).map((img) => img.props.source.uri);
+    expect(uris).toEqual(['https://x/a-detail.jpg', 'https://x/b-card.jpg']);
   });
 
   it('renders nothing for fewer than two images', () => {

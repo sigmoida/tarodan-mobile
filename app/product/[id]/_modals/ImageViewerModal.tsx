@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 // Full-screen image viewer (web ProductLightbox): `@/ui` Modal is a dialog card; here a frameless,
 // full-screen native Modal is needed (for jest and the zoom gesture, GestureHandlerRootView goes INSIDE the modal).
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
@@ -11,6 +11,7 @@ import { Icon, Text, theme, useHeaderTopInset, useModalPresence } from '@/ui';
 import ZoomableImage from '@/components/product/ZoomableImage';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { ImageThumbStrip } from '../_components/ImageThumbStrip';
+import { useThumbPager } from '../_hooks/useThumbPager';
 import type { ProductImage } from '../_lib/types';
 
 const { colors, spacing } = theme;
@@ -73,24 +74,16 @@ function ViewerBody({
   const [pageHeight, setPageHeight] = useState<number | undefined>(undefined);
   // When a thumbnail changes the page, reset the old page's zoom (so the zoomed flag cannot stick).
   const [resetKey, setResetKey] = useState(0);
-  const pagerRef = useRef<FlatList<ProductImage>>(null);
-
-  const onPagerScroll = useCallback(
-    (e: { nativeEvent: { contentOffset: { x: number } } }) => {
-      const next = Math.round(e.nativeEvent.contentOffset.x / width);
-      if (next >= 0 && next < total) setIndex((prev) => (prev === next ? prev : next));
-    },
-    [width, total],
-  );
+  const pager = useThumbPager({ width, total, current: index, onPageChange: setIndex });
+  const { scrollToPage } = pager;
 
   const selectThumb = useCallback(
     (i: number) => {
       setZoomed(false);
       setResetKey((k) => k + 1);
-      setIndex(i);
-      pagerRef.current?.scrollToOffset({ offset: i * width, animated: true });
+      scrollToPage(i);
     },
-    [width],
+    [scrollToPage],
   );
 
   const renderPage = useCallback(
@@ -125,7 +118,7 @@ function ViewerBody({
       </View>
 
       <FlatList
-        ref={pagerRef}
+        ref={pager.pagerRef}
         testID="image-viewer-pager"
         style={styles.pager}
         data={images}
@@ -144,7 +137,9 @@ function ViewerBody({
         maxToRenderPerBatch={1}
         windowSize={3}
         scrollEventThrottle={16}
-        onScroll={onPagerScroll}
+        onScroll={pager.onScroll}
+        onScrollBeginDrag={pager.onScrollBeginDrag}
+        onMomentumScrollEnd={pager.onMomentumScrollEnd}
         onLayout={(e) => setPageHeight(e.nativeEvent.layout.height)}
       />
 
@@ -155,7 +150,6 @@ function ViewerBody({
             selectedIndex={index}
             onSelect={selectThumb}
             testID="image-viewer"
-            contentContainerStyle={styles.stripContent}
           />
         </View>
       ) : (
@@ -179,5 +173,4 @@ const styles = StyleSheet.create({
   },
   pager: { flex: 1 },
   stripWrap: { paddingTop: spacing[3] },
-  stripContent: { paddingHorizontal: spacing[4] },
 });

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { theme, toast } from '@/ui';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -76,7 +76,9 @@ export default function ProductDetailScreen() {
   const [currentImage, setCurrentImage] = useState(0);
   const [viewer, setViewer] = useState({ open: false, index: 0 });
 
-  const images = product ? resolveProductImages(product) : [];
+  // One array per product object: the pager, the thumbnail strip and the viewer receive stable items,
+  // so their memoised images skip unrelated screen re-renders (page changes, favourite, cart).
+  const images = useMemo(() => (product ? resolveProductImages(product) : []), [product]);
   const isOutOfStock = product ? isProductOutOfStock(product) : false;
 
   const { minPrice } = usePriceLimits();
@@ -217,6 +219,7 @@ export default function ProductDetailScreen() {
             currentImage={currentImage}
             onPageChange={setCurrentImage}
             onOpenViewer={(index) => setViewer({ open: true, index })}
+            reserveStrip={!full}
           />
 
           <View style={styles.body}>
