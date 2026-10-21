@@ -108,15 +108,17 @@ export function useNewTrade() {
     qk.trades.sellerTradeable(targetSellerId),
   ]);
 
-  // Preselect the target listing once, when it first shows up. The list refetches on open and
-  // on foreground, so without the guard a changed list would wipe the user's own selection.
-  const preselectedRef = useRef(false);
+  // Preselect the target listing once per target, when it first shows up, and ADD it to what
+  // the user already picked. The list refetches on open, focus and foreground: the guard keeps
+  // a later refetch from re-adding a target the user removed, and adding (not replacing) keeps
+  // a pick made while the target was still missing from a cached list.
+  const preselectedFor = useRef<string | null>(null);
   useEffect(() => {
-    if (preselectedRef.current || !listingId || !theirProducts?.length) return;
+    if (!listingId || preselectedFor.current === listingId || !theirProducts?.length) return;
     const target = theirProducts.find((p: Product) => p.id === listingId);
     if (target) {
-      preselectedRef.current = true;
-      setSelectedTheirItems((prev) => (prev.some((p) => p.id === listingId) ? prev : [target]));
+      preselectedFor.current = listingId;
+      setSelectedTheirItems((prev) => (prev.some((p) => p.id === listingId) ? prev : [...prev, target]));
     }
   }, [listingId, theirProducts]);
 

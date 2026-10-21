@@ -94,11 +94,16 @@ afterEach(() => {
 });
 
 describe('isPickerLoading', () => {
-  it('first load, or a refetch of an empty list, is loading; a non-empty list or a settled empty list is not', () => {
-    expect(isPickerLoading({ isLoading: true, isFetching: true })).toBe(true);
-    expect(isPickerLoading({ isLoading: false, isFetching: true, data: [] })).toBe(true);
-    expect(isPickerLoading({ isLoading: false, isFetching: true, data: [1] })).toBe(false);
-    expect(isPickerLoading({ isLoading: false, isFetching: false, data: [] })).toBe(false);
+  it('first load, or the on-open refetch of a cached empty list, is loading', () => {
+    expect(isPickerLoading({ isLoading: true, isFetching: true, isFetchedAfterMount: false })).toBe(true);
+    expect(isPickerLoading({ isLoading: false, isFetching: true, isFetchedAfterMount: false, data: [] })).toBe(true);
+  });
+
+  it('a non-empty list, a settled empty list, or a background refetch after a settled fetch is not', () => {
+    expect(isPickerLoading({ isLoading: false, isFetching: true, isFetchedAfterMount: false, data: [1] })).toBe(false);
+    expect(isPickerLoading({ isLoading: false, isFetching: false, isFetchedAfterMount: true, data: [] })).toBe(false);
+    // Focus / foreground / pull-to-refresh of a settled empty list: no spinner flash.
+    expect(isPickerLoading({ isLoading: false, isFetching: true, isFetchedAfterMount: true, data: [] })).toBe(false);
   });
 });
 
@@ -173,7 +178,41 @@ describe('picker refetch on screen focus', () => {
   });
 });
 
+describe('background refetch of a settled empty list', () => {
+  it('keeps the empty state on focus instead of flashing a spinner', async () => {
+    const client = makeClient();
+    const { result } = renderHook(() => useNewTrade(), { wrapper: wrapperFor(client) });
+    await waitFor(() => expect(result.current.loadingMyProducts).toBe(false));
+
+    let resolve!: (v: unknown) => void;
+    mockedMy.mockReturnValueOnce(new Promise((r) => (resolve = r)));
+    await act(async () => refocus());
+    expect(mockedMy).toHaveBeenCalledTimes(2);
+    expect(result.current.loadingMyProducts).toBe(false);
+    expect(result.current.myProducts).toEqual([]);
+
+    await act(async () => resolve({ data: { data: [listing('late-1')] } }));
+    await waitFor(() => expect(result.current.myProducts?.map((p: { id: string }) => p.id)).toEqual(['late-1']));
+  });
+});
+
 describe('new-trade picker, seller side', () => {
+  it('a target that arrives with the refetch is added to a pick the user made meanwhile', async () => {
+    mockParams = { listing: 't1', targetSellerId: 'seller-1' };
+    const client = makeClient();
+    client.setQueryData(qk.trades.sellerTradeable('seller-1'), [listing('a')]);
+    let resolve!: (v: unknown) => void;
+    mockedAll.mockReturnValueOnce(new Promise((r) => (resolve = r)));
+
+    const { result } = renderHook(() => useNewTrade(), { wrapper: wrapperFor(client) });
+    // The cached list (without the target) shows; the user picks A before the refetch lands.
+    act(() => result.current.toggleTheirItem(result.current.theirProducts![0]));
+    expect(result.current.selectedTheirItems.map((p) => p.id)).toEqual(['a']);
+
+    await act(async () => resolve({ data: { data: [listing('a'), listing('t1')] } }));
+    await waitFor(() => expect(result.current.selectedTheirItems.map((p) => p.id)).toEqual(['a', 't1']));
+  });
+
   it('refetches the seller list on open, so a listing missing from the cache shows and is preselected', async () => {
     mockParams = { listing: 't1', targetSellerId: 'seller-1' };
     const client = makeClient();

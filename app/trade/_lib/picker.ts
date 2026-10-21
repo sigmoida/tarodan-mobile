@@ -16,15 +16,17 @@ export const TRADE_PICKER_QUERY_OPTIONS = {
 } as const;
 
 /**
- * Loading wins over the empty state: `isLoading` only covers the first fetch, so a cached
- * empty list that is being refetched must also read as loading. The empty state shows only
- * after a fetch settles empty. A failed fetch settles too (`isFetching` turns false once the
- * retries end), so the spinner never stays forever.
+ * Loading wins over the empty state until this screen's own fetch settles: `isLoading` only
+ * covers the very first fetch, so a cached empty list that is refetched on open must also read
+ * as loading. Once a fetch settled after mount (`isFetchedAfterMount`, true for a failed fetch
+ * too), later background refetches (focus, foreground, pull-to-refresh) keep the settled
+ * state on screen instead of flashing a spinner, and the spinner never stays forever.
  */
 export function isPickerLoading(query: {
   isLoading: boolean;
   isFetching: boolean;
+  isFetchedAfterMount: boolean;
   data?: readonly unknown[];
 }): boolean {
-  return query.isLoading || (query.isFetching && !query.data?.length);
+  return query.isLoading || (query.isFetching && !query.isFetchedAfterMount && !query.data?.length);
 }
