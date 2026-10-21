@@ -1,6 +1,7 @@
 import { queryClient } from '../lib/queryClient';
 import { clearAllPaymentCapabilities, unbindPaymentCapabilityAccount } from '@/lib/payment/paymentCapability';
 import { useCartStore } from './cartStore';
+import { useCartWritesStore } from './cartWritesStore';
 import { useMessagesStore } from './messagesStore';
 import { useDisputeDraftStore } from './disputeDraftStore';
 import { usePendingAuthEmailStore } from './pendingAuthEmailStore';
@@ -30,6 +31,8 @@ export function resetUserStores(reason: LogoutReason = 'user'): void {
   // Sepet: persist'li store — clearCart AsyncStorage'a da boş yazar.
   useCartStore.getState().clearCart();
   useCartStore.getState().clearBuyNow();
+  // Card cart writes still running belong to the previous session: the next one starts unlocked.
+  useCartWritesStore.getState().reset();
 
   // #77: mesaj server-state'i artık React Query'de (qk.messaging.*) — queryClient.clear()
   // aşağıda onu da temizler. Store yalnız client state tutar (aktif thread).

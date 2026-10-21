@@ -9,7 +9,8 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { toast } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
 import { useCartStore } from '@/stores/cartStore';
-import { resetCartToggleStateForTests } from '@/hooks/useCartToggle';
+import { useCartWritesStore } from '@/stores/cartWritesStore';
+import { captureException } from '@/services/sentry';
 import { containers } from '@/theme';
 import { ProductCard, type ProductCardProduct } from '../ProductCard';
 
@@ -20,6 +21,8 @@ jest.mock('@/lib/api', () => ({
     removeItem: jest.fn(() => Promise.resolve({ data: {} })),
   },
 }));
+
+jest.mock('@/services/sentry', () => ({ captureException: jest.fn() }));
 
 jest.mock('@/lib/product/detailQuery', () => ({ prefetchProductDetail: jest.fn() }));
 
@@ -61,7 +64,7 @@ let toastError: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  resetCartToggleStateForTests();
+  useCartWritesStore.setState({ inFlight: [] });
   mockAuth = { isAuthenticated: false, user: null };
   useCartStore.setState({ items: [], deselectedIds: [], mergePendingFor: null });
   toastSuccess = jest.spyOn(toast, 'success').mockImplementation(() => 1);
@@ -200,11 +203,18 @@ describe('ProductCard action: cart toggle', () => {
     );
     const [first, second] = screen.getAllByTestId('product-card-cart-p1');
     fireEvent.press(first!);
+    // Every card of the listing shows the write, not only the pressed one.
+    for (const card of screen.getAllByTestId('product-card-cart-p1')) {
+      expect(card.props.accessibilityState).toEqual(expect.objectContaining({ busy: true }));
+    }
     fireEvent.press(second!);
     expect(cartApi.removeItem).not.toHaveBeenCalled();
     expect(useCartStore.getState().items).toHaveLength(1);
     await act(async () => resolveAdd?.({ data: {} }));
     await waitFor(() => expect(toastSuccess).toHaveBeenCalledTimes(1));
+    for (const card of screen.getAllByTestId('product-card-cart-p1')) {
+      expect(card.props.accessibilityState).toEqual(expect.objectContaining({ busy: false }));
+    }
   });
 
   it('member: a removal the server does not apply puts the line back and says why, no success toast', async () => {
@@ -220,6 +230,58 @@ describe('ProductCard action: cart toggle', () => {
     expect(useCartStore.getState().items.map((i) => i.productId)).toEqual(['p1']);
     expect(toastSuccess).not.toHaveBeenCalled();
     expect(cartButton()!.props.accessibilityLabel).toBe('Hot Wheels Supra ürününü sepetten çıkar');
+    expect(captureException).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ tags: { flow: 'cart.remove' } }));
+  });
+
+  it('member: the undone removal keeps the line in place and deselected for checkout', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'buyer-1' } };
+    renderWithProviders(<ProductCard product={listing} />);
+    fireEvent.press(cartButton()!);
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
+    await waitFor(() => expect(cartButton()!.props.accessibilityState).toEqual(expect.objectContaining({ busy: false })));
+    useCartStore.getState().addItem({ ...useCartStore.getState().items[0]!, productId: 'p2' });
+    const line = useCartStore.getState().items[0]!;
+    useCartStore.getState().toggleSelected(line.id);
+
+    (cartApi.removeItem as jest.Mock).mockRejectedValueOnce({ response: { status: 409, data: { message: 'Kaldırılamaz' } } });
+    fireEvent.press(cartButton()!);
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('Kaldırılamaz'));
+    const s = useCartStore.getState();
+    expect(s.items.map((i) => i.productId)).toEqual(['p1', 'p2']);
+    expect(s.isSelected(line.id)).toBe(false);
+  });
+
+  it('member: a removal that throws before sending is undone too', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'buyer-1' } };
+    renderWithProviders(<ProductCard product={listing} />);
+    fireEvent.press(cartButton()!);
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
+    await waitFor(() => expect(cartButton()!.props.accessibilityState).toEqual(expect.objectContaining({ busy: false })));
+    toastSuccess.mockClear();
+
+    (cartApi.removeItem as jest.Mock).mockImplementationOnce(() => {
+      throw new Error('interceptor');
+    });
+    fireEvent.press(cartButton()!);
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('Sepetten çıkarılamadı'));
+    expect(useCartStore.getState().items).toHaveLength(1);
+    expect(toastSuccess).not.toHaveBeenCalled();
+    expect(cartButton()!.props.accessibilityState).toEqual(expect.objectContaining({ busy: false }));
+  });
+
+  it('member: a transient removal error while the cart awaits its merge keeps the removal', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'buyer-1' } };
+    renderWithProviders(<ProductCard product={listing} />);
+    fireEvent.press(cartButton()!);
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Ürün sepete eklendi'));
+    await waitFor(() => expect(cartButton()!.props.accessibilityState).toEqual(expect.objectContaining({ busy: false })));
+    useCartStore.setState({ mergePendingFor: 'buyer-1' });
+
+    (cartApi.removeItem as jest.Mock).mockRejectedValueOnce({ message: 'Network Error' });
+    fireEvent.press(cartButton()!);
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Ürün sepetten çıkarıldı'));
+    expect(useCartStore.getState().items).toHaveLength(0);
+    expect(toastError).not.toHaveBeenCalled();
   });
 
   it('member: a 404 on removal means the server cart did not hold the line; the removal stands', async () => {
@@ -234,6 +296,8 @@ describe('ProductCard action: cart toggle', () => {
     await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Ürün sepetten çıkarıldı'));
     expect(useCartStore.getState().items).toHaveLength(0);
     expect(toastError).not.toHaveBeenCalled();
+    // An expected outcome, not a Sentry event.
+    expect(captureException).not.toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ tags: { flow: 'cart.remove' } }));
   });
 
   it('member: a line the server refuses is undone, its message shown, no success toast', async () => {

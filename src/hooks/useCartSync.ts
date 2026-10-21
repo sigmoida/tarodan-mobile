@@ -106,11 +106,16 @@ export function useCartSync() {
     /**
      * Without `onSettled` (the cart screen) the local removal is final and a server error is only
      * reported, as before. With it (the card toggle, web parity) a member's removal the server did
-     * not apply is undone: the line comes back and the reason is shown (`rejected`). A 404 means
-     * the server cart did not hold the line, so the removal stands.
+     * not apply is undone: the line comes back where it was, with its checkout selection, and the
+     * reason is shown (`rejected`). Two cases keep the removal: a 404 (the server cart did not
+     * hold the line), and a transient error while the cart awaits its merge (the line may never
+     * have reached the server; the merge sends only what is still in the local cart).
      */
     removeByProductId: (productId: string, onSettled?: OnCartWriteSettled) => {
-      const before = useCartStore.getState().items.find((i) => i.productId === productId);
+      const { items, deselectedIds } = useCartStore.getState();
+      const index = items.findIndex((i) => i.productId === productId);
+      const before = index >= 0 ? items[index] : undefined;
+      const deselected = before ? deselectedIds.includes(before.id) : false;
       useCartStore.getState().removeByProductId(productId);
       if (!onSettled) {
         void mirror(() => cartApi.removeItem(productId), 'cart.remove');
@@ -120,18 +125,25 @@ export function useCartSync() {
         onSettled('applied');
         return;
       }
-      cartApi.removeItem(productId).then(
+      // The executor runs at once, and a synchronous throw (an interceptor) becomes a rejection,
+      // so the undo below covers it too.
+      new Promise((resolve) => resolve(cartApi.removeItem(productId))).then(
         () => {
           void queryClient.invalidateQueries({ queryKey: qk.cart.mine });
           onSettled('applied');
         },
         (error: unknown) => {
-          captureException(error, { level: 'warning', tags: { flow: 'cart.remove' } });
           if ((error as { response?: { status?: number } })?.response?.status === 404) {
             onSettled('applied');
             return;
           }
-          if (before) useCartStore.getState().restoreItem(before);
+          captureException(error, { level: 'warning', tags: { flow: 'cart.remove' } });
+          const transient = classifyCartError(error) === 'transient';
+          if (transient && userId && useCartStore.getState().mergePendingFor === userId) {
+            onSettled('applied');
+            return;
+          }
+          if (before) useCartStore.getState().restoreItem(before, { index, deselected });
           toast.error(errorText(error, i18n.t('product.removeFromCartFailed')));
           onSettled('rejected');
         },

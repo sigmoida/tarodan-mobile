@@ -8,6 +8,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCartStore } from '../cartStore';
+import { useCartWritesStore } from '../cartWritesStore';
 import { useRecentSearchesStore } from '../recentSearchesStore';
 import { resetUserStores } from '../resetUserStores';
 import { SAVED_SEARCHES_STORAGE_KEY } from '../savedSearchesStorage';
@@ -25,4 +26,13 @@ it('son aramalar, kayıtlı aramalar ve sepet birleştirme işareti çıkışta 
   expect(useRecentSearchesStore.getState().searches).toEqual([]);
   expect(await AsyncStorage.getItem(SAVED_SEARCHES_STORAGE_KEY)).toBeNull();
   expect(useCartStore.getState().mergePendingFor).toBeNull();
+});
+
+it('a card cart write still running does not lock its listing for the next session', () => {
+  useCartWritesStore.getState().begin('p1');
+
+  resetUserStores('forced');
+
+  expect(useCartWritesStore.getState().inFlight).toEqual([]);
+  expect(useCartWritesStore.getState().begin('p1')).toBe(true);
 });
