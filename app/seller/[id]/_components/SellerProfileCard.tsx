@@ -19,20 +19,20 @@ function Metric({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 /**
- * Seller header card (web `SellerHeader`): avatar, name + badges (Verified / trust score),
+ * Seller header card (web `SellerHeader`): avatar, name + badges (Premium / Verified / trust score),
  * member-since date, Message + Follow buttons and the 2x2 counter grid (Listings, Sales, Trades,
  * Followers). The average rating sits in the reviews card title. Report/block live in the top bar
  * menu. The trust badge reads `trust` only (never the legacy `trustScore`).
  */
 export function SellerProfileCard({ f }: { f: SellerProfileController }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { seller, products } = f;
   // The screen renders the card only once the profile loaded; the guard narrows the type.
   if (!seller) return null;
   // Only the member-since date next to the avatar; the rating is in the reviews card, followers in the grid.
   const memberSince = seller.createdAt
     ? t('seller.memberSincePrefix', {
-        date: new Date(seller.createdAt).toLocaleDateString(i18n.language, { month: 'long', year: 'numeric' }),
+        date: new Date(seller.createdAt).toLocaleDateString(t('common.dateLocale'), { month: 'long', year: 'numeric' }),
       })
     : null;
 
@@ -50,6 +50,11 @@ export function SellerProfileCard({ f }: { f: SellerProfileController }) {
               <Text variant="h2" numberOfLines={1} style={styles.name}>
                 {seller.displayName}
               </Text>
+              {seller.isPremium ? (
+                <Badge variant="default" size="sm">
+                  {t('seller.premiumBadge')}
+                </Badge>
+              ) : null}
               {seller.isVerified ? (
                 <Badge variant="success" size="sm">
                   {t('seller.verified')}

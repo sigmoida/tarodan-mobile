@@ -65,7 +65,7 @@ describe('satıcı profili', () => {
     expect(screen.getByText('3')).toBeTruthy(); // takipçi sayacı ızgarada
   });
 
-  it('güven skoru: yalnız `trust` okunur, 2 ondalıkla "Güven skoru 3,74/5 · Orta"', () => {
+  it('trust score: reads `trust` only, two decimals: "Güven skoru 3,74/5 · Orta"', () => {
     const f = base();
     mockProfile.mockReturnValue({
       ...f,
@@ -75,7 +75,18 @@ describe('satıcı profili', () => {
     expect(screen.getByText('Güven skoru 3,74/5 · Orta')).toBeTruthy();
   });
 
-  it('yeni satıcı: "Güven skoru: Yeni satıcı"', () => {
+  it('Premium badge only for a premium seller (web SellerHeader)', () => {
+    const f = base();
+    mockProfile.mockReturnValue(f);
+    const first = render(<SellerProfileScreen />);
+    expect(screen.queryByText('Premium')).toBeNull();
+    first.unmount();
+    mockProfile.mockReturnValue({ ...f, seller: { ...f.seller, isPremium: true } });
+    render(<SellerProfileScreen />);
+    expect(screen.getByText('Premium')).toBeTruthy();
+  });
+
+  it('new seller: "Güven skoru: Yeni satıcı"', () => {
     const f = base();
     mockProfile.mockReturnValue({
       ...f,
@@ -85,7 +96,7 @@ describe('satıcı profili', () => {
     expect(screen.getByText('Güven skoru: Yeni satıcı')).toBeTruthy();
   });
 
-  it('`trust` null ya da yok: rozet yok; eski trustScore/trustLevel asla /100 olarak çizilmez', () => {
+  it('`trust` null or absent: no badge; the legacy trustScore/trustLevel never draw as /100', () => {
     const f = base();
     mockProfile.mockReturnValue({
       ...f,
