@@ -445,7 +445,7 @@ describe('counter pickers, loading on open and load errors (web B5 rules)', () =
     expect(screen.getByText('Car m1')).toBeOnTheScreen();
   });
 
-  it('a 4xx on a refetch of the trade (gone or no longer mine) shows the error state', async () => {
+  it('a 404 on a refetch of the trade (it is gone) shows "not found", not the editor', async () => {
     mockedMy.mockImplementation(server(() => range('m', 1, 2)));
     const { queryClient } = renderWithProviders(<TradeCounterScreen />);
     expect(await screen.findByText('Car m1')).toBeOnTheScreen();
@@ -455,7 +455,8 @@ describe('counter pickers, loading on open and load errors (web B5 rules)', () =
       await queryClient.refetchQueries({ queryKey: qk.trades.detail('trade-1') });
     });
     await flushQueryNotifications();
-    expect(screen.getByTestId('error-state')).toBeOnTheScreen();
+    expect(screen.getByText(i18n.t('trade.notFoundTitle'))).toBeOnTheScreen();
+    expect(screen.queryByTestId('error-state')).toBeNull();
     expect(screen.queryByText('Car m1')).toBeNull();
   });
 

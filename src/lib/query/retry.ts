@@ -15,12 +15,7 @@
  * verildiği için kilitlenme yok.
  */
 export function retryUnlessClientError(failureCount: number, error: unknown): boolean {
-  if (isClientError(error)) return false;
-  return failureCount < 2;
-}
-
-/** A 4xx response: neither a retry nor a later refetch fixes it (gone, forbidden, invalid). */
-export function isClientError(error: unknown): boolean {
   const status = (error as { response?: { status?: unknown } } | null)?.response?.status;
-  return typeof status === 'number' && status >= 400 && status < 500;
+  if (typeof status === 'number' && status >= 400 && status < 500) return false;
+  return failureCount < 2;
 }

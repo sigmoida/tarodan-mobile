@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/common/PageShell';
-import { isClientError } from '@/lib/query';
+import { isNotFoundError } from '@/lib/query';
 import { useTradeCounter } from './_hooks/useTradeCounter';
 import { TradeCounterBody, TradeCounterFooter } from './_components/TradeCounterBody';
 
@@ -13,12 +13,14 @@ export default function TradeCounterScreen() {
   const { t } = useTranslation();
   const f = useTradeCounter();
 
-  // A trade that never loaded fails the screen, and so does a 4xx (the trade is gone or no
-  // longer the user's: the counter would be refused). A network or 5xx failure of a background
-  // refetch keeps the editor and the user's picks on screen.
-  const tradeFailed = (!f.trade && !f.tradeQuery.isLoading) || isClientError(f.tradeQuery.error);
-  const failed = tradeFailed || f.pickersFailed;
-  const loading = !failed && (f.tradeQuery.isLoading || !f.trade || f.initializedId !== f.trade.id);
+  // A 404 (the trade is gone) shows "not found", like the trade detail, even over a cached
+  // trade: the counter would be refused. Any other error fails the screen only when no trade
+  // ever loaded; a failed background refetch keeps the editor and the user's picks on screen.
+  const tradeGone = isNotFoundError(f.tradeQuery.error);
+  const tradeFailed = !tradeGone && !f.trade && !f.tradeQuery.isLoading;
+  const failed = tradeFailed || (!tradeGone && f.pickersFailed);
+  const loading =
+    !tradeGone && !failed && (f.tradeQuery.isLoading || !f.trade || f.initializedId !== f.trade.id);
 
   return (
     <PageShell
@@ -31,9 +33,17 @@ export default function TradeCounterScreen() {
         if (tradeFailed) void f.tradeQuery.refetch();
         if (f.pickersFailed) f.retryPickers();
       }}
+      empty={tradeGone}
+      emptyState={{
+        icon: 'arrows-right-left',
+        title: t('trade.notFoundTitle'),
+        subtitle: t('emptyState.notFoundHint'),
+        actionLabel: t('common.goBack'),
+        onAction: f.handleBack,
+      }}
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
-      footer={f.trade ? <TradeCounterFooter f={f} /> : undefined}
+      footer={f.trade && !tradeGone ? <TradeCounterFooter f={f} /> : undefined}
     >
       <TradeCounterBody f={f} />
     </PageShell>
