@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import { Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Badge } from '@/ui';
+import {
+  Badge,
+  androidRipple,
+  pressedStyle,
+  rippleClip,
+  showPressedStyle,
+  touchSlop,
+} from '@/ui';
 import {
   SELLER_TRUST_LEVELS,
   SELLER_TRUST_LEVEL_I18N_KEYS,
@@ -9,6 +16,7 @@ import {
   type SellerTrustView,
 } from '@/types/seller-trust';
 
+import { styles } from '../_lib/styles';
 import { SellerTrustInfoSheet } from '../_modals/SellerTrustInfoSheet';
 
 /**
@@ -16,10 +24,14 @@ import { SellerTrustInfoSheet } from '../_modals/SellerTrustInfoSheet';
  * `trust` block (non-premium seller, or an API without the block) or for a level this client does
  * not know (contract: an unknown future level shows no badge). It never falls back to the legacy
  * `trustScore` out of 100. Pressing it opens the "how is it calculated" sheet.
+ *
+ * The badge keeps the web size; `hitSlop` from its measured height (dynamic type grows it) closes
+ * the gap to the 44 pt touch target.
  */
 export function SellerTrustBadge({ trust }: { trust: SellerTrustView | null | undefined }) {
   const { t, i18n } = useTranslation();
   const [infoOpen, setInfoOpen] = useState(false);
+  const [height, setHeight] = useState(0);
 
   if (!trust || !(SELLER_TRUST_LEVELS as readonly string[]).includes(trust.level)) return null;
 
@@ -36,7 +48,12 @@ export function SellerTrustBadge({ trust }: { trust: SellerTrustView | null | un
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label}. ${t('seller.trustScore.info.title')}`}
+        accessibilityState={{ expanded: infoOpen }}
         onPress={() => setInfoOpen(true)}
+        onLayout={(e) => setHeight(e.nativeEvent.layout.height)}
+        hitSlop={height > 0 ? touchSlop(height) : undefined}
+        android_ripple={androidRipple()}
+        style={({ pressed }) => [styles.trustBadge, rippleClip(), showPressedStyle(pressed) && pressedStyle]}
         testID="seller-trust-badge"
       >
         <Badge variant="warning" size="sm">

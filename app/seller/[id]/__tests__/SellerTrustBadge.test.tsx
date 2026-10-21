@@ -47,6 +47,19 @@ describe('SellerTrustBadge', () => {
     expect(screen.queryByTestId('seller-trust-badge')).toBeNull();
   });
 
+  it('is an accessible button: label starts with the visible text, expanded state, 44 pt target', () => {
+    render(<SellerTrustBadge trust={view(3.74, 'fair')} />);
+    const badge = screen.getByTestId('seller-trust-badge');
+    expect(badge.props.accessibilityRole).toBe('button');
+    expect(badge.props.accessibilityLabel).toBe('Güven skoru 3,74/5 · Orta. Güven skoru nasıl hesaplanır?');
+    expect(badge.props.accessibilityState).toMatchObject({ expanded: false });
+    // A 24 pt badge gets 10 pt vertical slop on each side (44 pt, theme.minTouchTarget).
+    fireEvent(badge, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 120, height: 24 } } });
+    expect(screen.getByTestId('seller-trust-badge').props.hitSlop).toEqual({ top: 10, bottom: 10 });
+    fireEvent.press(screen.getByTestId('seller-trust-badge'));
+    expect(screen.getByTestId('seller-trust-badge').props.accessibilityState).toMatchObject({ expanded: true });
+  });
+
   it('pressing the badge opens the info sheet with both minimums in the new-seller line', () => {
     render(<SellerTrustBadge trust={view(3.74, 'fair')} />);
     expect(screen.queryByText('Güven skoru nasıl hesaplanır?')).toBeNull();

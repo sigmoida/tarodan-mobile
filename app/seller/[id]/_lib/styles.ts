@@ -11,6 +11,8 @@ export const styles = StyleSheet.create({
   nameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing[2] },
   name: { flexShrink: 1 },
   flex: { flex: 1 },
+  // Pressable wrapper of the trust badge: hugs the badge, rounds the Android ripple to its corner.
+  trustBadge: { alignSelf: 'flex-start', borderRadius: radiusRole.badge },
   trustInfo: { gap: spacing[3] },
   trustFactors: { gap: spacing[1] },
   trustFactor: { flexDirection: 'row', gap: spacing[2] },
