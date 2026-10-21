@@ -6,8 +6,8 @@ import { useAuthStore } from '@/stores/authStore';
 
 /**
  * Profile data controller — owns the membership query, derived tier values, and pull-to-refresh.
- * Güven skoru / görünürlük anahtarı profil başlığından kalktı → `useTrustVisibility` (Profili Düzenle). Sayaç/koleksiyon
- * sorguları kaldırıldı: profil artık web `ProfileSidebar` gibi sayısız, gruplu bir menü.
+ * The trust score no longer shows in the profile header. Counter/collection queries were removed:
+ * the profile is now a counter-free grouped menu like web `ProfileSidebar`.
  */
 export function useProfileData() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);

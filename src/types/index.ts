@@ -34,6 +34,9 @@ export * from './support';
 // Admin types
 export * from './admin';
 
+// Seller trust score types
+export * from './seller-trust';
+
 // Common types
 export interface PaginationMeta {
   total: number;

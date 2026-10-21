@@ -20,7 +20,6 @@ export const userApi = {
           taxId?: string;
           taxOffice?: string;
           isCorporateSeller?: boolean;
-          showTrustScore?: boolean;
         }
       | FormData,
   ) =>

@@ -21,6 +21,7 @@ export { useScreenFocused } from './lib/screenFocus';
 
 export {
 	Button,
+	touchSlop,
 	type ButtonProps,
 	type ButtonVariant,
 	type ButtonSize,

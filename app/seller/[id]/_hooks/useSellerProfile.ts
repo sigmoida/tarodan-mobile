@@ -7,6 +7,8 @@ import { useRefresh } from "@/hooks/useRefresh";
 import { useFollowing } from "@/hooks/useFollowing";
 import { useAuthStore } from "@/stores/authStore";
 
+import type { SellerPublicProfile } from "../_lib/types";
+
 /**
  * Seller profile controller — owns the 5 public-profile queries (seller,
  * products, rating stats, ratings, collections), pull-to-refresh, active tab,
@@ -35,14 +37,14 @@ export function useSellerProfile() {
     refetch: refetchSeller,
   } = useQuery({
     queryKey: qk.seller.detail(sellerId),
-    queryFn: async () => {
+    queryFn: async (): Promise<SellerPublicProfile | null> => {
       try {
-        // Web `userApi.getPublicProfile` ile aynı: GET /users/:id/profile
+        // Same as web `userApi.getPublicProfile`: GET /users/:id/profile
         const response = await userApi.getPublicProfile(String(id));
         return (response.data as any)?.data || response.data;
       } catch (error) {
-        // Gerçek 404 (silinmiş / engellenmiş profil) → "bulunamadı" (null); ağ/5xx FIRLATILIR
-        // → ekran ErrorState + yeniden dene (önceden her hata "satıcı bulunamadı" görünüyordu).
+        // A real 404 (deleted / blocked profile) -> "not found" (null); network/5xx THROWS
+        // -> the screen shows ErrorState + retry (before, every error read "seller not found").
         if (isNotFoundError(error)) return null;
         throw error;
       }

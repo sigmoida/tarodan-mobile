@@ -284,9 +284,6 @@ export const qk = {
     statsAll: ["user-stats"] as const,
     /** Kendi özet istatistikleri — GET /users/me/stats. */
     summaryStats: ["user-stats", "me", "summary"] as const,
-    trust: ["me-trust"] as const,
-    /** Sahibin kendi /users/me yanıtı — güven skoru + `showTrustScore` görünürlüğü. */
-    meTrust: (userId?: string) => ["me-trust", userId] as const,
     /**
      * Tam profil doğrulaması (`useFullProfile` — `refreshUserData`'yı tetikler; veri store'da).
      * `user` önekinin DIŞINDA: `qk.user.all` geçersizlemesi her hesap değişiminde yeniden çekmesin.
