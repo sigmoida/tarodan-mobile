@@ -57,6 +57,28 @@ describe('parseCashAmount', () => {
     expect(parseCashAmount('9'.repeat(400))).toBeUndefined();
   });
 
+  it.each([
+    // A rounded-up cent carries into the whole amount.
+    ['0,995', 1],
+    ['9,999', 10],
+    ['99,995', 100],
+    // Only the third decimal decides: the rest is past half a cent or not.
+    ['12,5049', 12.5],
+    ['1,0050', 1.01],
+    ['1,00499', 1],
+  ])('rounds %p to %p, half away from zero at the cent', (raw, expected) => {
+    expect(parseCashAmount(raw)).toBe(expected);
+  });
+
+  it.each([['0,0049'], ['0,00499'], ['0.004']])('%p rounds to 0 cents: no amount', (raw) => {
+    expect(parseCashAmount(raw)).toBeUndefined();
+  });
+
+  it('takes ASCII digits only (no other numeral systems, no spaces inside)', () => {
+    expect(parseCashAmount('١٢')).toBeUndefined();
+    expect(parseCashAmount('1 250')).toBeUndefined();
+  });
+
   it('treats a missing value as no amount', () => {
     expect(parseCashAmount(undefined)).toBeUndefined();
     expect(parseCashAmount(null)).toBeUndefined();
@@ -69,8 +91,14 @@ describe('signedCashAmount', () => {
     expect(signedCashAmount('12,50', 'request')).toBe(-12.5);
   });
 
+  it('rounds the amount, not the signed value: they pay 12,505 is -12.51', () => {
+    expect(signedCashAmount('12,505', 'offer')).toBe(12.51);
+    expect(signedCashAmount('12,505', 'request')).toBe(-12.51);
+    expect(signedCashAmount('0,005', 'request')).toBe(-0.01);
+  });
+
   it('is undefined (never 0 or -0) without an amount, whoever pays', () => {
-    for (const raw of ['', '0', '0,00', 'abc', '1.250,50']) {
+    for (const raw of ['', '0', '0,00', '0,004', '-5', 'abc', '1.250,50']) {
       expect(signedCashAmount(raw, 'offer')).toBeUndefined();
       expect(signedCashAmount(raw, 'request')).toBeUndefined();
     }
@@ -91,7 +119,9 @@ describe('cashInputValue', () => {
   });
 
   it('round-trips through the field and the parser', () => {
-    for (const amount of [12.5, 0.05, 1250, 99999999.99]) {
+    // Amounts as the API returns them (`parseFloat` of the Decimal(10, 2) column), including
+    // cents whose binary form is not exact (0.1, 0.29, 19.99).
+    for (const amount of [12.5, 0.05, 1250, 99999999.99, 0.1, 0.29, 1.01, 1250.5, 19.99]) {
       const text = cashInputValue(amount);
       expect(nextCashInput('', text)).toBe(text);
       expect(parseCashAmount(text)).toBe(amount);

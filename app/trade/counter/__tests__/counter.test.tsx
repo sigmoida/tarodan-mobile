@@ -264,6 +264,37 @@ describe('J6 · Karşı teklif formu', () => {
       expect((await sentBody()).cashAmount).toBe(-12.5);
     });
 
+    it('the prefilled payer is theirs when they pay: switching to me sends it positive', async () => {
+      mountWithProducts(tradeForReceiver({ cashAmount: 12.5, cashPayerId: 'user-initiator' }));
+      counterMock.mockResolvedValue({ data: {} });
+      renderWithProviders(<TradeCounterScreen />);
+      await waitFor(() => expect(screen.getByDisplayValue('12,50')).toBeOnTheScreen());
+      fireEvent.press(screen.getByText('Ben ödeyeceğim'));
+      fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
+      expect((await sentBody()).cashAmount).toBe(12.5);
+    });
+
+    it.each([
+      // [amount in the trade, payer, field text, sent cashAmount]
+      [12.5, 'user-initiator', '12,50', -12.5],
+      [12.5, 'user-other', '12,50', 12.5],
+      [1250, 'user-other', '1250', 1250],
+      [0.29, 'user-initiator', '0,29', -0.29],
+    ])(
+      'an untouched prefilled amount (%p, payer %p) goes back unchanged when only the items change',
+      async (amount, payerId, text, sent) => {
+        // Their item unpicked at first, so picking it is the change; the cash terms stay as they were.
+        mountWithProducts(tradeForReceiver({ cashAmount: amount, cashPayerId: payerId, initiatorItems: [] }));
+        counterMock.mockResolvedValue({ data: {} });
+        renderWithProviders(<TradeCounterScreen />);
+        await waitFor(() => expect(screen.getByDisplayValue(text)).toBeOnTheScreen());
+        await waitFor(() => expect(screen.getByText('Karşı Ürün')).toBeOnTheScreen());
+        fireEvent.press(screen.getByText('Karşı Ürün'));
+        fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
+        expect((await sentBody()).cashAmount).toBe(sent);
+      },
+    );
+
     it('flipping the payer with no amount is the same offer (no payer is sent)', async () => {
       mountWithProducts(tradeForReceiver());
       renderWithProviders(<TradeCounterScreen />);
