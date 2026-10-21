@@ -9,26 +9,26 @@ import { useAuthStore, type ServerLimitsOverride } from '@/stores/authStore';
 // döngüsel bağımlılık yaratırdı.
 
 /**
- * Sunucudan gelen ham hak zarfı (GET /membership/me/limits).
+ * The raw entitlement envelope from the server (GET /membership/me/limits).
  *
- * **Ölçüldü (staging, 2026-08-03, kimlikli):** uç 13 alan döndürüyor —
+ * **Measured (staging, 2026-08-03, signed in):** the route returns 13 fields:
  * `canCreateListing`, `canUseFreeSlot`, `canTrade`, `canCreateCollection`,
  * `isAdFree`, `maxImages`, `maxFreeListings`, `maxTotalListings`,
  * `remainingFreeListings`, `remainingTotalListings`, `remainingFeaturedSlots`,
  * `tierName`, `tierType`.
  *
- * Bunların istemcideki `MembershipLimits` karşılığı olan **beşinin beşi de**
- * aşağıda eşleniyor. Kalan alanlar ya türetilmiş sayaç (`remaining*`) ya da
- * istemcide zaten hesaplanan bilgi. Sonradan eklenen `maxSavedSearches`
- * (saved-searches delta, 2026-10-21) da eşleniyor. `MembershipLimits`'in diğer 9 alanı
+ * **All five** of them that have a client `MembershipLimits` counterpart are
+ * mapped below. The rest are derived counters (`remaining*`) or information the
+ * client already computes. The later `maxSavedSearches` (saved-searches delta,
+ * 2026-10-21) is mapped too. The other 9 fields of `MembershipLimits`
  * (`maxAddresses`, `maxMessagesPerDay`, `listingExpireDays`,
  * `maxReviewChars`, `maxValuePerListing`, `canFeatureListings`, `canBulkUpload`,
- * `canScheduleListings`, `priorityInSearch`) sunucu tarafından **hiç
- * yayınlanmıyor** — public ayar ucu da boş (`{}`).
+ * `canScheduleListings`, `priorityInSearch`) are **not served** by the server
+ * at all; the public settings route is empty (`{}`) as well.
  *
- * Yani "sunucudan gelen alanları genişlet" diye bir iş YOK: gelen her şey
- * zaten okunuyor. Kalan 9 alanın istemci sabiti olması bilinçli bir durum;
- * değişmesi için önce backend'in bunları yayınlaması gerekir.
+ * So there is NO "map more server fields" task: everything served is already
+ * read. The remaining 9 fields being client constants is deliberate; changing
+ * that needs the backend to serve them first.
  */
 export type ServerLimitsDto = {
   maxTotalListings?: number;

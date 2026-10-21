@@ -16,9 +16,9 @@ export interface ProductListToolbarProps {
   filterCount?: number;
   layout?: 'grid' | 'list';
   onLayoutChange?: (layout: 'grid' | 'list') => void;
-  /** Verilirse denetim satırında "Bu aramayı kaydet" düğmesi çizilir (arama ekranı). */
+  /** When given, the control row draws the "Save this search" button (search screen). */
   onSave?: () => void;
-  /** Kaydedilecek arama yok: düğme pasif. */
+  /** Nothing to save: the button is disabled. */
   saveDisabled?: boolean;
   /** Küçük muted sonuç sayısı metni ("61 ilan"); verilmezse çizilmez. */
   resultLabel?: string;

@@ -17,7 +17,7 @@ export interface SearchBarsProps {
   filterCount: number;
   layout: 'grid' | 'list';
   onLayoutChange: (layout: 'grid' | 'list') => void;
-  /** "Bu aramayı kaydet" (web `ListingsToolbar`); `saveDisabled` = boş arama, kaydedilecek bir şey yok. */
+  /** "Save this search" (web `ListingsToolbar`); `saveDisabled` = an empty search, nothing to save. */
   onSave: () => void;
   saveDisabled: boolean;
   isLoading: boolean;

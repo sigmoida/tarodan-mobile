@@ -6,12 +6,12 @@ import { Button, IconButton, theme } from '@/ui';
 const { spacing } = theme;
 
 /**
- * Liste araç çubuğunun TEK denetim satırı (web `ListingsControls`): solda "Filtreler" (etkin filtre
- * sayısı rozetiyle) ve geçerli sıralamayı gösteren sıralama düğmesi, sağda ızgara/liste anahtarı.
- * Üç denetim de aynı yükseklikte (controlHeight.sm) ve outline stilinde. `onFilter` verilmezse
- * filtre düğmesi çizilmez; `layout` verilmezse anahtar çizilmez. `onSave` verilirse sağda
- * "Bu aramayı kaydet" düğmesi çıkar (web `ListingsToolbar`; telefon genişliğinde yalnız ikon).
- * Ekranlar bunu doğrudan değil `ProductListToolbar` üzerinden kullanır.
+ * The ONE control row of the list toolbar (web `ListingsControls`): on the left "Filters" (with the
+ * active filter count badge) and the sort button showing the current sort, on the right the
+ * grid/list toggle. Every control has the same height (controlHeight.sm) and the outline style.
+ * Without `onFilter` there is no filter button; without `layout` there is no toggle. With `onSave`
+ * a "Save this search" button shows on the right (web `ListingsToolbar`; icon only at phone width).
+ * Screens use it through `ProductListToolbar`, never directly.
  */
 export function ProductListControls({
   sortLabel,
@@ -30,9 +30,9 @@ export function ProductListControls({
   /** Verilirse ızgara/liste anahtarı çizilir (web `ProductLayoutSelector`). */
   layout?: 'grid' | 'list';
   onLayoutChange?: (layout: 'grid' | 'list') => void;
-  /** Verilirse "Bu aramayı kaydet" ikon düğmesi çizilir. */
+  /** When given, the "Save this search" icon button is drawn. */
   onSave?: () => void;
-  /** Kaydedilecek arama yok (boş arama): düğme pasif, erişilebilirlik ipucu nedenini söyler. */
+  /** Nothing to save (an empty search): the button is disabled and its accessibility hint says why. */
   saveDisabled?: boolean;
 }) {
   const { t } = useTranslation();

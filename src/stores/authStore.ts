@@ -350,8 +350,8 @@ const TIER_LIMITS: Record<MembershipTier, MembershipLimits> = {
   },
 };
 
-/** Sabit tier tablosu + sunucu bindirmesi. Sunucu bir alanı vermiyorsa
- *  o alan TIER_LIMITS'ten gelir (ör. maxAddresses). */
+/** The fixed tier table plus the server overlay. A field the server does not send
+ *  comes from TIER_LIMITS (e.g. maxAddresses); `maxSavedSearches` comes only from the server. */
 const mergeLimits = (
   tier: MembershipTier,
   override: ServerLimitsOverride | null,
