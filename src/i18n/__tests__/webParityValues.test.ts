@@ -24,6 +24,11 @@ describe('web ile eşitlenen ortak metinler', () => {
     ['status.order.paid', 'Ödendi', 'Paid'],
     ['status.order.refund_requested', 'İade Talep Edildi', 'Refund Requested'],
     ['status.offer.countered', 'Karşı Teklif', 'Countered'],
+    [
+      'validation.amountFormatRefused',
+      'Tutar kabul edilmedi. Binlik ayracı kullanmayın; kuruş için virgül kullanın, örn. 1250,50',
+      'This amount was not accepted. Do not use thousands separators; use a comma for kuruş, for example 1250,50',
+    ],
   ])('%s', (key, trValue, enValue) => {
     expect(get(tr, key)).toBe(trValue);
     expect(get(en, key)).toBe(enValue);

@@ -7,7 +7,7 @@ import { isCashInputRefused, nextCashInput } from '../_lib/cash';
  * offer. Typed or pasted text goes through the `nextCashInput` mask, and `cashRefused` is true
  * while the last typed change was refused. A refused change keeps the previous (sendable) text,
  * so without a guard "1.000" typed key by key would stop at "1.00" and send 1 TL. As on web, the
- * screens refuse to go on (`trade.cashFormatRefused`) while `cashRefused` is true, until the user
+ * screens refuse to go on (`validation.amountFormatRefused`) while `cashRefused` is true, until the user
  * makes an accepted change. The payload still comes from `cashAmount` only.
  */
 export function useCashAmount() {

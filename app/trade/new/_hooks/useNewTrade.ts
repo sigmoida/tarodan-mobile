@@ -240,7 +240,7 @@ export function useNewTrade() {
    */
   const blockRefusedCash = () => {
     if (!cashRefused) return false;
-    toast.error(t('trade.cashFormatRefused'));
+    toast.error(t('validation.amountFormatRefused'));
     return true;
   };
 

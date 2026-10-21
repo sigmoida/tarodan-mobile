@@ -74,7 +74,7 @@ const theirProduct = {
 };
 
 const CASH_HELPER = trCatalog.trade.cashHelper;
-const CASH_REFUSED = trCatalog.trade.cashFormatRefused;
+const CASH_REFUSED = trCatalog.validation.amountFormatRefused;
 
 /** The cash field: the only numeric input on the screen. */
 function cashInput() {
