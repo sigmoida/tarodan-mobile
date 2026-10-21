@@ -39,6 +39,16 @@ describe('ilan indirimi — komisyon önizlemesi tutarı (web saleIsActive parit
     expect(saleStartsLater({ ...base, salePrice: '', saleStartDate: '2026-12-01' }, NOW)).toBeNull();
   });
 
+  it('reads both amounts with the shared TL amount parser: a decimal comma, no grouping', () => {
+    const comma = { ...base, price: '1250,50', salePrice: '1000' };
+    expect(commissionPreviewAmount(comma, NOW)).toBe('1000');
+    expect(commissionPreviewAmount({ ...comma, salePrice: '' }, NOW)).toBe('1250.5');
+    expect(salePayload(comma)).toMatchObject({ originalPrice: 1250.5, salePrice: 1000 });
+    // "1.000" is refused, never 1 TL: no discount here (the form blocks it first) and no preview.
+    expect(salePayload({ ...comma, salePrice: '1.000' }).salePrice).toBeNull();
+    expect(commissionPreviewAmount({ ...base, price: '1.000', salePrice: '' }, NOW)).toBe('');
+  });
+
   it('payload: indirim yoksa tüm alanlar null; varsa ISO tarihler', () => {
     expect(salePayload({ ...base, salePrice: '' })).toEqual({
       originalPrice: null,

@@ -4,6 +4,7 @@ import type {
   ImageKey,
   MyProductResponse,
 } from './types';
+import { tlAmountInputValue } from '@/lib/shared/tlAmount';
 import { emptyListingFormValues, type ListingFormValues } from './schema';
 import { HIDDEN_GROUP_SLUGS, isGlobalCustomAttributeGroup } from './attributeGroups';
 
@@ -49,6 +50,8 @@ export type MappedListing = {
 const str = (v: unknown): string => (v == null ? '' : String(v));
 /** ISO tarihi form girdisinin beklediği YYYY-MM-DD'ye kırpar. */
 const day = (v: string | null): string => (v ? String(v).slice(0, 10) : '');
+/** A stored amount as field text: a decimal comma, no grouping; none -> empty. */
+const amountText = (v: unknown): string => (v == null ? '' : tlAmountInputValue(Number(v)));
 
 /**
  * `GET /products/my/:id` → form değerleri. TEK eşleyici.
@@ -115,7 +118,8 @@ export function toFormValues(p: MyProductResponse): MappedListing | null {
       ...emptyListingFormValues,
       title: str(e.title),
       description: str(e.description),
-      price: str(onSale ? oldPrice : price),
+      // Field text with a decimal comma ("1250,50"), as the price field reads it (web parity).
+      price: amountText(onSale ? oldPrice : price),
       quantity: e.quantity != null ? String(e.quantity) : '',
       bundleSize: e.bundleSize != null ? String(e.bundleSize) : '',
       categoryId: str(e.categoryId),
@@ -157,7 +161,7 @@ export function toFormValues(p: MyProductResponse): MappedListing | null {
     manufacturerAttrs,
     globalAttrs,
     sale: {
-      salePrice: onSale ? str(price) : '',
+      salePrice: onSale ? amountText(price) : '',
       saleStartDate: onSale ? day(e.saleStartDate) : '',
       saleEndDate: onSale ? day(e.saleEndDate) : '',
     },

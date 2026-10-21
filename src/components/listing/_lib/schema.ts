@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
 import { NO_PRICE_LIMITS, type PriceLimits } from '@/lib/shared/priceLimits';
+import { parseTlAmount } from '@/lib/shared/tlAmount';
 import { priceFieldError } from './priceRules';
 
 /**
@@ -53,14 +54,21 @@ export const buildListingFormSchema = (t: TFunction, opts: ListingSchemaOptions 
       .string()
       .trim()
       .refine((v) => (opts.isEdit && v.length === 0) || inRange(v), descriptionMsg),
-    price: z
-      .string()
-      .min(1, t('common.invalidPrice'))
-      .refine((v) => !isNaN(Number(v)) && Number(v) >= 1, t('common.invalidPrice'))
-      .superRefine((v, ctx) => {
-        const message = priceFieldError(t, v, limits, opts.storedPrices);
-        if (message) ctx.addIssue({ code: 'custom', message });
-      }),
+    /**
+     * A TL amount read by the shared parser, as on web: "1.000" (one thousand to a Turkish
+     * seller) is refused (`validation.amountFormatRefused`), never listed as 1 TL. Then the
+     * 1 TL minimum, then the admin price limits (`priceFieldError`), one issue at a time.
+     */
+    price: z.string().superRefine((v, ctx) => {
+      const parsed = parseTlAmount(v);
+      const message =
+        parsed.status === 'refused'
+          ? t('validation.amountFormatRefused')
+          : parsed.status !== 'ok' || parsed.amount < 1
+            ? t('common.invalidPrice')
+            : priceFieldError(t, v, limits, opts.storedPrices);
+      if (message) ctx.addIssue({ code: 'custom', message });
+    }),
     quantity: z.string(),
     bundleSize: z.string(),
     categoryId: z.string(),

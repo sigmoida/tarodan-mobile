@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { isTlAmountRefused, tlAmountValue } from '@/lib/shared/tlAmount';
 import type { ListingFormController } from './useListingForm';
 import type { ListingFormKey } from '../_lib/memoSection';
 import { COMMISSION_DEBOUNCE_MS, useCommissionPreview, useCommissionQuery } from './useCommissionPreview';
@@ -43,17 +44,19 @@ export function useListingPricing(f: ListingFormController) {
     saleEndDate: f.saleEndDate,
   };
   const showErrors = f.submitAttempted;
+  // Text that is not an amount ("1.000") is refused at once on its field (web parity); the
+  // limit errors wait for blur or submit.
   const priceError =
-    f.priceBlurred || showErrors
+    f.priceBlurred || showErrors || isTlAmountRefused(price)
       ? priceFieldError(t, price, f.priceLimits, f.priceBaseline) ?? undefined
       : undefined;
   const salePriceError =
-    f.salePriceBlurred || showErrors
+    f.salePriceBlurred || showErrors || isTlAmountRefused(f.salePrice)
       ? salePriceFieldError(t, saleFields, f.priceLimits, f.priceBaseline) ?? undefined
       : undefined;
 
-  const listPriceNum = Number(price) || 0;
-  const salePriceNum = Number(f.salePrice) || 0;
+  const listPriceNum = tlAmountValue(price);
+  const salePriceNum = tlAmountValue(f.salePrice);
   const discountPercent =
     listPriceNum > 0 && salePriceNum > 0 && salePriceNum < listPriceNum
       ? Math.round((1 - salePriceNum / listPriceNum) * 100)

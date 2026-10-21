@@ -98,7 +98,7 @@ describe('yeni ilan · indirim girdisi', () => {
     renderWithProviders(<ListingForm mode="create" />);
     await screen.findByPlaceholderText('İndirim yoksa boş bırakın');
 
-    fireEvent.changeText(screen.getByPlaceholderText('0.00'), '100');
+    fireEvent.changeText(screen.getByPlaceholderText('0,00'), '100');
     fireEvent.changeText(screen.getByPlaceholderText('İndirim yoksa boş bırakın'), '75');
 
     await waitFor(() => expect(screen.getByText('%25 indirim')).toBeOnTheScreen());

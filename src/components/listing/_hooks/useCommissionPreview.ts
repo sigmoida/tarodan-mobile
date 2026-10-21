@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ordersApi, type CommissionPreviewResponse, type ShippingPackageTierCode } from '@/lib/api';
 import { qk } from '@/lib/query';
+import { tlAmountValue } from '@/lib/shared/tlAmount';
 
 import type { CommissionPreview } from '../_lib/types';
 
@@ -48,14 +49,18 @@ export function useCommissionPreview(amount: string, categoryId: string, package
  * Gecikmesi ÇAĞIRANDA yapılmış tutarla komisyon sorgusu (aynı anahtar → `useCommissionPreview` ile
  * tek istek). Kargo bölümü fiyatı render etmeden izler ve tutarı kendisi geciktirir
  * (`useListingCommission`).
+ *
+ * The amount text is read by the shared `tlAmountValue` (web `useCommissionPreview`): the
+ * request and the key always carry the parsed amount, never the typed text ("1250,50" is not a
+ * number to the API), and empty or refused text asks nothing.
  */
 export function useCommissionQuery(debouncedAmount: string, categoryId: string, packageTier: string) {
-  const num = Number(debouncedAmount);
-  const enabled = !!debouncedAmount && !!categoryId && Number.isFinite(num) && num > 0;
+  const num = tlAmountValue(debouncedAmount);
+  const enabled = !!categoryId && num > 0;
   const tier = (packageTier || null) as ShippingPackageTierCode | null;
 
   const query = useQuery({
-    queryKey: qk.orders.commissionPreview(debouncedAmount, categoryId, tier),
+    queryKey: qk.orders.commissionPreview(String(num), categoryId, tier),
     queryFn: async () => {
       const res = await ordersApi.getCommissionPreview({
         amount: num,
