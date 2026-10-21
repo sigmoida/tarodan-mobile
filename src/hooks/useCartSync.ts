@@ -66,13 +66,12 @@ export function useCartSync() {
       .then(async (): Promise<CartWriteResult> => {
         if (getSessionEpoch() !== epoch) return 'rejected';
         await queryClient.invalidateQueries({ queryKey: qk.cart.mine });
-        return 'applied';
+        // The session can also end while the cart refetch runs.
+        return getSessionEpoch() === epoch ? 'applied' : 'rejected';
       })
       .catch((error): CartWriteResult => {
-        if (getSessionEpoch() !== epoch) {
-          captureException(error, { level: 'warning', tags: { flow } });
-          return 'rejected';
-        }
+        // Not reported: the old session's own 401 (the forced logout) is no cart failure.
+        if (getSessionEpoch() !== epoch) return 'rejected';
         const kind = classifyCartError(error);
         let result: CartWriteResult = 'applied';
         if (kind === 'rejected' || kind === 'accountBlocked' || kind === 'itemForbidden') {
@@ -150,10 +149,8 @@ export function useCartSync() {
           onSettled('applied');
         },
         (error: unknown) => {
-          if (getSessionEpoch() !== epoch) {
-            captureException(error, { level: 'warning', tags: { flow: 'cart.remove' } });
-            return onSettled('rejected');
-          }
+          // Not reported: the old session's own 401 (the forced logout) is no cart failure.
+          if (getSessionEpoch() !== epoch) return onSettled('rejected');
           if ((error as { response?: { status?: number } })?.response?.status === 404) {
             refreshServerCart();
             onSettled('applied');

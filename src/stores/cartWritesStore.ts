@@ -36,7 +36,7 @@ export const useCartWritesStore = create<CartWritesState>((set, get) => ({
     return token;
   },
   end: (productId, token) => {
-    if (!has(get().inFlight, productId) || get().inFlight[productId] !== token) return;
+    if (get().inFlight[productId] !== token) return;
     const { [productId]: _ended, ...rest } = get().inFlight;
     set({ inFlight: rest });
   },
