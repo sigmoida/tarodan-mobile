@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-// Tam ekran görsel görüntüleyici (web ProductLightbox): `@/ui` Modal bir diyalog kartıdır; burada çerçevesiz,
-// tam ekran native Modal gerekir (jest + zoom jesti için GestureHandlerRootView modalın İÇİNDE).
+import React, { useCallback, useRef, useState } from 'react';
+// Full-screen image viewer (web ProductLightbox): `@/ui` Modal is a dialog card; here a frameless,
+// full-screen native Modal is needed (for jest and the zoom gesture, GestureHandlerRootView goes INSIDE the modal).
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import { FlatList, Modal, Pressable, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -8,25 +8,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Icon, Text, theme, useHeaderTopInset, useModalPresence } from '@/ui';
-import { AppImage } from '@/components/AppImage';
 import ZoomableImage from '@/components/product/ZoomableImage';
+import { resolveImageUrl } from '@/utils/imageUrl';
+import { ImageThumbStrip } from '../_components/ImageThumbStrip';
+import type { ProductImage } from '../_lib/types';
 
-const { colors, spacing, radius } = theme;
-
-/** Küçük resim karesinin kenarı (56-64pt aralığı). */
-export const THUMB_SIZE = 60;
-const THUMB_GAP = spacing[2];
-const THUMB_BORDER = 2;
-
-const imageUri = (img: any): string => (typeof img === 'string' ? img : img.url);
+const { colors, spacing } = theme;
 
 /**
- * Tam ekran görsel görüntüleyici: beyaz zemin, büyük fotoğraf (yatay sayfalı, pinch + çift dokunma
- * zoom), altta küçük resim şeridi. Büyük fotoğraf kaydırılınca seçili küçük resim senkron döner ve
- * görünür alana kayar; küçük resme dokununca o fotoğrafa geçilir. Galeriden dokunulan indeksle açılır.
- * Gövde yalnız görünürken bağlanır → her açılışta indeks/zoom sıfırdan başlar. Büyük fotoğraf sayfaları
- * sanal (FlatList, `windowSize` 3): yalnız görünen ve komşu ZoomableImage bağlanır — onlarca fotoğraflı
- * ilanda hepsi (her biri jest + tam boy bitmap) birden açılmaz.
+ * Full-screen image viewer: white background, a large photo (horizontal pager, pinch + double-tap
+ * zoom) and the shared thumbnail strip below it. Swiping the large photo moves the selected
+ * thumbnail in sync and scrolls it into view; tapping a thumbnail jumps to that photo. It opens at
+ * the index tapped in the gallery. The body mounts only while visible, so the index and zoom start
+ * fresh on every open. The large pages are virtual (FlatList, `windowSize` 3): only the visible and
+ * neighbouring ZoomableImage mount, so a listing with dozens of photos does not open them all at
+ * once (each carries a gesture and a full-size bitmap).
  */
 export function ImageViewerModal({
   visible,
@@ -35,7 +31,7 @@ export function ImageViewerModal({
   onClose,
 }: {
   visible: boolean;
-  images: any[];
+  images: ProductImage[];
   initialIndex: number;
   onClose: () => void;
 }) {
@@ -48,7 +44,7 @@ export function ImageViewerModal({
       navigationBarTranslucent
       onRequestClose={onClose}
     >
-      {/* Modal Android'de yeni native pencere açtığı için root view modal içinde olmalı */}
+      {/* On Android a Modal opens a new native window, so the root view must be inside the modal */}
       <GestureHandlerRootView style={styles.container}>
         {visible ? <ViewerBody images={images} initialIndex={initialIndex} onClose={onClose} /> : null}
       </GestureHandlerRootView>
@@ -61,7 +57,7 @@ function ViewerBody({
   initialIndex,
   onClose,
 }: {
-  images: any[];
+  images: ProductImage[];
   initialIndex: number;
   onClose: () => void;
 }) {
@@ -75,16 +71,9 @@ function ViewerBody({
   const [index, setIndex] = useState(startIndex);
   const [zoomed, setZoomed] = useState(false);
   const [pageHeight, setPageHeight] = useState<number | undefined>(undefined);
-  // Küçük resimle sayfa değişince eski sayfanın zoom'u sıfırlansın (zoomed bayrağı takılı kalmasın).
+  // When a thumbnail changes the page, reset the old page's zoom (so the zoomed flag cannot stick).
   const [resetKey, setResetKey] = useState(0);
-  const pagerRef = useRef<FlatList>(null);
-  const stripRef = useRef<FlatList>(null);
-
-  // Seçili küçük resmi şeridin ortasına kaydır (kaydırmayla ya da dokunmayla değişse de).
-  useEffect(() => {
-    if (total < 2) return;
-    stripRef.current?.scrollToIndex({ index, viewPosition: 0.5, animated: true });
-  }, [index, total]);
+  const pagerRef = useRef<FlatList<ProductImage>>(null);
 
   const onPagerScroll = useCallback(
     (e: { nativeEvent: { contentOffset: { x: number } } }) => {
@@ -94,16 +83,19 @@ function ViewerBody({
     [width, total],
   );
 
-  const selectThumb = (i: number) => {
-    setZoomed(false);
-    setResetKey((k) => k + 1);
-    setIndex(i);
-    pagerRef.current?.scrollToOffset({ offset: i * width, animated: true });
-  };
+  const selectThumb = useCallback(
+    (i: number) => {
+      setZoomed(false);
+      setResetKey((k) => k + 1);
+      setIndex(i);
+      pagerRef.current?.scrollToOffset({ offset: i * width, animated: true });
+    },
+    [width],
+  );
 
   const renderPage = useCallback(
-    ({ item }: ListRenderItemInfo<unknown>) => (
-      <ZoomableImage uri={imageUri(item)} zoomed={zoomed} onZoomChange={setZoomed} areaHeight={pageHeight} />
+    ({ item }: ListRenderItemInfo<ProductImage>) => (
+      <ZoomableImage uri={resolveImageUrl(item, 'detail')} zoomed={zoomed} onZoomChange={setZoomed} areaHeight={pageHeight} />
     ),
     [zoomed, pageHeight],
   );
@@ -141,10 +133,10 @@ function ViewerBody({
         pagingEnabled
         scrollEnabled={!zoomed}
         showsHorizontalScrollIndicator={false}
-        // Küçük resimle geçişte anahtar değişir → sayfalar yeniden bağlanır, eski zoom sıfırlanır.
+        // A thumbnail jump changes the key: the pages remount and the old zoom resets.
         keyExtractor={(_, i) => `${i}-${resetKey}`}
         renderItem={renderPage}
-        // zoom bayrağı / sayfa yüksekliği değişince bağlı sayfalar yeniden çizilsin.
+        // Re-render the mounted pages when the zoom flag or the page height changes.
         extraData={renderPage}
         getItemLayout={pageLayout}
         initialScrollIndex={startIndex}
@@ -158,41 +150,12 @@ function ViewerBody({
 
       {total > 1 ? (
         <View style={[styles.stripWrap, { paddingBottom: bottomInset + spacing[3] }]}>
-          <FlatList
-            ref={stripRef}
-            testID="image-viewer-thumbs"
-            data={images}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(_, i) => String(i)}
-            initialScrollIndex={startIndex}
-            getItemLayout={(_, i) => ({
-              length: THUMB_SIZE + THUMB_GAP,
-              offset: (THUMB_SIZE + THUMB_GAP) * i,
-              index: i,
-            })}
+          <ImageThumbStrip
+            images={images}
+            selectedIndex={index}
+            onSelect={selectThumb}
+            testID="image-viewer"
             contentContainerStyle={styles.stripContent}
-            ItemSeparatorComponent={ThumbGap}
-            renderItem={({ item, index: i }) => {
-              const selected = i === index;
-              return (
-                <Pressable
-                  testID={`image-viewer-thumb-${i}`}
-                  onPress={() => selectThumb(i)}
-                  accessibilityRole="imagebutton"
-                  accessibilityLabel={`${i + 1} / ${total}`}
-                  accessibilityState={{ selected }}
-                  style={[styles.thumb, selected && styles.thumbSelected]}
-                >
-                  <AppImage
-                    source={imageUri(item)}
-                    recyclingKey={String(i)}
-                    style={styles.thumbImage}
-                    contentFit="cover"
-                  />
-                </Pressable>
-              );
-            }}
           />
         </View>
       ) : (
@@ -201,8 +164,6 @@ function ViewerBody({
     </>
   );
 }
-
-const ThumbGap = () => <View style={styles.gap} />;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface.elevated },
@@ -219,15 +180,4 @@ const styles = StyleSheet.create({
   pager: { flex: 1 },
   stripWrap: { paddingTop: spacing[3] },
   stripContent: { paddingHorizontal: spacing[4] },
-  gap: { width: THUMB_GAP },
-  thumb: {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    borderRadius: radius.md,
-    borderWidth: THUMB_BORDER,
-    borderColor: colors.transparent,
-    overflow: 'hidden',
-  },
-  thumbSelected: { borderColor: colors.primary[500] },
-  thumbImage: { width: '100%', height: '100%', backgroundColor: colors.surface.alt },
 });

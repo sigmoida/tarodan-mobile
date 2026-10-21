@@ -15,6 +15,19 @@ export interface ProductSeller {
   [key: string]: any;
 }
 
+/**
+ * One gallery image as the API returns it (`cardUrl` / `detailUrl` variants), a bare URL, or the
+ * local placeholder. `resolveProductImages` rewrites `url` to the detail variant and keeps the rest.
+ */
+export type ProductImage =
+  | string
+  | {
+      url?: string;
+      cardUrl?: string;
+      detailUrl?: string;
+      [key: string]: unknown;
+    };
+
 export interface Product {
   id: string;
   title: string;

@@ -1,9 +1,10 @@
 /**
- * Görsel görüntüleyici: açılış indeksi, küçük resme dokununca geçiş, büyük fotoğraf kaydırılınca
- * küçük resim senkronu, tek fotoğrafta şerit/sayaç yok.
+ * Image viewer: opening index, jumping by thumbnail tap, thumbnail sync when the large photo is
+ * swiped, no strip or counter for a single photo, card-size thumbnails.
  */
 import React from 'react';
 import { Dimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { ImageViewerModal } from '../_modals/ImageViewerModal';
 
@@ -29,14 +30,14 @@ const selected = (i: number) =>
   screen.getByTestId(`image-viewer-thumb-${i}`).props.accessibilityState?.selected === true;
 
 describe('ImageViewerModal', () => {
-  it('dokunulan indeksle açılır: sayaç ve seçili küçük resim', () => {
+  it('opens at the given index: counter and selected thumbnail', () => {
     open({ initialIndex: 1 });
     expect(screen.getByTestId('image-viewer-counter')).toHaveTextContent('2 / 3');
     expect(selected(1)).toBe(true);
     expect(selected(2)).toBe(false);
   });
 
-  it('küçük resme dokununca indeks değişir', () => {
+  it('tapping a thumbnail changes the index', () => {
     open();
     fireEvent.press(screen.getByTestId('image-viewer-thumb-2'));
     expect(screen.getByTestId('image-viewer-counter')).toHaveTextContent('3 / 3');
@@ -44,10 +45,10 @@ describe('ImageViewerModal', () => {
     expect(selected(0)).toBe(false);
   });
 
-  it('büyük fotoğraf kaydırılınca seçili küçük resim senkron döner', () => {
+  it('swiping the large photo moves the selected thumbnail', () => {
     open();
     const { width } = Dimensions.get('window');
-    // Sayfalayıcı sanal liste (FlatList): olay ölçüleri de taşır.
+    // The pager is a virtual list (FlatList): the event carries the measurements too.
     fireEvent.scroll(screen.getByTestId('image-viewer-pager'), {
       nativeEvent: {
         contentOffset: { x: width, y: 0 },
@@ -59,19 +60,19 @@ describe('ImageViewerModal', () => {
     expect(selected(1)).toBe(true);
   });
 
-  it('X kapatır', () => {
+  it('the X closes the viewer', () => {
     const onClose = open();
     fireEvent.press(screen.getByTestId('image-viewer-close'));
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('tek fotoğrafta küçük resim şeridi ve sayaç yok', () => {
+  it('shows no strip and no counter for a single photo', () => {
     open({ images: [images[0]] });
     expect(screen.queryByTestId('image-viewer-thumbs')).toBeNull();
     expect(screen.queryByTestId('image-viewer-counter')).toBeNull();
   });
 
-  it('sayfalar sanal: çok fotoğrafta hepsi birden bağlanmaz, açılan sayfa bağlı', () => {
+  it('mounts pages virtually: not all at once, the opened page is mounted', () => {
     const many = Array.from({ length: 12 }, (_, i) => `https://x/${i}.jpg`);
     open({ images: many, initialIndex: 6 });
     expect(screen.getByTestId('zoom-https://x/6.jpg')).toBeTruthy();
@@ -79,8 +80,20 @@ describe('ImageViewerModal', () => {
     expect(screen.queryByTestId('zoom-https://x/0.jpg')).toBeNull();
   });
 
-  it('kapalıyken içerik bağlanmaz', () => {
+  it('does not mount the content while closed', () => {
     open({ visible: false });
     expect(screen.queryByTestId('image-viewer-pager')).toBeNull();
+  });
+
+  it('loads the card-size URL in the thumbnails and the detail URL in the pages', () => {
+    const resolved = [
+      { url: 'https://x/a-detail.jpg', detailUrl: 'https://x/a-detail.jpg', cardUrl: 'https://x/a-card.jpg' },
+      { url: 'https://x/b-detail.jpg', detailUrl: 'https://x/b-detail.jpg', cardUrl: 'https://x/b-card.jpg' },
+    ];
+    open({ images: resolved });
+    expect(screen.getByTestId('zoom-https://x/a-detail.jpg')).toBeTruthy();
+    const uris = screen.UNSAFE_getAllByType(Image).map((img) => img.props.source.uri);
+    expect(uris).toEqual(expect.arrayContaining(['https://x/a-card.jpg', 'https://x/b-card.jpg']));
+    expect(uris).not.toContain('https://x/a-detail.jpg');
   });
 });
