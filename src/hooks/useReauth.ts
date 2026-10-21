@@ -13,10 +13,8 @@ import {
 import { isNotFoundError } from '@/lib/query/errors';
 import { confirmableProviders, visibleSocialProvidersNow } from '@/components/auth/socialProviders';
 import type { ReauthPrompt } from '@/components/auth/ReauthModal';
-import { signInWithGoogle } from '@/services/googleSignin';
-import { isGoogleCancel, isGoogleDeveloperError } from '@/services/googleSigninErrors';
-import { signInWithApple } from '@/services/appleSignin';
-import { isAppleCancel } from '@/services/appleSigninErrors';
+import { isProviderCancel, requestProviderCredential } from '@/components/auth/providerCredential';
+import { isGoogleDeveloperError } from '@/services/googleSigninErrors';
 import { captureException } from '@/services/sentry';
 import {
   SIGN_IN_METHODS_ERROR_CODES,
@@ -28,8 +26,12 @@ import { useSendSetPasswordMailToSelf } from './useSendSetPasswordMail';
 import { signInMethodsQuery } from './useSignInMethods';
 import type { SignInMethods } from '@/types/sign-in-methods';
 
-/** Which sensitive action asked for the step-up (Sentry tag, the API's `auth.flow` names). */
-export type ReauthFlow = 'password_set' | 'account_delete' | 'email_change';
+/**
+ * Which sensitive action asked for the step-up (Sentry tag): the API's `auth.flow` names, or
+ * `connected_accounts` for the screen whose one step-up covers both `provider_link` and
+ * `provider_unlink` (its own write tags name which one).
+ */
+export type ReauthFlow = 'password_set' | 'account_delete' | 'email_change' | 'connected_accounts';
 
 export type ReauthOutcome<T> =
   | { status: 'done'; value: T }
@@ -274,12 +276,14 @@ export function useReauth(flow: ReauthFlow) {
       runAfterModalClose(async () => {
         let proof: ReauthRequest;
         try {
+          const credential = await requestProviderCredential(provider);
+          // The step-up takes the provider token only (never Apple's `authorizationCode`).
           proof =
-            provider === 'google'
-              ? { provider: 'google', idToken: await signInWithGoogle({ fresh: true }) }
-              : { provider: 'apple', identityToken: (await signInWithApple()).identityToken };
+            credential.provider === 'google'
+              ? { provider: 'google', idToken: credential.idToken }
+              : { provider: 'apple', identityToken: credential.identityToken };
         } catch (error) {
-          if (provider === 'google' ? isGoogleCancel(error) : isAppleCancel(error)) {
+          if (isProviderCancel(provider, error)) {
             showLast(null);
             return;
           }
@@ -316,9 +320,12 @@ export function useReauth(flow: ReauthFlow) {
 
   const { send: sendSetPasswordMail } = mail;
 
-  /** The server now requires the step-up and this device cannot give it. */
+  /**
+   * This device cannot give the step-up (the server asked for it, or a `run` answered
+   * `unavailable`): say why and offer the set-password mail.
+   */
   const explainUnavailable = useCallback(
-    (error: unknown) => {
+    (error?: unknown) => {
       // The server's "confirm it's you", then why this device cannot: no password and no
       // provider to show here; the way out is a password by mail.
       const message = `${apiErrorMessage(error, t('auth.reauth.body'))}\n\n${t('mobile.noPasswordAccountNoProvider')}`;
@@ -396,6 +403,7 @@ export function useReauth(flow: ReauthFlow) {
     pending,
     sendSetPasswordMail,
     sendingMail: mail.isPending,
+    explainUnavailable,
     modal: { prompt, onCancel, onSubmitPassword, onProvider, onRetry },
   };
 }

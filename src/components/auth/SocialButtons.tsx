@@ -41,6 +41,11 @@ function AppleMark({ size, color }: { size: number; color: string }) {
   );
 }
 
+/** The provider's brand mark (decorative, hidden from screen readers), the one source for both. */
+export function ProviderMark({ provider, size = theme.iconSize.md }: { provider: SignInProvider; size?: number }) {
+  return provider === 'google' ? <GoogleMark size={size} /> : <AppleMark size={size} color={colors.text.body} />;
+}
+
 export interface ProviderButtonProps {
   provider: SignInProvider;
   title: string;
@@ -64,13 +69,7 @@ export function ProviderButton({ provider, title, accessibilityLabel, onPress, i
       size="lg"
       fullWidth
       // eslint-disable-next-line tarodan/restrict-button-icon
-      leftIcon={
-        provider === 'google' ? (
-          <GoogleMark size={theme.iconSize.md} />
-        ) : (
-          <AppleMark size={theme.iconSize.md} color={colors.text.body} />
-        )
-      }
+      leftIcon={<ProviderMark provider={provider} />}
       title={title}
       accessibilityLabel={accessibilityLabel ?? title}
       onPress={onPress}

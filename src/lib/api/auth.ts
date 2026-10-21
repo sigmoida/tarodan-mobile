@@ -1,10 +1,15 @@
 import { api, guestApi } from './client';
+import { apiPath } from './path';
 import type { ConsentDocumentKey } from '@/lib/shared/legalConsent';
 import type {
+  AppleLinkRequest,
+  GoogleLinkRequest,
   ReauthRequest,
   ReauthResponse,
   SetPasswordRequest,
   SignInMethods,
+  SignInProvider,
+  UnlinkProviderRequest,
 } from '@/types/sign-in-methods';
 
 // Auth API - Web ile aynı endpoint'ler
@@ -177,4 +182,33 @@ export const authApi = {
   /** First password for an account without one; answers the fresh `SignInMethods`. */
   setPassword: (body: SetPasswordRequest) =>
     api.post<SignInMethods>('/auth/password/set', body),
+  /**
+   * Connect Google (always behind the step-up). Native sends the `idToken` only, never `code`
+   * too (both: 400). Answers the fresh `SignInMethods`; refusals: `409 PROVIDER_ALREADY_LINKED`,
+   * `409 PROVIDER_LINKED_TO_OTHER_ACCOUNT`, `400 PROVIDER_TOKEN_INVALID`, `403 EMAIL_NOT_VERIFIED`.
+   */
+  linkGoogle: (body: Required<Pick<GoogleLinkRequest, 'idToken' | 'reauthToken'>>) =>
+    api.post<SignInMethods>('/auth/social/google/link', {
+      idToken: body.idToken,
+      reauthToken: body.reauthToken,
+    }),
+  /**
+   * Connect Apple (iOS only, ADR 0012; always behind the step-up). `authorizationCode` goes
+   * with it, as on `POST /auth/apple`, so the API can revoke the Apple token on unlink and on
+   * account deletion. Same refusals as `linkGoogle`.
+   */
+  linkApple: (body: AppleLinkRequest) =>
+    api.post<SignInMethods>('/auth/social/apple/link', {
+      identityToken: body.identityToken,
+      ...(body.authorizationCode ? { authorizationCode: body.authorizationCode } : {}),
+      reauthToken: body.reauthToken,
+    }),
+  /**
+   * Disconnect a provider (always behind the step-up). A `POST`, because some proxies drop a
+   * `DELETE` body. Refusals: `404 PROVIDER_NOT_LINKED`, `409 LAST_SIGN_IN_METHOD` (D1).
+   */
+  unlinkProvider: (provider: SignInProvider, body: UnlinkProviderRequest) =>
+    api.post<SignInMethods>(apiPath`/auth/social/${provider}/unlink`, {
+      reauthToken: body.reauthToken,
+    }),
 };

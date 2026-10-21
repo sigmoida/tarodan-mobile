@@ -133,6 +133,7 @@ Her flow YAML başında `tags:` bloğu ile bir öncelik kategorisine atanır:
 | F-18 | Empty cart checkout blocked                                                                              | `smoke`      | zeynep                                                                                             |
 | F-19 | Offer modal validation + recovery                                                                        | `manual`     | mehmet                                                                                             |
 | F-26 | E-mail change: wrong step-up password stays in the confirm step, no sign-out, cancel                     | `manual`     | zeynep; an API with `POST /auth/reauth`; one wrong proof per run counts toward the step-up lockout |
+| F-27 | Connected accounts: rows per platform, Connect asks the confirm step first, cancel, no sign-out          | `manual`     | zeynep; an API with `POST /auth/social/*/link` and `/unlink`; no proof is sent                     |
 
 **CI eligible (smoke + regression):** F-02, F-03, F-04, F-05, F-06, F-07, F-09, F-13, F-16, F-17, F-18 (= 11 flow). Manual: F-01, F-08, F-10, F-11, F-12, F-14, F-15, F-19 (= 8 flow, fixture/seed user'a veya `PAYMENT_BYPASS` env'e bağımlı).
 

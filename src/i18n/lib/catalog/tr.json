@@ -477,7 +477,8 @@
     "pwHintMinLength": "En az {min} karakter olmalı",
     "pwHintUppercase": "En az 1 büyük harf ekleyin",
     "pwHintLowercase": "En az 1 küçük harf ekleyin",
-    "pwHintNumber": "En az 1 rakam ekleyin"
+    "pwHintNumber": "En az 1 rakam ekleyin",
+    "appleSignInFailed": "Apple ile giriş başarısız"
   },
   "brands": {
     "title": "Markalar",
@@ -2506,6 +2507,21 @@
     "emailChangeLeaveConfirm": "Yine de Çık",
     "boost": {
       "pricingLoadError": "Fiyatlar yüklenemedi"
+    },
+    "connectedAccounts": {
+      "title": "Bağlı Hesaplar",
+      "description": "Tarodan hesabınıza hangi hesaplarla giriş yapabileceğinizi yönetin.",
+      "connected": "Bağlı",
+      "notConnected": "Bağlı değil",
+      "connectedAs": "{email} olarak bağlı",
+      "connect": "Bağla",
+      "disconnect": "Bağlantıyı Kaldır",
+      "disconnectTitle": "{provider} bağlantısı kaldırılsın mı?",
+      "disconnectConfirm": "Bu hesapla artık {provider} üzerinden giriş yapamazsınız.",
+      "relinkNote": "Daha sonra aynı doğrulanmış e-posta adresiyle \"{provider} ile devam et\" seçeneğini kullanırsanız bu giriş yöntemi hesabınıza otomatik olarak yeniden bağlanır ve size bir bilgilendirme e-postası gönderilir.",
+      "lastMethodHint": "Hesabınızda bir şifre ya da bağlı bir Google hesabı kalmalı. Önce bir şifre belirleyin.",
+      "connectSuccess": "{provider} hesabı bağlandı.",
+      "disconnectSuccess": "{provider} bağlantısı kaldırıldı."
     }
   },
   "review": {
@@ -3630,7 +3646,11 @@
     "webPageLoadFailedDescription": "İnternet bağlantınızı kontrol edip tekrar deneyin ya da sayfayı tarayıcıda açın.",
     "openInBrowser": "Tarayıcıda aç",
     "settingsGroupPayment": "Ödeme ve Banka",
-    "settingsGroupPreferences": "Tercihler"
+    "settingsGroupPreferences": "Tercihler",
+    "connectedAccounts": {
+      "appleIosOnly": "Apple ile giriş yalnızca iPhone ve iPad'de bağlanabilir. Apple hesabınızı Tarodan web sitesinden de bağlayabilirsiniz.",
+      "googleUnavailableAndroid": "Google ile giriş şu anda Android'de kapalı. Google hesabınızı Tarodan web sitesinden bağlayabilirsiniz."
+    }
   },
   "refund": {
     "cancel": {

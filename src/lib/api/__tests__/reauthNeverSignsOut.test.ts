@@ -3,9 +3,12 @@
  *
  * The API answers every step-up problem without a 401: `403 REAUTH_REQUIRED`,
  * `403 REAUTH_FAILED`, `400 REAUTH_METHOD_NOT_ALLOWED`, `429 REAUTH_LOCKED`,
- * `503 REAUTH_UNAVAILABLE`, `400 PROVIDER_TOKEN_INVALID`, `409 PASSWORD_ALREADY_SET`. The
- * response interceptor of `client.ts` must hand each one to the caller as is: one request, no
- * refresh, no sign-out, no redirect. Only a real 401 keeps its refresh path.
+ * `503 REAUTH_UNAVAILABLE`, `400 PROVIDER_TOKEN_INVALID`, `409 PASSWORD_ALREADY_SET`, and the
+ * Connected accounts refusals (`409 PROVIDER_ALREADY_LINKED`, `409 PROVIDER_LINKED_TO_OTHER_ACCOUNT`,
+ * `403 EMAIL_NOT_VERIFIED`, `404 PROVIDER_NOT_LINKED`, `409 LAST_SIGN_IN_METHOD`). The response
+ * interceptor of `client.ts` must hand each one to the caller as is: one request, no refresh, no
+ * sign-out, no redirect. Only a real 401 keeps its refresh path, the link and unlink routes
+ * included (they are not public auth routes).
  *
  * Drives the REAL axios instance and its interceptor chain; only the adapter is fake.
  */
@@ -93,6 +96,41 @@ const CALLS: [string, () => Promise<unknown>][] = [
   ['POST /auth/password/set', () => authApi.setPassword({ newPassword: 'Secret123', reauthToken: 'tok' })],
   ['DELETE /users/me', () => userApi.deleteAccount('tok')],
   ['POST /auth/email/request-change', () => authApi.requestEmailChange('n@ornek.com', 'tok')],
+  ['POST /auth/social/google/link', () => authApi.linkGoogle({ idToken: 'g-id', reauthToken: 'tok' })],
+  [
+    'POST /auth/social/apple/link',
+    () => authApi.linkApple({ identityToken: 'a-id', authorizationCode: 'a-code', reauthToken: 'tok' }),
+  ],
+  ['POST /auth/social/apple/unlink', () => authApi.unlinkProvider('apple', { reauthToken: 'tok' })],
+];
+
+/** The refusals of the Connected accounts routes (contract delta 2026-10-21, "Errors"). */
+const CONNECTED_ACCOUNTS_ANSWERS: [string, () => Promise<unknown>, Reply][] = [
+  [
+    'link 409 PROVIDER_ALREADY_LINKED',
+    () => authApi.linkGoogle({ idToken: 'g-id', reauthToken: 'tok' }),
+    body(409, 'PROVIDER_ALREADY_LINKED', 'server.auth.providerAlreadyLinked'),
+  ],
+  [
+    'link 409 PROVIDER_LINKED_TO_OTHER_ACCOUNT',
+    () => authApi.linkApple({ identityToken: 'a-id', reauthToken: 'tok' }),
+    body(409, 'PROVIDER_LINKED_TO_OTHER_ACCOUNT', 'server.auth.providerLinkedToOtherAccount'),
+  ],
+  [
+    'link 403 EMAIL_NOT_VERIFIED',
+    () => authApi.linkGoogle({ idToken: 'g-id', reauthToken: 'tok' }),
+    body(403, 'EMAIL_NOT_VERIFIED', 'server.auth.emailNotVerifiedLogin'),
+  ],
+  [
+    'unlink 404 PROVIDER_NOT_LINKED',
+    () => authApi.unlinkProvider('google', { reauthToken: 'tok' }),
+    body(404, 'PROVIDER_NOT_LINKED', 'server.auth.providerNotLinked'),
+  ],
+  [
+    'unlink 409 LAST_SIGN_IN_METHOD',
+    () => authApi.unlinkProvider('google', { reauthToken: 'tok' }),
+    body(409, 'LAST_SIGN_IN_METHOD', 'server.auth.lastSignInMethod'),
+  ],
 ];
 
 describe.each(CALLS)('%s', (_name, call) => {
@@ -109,6 +147,34 @@ describe.each(CALLS)('%s', (_name, call) => {
     expect(logoutMock()).not.toHaveBeenCalled();
     expect(router.replace).not.toHaveBeenCalled();
   });
+});
+
+it.each(CONNECTED_ACCOUNTS_ANSWERS)('%s: one request, no refresh, no sign-out, no redirect', async (_l, call, reply) => {
+  const refresh = jest.spyOn(axios, 'post');
+  replies = [reply];
+
+  const e = await caught(call());
+
+  expect(e.response.status).toBe(reply.status);
+  expect(sent).toHaveLength(1);
+  expect(refresh).not.toHaveBeenCalled();
+  expect(logoutMock()).not.toHaveBeenCalled();
+  expect(router.replace).not.toHaveBeenCalled();
+});
+
+it('a stale access token on a link refreshes once and replays the same body (not a public route)', async () => {
+  const refresh = jest.spyOn(axios, 'post').mockResolvedValueOnce({ data: { accessToken: 'a2', refreshToken: 'r2' } });
+  replies = [
+    { status: 401, data: { statusCode: 401, i18nKey: 'server.auth.loginRequired' } },
+    { status: 200, data: { hasPassword: true, providers: [] } },
+  ];
+
+  await authApi.linkApple({ identityToken: 'a-id', authorizationCode: 'a-code', reauthToken: 'tok' });
+
+  expect(refresh).toHaveBeenCalledTimes(1);
+  expect(sent).toHaveLength(2);
+  expect(sent[1]!.data).toEqual({ identityToken: 'a-id', authorizationCode: 'a-code', reauthToken: 'tok' });
+  expect(logoutMock()).not.toHaveBeenCalled();
 });
 
 it('a REAUTH_REQUIRED answer is recognised for the one retry; other 403s are not', async () => {

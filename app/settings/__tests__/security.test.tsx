@@ -7,7 +7,7 @@
  */
 import React from "react";
 import { renderWithProviders } from "@/test-utils";
-import { render, screen, waitFor } from "@testing-library/react-native";
+import { render, screen, waitFor, within } from "@testing-library/react-native";
 import SecuritySettingsScreen from "../security";
 
 // expo-router
@@ -53,7 +53,10 @@ describe("SecuritySettingsScreen — 2FA durumu", () => {
     await waitFor(() =>
       expect(screen.getByText("profile.security.twoFactorOn")).toBeOnTheScreen(),
     );
-    expect(screen.getByText("profile.security.manage")).toBeOnTheScreen();
+    // Scoped to the 2FA card: the Connected accounts card also reads "manage".
+    expect(
+      within(screen.getByTestId("two-factor-manage-button")).getByText("profile.security.manage"),
+    ).toBeOnTheScreen();
     expect(mockGetTwoFactorStatus).toHaveBeenCalledTimes(1);
   });
 

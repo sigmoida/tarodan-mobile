@@ -18,7 +18,7 @@ export type PasswordCardMode = 'change' | 'set' | 'loading';
 /**
  * Security hub: the states (2FA query, sign-in methods, phone verified from the stored user)
  * and the entries to the sub-flows. The forms live on their own screens
- * (`password` / `set-password` / `two-factor` / `phone`).
+ * (`password` / `set-password` / `connected-accounts` / `two-factor` / `phone`).
  */
 export function useSecurityHub() {
   const { t } = useTranslation();
@@ -55,6 +55,7 @@ export function useSecurityHub() {
     openPassword: () => router.push('/settings/security/password'),
     openSetPassword: setPassword.open,
     sendingSetPasswordMail: setPassword.sending,
+    openConnectedAccounts: () => router.push('/settings/security/connected-accounts'),
     openTwoFactor: () => router.push('/settings/security/two-factor'),
     openPhone: () => router.push('/settings/security/phone'),
     openDeleteAccount: () => router.push('/settings/delete-account'),

@@ -6,8 +6,9 @@ import { useSecurityHub } from './_hooks/useSecurityHub';
 import { SecuritySections } from './_components/SecuritySections';
 
 /**
- * Security settings, a THIN hub. Changing or setting a password, 2FA and phone verification are
- * separate flows as on web (the `password`, `set-password`, `two-factor` and `phone` screens);
+ * Security settings, a THIN hub. Changing or setting a password, connected accounts, 2FA and phone
+ * verification are separate flows as on web (the `password`, `set-password`, `connected-accounts`,
+ * `two-factor` and `phone` screens);
  * the hub shows only their states and entries.
  */
 export default function SecuritySettingsScreen() {
