@@ -326,13 +326,21 @@ export function useSearch() {
     setAutocompleteOpen(false);
   }, []);
 
-  // Öneriden bir facet (marka/üretici/kategori) seçilince: paneli kapat ve arama metnini temizle
-  // (yoksa arama + facet birlikte 2 filtre gibi sayılır).
+  // A suggested facet (brand/manufacturer/category) closes the panel and clears the search text
+  // (otherwise text + facet would count as two filters). A brand facet also drops the car model,
+  // which belongs to the previous brand (web `handleBrandChange`); a model of another brand would
+  // leave no results.
   const applyFacet = useCallback(
     (partial: Partial<ProductFilters>) => {
       setInputText('');
       closeSuggestions();
-      setFilters((prev) => ({ ...prev, search: '', ...partial }));
+      const brandChanged = 'brandId' in partial || 'brand' in partial;
+      setFilters((prev) => ({
+        ...prev,
+        search: '',
+        ...(brandChanged ? { carModelId: '', carModel: '' } : null),
+        ...partial,
+      }));
     },
     [setInputText, closeSuggestions],
   );

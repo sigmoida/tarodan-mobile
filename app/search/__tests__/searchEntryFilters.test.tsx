@@ -161,5 +161,13 @@ describe('arama · ön filtreli açılış', () => {
       expect(result.current.filters).toMatchObject({ colors: [], carModelId: '', carModel: '', set: false });
       expect(result.current.activeFiltersCount).toBe(0);
     });
+
+    it('a suggested brand drops the car model of the previous brand; other facets keep it', () => {
+      const { result } = renderSearch({ brandId: 'b1', brand: 'Ferrari', carModelId: 'cm1', carModel: 'F40' });
+      act(() => result.current.applyFacet({ categoryId: 'c1', category: 'Diecast' }));
+      expect(result.current.filters).toMatchObject({ categoryId: 'c1', carModelId: 'cm1', carModel: 'F40' });
+      act(() => result.current.applyFacet({ brandId: 'b2', brand: 'Lamborghini' }));
+      expect(result.current.filters).toMatchObject({ brandId: 'b2', brand: 'Lamborghini', carModelId: '', carModel: '' });
+    });
   });
 });
