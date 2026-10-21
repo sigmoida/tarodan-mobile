@@ -2,7 +2,11 @@
  * B-2.3 · Onay kataloğunun saf kuralları (web `lib/consentGate.ts` +
  * `(auth)/_lib/auth.ts registrationConsentDocuments` ile aynı).
  */
+import tr from '@/i18n/lib/catalog/tr.json';
+import en from '@/i18n/lib/catalog/en.json';
 import {
+  CONSENT_DOCUMENT_I18N_KEYS,
+  CONSENT_DOCUMENT_KEYS,
   canSubmitConsents,
   consentCheckKey,
   isLegalTextPath,
@@ -69,5 +73,24 @@ describe('legalConsent', () => {
     expect(isLegalTextPath('/')).toBe(false);
     expect(isLegalTextPath('/terms-of-sale')).toBe(false);
     expect(isLegalTextPath(null)).toBe(false);
+  });
+
+  it('mirrors the 8 document keys of @tarodan/types, each with a title in both catalogs', () => {
+    expect(CONSENT_DOCUMENT_KEYS).toEqual([
+      'terms',
+      'privacy',
+      'kvkk',
+      'distance_sales',
+      'cookies',
+      'marketing',
+      'platform_service_sales',
+      'withdrawal_waiver',
+    ]);
+    const get = (catalog: unknown, key: string) =>
+      key.split('.').reduce<unknown>((cur, part) => (cur as Record<string, unknown> | undefined)?.[part], catalog);
+    for (const key of CONSENT_DOCUMENT_KEYS) {
+      expect(typeof get(tr, CONSENT_DOCUMENT_I18N_KEYS[key])).toBe('string');
+      expect(typeof get(en, CONSENT_DOCUMENT_I18N_KEYS[key])).toBe('string');
+    }
   });
 });
