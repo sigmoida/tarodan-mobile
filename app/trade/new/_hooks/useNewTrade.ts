@@ -15,6 +15,7 @@ import { isPreselectableTarget, targetSellerOf, type TargetListing } from '../_l
 import { isFetchedThisOpen, TRADE_PICKER_PAGE_SIZE, TRADE_PICKER_QUERY_OPTIONS } from '../../_lib/picker';
 import { usePagedPicker } from '../../_hooks/usePagedPicker';
 import { usePagedPicks } from '../../_hooks/usePagedPicks';
+import { useCashAmount } from '../../_hooks/useCashAmount';
 import { parseCashAmount, signedCashAmount, type CashDirection } from '../../_lib/cash';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
@@ -47,7 +48,7 @@ export function useNewTrade() {
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1); // 1: Select my items, 2: Select their items, 3: Review
-  const [cashAmount, setCashAmount] = useState('');
+  const { cashAmount, cashRefused, changeCashText } = useCashAmount();
   const [cashDirection, setCashDirection] = useState<CashDirection>('offer');
   const [message, setMessage] = useState('');
   const [tradeAddressId, setTradeAddressId] = useState<string | null>(null);
@@ -232,7 +233,25 @@ export function useNewTrade() {
   const toggleMyItem = (product: Product) => myPicks.toggle(product.id);
   const toggleTheirItem = (product: Product) => theirPicks.toggle(product.id);
 
+  /**
+   * Web refuses to send while the cash field holds a refused amount. Here the field keeps the
+   * last sendable text instead ("1.000" stops at "1.00"), so the refusal itself blocks: otherwise
+   * 1 TL would go out for one thousand. Cleared by the next accepted change.
+   */
+  const blockRefusedCash = () => {
+    if (!cashRefused) return false;
+    toast.error(t('trade.cashFormatRefused'));
+    return true;
+  };
+
+  /** Step 2 -> 3 (review): not while the cash amount is refused. */
+  const goToReview = () => {
+    if (blockRefusedCash()) return;
+    setStep(3);
+  };
+
   const handleSubmit = async () => {
+    if (blockRefusedCash()) return;
     if (selectedMyItems.length === 0 && cashValue <= 0) {
       toast.error(t('trade.selectAtLeastOne'));
       return;
@@ -258,7 +277,8 @@ export function useNewTrade() {
     selectedMyItems,
     selectedTheirItems,
     cashAmount,
-    setCashAmount,
+    cashRefused,
+    changeCashText,
     cashDirection,
     setCashDirection,
     message,
@@ -284,6 +304,7 @@ export function useNewTrade() {
     costPreview,
     toggleMyItem,
     toggleTheirItem,
+    goToReview,
     handleSubmit,
   };
 }

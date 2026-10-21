@@ -6,9 +6,10 @@
  */
 import React from 'react';
 import { TextInput } from 'react-native';
-import { appAlert } from '@/ui';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { appAlert, toast } from '@/ui';
+import { act, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
+import trCatalog from '@/i18n/lib/catalog/tr.json';
 import { formatPrice } from '@/utils/format';
 
 let mockParams: Record<string, string> = { id: 'trade-1' };
@@ -71,6 +72,9 @@ const theirProduct = {
   id: 'prod-theirs', title: 'Karşı Ürün', price: 300,
   isTradeEnabled: true, status: 'active', images: [],
 };
+
+const CASH_HELPER = trCatalog.trade.cashHelper;
+const CASH_REFUSED = trCatalog.trade.cashFormatRefused;
 
 /** The cash field: the only numeric input on the screen. */
 function cashInput() {
@@ -169,6 +173,26 @@ describe('J6 · Karşı teklif formu', () => {
     expect(screen.getByDisplayValue('12,50')).toBeOnTheScreen();
   });
 
+  it('J6.4b the cash field shows its helper, shows a refused paste in its place and clears it on the next accepted change', async () => {
+    mountWithProducts();
+    renderWithProviders(<TradeCounterScreen />);
+    await waitFor(() => expect(screen.getByText('Nakit fark')).toBeOnTheScreen());
+    expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
+    expect(screen.queryByText(CASH_REFUSED)).toBeNull();
+
+    const input = cashInput();
+    fireEvent.changeText(input, '12,50');
+    fireEvent.changeText(input, '1.250,50');
+    expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
+    expect(screen.getByDisplayValue('12,50')).toBeOnTheScreen();
+    // As on web, the refusal takes the helper's place while it shows.
+    expect(screen.queryByText(CASH_HELPER)).toBeNull();
+
+    fireEvent.changeText(input, '12,5');
+    expect(screen.queryByText(CASH_REFUSED)).toBeNull();
+    expect(screen.getByDisplayValue('12,5')).toBeOnTheScreen();
+  });
+
   describe('J6.6 cash difference in the submitted payload (web parity), as the receiver', () => {
     beforeEach(() => {
       mockUser = RECEIVER;
@@ -212,6 +236,58 @@ describe('J6 · Karşı teklif formu', () => {
       // The summary shows the same amount that is sent.
       expect(screen.getByText('Ödeyeceğim nakit')).toBeOnTheScreen();
       expect(screen.getByText(formatPrice(amount))).toBeOnTheScreen();
+    });
+
+    it('"1.000" typed key by key (one thousand) is not sent as 1 TL: send is blocked until an accepted change', async () => {
+      const errorToast = jest.spyOn(toast, 'error').mockImplementation(() => 1);
+      mountWithProducts(tradeForReceiver());
+      counterMock.mockResolvedValue({ data: {} });
+      renderWithProviders(<TradeCounterScreen />);
+      await waitFor(() => expect(screen.getByText('Karşı Ürün')).toBeOnTheScreen());
+      for (const typed of ['1', '1.', '1.0', '1.00', '1.000']) fireEvent.changeText(cashInput(), typed);
+      expect(screen.getByDisplayValue('1.00')).toBeOnTheScreen();
+      expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
+
+      fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
+      expect(errorToast).toHaveBeenCalledWith(CASH_REFUSED);
+      // The refusal is still on screen, and nothing was sent.
+      expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
+      await act(() => Promise.resolve());
+      expect(counterMock).not.toHaveBeenCalled();
+
+      // An accepted change clears the refusal and sends that amount.
+      fireEvent.changeText(cashInput(), '1000');
+      expect(screen.queryByText(CASH_REFUSED)).toBeNull();
+      fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
+      expect((await sentBody()).cashAmount).toBe(1000);
+      errorToast.mockRestore();
+    });
+
+    it('another trade opening here starts from its own cash terms: no amount, payer or refusal left over', async () => {
+      const first = tradeForReceiver({ id: 'trade-1', cashAmount: 12.5, cashPayerId: 'user-initiator' });
+      // No cash in the second trade: before this fix its prefill kept the first trade's amount.
+      const second = tradeForReceiver({ id: 'trade-2', cashAmount: 0, cashPayerId: null });
+      mountWithProducts(first);
+      getOneMock.mockImplementation((id: string) =>
+        Promise.resolve({ data: { data: id === 'trade-2' ? second : first } }));
+      counterMock.mockResolvedValue({ data: {} });
+      const view = renderWithProviders(<TradeCounterScreen />);
+      await waitFor(() => expect(screen.getByDisplayValue('12,50')).toBeOnTheScreen());
+      fireEvent.changeText(cashInput(), '1.250,50');
+      expect(screen.getByText(CASH_REFUSED)).toBeOnTheScreen();
+
+      mockParams = { id: 'trade-2' };
+      view.rerender(<TradeCounterScreen />);
+      await waitFor(() => expect(getOneMock).toHaveBeenCalledWith('trade-2'));
+      await waitFor(() => expect(cashInput().props.value).toBe(''));
+      expect(screen.queryByText(CASH_REFUSED)).toBeNull();
+      expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
+
+      // The payer is back to "I pay" (the first trade had "they pay"): 5 goes out positive.
+      fireEvent.changeText(cashInput(), '5');
+      fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
+      expect((await sentBody()).cashAmount).toBe(5);
+      expect(counterMock.mock.calls[0][0]).toBe('trade-2');
     });
 
     it('a decimal comma that they pay is sent negative', async () => {

@@ -20,6 +20,7 @@ const make = (over: Partial<NewTradeController>): NewTradeController =>
     selectedMyItems: [],
     selectedTheirItems: [],
     handleSubmit: jest.fn(),
+    goToReview: jest.fn(),
     submitPending: false,
     ...over,
   }) as unknown as NewTradeController;
@@ -48,5 +49,13 @@ describe('NewTradeFooter', () => {
   it('3. adım: teklif edilen ürün yoksa gönder pasif', () => {
     renderWithProviders(<NewTradeFooter f={make({ step: 3, selectedTheirItems: [item] as never })} />);
     expect(disabled('new-trade-submit')).toBe(true);
+  });
+
+  it('step 2: "Continue" goes through the controller guard (blocked while the cash is refused)', () => {
+    const f = make({ step: 2, selectedTheirItems: [item] as never });
+    renderWithProviders(<NewTradeFooter f={f} />);
+    fireEvent.press(screen.getByTestId('new-trade-step2-continue'));
+    expect(f.goToReview).toHaveBeenCalledTimes(1);
+    expect(f.setStep).not.toHaveBeenCalled();
   });
 });

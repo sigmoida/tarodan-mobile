@@ -5,7 +5,7 @@
  * (thousands grouping, letters, two separators) into "", and only a value above 0 is sent.
  * The column is `Decimal(10, 2)`, so the stored amount is rounded half away from zero to cents.
  */
-import { cashInputValue, nextCashInput, parseCashAmount, signedCashAmount } from '../_lib/cash';
+import { cashInputValue, isCashInputRefused, nextCashInput, parseCashAmount, signedCashAmount } from '../_lib/cash';
 
 describe('parseCashAmount', () => {
   it.each([
@@ -154,5 +154,32 @@ describe('nextCashInput', () => {
   it('every value it lets through parses to exactly what is shown', () => {
     expect(parseCashAmount(nextCashInput('', '12,50'))).toBe(12.5);
     expect(parseCashAmount(nextCashInput('', '12,'))).toBe(12);
+  });
+});
+
+describe('isCashInputRefused', () => {
+  // `prev` holds letters, so no accepted (stripped) value can equal it.
+  it.each(['1.250,50', '12,5,0', '12,505', '1.250', '1,250.', '..', ',,', '1 . 2 , 3', '12,5😀05'])(
+    'refuses %j and nextCashInput keeps the previous value',
+    (typed) => {
+      expect(isCashInputRefused(typed)).toBe(true);
+      expect(nextCashInput('prev', typed)).toBe('prev');
+    },
+  );
+
+  it.each(['', '12', '12,', '12,50', '12.50', ',5', '-', '-5', '12 TL', '12a3,5x', '😀', '١٢', '１２', '12,5-0'])(
+    'accepts %j and nextCashInput takes the stripped text',
+    (typed) => {
+      expect(isCashInputRefused(typed)).toBe(false);
+      expect(nextCashInput('prev', typed)).not.toBe('prev');
+    },
+  );
+
+  it('does not count stripped characters as a refusal: they are dropped', () => {
+    expect(nextCashInput('prev', '-5 TL')).toBe('5');
+    expect(nextCashInput('prev', '12,5-0')).toBe('12,50');
+    // Only ASCII digits are amount digits; other scripts' digits and emoji are dropped.
+    expect(nextCashInput('prev', '١٢')).toBe('');
+    expect(nextCashInput('12', '12😀')).toBe('12');
   });
 });

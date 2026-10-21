@@ -11,7 +11,9 @@
  *
  * The field itself only takes what can be sent (`nextCashInput`): one separator and at most two
  * decimals. So text that would be no amount ("1.250,50") or a rounded one ("12,505") cannot be
- * typed, and a dot typed as Turkish thousands grouping ("1.250") stops visibly at "1.25".
+ * typed, and a dot typed as Turkish thousands grouping ("1.250") stops visibly at "1.25". As on
+ * web, such a refused change also blocks sending until an accepted change (`useCashAmount`), so
+ * "1.000" meant as one thousand is never sent as 1 TL.
  */
 
 /** Who pays the cash difference, seen from the user: `offer` = I pay, `request` = they pay. */
@@ -61,12 +63,26 @@ export function cashInputValue(amount: number): string {
 /** What the field may hold while typing: digits, then one separator and up to two decimals. */
 const CASH_TYPING_PATTERN = /^\d*(?:[.,]\d{0,2})?$/;
 
+/** The typed text without other characters (letters, `-`, spaces). */
+function stripCashInput(typed: string): string {
+  return typed.replace(/[^\d.,]/g, '');
+}
+
 /**
  * The field's next value: the typed text without other characters (letters, `-`, spaces), or
  * the previous value when the change would not be a sendable amount (a second separator, a
  * third decimal), so what the field shows is always what is sent.
  */
 export function nextCashInput(previous: string, typed: string): string {
-  const cleaned = typed.replace(/[^\d.,]/g, '');
-  return CASH_TYPING_PATTERN.test(cleaned) ? cleaned : previous;
+  return isCashInputRefused(typed) ? previous : stripCashInput(typed);
+}
+
+/**
+ * Whether `nextCashInput` refuses this typed or pasted text (and keeps the previous value), so a
+ * field can tell the user instead of dropping the change silently. `nextCashInput` decides with
+ * this function, so the two cannot disagree. It depends on the typed text only; stripped
+ * characters (letters, spaces) are not a refusal.
+ */
+export function isCashInputRefused(typed: string): boolean {
+  return !CASH_TYPING_PATTERN.test(stripCashInput(typed));
 }

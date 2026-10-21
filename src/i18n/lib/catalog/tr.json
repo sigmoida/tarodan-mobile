@@ -1647,6 +1647,8 @@
     "counterTheirItemsTitle": "İsteyeceğim Ürünler",
     "counterTheirItemsSubtitle": "{name} adlı satıcıdan istediğim ürünleri seçin.",
     "amountLabelTL": "Tutar (TL)",
+    "cashHelper": "Kuruş için virgül kullanın, örn. 1250,50",
+    "cashFormatRefused": "Tutar kabul edilmedi. Binlik ayracı kullanmayın; kuruş için virgül kullanın, örn. 1250,50",
     "messageOptionalLabel": "Mesaj (opsiyonel)",
     "counterMessagePlaceholderLong": "Karşı tarafa not bırakın...",
     "summaryTitle": "Özet",

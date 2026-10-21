@@ -31,9 +31,6 @@ export const styles = StyleSheet.create({
   chip: {
     flex: 1,
   },
-  cashInput: {
-    marginTop: theme.spacing[3],
-  },
   summaryItem: {
     flexDirection: 'row',
     alignItems: 'center',
