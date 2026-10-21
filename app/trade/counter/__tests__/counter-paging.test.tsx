@@ -15,9 +15,9 @@ import { invalidateListingCaches } from '@/components/listing/_lib/invalidate';
 let mockParams: Record<string, string> = { id: 'trade-1' };
 let mockFocusCallbacks: Array<() => void> = [];
 jest.mock('expo-router', () => {
-  const { useEffect } = require('react');
+  const { useEffect } = jest.requireActual('react');
   return {
-    ...require('@/test-utils/router-mock').routerMock,
+    ...jest.requireActual('@/test-utils/router-mock').routerMock,
     useLocalSearchParams: () => mockParams,
     useFocusEffect: (cb: () => void) => {
       useEffect(() => {
@@ -32,9 +32,9 @@ const refocus = () => mockFocusCallbacks.forEach((cb) => cb());
 
 // The screen tests assert what the loaded screen shows, not the skeleton timing: without this
 // the delayed-skeleton timer can re-show the skeleton over found content on a busy machine.
-jest.mock('@/ui/loading/useDelayedLoading', () => require('@/test-utils/loading').immediateLoadingMock);
+jest.mock('@/ui/loading/useDelayedLoading', () => jest.requireActual('@/test-utils/loading').immediateLoadingMock);
 
-jest.mock('@/hooks/useLegalIdentity', () => require('@/test-utils/legalIdentity').legalIdentityGatePassMock);
+jest.mock('@/hooks/useLegalIdentity', () => jest.requireActual('@/test-utils/legalIdentity').legalIdentityGatePassMock);
 
 jest.mock('@/lib/api', () => ({
   tradesApi: { getOne: jest.fn(), counter: jest.fn(() => Promise.resolve({ data: {} })) },
@@ -231,7 +231,8 @@ describe('counter picks across pages', () => {
         { productId: 'theirs-t', quantity: 1 },
         { productId: 't1', quantity: 1 },
       ],
-      cashAmount: 0,
+      // No cash in the trade: left out, as on web (it used to be sent as 0).
+      cashAmount: undefined,
       message: undefined,
     });
   });

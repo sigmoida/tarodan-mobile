@@ -13,6 +13,7 @@ import { getProductEffectivePrice } from '@/utils/productPrice';
 import { TRADE_PICKER_PAGE_SIZE } from '../../../_lib/picker';
 import { usePagedPicker } from '../../../_hooks/usePagedPicker';
 import { usePagedPicks } from '../../../_hooks/usePagedPicks';
+import { parseCashAmount, signedCashAmount, type CashDirection } from '../../../_lib/cash';
 import { offerSignature, type Trade, type TradeItem } from '../_lib/types';
 import { mergeTradeItems, type CounterProduct } from '../_lib/counterProducts';
 
@@ -48,7 +49,7 @@ export function useTradeCounter() {
   const trade = tradeQuery.data;
 
   const [cashAmount, setCashAmount] = useState('');
-  const [cashDirection, setCashDirection] = useState<'offer' | 'request'>('offer');
+  const [cashDirection, setCashDirection] = useState<CashDirection>('offer');
   const [message, setMessage] = useState('');
   const [initializedId, setInitializedId] = useState<string | null>(null);
   const [initialSig, setInitialSig] = useState('');
@@ -127,7 +128,7 @@ export function useTradeCounter() {
     if (!trade || initializedId === trade.id) return;
     selectMine(mySide.map((item) => item.productId));
     selectTheirs(theirSide.map((item) => item.productId));
-    let initDir: 'offer' | 'request' = 'offer';
+    let initDir: CashDirection = 'offer';
     let initCash = '';
     if (trade.cashAmount) {
       initCash = Math.abs(Number(trade.cashAmount)).toString();
@@ -161,14 +162,13 @@ export function useTradeCounter() {
 
   const counterMutation = useAppMutation(
     async () => {
-      const cashValue = parseFloat(cashAmount) || 0;
-      const finalCash = cashDirection === 'offer' ? cashValue : -cashValue;
       return tradesApi.counter(id!, {
         // Backend "Model B": a counter offer swaps the roles; the items I give (I am the one
         // countering) become initiatorItems and the ones I want become receiverItems.
         initiatorItems: selectedMine.map((p) => ({ productId: p.id, quantity: 1 })),
         receiverItems: selectedTheirs.map((p) => ({ productId: p.id, quantity: 1 })),
-        cashAmount: finalCash,
+        // Left out when there is no amount (never 0 / -0), as on web.
+        cashAmount: signedCashAmount(cashAmount, cashDirection),
         message: message || undefined,
       });
     },
@@ -185,7 +185,7 @@ export function useTradeCounter() {
 
   const myTotal = selectedMine.reduce((sum, p) => sum + getProductEffectivePrice(p), 0);
   const theirTotal = selectedTheirs.reduce((sum, p) => sum + getProductEffectivePrice(p), 0);
-  const cashValue = parseFloat(cashAmount) || 0;
+  const cashValue = parseCashAmount(cashAmount) ?? 0;
 
   const toggleMine = (p: CounterProduct) => myPicks.toggle(p.id);
   const toggleTheirs = (p: CounterProduct) => theirPicks.toggle(p.id);
