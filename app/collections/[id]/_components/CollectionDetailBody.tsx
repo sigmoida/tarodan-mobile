@@ -159,6 +159,8 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
                     product={product}
                     showMeta={false}
                     trackClick={!!item.productId}
+                    // A custom item has no listing to buy (web: a non-navigating card, no action).
+                    showAction={!!item.productId}
                     onPress={() => item.productId && router.push(`/product/${item.productId}`)}
                     {...(item.productId && !f.isOwner ? favoriteProps(product) : null)}
                   />

@@ -861,7 +861,13 @@
     "commissionRuleUnavailable": "This listing cannot be created because no active commission rule matches your category, price, and membership type.",
     "packageFeeLabel": "Package fee",
     "sampleDimensionsLabel": "Sample size (W × L × H)",
-    "packageFeeNeedsPriceAndCategory": "Enter a price and a category to see your package fee."
+    "packageFeeNeedsPriceAndCategory": "Enter a price and a category to see your package fee.",
+    "boostedBadge": "Featured",
+    "boostedBadgeHint": "The seller paid to feature this listing",
+    "cardAction": {
+      "addToCartAria": "Add {title} to cart",
+      "removeFromCartAria": "Remove {title} from cart"
+    }
   },
   "cart": {
     "addToCartFailed": "Could not add to cart",
@@ -3455,7 +3461,11 @@
       "acceptSuffix": " — I have read and accept it.",
       "submit": "Accept and continue",
       "submitFailed": "Your consent couldn't be saved. Please try again."
-    }
+    },
+    "platformServiceSales": {
+      "title": "Pre-contract Information and Distance Service Contract"
+    },
+    "withdrawalWaiverTitle": "Withdrawal Waiver"
   },
   "information": {
     "contactInfo": {

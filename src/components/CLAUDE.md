@@ -36,6 +36,16 @@ Marketplace components built from `@/ui` primitives, grouped by feature
   the heart on the user's own listing and sends guests to sign-in. Detail and card
   share `useFavoriteToggle` (one toggle flow, one favourites cache).
 - No "in cart" pill on cards (web has none).
+- **Card action** (price row, web `ProductCardAction`): one rule, `productCardAction` (`@/types`,
+  vendored from `@tarodan/types`), read by `useProductCardAction` with
+  `canBoost: CAN_BUY_DIGITAL`. Other people's active, in-stock listings (guests too) get the cart
+  toggle (`ProductCardCartButton`, `useCartToggle`); the viewer's own listing gets **no button**
+  (no boost button, hint or web link; tarodan-ops ADR 0015). A `footer` or `showAction={false}`
+  (pickers, a collection's custom item) turns it off. The card draws it as a sibling of its
+  `Pressable` over a spacer in the price row. Text or icon-only by the card's measured width
+  against `theme.containers.cardWide`; the list row is icon-only (web below `xs`).
+- Badges: a boosted listing shows "Öne Çıkan" (`product.boostedBadge`; screen readers get
+  `product.boostedBadgeHint`). "Sponsorlu" (`product.sponsored`) is for ads only.
 
 ## Price
 

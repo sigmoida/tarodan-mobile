@@ -64,7 +64,10 @@ const styles = StyleSheet.create({
   gridBody: { padding: PM.grid.bodyPadding },
   gridTitleLast: { marginBottom: PM.grid.titleGap },
   gridMeta: { marginBottom: PM.grid.metaGap },
+  // The card's price row height (with or without its action), the price line at its bottom.
   priceBlock: {
+    minHeight: PM.grid.priceRowMinHeight,
+    justifyContent: 'flex-end',
     borderTopWidth: 1,
     borderTopColor: colors.border.subtle,
     paddingTop: PM.grid.priceTopPadding,

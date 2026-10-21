@@ -29,6 +29,13 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(() => Promise.resolve()),
 }));
 
+// AsyncStorage: no native module in jest; the package's in-memory mock. Every listing card reads
+// the persisted cart store (its cart action), so any screen with a card needs it. A test file may
+// still mock it itself.
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
 // react-native-safe-area-context: testte SafeAreaProvider yok → sabit inset mock.
 jest.mock('react-native-safe-area-context', () => {
   const React = require('react');

@@ -10,14 +10,14 @@ export type ProductBadgeVariant =
   | 'rare'
   | 'preorder'
   | 'limited'
-  | 'sponsored'
+  | 'boosted'
   | 'default';
 
 export interface ProductBadgeProps extends Omit<BadgeProps, 'variant' | 'appearance' | 'size'> {
   variant?: ProductBadgeVariant;
 }
 
-/** Ürün varyantı → genel Badge varyantı + görünüm (web `ProductBadge` ile aynı tablo). */
+/** Product variant -> generic Badge variant + appearance (the same table as web `ProductBadge`). */
 const TO_BADGE: Record<ProductBadgeVariant, { variant: BadgeVariant; appearance: BadgeAppearance }> = {
   sale: { variant: 'danger', appearance: 'solid' },
   new: { variant: 'success', appearance: 'solid' },
@@ -25,15 +25,16 @@ const TO_BADGE: Record<ProductBadgeVariant, { variant: BadgeVariant; appearance:
   rare: { variant: 'default', appearance: 'solid' },
   preorder: { variant: 'default', appearance: 'solid' },
   limited: { variant: 'warning', appearance: 'solid' },
-  sponsored: { variant: 'warning', appearance: 'solid' },
+  boosted: { variant: 'warning', appearance: 'solid' },
   default: { variant: 'outline', appearance: 'soft' },
 };
 
 /**
- * Ürün kartı vitrin rozeti (indirim / yeni / takas / nadir / ön sipariş / sınırlı / sponsorlu).
- * Web gibi genel `Badge`'in ince sarmalayıcısı: SOLID görünüm (görsel üstünde okunur), `xs` (12pt; fotoğraf
- * üstünde büyümez) ve kalın yazı. Köşe diğer tüm rozetlerle aynı: `radiusRole.badge` (Badge'den gelir;
- * web'in `rounded-md`'si tek-rozet-köşesi kuralı için bilinçli olarak eşitlendi).
+ * Listing card badge (sale / new / trade / rare / preorder / limited / boosted "Öne Çıkan"; ads keep
+ * "Sponsorlu" outside the card). Like web, a thin wrapper over the generic `Badge`: SOLID appearance
+ * (readable over the photo), `xs` (12pt; does not grow over the photo) and bold text. The corner is
+ * the same as every other badge: `radiusRole.badge` (from Badge; web's `rounded-md` was aligned on
+ * purpose for the one-badge-corner rule).
  */
 export const ProductBadge: React.FC<ProductBadgeProps> = ({
   variant = 'default',

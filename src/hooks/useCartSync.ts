@@ -12,6 +12,15 @@ import { classifyCartError } from '@/lib/cart/mergeLocalCart';
 type NewCartItem = Omit<CartItem, 'id' | 'quantity' | 'addedAt'>;
 
 /**
+ * How a cart write ended, once the server mirror (if any) settled: `rejected` means the server
+ * refused the line for good and the local write was undone (the server's message is already
+ * shown); `applied` covers everything else (guest, success, a transient error that keeps the
+ * local line). Passed to a write's optional `onSettled`.
+ */
+export type CartWriteResult = 'applied' | 'rejected';
+type OnCartWriteSettled = (result: CartWriteResult) => void;
+
+/**
  * Sepet yazma işlemleri — yerel store'a yazar, üyede sunucuya da aynalar.
  *
  * Faz A kararı: checkout hâlâ yerel store'dan besleniyor, bu yüzden yerel yazma
@@ -46,23 +55,30 @@ export function useCartSync() {
     flow: string,
     onReject?: (message: string) => void,
     resyncOnTransient = false,
-  ) => {
-    if (!isAuthenticated) return;
-    run()
+  ): Promise<CartWriteResult> => {
+    if (!isAuthenticated) return Promise.resolve('applied');
+    return run()
       .then(() => queryClient.invalidateQueries({ queryKey: qk.cart.mine }))
-      .catch((error) => {
+      .then((): CartWriteResult => 'applied')
+      .catch((error): CartWriteResult => {
         const kind = classifyCartError(error);
+        let result: CartWriteResult = 'applied';
         if (kind === 'rejected' || kind === 'accountBlocked' || kind === 'itemForbidden') {
-          onReject?.(errorText(error, i18n.t('cart.addToCartFailed')));
+          if (onReject) {
+            onReject(errorText(error, i18n.t('cart.addToCartFailed')));
+            result = 'rejected';
+          }
         } else if (resyncOnTransient && userId) {
           useCartStore.getState().markMergePending(userId);
         }
         captureException(error, { level: 'warning', tags: { flow } });
+        return result;
       });
   };
 
   return {
-    add: (item: NewCartItem, quantity = 1) => {
+    /** `onSettled` runs once the write is final (at once for a guest or when nothing changed). */
+    add: (item: NewCartItem, quantity = 1, onSettled?: OnCartWriteSettled) => {
       // Geri alma için ÖNCEKİ hâli sakla: satır zaten varsa adet artıyor,
       // reddedilince satırı silmek değil eski adede dönmek doğru olan.
       const before = useCartStore.getState().items.find((i) => i.productId === item.productId);
@@ -73,19 +89,24 @@ export function useCartSync() {
       // tavanında sessizce kırpıyor; ham `quantity` gönderilirse yerel ve sunucu sepeti ayrışır.
       const after = useCartStore.getState().items.find((i) => i.productId === item.productId);
       const added = (after?.quantity ?? 0) - (before?.quantity ?? 0);
-      if (added <= 0) return; // tavandaydı: yerel değişmedi, sunucu çağrısı yok
+      if (added <= 0) {
+        // tavandaydı: yerel değişmedi, sunucu çağrısı yok
+        onSettled?.('applied');
+        return;
+      }
       // Aksiyonlar zustand'da kararlı referans; geri alma bayat closure'dan da
       // güvenle çağrılır (state'i çağrı anında okurlar).
-      mirror(() => cartApi.addItem(item.productId, added), 'cart.add', (message) => {
+      void mirror(() => cartApi.addItem(item.productId, added), 'cart.add', (message) => {
         if (before) useCartStore.getState().updateQuantity(before.id, before.quantity);
         else useCartStore.getState().removeByProductId(item.productId);
         toast.error(message);
-      }, !before);
+      }, !before).then(onSettled);
     },
 
-    removeByProductId: (productId: string) => {
+    /** `onSettled` as in `add`. */
+    removeByProductId: (productId: string, onSettled?: OnCartWriteSettled) => {
       useCartStore.getState().removeByProductId(productId);
-      mirror(() => cartApi.removeItem(productId), 'cart.remove');
+      void mirror(() => cartApi.removeItem(productId), 'cart.remove').then(onSettled);
     },
 
     removeItem: (itemId: string) => {

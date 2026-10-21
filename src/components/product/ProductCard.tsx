@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { QueryClientContext } from '@tanstack/react-query';
 import { AppImage } from '@/components/AppImage';
-import { GLASS_ICON_BUTTON_SIZE_SM, GlassIconButton, ProductBadge, Text, theme, Icon } from '@/ui';
+import { GLASS_ICON_BUTTON_SIZE_SM, GlassIconButton, ProductBadge, Text, theme, Icon, iconButtonBoxSize } from '@/ui';
 import { productsApi } from '@/lib/api';
 import { prefetchProductDetail } from '@/lib/product/detailQuery';
 import { usePressPrefetch } from '@/hooks/usePressPrefetch';
@@ -20,11 +20,15 @@ import { formatPrice } from '@/utils/format';
 import { OutOfStockOverlay } from './OutOfStockOverlay';
 import { PRODUCT_CARD_METRICS } from './productCardMetrics';
 import { getProductSalePercent, isProductTradeBadgeVisible, selectProductCardBadges, type ProductCardBadge } from './productCardBadges';
+import { ProductCardActionButton, useProductCardAction } from './ProductCardAction';
+import type { CardActionPresentation } from './ProductCardCartButton';
 
-const { colors, spacing, typography, radiusRole, iconSize } = theme;
+const { colors, spacing, radiusRole, iconSize, containers } = theme;
 
 /** Takas rozeti ikonu — sabit referans (kart yeniden render olunca yeni element üretilmez). */
 const TRADE_ICON = <Icon name="arrows-right-left" size={iconSize.sm} color={colors.text.inverted} />;
+/** The boosted badge's icon (web `RocketLaunchIcon`); a fixed element like `TRADE_ICON`. */
+const BOOSTED_ICON = <Icon name="rocket-launch" size={iconSize.sm} color={colors.text.inverted} />;
 
 export interface ProductCardProduct extends ProductPriceFields {
   id: string;
@@ -48,7 +52,10 @@ export interface ProductCardProduct extends ProductPriceFields {
   description?: string | null;
   /** Satıcı (kendi ilanında favori kalbi gösterilmez — bkz. `useProductCardFavorites`). */
   sellerId?: string | null;
-  seller?: { id?: string | null } | null;
+  /** `displayName` names the seller on the cart line the card action adds. */
+  seller?: { id?: string | null; displayName?: string | null } | null;
+  /** Order cap, carried onto the cart line the card action adds. */
+  maxQuantityPerOrder?: number | null;
 }
 
 export type ProductCardLayout = 'grid' | 'list';
@@ -77,8 +84,18 @@ export interface ProductCardProps {
   overlay?: React.ReactNode;
   /** Görselin sol üstünde. */
   overlayStart?: React.ReactNode;
-  /** Kartın altında, kart dokunuşunun dışında (ör. sepete ekle düğmesi). */
+  /**
+   * Kartın altında, kart dokunuşunun dışında (ör. sepete ekle düğmesi). When set, the card shows no
+   * action of its own in the price row (web).
+   */
   footer?: React.ReactNode;
+  /**
+   * The card's own action in the price row (`productCardAction`: the cart toggle for other people's
+   * active, in-stock listings; nothing on the viewer's own). Default on; `false` for cards that do
+   * not stand for a buyable listing (a selection list, a collection's custom item), like web's
+   * non-navigating cards.
+   */
+  showAction?: boolean;
   /**
    * Görselin sağ üstünde cam favori kalbi; yalnız verilince çizilir (`overlay` varsa çizilmez, aynı köşe). Çağıran liste başına
    * `useProductCardFavorites()` ile alır (`{...favoriteProps(product)}`) — kimliği sabit tutun.
@@ -93,6 +110,9 @@ export interface ProductCardProps {
 /** Geometri `productCardMetrics.ts`'te (iskeletle tek kaynak; ayrı dosya: kartı mock'layan testler iskeleti kırmasın). */
 export { PRODUCT_CARD_METRICS };
 const PM = PRODUCT_CARD_METRICS;
+
+/** The card action's box before it is measured: the icon-only `sm` button (32pt). */
+const ACTION_BOX = iconButtonBoxSize('sm');
 
 /** Kalbin görsel köşesine uzaklığı (rozetlerle aynı iç boşluk). */
 const FAVORITE_INSET = spacing[1.5];
@@ -140,8 +160,9 @@ function badgeA11yText(b: ProductCardBadge, t: TFunction): string {
   switch (b.kind) {
     case 'sale':
       return `%${b.percent} ${t('product.discount')}`;
-    case 'sponsored':
-      return t('product.sponsored');
+    case 'boosted':
+      // The paid placement disclosure (web reads the hint, not the visible "Öne Çıkan").
+      return t('product.boostedBadgeHint');
     case 'trade':
       return t('product.tradeShort');
     case 'campaign':
@@ -226,12 +247,31 @@ function ProductCardBase({
   overlay,
   overlayStart,
   footer,
+  showAction = true,
   onToggleFavorite,
   isFavorite = false,
   style,
   testID,
 }: ProductCardProps) {
   const { t } = useTranslation();
+  // The card action gives way to a caller's footer (web). The viewer comes from the auth store.
+  const action = useProductCardAction(product);
+  const withAction = showAction && !footer && action.kind === 'add_to_cart';
+  // Text or icon-only by the CARD's measured width (web container query `@card-wide`); until the
+  // first layout the icon shows, which is what a phone grid keeps.
+  const [cardWidth, setCardWidth] = useState(0);
+  const onCardLayout =
+    withAction && layout === 'grid' ? (e: LayoutChangeEvent) => setCardWidth(e.nativeEvent.layout.width) : undefined;
+  const presentation: CardActionPresentation = cardWidth >= containers.cardWide ? 'text' : 'icon';
+  // The action is drawn as the card Pressable's SIBLING (like the heart): pressing it never opens
+  // the listing, and VoiceOver can reach it (an accessible Pressable hides its children). A spacer
+  // of the action's measured size holds its place at the end of the price line, so the price row
+  // wraps like web; the action sits over the spacer at the body's bottom-right corner.
+  const [actionSize, setActionSize] = useState({ width: ACTION_BOX, height: ACTION_BOX });
+  const onActionLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    setActionSize((cur) => (cur.width === width && cur.height === height ? cur : { width, height }));
+  };
   // Liste: görsel satırda dikey ortalı (web `items-center`; konum gövde yüksekliğine bağlı) — kalp
   // görselin ÖLÇÜLEN çerçevesine yerleşir ve ölçüm gelene dek çizilmez (ilk karede zıplama yok).
   const [listImageFrame, setListImageFrame] = useState<LayoutRectangle | null>(null);
@@ -242,7 +282,7 @@ function ProductCardBase({
     <FavoriteHeart productId={product.id} title={product.title} isFavorite={isFavorite} onToggle={onToggleFavorite} />
   ) : null;
 
-  const { effective, original, onSale, salePercent, outOfStock, isTrade, badges } = useMemo(
+  const { effective, original, onSale, salePercent, outOfStock, isTrade, badges, listBadges } = useMemo(
     () => ({
       effective: getProductEffectivePrice(product),
       original: getProductOriginalPriceForDisplay(product),
@@ -251,19 +291,27 @@ function ProductCardBase({
       outOfStock: isProductOutOfStock(product),
       isTrade: isProductTradeBadgeVisible(product),
       badges: selectProductCardBadges(product),
+      // The list row shows the discount, boosted and trade badges (web: the grid rule, no limit).
+      listBadges: selectProductCardBadges(product, Infinity).filter(
+        (b) => b.kind === 'sale' || b.kind === 'boosted' || b.kind === 'trade',
+      ),
     }),
     [product],
   );
-  // Ekran okuyucu: görünen rozetler başlığa eklenir (grid: yığın; liste: indirim + takas ikonu).
-  const visibleBadges: ProductCardBadge[] =
-    layout === 'list'
-      ? [
-          ...(salePercent >= 1 ? [{ kind: 'sale', percent: salePercent } as const] : []),
-          ...(isTrade ? [{ kind: 'trade' } as const] : []),
-        ]
-      : overlayStart
-        ? []
-        : badges;
+  const listBoosted = listBadges.some((b) => b.kind === 'boosted');
+  // Ekran okuyucu: görünen rozetler başlığa eklenir (grid: yığın; liste: indirim, öne çıkan, takas).
+  const visibleBadges: ProductCardBadge[] = layout === 'list' ? listBadges : overlayStart ? [] : badges;
+  const actionSpacer = withAction ? <View style={actionSize} testID="product-card-action-spacer" /> : null;
+  const actionButton = withAction ? (
+    <View style={layout === 'list' ? styles.listAction : styles.gridAction} onLayout={onActionLayout}>
+      <ProductCardActionButton
+        listing={product}
+        action={action}
+        // The list row mirrors web below `xs` (the price on its own full-width line): icon-only there.
+        presentation={layout === 'list' ? 'icon' : presentation}
+      />
+    </View>
+  ) : null;
   const cardLabel = [product.title, ...visibleBadges.map((b) => badgeA11yText(b, t))].join(', ');
 
   // Sağlayıcı yoksa (izole bileşen testleri) prefetch atlanır — `useQueryClient` gibi fırlatmaz.
@@ -277,7 +325,7 @@ function ProductCardBase({
   const handlePress = () => {
     pressPrefetch.prefetchNow();
     // Sıralama sinyali: hata gezinmeyi engellemez (web `click` ping'i).
-    if (trackClick) void productsApi.recordClick(product.id).catch(() => {});
+    if (trackClick) void productsApi.recordClick(product.id).catch(() => undefined);
     if (onPress) return onPress();
     router.push(`/product/${product.id}`);
   };
@@ -317,6 +365,11 @@ function ProductCardBase({
             ) : null}
           </View>
           <View style={styles.listBody}>
+            {listBoosted ? (
+              <ProductBadge variant="boosted" icon={BOOSTED_ICON} style={styles.listBoostedBadge}>
+                {t('product.boostedBadge')}
+              </ProductBadge>
+            ) : null}
             <Text variant="body" weight="semibold" numberOfLines={2} style={styles.listTitle}>
               {product.title}
             </Text>
@@ -328,17 +381,21 @@ function ProductCardBase({
             ) : null}
           </View>
           <View style={styles.listPrice}>
-            {onSale ? (
-              <Text variant="bodySm" tone="subtle" style={styles.struck} testID="product-card-old-price">
-                {formatPrice(original)}
+            <View style={styles.listPriceLine}>
+              {onSale ? (
+                <Text variant="bodySm" tone="subtle" style={styles.struck} testID="product-card-old-price">
+                  {formatPrice(original)}
+                </Text>
+              ) : null}
+              <Text variant="h3" weight="bold" tone="primary" testID="product-card-price">
+                {formatPrice(effective)}
               </Text>
-            ) : null}
-            <Text variant="h3" weight="bold" tone="primary" testID="product-card-price">
-              {formatPrice(effective)}
-            </Text>
-            {salePercent >= 1 ? <ProductBadge variant="sale">%{salePercent}</ProductBadge> : null}
+              {salePercent >= 1 ? <ProductBadge variant="sale">%{salePercent}</ProductBadge> : null}
+            </View>
+            {actionSpacer}
           </View>
         </Pressable>
+        {actionButton}
         {heart && listImageFrame ? (
           <View style={[styles.favoriteBox, listHeartPosition(listImageFrame)]}>{heart}</View>
         ) : null}
@@ -349,7 +406,7 @@ function ProductCardBase({
   }
 
   return (
-    <View style={[styles.gridWrap, style]}>
+    <View style={[styles.gridWrap, style]} onLayout={onCardLayout}>
       <Pressable
         onPress={handlePress}
         onPressIn={pressPrefetch.onPressIn}
@@ -380,10 +437,10 @@ function ProductCardBase({
                         %{b.percent}
                       </ProductBadge>
                     );
-                  case 'sponsored':
+                  case 'boosted':
                     return (
-                      <ProductBadge key="sponsored" variant="sponsored">
-                        {t('product.sponsored')}
+                      <ProductBadge key="boosted" variant="boosted" icon={BOOSTED_ICON}>
+                        {t('product.boostedBadge')}
                       </ProductBadge>
                     );
                   case 'trade':
@@ -409,29 +466,35 @@ function ProductCardBase({
           </Text>
           <View style={styles.gridBottom}>
             {showMeta ? <MetaRow product={product} listOrder={false} /> : null}
+            {/* Web price row: the price at the left, the action at the bottom right; the action
+                wraps under the price when both do not fit. One height on every card of a row. */}
             <View style={styles.priceBlock}>
-              {onSale ? (
-                <Text variant="bodySm" tone="subtle" style={styles.struck} testID="product-card-old-price">
-                  {formatPrice(original)}
+              <View style={styles.priceColumn}>
+                {onSale ? (
+                  <Text variant="bodySm" tone="subtle" style={styles.struck} testID="product-card-old-price">
+                    {formatPrice(original)}
+                  </Text>
+                ) : null}
+                {/* Dar ızgara hücresinde (360pt) uzun fiyat sarmaz; gerekirse hafifçe küçülür. */}
+                <Text
+                  variant="body"
+                  weight="bold"
+                  tone="primary"
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                  testID="product-card-price"
+                >
+                  {formatPrice(effective)}
                 </Text>
-              ) : null}
-              {/* Dar ızgara hücresinde (360pt) uzun fiyat sarmaz; gerekirse hafifçe küçülür. */}
-              <Text
-                variant="body"
-                weight="bold"
-                tone="primary"
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.85}
-                testID="product-card-price"
-              >
-                {formatPrice(effective)}
-              </Text>
+              </View>
+              {actionSpacer ? <View style={styles.actionSlot}>{actionSpacer}</View> : null}
             </View>
           </View>
         </View>
       </Pressable>
       {footer ? <View style={styles.gridFooter}>{footer}</View> : null}
+      {actionButton}
       {heart && !overlay ? (
         // Sağ üst köşe tek yuva: grid'de `overlay` (kaldır düğmesi) varsa kalp çizilmez.
         // Görselle aynı kare (kenarlık içinde): kalp sağ üst köşeye oturur, kare dokunuşu geçirir.
@@ -501,9 +564,26 @@ const styles = StyleSheet.create({
   },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: spacing[0.5] },
   priceBlock: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    columnGap: spacing[2],
+    rowGap: spacing[1.5],
+    minHeight: PM.grid.priceRowMinHeight,
     borderTopWidth: 1,
     borderTopColor: colors.border.subtle,
     paddingTop: PM.grid.priceTopPadding,
+  },
+  // Natural width (so the action wraps under a long price), never wider than the row.
+  priceColumn: { flexShrink: 0, maxWidth: '100%' },
+  actionSlot: { marginLeft: 'auto' },
+  // Over the price row's spacer: the body's bottom-right corner (inside the card border).
+  gridAction: {
+    position: 'absolute',
+    right: PM.borderWidth + PM.grid.bodyPadding,
+    bottom: PM.borderWidth + PM.grid.bodyPadding,
+    zIndex: 1,
   },
   gridFooter: { paddingHorizontal: spacing[2.5], paddingBottom: spacing[2.5] },
   overlayEnd: { position: 'absolute', top: spacing[1.5], right: spacing[1.5], zIndex: 1 },
@@ -539,9 +619,18 @@ const styles = StyleSheet.create({
   listPrice: {
     width: '100%',
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     justifyContent: 'flex-end',
     gap: spacing[2],
+  },
+  listPriceLine: { flexDirection: 'row', alignItems: 'baseline', gap: spacing[2] },
+  listBoostedBadge: { alignSelf: 'flex-start', marginBottom: spacing[1] },
+  // Over the price line's spacer: the row's bottom-right corner (inside the card border).
+  listAction: {
+    position: 'absolute',
+    right: PM.borderWidth + PM.list.padding,
+    bottom: PM.borderWidth + PM.list.padding,
+    zIndex: 1,
   },
   listFooter: { marginTop: spacing[2] },
 });

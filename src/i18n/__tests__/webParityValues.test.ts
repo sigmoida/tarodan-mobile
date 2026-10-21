@@ -24,6 +24,14 @@ describe('web ile eşitlenen ortak metinler', () => {
     ['status.order.paid', 'Ödendi', 'Paid'],
     ['status.order.refund_requested', 'İade Talep Edildi', 'Refund Requested'],
     ['status.offer.countered', 'Karşı Teklif', 'Countered'],
+    // Listing card badge and action (listing boost plan 5.1).
+    ['product.boostedBadge', 'Öne Çıkan', 'Featured'],
+    ['product.boostedBadgeHint', 'Satıcı bu ilanı ücretli olarak öne çıkardı', 'The seller paid to feature this listing'],
+    ['product.cardAction.addToCartAria', '{title} ürününü sepete ekle', 'Add {title} to cart'],
+    ['product.cardAction.removeFromCartAria', '{title} ürününü sepetten çıkar', 'Remove {title} from cart'],
+    ['product.sponsored', 'Sponsorlu', 'Sponsored'],
+    ['legal.platformServiceSales.title', 'Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi', 'Pre-contract Information and Distance Service Contract'],
+    ['legal.withdrawalWaiverTitle', 'Cayma Hakkı Onayı', 'Withdrawal Waiver'],
   ])('%s', (key, trValue, enValue) => {
     expect(get(tr, key)).toBe(trValue);
     expect(get(en, key)).toBe(enValue);

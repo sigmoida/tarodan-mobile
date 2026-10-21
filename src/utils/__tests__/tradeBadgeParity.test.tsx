@@ -9,6 +9,7 @@
  */
 import React from 'react';
 import { render, screen } from '@testing-library/react-native';
+import { renderWithProviders } from '@/test-utils';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
@@ -54,7 +55,9 @@ describe.each(layouts)('ProductCard (%s) trade badge', (layout) => {
 
 describe.each(layouts)('ProductCard (%s) trade badge - satın alınabilirlik', (layout) => {
   const badge = () => screen.queryAllByLabelText(/takas/i)[0] ?? screen.queryByText(/takas/i);
-  const renderCard = (item: Record<string, unknown>) => render(<ProductCard product={item as never} layout={layout} />);
+  // An active, in-stock listing also gets the card's cart action, which needs the query client.
+  const renderCard = (item: Record<string, unknown>) =>
+    renderWithProviders(<ProductCard product={item as never} layout={layout} />);
 
   it('hides the badge on sold / reserved / zero-stock listings', () => {
     for (const extra of [{ status: 'sold' }, { status: 'reserved' }, { availableQuantity: 0 }]) {
