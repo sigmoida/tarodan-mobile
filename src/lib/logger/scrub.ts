@@ -78,6 +78,16 @@ const REDACTED_KEYS = new Set([
   'backupcode',
   'backupcodes',
   'recoverycodes',
+  // Step-up and provider proofs (sign-in methods delta 2026-10-21): the opaque step-up token
+  // (body `reauthToken`, header `X-Reauth-Token`) and the Google / Apple sign-in proofs. Listed
+  // by name even where the Sentry name pattern already catches them, so the console log and any
+  // later pattern change keep them out. The bare Google `code` stays: mobile never sends one, and
+  // `code` is the diagnostic error code field.
+  'reauthtoken',
+  'x-reauth-token',
+  'idtoken',
+  'identitytoken',
+  'authorizationcode',
   'data', // axios `config.data` — serileştirilmiş istek gövdesi
   'body',
 ]);
