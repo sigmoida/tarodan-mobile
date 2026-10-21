@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, ModalFooter } from '@/ui';
 import { Form, FormInput, useZodForm } from '@/ui/form';
@@ -24,14 +24,22 @@ export function SaveSearchModal({
   const schema = useMemo(() => buildSaveSearchSchema(t), [t]);
   const form = useZodForm(schema, { defaultValues: { name: draft.defaultName } });
   const save = useDoSaveSearch();
+  // One save per opening: the dialog stays tappable while it fades out and the footer has no
+  // `isLoading` (iOS modal rule), so a double tap would otherwise send two POSTs ("saved", then
+  // "already saved").
+  const submitted = useRef(false);
 
   // Refill the automatic name every time the dialog opens (the search may have changed meanwhile).
   useEffect(() => {
-    if (isOpen) form.reset({ name: draft.defaultName });
+    if (!isOpen) return;
+    submitted.current = false;
+    form.reset({ name: draft.defaultName });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const onSubmit = form.handleSubmit(({ name }: SaveSearchForm) => {
+    if (submitted.current) return;
+    submitted.current = true;
     onClose();
     save.mutate({ draft, name });
   });

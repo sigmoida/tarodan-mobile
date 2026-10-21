@@ -150,6 +150,23 @@ describe('search · save this search', () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: qk.user.savedSearches });
   });
 
+  it('a double tap on Save sends one request (the dialog is still tappable while it closes)', async () => {
+    create.mockResolvedValue({ data: { id: 's1' } });
+    await openSaveModal({ tradeOnly: 'true' });
+    const submitButton = screen.getByTestId('save-search-submit');
+    await act(async () => {
+      fireEvent.press(submitButton);
+      fireEvent.press(submitButton);
+    });
+    await waitFor(() => expect(toastMock.success).toHaveBeenCalledTimes(1));
+    expect(create).toHaveBeenCalledTimes(1);
+
+    // Opening the dialog again allows the next save.
+    fireEvent.press(screen.getByTestId('save-search-button'));
+    await submit();
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(2));
+  });
+
   it('a blank name lets the API derive its own (no name in the body)', async () => {
     create.mockResolvedValue({ data: { id: 's1' } });
     await openSaveModal({ tradeOnly: 'true' });
