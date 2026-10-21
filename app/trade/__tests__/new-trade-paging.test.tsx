@@ -53,6 +53,7 @@ import { useNewTrade } from '../new/_hooks/useNewTrade';
 const mockedMy = productsApi.getMyListings as jest.Mock;
 const mockedAll = productsApi.getAll as jest.Mock;
 const mockedCreate = tradesApi.create as jest.Mock;
+const mockedGetOne = productsApi.getOne as jest.Mock;
 
 type Row = { id: string; title: string; price: number; status: string; isTradeEnabled: boolean };
 const row = (id: string): Row => ({ id, title: `Car ${id}`, price: 100, status: 'active', isTradeEnabled: true });
@@ -90,6 +91,7 @@ beforeEach(() => {
   mockFocusCallbacks = [];
   mockedMy.mockResolvedValue(body([], 1, 1));
   mockedAll.mockResolvedValue(body([], 1, 1));
+  mockedGetOne.mockResolvedValue({ data: {} });
   useAuthStore.setState({ isAuthenticated: true, isLoading: false, user: { id: 'u1' } as never });
 });
 
@@ -369,5 +371,56 @@ describe('new-trade picker keys and invalidation', () => {
       invalidateListingCaches(client);
     });
     await waitFor(() => expect(result.current.myProducts).toHaveLength(26));
+  });
+});
+
+describe('new-trade target preselection, paged seller list', () => {
+  /** `GET /products/:id` of the target: the 25th newest of the seller, so on page 2. */
+  const target = { ...row('t25'), seller: { id: 'seller-1' } };
+
+  it('a target on a page not loaded yet is preselected from its own row, pinned, then refreshed', async () => {
+    mockParams = { targetProductId: 't25', targetSellerId: 'seller-1' };
+    mockedGetOne.mockResolvedValue({ data: { data: target } });
+    mockedAll.mockImplementation(server('t', () => 25));
+    const { result } = renderHook(() => useNewTrade(), { wrapper: wrapperFor(makeClient()) });
+    await waitFor(() => expect(result.current.theirProducts).toHaveLength(21));
+    expect(mockedGetOne).toHaveBeenCalledWith('t25');
+    expect(ids(result.current.selectedTheirItems)).toEqual(['t25']);
+    expect(result.current.theirProducts[0]!.id).toBe('t25');
+    expect(result.current.theirHasMore).toBe(true);
+
+    // Its page loads: one row, no duplicate, still picked, now the list row.
+    await act(async () => result.current.loadMoreTheirs());
+    await waitFor(() => expect(result.current.theirHasMore).toBe(false));
+    expect(result.current.theirProducts).toHaveLength(25);
+    expect(ids(result.current.theirProducts).filter((id) => id === 't25')).toHaveLength(1);
+    expect(result.current.selectedTheirItems).toEqual([row('t25')]);
+  });
+
+  it.each([
+    ['not open to trade', { isTradeEnabled: false }],
+    ['not active', { status: 'sold' }],
+    ['of another seller', { seller: { id: 'seller-2' } }],
+  ])('a target %s is not preselected from its own row', async (_name, patch) => {
+    mockParams = { targetProductId: 't25', targetSellerId: 'seller-1' };
+    mockedGetOne.mockResolvedValue({ data: { data: { ...target, ...patch } } });
+    mockedAll.mockImplementation(server('t', () => 25));
+    const { result } = renderHook(() => useNewTrade(), { wrapper: wrapperFor(makeClient()) });
+    await waitFor(() => expect(result.current.theirProducts).toHaveLength(20));
+    await waitFor(() => expect(mockedGetOne).toHaveBeenCalled());
+    await act(() => Promise.resolve());
+    expect(result.current.selectedTheirItems).toEqual([]);
+  });
+
+  it('a target the fully loaded seller list does not return is pruned, never sent', async () => {
+    mockParams = { targetProductId: 't25', targetSellerId: 'seller-1' };
+    mockedGetOne.mockResolvedValue({ data: { data: target } });
+    mockedAll.mockImplementation(server('t', () => 3));
+    const { result } = renderHook(() => useNewTrade(), { wrapper: wrapperFor(makeClient()) });
+    await waitFor(() => expect(result.current.theirProducts).toHaveLength(3));
+    await waitFor(() => expect(mockedGetOne).toHaveBeenCalled());
+    await act(() => Promise.resolve());
+    expect(result.current.theirHasMore).toBe(false);
+    expect(result.current.selectedTheirItems).toEqual([]);
   });
 });

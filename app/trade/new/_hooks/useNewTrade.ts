@@ -11,7 +11,8 @@ import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { useAuthStore } from '@/stores/authStore';
 import { getProductEffectivePrice } from '@/utils/productPrice';
 import { firstQueryParam, type Product } from '../_lib/types';
-import { TRADE_PICKER_PAGE_SIZE } from '../../_lib/picker';
+import { isPreselectableTarget, targetSellerOf, type TargetListing } from '../_lib/target';
+import { TRADE_PICKER_PAGE_SIZE, TRADE_PICKER_QUERY_OPTIONS } from '../../_lib/picker';
 import { usePagedPicker } from '../../_hooks/usePagedPicker';
 import { usePagedPicks } from '../../_hooks/usePagedPicks';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
@@ -53,17 +54,20 @@ export function useNewTrade() {
   /** Same rule as web trades/new; the single source is `useFeatureAccess`. */
   const { canTrade } = useFeatureAccess();
 
-  const { data: targetProduct } = useQuery({
+  // The target listing. Also fetched when the seller id is a param (the product page sends
+  // both): their side is paged, so the target may sit on a page that is not loaded yet, and is
+  // then preselected from this row. Fresh on every open, like the pickers (web `useTradeTarget`).
+  const { data: targetProduct } = useQuery<TargetListing | null>({
     queryKey: qk.trades.targetListing(listingId ?? ''),
     queryFn: async () => {
       const res = await listingsApi.getOne(listingId!);
-      return res.data?.product || res.data?.data || res.data;
+      return res.data?.product || res.data?.data || res.data || null;
     },
-    enabled: !!listingId && !targetSellerIdParam && canTrade,
+    enabled: !!listingId && canTrade,
+    ...TRADE_PICKER_QUERY_OPTIONS,
   });
 
-  const targetSellerId =
-    targetSellerIdParam || targetProduct?.seller?.id || targetProduct?.sellerId || '';
+  const targetSellerId = targetSellerIdParam || targetSellerOf(targetProduct) || '';
 
   // My side: the server filters (`tradeOnly`, `tradeEligible`: not in an active trade, with free
   // stock), so every page is full and `meta.totalPages` counts only eligible listings. The only
@@ -123,17 +127,25 @@ export function useNewTrade() {
   // Preselect the target listing once per target, when it first shows up, and ADD it to what
   // the user already picked. The list refetches on open, focus and foreground: the guard keeps
   // a later refetch from re-adding a target the user removed, and adding (not replacing) keeps
-  // a pick made while the target was still missing from a cached list.
+  // a pick made while the target was still missing from a cached list. A target on a page that
+  // is not loaded (the settled list has more pages) comes from its own row: the pick is pinned at
+  // the top until its page loads, refreshed from the list row once it does, and pruned if every
+  // page loads without it (`usePagedPicks`). A settled, complete list without it gets no pick.
   const preselectedFor = useRef<string | null>(null);
   const addTheirPick = theirPicks.add;
+  const theirMayHoldTarget = !theirList.isLoading && theirList.hasMore;
   useEffect(() => {
-    if (!listingId || preselectedFor.current === listingId || !theirList.rows.length) return;
-    const target = theirList.rows.find((p) => p.id === listingId);
+    if (!listingId || preselectedFor.current === listingId) return;
+    const target =
+      theirList.rows.find((p) => p.id === listingId) ??
+      (theirMayHoldTarget && isPreselectableTarget(targetProduct, listingId, targetSellerId)
+        ? targetProduct
+        : undefined);
     if (target) {
       preselectedFor.current = listingId;
       addTheirPick(target);
     }
-  }, [listingId, theirList.rows, addTheirPick]);
+  }, [listingId, theirList.rows, theirMayHoldTarget, targetProduct, targetSellerId, addTheirPick]);
 
   const invalidateTradeRelatedQueries = () => {
     queryClient.invalidateQueries({ queryKey: qk.trades.all });
