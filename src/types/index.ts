@@ -37,6 +37,9 @@ export * from './admin';
 // Seller trust score types
 export * from './seller-trust';
 
+// Saved searches (vendored from tarodan-app `packages/types`)
+export * from './saved-search';
+
 // Common types
 export interface PaginationMeta {
   total: number;

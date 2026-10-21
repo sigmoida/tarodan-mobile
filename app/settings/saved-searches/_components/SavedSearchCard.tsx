@@ -1,63 +1,72 @@
 import { View } from 'react-native';
-import { Card, Button, IconButton, Divider, Switch, Text } from '@/ui';
 import { useTranslation } from 'react-i18next';
+import { Badge, Button, Card, Divider, IconButton, Text } from '@/ui';
+import type { SavedSearch } from '@/types';
+import type { ChipNameOptions } from '@/utils/activeFilterChips';
+import { formatLongDate } from '@/utils/format';
+import { savedSearchChips } from '../_lib/chips';
 import { styles } from '../_lib/styles';
-import { formatDate, getFilterSummary } from '../_lib/helpers';
-import type { SavedSearch } from '../_lib/types';
-import type { SavedSearchesController } from '../_hooks/useSavedSearches';
 
-/** Tek kayıtlı arama kartı — sorgu/filtre özeti, çalıştır/sil, bildirim anahtarı. */
-export function SavedSearchCard({ search, f }: { search: SavedSearch; f: SavedSearchesController }) {
+/** One saved search: name, summary chips, saved date, delete and "Run this search" (web `SavedSearchCard`). */
+export function SavedSearchCard({
+  search,
+  names,
+  deleting,
+  onDelete,
+  onRun,
+}: {
+  search: SavedSearch;
+  names: ChipNameOptions;
+  deleting: boolean;
+  onDelete: (search: SavedSearch) => void;
+  onRun: (search: SavedSearch) => void;
+}) {
   const { t } = useTranslation();
+  const chips = savedSearchChips(search, t, names);
+  const savedOn = formatLongDate(search.createdAt, t('common.dateLocale'));
   return (
-    <Card variant="bordered">
+    <Card variant="bordered" testID="saved-search-card">
       <View style={styles.cardHeader}>
-        <Text variant="label" style={styles.searchName} numberOfLines={1}>
-          {search.name}
+        <Text variant="label" style={styles.searchName} numberOfLines={2}>
+          {search.name ?? t('savedSearch.untitled')}
         </Text>
         <IconButton
+          testID="saved-search-delete"
           icon="trash"
           variant="danger"
           size="sm"
+          isLoading={deleting}
           accessibilityLabel={t('savedSearch.deleteTitle')}
-          onPress={() => f.handleDelete(search)}
+          onPress={() => onDelete(search)}
         />
       </View>
 
-      {search.query && (
-        <Text variant="body" style={styles.queryText}>
-          "{search.query}"
-        </Text>
-      )}
+      {chips.length > 0 ? (
+        <View style={styles.chips}>
+          {chips.map((chip, i) => (
+            <Badge key={`${i}:${chip}`} variant="outline" size="sm">
+              {chip}
+            </Badge>
+          ))}
+        </View>
+      ) : null}
 
-      <Text variant="bodySm" tone="muted" style={styles.filtersText}>
-        {getFilterSummary(search.filters)}
-      </Text>
+      {savedOn ? (
+        <Text variant="caption" tone="muted" style={styles.savedOn}>
+          {t('savedSearch.savedOn', { date: savedOn })}
+        </Text>
+      ) : null}
 
       <Divider style={styles.divider} />
 
-      <View style={styles.cardFooter}>
-        <View style={styles.metaInfo}>
-          {search.resultCount !== undefined && (
-            <Text variant="caption">{t('savedSearch.resultCountSuffix', { count: search.resultCount })}</Text>
-          )}
-          <Text variant="caption">{t('savedSearch.createdLabel', { date: formatDate(search.createdAt) })}</Text>
-        </View>
-        <Button variant="primary" size="sm" title={t('savedSearch.run')} onPress={() => f.runSearch(search)} />
-      </View>
-
-      {/* Notification Toggle */}
-      <View style={styles.notifyToggle}>
-        <Text variant="bodySm" tone={search.notifyEnabled ? 'primary' : 'muted'} style={styles.notifyText}>
-          {t('savedSearch.notifyToggleLabel')}
-        </Text>
-        <Switch
-          value={!!search.notifyEnabled}
-          onValueChange={(notifyEnabled) =>
-            f.toggleNotificationMutation.mutate({ searchId: search.id, notifyEnabled })
-          }
-        />
-      </View>
+      <Button
+        testID="saved-search-run"
+        variant="primary"
+        size="sm"
+        fullWidth
+        title={t('search.runThisSearch')}
+        onPress={() => onRun(search)}
+      />
     </Card>
   );
 }

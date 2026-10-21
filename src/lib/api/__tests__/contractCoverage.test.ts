@@ -767,6 +767,12 @@ const KNOWN_ABSENT: Record<string, Set<string>> = {
     // KENDİ alanı, dolaylı bir isim çakışması değil — sonraki bir turda
     // backend'e sorulmalı: alan kaldırıldı mı, yoksa bu uçta hiç mi yayınlanmadı.
     'isAdFree',
+    // ── Tip bu fixture'ın ÖLÇMEDİĞİ bir durumu tanımlıyor ──────────────────
+    // `maxSavedSearches`: declared from the contract delta
+    // `2026-10-21-saved-searches.md` (`GET /membership/me/limits` serves it from the tarodan-app
+    // release that contains the saved-searches API). The measured body is from staging
+    // 2026-08-03, before it existed. Remove this line when the fixture is measured again.
+    'maxSavedSearches',
   ]),
   OrderQuoteResponse: new Set<string>([]),
   OrderQuotePricingSummary: new Set<string>([]),

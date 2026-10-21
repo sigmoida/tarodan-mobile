@@ -1975,8 +1975,6 @@
     "memberLabelBasic": "Basic Member",
     "memberLabelPremium": "Premium Member",
     "memberLabelDefault": "Member",
-    "savedSearchLimitTitle": "Saved Search Limit",
-    "savedSearchLimitMessage": "Upgrade to Premium to save unlimited searches.",
     "valueLimitTitle": "Price Limit",
     "valueLimitMessage": "Upgrade to Premium to list higher-value items.",
     "premiumFeatureTitle": "Premium Feature",
@@ -2691,7 +2689,15 @@
     "placeholderLong": "Model, brand or keyword…",
     "searching": "Searching…",
     "clearFilters": "Clear ✕",
-    "sellers": "Sellers"
+    "sellers": "Sellers",
+    "savedTitle": "My Saved Searches",
+    "savedDescription": "Run your saved searches again or delete them here.",
+    "savedEmptyTitle": "No Saved Searches",
+    "savedEmptyDescription": "While browsing listings, save a search with the \"Save this search\" button on the results page, then run it again from here.",
+    "countOfLimit": "{count} / {limit} searches",
+    "savedLimitReached": "You have reached your saved-search limit ({limit} searches).",
+    "searchListings": "Search Listings",
+    "runThisSearch": "Run This Search"
   },
   "error": {
     "pageNotFound": "Page Not Found",
@@ -7317,6 +7323,12 @@
       "tierNotActive": "This membership tier is not active",
       "tierNotFound": "Membership tier not found: {type}",
       "userIdNotFound": "User ID not found"
+    },
+    "savedSearch": {
+      "limitReached": "You have reached your saved-search limit ({limit} searches).",
+      "alreadySaved": "This search is already saved.",
+      "emptyQuery": "Search or pick a filter before saving.",
+      "notFound": "Saved search not found."
     }
   },
   "status": {
@@ -7878,21 +7890,21 @@
     "loadFailed": "Failed to load following list"
   },
   "savedSearch": {
-    "title": "Saved Searches",
-    "loginSubtitle": "Sign in to save your searches",
-    "limitReached": "You've reached the search limit",
-    "remainingSearches": "{count} searches left",
-    "emptyTitle": "No saved searches",
-    "emptySubtitle": "Search on the search page and tap \"Save Search\"",
-    "goToSearch": "Go to Search",
-    "deletedMsg": "Search deleted",
-    "deleteFailedMsg": "Failed to delete search",
-    "deleteTitle": "Delete Search",
+    "save": "Save this search",
+    "saveTitle": "Save search",
+    "nameLabel": "Search name",
+    "saved": "Search saved",
+    "saveFailed": "Could not save the search",
+    "nothingToSave": "Search or pick a filter to save",
+    "signInToSave": "Sign in to save your search",
+    "untitled": "Saved search",
+    "savedOn": "Saved on {date}",
+    "limitTitle": "Saved search limit",
+    "deleteTitle": "Delete search",
     "deleteConfirm": "Are you sure you want to delete \"{name}\"?",
-    "resultCountSuffix": "{count} results",
-    "createdLabel": "Created: {date}",
-    "run": "Run",
-    "notifyToggleLabel": "Notify me of new items"
+    "deleted": "Search deleted",
+    "deleteFailed": "Could not delete the search",
+    "loadFailed": "Could not load your saved searches"
   },
   "sale": {
     "statusPendingPayment": "Payment Pending",

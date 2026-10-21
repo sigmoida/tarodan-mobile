@@ -18,7 +18,6 @@ export interface MembershipTier {
     maxListings: number;
     maxImagesPerListing: number;
     maxAddresses: number;
-    maxSavedSearches: number;
     maxMessagesPerDay: number;
     listingExpireDays: number;
     canTrade: boolean;

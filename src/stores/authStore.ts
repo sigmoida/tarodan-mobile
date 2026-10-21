@@ -23,6 +23,7 @@ import {
 } from "@/lib/payment/paymentCapability";
 import type { LogoutReason } from "./resetUserStores";
 import { usePendingAuthEmailStore } from "./pendingAuthEmailStore";
+import { clearSavedSearches } from "./savedSearchesStorage";
 import { clearUserSnapshot, readUserSnapshot, writeUserSnapshot } from "./userSnapshot";
 import { logger, safeError } from "../services/logger";
 import { withTimeout } from "../utils/withTimeout";
@@ -206,7 +207,11 @@ export interface MembershipLimits {
   maxListings: number;
   maxImagesPerListing: number;
   maxAddresses: number;
-  maxSavedSearches: number;
+  /**
+   * Server value of the effective tier (`GET /membership/me/limits`), NOT in `TIER_LIMITS`: it is
+   * absent until the server answers, and 0 is a valid limit (read it with `??`, never `||`).
+   */
+  maxSavedSearches?: number;
   maxMessagesPerDay: number;
   listingExpireDays: number;
   maxReviewChars: number;
@@ -226,7 +231,12 @@ export interface MembershipLimits {
 export type ServerLimitsOverride = Partial<
   Pick<
     MembershipLimits,
-    'maxListings' | 'maxImagesPerListing' | 'canCreateCollections' | 'canTrade' | 'isAdFree'
+    | 'maxListings'
+    | 'maxImagesPerListing'
+    | 'canCreateCollections'
+    | 'canTrade'
+    | 'isAdFree'
+    | 'maxSavedSearches'
   >
 >;
 
@@ -278,7 +288,6 @@ const TIER_LIMITS: Record<MembershipTier, MembershipLimits> = {
     maxListings: 10,
     maxImagesPerListing: 5,
     maxAddresses: SERVER_MAX_ADDRESSES,
-    maxSavedSearches: 5,
     maxMessagesPerDay: 50,
     listingExpireDays: 60,
     maxReviewChars: 500,
@@ -295,7 +304,6 @@ const TIER_LIMITS: Record<MembershipTier, MembershipLimits> = {
     maxListings: 25,
     maxImagesPerListing: 10,
     maxAddresses: SERVER_MAX_ADDRESSES,
-    maxSavedSearches: 10,
     maxMessagesPerDay: 100,
     listingExpireDays: 90,
     maxReviewChars: 1000,
@@ -312,7 +320,6 @@ const TIER_LIMITS: Record<MembershipTier, MembershipLimits> = {
     maxListings: -1, // Unlimited
     maxImagesPerListing: 15,
     maxAddresses: SERVER_MAX_ADDRESSES,
-    maxSavedSearches: -1, // Unlimited
     maxMessagesPerDay: -1, // Unlimited
     listingExpireDays: -1, // Never expire
     maxReviewChars: 2000,
@@ -329,7 +336,6 @@ const TIER_LIMITS: Record<MembershipTier, MembershipLimits> = {
     maxListings: -1,
     maxImagesPerListing: 20,
     maxAddresses: SERVER_MAX_ADDRESSES,
-    maxSavedSearches: -1,
     maxMessagesPerDay: -1,
     listingExpireDays: -1,
     maxReviewChars: 5000,
@@ -344,8 +350,8 @@ const TIER_LIMITS: Record<MembershipTier, MembershipLimits> = {
   },
 };
 
-/** Sabit tier tablosu + sunucu bindirmesi. Sunucu bir alanı vermiyorsa
- *  o alan TIER_LIMITS'ten gelir (ör. maxAddresses, maxSavedSearches). */
+/** The fixed tier table plus the server overlay. A field the server does not send
+ *  comes from TIER_LIMITS (e.g. maxAddresses); `maxSavedSearches` comes only from the server. */
 const mergeLimits = (
   tier: MembershipTier,
   override: ServerLimitsOverride | null,
@@ -939,6 +945,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loadToken: async () => {
     // Açılış: süresi dolmuş ödeme yetki belirteci kayıtlarını süpür (beklenmez, fırlatmaz).
     void sweepExpiredPaymentCapabilities();
+    // The saved-search list is on the server now: discard the old device-local list once per start
+    // (no import, same as web). Best effort, never throws.
+    void clearSavedSearches();
     // Maestro register/guest journey: keychain (SecureStore) clearState'i atlatıp
     // önceki oturumun token'ını taşıyabiliyor. NO_AUTOLOGIN modunda token'ı temizle
     // ki gerçekten çıkışlı (misafir) başlansın. Yalnız test gate'i — prod'da unset.

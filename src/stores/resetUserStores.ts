@@ -43,9 +43,10 @@ export function resetUserStores(reason: LogoutReason = 'user'): void {
   // Doğrulama akışından kalan bellek içi e-posta (PII) sonraki oturuma kalmasın.
   usePendingAuthEmailStore.getState().setEmail(null);
 
-  // Cihazda kalıcı tutulan kullanıcıya özel aramalar: son aramalar (persist'li store —
-  // AsyncStorage'a da boş yazar) ve kayıtlı aramalar (AsyncStorage). Ortak cihazda önceki
-  // hesabın arama geçmişi görünmesin.
+  // Searches kept on the device: the recent searches (persisted store, writes an empty list to
+  // AsyncStorage too) and the legacy local saved-search list (the real list is on the server and
+  // goes with `queryClient.clear()` below). A shared device must not show the previous account's
+  // search history.
   useRecentSearchesStore.getState().clearSearches();
   void clearSavedSearches();
 

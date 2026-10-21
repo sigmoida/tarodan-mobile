@@ -1975,8 +1975,6 @@
     "memberLabelBasic": "Temel Üye",
     "memberLabelPremium": "Premium Üye",
     "memberLabelDefault": "Üye",
-    "savedSearchLimitTitle": "Kayıtlı Arama Limiti",
-    "savedSearchLimitMessage": "Sınırsız arama kaydetmek için Premium üyeliğe geçin.",
     "valueLimitTitle": "Fiyat Limiti",
     "valueLimitMessage": "Daha yüksek değerli ilanlar vermek için Premium üyeliğe geçin.",
     "premiumFeatureTitle": "Premium Özellik",
@@ -2691,7 +2689,15 @@
     "placeholderLong": "Model, marka veya anahtar kelime...",
     "searching": "Aranıyor...",
     "clearFilters": "Temizle ✕",
-    "sellers": "Satıcılar"
+    "sellers": "Satıcılar",
+    "savedTitle": "Kayıtlı Aramalarım",
+    "savedDescription": "Kayıtlı aramalarınızı buradan yeniden çalıştırabilir veya silebilirsiniz.",
+    "savedEmptyTitle": "Kayıtlı Arama Yok",
+    "savedEmptyDescription": "İlanları ararken sonuç sayfasındaki \"Bu aramayı kaydet\" düğmesiyle aramanızı kaydedin, sonra buradan yeniden çalıştırın.",
+    "countOfLimit": "{count} / {limit} arama",
+    "savedLimitReached": "Kayıtlı arama limitinize ulaştınız ({limit} arama).",
+    "searchListings": "İlan Ara",
+    "runThisSearch": "Bu Aramayı Çalıştır"
   },
   "error": {
     "pageNotFound": "Sayfa Bulunamadı",
@@ -7317,6 +7323,12 @@
       "tierNotActive": "Bu üyelik tipi aktif değil",
       "tierNotFound": "Üyelik tipi bulunamadı: {type}",
       "userIdNotFound": "Kullanıcı kimliği bulunamadı"
+    },
+    "savedSearch": {
+      "limitReached": "Kayıtlı arama limitinize ulaştınız ({limit} arama).",
+      "alreadySaved": "Bu arama zaten kayıtlı.",
+      "emptyQuery": "Kaydetmek için bir arama yapın veya filtre seçin.",
+      "notFound": "Kayıtlı arama bulunamadı."
     }
   },
   "status": {
@@ -7878,21 +7890,21 @@
     "loadFailed": "Takip listesi yüklenemedi"
   },
   "savedSearch": {
-    "title": "Kayıtlı Aramalar",
-    "loginSubtitle": "Aramalarınızı kaydetmek için giriş yapın",
-    "limitReached": "Arama limitine ulaştınız",
-    "remainingSearches": "{count} arama hakkı kaldı",
-    "emptyTitle": "Kayıtlı arama yok",
-    "emptySubtitle": "Arama sayfasında arama yapıp \"Aramayı Kaydet\" butonuna tıklayın",
-    "goToSearch": "Aramaya Git",
-    "deletedMsg": "Arama silindi",
-    "deleteFailedMsg": "Arama silinemedi",
-    "deleteTitle": "Aramayı Sil",
+    "save": "Bu aramayı kaydet",
+    "saveTitle": "Aramayı kaydet",
+    "nameLabel": "Arama adı",
+    "saved": "Arama kaydedildi",
+    "saveFailed": "Arama kaydedilemedi",
+    "nothingToSave": "Kaydetmek için bir arama yapın veya filtre seçin",
+    "signInToSave": "Aramanızı kaydetmek için giriş yapın",
+    "untitled": "Kayıtlı arama",
+    "savedOn": "Kaydedildi: {date}",
+    "limitTitle": "Kayıtlı arama limiti",
+    "deleteTitle": "Aramayı sil",
     "deleteConfirm": "\"{name}\" aramasını silmek istediğinize emin misiniz?",
-    "resultCountSuffix": "{count} sonuç",
-    "createdLabel": "Oluşturulma: {date}",
-    "run": "Çalıştır",
-    "notifyToggleLabel": "Yeni ürünlerde bildir"
+    "deleted": "Arama silindi",
+    "deleteFailed": "Arama silinemedi",
+    "loadFailed": "Kayıtlı aramalar yüklenemedi"
   },
   "sale": {
     "statusPendingPayment": "Ödeme Bekliyor",

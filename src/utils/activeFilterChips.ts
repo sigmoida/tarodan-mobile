@@ -29,7 +29,7 @@ export type ChipNameOptions = Partial<
  * ("Kategori"/"Marka"/"Üretici"; liste henüz yüklenmediyse ya da kimlik listede yoksa). Böylece
  * yalnız kimlikle gelen filtre (derin bağlantı, `?categoryId=`) de görünür ve kaldırılabilir.
  */
-const chipName = (
+export const chipName = (
   name: string,
   id: string,
   list: ReadonlyArray<{ id: string; name: string }> | undefined,
