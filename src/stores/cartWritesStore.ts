@@ -9,23 +9,35 @@ import { create } from 'zustand';
  * client timeout, so an entry never stays for the session.
  */
 interface CartWritesState {
-  inFlight: string[];
-  /** Marks the listing busy; `false` when a write for it already runs (the caller must not start one). */
-  begin: (productId: string) => boolean;
-  end: (productId: string) => void;
+  /** Listing id -> the token of its running write. */
+  inFlight: Record<string, number>;
+  /**
+   * Marks the listing busy and returns the write's token, or `null` when a write for it already
+   * runs (the caller must not start one).
+   */
+  begin: (productId: string) => number | null;
+  /** Ends the write `token` started; a write that outlived a reset never ends a newer one. */
+  end: (productId: string, token: number) => void;
   reset: () => void;
 }
 
+let nextToken = 1;
+
 export const useCartWritesStore = create<CartWritesState>((set, get) => ({
-  inFlight: [],
+  inFlight: {},
   begin: (productId) => {
-    if (get().inFlight.includes(productId)) return false;
-    set({ inFlight: [...get().inFlight, productId] });
-    return true;
+    if (productId in get().inFlight) return null;
+    const token = nextToken++;
+    set({ inFlight: { ...get().inFlight, [productId]: token } });
+    return token;
   },
-  end: (productId) => {
-    if (!get().inFlight.includes(productId)) return;
-    set({ inFlight: get().inFlight.filter((id) => id !== productId) });
+  end: (productId, token) => {
+    if (get().inFlight[productId] !== token) return;
+    const { [productId]: _ended, ...rest } = get().inFlight;
+    set({ inFlight: rest });
   },
-  reset: () => set({ inFlight: [] }),
+  reset: () => set({ inFlight: {} }),
 }));
+
+/** Whether a card cart write for the listing runs (a per-listing selector). */
+export const selectCartWriteBusy = (productId: string) => (s: CartWritesState) => productId in s.inFlight;

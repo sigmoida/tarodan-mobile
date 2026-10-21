@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
 import { useCartStore } from '@/stores/cartStore';
-import { useCartWritesStore } from '@/stores/cartWritesStore';
+import { selectCartWriteBusy, useCartWritesStore } from '@/stores/cartWritesStore';
 import { captureException } from '@/services/sentry';
 import { cartItemFromListing, type CartListing } from '@/lib/cart/cartItemFromListing';
 import { useCartSync, type CartWriteResult } from './useCartSync';
@@ -23,15 +23,15 @@ export function useCartToggle(listing: CartListing) {
   const { t } = useTranslation();
   const cart = useCartSync();
   const inCart = useCartStore((s) => s.items.some((i) => i.productId === listing.id));
-  const isPending = useCartWritesStore((s) => s.inFlight.includes(listing.id));
+  const isPending = useCartWritesStore(selectCartWriteBusy(listing.id));
 
   const toggle = () => {
     const productId = listing.id;
-    const writes = useCartWritesStore.getState();
-    if (!writes.begin(productId)) return;
+    const token = useCartWritesStore.getState().begin(productId);
+    if (token === null) return;
     const remove = useCartStore.getState().isInCart(productId);
     const settled = (result: CartWriteResult) => {
-      useCartWritesStore.getState().end(productId);
+      useCartWritesStore.getState().end(productId, token);
       if (result === 'rejected') return;
       toast.success(remove ? t('product.removedFromCart') : t('product.addedToCart'));
     };
@@ -41,9 +41,9 @@ export function useCartToggle(listing: CartListing) {
     } catch (error) {
       // A synchronous failure (a malformed listing) never locks the listing or escapes the press
       // handler: it is reported and the press says it failed.
-      writes.end(productId);
+      useCartWritesStore.getState().end(productId, token);
       captureException(error, { level: 'warning', tags: { flow: remove ? 'cart.remove' : 'cart.add' } });
-      toast.error(t('common.operationFailed'));
+      toast.error(remove ? t('product.removeFromCartFailed') : t('cart.addToCartFailed'));
     }
   };
 

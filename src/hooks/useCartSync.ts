@@ -12,9 +12,9 @@ import { classifyCartError } from '@/lib/cart/mergeLocalCart';
 type NewCartItem = Omit<CartItem, 'id' | 'quantity' | 'addedAt'>;
 
 /**
- * How a cart write ended, once the server mirror (if any) settled: `rejected` means the server
- * refused the line for good and the local write was undone (the server's message is already
- * shown); `applied` covers everything else (guest, success, a transient error that keeps the
+ * How a cart write ended, once the server mirror (if any) settled: `rejected` means the local
+ * write was undone (the reason is already shown) or the session ended before it settled, so no
+ * success message follows; `applied` covers everything else (guest, success, a transient error that keeps the
  * local line). Passed to a write's optional `onSettled`.
  */
 export type CartWriteResult = 'applied' | 'rejected';
@@ -57,7 +57,10 @@ export function useCartSync() {
     resyncOnTransient = false,
   ): Promise<CartWriteResult> => {
     if (!isAuthenticated) return Promise.resolve('applied');
-    return run()
+    // The executor runs `run` at once, and a synchronous throw (an interceptor) becomes a
+    // rejection: it takes the same path as a failed request instead of escaping after the local
+    // write.
+    return new Promise((resolve) => resolve(run()))
       .then(() => queryClient.invalidateQueries({ queryKey: qk.cart.mine }))
       .then((): CartWriteResult => 'applied')
       .catch((error): CartWriteResult => {
@@ -107,9 +110,11 @@ export function useCartSync() {
      * Without `onSettled` (the cart screen) the local removal is final and a server error is only
      * reported, as before. With it (the card toggle, web parity) a member's removal the server did
      * not apply is undone: the line comes back where it was, with its checkout selection, and the
-     * reason is shown (`rejected`). Two cases keep the removal: a 404 (the server cart did not
-     * hold the line), and a transient error while the cart awaits its merge (the line may never
-     * have reached the server; the merge sends only what is still in the local cart).
+     * reason is shown (`rejected`). On a transient error the server may or may not have applied
+     * it, so the cart is also marked for merge: the merge sends the restored line again and both
+     * carts agree. A 404 means the server cart did not hold the line: the removal stands. A
+     * failure that lands after the session ended (logout) touches nothing: the cart is no longer
+     * this user's.
      */
     removeByProductId: (productId: string, onSettled?: OnCartWriteSettled) => {
       const { items, deselectedIds } = useCartStore.getState();
@@ -121,29 +126,35 @@ export function useCartSync() {
         void mirror(() => cartApi.removeItem(productId), 'cart.remove');
         return;
       }
-      if (!isAuthenticated) {
+      if (!isAuthenticated || !userId) {
         onSettled('applied');
         return;
       }
+      const refreshServerCart = () => void queryClient.invalidateQueries({ queryKey: qk.cart.mine });
       // The executor runs at once, and a synchronous throw (an interceptor) becomes a rejection,
       // so the undo below covers it too.
       new Promise((resolve) => resolve(cartApi.removeItem(productId))).then(
         () => {
-          void queryClient.invalidateQueries({ queryKey: qk.cart.mine });
+          refreshServerCart();
           onSettled('applied');
         },
         (error: unknown) => {
           if ((error as { response?: { status?: number } })?.response?.status === 404) {
+            refreshServerCart();
             onSettled('applied');
             return;
           }
           captureException(error, { level: 'warning', tags: { flow: 'cart.remove' } });
-          const transient = classifyCartError(error) === 'transient';
-          if (transient && userId && useCartStore.getState().mergePendingFor === userId) {
-            onSettled('applied');
+          if (useAuthStore.getState().user?.id !== userId) {
+            onSettled('rejected');
             return;
           }
           if (before) useCartStore.getState().restoreItem(before, { index, deselected });
+          const kind = classifyCartError(error);
+          if (kind === 'transient' || kind === 'forbiddenUnknown') {
+            useCartStore.getState().markMergePending(userId);
+          }
+          refreshServerCart();
           toast.error(errorText(error, i18n.t('product.removeFromCartFailed')));
           onSettled('rejected');
         },

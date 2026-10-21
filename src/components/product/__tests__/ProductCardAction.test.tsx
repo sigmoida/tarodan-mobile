@@ -31,7 +31,9 @@ jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(
 
 let mockAuth: { isAuthenticated: boolean; user: { id: string } | null } = { isAuthenticated: false, user: null };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: (sel?: (s: unknown) => unknown) => (sel ? sel(mockAuth) : mockAuth),
+  useAuthStore: Object.assign((sel?: (s: unknown) => unknown) => (sel ? sel(mockAuth) : mockAuth), {
+    getState: () => mockAuth,
+  }),
 }));
 
 import { cartApi } from '@/lib/api';
@@ -64,7 +66,7 @@ let toastError: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  useCartWritesStore.setState({ inFlight: [] });
+  useCartWritesStore.setState({ inFlight: {} });
   mockAuth = { isAuthenticated: false, user: null };
   useCartStore.setState({ items: [], deselectedIds: [], mergePendingFor: null });
   toastSuccess = jest.spyOn(toast, 'success').mockImplementation(() => 1);
@@ -269,19 +271,41 @@ describe('ProductCard action: cart toggle', () => {
     expect(cartButton()!.props.accessibilityState).toEqual(expect.objectContaining({ busy: false }));
   });
 
-  it('member: a transient removal error while the cart awaits its merge keeps the removal', async () => {
+  it('member: a transient removal error puts the line back and marks the cart for merge', async () => {
     mockAuth = { isAuthenticated: true, user: { id: 'buyer-1' } };
     renderWithProviders(<ProductCard product={listing} />);
     fireEvent.press(cartButton()!);
     await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Ürün sepete eklendi'));
     await waitFor(() => expect(cartButton()!.props.accessibilityState).toEqual(expect.objectContaining({ busy: false })));
-    useCartStore.setState({ mergePendingFor: 'buyer-1' });
+    toastSuccess.mockClear();
 
     (cartApi.removeItem as jest.Mock).mockRejectedValueOnce({ message: 'Network Error' });
     fireEvent.press(cartButton()!);
-    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Ürün sepetten çıkarıldı'));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('Sepetten çıkarılamadı'));
+    expect(useCartStore.getState().items).toHaveLength(1);
+    // The server may have applied it: the merge sends the restored line again.
+    expect(useCartStore.getState().mergePendingFor).toBe('buyer-1');
+    expect(toastSuccess).not.toHaveBeenCalled();
+  });
+
+  it('member: a removal that fails after logout does not touch the next session', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'buyer-1' } };
+    renderWithProviders(<ProductCard product={listing} />);
+    fireEvent.press(cartButton()!);
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
+    await waitFor(() => expect(cartButton()!.props.accessibilityState).toEqual(expect.objectContaining({ busy: false })));
+    toastSuccess.mockClear();
+
+    let rejectRemove: ((e: unknown) => void) | undefined;
+    (cartApi.removeItem as jest.Mock).mockImplementationOnce(() => new Promise((_r, j) => (rejectRemove = j)));
+    fireEvent.press(cartButton()!);
+    // Logout while the request runs: the auth user is gone (the cart was cleared).
+    mockAuth = { isAuthenticated: false, user: null };
+    await act(async () => rejectRemove?.({ response: { status: 401, data: {} } }));
     expect(useCartStore.getState().items).toHaveLength(0);
+    expect(useCartStore.getState().mergePendingFor).toBeNull();
     expect(toastError).not.toHaveBeenCalled();
+    expect(toastSuccess).not.toHaveBeenCalled();
   });
 
   it('member: a 404 on removal means the server cart did not hold the line; the removal stands', async () => {
