@@ -2491,7 +2491,10 @@
     },
     "emailChangeLeaveTitle": "Email not verified",
     "emailChangeLeaveBody": "If you leave without entering the code, your email won't change and you'll need to request a new code.",
-    "emailChangeLeaveConfirm": "Leave Anyway"
+    "emailChangeLeaveConfirm": "Leave Anyway",
+    "boost": {
+      "pricingLoadError": "Failed to load prices"
+    }
   },
   "review": {
     "reviews": "Reviews",

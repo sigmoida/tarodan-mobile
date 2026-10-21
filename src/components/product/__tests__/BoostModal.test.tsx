@@ -8,6 +8,7 @@ import React from 'react';
 import { Modal } from 'react-native';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
+import i18n from '@/i18n/config';
 import { BoostModal } from '../BoostModal';
 
 const mockPush = jest.fn();
@@ -76,7 +77,7 @@ beforeEach(() => {
 });
 
 describe('BoostModal (BottomSheet)', () => {
-  it('reads packages[].options[]: selects the first 7-day option, footer shows its price, rows update the total', async () => {
+  it('reads packages[].options[]: selects the first package 7-day option, footer shows its price, rows update the total', async () => {
     renderWithProviders(<Harness />);
     await waitFor(() => expect(screen.getByTestId('boost-option-pkg1-7')).toBeTruthy());
     expect(screen.getByTestId('boost-option-pkg1-7').props.accessibilityState).toMatchObject({ checked: true });
@@ -94,6 +95,23 @@ describe('BoostModal (BottomSheet)', () => {
     expect(screen.getByTestId('boost-option-pkg2-7').props.accessibilityState).toMatchObject({ checked: true });
     expect(screen.getByTestId('boost-option-pkg1-7').props.accessibilityState).toMatchObject({ checked: false });
     expect(screen.getByTestId('boost-total')).toHaveTextContent('40,00 TL');
+  });
+
+  it('defaults like web: the first package 7-day option, else its first option (not another package 7-day)', async () => {
+    mockGetBoostOptions.mockResolvedValue({
+      data: {
+        ...PACKAGES.data,
+        packages: [
+          { ...PACKAGES.data.packages[0]!, options: [PACKAGES.data.packages[0]!.options[0]!] },
+          PACKAGES.data.packages[1]!,
+        ],
+      },
+    });
+    renderWithProviders(<Harness />);
+    await waitFor(() => expect(screen.getByTestId('boost-option-pkg1-3')).toBeTruthy());
+    expect(screen.getByTestId('boost-option-pkg1-3').props.accessibilityState).toMatchObject({ checked: true });
+    expect(screen.getByTestId('boost-option-pkg2-7').props.accessibilityState).toMatchObject({ checked: false });
+    expect(screen.getByTestId('boost-total')).toHaveTextContent('50,00 TL');
   });
 
   it('on confirm the payment screen opens AFTER the sheet closed (runAfterClose)', async () => {
@@ -148,12 +166,19 @@ describe('BoostModal (BottomSheet)', () => {
     expect(screen.getByTestId('boost-confirm-button')).toBeDisabled();
   });
 
-  it('keeps confirm locked when the options request fails (no legacy flat-price fallback)', async () => {
-    mockGetBoostOptions.mockRejectedValue(new Error('boom'));
+  it('shows a load error with retry and keeps confirm locked when the request fails (no legacy fallback)', async () => {
+    mockGetBoostOptions.mockRejectedValueOnce(new Error('boom'));
     renderWithProviders(<Harness />);
-    await waitFor(() => expect(screen.queryByTestId('boost-loading')).toBeNull());
+    await waitFor(() => expect(screen.getByTestId('boost-load-error')).toBeTruthy());
     expect(screen.queryByTestId('boost-option-pkg1-7')).toBeNull();
+    expect(screen.queryByTestId('boost-total')).toBeNull();
     expect(screen.getByTestId('boost-confirm-button')).toBeDisabled();
     expect(mockInitiateBoost).not.toHaveBeenCalled();
+
+    // Retry refetches the same endpoint; the options and the price come back.
+    fireEvent.press(screen.getByText(i18n.t('mobile.errorRetry')));
+    await waitFor(() => expect(screen.getByTestId('boost-option-pkg1-7')).toBeTruthy());
+    expect(mockGetBoostOptions).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('boost-confirm-button')).not.toBeDisabled();
   });
 });

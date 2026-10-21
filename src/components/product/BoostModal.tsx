@@ -19,6 +19,7 @@ import {
   BottomSheet,
   Button,
   EmptyState,
+  ErrorState,
   ListRowCard,
   RadioIndicator,
   Spinner,
@@ -37,25 +38,36 @@ interface BoostOption {
   /** Unique per (package, duration): several packages can offer the same duration. */
   key: string;
   packageId: string;
+  packageName: string;
   durationDays: number;
   price: number;
-  label: string;
 }
 
-/** Flattens `packages[].options[]` into one selectable row per (package, duration). */
-function toBoostOptions(data: BoostOptionsResponse, t: TFunction): BoostOption[] {
-  return (data.packages ?? []).flatMap((pkg) =>
-    (pkg.options ?? []).map((o) => {
-      const days = t('membership.daysCount', { count: o.durationDays });
-      return {
-        key: `${pkg.id}:${o.durationDays}`,
-        packageId: pkg.id,
-        durationDays: o.durationDays,
-        price: o.price,
-        label: pkg.name ? `${pkg.name} · ${days}` : days,
-      };
-    }),
+/** Flattens `packages[].options[]` into one selectable row per (package, duration), in API order. */
+function toBoostOptions(data: BoostOptionsResponse | undefined): BoostOption[] {
+  return (data?.packages ?? []).flatMap((pkg) =>
+    (pkg.options ?? []).map((o) => ({
+      key: `${pkg.id}:${o.durationDays}`,
+      packageId: pkg.id,
+      packageName: pkg.name,
+      durationDays: o.durationDays,
+      price: o.price,
+    })),
   );
+}
+
+/** Built at render time so a language switch never shows labels cached in the old language. */
+function optionLabel(opt: BoostOption, t: TFunction): string {
+  const days = t('membership.daysCount', { count: opt.durationDays });
+  return opt.packageName ? `${opt.packageName} · ${days}` : days;
+}
+
+/** Same default as web: the first package's 7-day option, else that package's first option. */
+function defaultOptionKey(options: BoostOption[]): string | undefined {
+  const first = options[0];
+  if (!first) return undefined;
+  const firstPackage = options.filter((o) => o.packageId === first.packageId);
+  return (firstPackage.find((o) => o.durationDays === 7) ?? first).key;
 }
 
 interface BoostModalProps {
@@ -63,9 +75,9 @@ interface BoostModalProps {
   onClose: () => void;
   listingId: string;
   listingTitle: string;
-  /** İlanın mevcut boost bitiş tarihi (varsa) — kalan süre + uzatma bilgisi için */
+  /** Current boost end date of the listing (if any): drives the remaining-days and extend notice. */
   boostedUntil?: string | null;
-  /** Premium kullanıcı — "otomatik yenileme" premium'a özel */
+  /** Premium user: auto-renew is premium only. */
   isPremium?: boolean;
 }
 
@@ -84,26 +96,26 @@ export function BoostModal({
   const [autoRenew, setAutoRenew] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const { data, isLoading: loadingPricing, isError } = useQuery({
+  const {
+    data,
+    isLoading: loadingPricing,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: qk.products.boostOptions(listingId),
     enabled: visible && !!listingId,
-    queryFn: async () => {
-      const res = await productsApi.getBoostOptions(listingId);
-      return { options: toBoostOptions(res.data, t), enabled: res.data.enabled !== false };
-    },
+    queryFn: async () => (await productsApi.getBoostOptions(listingId)).data,
   });
 
-  const options = useMemo(() => data?.options ?? [], [data]);
-  // A failed request reads as unavailable (the empty state), never as a stale price list.
-  const enabled = !isError && (data?.enabled ?? true);
+  // A failed request shows a load error with retry (like web's toast), never a price list.
+  const options = useMemo(() => (isError ? [] : toBoostOptions(data)), [data, isError]);
+  const enabled = data ? data.enabled !== false : true;
 
-  // Once the options arrive, pick the default (the 7-day one if present, else the first).
+  // Once the options arrive, pick the default without overriding the user's choice.
   useEffect(() => {
     if (!options.length) return;
     setSelected((current) =>
-      current != null && options.some((o) => o.key === current)
-        ? current
-        : (options.find((o) => o.durationDays === 7) ?? options[0]!).key,
+      current != null && options.some((o) => o.key === current) ? current : (defaultOptionKey(options) ?? null),
     );
   }, [options]);
 
@@ -193,6 +205,13 @@ export function BoostModal({
         <View style={styles.loading} testID="boost-loading">
           <Spinner size="lg" />
         </View>
+      ) : isError ? (
+        <ErrorState
+          placement="inline"
+          title={t('profile.boost.pricingLoadError')}
+          onRetry={() => refetch()}
+          testID="boost-load-error"
+        />
       ) : !enabled ? (
         <EmptyState
           placement="inline"
@@ -222,7 +241,7 @@ export function BoostModal({
               >
                 <RadioIndicator checked={active} color={colors.warning[500]!} />
                 <Text variant="bodySm" weight="semibold" tone="heading" numberOfLines={2} style={styles.optionLabel}>
-                  {opt.label}
+                  {optionLabel(opt, t)}
                 </Text>
                 <Text variant="body" weight="bold" tone="primary">
                   {formatPrice(opt.price)}
@@ -253,7 +272,7 @@ interface BoostFooterProps {
   onConfirm: (runAfterClose: RunAfterClose) => void;
 }
 
-/** Sheet'in sabit alt çubuğu: seçili paketin toplam fiyatı + onay düğmesi (güvenli alan BottomSheet'te). */
+/** The sheet's fixed footer: the selected option's total price + confirm button (safe area is in BottomSheet). */
 function BoostFooter({ price, label, disabled, submitting, onConfirm }: BoostFooterProps) {
   const { t } = useTranslation();
   const { runAfterClose } = useBottomSheet();
