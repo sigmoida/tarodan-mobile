@@ -34,6 +34,9 @@ export * from './support';
 // Admin types
 export * from './admin';
 
+// Saved searches (vendored from tarodan-app `packages/types`)
+export * from './saved-search';
+
 // Common types
 export interface PaginationMeta {
   total: number;
