@@ -2488,7 +2488,7 @@
       "phoneVerifyPrompt": "Telefonunuzu SMS ile doğrulayın",
       "phoneCodeSentTo": "<b>{phone}</b> numarasına gönderilen 6 haneli kodu girin.",
       "phoneNumber": "Telefon numarası",
-      "twoFactor": "İki Adımlı Doğrulama (2FA)",
+      "twoFactor": "İki Faktörlü Doğrulama (2FA)",
       "twoFactorOn": "Hesabınız TOTP ile korunuyor",
       "twoFactorOff": "Uygulama tabanlı ek güvenlik katmanı ekleyin",
       "manage": "Yönet",
