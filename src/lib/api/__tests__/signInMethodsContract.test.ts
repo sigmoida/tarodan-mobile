@@ -4,8 +4,9 @@
  *
  * The bodies below are copied from the delta (the API is not on staging yet, so they are not
  * measured). The test pins: the request shapes mobile sends (URL, method, body, the
- * `X-Reauth-Token` header on DELETE, `idToken` only for Google), that the vendored types and
- * error codes match the delta, and that the error helpers read the documented bodies.
+ * `X-Reauth-Token` header on DELETE, `idToken` only for Google, Apple's `authorizationCode` on
+ * link, unlink as a POST), that the vendored types and error codes match the delta, and that
+ * the error helpers read the documented bodies.
  */
 jest.mock('expo-router', () => ({
   router: { replace: jest.fn(), push: jest.fn(), back: jest.fn() },
@@ -100,6 +101,36 @@ describe('request shapes', () => {
     expect(res.data.hasPassword).toBe(true);
   });
 
+  it('POST /auth/social/google/link: the native `idToken` and the token in the body, never `code`', async () => {
+    nextReply = { ...SIGN_IN_METHODS_FIXTURE, hasPassword: true };
+    const res = await authApi.linkGoogle({ idToken: 'g-id', reauthToken: 'tok' });
+    expect(sent[0]).toMatchObject({ url: '/auth/social/google/link', method: 'post' });
+    expect(sent[0]!.data).toEqual({ idToken: 'g-id', reauthToken: 'tok' });
+    expect(sent[0]!.headers[REAUTH_TOKEN_HEADER]).toBeUndefined();
+    expect(res.data).toEqual(nextReply);
+  });
+
+  it('POST /auth/social/apple/link: `identityToken`, `authorizationCode` when Apple gave one, the token', async () => {
+    nextReply = SIGN_IN_METHODS_FIXTURE;
+    await authApi.linkApple({ identityToken: 'a-id', authorizationCode: 'a-code', reauthToken: 'tok' });
+    await authApi.linkApple({ identityToken: 'a-id', reauthToken: 'tok' });
+    expect(sent.map((r) => [r.method, r.url, r.data])).toEqual([
+      ['post', '/auth/social/apple/link', { identityToken: 'a-id', authorizationCode: 'a-code', reauthToken: 'tok' }],
+      ['post', '/auth/social/apple/link', { identityToken: 'a-id', reauthToken: 'tok' }],
+    ]);
+  });
+
+  it('POST /auth/social/:provider/unlink: a POST with `{ reauthToken }` for each provider', async () => {
+    nextReply = { hasPassword: true, providers: [] };
+    for (const provider of SIGN_IN_PROVIDERS) {
+      await authApi.unlinkProvider(provider, { reauthToken: 'tok' });
+    }
+    expect(sent.map((r) => [r.method, r.url, r.data])).toEqual([
+      ['post', '/auth/social/google/unlink', { reauthToken: 'tok' }],
+      ['post', '/auth/social/apple/unlink', { reauthToken: 'tok' }],
+    ]);
+  });
+
   it('DELETE /users/me: the token goes in the X-Reauth-Token header, no body; none without a token', async () => {
     await userApi.deleteAccount('tok');
     await userApi.deleteAccount();
@@ -154,6 +185,11 @@ describe('error bodies', () => {
     [429, 'REAUTH_LOCKED', 'server.auth.reauthLocked'],
     [503, 'REAUTH_UNAVAILABLE', 'server.auth.reauthUnavailable'],
     [409, 'PASSWORD_ALREADY_SET', 'server.auth.passwordAlreadySet'],
+    [400, 'PROVIDER_TOKEN_INVALID', 'server.auth.googleSessionInvalid'],
+    [409, 'PROVIDER_ALREADY_LINKED', 'server.auth.providerAlreadyLinked'],
+    [409, 'PROVIDER_LINKED_TO_OTHER_ACCOUNT', 'server.auth.providerLinkedToOtherAccount'],
+    [404, 'PROVIDER_NOT_LINKED', 'server.auth.providerNotLinked'],
+    [409, 'LAST_SIGN_IN_METHOD', 'server.auth.lastSignInMethod'],
   ])('%i %s is read from errorCode', (status, code, key) => {
     const e = asError(status, errorBody(status, code, key));
     expect(signInMethodsErrorCode(e)).toBe(code);
