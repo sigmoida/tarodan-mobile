@@ -111,7 +111,12 @@ describe('J6 · Karşı teklif formu', () => {
     mountWithProducts();
     counterMock.mockResolvedValue({ data: {} });
     renderWithProviders(<TradeCounterScreen />);
-    await waitFor(() => expect(screen.getByText('Benim Ürünüm')).toBeOnTheScreen());
+    // Their list starts only once the trade names the other party, so it can render after mine:
+    // wait for both before pressing either.
+    await waitFor(() => {
+      expect(screen.getByText('Benim Ürünüm')).toBeOnTheScreen();
+      expect(screen.getByText('Karşı Ürün')).toBeOnTheScreen();
+    });
     fireEvent.press(screen.getByText('Benim Ürünüm'));
     // Yalnız bir taraf seçiliyken gönder pasif (API iki tarafta da en az 1 ürün ister).
     fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
@@ -146,7 +151,8 @@ describe('J6 · Karşı teklif formu', () => {
     renderWithProviders(<TradeCounterScreen />);
 
     await waitFor(() => expect(pending).toHaveLength(2));
-    expect(screen.getByText('Vereceğim Ürünler')).toBeOnTheScreen();
+    // Their fetch starts in the commit that loads the trade; the editor shows one render later.
+    await waitFor(() => expect(screen.getByText('Vereceğim Ürünler')).toBeOnTheScreen());
     expect(screen.getAllByTestId('loading-indicator').length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByText('Takasa uygun ürün bulunamadı.')).toBeNull();
 

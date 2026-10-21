@@ -43,7 +43,12 @@ const gateOpened = () =>
 /** Formu değiştir (ürün ya da yalnız nakit) ve "Karşı Teklif Gönder"e bas. */
 async function changeAndSend(kind: 'product' | 'cash') {
   renderWithProviders(<TradeCounterScreen />);
-  await waitFor(() => expect(screen.getByText('Benim Ürünüm')).toBeOnTheScreen());
+  // Their list starts only once the trade names the other party, so it can render after mine:
+  // wait for both before pressing either.
+  await waitFor(() => {
+    expect(screen.getByText('Benim Ürünüm')).toBeOnTheScreen();
+    expect(screen.getByText('Karşı Ürün')).toBeOnTheScreen();
+  });
   // API iki tarafta da en az 1 ürün ister (CounterTradeDto ArrayMinSize(1)): iki taraftan da seç.
   fireEvent.press(screen.getByText('Karşı Ürün'));
   if (kind === 'product') {
