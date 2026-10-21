@@ -2491,7 +2491,10 @@
     },
     "emailChangeLeaveTitle": "E-posta doğrulanmadı",
     "emailChangeLeaveBody": "Kodu girmeden çıkarsanız e-posta adresiniz değişmez ve yeniden kod istemeniz gerekir.",
-    "emailChangeLeaveConfirm": "Yine de Çık"
+    "emailChangeLeaveConfirm": "Yine de Çık",
+    "boost": {
+      "pricingLoadError": "Fiyatlar yüklenemedi"
+    }
   },
   "review": {
     "reviews": "Değerlendirmeler",

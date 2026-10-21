@@ -13,6 +13,35 @@ export interface ListingRemovalPayload {
   removalDetail?: string;
 }
 
+/**
+ * Response of `GET /products/:id/boost/options`, mirroring the API
+ * (`product-boost.service.ts` `getBoostOptions`). Local until the shared
+ * `BoostOptionsResponse` is vendored into `src/types` (listing-boost plan, LB5).
+ * `label` is a server-side Turkish string; the UI builds its own from `durationDays`.
+ */
+export interface BoostDurationOption {
+  durationDays: number;
+  /** Effective price (campaign applied). */
+  price: number;
+  listPrice: number;
+  campaign: boolean;
+  label: string;
+}
+
+export interface BoostPackage {
+  id: string;
+  name: string;
+  slug: string;
+  showcaseOnHome: boolean;
+  options: BoostDurationOption[];
+}
+
+export interface BoostOptionsResponse {
+  enabled: boolean;
+  productPrice: number;
+  packages: BoostPackage[];
+}
+
 // Products API - Web ile aynı endpoint'ler
 export const productsApi = {
   getAll: (params?: Record<string, any>) =>
@@ -73,30 +102,15 @@ export const productsApi = {
   /** Aynı kategoriden benzer ürünler — backend: GET /products/:id/similar */
   getSimilar: (id: string, limit = 12) =>
     api.get(apiPath`/products/${id}/similar`, { params: { limit } }),
-  // ---- Boost / Öne Çıkarma ----
-  /** Boost süre/fiyat paketleri. Backend: GET /products/boost/pricing */
-  getBoostPricing: () =>
-    api.get<{
-      enabled?: boolean;
-      options?: Array<{ durationDays: number; price: number; label: string }>;
-    }>('/products/boost/pricing'),
-  /** İlan için paket + süre + fiyat seçenekleri (web BoostModal ile aynı kaynak).
-   *  Backend: GET /products/:id/boost/options — yeni paket modeli; boost/pricing eski düz-fiyat. */
+  // ---- Boost ----
+  /** Packages, durations and prices for one listing (same source as the web BoostModal).
+   *  Backend: GET /products/:id/boost/options. */
   getBoostOptions: (productId: string) =>
-    api.get<{
-      packages?: Array<{
-        id: string;
-        name: string;
-        durations: Array<{ durationDays: number; price: number }>;
-      }>;
-      options?: Array<{ durationDays: number; price: number; label: string }>;
-    }>(apiPath`/products/${productId}/boost/options`),
-  /** Kullanıcının boost'ları (en yeni önce). Backend: GET /products/boost/my */
-  getMyBoosts: () => api.get('/products/boost/my'),
-  /** İlanı öne çıkar — ödeme başlat (paymentId döner). Backend: POST /products/:id/boost/initiate */
+    api.get<BoostOptionsResponse>(apiPath`/products/${productId}/boost/options`),
+  /** Start the boost payment (returns paymentId). Backend: POST /products/:id/boost/initiate */
   initiateBoost: (
     productId: string,
-    data: { durationDays: number; packageId?: string; autoRenew?: boolean; provider?: 'paytr' },
+    data: { durationDays: number; packageId: string; autoRenew?: boolean; provider?: 'paytr' },
   ) => api.post(apiPath`/products/${productId}/boost/initiate`, data),
 };
 
