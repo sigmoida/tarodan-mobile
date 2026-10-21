@@ -26,6 +26,8 @@ export const qk = {
     usernameAvailability: (username: string) => ['auth', 'username-availability', username] as const,
     /** Ban ekranı: hesap banlı mı + sunucudaki ban nedeni (URL'den OKUNMAZ). */
     banStatus: ['auth', 'ban-status'] as const,
+    /** GET /auth/sign-in-methods: password flag + linked providers (never persisted). */
+    signInMethods: ['auth', 'sign-in-methods'] as const,
   },
 
   consents: {
