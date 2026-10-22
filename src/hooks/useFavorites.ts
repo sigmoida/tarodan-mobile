@@ -13,11 +13,13 @@ export interface WishlistItem {
     id: string;
     title: string;
     price: number;
-    /** İndirim öncesi fiyat (sunucu `productOriginalPrice`; yalnız kampanya indirimindeyse dolu). */
+    /** The pre-discount price (server `productOriginalPrice`; set only during a campaign discount). */
     originalPrice?: number;
     images: Array<{ url: string }>;
     condition: string;
     status: string;
+    /** Units still buyable (`GET /wishlist` `availableQuantity`). Missing = unlimited stock. */
+    availableQuantity?: number;
     seller: {
       id: string;
       displayName: string;
@@ -70,14 +72,19 @@ function toPositiveNumber(v: unknown): number | undefined {
   return typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
+/** Non-negative finite number (string accepted; 0 is valid: out of stock) or `undefined` (field missing = unlimited). */
+function toQuantity(v: unknown): number | undefined {
+  if (v == null || v === '') return undefined;
+  const n = typeof v === 'string' ? Number(v) : v;
+  return typeof n === 'number' && Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
 /**
- * Backend `GET /wishlist` yanıtını `WishlistItem[]`'e eşler. Backend, item'ları
- * ya düz alanlarla (productTitle/productImage…) ya da iç içe `product` ile
- * döndürebilir; her iki şekli de tolere eder.
+ * Maps the `GET /wishlist` response to `WishlistItem[]`. The backend may return items with flat
+ * fields (productTitle/productImage...) or with a nested `product`; both shapes are accepted.
  *
- * `t` argüman alır (fallback ürün/satıcı adları çevrilebilsin) — saf fonksiyon
- * olduğu için `useTranslation` burada çağrılamaz, çağıran taraf canlı `t`'yi
- * geçirir (bkz. `@/utils/validation` başı — aynı gerekçe).
+ * Takes `t` (so the fallback product and seller names are translated): a pure function cannot call
+ * `useTranslation`, so the caller passes the live `t` (same reason as the top of `@/utils/validation`).
  */
 export function mapWishlist(data: any, t: TFunction): WishlistItem[] {
   const wishlistData = data?.items || data?.data || data || [];
@@ -94,6 +101,7 @@ export function mapWishlist(data: any, t: TFunction): WishlistItem[] {
         images: item.productImage ? [{ url: item.productImage }] : (item.product?.images || []),
         condition: item.productCondition || item.product?.condition || 'good',
         status: item.productStatus || item.product?.status || 'active',
+        availableQuantity: toQuantity(item.availableQuantity ?? item.product?.availableQuantity),
         seller: {
           id: item.sellerId || item.product?.seller?.id || '',
           displayName: item.sellerName || item.product?.seller?.displayName || t('product.seller'),

@@ -37,12 +37,11 @@ function FavoritesScreen() {
   // Kararlı renderItem + memo'lu kart: işleyiciler referans-kararlı (en güncel `f`'i çağırır), sepet
   // durumu kartın kendi seçicisinde — ekran render olsa da satırlar yeniden çizilmez.
   const onRemove = useStableCallback(f.handleRemove);
-  const onCartAction = useStableCallback(f.handleCartAction);
   const renderFavorite = useCallback(
     ({ item }: { item: WishlistItem }) => (
-      <FavoriteCard item={item} onRemove={onRemove} onCartAction={onCartAction} />
+      <FavoriteCard item={item} onRemove={onRemove} />
     ),
-    [onRemove, onCartAction],
+    [onRemove],
   );
 
   if (!f.isAuthenticated) {
