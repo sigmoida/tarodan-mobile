@@ -346,6 +346,7 @@ describe('ProductFilterSheet · custom attribute groups (multi-select, web toggl
 
 describe('ProductFilterSheet · price range (web SidebarFilters parity)', () => {
   const REFUSED = /Tutar kabul edilmedi/;
+  const ABOVE_MAX = 'En fazla 9.999.999,00 TL olabilir';
   const changes: ProductFilters[] = [];
 
   /** The sheet over real state, as on the search screen (each change re-renders the fields). */
@@ -414,6 +415,30 @@ describe('ProductFilterSheet · price range (web SidebarFilters parity)', () => 
     expect(preset('0 - 100 TL').props.accessibilityState).toMatchObject({ selected: true });
     fireEvent.changeText(min(), '1.000');
     expect(preset('0 - 100 TL').props.accessibilityState).toMatchObject({ selected: false });
+  });
+
+  it('shows the search max for a bound above it and searches without it', () => {
+    setup({ minPrice: '500' });
+    fireEvent.changeText(max(), '10000000');
+    expect(screen.getByText(ABOVE_MAX)).toBeTruthy();
+    expect(screen.queryByText(REFUSED)).toBeNull();
+    expect(max().props.value).toBe('10000000');
+    expect(sent()).not.toHaveProperty('maxPrice');
+    expect(sent().minPrice).toBe(500);
+  });
+
+  it('shows a legacy URL bound above the max with the same message', () => {
+    setup({ maxPrice: '10000000' });
+    expect(screen.getByText(ABOVE_MAX)).toBeTruthy();
+    expect(preset('1.000+ TL').props.accessibilityState).toMatchObject({ selected: false });
+  });
+
+  it('shows the refusal first when one field is refused and the other above the max', () => {
+    setup();
+    fireEvent.changeText(min(), '1.000');
+    fireEvent.changeText(max(), '10000000');
+    expect(screen.getByText(REFUSED)).toBeTruthy();
+    expect(screen.queryByText(ABOVE_MAX)).toBeNull();
   });
 
   it('a quick range sets both bounds and is selected, also for typed text', () => {
