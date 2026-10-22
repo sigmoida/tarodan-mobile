@@ -4,16 +4,24 @@
 import type { TFunction } from 'i18next';
 import { z } from 'zod';
 import { parseTlAmount } from '@/lib/shared/tlAmount';
+import { exceedsTlNegotiatedAmountMax } from '@/types';
+import { amountAboveMaxText } from '@/utils/negotiatedAmount';
 import { formatPrice } from './status';
 
 /**
  * The typed amount, read by the shared TL amount parser like web: grouping such as "1.000" is
  * refused (`validation.amountFormatRefused`), never read as 1 TL; blank or zero text is no amount.
- * Both stop the field here (`fatal`), so no bound is checked against a value that is not there.
+ * An amount above the API's ceiling (`TL_NEGOTIATED_AMOUNT_MAX`) is refused here too
+ * (`validation.amountAboveMax`), before the offer bounds, as on web. All three stop the field here
+ * (`fatal`), so no bound is checked against a value that is not there.
  */
 function amountSchema(t: TFunction) {
   return z.string().transform((text, ctx) => {
     const parsed = parseTlAmount(text);
+    if (parsed.status === 'ok' && exceedsTlNegotiatedAmountMax(parsed.amount)) {
+      ctx.addIssue({ code: 'custom', message: amountAboveMaxText(t), fatal: true });
+      return z.NEVER;
+    }
     if (parsed.status === 'ok') return parsed.amount;
     ctx.addIssue({
       code: 'custom',

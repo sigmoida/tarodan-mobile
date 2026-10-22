@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 
+import { isNegotiatedAmountAboveMax, type NegotiatedAmountIssue } from '@/utils/negotiatedAmount';
 import { isCashInputRefused, nextCashInput } from '../_lib/cash';
 
 /**
@@ -9,6 +10,10 @@ import { isCashInputRefused, nextCashInput } from '../_lib/cash';
  * so without a guard "1.000" typed key by key would stop at "1.00" and send 1 TL. As on web, the
  * screens refuse to go on (`validation.amountFormatRefused`) while `cashRefused` is true, until the user
  * makes an accepted change. The payload still comes from `cashAmount` only.
+ *
+ * An amount above the API's ceiling is kept as typed (it is an amount, only too large), so that
+ * issue follows the text, not the last change. `cashIssue` is what blocks sending and what the
+ * field shows: a refused change first, then the ceiling (`validation.amountAboveMax`).
  */
 export function useCashAmount() {
   const [cashAmount, setCashAmount] = useState('');
@@ -29,5 +34,11 @@ export function useCashAmount() {
     setCashRefused(isCashInputRefused(value));
   }, []);
 
-  return { cashAmount, cashRefused, changeCashText, resetCashAmount };
+  const cashIssue: NegotiatedAmountIssue | null = cashRefused
+    ? 'refused'
+    : isNegotiatedAmountAboveMax(cashAmount)
+      ? 'aboveMax'
+      : null;
+
+  return { cashAmount, cashRefused, cashIssue, changeCashText, resetCashAmount };
 }

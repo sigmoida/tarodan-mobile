@@ -214,6 +214,25 @@ describe('MakeOfferModal', () => {
     });
   });
 
+  describe("the API's ceiling of an agreed amount", () => {
+    it('sends the ceiling itself', async () => {
+      renderModal({ listPrice: 12_000_000 });
+      fireEvent.changeText(screen.getByTestId('offer-amount-input'), '9999999');
+      fireEvent.press(screen.getByTestId('offer-submit-button'));
+      await waitFor(() =>
+        expect(createMock).toHaveBeenCalledWith({ productId: 'prod-1', amount: 9_999_999, message: undefined }),
+      );
+    });
+
+    it.each(['10000000', '9999999,01'])('refuses %p above the ceiling (no API call)', async (text) => {
+      renderModal({ listPrice: 12_000_000 });
+      fireEvent.changeText(screen.getByTestId('offer-amount-input'), text);
+      fireEvent.press(screen.getByTestId('offer-submit-button'));
+      await waitFor(() => expect(screen.getByText("Tutar 9.999.999 TL'yi aşamaz.")).toBeOnTheScreen());
+      expect(createMock).not.toHaveBeenCalled();
+    });
+  });
+
   it('çok düşük fiyatta liste fiyatına yuvarlanan çip çizilmez', () => {
     renderModal({ listPrice: 10 });
     expect(screen.queryByTestId('offer-preset-5')).toBeNull(); // 9,5 → 10 = liste fiyatı

@@ -1,4 +1,5 @@
 import { parseTlAmount } from '@/lib/shared/tlAmount';
+import { exceedsTlNegotiatedAmountMax } from '@/types';
 
 /**
  * The cash difference of a trade offer, shared by the new-trade wizard and the counter offer.
@@ -15,6 +16,9 @@ import { parseTlAmount } from '@/lib/shared/tlAmount';
  * keeps the previous text: a dot typed as Turkish thousands grouping ("1.000") stops visibly at
  * "1.00". As on web, such a refused change also blocks sending until an accepted change
  * (`useCashAmount`), so "1.000" meant as one thousand is never sent as 1 TL.
+ *
+ * An amount above the API's ceiling (`TL_NEGOTIATED_AMOUNT_MAX`) stays in the field as typed,
+ * shows `validation.amountAboveMax` and blocks sending (`useCashAmount().cashIssue`), as on web.
  */
 
 /** Who pays the cash difference, seen from the user: `offer` = I pay, `request` = they pay. */
@@ -22,11 +26,14 @@ export type CashDirection = 'offer' | 'request';
 
 /**
  * The cash amount typed into the field, or `undefined` when there is no amount to send: empty,
- * zero or refused by the shared parser (web parity).
+ * zero, refused by the shared parser or above the API's ceiling (web parity: `cashAmountValue`).
+ * The summary and the cost preview read it, so the preview never asks for an amount the API
+ * refuses; sending is blocked meanwhile (`useCashAmount().cashIssue`).
  */
 export function parseCashAmount(raw: string | null | undefined): number | undefined {
   const parsed = parseTlAmount(raw ?? '');
-  return parsed.status === 'ok' ? parsed.amount : undefined;
+  if (parsed.status !== 'ok' || exceedsTlNegotiatedAmountMax(parsed.amount)) return undefined;
+  return parsed.amount;
 }
 
 /**

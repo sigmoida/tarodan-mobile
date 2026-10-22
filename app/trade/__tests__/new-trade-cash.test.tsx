@@ -156,6 +156,37 @@ describe('new trade · a refused cash amount blocks the wizard (web parity)', ()
     expect((tradesApi.create as jest.Mock).mock.calls[0][0].cashAmount).toBe(1000);
   });
 
+  it("an amount above the API's ceiling blocks the wizard with the ceiling copy, and is not priced", async () => {
+    const hook = await openReady();
+    act(() => hook.result.current.setStep(2));
+    act(() => hook.result.current.changeCashText('10000000'));
+    expect(hook.result.current.cashAmount).toBe('10000000');
+    expect(hook.result.current.cashIssue).toBe('aboveMax');
+    expect(hook.result.current.cashValue).toBe(0);
+
+    act(() => hook.result.current.goToReview());
+    expect(hook.result.current.step).toBe(2);
+    await act(async () => {
+      await hook.result.current.handleSubmit();
+    });
+    expect(errorToast).toHaveBeenCalledWith("Tutar 9.999.999 TL'yi aşamaz.");
+    expect(tradesApi.create).not.toHaveBeenCalled();
+    expect(tradesApi.previewPaymentQuote).not.toHaveBeenCalledWith(
+      expect.objectContaining({ cashAmount: 10000000 }),
+    );
+
+    // The ceiling itself goes out.
+    act(() => hook.result.current.changeCashText('9999999'));
+    expect(hook.result.current.cashIssue).toBeNull();
+    act(() => hook.result.current.goToReview());
+    expect(hook.result.current.step).toBe(3);
+    await act(async () => {
+      await hook.result.current.handleSubmit();
+    });
+    await waitFor(() => expect(tradesApi.create).toHaveBeenCalledTimes(1));
+    expect((tradesApi.create as jest.Mock).mock.calls[0][0].cashAmount).toBe(9999999);
+  });
+
   it.each([['1.005'], ['1.250,50']])('a pasted %p is refused, keeps the previous amount and blocks sending', async (typed) => {
     const hook = await openReady();
     act(() => hook.result.current.changeCashText('12,50'));

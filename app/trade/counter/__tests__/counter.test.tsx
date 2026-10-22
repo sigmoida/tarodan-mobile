@@ -75,6 +75,8 @@ const theirProduct = {
 
 const CASH_HELPER = trCatalog.trade.cashHelper;
 const CASH_REFUSED = trCatalog.validation.amountFormatRefused;
+/** `validation.amountAboveMax` as rendered: the ICU number is formatted for tr. */
+const ABOVE_MAX = "Tutar 9.999.999 TL'yi aşamaz.";
 
 /** The cash field: the only numeric input on the screen. */
 function cashInput() {
@@ -260,6 +262,29 @@ describe('J6 · Karşı teklif formu', () => {
       expect(screen.queryByText(CASH_REFUSED)).toBeNull();
       fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
       expect((await sentBody()).cashAmount).toBe(1000);
+      errorToast.mockRestore();
+    });
+
+    it("an amount above the API's ceiling shows the ceiling copy and blocks sending until it is lowered", async () => {
+      const errorToast = jest.spyOn(toast, 'error').mockImplementation(() => 1);
+      mountWithProducts(tradeForReceiver());
+      counterMock.mockResolvedValue({ data: {} });
+      renderWithProviders(<TradeCounterScreen />);
+      await waitFor(() => expect(screen.getByText('Karşı Ürün')).toBeOnTheScreen());
+      fireEvent.changeText(cashInput(), '10000000');
+      // Kept as typed: it is an amount, only too large.
+      expect(screen.getByDisplayValue('10000000')).toBeOnTheScreen();
+      expect(screen.getByText(ABOVE_MAX)).toBeOnTheScreen();
+
+      fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
+      expect(errorToast).toHaveBeenCalledWith(ABOVE_MAX);
+      await act(() => Promise.resolve());
+      expect(counterMock).not.toHaveBeenCalled();
+
+      fireEvent.changeText(cashInput(), '9999999');
+      expect(screen.queryByText(ABOVE_MAX)).toBeNull();
+      fireEvent.press(screen.getByText('Karşı Teklif Gönder'));
+      expect((await sentBody()).cashAmount).toBe(9999999);
       errorToast.mockRestore();
     });
 

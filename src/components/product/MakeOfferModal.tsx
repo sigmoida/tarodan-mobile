@@ -24,6 +24,8 @@ import { offerNotificationPrompt } from '@/lib/notifications/prePrompt';
 import { offerPriceFloor } from '@/lib/shared/priceLimits';
 import { parseTlAmount, tlAmountInputValue } from '@/lib/shared/tlAmount';
 import { formatPrice } from '../../utils/format';
+import { exceedsTlNegotiatedAmountMax } from '@/types';
+import { amountAboveMaxText } from '@/utils/negotiatedAmount';
 import { MIN_OFFER_RATIO, offerPresets } from './offerPresets';
 
 const { colors } = theme;
@@ -93,6 +95,11 @@ export default function MakeOfferModal({
     }
     if (parsed.status === 'empty') {
       msg.error(t('offer.enterPositiveAmount'));
+      return;
+    }
+    // The API's ceiling of an agreed amount, before the listing bounds (web parity).
+    if (exceedsTlNegotiatedAmountMax(numeric)) {
+      msg.error(amountAboveMaxText(t));
       return;
     }
     // API kuralı: minimum teklif fiyatın %50'si (web paritesi) — yoksa ham 400 dönüyordu.

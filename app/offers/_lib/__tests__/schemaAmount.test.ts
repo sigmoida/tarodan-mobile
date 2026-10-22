@@ -61,3 +61,18 @@ describe('counter bounds on decimal-comma amounts', () => {
     expect(buyerCounterSchema(400, t, 250).parse({ amount: '250,00' })).toEqual({ amount: 250 });
   });
 });
+
+/** The API's ceiling of an agreed amount (`TL_NEGOTIATED_AMOUNT_MAX`), refused before any bound. */
+describe('counter amount above the API ceiling', () => {
+  const ABOVE_MAX = "Tutar 9.999.999 TL'yi aşamaz.";
+
+  it.each([
+    ['seller counter', sellerCounterSchema(100, 20_000_000, t)],
+    ['buyer counter', buyerCounterSchema(20_000_000, t)],
+  ])('%s: the ceiling passes, a cent above is refused with the ceiling copy only', (_name, schema) => {
+    expect(schema.parse({ amount: '9999999' })).toEqual({ amount: 9_999_999 });
+    expect(schema.parse({ amount: '9999999,00' })).toEqual({ amount: 9_999_999 });
+    expect(issues(schema.safeParse({ amount: '9999999,01' }))).toEqual([ABOVE_MAX]);
+    expect(issues(schema.safeParse({ amount: '10000000' }))).toEqual([ABOVE_MAX]);
+  });
+});

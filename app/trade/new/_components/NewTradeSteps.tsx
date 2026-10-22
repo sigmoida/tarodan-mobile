@@ -129,7 +129,7 @@ export function Step2TheirItems({ f }: StepProps) {
         <CashAmountInput
           label={t('trade.amountLabelSymbol')}
           value={f.cashAmount}
-          refused={f.cashRefused}
+          issue={f.cashIssue}
           onChangeText={f.changeCashText}
         />
       </SectionCard>

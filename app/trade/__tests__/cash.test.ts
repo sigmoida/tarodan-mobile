@@ -21,7 +21,9 @@ describe('parseCashAmount', () => {
     ['12,', 12],
     ['007', 7],
     [' 12,50 ', 12.5],
-    ['99999999,99', 99999999.99],
+    // The API's ceiling of an agreed amount (`TL_NEGOTIATED_AMOUNT_MAX`) itself.
+    ['9999999', 9999999],
+    ['9999999,00', 9999999],
     // A dot alone is a decimal separator: 1.25 is 1.25.
     ['1.25', 1.25],
   ])('%p -> %p', (raw, expected) => {
@@ -51,9 +53,9 @@ describe('parseCashAmount', () => {
     expect(parseCashAmount(raw)).toBeUndefined();
   });
 
-  it('has no client maximum, like web: the API decides', () => {
-    expect(parseCashAmount('1000000000000')).toBe(1e12);
-    // Only a value too long to be held exactly in cents is no amount: never a wrong amount.
+  it("has the API's ceiling as its maximum, like web; a longer value is no amount either", () => {
+    expect(parseCashAmount('1000000000000')).toBeUndefined();
+    // A value too long to be held exactly in cents is no amount: never a wrong amount.
     expect(parseCashAmount('9'.repeat(17))).toBeUndefined();
     expect(parseCashAmount('9'.repeat(400))).toBeUndefined();
   });
@@ -119,11 +121,24 @@ describe('cashInputValue', () => {
   it('round-trips through the field and the parser', () => {
     // Amounts as the API returns them (`parseFloat` of the Decimal(10, 2) column), including
     // cents whose binary form is not exact (0.1, 0.29, 19.99).
-    for (const amount of [12.5, 0.05, 1250, 99999999.99, 0.1, 0.29, 1.01, 1250.5, 19.99]) {
+    for (const amount of [12.5, 0.05, 1250, 9999999, 9999998.99, 0.1, 0.29, 1.01, 1250.5, 19.99]) {
       const text = cashInputValue(amount);
       expect(nextCashInput('', text)).toBe(text);
       expect(parseCashAmount(text)).toBe(amount);
     }
+  });
+});
+
+describe("parseCashAmount above the API's ceiling", () => {
+  it.each(['10000000', '9999999,01', '99999999,99'])('%p is no amount to send (web: cashAmountValue)', (raw) => {
+    expect(parseCashAmount(raw)).toBeUndefined();
+    expect(signedCashAmount(raw, 'offer')).toBeUndefined();
+    expect(signedCashAmount(raw, 'request')).toBeUndefined();
+  });
+
+  it('is not a typing refusal: the mask keeps the text so the field can say why', () => {
+    expect(isCashInputRefused('10000000')).toBe(false);
+    expect(nextCashInput('12', '10000000')).toBe('10000000');
   });
 });
 
