@@ -3,7 +3,7 @@
  * `buildListApiParams`. Every product search/list screen (Search, Listings) uses this single source.
  */
 import type { TFunction } from 'i18next';
-import { parseTlAmount } from '@/lib/shared/tlAmount';
+import { isTlAmountRefused, parseTlAmount, tlAmountInputValue } from '@/lib/shared/tlAmount';
 
 export type ProductFilters = {
   search: string;
@@ -76,8 +76,17 @@ export function priceFilterBound(text: string): number | undefined {
 }
 
 /** True when the price text is not an amount (`validation.amountFormatRefused`). */
-export function isPriceFilterRefused(text: string): boolean {
-  return parseTlAmount(text).status === 'refused';
+export const isPriceFilterRefused = (text: string): boolean => isTlAmountRefused(text);
+
+/**
+ * The field text for a URL price value (a link, a saved-search run): the bound prefilled with a decimal
+ * comma (`tlAmountInputValue`, "1250,50"), or the value as it is when it is refused, so the field shows
+ * the refusal instead of hiding why the bound is ignored. Empty or zero is "". Web `priceFilterText`.
+ */
+export function priceFilterText(value: string): string {
+  const bound = priceFilterBound(value);
+  if (bound !== undefined) return tlAmountInputValue(bound);
+  return isPriceFilterRefused(value) ? value.trim() : '';
 }
 
 /** The canonical value of a price bound: a plain number with a dot ("1250.5"), "" for none. */
@@ -329,8 +338,8 @@ export function filtersFromSearchParams(params: Record<string, RawParam>): Produ
     material: get('material'),
     colors: [...new Set(get('color').split(',').map((s) => s.trim()).filter(Boolean))],
     condition: get('condition'),
-    minPrice: get('minPrice'),
-    maxPrice: get('maxPrice'),
+    minPrice: priceFilterText(get('minPrice')),
+    maxPrice: priceFilterText(get('maxPrice')),
     tradeOnly: get('tradeOnly') === 'true',
     discountOnly: get('discountOnly') === 'true',
     preOrder: get('preOrder') === 'true',

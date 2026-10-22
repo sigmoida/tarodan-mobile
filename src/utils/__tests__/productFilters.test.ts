@@ -9,6 +9,7 @@ import {
   isPriceFilterRefused,
   priceFilterBound,
   priceFilterParam,
+  priceFilterText,
   type ProductFilters,
 } from '../productFilters';
 
@@ -380,5 +381,26 @@ describe('price bounds in the API params', () => {
   it('a canonical URL value (old links and saved searches) reads as written', () => {
     const params = buildListParams(filtersFromSearchParams({ minPrice: '1000', maxPrice: '1250.5' }), 1, 24);
     expect(params).toMatchObject({ minPrice: 1000, maxPrice: 1250.5 });
+  });
+});
+
+describe('price field prefill from the URL (web parity)', () => {
+  it('prefills a bound with a decimal comma (tlAmountInputValue)', () => {
+    expect(priceFilterText('1250.5')).toBe('1250,50');
+    expect(priceFilterText('1000')).toBe('1000');
+    expect(filtersFromSearchParams({ minPrice: '99.99', maxPrice: '500' })).toMatchObject({
+      minPrice: '99,99',
+      maxPrice: '500',
+    });
+  });
+
+  it('keeps refused text so the field shows the refusal', () => {
+    expect(priceFilterText('1.000')).toBe('1.000');
+    expect(priceFilterText('-5')).toBe('-5');
+  });
+
+  it('empty and zero prefill nothing', () => {
+    expect(priceFilterText('')).toBe('');
+    expect(priceFilterText('0')).toBe('');
   });
 });

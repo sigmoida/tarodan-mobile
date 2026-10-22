@@ -67,7 +67,7 @@ Mobil (`apps/mobile`) ile web (`apps/web`) aynı API’yi kullanmalı. Kritik ak
 |                      | Web                    | Mobil                                                                                                                   |
 | -------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | Product list filters | Product list / catalog | `app/listings/index.tsx`, `app/search/index.tsx`, `src/utils/productFilters.ts` (`buildListParams`, `priceFilterBound`) |
-| Arama sekmesi        | Arama + ES             | `app/(tabs)/search.tsx` — marka **adı**, `tradeOnly`, tek `condition`/`scale`                                           |
+| Search screen        | Search + ES            | `app/search/index.tsx`, `src/components/ProductFilterSheet.tsx` (web `SidebarFilters`)                                  |
 
 ## 6. Arama UI
 

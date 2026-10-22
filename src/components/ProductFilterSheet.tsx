@@ -22,19 +22,18 @@ import {
   FieldMessage,
   Input,
   Text,
-  fieldBorderColor,
   theme,
   Icon,
 } from '@/ui';
 import { FilterOptionList, type FilterOption } from '@/components/filters/FilterOptionList';
-import type { ProductFilters } from '../utils/productFilters';
 import {
   buildConditionOptions,
   isPriceFilterRefused,
   keepGeneralAttributeSelections,
   priceFilterParam,
-} from '../utils/productFilters';
-import type { ProductFilterOptions } from '../hooks/useProductFilterOptions';
+  type ProductFilters,
+} from '@/utils/productFilters';
+import type { ProductFilterOptions } from '@/hooks/useProductFilterOptions';
 
 const { colors, spacing } = theme;
 
@@ -52,12 +51,16 @@ type Props = {
   countLoading?: boolean;
 };
 
-const PRICE_PRESETS: { label: string; min: string; max: string }[] = [
+const PRICE_PRESETS = [
   { label: '0 - 100 TL', min: '0', max: '100' },
   { label: '100 - 500 TL', min: '100', max: '500' },
   { label: '500 - 1.000 TL', min: '500', max: '1000' },
   { label: '1.000+ TL', min: '1000', max: '' },
-];
+].map((p) => ({
+  ...p,
+  // The bounds the range sets, compared with the fields' bounds.
+  bounds: `${priceFilterParam(p.min)}-${priceFilterParam(p.max)}`,
+}));
 
 function SectionTitle({ children }: { children: string }) {
   return (
@@ -449,15 +452,19 @@ function PriceRange({ filters, onChange }: Pick<Props, 'filters' | 'onChange'>) 
   const { t } = useTranslation();
   const minRefused = isPriceFilterRefused(filters.minPrice);
   const maxRefused = isPriceFilterRefused(filters.maxPrice);
+  // No range is active while a field is refused: its "" would match an open range bound ("1.000"
+  // next to max 100 is not "0 - 100").
+  const bounds =
+    minRefused || maxRefused
+      ? null
+      : `${priceFilterParam(filters.minPrice)}-${priceFilterParam(filters.maxPrice)}`;
   return (
     <View style={styles.section}>
       <SectionTitle>{t('product.priceRange')}</SectionTitle>
       <View style={styles.chipGrid}>
         {PRICE_PRESETS.map((p) => {
           // Compared as bounds, so "100,00" typed by hand selects "100".
-          const active =
-            priceFilterParam(filters.minPrice) === priceFilterParam(p.min) &&
-            priceFilterParam(filters.maxPrice) === priceFilterParam(p.max);
+          const active = bounds === p.bounds;
           return (
             <Chip
               key={p.label}
@@ -482,7 +489,7 @@ function PriceRange({ filters, onChange }: Pick<Props, 'filters' | 'onChange'>) 
             keyboardType="decimal-pad"
             value={filters.minPrice}
             onChangeText={(v) => onChange({ ...filters, minPrice: v })}
-            fieldStyle={minRefused ? styles.fieldRefused : undefined}
+            invalid={minRefused}
             testID="filter-min-price"
           />
         </View>
@@ -496,7 +503,7 @@ function PriceRange({ filters, onChange }: Pick<Props, 'filters' | 'onChange'>) 
             keyboardType="decimal-pad"
             value={filters.maxPrice}
             onChangeText={(v) => onChange({ ...filters, maxPrice: v })}
-            fieldStyle={maxRefused ? styles.fieldRefused : undefined}
+            invalid={maxRefused}
             testID="filter-max-price"
           />
         </View>
@@ -516,7 +523,5 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: spacing[3] },
   priceDash: { marginHorizontal: spacing[3], marginBottom: spacing[3] },
   flex: { flex: 1 },
-  // The refused field's frame, the shared field error colour (web: the Input `error` border).
-  fieldRefused: { borderColor: fieldBorderColor(true, false) },
   optionRow: { paddingVertical: spacing[2] },
 });

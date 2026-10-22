@@ -13,7 +13,7 @@ import {
   buildListParams,
   keepGeneralAttributeSelections,
   type ProductFilters,
-} from '../../utils/productFilters';
+} from '@/utils/productFilters';
 import type { ProductFilterOptions } from '../../hooks/useProductFilterOptions';
 
 const GENERAL = {
@@ -407,6 +407,13 @@ describe('ProductFilterSheet · price range (web SidebarFilters parity)', () => 
     fireEvent.changeText(max(), '100');
     expect(sent()).toMatchObject({ minPrice: 500, maxPrice: 100 });
     expect(screen.queryByText(REFUSED)).toBeNull();
+  });
+
+  it('no quick range is selected while a field is refused', () => {
+    setup({ maxPrice: '100' });
+    expect(preset('0 - 100 TL').props.accessibilityState).toMatchObject({ selected: true });
+    fireEvent.changeText(min(), '1.000');
+    expect(preset('0 - 100 TL').props.accessibilityState).toMatchObject({ selected: false });
   });
 
   it('a quick range sets both bounds and is selected, also for typed text', () => {
