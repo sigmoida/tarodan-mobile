@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
-import { Badge, Card, IconButton, Text, theme } from '@/ui';
+import { Card, IconButton, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { AppImage } from '@/components/AppImage';
@@ -22,8 +22,8 @@ const { colors } = theme;
  * The image fills the card's left edge. The heart removes the favorite. The cart button follows the
  * shared card rule (`productCardAction`, same as web): it shows only for another seller's active,
  * in-stock listing; it adds the product, or opens the cart when it is already there (filled icon).
- * A sold or inactive listing shows a status badge in its place; an out-of-stock or own listing shows
- * nothing. The heart and cart are SIBLINGS of the navigation Pressable, not nested in it (a nested
+ * Otherwise (sold, reserved, inactive, out of stock or own) the slot is empty, like web. The heart
+ * and cart are SIBLINGS of the navigation Pressable, not nested in it (a nested
  * pressable can swallow the parent's touch).
  */
 export const FavoriteCard = React.memo(function FavoriteCard({
@@ -90,10 +90,6 @@ export const FavoriteCard = React.memo(function FavoriteCard({
                 testID={`favorite-cart-${item.productId}`}
                 onPress={() => onCartAction(item)}
               />
-            ) : product.status !== 'active' ? (
-              <Badge variant="warning" size="xs" style={styles.statusBadge}>
-                {product.status === 'sold' ? t('product.statusSold') : t('product.statusInactive')}
-              </Badge>
             ) : null}
           </View>
         </View>

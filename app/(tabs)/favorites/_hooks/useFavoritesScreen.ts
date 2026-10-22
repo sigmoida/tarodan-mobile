@@ -8,7 +8,7 @@ import { useCartStore } from '@/stores/cartStore';
 import { useCartSync } from '@/hooks/useCartSync';
 import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { qk } from '@/lib/query';
-import { getImageUrl as getImageUrlFromUtils } from '@/utils/imageUrl';
+import { cartItemFromListing } from '@/lib/cart/cartItemFromListing';
 import { formatPrice } from '@/utils/format';
 
 /**
@@ -42,23 +42,17 @@ export function useFavoritesScreen() {
   };
 
   /**
-   * Kart düğmesi — ürün detayının sepet aksiyonuyla aynı kural: sepette değilse 1 adet ekle
-   * (+ "Ürün sepete eklendi!" toast'u); zaten sepetteyse "Sepete Git" → sepet sekmesi. Tekrar
-   * basmak adet artırmaz, sepetten de çıkarmaz (çıkarma sepet ekranında).
+   * The card's cart button, the product detail's rule: not in the cart -> add 1 (+ the "added to
+   * cart" toast); already there -> "Go to cart" opens the cart tab. Pressing again neither raises
+   * the quantity nor removes it (removing is on the cart screen). The line is built like every
+   * listing card's (`cartItemFromListing`), so the stock cap (`availableQuantity`) applies.
    */
   const handleCartAction = (item: WishlistItem) => {
     if (useCartStore.getState().isInCart(item.productId)) {
       router.push('/cart');
       return;
     }
-    const product = item.product;
-    cart.add({
-      productId: product.id,
-      title: product.title,
-      price: product.price,
-      imageUrl: getImageUrlFromUtils(product.images),
-      seller: product.seller,
-    });
+    cart.add(cartItemFromListing(item.product, t('product.seller')));
     toast.success(t('product.addedToCartExclaim'));
   };
 

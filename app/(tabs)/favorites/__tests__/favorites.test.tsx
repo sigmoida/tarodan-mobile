@@ -161,13 +161,21 @@ describe('J57 · favoriler ekranı — dolu liste', () => {
     expect(screen.queryByTestId('favorite-price-p2-old')).toBeNull();
   });
 
-  it('satışta olmayan üründe sepet düğmesi yerine durum rozeti', () => {
-    const sold = makeItem('p1');
-    sold.product.status = 'sold';
-    mockState.items = [sold];
+  it('builds the cart line like the listing cards (stock cap, numeric price, seller)', () => {
+    const item = makeItem('p1');
+    (item.product as any).availableQuantity = 2;
+    mockState.items = [item];
     renderWithProviders(<FavoritesScreen />);
-    expect(screen.queryByTestId('favorite-cart-p1')).toBeNull();
-    expect(screen.getByText('Satıldı')).toBeOnTheScreen();
+    fireEvent.press(screen.getByLabelText('Sepete Ekle'));
+    expect(mockState.addItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: 'p1',
+        stock: 2,
+        maxQuantityPerOrder: null,
+        price: Number(item.product.price),
+        seller: expect.objectContaining({ id: 's1' }),
+      }),
+    );
   });
 
   it('ürün kartına dokununca ürün detayına push eder', () => {
@@ -211,11 +219,13 @@ describe('card action rule (productCardAction, web parity)', () => {
     ['sold', { status: 'sold' }],
     ['reserved', { status: 'reserved' }],
     ['inactive', { status: 'inactive' }],
-  ])('hides the cart toggle for a %s listing and shows a status badge', (_name, patch) => {
+  ])('hides the cart toggle for a %s listing and shows no status badge (web parity)', (_name, patch) => {
     mockState.userId = 'me';
     mockState.items = [withProduct('p1', patch)];
     renderWithProviders(<FavoritesScreen />);
     expect(cart('p1')).toBeNull();
+    expect(screen.queryByText('Satıldı')).toBeNull();
+    expect(screen.queryByText('Aktif Değil')).toBeNull();
     expect(screen.getByTestId('favorite-remove-p1')).toBeOnTheScreen();
   });
 

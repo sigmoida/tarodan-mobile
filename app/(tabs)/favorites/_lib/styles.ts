@@ -60,7 +60,4 @@ export const styles = StyleSheet.create({
   spacer: {
     flex: 1,
   },
-  statusBadge: {
-    alignSelf: 'center',
-  },
 });
