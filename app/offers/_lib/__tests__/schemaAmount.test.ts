@@ -75,4 +75,15 @@ describe('counter amount above the API ceiling', () => {
     expect(issues(schema.safeParse({ amount: '9999999,01' }))).toEqual([ABOVE_MAX]);
     expect(issues(schema.safeParse({ amount: '10000000' }))).toEqual([ABOVE_MAX]);
   });
+
+  // Every bound below would refuse 10,000,000 too: the ceiling copy is the only issue.
+  it.each([
+    ['seller counter not above the offer', sellerCounterSchema(15_000_000, 30_000_000, t)],
+    ['seller counter above the price', sellerCounterSchema(100, 9_000_000, t)],
+    ['seller counter below the floor', sellerCounterSchema(100, 30_000_000, t, 12_000_000)],
+    ['buyer counter not below the seller', buyerCounterSchema(5_000_000, t)],
+    ['buyer counter below the floor', buyerCounterSchema(30_000_000, t, 12_000_000)],
+  ])('%s: refused for the ceiling first', (_name, schema) => {
+    expect(issues(schema.safeParse({ amount: '10000000' }))).toEqual([ABOVE_MAX]);
+  });
 });

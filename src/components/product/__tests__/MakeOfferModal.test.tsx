@@ -231,6 +231,18 @@ describe('MakeOfferModal', () => {
       await waitFor(() => expect(screen.getByText("Tutar 9.999.999 TL'yi aşamaz.")).toBeOnTheScreen());
       expect(createMock).not.toHaveBeenCalled();
     });
+
+    // The listing bound would refuse 10,000,000 too: the ceiling is said first (web parity).
+    it.each([
+      ['below the 50% minimum', 30_000_000],
+      ['at or above the list price', 5_000_000],
+    ])('refuses the ceiling before a listing bound (%s)', async (_case, listPrice) => {
+      renderModal({ listPrice });
+      fireEvent.changeText(screen.getByTestId('offer-amount-input'), '10000000');
+      fireEvent.press(screen.getByTestId('offer-submit-button'));
+      await waitFor(() => expect(screen.getByText("Tutar 9.999.999 TL'yi aşamaz.")).toBeOnTheScreen());
+      expect(createMock).not.toHaveBeenCalled();
+    });
   });
 
   it('çok düşük fiyatta liste fiyatına yuvarlanan çip çizilmez', () => {
