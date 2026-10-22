@@ -64,6 +64,13 @@ interface CartState {
   addToCart: (productId: string) => Promise<void>;
   removeItem: (itemId: string) => void;
   removeByProductId: (productId: string) => void;
+  /**
+   * Puts a removed line back where it was, with the same id, quantity and checkout selection,
+   * unless the listing is in the cart again by then: the undo of a removal the server did not
+   * apply (`useCartSync`). `at` is what `removeByProductId` changed: the line's index and whether
+   * it was deselected.
+   */
+  restoreItem: (item: CartItem, at: { index: number; deselected: boolean }) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   /**
@@ -196,6 +203,18 @@ export const useCartStore = create<CartState>()(
         set({
           items,
           deselectedIds: pruneDeselected(get().deselectedIds, removedIds),
+          lastUpdated: Date.now(),
+        });
+      },
+
+      restoreItem: (item: CartItem, at: { index: number; deselected: boolean }) => {
+        const { items, deselectedIds } = get();
+        if (items.some((i) => i.productId === item.productId)) return;
+        const index = Math.min(Math.max(at.index, 0), items.length);
+        set({
+          items: [...items.slice(0, index), item, ...items.slice(index)],
+          deselectedIds:
+            at.deselected && !deselectedIds.includes(item.id) ? [...deselectedIds, item.id] : deselectedIds,
           lastUpdated: Date.now(),
         });
       },

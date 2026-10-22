@@ -861,7 +861,13 @@
     "commissionRuleUnavailable": "Kategori, fiyat ve üyelik tipinize uygun aktif komisyon kuralı bulunamadığı için bu ilan oluşturulamaz.",
     "packageFeeLabel": "Paket ücreti",
     "sampleDimensionsLabel": "Örnek ölçü (en × boy × yükseklik)",
-    "packageFeeNeedsPriceAndCategory": "Paket ücretinizi görmek için fiyat ve kategori girin."
+    "packageFeeNeedsPriceAndCategory": "Paket ücretinizi görmek için fiyat ve kategori girin.",
+    "boostedBadge": "Öne Çıkan",
+    "boostedBadgeHint": "Satıcı bu ilanı ücretli olarak öne çıkardı",
+    "cardAction": {
+      "addToCartAria": "{title} ürününü sepete ekle",
+      "removeFromCartAria": "{title} ürününü sepetten çıkar"
+    }
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",
@@ -3455,7 +3461,11 @@
       "acceptSuffix": " — okudum ve kabul ediyorum.",
       "submit": "Onayla ve devam et",
       "submitFailed": "Onayınız kaydedilemedi. Lütfen tekrar deneyin."
-    }
+    },
+    "platformServiceSales": {
+      "title": "Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi"
+    },
+    "withdrawalWaiverTitle": "Cayma Hakkı Onayı"
   },
   "information": {
     "contactInfo": {

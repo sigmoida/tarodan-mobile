@@ -28,7 +28,8 @@ import {
   theme,
   useBottomSheet,
 } from '@/ui';
-import { productsApi, type BoostOptionsResponse } from '@/lib/api';
+import { productsApi } from '@/lib/api';
+import type { BoostOptionsResponse } from '@/types';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { formatPrice } from '@/utils/format';
 

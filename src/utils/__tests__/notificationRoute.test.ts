@@ -366,3 +366,42 @@ describe('notificationRoute — C-1.5', () => {
     }
   });
 });
+
+/**
+ * Listing boost notifications (contract delta 2026-10-22, ADR 0015): all six `boost_*` types link
+ * to web "My boosts" (`/profile/boosts`), which has no mobile screen. Each carries
+ * `data.productId`, which is routed before any link, so a tap opens the listing; without it the
+ * link falls back to the profile tab, never an empty screen.
+ */
+describe('boost notifications', () => {
+  const BOOST_TYPES = [
+    'boost_activated',
+    'boost_expired',
+    'boost_ending_soon',
+    'boost_granted',
+    'boost_cancelled',
+    'boost_refunded',
+  ];
+
+  it.each(BOOST_TYPES)('%s with data.productId opens /product/:id', (type) => {
+    expect(
+      notificationRoute({
+        type,
+        link: '/profile/boosts',
+        data: { productId: 'p-1', productTitle: 'Model', link: '/profile/boosts' },
+      }),
+    ).toBe('/product/p-1');
+  });
+
+  it.each(BOOST_TYPES)('%s as a push payload (data only, type inside) opens /product/:id', (type) => {
+    expect(notificationRoute({ data: { type, productId: 'p-1' } })).toBe('/product/p-1');
+  });
+
+  it.each(BOOST_TYPES)('%s without a productId falls back to the profile tab', (type) => {
+    expect(notificationRoute({ type, link: '/profile/boosts', data: {} })).toBe('/(tabs)/profile');
+  });
+
+  it('/profile/boosts has no mobile list screen: the profile tab', () => {
+    expect(toMobileRoute('/profile/boosts')).toBe('/(tabs)/profile');
+  });
+});

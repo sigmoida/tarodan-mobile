@@ -10,6 +10,7 @@ import { productsApi } from '@/lib/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { prefetchProductDetail } from '@/lib/product/detailQuery';
 import { PRESS_PREFETCH_DELAY_MS } from '@/hooks/usePressPrefetch';
+import { renderWithProviders } from '@/test-utils';
 
 jest.mock('@/lib/api', () => ({
   productsApi: { recordClick: jest.fn(() => Promise.resolve({ data: {} })) },
@@ -54,7 +55,8 @@ describe('ProductCard — grid', () => {
   });
 
   it('stokta yok: "STOKTA YOK" katmanı; stokta ise yok', () => {
-    const { rerender } = render(<ProductCard product={{ ...base, status: 'sold' }} />);
+    // The active, in-stock listing also gets the cart action (it needs the query client).
+    const { rerender } = renderWithProviders(<ProductCard product={{ ...base, status: 'sold' }} />);
     expect(screen.getByText('STOKTA YOK')).toBeTruthy();
     rerender(<ProductCard product={{ ...base, status: 'active', availableQuantity: 0 }} />);
     expect(screen.getByText('STOKTA YOK')).toBeTruthy();
@@ -62,19 +64,21 @@ describe('ProductCard — grid', () => {
     expect(screen.queryByText('STOKTA YOK')).toBeNull();
   });
 
-  it('rozetler: en çok 2 — öncelik sponsorlu > takas > bedel kampanyası', () => {
+  it('badges: at most 2, boosted ("Öne Çıkan") before trade before the fee campaign', () => {
     render(
       <ProductCard product={{ ...base, isBoosted: true, tradeAvailable: true, feeCampaigns: ['Kargo Bedava', 'Diğer'] } as never} />,
     );
-    expect(screen.getByText('Sponsorlu')).toBeTruthy();
+    expect(screen.getByText('Öne Çıkan')).toBeTruthy();
+    // "Sponsorlu" is the ads' text, never a listing badge.
+    expect(screen.queryByText('Sponsorlu')).toBeNull();
     expect(screen.getByText('Takas')).toBeTruthy();
     expect(screen.queryByText('Kargo Bedava')).toBeNull();
     expect(screen.queryByText('Diğer')).toBeNull();
   });
 
-  it('rozetler: sponsorlu yoksa takas + bedel kampanyası (yalnız ilki) görünür', () => {
+  it('badges: without boosted, trade + the first fee campaign show', () => {
     render(<ProductCard product={{ ...base, tradeAvailable: true, feeCampaigns: ['Kargo Bedava', 'Diğer'] } as never} />);
-    expect(screen.queryByText('Sponsorlu')).toBeNull();
+    expect(screen.queryByText('Öne Çıkan')).toBeNull();
     expect(screen.getByText('Takas')).toBeTruthy();
     expect(screen.getByText('Kargo Bedava')).toBeTruthy();
     expect(screen.queryByText('Diğer')).toBeNull();
@@ -87,29 +91,29 @@ describe('ProductCard — grid', () => {
     const token = (l: string) => (l.startsWith('%') ? `"%","${l.slice(1)}"` : `"${l}"`);
     return labels.filter((l) => json.includes(token(l))).sort((a, b) => json.indexOf(token(a)) - json.indexOf(token(b)));
   };
-  const LABELS = ['%20', 'Sponsorlu', 'Takas', 'Kargo Bedava'];
+  const LABELS = ['%20', 'Öne Çıkan', 'Takas', 'Kargo Bedava'];
   const all = { ...base, price: 80, oldPrice: 100, isBoosted: true, tradeAvailable: true, feeCampaigns: ['Kargo Bedava'] };
 
-  it('rozetler: indirim + sponsorlu + takas + kampanya → ilk 2: %indirim, Sponsorlu (sol üst yığın, bu sırada)', () => {
+  it('badges: discount + boosted + trade + campaign -> the first 2: %discount, Öne Çıkan (top-left stack, in order)', () => {
     render(<ProductCard product={all as never} />);
-    expect(badgeOrder(LABELS)).toEqual(['%20', 'Sponsorlu']);
+    expect(badgeOrder(LABELS)).toEqual(['%20', 'Öne Çıkan']);
     expect(screen.queryByText('Takas')).toBeNull();
     expect(screen.queryByText('Kargo Bedava')).toBeNull();
   });
 
-  it('rozetler: indirim her zaman ilk; sponsorlu yoksa indirim + takas', () => {
+  it('badges: the discount is always first; without boosted, discount + trade', () => {
     render(<ProductCard product={{ ...all, isBoosted: false } as never} />);
     expect(badgeOrder(LABELS)).toEqual(['%20', 'Takas']);
   });
 
-  it('rozetler: indirim + kampanya (sponsorlu, takas yok) → %indirim, kampanya', () => {
+  it('badges: discount + campaign (no boosted, no trade) -> %discount, campaign', () => {
     render(<ProductCard product={{ ...all, isBoosted: false, tradeAvailable: false } as never} />);
     expect(badgeOrder(LABELS)).toEqual(['%20', 'Kargo Bedava']);
   });
 
-  it('rozetler: indirim yoksa sponsorlu, takas (kampanya 3. olduğu için kesilir)', () => {
+  it('badges: without a discount, boosted then trade (the campaign is third, cut)', () => {
     render(<ProductCard product={{ ...all, oldPrice: undefined } as never} />);
-    expect(badgeOrder(LABELS)).toEqual(['Sponsorlu', 'Takas']);
+    expect(badgeOrder(LABELS)).toEqual(['Öne Çıkan', 'Takas']);
     expect(screen.queryByText('Kargo Bedava')).toBeNull();
   });
 
@@ -124,9 +128,9 @@ describe('ProductCard — grid', () => {
     expect(style).toContain('"right":46');
   });
 
-  it('sponsorlu yalnız isBoosted === true ile (boostedUntil tek başına rozet açmaz)', () => {
+  it('boosted only with isBoosted === true (boostedUntil alone shows no badge)', () => {
     render(<ProductCard product={{ ...base, boostedUntil: '2099-01-01T00:00:00Z' } as never} />);
-    expect(screen.queryByText('Sponsorlu')).toBeNull();
+    expect(screen.queryByText('Öne Çıkan')).toBeNull();
   });
 
   it('indirim yüzdesi < 1 ise rozet çıkmaz (asla "%0")', () => {
@@ -139,14 +143,18 @@ describe('ProductCard — grid', () => {
     expect(screen.queryByText('Takas')).toBeNull();
   });
 
-  it('erişilebilirlik: kart etiketi görünen rozetleri sırayla ekler (grid)', () => {
+  it('accessibility: the card label adds the visible badges in order; boosted reads the paid placement hint (grid)', () => {
     render(<ProductCard product={all as never} />);
-    expect(screen.getByLabelText('Hot Wheels Supra, %20 İndirim, Sponsorlu')).toBeTruthy();
+    expect(
+      screen.getByLabelText('Hot Wheels Supra, %20 İndirim, Satıcı bu ilanı ücretli olarak öne çıkardı'),
+    ).toBeTruthy();
   });
 
-  it('erişilebilirlik: liste etiketi indirim + takas ikonunu içerir', () => {
+  it('accessibility: the list label has the discount, boosted and trade (web list badges)', () => {
     render(<ProductCard layout="list" product={all as never} />);
-    expect(screen.getByLabelText('Hot Wheels Supra, %20 İndirim, Takas')).toBeTruthy();
+    expect(
+      screen.getByLabelText('Hot Wheels Supra, %20 İndirim, Satıcı bu ilanı ücretli olarak öne çıkardı, Takas'),
+    ).toBeTruthy();
   });
 
   it('erişilebilirlik: rozet yoksa etiket yalnız başlık', () => {
@@ -163,7 +171,7 @@ describe('ProductCard — grid', () => {
     );
     expect(screen.getByText('seçim')).toBeTruthy();
     expect(screen.queryByText('%20')).toBeNull();
-    expect(screen.queryByText('Sponsorlu')).toBeNull();
+    expect(screen.queryByText('Öne Çıkan')).toBeNull();
   });
 
   it('rozet etiketi tek satır: uzun kampanya metni ellipsis ile kırpılır', () => {
@@ -390,8 +398,8 @@ describe('ProductCard — liste ve slotlar', () => {
     const style = JSON.stringify(node?.props.style);
     expect(style).toContain('"left":4');
     expect(style).not.toContain('"right"');
-    // Sponsorlu/kampanya listede yok.
-    expect(screen.queryByText('Sponsorlu')).toBeNull();
+    // The campaign badge is not in the list row.
+    expect(screen.queryByText('Kargo Bedava')).toBeNull();
   });
 
   it('liste showMeta=false: açıklama ve meta yok', () => {

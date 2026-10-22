@@ -1,5 +1,6 @@
 import {
   colors as baseColors,
+  containers,
   controlHeight,
   counterBadgeColor,
   duration,
@@ -77,6 +78,8 @@ export const theme = {
   counterBadgeColor,
   inactiveIconColor,
   tabBarLabel,
+  /** Component widths at which a component changes presentation (measured with `onLayout`). */
+  containers,
   /** Yükleme sistemi (gösterge, iskelet animasyonu, gecikme) — bkz. `src/ui/loading/`. */
   loading,
 } as const;

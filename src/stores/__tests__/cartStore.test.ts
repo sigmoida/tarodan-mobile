@@ -138,6 +138,29 @@ describe('J59 · sepetten çıkar (removeItem / removeByProductId)', () => {
     expect(s.items).toHaveLength(1);
     expect(s.items[0]!.productId).toBe('p2');
   });
+
+  it('restoreItem puts a removed line back at its index with its checkout selection', () => {
+    useCartStore.setState({ deselectedIds: [] });
+    useCartStore.getState().addItem(baseItem);
+    useCartStore.getState().addItem({ ...baseItem, productId: 'p2' });
+    const line = useCartStore.getState().items[0]!;
+    useCartStore.getState().toggleSelected(line.id);
+    useCartStore.getState().removeByProductId('p1');
+    expect(useCartStore.getState().deselectedIds).toEqual([]);
+
+    useCartStore.getState().restoreItem(line, { index: 0, deselected: true });
+    const s = useCartStore.getState();
+    expect(s.items.map((i) => i.productId)).toEqual(['p1', 'p2']);
+    expect(s.items[0]).toEqual(line);
+    expect(s.isSelected(line.id)).toBe(false);
+  });
+
+  it('restoreItem does nothing when the listing is in the cart again', () => {
+    useCartStore.getState().addItem(baseItem);
+    const line = useCartStore.getState().items[0]!;
+    useCartStore.getState().restoreItem({ ...line, id: 'other', quantity: 2 }, { index: 0, deselected: false });
+    expect(useCartStore.getState().items).toEqual([line]);
+  });
 });
 
 describe('J60 · sepet temizleme (clearCart / onPurchaseComplete)', () => {
