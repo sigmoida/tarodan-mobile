@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import type { ChipNameOptions } from '@/utils/activeFilterChips';
-import type { ProductFilters } from '@/utils/productFilters';
+import { isPriceFilterRefused, type ProductFilters } from '@/utils/productFilters';
 import { buildSavedSearchDraft } from '../_lib/savedSearch';
 
 /**
@@ -24,8 +24,16 @@ export function useSaveSearch(filters: ProductFilters, names: ChipNameOptions) {
     [filters, categories, brands, manufacturers, carModels],
   );
 
+  // A refused price is not applied to the search, so saving now would store a search without the
+  // bound the user typed: `start` shows the refusal instead (web `useSaveSearch`).
+  const priceRefused = isPriceFilterRefused(filters.minPrice) || isPriceFilterRefused(filters.maxPrice);
+
   const start = useCallback(() => {
     if (draft.isEmpty) return;
+    if (priceRefused) {
+      toast.error(t('validation.amountFormatRefused'));
+      return;
+    }
     if (!isAuthenticated) {
       appAlert(t('savedSearch.saveTitle'), t('savedSearch.signInToSave'), [
         { text: t('common.cancel'), style: 'cancel' },
@@ -34,7 +42,7 @@ export function useSaveSearch(filters: ProductFilters, names: ChipNameOptions) {
       return;
     }
     setOpen(true);
-  }, [draft.isEmpty, isAuthenticated, t]);
+  }, [draft.isEmpty, priceRefused, isAuthenticated, t]);
   const close = useCallback(() => setOpen(false), []);
 
   return { draft, open, start, close };

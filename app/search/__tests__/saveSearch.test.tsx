@@ -107,6 +107,13 @@ describe('search · save this search', () => {
     expect(screen.getByTestId('save-search-button')).toBeDisabled();
   });
 
+  it('a refused price shows the refusal and opens no save (the bound would be lost)', async () => {
+    await openSaveModal({ search: 'mustang', minPrice: '1.000' });
+    expect(toastMock.error).toHaveBeenCalledWith(expect.stringMatching(/Tutar kabul edilmedi/));
+    expect(screen.queryByTestId('save-search-name')).toBeNull();
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('a guest gets the sign-in prompt, not the modal; "Login" opens the login screen', async () => {
     useAuthStore.setState({ isAuthenticated: false });
     await openSaveModal({ tradeOnly: 'true' });

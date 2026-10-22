@@ -25,6 +25,15 @@ describe('Input (web @tarodan/ui)', () => {
     });
   });
 
+  it('invalid: the danger frame without a message, also while focused (web bare + error)', () => {
+    render(<Input testID="in" invalid helperText="Yardım" />);
+    expect(StyleSheet.flatten(fieldOf()).borderColor).toBe(colors.danger[500]);
+    fireEvent(screen.getByTestId('in'), 'focus');
+    expect(StyleSheet.flatten(fieldOf()).borderColor).toBe(colors.danger[500]);
+    // Only the frame: the helper text stays, no error text is added.
+    expect(screen.getByText('Yardım')).toBeTruthy();
+  });
+
   it('odakta primary-500, hatada danger-500 çerçeve ve sm hata metni', () => {
     const { rerender } = render(<Input testID="in" />);
     fireEvent(screen.getByTestId('in'), 'focus');

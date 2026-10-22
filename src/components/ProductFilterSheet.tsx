@@ -19,15 +19,21 @@ import {
   Checkbox,
   Chip,
   Divider,
+  FieldMessage,
   Input,
   Text,
   theme,
   Icon,
 } from '@/ui';
 import { FilterOptionList, type FilterOption } from '@/components/filters/FilterOptionList';
-import type { ProductFilters } from '../utils/productFilters';
-import { buildConditionOptions, keepGeneralAttributeSelections } from '../utils/productFilters';
-import type { ProductFilterOptions } from '../hooks/useProductFilterOptions';
+import {
+  buildConditionOptions,
+  isPriceFilterRefused,
+  keepGeneralAttributeSelections,
+  priceFilterParam,
+  type ProductFilters,
+} from '@/utils/productFilters';
+import type { ProductFilterOptions } from '@/hooks/useProductFilterOptions';
 
 const { colors, spacing } = theme;
 
@@ -45,12 +51,16 @@ type Props = {
   countLoading?: boolean;
 };
 
-const PRICE_PRESETS: { label: string; min: string; max: string }[] = [
+const PRICE_PRESETS = [
   { label: '0 - 100 TL', min: '0', max: '100' },
   { label: '100 - 500 TL', min: '100', max: '500' },
   { label: '500 - 1.000 TL', min: '500', max: '1000' },
   { label: '1.000+ TL', min: '1000', max: '' },
-];
+].map((p) => ({
+  ...p,
+  // The bounds the range sets, compared with the fields' bounds.
+  bounds: `${priceFilterParam(p.min)}-${priceFilterParam(p.max)}`,
+}));
 
 function SectionTitle({ children }: { children: string }) {
   return (
@@ -380,52 +390,8 @@ function FilterSheetBody({
 
       <Divider style={styles.divider} />
 
-      {/* Fiyat */}
-      <View style={styles.section}>
-        <SectionTitle>{t('product.priceRange')}</SectionTitle>
-        <View style={styles.chipGrid}>
-          {PRICE_PRESETS.map((p) => {
-            const active = filters.minPrice === p.min && filters.maxPrice === p.max;
-            return (
-              <Chip
-                key={p.label}
-                label={p.label}
-                selected={active}
-                onPress={() =>
-                  onChange(
-                    active
-                      ? { ...filters, minPrice: '', maxPrice: '' }
-                      : { ...filters, minPrice: p.min, maxPrice: p.max },
-                  )
-                }
-              />
-            );
-          })}
-        </View>
-        <View style={styles.priceRow}>
-          <View style={styles.flex}>
-            <Input
-              label={t('product.minPrice')}
-              placeholder="0"
-              keyboardType="numeric"
-              value={filters.minPrice}
-              onChangeText={(v) => onChange({ ...filters, minPrice: v.replace(/[^0-9]/g, '') })}
-            />
-          </View>
-          <Text variant="body" tone="muted" style={styles.priceDash}>
-            -
-          </Text>
-          <View style={styles.flex}>
-            <Input
-              label={t('product.maxPrice')}
-              placeholder="∞"
-              keyboardType="numeric"
-              value={filters.maxPrice}
-              onChangeText={(v) => onChange({ ...filters, maxPrice: v.replace(/[^0-9]/g, '') })}
-            />
-          </View>
-        </View>
-      </View>
+      {/* Price */}
+      <PriceRange filters={filters} onChange={onChange} />
 
       <Divider style={styles.divider} />
 
@@ -473,6 +439,78 @@ function FilterSheetBody({
         </View>
       </View>
     </>
+  );
+}
+
+/**
+ * Min/max price fields and the quick ranges (web `SidebarFilters` `PriceRange`). The fields keep the
+ * typed text in `filters` (see `priceFilterBound`): the request, the chip and a saved search read only
+ * the parsed bound, so refused text ("1.000") filters nothing and shows `validation.amountFormatRefused`
+ * instead of searching for 1 TL.
+ */
+function PriceRange({ filters, onChange }: Pick<Props, 'filters' | 'onChange'>) {
+  const { t } = useTranslation();
+  const minRefused = isPriceFilterRefused(filters.minPrice);
+  const maxRefused = isPriceFilterRefused(filters.maxPrice);
+  // No range is active while a field is refused: its "" would match an open range bound ("1.000"
+  // next to max 100 is not "0 - 100").
+  const bounds =
+    minRefused || maxRefused
+      ? null
+      : `${priceFilterParam(filters.minPrice)}-${priceFilterParam(filters.maxPrice)}`;
+  return (
+    <View style={styles.section}>
+      <SectionTitle>{t('product.priceRange')}</SectionTitle>
+      <View style={styles.chipGrid}>
+        {PRICE_PRESETS.map((p) => {
+          // Compared as bounds, so "100,00" typed by hand selects "100".
+          const active = bounds === p.bounds;
+          return (
+            <Chip
+              key={p.label}
+              label={p.label}
+              selected={active}
+              onPress={() =>
+                onChange(
+                  active
+                    ? { ...filters, minPrice: '', maxPrice: '' }
+                    : { ...filters, minPrice: p.min, maxPrice: p.max },
+                )
+              }
+            />
+          );
+        })}
+      </View>
+      <View style={styles.priceRow}>
+        <View style={styles.flex}>
+          <Input
+            label={t('product.minPrice')}
+            placeholder="0"
+            keyboardType="decimal-pad"
+            value={filters.minPrice}
+            onChangeText={(v) => onChange({ ...filters, minPrice: v })}
+            invalid={minRefused}
+            testID="filter-min-price"
+          />
+        </View>
+        <Text variant="body" tone="muted" style={styles.priceDash}>
+          -
+        </Text>
+        <View style={styles.flex}>
+          <Input
+            label={t('product.maxPrice')}
+            placeholder="∞"
+            keyboardType="decimal-pad"
+            value={filters.maxPrice}
+            onChangeText={(v) => onChange({ ...filters, maxPrice: v })}
+            invalid={maxRefused}
+            testID="filter-max-price"
+          />
+        </View>
+      </View>
+      {/* One message under the row (web), so the two fields stay aligned. */}
+      <FieldMessage error={minRefused || maxRefused ? t('validation.amountFormatRefused') : undefined} />
+    </View>
   );
 }
 

@@ -2,7 +2,9 @@ import type { TFunction } from 'i18next';
 import { formatPriceRange } from '@/utils/format';
 import {
   buildConditionOptions,
+  hasPriceFilter,
   keepGeneralAttributeSelections,
+  priceFilterBound,
   type ProductFilters,
 } from '@/utils/productFilters';
 import type { ProductFilterOptions } from '@/hooks/useProductFilterOptions';
@@ -86,8 +88,13 @@ export function buildActiveChips(
     }));
   if (filters.condition)
     add('cond', conditionLabel(filters.condition, t), () => ({ condition: '' }));
-  if (filters.minPrice || filters.maxPrice)
-    add('price', formatPriceRange(filters.minPrice, filters.maxPrice), () => ({ minPrice: '', maxPrice: '' }));
+  // The bounds the search applies, not the typed text ("1.000" is refused, never shown as 1 TL).
+  if (hasPriceFilter(filters))
+    add(
+      'price',
+      formatPriceRange(priceFilterBound(filters.minPrice), priceFilterBound(filters.maxPrice)),
+      () => ({ minPrice: '', maxPrice: '' }),
+    );
   if (filters.tradeOnly) add('trade', t('product.tradeAvailable'), () => ({ tradeOnly: false }));
   if (filters.preOrder) add('preOrder', t('product.preOrder'), () => ({ preOrder: false }));
   if (filters.limited) add('limited', t('product.limitedEdition'), () => ({ limited: false }));
