@@ -13,6 +13,7 @@ import { getProductEffectivePrice } from '@/utils/productPrice';
 import { TRADE_PICKER_PAGE_SIZE } from '../../../_lib/picker';
 import { usePagedPicker } from '../../../_hooks/usePagedPicker';
 import { usePagedPicks } from '../../../_hooks/usePagedPicks';
+import { negotiatedAmountIssueText } from '@/utils/negotiatedAmount';
 import { useCashAmount } from '../../../_hooks/useCashAmount';
 import { cashInputValue, parseCashAmount, signedCashAmount, type CashDirection } from '../../../_lib/cash';
 import { offerSignature, type Trade, type TradeItem } from '../_lib/types';
@@ -49,7 +50,7 @@ export function useTradeCounter() {
 
   const trade = tradeQuery.data;
 
-  const { cashAmount, cashRefused, changeCashText, resetCashAmount } = useCashAmount();
+  const { cashAmount, cashIssue, changeCashText, resetCashAmount } = useCashAmount();
   const [cashDirection, setCashDirection] = useState<CashDirection>('offer');
   const [message, setMessage] = useState('');
   const [initializedId, setInitializedId] = useState<string | null>(null);
@@ -196,9 +197,10 @@ export function useTradeCounter() {
   const handleSubmit = async () => {
     // Web refuses to send while the cash field holds a refused amount. Here the field keeps the
     // last sendable text instead ("1.000" stops at "1.00"), so the refusal itself blocks:
-    // otherwise 1 TL would go out for one thousand. Cleared by the next accepted change.
-    if (cashRefused) {
-      toast.error(t('validation.amountFormatRefused'));
+    // otherwise 1 TL would go out for one thousand. Cleared by the next accepted change. An
+    // amount above the API's ceiling blocks too, until it is lowered (`cashIssue`).
+    if (cashIssue) {
+      toast.error(negotiatedAmountIssueText(cashIssue, t));
       return;
     }
     // The API wants at least 1 item on both sides (CounterTradeDto ArrayMinSize(1)); same rule as web.
@@ -242,7 +244,7 @@ export function useTradeCounter() {
     selectedMine,
     selectedTheirs,
     cashAmount,
-    cashRefused,
+    cashIssue,
     changeCashText,
     cashDirection,
     setCashDirection,

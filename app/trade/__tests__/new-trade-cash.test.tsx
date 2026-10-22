@@ -131,7 +131,7 @@ describe('new trade · a refused cash amount blocks the wizard (web parity)', ()
       act(() => hook.result.current.changeCashText(typed));
     }
     expect(hook.result.current.cashAmount).toBe('1.00');
-    expect(hook.result.current.cashRefused).toBe(true);
+    expect(hook.result.current.cashIssue).toBe('refused');
 
     // Step 2 does not go on to the review, and sending is refused too.
     act(() => hook.result.current.goToReview());
@@ -142,11 +142,11 @@ describe('new trade · a refused cash amount blocks the wizard (web parity)', ()
     expect(errorToast).toHaveBeenCalledTimes(2);
     expect(errorToast).toHaveBeenCalledWith(trCatalog.validation.amountFormatRefused);
     expect(tradesApi.create).not.toHaveBeenCalled();
-    expect(hook.result.current.cashRefused).toBe(true);
+    expect(hook.result.current.cashIssue).toBe('refused');
 
     // An accepted change clears the refusal: the review opens and that amount is sent.
     act(() => hook.result.current.changeCashText('1000'));
-    expect(hook.result.current.cashRefused).toBe(false);
+    expect(hook.result.current.cashIssue).toBeNull();
     act(() => hook.result.current.goToReview());
     expect(hook.result.current.step).toBe(3);
     await act(async () => {
@@ -156,12 +156,43 @@ describe('new trade · a refused cash amount blocks the wizard (web parity)', ()
     expect((tradesApi.create as jest.Mock).mock.calls[0][0].cashAmount).toBe(1000);
   });
 
+  it("an amount above the API's ceiling blocks the wizard with the ceiling copy, and is not priced", async () => {
+    const hook = await openReady();
+    act(() => hook.result.current.setStep(2));
+    act(() => hook.result.current.changeCashText('10000000'));
+    expect(hook.result.current.cashAmount).toBe('10000000');
+    expect(hook.result.current.cashIssue).toBe('aboveMax');
+    expect(hook.result.current.cashValue).toBe(0);
+
+    act(() => hook.result.current.goToReview());
+    expect(hook.result.current.step).toBe(2);
+    await act(async () => {
+      await hook.result.current.handleSubmit();
+    });
+    expect(errorToast).toHaveBeenCalledWith("Tutar 9.999.999 TL'yi aşamaz.");
+    expect(tradesApi.create).not.toHaveBeenCalled();
+    expect(tradesApi.previewPaymentQuote).not.toHaveBeenCalledWith(
+      expect.objectContaining({ cashAmount: 10000000 }),
+    );
+
+    // The ceiling itself goes out.
+    act(() => hook.result.current.changeCashText('9999999'));
+    expect(hook.result.current.cashIssue).toBeNull();
+    act(() => hook.result.current.goToReview());
+    expect(hook.result.current.step).toBe(3);
+    await act(async () => {
+      await hook.result.current.handleSubmit();
+    });
+    await waitFor(() => expect(tradesApi.create).toHaveBeenCalledTimes(1));
+    expect((tradesApi.create as jest.Mock).mock.calls[0][0].cashAmount).toBe(9999999);
+  });
+
   it.each([['1.005'], ['1.250,50']])('a pasted %p is refused, keeps the previous amount and blocks sending', async (typed) => {
     const hook = await openReady();
     act(() => hook.result.current.changeCashText('12,50'));
     act(() => hook.result.current.changeCashText(typed));
     expect(hook.result.current.cashAmount).toBe('12,50');
-    expect(hook.result.current.cashRefused).toBe(true);
+    expect(hook.result.current.cashIssue).toBe('refused');
     await act(async () => {
       await hook.result.current.handleSubmit();
     });

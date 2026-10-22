@@ -71,7 +71,7 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
         <CashAmountInput
           label={t('trade.amountLabelTL')}
           value={f.cashAmount}
-          refused={f.cashRefused}
+          issue={f.cashIssue}
           onChangeText={f.changeCashText}
         />
       </SectionCard>

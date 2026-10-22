@@ -15,6 +15,7 @@ import { isPreselectableTarget, targetSellerOf, type TargetListing } from '../_l
 import { isFetchedThisOpen, TRADE_PICKER_PAGE_SIZE, TRADE_PICKER_QUERY_OPTIONS } from '../../_lib/picker';
 import { usePagedPicker } from '../../_hooks/usePagedPicker';
 import { usePagedPicks } from '../../_hooks/usePagedPicks';
+import { negotiatedAmountIssueText } from '@/utils/negotiatedAmount';
 import { useCashAmount } from '../../_hooks/useCashAmount';
 import { parseCashAmount, signedCashAmount, type CashDirection } from '../../_lib/cash';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
@@ -48,7 +49,7 @@ export function useNewTrade() {
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1); // 1: Select my items, 2: Select their items, 3: Review
-  const { cashAmount, cashRefused, changeCashText } = useCashAmount();
+  const { cashAmount, cashIssue, changeCashText } = useCashAmount();
   const [cashDirection, setCashDirection] = useState<CashDirection>('offer');
   const [message, setMessage] = useState('');
   const [tradeAddressId, setTradeAddressId] = useState<string | null>(null);
@@ -236,15 +237,16 @@ export function useNewTrade() {
   /**
    * Web refuses to send while the cash field holds a refused amount. Here the field keeps the
    * last sendable text instead ("1.000" stops at "1.00"), so the refusal itself blocks: otherwise
-   * 1 TL would go out for one thousand. Cleared by the next accepted change.
+   * 1 TL would go out for one thousand. Cleared by the next accepted change. An amount above the
+   * API's ceiling blocks too, until it is lowered (`cashIssue`).
    */
   const blockRefusedCash = () => {
-    if (!cashRefused) return false;
-    toast.error(t('validation.amountFormatRefused'));
+    if (!cashIssue) return false;
+    toast.error(negotiatedAmountIssueText(cashIssue, t));
     return true;
   };
 
-  /** Step 2 -> 3 (review): not while the cash amount is refused. */
+  /** Step 2 -> 3 (review): not while the cash amount is refused or above the ceiling. */
   const goToReview = () => {
     if (blockRefusedCash()) return;
     setStep(3);
@@ -277,7 +279,7 @@ export function useNewTrade() {
     selectedMyItems,
     selectedTheirItems,
     cashAmount,
-    cashRefused,
+    cashIssue,
     changeCashText,
     cashDirection,
     setCashDirection,

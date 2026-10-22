@@ -2,13 +2,14 @@ import React, { useEffect } from 'react';
 import { AccessibilityInfo, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Input, theme } from '@/ui';
+import { negotiatedAmountIssueText, type NegotiatedAmountIssue } from '@/utils/negotiatedAmount';
 
 type CashAmountInputProps = {
   label: string;
   /** `useCashAmount().cashAmount` */
   value: string;
-  /** `useCashAmount().cashRefused`: the last typed change was refused. */
-  refused: boolean;
+  /** `useCashAmount().cashIssue`: a refused change, or an amount above the API's ceiling. */
+  issue: NegotiatedAmountIssue | null;
   /** `useCashAmount().changeCashText` */
   onChangeText: (typed: string) => void;
 };
@@ -16,17 +17,18 @@ type CashAmountInputProps = {
 /**
  * The cash amount field of a trade offer, shared by the new-trade wizard and the counter offer.
  * The state and the mask live in `useCashAmount`, so the screens can block sending while a
- * change is refused. As on web (`Input` with `helperText` and `error`), the refusal shows in the
- * field's error slot, in the helper's place, until the next accepted change. A refused change
- * leaves the field text as it was, so the refusal is also announced to screen readers.
+ * change is refused or the amount is above the API's ceiling. As on web (`Input` with
+ * `helperText` and `error`), the issue shows in the field's error slot, in the helper's place,
+ * until it is fixed. A refused change leaves the field text as it was, so the issue is also
+ * announced to screen readers (once per issue, not on every key).
  */
-export function CashAmountInput({ label, value, refused, onChangeText }: CashAmountInputProps) {
+export function CashAmountInput({ label, value, issue, onChangeText }: CashAmountInputProps) {
   const { t } = useTranslation();
-  const refusedText = t('validation.amountFormatRefused');
+  const issueText = issue ? negotiatedAmountIssueText(issue, t) : undefined;
 
   useEffect(() => {
-    if (refused) AccessibilityInfo.announceForAccessibility?.(refusedText);
-  }, [refused, refusedText]);
+    if (issueText) AccessibilityInfo.announceForAccessibility?.(issueText);
+  }, [issueText]);
 
   return (
     <Input
@@ -35,7 +37,7 @@ export function CashAmountInput({ label, value, refused, onChangeText }: CashAmo
       onChangeText={onChangeText}
       keyboardType="numeric"
       helperText={t('trade.cashHelper')}
-      error={refused ? refusedText : undefined}
+      error={issueText}
       containerStyle={styles.field}
     />
   );

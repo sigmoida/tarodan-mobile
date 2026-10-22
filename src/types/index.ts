@@ -13,6 +13,10 @@ export * from './offer';
 // Trade types
 export * from './trade';
 
+// The ceiling of an agreed amount: offer, counter-offer, trade cash (vendored from tarodan-app
+// `packages/types`)
+export * from './negotiated-amount';
+
 // Message types
 export * from './message';
 

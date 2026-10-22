@@ -51,4 +51,25 @@ describe('useCashAmount', () => {
     act(() => result.current.resetCashAmount('12,345'));
     expect(result.current).toMatchObject({ cashAmount: '12,345', cashRefused: true });
   });
+
+  it("an amount above the API's ceiling stays as typed and is the issue until it is lowered", () => {
+    const { result } = renderHook(() => useCashAmount());
+    act(() => result.current.changeCashText('9999999'));
+    expect(result.current).toMatchObject({ cashAmount: '9999999', cashRefused: false, cashIssue: null });
+    act(() => result.current.changeCashText('99999990'));
+    expect(result.current).toMatchObject({ cashAmount: '99999990', cashRefused: false, cashIssue: 'aboveMax' });
+    // A refused change on top reports the refusal first; the kept text is still above the ceiling.
+    act(() => result.current.changeCashText('99999990,505'));
+    expect(result.current).toMatchObject({ cashAmount: '99999990', cashIssue: 'refused' });
+    act(() => result.current.changeCashText('9999999,01'));
+    expect(result.current.cashIssue).toBe('aboveMax');
+    act(() => result.current.changeCashText('9999999'));
+    expect(result.current.cashIssue).toBeNull();
+  });
+
+  it('a prefill above the ceiling blocks sending too', () => {
+    const { result } = renderHook(() => useCashAmount());
+    act(() => result.current.resetCashAmount('10000000'));
+    expect(result.current.cashIssue).toBe('aboveMax');
+  });
 });

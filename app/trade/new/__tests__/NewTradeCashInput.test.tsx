@@ -90,6 +90,17 @@ describe('new trade · cash field', () => {
     expect(announce).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps an amount above the API's ceiling as typed and shows the ceiling copy in the error slot", () => {
+    const { input, current } = render();
+    fireEvent.changeText(input, '10000000');
+    expect(current()).toBe('10000000');
+    expect(screen.getByText("Tutar 9.999.999 TL'yi aşamaz.")).toBeOnTheScreen();
+    expect(screen.queryByText(CASH_HELPER)).toBeNull();
+    fireEvent.changeText(input, '9999999');
+    expect(screen.queryByText("Tutar 9.999.999 TL'yi aşamaz.")).toBeNull();
+    expect(screen.getByText(CASH_HELPER)).toBeOnTheScreen();
+  });
+
   it('does not warn when only letters or spaces are dropped', () => {
     const { input } = render();
     fireEvent.changeText(input, '12 TL');
