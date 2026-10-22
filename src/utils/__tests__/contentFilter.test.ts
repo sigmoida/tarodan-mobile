@@ -4,7 +4,7 @@
  * endpoint'i döndürüyor (bearer'lı yükleme, bkz. AppImage.test.tsx) ama bazı
  * yollarda çıplak S3 key / relatif yol da dönebilir — bu durumda kullanıcı
  * baloncukta ham `[IMG:dev/messages/x.jpg]` metnini görüyordu ve
- * `formatMessagePreview` sohbet listesinde "📷 Fotoğraf" yerine ham metni
+ * `formatMessagePreview` sohbet listesinde "Fotoğraf" yerine ham metni
  * basıyordu. Regex şemasız değerleri de kabul edecek şekilde genişletildi;
  * çözüm `resolveImageUrl`'e bırakılır (bu dosyanın kapsamı dışında).
  */
@@ -167,32 +167,32 @@ describe('parseMessageContent — mutlak http(s) hedefler', () => {
     expect(parseMessageContent(`[IMG:${upper}]`).images).toEqual([upper]);
   });
 
-  it('eski https görseli önizlemede 📷 Fotoğraf basar', () => {
-    expect(formatMessagePreview('[IMG:https://cdn.x.com/a.jpg]')).toBe('📷 Fotoğraf');
+  it('eski https görseli önizlemede Fotoğraf basar', () => {
+    expect(formatMessagePreview('[IMG:https://cdn.x.com/a.jpg]')).toBe('Fotoğraf');
   });
 
-  it('reddedilen işaret metinde görünmez ve önizlemede 📷 basmaz', () => {
+  it('reddedilen işaret metinde görünmez ve önizlemede fotoğraf etiketi basmaz', () => {
     expect(parseMessageContent('bak [IMG:https://x@evil.example/x.jpg]').text).toBe('bak');
     expect(formatMessagePreview('[IMG:https://x@evil.example/x.jpg]')).toBe('');
   });
 
-  it('formatMessagePreview reddedilen hedef için 📷 Fotoğraf BASMAZ', () => {
+  it('formatMessagePreview reddedilen hedef için Fotoğraf BASMAZ', () => {
     expect(formatMessagePreview('[IMG:file:///etc/passwd]')).toBe('');
     expect(formatMessagePreview('selam [IMG:javascript:alert(1)]')).toBe('selam');
   });
 });
 
-describe('formatMessagePreview — hem mutlak URL hem çıplak key için 📷 Fotoğraf basar (task 4)', () => {
+describe('formatMessagePreview — hem mutlak URL hem çıplak key için Fotoğraf basar (task 4)', () => {
   it('mutlak URL', () => {
-    expect(formatMessagePreview(`[IMG:${OWN}]`)).toBe('📷 Fotoğraf');
+    expect(formatMessagePreview(`[IMG:${OWN}]`)).toBe('Fotoğraf');
   });
 
   it('çıplak S3 key — düzeltmeden önce ham metin sızıyordu', () => {
-    expect(formatMessagePreview('[IMG:dev/messages/x.jpg]')).toBe('📷 Fotoğraf');
+    expect(formatMessagePreview('[IMG:dev/messages/x.jpg]')).toBe('Fotoğraf');
   });
 
   it('metin + çıplak key birlikte', () => {
-    expect(formatMessagePreview('bak bu [IMG:dev/messages/x.jpg]')).toBe('bak bu 📷 Fotoğraf');
+    expect(formatMessagePreview('bak bu [IMG:dev/messages/x.jpg]')).toBe('Fotoğraf: bak bu');
   });
 
   it('görsel yoksa metni aynen döner', () => {

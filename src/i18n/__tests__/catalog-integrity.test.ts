@@ -54,6 +54,30 @@ describe('katalog anahtar iskeleti', () => {
   });
 });
 
+describe('emoji ve piktogram yok', () => {
+  /**
+   * Copy rule: no emoji, pictographs or decorative arrows in user-facing text; use theme
+   * icons or words (" > " for paths). Same rule as tarodan-app's catalog gate
+   * (`packages/i18n/scripts/check-catalog.mjs` FORBIDDEN_GLYPH), lifted verbatim so synced
+   * values pass both: Extended_Pictographic plus flags, skin tones, keycap, VS16 and ZWJ,
+   * text-style stars/checks/crosses, the Arrows block and ASCII arrows. The legal marks
+   * (c), (r) and (tm) are typography and stay allowed.
+   */
+  const PICTOGRAPH =
+    /(?![\u00A9\u00AE\u2122])\p{Extended_Pictographic}|\p{Regional_Indicator}|\p{Emoji_Modifier}|\u20E3|\uFE0F|\u200D|[\u2605\u2606\u2713\u2714\u2715\u2717\u2190-\u21FF]|->|<-|=>/u;
+
+  it('hiçbir katalog değerinde piktogram yok', () => {
+    const offenders: string[] = [];
+    for (const [locale, catalog] of [['tr', tr], ['en', en]] as const) {
+      for (const key of flatten(catalog)) {
+        const value = key.split('.').reduce((o: any, k) => o[k], catalog) as string;
+        if (PICTOGRAPH.test(value)) offenders.push(`${locale}:${key} → ${value}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('ICU kesme işareti kaçışı', () => {
   /**
    * ICU'da tek tırnak, hemen ardından `{` ya da `}` gelirse ALINTI açar ve

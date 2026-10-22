@@ -35,8 +35,8 @@ describe('web ile eşitlenen ortak metinler', () => {
   });
 
   it('mağaza için nötrleştirilmiş metinlere dokunulmadı (üyelik/boost/yükseltme)', () => {
-    expect(get(tr, 'product.upgradeArrow')).toBe("Premium''a Geç →");
-    expect(get(en, 'product.upgradeArrow')).toBe('Upgrade →');
+    expect(get(tr, 'product.upgradeArrow')).toBe("Premium''a Geç");
+    expect(get(en, 'product.upgradeArrow')).toBe('Upgrade');
   });
 
   it('fiyat parametreli metinlerde ₺ yok (tutar formatPrice ile gelir)', () => {

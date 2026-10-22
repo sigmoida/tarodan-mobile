@@ -78,9 +78,12 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
             title={t('review.reviews')}
             badge={
               rating.hasRatings ? (
-                <Text variant="bodySm" weight="semibold" tone="heading" testID="seller-reviews-average">
-                  ★ {rating.average.toFixed(1)} ({rating.total})
-                </Text>
+                <View style={styles.reviewsAverage} testID="seller-reviews-average">
+                  <Icon name="star" variant="solid" size={theme.iconSize.sm} color={theme.colors.warning[500]!} />
+                  <Text variant="bodySm" weight="semibold" tone="heading">
+                    {rating.average.toFixed(1)} ({rating.total})
+                  </Text>
+                </View>
               ) : null
             }
           >
