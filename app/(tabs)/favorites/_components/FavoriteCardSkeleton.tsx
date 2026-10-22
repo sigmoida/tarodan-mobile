@@ -7,10 +7,13 @@ const { radius, spacing } = theme;
 
 const ROWS = 4;
 
-/** Tek favori kartı iskeleti: kartın sol kenarını dolduran kare görsel + satıcı / ürün adı + fiyat satırı. */
-function FavoriteCardSkeleton() {
+/**
+ * One favorite card skeleton: the square image on the card's left edge, seller and product name,
+ * and the price row. Also drawn for an optimistic row whose real row has not arrived yet.
+ */
+export function FavoriteCardSkeleton({ testID }: { testID?: string } = {}) {
   return (
-    <Card variant="bordered" padding={0} style={cardStyles.card}>
+    <Card variant="bordered" padding={0} style={cardStyles.card} testID={testID}>
       <View style={cardStyles.cardContent}>
         <SkeletonBlock width={THUMB} height={THUMB} borderRadius={0} />
         <View style={cardStyles.productInfo}>

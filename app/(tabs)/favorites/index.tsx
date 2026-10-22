@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, EmptyState, ErrorState, pageListContentStyle, useDelayedLoading, usePageScrollValue } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
 import { useStableCallback } from '@/hooks/useStableCallback';
-import type { WishlistItem } from '@/hooks/useFavorites';
+import { isOptimisticFavorite, type WishlistItem } from '@/hooks/useFavorites';
 import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
@@ -19,7 +19,7 @@ import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { useFavoritesScreen } from './_hooks/useFavoritesScreen';
 import { styles } from './_lib/styles';
 import { FavoriteCard } from './_components/FavoriteCard';
-import { FavoritesSkeleton } from './_components/FavoriteCardSkeleton';
+import { FavoriteCardSkeleton, FavoritesSkeleton } from './_components/FavoriteCardSkeleton';
 
 const favoriteKey = (item: WishlistItem) => item.id;
 
@@ -37,10 +37,15 @@ function FavoritesScreen() {
   // Kararlı renderItem + memo'lu kart: işleyiciler referans-kararlı (en güncel `f`'i çağırır), sepet
   // durumu kartın kendi seçicisinde — ekran render olsa da satırlar yeniden çizilmez.
   const onRemove = useStableCallback(f.handleRemove);
+  // An optimistic row (add still in flight) is a loading card, like web's pending tile: it has no
+  // real price, stock, cap or seller, so it must not offer the cart action.
   const renderFavorite = useCallback(
-    ({ item }: { item: WishlistItem }) => (
-      <FavoriteCard item={item} onRemove={onRemove} />
-    ),
+    ({ item }: { item: WishlistItem }) =>
+      isOptimisticFavorite(item) ? (
+        <FavoriteCardSkeleton testID={`favorite-pending-${item.productId}`} />
+      ) : (
+        <FavoriteCard item={item} onRemove={onRemove} />
+      ),
     [onRemove],
   );
 

@@ -20,13 +20,28 @@ export interface WishlistItem {
     status: string;
     /** Units still buyable (`GET /wishlist` `availableQuantity`). Missing = unlimited stock. */
     availableQuantity?: number;
+    /**
+     * Most units one order may hold (`GET /wishlist` `maxQuantityPerOrder`). Missing = no per-order
+     * limit. The cart line added from Favorites carries it (`cartItemFromListing`).
+     */
+    maxQuantityPerOrder?: number;
     seller: {
-      id: string;
+      /** Missing when the row has no seller id; never `''` (the card rule and cart line read it as a real id). */
+      id?: string;
       displayName: string;
     };
   };
   addedAt: string;
 }
+
+/** Id prefix of an optimistic row: a favorite add whose real row has not arrived yet. */
+const OPTIMISTIC_ID_PREFIX = 'temp-';
+
+/**
+ * An optimistic row (placeholder title, price 0, no stock, cap or seller): the screen draws it as a
+ * loading card, never as a listing with a cart action (web: pending adds are loading tiles).
+ */
+export const isOptimisticFavorite = (item: WishlistItem): boolean => item.id.startsWith(OPTIMISTIC_ID_PREFIX);
 
 /** Veri yokken sabit boş liste: `items` kimliği render'lar arasında değişmez (türetilen Set/memo'lar boşuna yenilenmez). */
 const NO_ITEMS: WishlistItem[] = [];
@@ -72,11 +87,27 @@ function toPositiveNumber(v: unknown): number | undefined {
   return typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
-/** Non-negative finite number (string accepted; 0 is valid: out of stock) or `undefined` (field missing = unlimited). */
+/**
+ * Units still buyable (string accepted). Only a missing field (`null`, `undefined`, `''`) means
+ * unlimited stock (`undefined`). The API never sends a negative or non-numeric value (its
+ * `getAvailableQuantity` clamps at 0), so such a value fails closed to 0 (out of stock) instead of
+ * reading as unlimited.
+ */
 function toQuantity(v: unknown): number | undefined {
   if (v == null || v === '') return undefined;
   const n = typeof v === 'string' ? Number(v) : v;
-  return typeof n === 'number' && Number.isFinite(n) && n >= 0 ? n : undefined;
+  return typeof n === 'number' && Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+}
+
+/** A present id as a string (the server may send a number); a missing or empty one is `undefined`. */
+function toOptionalId(v: unknown): string | undefined {
+  return v == null || v === '' ? undefined : String(v);
+}
+
+/** The per-order cap: a positive integer (string accepted), else `undefined` (no per-order limit). */
+function toPerOrderCap(v: unknown): number | undefined {
+  const n = toPositiveNumber(v);
+  return n !== undefined && Number.isInteger(n) ? n : undefined;
 }
 
 /**
@@ -102,8 +133,9 @@ export function mapWishlist(data: any, t: TFunction): WishlistItem[] {
         condition: item.productCondition || item.product?.condition || 'good',
         status: item.productStatus || item.product?.status || 'active',
         availableQuantity: toQuantity(item.availableQuantity ?? item.product?.availableQuantity),
+        maxQuantityPerOrder: toPerOrderCap(item.maxQuantityPerOrder ?? item.product?.maxQuantityPerOrder),
         seller: {
-          id: item.sellerId || item.product?.seller?.id || '',
+          id: toOptionalId(item.sellerId || item.product?.seller?.id),
           displayName: item.sellerName || item.product?.seller?.displayName || t('product.seller'),
         },
       },
@@ -184,7 +216,7 @@ export function useFavorites() {
     const alreadyThere = prev.some((i) => sameProduct(i.productId, productId));
     if (!alreadyThere) {
       const optimisticItem: WishlistItem = {
-        id: `temp-${productId}`,
+        id: `${OPTIMISTIC_ID_PREFIX}${productId}`,
         productId,
         product: {
           id: productId,
@@ -193,7 +225,7 @@ export function useFavorites() {
           images: [],
           condition: 'good',
           status: 'active',
-          seller: { id: '', displayName: t('product.seller') },
+          seller: { displayName: t('product.seller') },
         },
         addedAt: new Date().toISOString(),
       };
