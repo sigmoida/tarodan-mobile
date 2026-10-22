@@ -15,11 +15,11 @@ export interface OfferPreset {
 }
 
 /**
- * Liste fiyatından −%5 / −%10 / −%15 teklif tutarları (tam TL'ye yuvarlanır). Geçersiz olanlar
- * düşer: asgari teklifin (%50) altı ya da yuvarlanınca liste fiyatına eşit/üstü (çok düşük fiyatlar);
- * aynı tutara yuvarlanan yüzdelerden yalnız ilki kalır. `floor` (admin fiyat tabanı) altındakiler de düşer.
- * An amount above the API's ceiling of an agreed amount (`TL_NEGOTIATED_AMOUNT_MAX`) is dropped too:
- * the API would refuse it.
+ * Offer amounts at -5% / -10% / -15% of the list price, rounded to whole TL. Invalid ones are
+ * dropped: below the minimum offer (50%), or equal to or above the list price once rounded (very
+ * low prices); of percentages that round to the same amount only the first stays. Amounts below
+ * `floor` (the admin price floor) are dropped too, and so is an amount above the API's ceiling of
+ * an agreed amount (`TL_NEGOTIATED_AMOUNT_MAX`): the API would refuse it.
  */
 export function offerPresets(listPrice: number, floor: number | null = null): OfferPreset[] {
   if (!Number.isFinite(listPrice) || listPrice <= 0) return [];

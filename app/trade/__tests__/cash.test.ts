@@ -130,10 +130,18 @@ describe('cashInputValue', () => {
 });
 
 describe("parseCashAmount above the API's ceiling", () => {
-  it.each(['10000000', '9999999,01', '99999999,99'])('%p is no amount to send (web: cashAmountValue)', (raw) => {
+  it.each(['10000000', '9999999,01', '99999999,99'])('%p is no amount for the summary and the preview', (raw) => {
     expect(parseCashAmount(raw)).toBeUndefined();
-    expect(signedCashAmount(raw, 'offer')).toBeUndefined();
-    expect(signedCashAmount(raw, 'request')).toBeUndefined();
+  });
+
+  it.each(['10000000', '9999999,01'])('%p never goes out as "no cash": the payload builder throws', (raw) => {
+    expect(() => signedCashAmount(raw, 'offer')).toThrow();
+    expect(() => signedCashAmount(raw, 'request')).toThrow();
+  });
+
+  it('the ceiling itself is sent, signed', () => {
+    expect(signedCashAmount('9999999', 'offer')).toBe(9999999);
+    expect(signedCashAmount('9999999', 'request')).toBe(-9999999);
   });
 
   it('is not a typing refusal: the mask keeps the text so the field can say why', () => {

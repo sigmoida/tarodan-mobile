@@ -38,9 +38,15 @@ export function parseCashAmount(raw: string | null | undefined): number | undefi
 
 /**
  * The `cashAmount` of the offer payload: positive when I pay, negative when they pay, and
- * `undefined` (left out, never `0` or `-0`) when there is no amount, as on web.
+ * `undefined` (left out, never `0` or `-0`) when there is no amount, as on web. An amount above
+ * the API's ceiling throws instead of going out as "no cash": the screens block it first
+ * (`useCashAmount().cashIssue`), so this only stops a caller that skipped that check.
  */
 export function signedCashAmount(raw: string, direction: CashDirection): number | undefined {
+  const parsed = parseTlAmount(raw);
+  if (parsed.status === 'ok' && exceedsTlNegotiatedAmountMax(parsed.amount)) {
+    throw new Error('cash amount is above the negotiated amount ceiling');
+  }
   const amount = parseCashAmount(raw);
   if (amount === undefined) return undefined;
   return direction === 'offer' ? amount : -amount;
@@ -79,8 +85,9 @@ export function nextCashInput(previous: string, typed: string): string {
  * Whether `nextCashInput` refuses this typed or pasted text (and keeps the previous value), so a
  * field can tell the user instead of dropping the change silently. `nextCashInput` decides with
  * this function, so the two cannot disagree, and the shared parser decides here, so the field
- * never holds text that `parseCashAmount` would refuse. It depends on the typed text only;
- * stripped characters (letters, spaces) are not a refusal.
+ * never holds text the parser refuses. It may hold an amount above the API's ceiling, which
+ * `parseCashAmount` reads as no amount and `useCashAmount().cashIssue` reports. It depends on the
+ * typed text only; stripped characters (letters, spaces) are not a refusal.
  */
 export function isCashInputRefused(typed: string): boolean {
   return parseTlAmount(stripCashInput(typed)).status === 'refused';

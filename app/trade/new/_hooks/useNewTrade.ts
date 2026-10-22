@@ -49,7 +49,7 @@ export function useNewTrade() {
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1); // 1: Select my items, 2: Select their items, 3: Review
-  const { cashAmount, cashRefused, cashIssue, changeCashText } = useCashAmount();
+  const { cashAmount, cashIssue, changeCashText } = useCashAmount();
   const [cashDirection, setCashDirection] = useState<CashDirection>('offer');
   const [message, setMessage] = useState('');
   const [tradeAddressId, setTradeAddressId] = useState<string | null>(null);
@@ -279,7 +279,6 @@ export function useNewTrade() {
     selectedMyItems,
     selectedTheirItems,
     cashAmount,
-    cashRefused,
     cashIssue,
     changeCashText,
     cashDirection,

@@ -50,7 +50,7 @@ export function useTradeCounter() {
 
   const trade = tradeQuery.data;
 
-  const { cashAmount, cashRefused, cashIssue, changeCashText, resetCashAmount } = useCashAmount();
+  const { cashAmount, cashIssue, changeCashText, resetCashAmount } = useCashAmount();
   const [cashDirection, setCashDirection] = useState<CashDirection>('offer');
   const [message, setMessage] = useState('');
   const [initializedId, setInitializedId] = useState<string | null>(null);
@@ -244,7 +244,6 @@ export function useTradeCounter() {
     selectedMine,
     selectedTheirs,
     cashAmount,
-    cashRefused,
     cashIssue,
     changeCashText,
     cashDirection,

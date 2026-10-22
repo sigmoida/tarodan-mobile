@@ -131,7 +131,7 @@ describe('new trade · a refused cash amount blocks the wizard (web parity)', ()
       act(() => hook.result.current.changeCashText(typed));
     }
     expect(hook.result.current.cashAmount).toBe('1.00');
-    expect(hook.result.current.cashRefused).toBe(true);
+    expect(hook.result.current.cashIssue).toBe('refused');
 
     // Step 2 does not go on to the review, and sending is refused too.
     act(() => hook.result.current.goToReview());
@@ -142,11 +142,11 @@ describe('new trade · a refused cash amount blocks the wizard (web parity)', ()
     expect(errorToast).toHaveBeenCalledTimes(2);
     expect(errorToast).toHaveBeenCalledWith(trCatalog.validation.amountFormatRefused);
     expect(tradesApi.create).not.toHaveBeenCalled();
-    expect(hook.result.current.cashRefused).toBe(true);
+    expect(hook.result.current.cashIssue).toBe('refused');
 
     // An accepted change clears the refusal: the review opens and that amount is sent.
     act(() => hook.result.current.changeCashText('1000'));
-    expect(hook.result.current.cashRefused).toBe(false);
+    expect(hook.result.current.cashIssue).toBeNull();
     act(() => hook.result.current.goToReview());
     expect(hook.result.current.step).toBe(3);
     await act(async () => {
@@ -192,7 +192,7 @@ describe('new trade · a refused cash amount blocks the wizard (web parity)', ()
     act(() => hook.result.current.changeCashText('12,50'));
     act(() => hook.result.current.changeCashText(typed));
     expect(hook.result.current.cashAmount).toBe('12,50');
-    expect(hook.result.current.cashRefused).toBe(true);
+    expect(hook.result.current.cashIssue).toBe('refused');
     await act(async () => {
       await hook.result.current.handleSubmit();
     });

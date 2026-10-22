@@ -7,13 +7,14 @@ import { isCashInputRefused, nextCashInput } from '../_lib/cash';
  * The cash amount field state of a trade offer, shared by the new-trade wizard and the counter
  * offer. Typed or pasted text goes through the `nextCashInput` mask, and `cashRefused` is true
  * while the last typed change was refused. A refused change keeps the previous (sendable) text,
- * so without a guard "1.000" typed key by key would stop at "1.00" and send 1 TL. As on web, the
- * screens refuse to go on (`validation.amountFormatRefused`) while `cashRefused` is true, until the user
- * makes an accepted change. The payload still comes from `cashAmount` only.
+ * so without a guard "1.000" typed key by key would stop at "1.00" and send 1 TL, so a refused
+ * change is an issue until the user makes an accepted change. The payload still comes from
+ * `cashAmount` only.
  *
  * An amount above the API's ceiling is kept as typed (it is an amount, only too large), so that
  * issue follows the text, not the last change. `cashIssue` is what blocks sending and what the
- * field shows: a refused change first, then the ceiling (`validation.amountAboveMax`).
+ * field shows: a refused change first, then the ceiling (`validation.amountAboveMax`). As on
+ * web, the screens refuse to go on while it is set. `cashRefused` alone is not a send gate.
  */
 export function useCashAmount() {
   const [cashAmount, setCashAmount] = useState('');
