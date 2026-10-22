@@ -19,6 +19,7 @@ jest.mock('@/ui', () => ({
 
 const mockState = {
   isAuthenticated: true,
+  userId: null as string | null,
   items: [] as any[],
   // Sepet store'undaki satırlar (favori listesinden ayrı); kart `inCart` bunu okur.
   cartItems: [] as any[],
@@ -32,7 +33,10 @@ const mockState = {
 
 jest.mock('@/stores/authStore', () => ({
   useAuthStore: (sel?: (state: any) => unknown) => {
-    const state: any = ({ isAuthenticated: mockState.isAuthenticated });
+    const state: any = {
+      isAuthenticated: mockState.isAuthenticated,
+      user: mockState.userId == null ? null : { id: mockState.userId },
+    };
     return sel ? sel(state) : state;
   },
 }));
@@ -89,6 +93,7 @@ beforeEach(() => {
   mockState.removeByProductId.mockClear();
   mockState.isInCart.mockClear().mockReturnValue(false);
   mockState.isAuthenticated = true;
+  mockState.userId = null;
   mockState.items = [];
   mockState.cartItems = [];
 });
@@ -170,6 +175,65 @@ describe('J57 · favoriler ekranı — dolu liste', () => {
     renderWithProviders(<FavoritesScreen />);
     fireEvent.press(screen.getByText('Hot Wheels'));
     expect(pushMock).toHaveBeenCalledWith('/product/p1');
+  });
+});
+
+describe('card action rule (productCardAction, web parity)', () => {
+  const cart = (id: string) => screen.queryByTestId(`favorite-cart-${id}`);
+  const withProduct = (productId: string, patch: Record<string, unknown>) => {
+    const item = makeItem(productId);
+    Object.assign(item.product, patch);
+    return item;
+  };
+
+  it('shows the cart toggle for another seller\'s active, in-stock listing', () => {
+    mockState.userId = 'me';
+    mockState.items = [withProduct('p1', { availableQuantity: 3 })];
+    renderWithProviders(<FavoritesScreen />);
+    expect(cart('p1')).toBeOnTheScreen();
+  });
+
+  it('treats a missing availableQuantity as unlimited stock', () => {
+    mockState.userId = 'me';
+    mockState.items = [makeItem('p1')];
+    renderWithProviders(<FavoritesScreen />);
+    expect(cart('p1')).toBeOnTheScreen();
+  });
+
+  it('shows the cart toggle without a signed-in user id (the guest viewer case of the rule)', () => {
+    mockState.userId = null;
+    mockState.items = [makeItem('p1')];
+    renderWithProviders(<FavoritesScreen />);
+    expect(cart('p1')).toBeOnTheScreen();
+  });
+
+  it.each([
+    ['sold', { status: 'sold' }],
+    ['reserved', { status: 'reserved' }],
+    ['inactive', { status: 'inactive' }],
+  ])('hides the cart toggle for a %s listing and shows a status badge', (_name, patch) => {
+    mockState.userId = 'me';
+    mockState.items = [withProduct('p1', patch)];
+    renderWithProviders(<FavoritesScreen />);
+    expect(cart('p1')).toBeNull();
+    expect(screen.getByTestId('favorite-remove-p1')).toBeOnTheScreen();
+  });
+
+  it('hides the cart toggle and shows no badge when out of stock (availableQuantity 0)', () => {
+    mockState.userId = 'me';
+    mockState.items = [withProduct('p1', { availableQuantity: 0 })];
+    renderWithProviders(<FavoritesScreen />);
+    expect(cart('p1')).toBeNull();
+    expect(screen.queryByText('Satıldı')).toBeNull();
+    expect(screen.getByTestId('favorite-remove-p1')).toBeOnTheScreen();
+  });
+
+  it('hides the cart toggle for the viewer\'s own listing', () => {
+    mockState.userId = 's1'; // makeItem's seller id
+    mockState.items = [makeItem('p1')];
+    renderWithProviders(<FavoritesScreen />);
+    expect(cart('p1')).toBeNull();
+    expect(screen.getByTestId('favorite-remove-p1')).toBeOnTheScreen();
   });
 });
 

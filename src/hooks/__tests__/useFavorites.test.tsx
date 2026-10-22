@@ -89,6 +89,20 @@ describe('J112 · isInFavorites / getFavoriteCount', () => {
     expect(first!.product.originalPrice).toBe(100);
     expect(second!.product.originalPrice).toBeUndefined();
   });
+
+  it('maps availableQuantity (0 stays 0 = out of stock) and sellerId; a missing field stays undefined (unlimited)', async () => {
+    const { result } = await setup([
+      { ...srvItem('p1'), availableQuantity: 0, sellerId: 's1' },
+      { ...srvItem('p2'), availableQuantity: 4 },
+      srvItem('p3'),
+    ]);
+    await waitFor(() => expect(result.current.getFavoriteCount()).toBe(3));
+    const [a, b, c] = result.current.items;
+    expect(a!.product.availableQuantity).toBe(0);
+    expect(a!.product.seller.id).toBe('s1');
+    expect(b!.product.availableQuantity).toBe(4);
+    expect(c!.product.availableQuantity).toBeUndefined();
+  });
 });
 
 describe('J21 · favoriye ekleme (addToFavorites optimistic)', () => {

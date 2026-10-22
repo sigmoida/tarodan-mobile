@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { AppImage } from '@/components/AppImage';
 import { ProductPrice } from '@/components/product';
+import { useProductCardAction } from '@/components/product/ProductCardAction';
 import { useCartStore } from '@/stores/cartStore';
 import type { WishlistItem } from '@/hooks/useFavorites';
 import { styles } from '../_lib/styles';
@@ -12,15 +13,18 @@ import { styles } from '../_lib/styles';
 const { colors } = theme;
 
 /**
- * Tek favori satırı:
+ * One favorites row:
  *
- *   [görsel ]  **Satıcı adı**
- *   [boydan ]  Ürün adı (soluk, en çok 2 satır)
- *   [boya   ]  1.234,50 TL                [♥] [🛒]
+ *   [image ]  **Seller name**
+ *   [full  ]  Product title (muted, up to 2 lines)
+ *   [height]  1.234,50 TL                [heart] [cart]
  *
- * Görsel kartın solunu boydan boya kaplar. Kalp favoriden çıkarır; sepet düğmesi ürün sepette değilse
- * ekler, sepetteyse sepete gider (dolu ikon). Satışta olmayan üründe sepet yerine durum rozeti. Kalp ve
- * sepet navigasyon Pressable'ının DIŞINDA (kardeş) — iç içe dokunulabilirde ebeveyn dokunuşu yutabiliyor.
+ * The image fills the card's left edge. The heart removes the favorite. The cart button follows the
+ * shared card rule (`productCardAction`, same as web): it shows only for another seller's active,
+ * in-stock listing; it adds the product, or opens the cart when it is already there (filled icon).
+ * A sold or inactive listing shows a status badge in its place; an out-of-stock or own listing shows
+ * nothing. The heart and cart are SIBLINGS of the navigation Pressable, not nested in it (a nested
+ * pressable can swallow the parent's touch).
  */
 export const FavoriteCard = React.memo(function FavoriteCard({
   item,
@@ -35,7 +39,8 @@ export const FavoriteCard = React.memo(function FavoriteCard({
   const { t } = useTranslation();
   const { product } = item;
   const open = () => router.push(`/product/${item.productId}`);
-  const isActive = product.status === 'active';
+  // The shared card rule (web parity): the cart toggle only for another seller's active, in-stock listing.
+  const showCart = useProductCardAction(product).kind === 'add_to_cart';
   // Kart başına selector: yalnız bu ürünün sepet durumu değişince bu kart yeniden render olur.
   const inCart = useCartStore((s) => s.items.some((i) => i.productId === item.productId));
   const cartLabel = inCart ? t('product.goToCart') : t('product.addToCart');
@@ -75,7 +80,7 @@ export const FavoriteCard = React.memo(function FavoriteCard({
               testID={`favorite-remove-${item.productId}`}
               onPress={() => onRemove(item.productId)}
             />
-            {isActive ? (
+            {showCart ? (
               <IconButton
                 icon="shopping-cart"
                 iconVariant={inCart ? 'solid' : 'outline'}
@@ -85,11 +90,11 @@ export const FavoriteCard = React.memo(function FavoriteCard({
                 testID={`favorite-cart-${item.productId}`}
                 onPress={() => onCartAction(item)}
               />
-            ) : (
+            ) : product.status !== 'active' ? (
               <Badge variant="warning" size="xs" style={styles.statusBadge}>
                 {product.status === 'sold' ? t('product.statusSold') : t('product.statusInactive')}
               </Badge>
-            )}
+            ) : null}
           </View>
         </View>
       </View>

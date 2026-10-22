@@ -18,6 +18,8 @@ export interface WishlistItem {
     images: Array<{ url: string }>;
     condition: string;
     status: string;
+    /** Units still buyable (`GET /wishlist` `availableQuantity`). Missing = unlimited stock. */
+    availableQuantity?: number;
     seller: {
       id: string;
       displayName: string;
@@ -70,6 +72,13 @@ function toPositiveNumber(v: unknown): number | undefined {
   return typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
+/** Non-negative finite number (string accepted; 0 is valid: out of stock) or `undefined` (field missing = unlimited). */
+function toQuantity(v: unknown): number | undefined {
+  if (v == null || v === '') return undefined;
+  const n = typeof v === 'string' ? Number(v) : v;
+  return typeof n === 'number' && Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
 /**
  * Backend `GET /wishlist` yanıtını `WishlistItem[]`'e eşler. Backend, item'ları
  * ya düz alanlarla (productTitle/productImage…) ya da iç içe `product` ile
@@ -94,6 +103,7 @@ export function mapWishlist(data: any, t: TFunction): WishlistItem[] {
         images: item.productImage ? [{ url: item.productImage }] : (item.product?.images || []),
         condition: item.productCondition || item.product?.condition || 'good',
         status: item.productStatus || item.product?.status || 'active',
+        availableQuantity: toQuantity(item.availableQuantity ?? item.product?.availableQuantity),
         seller: {
           id: item.sellerId || item.product?.seller?.id || '',
           displayName: item.sellerName || item.product?.seller?.displayName || t('product.seller'),
