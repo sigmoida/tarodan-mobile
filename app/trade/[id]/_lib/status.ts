@@ -69,7 +69,8 @@ export type ShipmentChipMeta = {
   labelKey: MessageKey;
   bg: string;
   fg: string;
-  icon?: string;
+  /** Show the leading check icon (rendered by `ShipmentStatusChip`). */
+  done?: boolean;
 };
 
 /** Bilinmeyen kargo statüsü için varsayılan chip (typed labelKey). */
@@ -114,7 +115,7 @@ export const SHIPMENT_STATUS_CHIP: Record<string, ShipmentChipMeta> = {
     labelKey: "trade.shipmentStatus.delivered",
     bg: colors.success[50]!,
     fg: colors.success[600]!,
-    icon: "✓",
+    done: true,
   },
   failed: {
     labelKey: "trade.shipmentStatus.failed",

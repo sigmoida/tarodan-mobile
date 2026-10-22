@@ -54,6 +54,27 @@ describe('katalog anahtar iskeleti', () => {
   });
 });
 
+describe('emoji ve piktogram yok', () => {
+  /**
+   * Copy rule: no emoji, pictographs or decorative arrows in user-facing text; use theme
+   * icons or words (" > " for paths). Covers Extended_Pictographic (emoji, also the copyright
+   * sign), arrows, misc symbols, dingbats and variation selectors / ZWJ. The multiplication sign
+   * and the minus sign are math, not pictographs, and are not matched.
+   */
+  const PICTOGRAPH = /[\p{Extended_Pictographic}\u2190-\u21FF\u2B00-\u2BFF\u25A0-\u25FF\u2600-\u27BF]|\uFE0F|\u200D/u;
+
+  it('hiçbir katalog değerinde piktogram yok', () => {
+    const offenders: string[] = [];
+    for (const [locale, catalog] of [['tr', tr], ['en', en]] as const) {
+      for (const key of flatten(catalog)) {
+        const value = key.split('.').reduce((o: any, k) => o[k], catalog) as string;
+        if (PICTOGRAPH.test(value)) offenders.push(`${locale}:${key} → ${value}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('ICU kesme işareti kaçışı', () => {
   /**
    * ICU'da tek tırnak, hemen ardından `{` ya da `}` gelirse ALINTI açar ve

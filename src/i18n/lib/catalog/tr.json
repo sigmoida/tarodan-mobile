@@ -762,7 +762,7 @@
     "selectYear": "Yıl seçin",
     "releaseYearHelper": "Modelin çıkış yılı (isteğe bağlı)",
     "tradeEnabled": "Takas Aktif",
-    "upgradeArrow": "Premium''a Geç →",
+    "upgradeArrow": "Premium''a Geç",
     "preorder": "Ön Sipariş",
     "preorderHelper": "Ürün henüz stokta değil; çıkınca gönderilecek",
     "setBundle": "Set / Paket",
@@ -920,7 +920,7 @@
     "exploreMoreProducts": "Daha Fazla Ürün Keşfet"
   },
   "checkout": {
-    "addAnotherAddressForBilling": "Farklı fatura adresi için profil → Adreslerimden ikinci bir adres ekleyin veya yukarıda \"teslimat adresiyle aynı\" seçin.",
+    "addAnotherAddressForBilling": "Farklı fatura adresi için profil > Adreslerimden ikinci bir adres ekleyin veya yukarıda \"teslimat adresiyle aynı\" seçin.",
     "addFirstAddress": "İlk adresinizi ekleyin",
     "addNewAddress": "Yeni Adres Ekle",
     "address": "Adres",
@@ -1081,7 +1081,7 @@
     "shippingMethod": "Kargo Yöntemi",
     "shippingSelection": "Kargo Seçimi",
     "shippingWithCarrier": "Kargo (Sürat)",
-    "signInPrompt": "Üye misiniz? Giriş yapın →",
+    "signInPrompt": "Üye misiniz? Giriş yapın",
     "step1": "Adres",
     "step2": "Ödeme",
     "step3": "Onay",
@@ -1482,7 +1482,7 @@
       "subtitle": "Sistem her iki tarafa Sürat Kargo takip numarası tahsis etti. Aşağıdaki numara ile en yakın Sürat şubesine giderek ürününüzü teslim edin.",
       "yourShipment": "Sizin gönderiniz",
       "handIn": "Bu numarayla Sürat Kargo şubesine gidip ürününüzü teslim edin.",
-      "counterpartyDelivered": "✓ Karşı tarafın gönderisi de depoya ulaştı.",
+      "counterpartyDelivered": "Karşı tarafın gönderisi de depoya ulaştı.",
       "counterpartyInTransit": "Karşı tarafın gönderisi yolda.",
       "counterpartyCancelled": "Karşı tarafın gönderisi iptal edildi; yetkili ekibimiz devreye girecek.",
       "counterpartyFailed": "Karşı tarafın gönderisinde bir aksaklık oluştu; yetkili ekibimiz inceliyor.",
@@ -1598,7 +1598,7 @@
     "timeExpired": "Süre Doldu!",
     "dayShort": "g",
     "rejectTradeTitle": "Takası Reddet",
-    "profileAddressesLink": "Profil → Adresler",
+    "profileAddressesLink": "Profil > Adresler",
     "myTradesDesc": "Aktif ve geçmiş takas tekliflerini yönet.",
     "targetNotFoundDesc": "Takas etmek istediğiniz ürün bulunamadı veya artık mevcut değil.",
     "sendFailed": "Takas teklifi gönderilemedi",
@@ -1631,7 +1631,7 @@
     "cancelLockedTooltip": "Ürünlerden biri Tarodan deposuna ulaştı; iptal edilemez. Sorun varsa itiraz açın.",
     "itemReachedWarehouse": "Ürünlerden biri depoya ulaştı.",
     "shipInfoDesc": "Gönderim yapacağınız adresi ve kargo firmasını seçin.",
-    "noSavedAddresses": "Kayıtlı adres yok. <link>Profil → Adresler</link> bölümünden ekleyebilirsiniz.",
+    "noSavedAddresses": "Kayıtlı adres yok. <link>Profil > Adresler</link> bölümünden ekleyebilirsiniz.",
     "submitShipInfo": "Kargo Bilgisini Gönder",
     "warehouseBannerTitle": "Ürünleriniz Tarodan Deposunda",
     "warehouseBannerDesc": "Ekibimiz ürünleri inceliyor. İnceleme tamamlandığında bilgilendirileceksiniz.",
@@ -1853,7 +1853,7 @@
     "blockedContent": "Mesajınız uygunsuz içerik nedeniyle engellendi",
     "selectConversation": "Mesajlaşmak için bir konuşma seçin",
     "searchConversations": "Konuşmalarda ara",
-    "photoLabel": "📷 Fotoğraf",
+    "photoLabel": "Fotoğraf",
     "youPrefix": "Sen: ",
     "selectConversationTitle": "Bir sohbet seçin",
     "chooseThread": "Listeden bir sohbet seçin",
@@ -2164,7 +2164,7 @@
     "collectionsCount": "{count} koleksiyon",
     "startBuildingToday": "Koleksiyonunuzu bugün oluşturmaya başlayın",
     "browsePlaceholder": "Koleksiyon ara...",
-    "browseSectionTitle": "📚 Koleksiyonlar",
+    "browseSectionTitle": "Koleksiyonlar",
     "browseEmptyTitle": "Koleksiyon Bulunamadı",
     "statModel": "Model",
     "statViews": "Görüntülenme",
@@ -2298,7 +2298,7 @@
       "reasonMessage": "Mesajınıza yanıt geldiğinde hemen haberiniz olsun.",
       "reasonOffer": "Teklifiniz kabul edildiğinde ya da karşı teklif geldiğinde hemen haberiniz olsun.",
       "reasonOrder": "Siparişiniz kargoya verildiğinde ve teslim edildiğinde haberiniz olsun.",
-      "detail": "Bildirim türlerini istediğiniz zaman Ayarlar → Bildirimler'den değiştirebilirsiniz.",
+      "detail": "Bildirim türlerini istediğiniz zaman Ayarlar > Bildirimler'den değiştirebilirsiniz.",
       "allow": "Bildirimleri Aç",
       "later": "Şimdi Değil"
     }
@@ -2656,7 +2656,7 @@
       "imageAlt": "Diecast model araç koleksiyonu"
     },
     "seeAll": "Tümünü gör",
-    "viewGarage": "Garajını incele →",
+    "viewGarage": "Garajını incele",
     "sponsoredProducts": "Sponsorlu Ürünler",
     "loadingProducts": "Ürünler yükleniyor...",
     "noProductsYet": "Henüz ürün yok",
@@ -2665,7 +2665,7 @@
     "companyCollections": "Koleksiyonları",
     "featuredCollectionCount": "{count} araçlık koleksiyon",
     "checkApiConnection": "API bağlantısını kontrol edin",
-    "businessBadge": "👑 Business",
+    "businessBadge": "Business",
     "reviewCountSuffix": "({count} yorum)",
     "noProductsYetHint": "Yeni ilanlar eklendikçe burada görünecek."
   },
@@ -2690,7 +2690,7 @@
     "relatedResults": "İlgili Sonuçlar",
     "placeholderLong": "Model, marka veya anahtar kelime...",
     "searching": "Aranıyor...",
-    "clearFilters": "Temizle ✕",
+    "clearFilters": "Temizle",
     "sellers": "Satıcılar",
     "savedTitle": "Kayıtlı Aramalarım",
     "savedDescription": "Kayıtlı aramalarınızı buradan yeniden çalıştırabilir veya silebilirsiniz.",
@@ -4171,7 +4171,7 @@
         "adjustRecordAfter": "alanı değişecek:",
         "oldValue": "Eski",
         "newValue": "Yeni",
-        "prodDataWarning": "⚠ PROD — gerçek veri değişecek.",
+        "prodDataWarning": "PROD — gerçek veri değişecek.",
         "record": "Kayıt",
         "dates": "Tarihler",
         "action": "Aksiyon",
@@ -4559,7 +4559,7 @@
         "unlimited": "Sınırsız",
         "startDate": "Başlangıç Tarihi",
         "endDate": "Bitiş Tarihi",
-        "flashSale": "⚡ Flash Sale (Flaş İndirim)",
+        "flashSale": "Flash Sale (Flaş İndirim)",
         "stackable": "Diğer indirimlerle kombine edilebilir",
         "free": "Bedava",
         "percentDiscount": "%{value} İndirim",
@@ -4880,7 +4880,7 @@
         "orderAmount": "Sipariş Tutarı",
         "uploadedAt": "Yüklenme",
         "replaced": "Değiştirildi",
-        "returnReference": "İade → {reference}",
+        "returnReference": "İade: {reference}",
         "filters": {
           "allTypes": "Tüm Türler",
           "allStatuses": "Tüm Durumlar",
@@ -5203,7 +5203,7 @@
         "cash": "Nakit",
         "paidBy": "Ödeyen",
         "disputed": "İtirazlı",
-        "disputedBadge": "⚠️ İtirazlı",
+        "disputedBadge": "İtirazlı",
         "resolveDispute": "İtirazı Çöz",
         "filterReviewQueue": "İnceleme kuyruğunu filtrele",
         "reviewQueueCount": "<value>{count}</value> takas inceleme bekliyor",
@@ -5530,8 +5530,8 @@
           "createAndTrack": "Gönderi Oluştur + Takip",
           "reference": "Referans",
           "step1": "1) Gönderi oluştur:",
-          "ok": "✓ başarılı",
-          "fail": "✗ hata",
+          "ok": "başarılı",
+          "fail": "hata",
           "step2": "2) Takip sorgula:",
           "singleEndpointHint": "Bir referans (OzelKargoTakipNo) ile tekil endpoint testi:",
           "refPlaceholder": "Referans (OzelKargoTakipNo)",
@@ -5993,7 +5993,7 @@
         "viewAllTrades": "Tüm takasları görüntüle",
         "noTrades": "Henüz takas yok",
         "counterpartyLabel": "Karşı taraf:",
-        "tradeOfferSummary": "{a} ürün ↔ {b} ürün",
+        "tradeOfferSummary": "{a} ürün karşılığında {b} ürün",
         "receivedRatingsTitle": "Alınan Değerlendirmeler",
         "noReceivedRatings": "Henüz değerlendirme yok",
         "givenRatingsTitle": "Verilen Değerlendirmeler",
@@ -6611,12 +6611,12 @@
         "title": "Şifremi Unuttum",
         "instructions": "Hesabının e-posta adresini gir; sana şifre sıfırlama bağlantısı gönderelim.",
         "submit": "Sıfırlama bağlantısı gönder",
-        "backToLogin": "← Girişe dön",
+        "backToLogin": "Girişe dön",
         "sentMessage": "Eğer <strong>{email}</strong> sistemde kayıtlıysa, şifre sıfırlama bağlantısı e-posta adresine gönderildi. Gelen kutunu (ve spam klasörünü) kontrol et.",
         "pageDescription": "Hesap şifrenizi sıfırlayın"
       },
       "layout": {
-        "copyright": "© 2026 Tarodan Marketplace. Tüm hakları saklıdır."
+        "copyright": "2026 Tarodan Marketplace. Tüm hakları saklıdır."
       },
       "validation": {
         "emailRequired": "E-posta gerekli",
@@ -6703,7 +6703,7 @@
         "message": "{productTitle} ürününüz için {amount} TL teklif aldınız."
       },
       "offerAccepted": {
-        "title": "Teklifiniz Kabul Edildi! 🎉",
+        "title": "Teklifiniz Kabul Edildi!",
         "message": "{productTitle} için teklifiniz kabul edildi. Hemen ödeyin!"
       },
       "offerRejected": {
@@ -6727,7 +6727,7 @@
         "message": "{productTitle} adlı ürün için verdiğiniz teklif, ürün satıldığı için iptal edildi."
       },
       "productApproved": {
-        "title": "İlanınız Yayında! 🎉",
+        "title": "İlanınız Yayında!",
         "message": "{productTitle} ilanınız onaylandı ve yayına alındı."
       },
       "productRejected": {
@@ -6735,7 +6735,7 @@
         "message": "{productTitle} ilanınız onaylanmadı. Neden: {reason}"
       },
       "productSold": {
-        "title": "Ürününüz Satıldı! 🎉",
+        "title": "Ürününüz Satıldı!",
         "message": "{productTitle} ürününüz {amount} TL'ye satıldı."
       },
       "paymentReceived": {
@@ -6751,7 +6751,7 @@
         "message": "Ürünleriniz için bir takas teklifi aldınız."
       },
       "tradeAccepted": {
-        "title": "Takas Kabul Edildi! 🎉",
+        "title": "Takas Kabul Edildi!",
         "message": "Takas teklifiniz kabul edildi. Lütfen kargoya verin."
       },
       "tradeRejected": {
@@ -6767,7 +6767,7 @@
         "message": "Takas paketiniz kargoya verildi. Takip no: {trackingNumber}"
       },
       "tradeCompleted": {
-        "title": "Takas Tamamlandı! 🎉",
+        "title": "Takas Tamamlandı!",
         "message": "Takas işlemi başarıyla tamamlandı!"
       },
       "newMessage": {
@@ -6775,11 +6775,11 @@
         "message": "{senderName}: {messagePreview}"
       },
       "priceDrop": {
-        "title": "Fiyat Düştü! 🔥",
+        "title": "Fiyat Düştü!",
         "message": "{productTitle} ürününün fiyatı {oldPrice} TL'den {newPrice} TL'ye düştü!"
       },
       "wishlistItemSold": {
-        "title": "Kaçırdınız! 😢",
+        "title": "Kaçırdınız!",
         "message": "Favorilerinize eklediğiniz {productTitle} satıldı."
       },
       "backInStock": {
@@ -6799,11 +6799,11 @@
         "message": "{userName} koleksiyonunuzu beğendi."
       },
       "productLiked": {
-        "title": "Ürününüz Beğenildi ❤️",
+        "title": "Ürününüz Beğenildi",
         "message": "{userName} {productTitle} ürününüzü favorilere ekledi."
       },
       "wishlistSold": {
-        "title": "Favori Ürününüz Satıldı 😢",
+        "title": "Favori Ürününüz Satıldı",
         "message": "Favorilerinize eklediğiniz {productTitle} satıldı."
       },
       "reviewReceived": {
@@ -6819,7 +6819,7 @@
         "message": "{tierName} üyeliğiniz sona erdi. Yenileyin ve avantajlardan yararlanın!"
       },
       "membershipUpgraded": {
-        "title": "Üyeliğiniz Yükseltildi! 🎉",
+        "title": "Üyeliğiniz Yükseltildi!",
         "message": "{tierName} üyeliğine hoş geldiniz! Yeni avantajlarınız aktif."
       },
       "listingExpiring": {
@@ -6831,19 +6831,19 @@
         "message": "{productTitle} ilanınız sona erdi. Yeniden yayınlayın."
       },
       "listingViewsMilestone": {
-        "title": "Tebrikler! 🎉",
+        "title": "Tebrikler!",
         "message": "{productTitle} ilanınız {viewCount} görüntülemeye ulaştı!"
       },
       "promotion": {
-        "title": "🎁 Özel Kampanya",
+        "title": "Özel Kampanya",
         "message": "{promotionTitle}"
       },
       "specialOffer": {
-        "title": "💎 Özel Teklif",
+        "title": "Özel Teklif",
         "message": "{offerDescription}"
       },
       "welcome": {
-        "title": "Tarodan'a Hoş Geldiniz! 🎉",
+        "title": "Tarodan'a Hoş Geldiniz!",
         "message": "Diecast model araba koleksiyoncuları platformuna hoş geldiniz."
       },
       "passwordReset": {
@@ -6855,11 +6855,11 @@
         "message": "E-postanızı doğrulamak için linke tıklayın."
       },
       "systemAnnouncement": {
-        "title": "📢 Duyuru",
+        "title": "Duyuru",
         "message": "{announcement}"
       },
       "boostExpired": {
-        "title": "🚀 Öne çıkarma süresi doldu",
+        "title": "Öne çıkarma süresi doldu",
         "message": "\"{productTitle}\" ilanının öne çıkarması bitti. Otomatik yenileme açıktı — tek tıkla yeniden öne çıkar."
       },
       "tradeAutoCancelled": {
@@ -6935,7 +6935,7 @@
         "message": "{refundNumber} numaralı iade talebine 48 saat içinde yanıt verilmediği için otomatik onaylandı."
       },
       "sellerApplicationApproved": {
-        "title": "Kurumsal Başvurunuz Onaylandı! 🎉",
+        "title": "Kurumsal Başvurunuz Onaylandı!",
         "message": "Kurumsal hesap başvurunuz onaylandı. Artık satıcı olarak ürün listeleyebilirsiniz."
       },
       "sellerApplicationRejected": {
@@ -7059,7 +7059,7 @@
       "membershipExpiredForAccept": "Üyeliğinizin süresi dolmuş görünüyor. Trade kabul etmek için Temel veya üstü üyeliğinizi yenileyin.",
       "membershipRequiredForCounter": "Karşı teklif göndermek için Temel veya üstü üyelik gereklidir. Üyeliğinizi yenileyin.",
       "noShipmentToConfirm": "Onaylanacak gönderim bulunamadı",
-      "noShippingAddress": "Takas için bir teslimat adresi ekleyin. Profil → Adreslerim üzerinden adres ekleyebilirsiniz.",
+      "noShippingAddress": "Takas için bir teslimat adresi ekleyin. Profil > Adreslerim üzerinden adres ekleyebilirsiniz.",
       "notAuthorizedForAction": "Bu takas işlemi için yetkiniz yok",
       "notAuthorizedToCancel": "Bu takası iptal etme yetkiniz yok",
       "notAuthorizedToView": "Bu takası görüntüleme yetkiniz yok",

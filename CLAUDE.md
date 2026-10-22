@@ -37,6 +37,9 @@ the reference targets (`see src/ui/CLAUDE.md › Loading`).
   (mobile `src/theme` is a synced copy); `@/ui` mirrors `@tarodan/ui` naming and
   variants. No ad-hoc colours, sizes or variants; add missing pieces to the shared
   layer first.
+- **Copy rules.** No emoji or pictographs in copy; use theme icons (`Icon` from `@/ui`)
+  or words (" > " for paths). `src/i18n/__tests__/catalog-integrity.test.ts` fails on
+  pictographs in catalog values.
 - **Fix what you touch.** Violations in the area you change are fixed in the same
   change; anything bigger goes to the tarodan-ops `backlog.md`.
 - Definition of Done: tarodan-ops `docs/definition-of-done.md` (every change, UI,

@@ -762,7 +762,7 @@
     "selectYear": "Select year",
     "releaseYearHelper": "Model's release year (optional)",
     "tradeEnabled": "Trade enabled",
-    "upgradeArrow": "Upgrade →",
+    "upgradeArrow": "Upgrade",
     "preorder": "Preorder",
     "preorderHelper": "Not in stock yet; ships once available",
     "setBundle": "Set / Bundle",
@@ -920,7 +920,7 @@
     "exploreMoreProducts": "Explore More Products"
   },
   "checkout": {
-    "addAnotherAddressForBilling": "Add another address in Profile → My addresses to use a different billing address, or select same as shipping above.",
+    "addAnotherAddressForBilling": "Add another address in Profile > My addresses to use a different billing address, or select same as shipping above.",
     "addFirstAddress": "Add your first address",
     "addNewAddress": "Add New Address",
     "address": "Address",
@@ -1081,7 +1081,7 @@
     "shippingMethod": "Shipping Method",
     "shippingSelection": "Shipping option",
     "shippingWithCarrier": "Shipping (Sürat)",
-    "signInPrompt": "Already a member? Sign in →",
+    "signInPrompt": "Already a member? Sign in",
     "step1": "Address",
     "step2": "Payment",
     "step3": "Confirm",
@@ -1482,7 +1482,7 @@
       "subtitle": "The system has assigned each party a Sürat Kargo tracking number. Use the number below to drop off your item at the nearest Sürat branch.",
       "yourShipment": "Your shipment",
       "handIn": "Take this number to a Sürat Kargo branch and hand in your item.",
-      "counterpartyDelivered": "✓ The other party's shipment has also reached the warehouse.",
+      "counterpartyDelivered": "The other party's shipment has also reached the warehouse.",
       "counterpartyInTransit": "The other party's shipment is on the way.",
       "counterpartyCancelled": "The other party's shipment was cancelled; our team will step in.",
       "counterpartyFailed": "There was an issue with the other party's shipment; our team is reviewing.",
@@ -1598,7 +1598,7 @@
     "timeExpired": "Time Expired!",
     "dayShort": "d",
     "rejectTradeTitle": "Reject Trade",
-    "profileAddressesLink": "Profile → Addresses",
+    "profileAddressesLink": "Profile > Addresses",
     "myTradesDesc": "Manage your active and past trade offers.",
     "targetNotFoundDesc": "The product you wanted to trade for could not be found or is no longer available.",
     "sendFailed": "Failed to send trade offer",
@@ -1631,7 +1631,7 @@
     "cancelLockedTooltip": "An item already reached the warehouse — cancel is no longer available. Open a dispute if needed.",
     "itemReachedWarehouse": "An item reached the warehouse.",
     "shipInfoDesc": "Select the address you will ship from and the carrier.",
-    "noSavedAddresses": "No saved addresses. Add one in <link>Profile → Addresses</link>.",
+    "noSavedAddresses": "No saved addresses. Add one in <link>Profile > Addresses</link>.",
     "submitShipInfo": "Submit Shipping Info",
     "warehouseBannerTitle": "Your items are at the Tarodan warehouse",
     "warehouseBannerDesc": "Our team is reviewing the items. You will be notified once the review is complete.",
@@ -1853,7 +1853,7 @@
     "blockedContent": "Your message was blocked due to inappropriate content",
     "selectConversation": "Select a conversation to start messaging",
     "searchConversations": "Search conversations",
-    "photoLabel": "📷 Photo",
+    "photoLabel": "Photo",
     "youPrefix": "You: ",
     "selectConversationTitle": "Select a conversation",
     "chooseThread": "Choose a thread from the list",
@@ -2164,7 +2164,7 @@
     "collectionsCount": "{count} collections",
     "startBuildingToday": "Start building your collection today",
     "browsePlaceholder": "Search collections...",
-    "browseSectionTitle": "📚 Collections",
+    "browseSectionTitle": "Collections",
     "browseEmptyTitle": "No Collections Found",
     "statModel": "Models",
     "statViews": "Views",
@@ -2298,7 +2298,7 @@
       "reasonMessage": "Know right away when you get a reply.",
       "reasonOffer": "Know right away when your offer is accepted or countered.",
       "reasonOrder": "Know when your order ships and is delivered.",
-      "detail": "You can change notification types anytime in Settings → Notifications.",
+      "detail": "You can change notification types anytime in Settings > Notifications.",
       "allow": "Turn On Notifications",
       "later": "Not Now"
     }
@@ -2656,7 +2656,7 @@
       "imageAlt": "Diecast model car collection"
     },
     "seeAll": "See all",
-    "viewGarage": "View their garage →",
+    "viewGarage": "View their garage",
     "sponsoredProducts": "Sponsored Items",
     "loadingProducts": "Loading items…",
     "noProductsYet": "No items yet",
@@ -2665,7 +2665,7 @@
     "companyCollections": "Their collections",
     "featuredCollectionCount": "{count}-vehicle collection",
     "checkApiConnection": "Check the API connection",
-    "businessBadge": "👑 Business",
+    "businessBadge": "Business",
     "reviewCountSuffix": "({count} reviews)",
     "noProductsYetHint": "New listings will appear here as they are added."
   },
@@ -2690,7 +2690,7 @@
     "relatedResults": "Related Results",
     "placeholderLong": "Model, brand or keyword…",
     "searching": "Searching…",
-    "clearFilters": "Clear ✕",
+    "clearFilters": "Clear",
     "sellers": "Sellers",
     "savedTitle": "My Saved Searches",
     "savedDescription": "Run your saved searches again or delete them here.",
@@ -4171,7 +4171,7 @@
         "adjustRecordAfter": "field will change:",
         "oldValue": "Old",
         "newValue": "New",
-        "prodDataWarning": "⚠ PROD — real data will change.",
+        "prodDataWarning": "PROD — real data will change.",
         "record": "Record",
         "dates": "Dates",
         "action": "Action",
@@ -4559,7 +4559,7 @@
         "unlimited": "Unlimited",
         "startDate": "Start Date",
         "endDate": "End Date",
-        "flashSale": "⚡ Flash Sale",
+        "flashSale": "Flash Sale",
         "stackable": "Can be combined with other discounts",
         "free": "Free",
         "percentDiscount": "{value}% Off",
@@ -4880,7 +4880,7 @@
         "orderAmount": "Order Amount",
         "uploadedAt": "Uploaded At",
         "replaced": "Replaced",
-        "returnReference": "Return → {reference}",
+        "returnReference": "Return: {reference}",
         "filters": {
           "allTypes": "All Types",
           "allStatuses": "All Statuses",
@@ -5203,7 +5203,7 @@
         "cash": "Cash",
         "paidBy": "Paid by",
         "disputed": "Disputed",
-        "disputedBadge": "⚠️ Disputed",
+        "disputedBadge": "Disputed",
         "resolveDispute": "Resolve Dispute",
         "filterReviewQueue": "Filter review queue",
         "reviewQueueCount": "<value>{count}</value> trades awaiting review",
@@ -5530,8 +5530,8 @@
           "createAndTrack": "Create Shipment + Track",
           "reference": "Reference",
           "step1": "1) Create shipment:",
-          "ok": "✓ success",
-          "fail": "✗ error",
+          "ok": "success",
+          "fail": "error",
           "step2": "2) Query tracking:",
           "singleEndpointHint": "Single endpoint test with a reference (OzelKargoTakipNo):",
           "refPlaceholder": "Reference (OzelKargoTakipNo)",
@@ -5993,7 +5993,7 @@
         "viewAllTrades": "View all trades",
         "noTrades": "No trades yet",
         "counterpartyLabel": "Counterparty:",
-        "tradeOfferSummary": "{a} items ↔ {b} items",
+        "tradeOfferSummary": "{a} items for {b} items",
         "receivedRatingsTitle": "Received Ratings",
         "noReceivedRatings": "No ratings yet",
         "givenRatingsTitle": "Given Ratings",
@@ -6611,12 +6611,12 @@
         "title": "Forgot Password",
         "instructions": "Enter your account's email address and we'll send you a password reset link.",
         "submit": "Send reset link",
-        "backToLogin": "← Back to login",
+        "backToLogin": "Back to login",
         "sentMessage": "If <strong>{email}</strong> is registered with us, a password reset link has been sent to that address. Check your inbox (and spam folder).",
         "pageDescription": "Reset your account password"
       },
       "layout": {
-        "copyright": "© 2026 Tarodan Marketplace. All rights reserved."
+        "copyright": "2026 Tarodan Marketplace. All rights reserved."
       },
       "validation": {
         "emailRequired": "Email is required",
@@ -6703,7 +6703,7 @@
         "message": "You received an offer of {amount} TL for your product {productTitle}."
       },
       "offerAccepted": {
-        "title": "Your Offer Was Accepted! 🎉",
+        "title": "Your Offer Was Accepted!",
         "message": "Your offer for {productTitle} was accepted. Pay now!"
       },
       "offerRejected": {
@@ -6727,7 +6727,7 @@
         "message": "Your offer for {productTitle} was cancelled because the product was sold."
       },
       "productApproved": {
-        "title": "Your Listing Is Live! 🎉",
+        "title": "Your Listing Is Live!",
         "message": "Your listing {productTitle} has been approved and published."
       },
       "productRejected": {
@@ -6735,7 +6735,7 @@
         "message": "Your listing {productTitle} was not approved. Reason: {reason}"
       },
       "productSold": {
-        "title": "Your Product Sold! 🎉",
+        "title": "Your Product Sold!",
         "message": "Your product {productTitle} sold for {amount} TL."
       },
       "paymentReceived": {
@@ -6751,7 +6751,7 @@
         "message": "You received a trade offer for your products."
       },
       "tradeAccepted": {
-        "title": "Trade Accepted! 🎉",
+        "title": "Trade Accepted!",
         "message": "Your trade offer was accepted. Please ship your package."
       },
       "tradeRejected": {
@@ -6767,7 +6767,7 @@
         "message": "Your trade package has been shipped. Tracking number: {trackingNumber}"
       },
       "tradeCompleted": {
-        "title": "Trade Completed! 🎉",
+        "title": "Trade Completed!",
         "message": "The trade was completed successfully!"
       },
       "newMessage": {
@@ -6775,11 +6775,11 @@
         "message": "{senderName}: {messagePreview}"
       },
       "priceDrop": {
-        "title": "Price Drop! 🔥",
+        "title": "Price Drop!",
         "message": "The price of {productTitle} dropped from {oldPrice} TL to {newPrice} TL!"
       },
       "wishlistItemSold": {
-        "title": "You Missed It! 😢",
+        "title": "You Missed It!",
         "message": "{productTitle}, which you added to your favorites, has been sold."
       },
       "backInStock": {
@@ -6799,11 +6799,11 @@
         "message": "{userName} liked your collection."
       },
       "productLiked": {
-        "title": "Your Product Was Liked ❤️",
+        "title": "Your Product Was Liked",
         "message": "{userName} added your product {productTitle} to their favorites."
       },
       "wishlistSold": {
-        "title": "Your Favorite Product Sold 😢",
+        "title": "Your Favorite Product Sold",
         "message": "{productTitle}, which you added to your favorites, has been sold."
       },
       "reviewReceived": {
@@ -6819,7 +6819,7 @@
         "message": "Your {tierName} membership has ended. Renew now and keep your benefits!"
       },
       "membershipUpgraded": {
-        "title": "Your Membership Was Upgraded! 🎉",
+        "title": "Your Membership Was Upgraded!",
         "message": "Welcome to {tierName} membership! Your new benefits are active."
       },
       "listingExpiring": {
@@ -6831,19 +6831,19 @@
         "message": "Your listing {productTitle} has ended. Republish it."
       },
       "listingViewsMilestone": {
-        "title": "Congratulations! 🎉",
+        "title": "Congratulations!",
         "message": "Your listing {productTitle} reached {viewCount} views!"
       },
       "promotion": {
-        "title": "🎁 Special Campaign",
+        "title": "Special Campaign",
         "message": "{promotionTitle}"
       },
       "specialOffer": {
-        "title": "💎 Special Offer",
+        "title": "Special Offer",
         "message": "{offerDescription}"
       },
       "welcome": {
-        "title": "Welcome to Tarodan! 🎉",
+        "title": "Welcome to Tarodan!",
         "message": "Welcome to the diecast model car collectors' platform."
       },
       "passwordReset": {
@@ -6855,11 +6855,11 @@
         "message": "Click the link to verify your email."
       },
       "systemAnnouncement": {
-        "title": "📢 Announcement",
+        "title": "Announcement",
         "message": "{announcement}"
       },
       "boostExpired": {
-        "title": "🚀 Boost period ended",
+        "title": "Boost period ended",
         "message": "The boost for your listing \"{productTitle}\" has ended. Auto-renew was on — boost it again with one click."
       },
       "tradeAutoCancelled": {
@@ -6935,7 +6935,7 @@
         "message": "Refund request {refundNumber} was approved automatically because it was not answered within 48 hours."
       },
       "sellerApplicationApproved": {
-        "title": "Your Business Application Was Approved! 🎉",
+        "title": "Your Business Application Was Approved!",
         "message": "Your business account application has been approved. You can now list products as a seller."
       },
       "sellerApplicationRejected": {
@@ -7059,7 +7059,7 @@
       "membershipExpiredForAccept": "Your membership appears to have expired. Renew your Basic or higher membership to accept a trade.",
       "membershipRequiredForCounter": "A Basic or higher membership is required to send a counter-offer. Please renew your membership.",
       "noShipmentToConfirm": "No shipment found to confirm",
-      "noShippingAddress": "Add a delivery address for the trade. You can add an address via Profile → My Addresses.",
+      "noShippingAddress": "Add a delivery address for the trade. You can add an address via Profile > My Addresses.",
       "notAuthorizedForAction": "You are not authorized to perform this trade action",
       "notAuthorizedToCancel": "You are not authorized to cancel this trade",
       "notAuthorizedToView": "You are not authorized to view this trade",

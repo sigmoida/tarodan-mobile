@@ -6,7 +6,7 @@
  *
  * Gerçek (mock'lanmamış) `react-i18next` kullanılıyor — bu dosya `t`'yi
  * anahtar yankılayan bir mock'a bağlamıyor, `jest.setup.ts`'teki gerçek tr
- * kataloğu devrede. Amaç: `product.upgradeArrow` ("Premium'a Geç →") gibi
+ * kataloğu devrede. Amaç: `product.upgradeArrow` ("Premium'a Geç") gibi
  * SERT kodlanmış olmayan ama tier adı taşıyan çevrilmiş metnin de gerçekten
  * kaybolduğunu kanıtlamak — anahtar-yankı mock'u bunu gizler.
  */

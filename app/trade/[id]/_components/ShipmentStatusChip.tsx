@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet } from "react-native";
-import { Pill } from "@/ui";
+import { Icon, Pill, theme } from "@/ui";
 import { SHIPMENT_STATUS_CHIP, SHIPMENT_CHIP_FALLBACK } from "../_lib/status";
 import type { TFn } from "../_lib/types";
 
@@ -21,9 +21,14 @@ export function ShipmentStatusChip({
       size="md"
       background={meta.bg}
       color={meta.fg}
+      icon={
+        meta.done ? (
+          <Icon name="check" size={theme.iconSize.sm} color={meta.fg} />
+        ) : undefined
+      }
       style={styles.chip}
     >
-      {`${meta.icon ? `${meta.icon} ` : ""}${t(meta.labelKey)}`}
+      {t(meta.labelKey)}
     </Pill>
   );
 }
