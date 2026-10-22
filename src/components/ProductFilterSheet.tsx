@@ -32,7 +32,7 @@ import {
   priceFilterIssue,
   priceFilterIssueMessage,
   priceFilterParam,
-  priceRangeIssue,
+  priceRangeIssues,
   type ProductFilters,
 } from '@/utils/productFilters';
 import type { ProductFilterOptions } from '@/hooks/useProductFilterOptions';
@@ -448,16 +448,17 @@ function FilterSheetBody({
  * Min/max price fields and the quick ranges (web `SidebarFilters` `PriceRange`). The fields keep the
  * typed text in `filters` (see `priceFilterBound`): the request, the chip and a saved search read only
  * the parsed bound, so refused text ("1.000") or a bound above the search maximum filters nothing and
- * shows its message (`priceFilterIssueMessage`) instead of searching for 1 TL or failing the search.
+ * shows its message (`priceFilterIssueMessage`, one per issue) instead of searching for 1 TL or
+ * failing the search.
  */
 function PriceRange({ filters, onChange }: Pick<Props, 'filters' | 'onChange'>) {
   const { t } = useTranslation();
   const minInvalid = priceFilterIssue(filters.minPrice) !== undefined;
   const maxInvalid = priceFilterIssue(filters.maxPrice) !== undefined;
-  const issue = priceRangeIssue(filters);
+  const issues = priceRangeIssues(filters);
   // No range is active while a field has an issue: its "" would match an open range bound ("1.000"
   // next to max 100 is not "0 - 100").
-  const bounds = issue
+  const bounds = issues.length
     ? null
     : `${priceFilterParam(filters.minPrice)}-${priceFilterParam(filters.maxPrice)}`;
   return (
@@ -510,8 +511,10 @@ function PriceRange({ filters, onChange }: Pick<Props, 'filters' | 'onChange'>) 
           />
         </View>
       </View>
-      {/* One message under the row (web), so the two fields stay aligned. */}
-      <FieldMessage error={issue ? priceFilterIssueMessage(issue, t) : undefined} />
+      {/* The messages go under the row (web), one per issue, so the two fields stay aligned. */}
+      {issues.map((issue) => (
+        <FieldMessage key={issue} error={priceFilterIssueMessage(issue, t)} />
+      ))}
     </View>
   );
 }

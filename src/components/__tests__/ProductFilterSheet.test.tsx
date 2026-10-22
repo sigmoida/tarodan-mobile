@@ -433,12 +433,12 @@ describe('ProductFilterSheet · price range (web SidebarFilters parity)', () => 
     expect(preset('1.000+ TL').props.accessibilityState).toMatchObject({ selected: false });
   });
 
-  it('shows the refusal first when one field is refused and the other above the max', () => {
+  it('shows both messages when one field is refused and the other above the max', () => {
     setup();
     fireEvent.changeText(min(), '1.000');
     fireEvent.changeText(max(), '10000000');
     expect(screen.getByText(REFUSED)).toBeTruthy();
-    expect(screen.queryByText(ABOVE_MAX)).toBeNull();
+    expect(screen.getByText(ABOVE_MAX)).toBeTruthy();
   });
 
   it('a quick range sets both bounds and is selected, also for typed text', () => {

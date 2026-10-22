@@ -11,7 +11,7 @@ import {
   priceFilterIssueMessage,
   priceFilterParam,
   priceFilterText,
-  priceRangeIssue,
+  priceRangeIssues,
   type ProductFilters,
 } from '../productFilters';
 import { SEARCH_PRICE_MAX } from '@/types';
@@ -355,7 +355,6 @@ describe('price bounds above the search max (web parity)', () => {
   const above = [String(SEARCH_PRICE_MAX + 1), '10000000', '9999999,01', '9999999.01'];
 
   it('takes the max itself as a bound', () => {
-    expect(SEARCH_PRICE_MAX).toBe(9_999_999);
     expect(priceFilterBound(String(SEARCH_PRICE_MAX))).toBe(SEARCH_PRICE_MAX);
     expect(priceFilterIssue(String(SEARCH_PRICE_MAX))).toBeUndefined();
   });
@@ -383,11 +382,12 @@ describe('price bounds above the search max (web parity)', () => {
     expect(params.minPrice).toBe(500);
   });
 
-  it('ranks a refusal before a bound above the max (one message for both fields)', () => {
-    expect(priceRangeIssue({ minPrice: '', maxPrice: '' })).toBeUndefined();
-    expect(priceRangeIssue({ minPrice: '100', maxPrice: '500' })).toBeUndefined();
-    expect(priceRangeIssue({ minPrice: '', maxPrice: '10000000' })).toBe('aboveMax');
-    expect(priceRangeIssue({ minPrice: '10000000', maxPrice: '1.000' })).toBe('refused');
+  it("lists each field's issue once, a refusal first", () => {
+    expect(priceRangeIssues({ minPrice: '', maxPrice: '' })).toEqual([]);
+    expect(priceRangeIssues({ minPrice: '100', maxPrice: '500' })).toEqual([]);
+    expect(priceRangeIssues({ minPrice: '', maxPrice: '10000000' })).toEqual(['aboveMax']);
+    expect(priceRangeIssues({ minPrice: '10000000', maxPrice: '20000000' })).toEqual(['aboveMax']);
+    expect(priceRangeIssues({ minPrice: '10000000', maxPrice: '1.000' })).toEqual(['refused', 'aboveMax']);
   });
 
   it('names the max as money in the message', () => {

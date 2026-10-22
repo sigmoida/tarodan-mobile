@@ -82,28 +82,32 @@ export type PriceFilterIssue = 'refused' | 'aboveMax';
  * finds nothing), as on web.
  */
 export function priceFilterBound(text: string): number | undefined {
-  const parsed = parseTlAmount(text);
-  return parsed.status === 'ok' && parsed.amount <= SEARCH_PRICE_MAX ? parsed.amount : undefined;
+  return readPriceFilter(text).bound;
 }
 
 /** Why the price text sets no bound, or `undefined` when it sets one or is empty or zero. Web `priceFilterIssue`. */
 export function priceFilterIssue(text: string): PriceFilterIssue | undefined {
-  const parsed = parseTlAmount(text);
-  if (parsed.status === 'refused') return 'refused';
-  if (parsed.status === 'ok' && parsed.amount > SEARCH_PRICE_MAX) return 'aboveMax';
-  return undefined;
+  return readPriceFilter(text).issue;
 }
 
+/** The one reading of a price text: its bound, or why it sets none (empty and zero: neither). */
+function readPriceFilter(text: string): { bound?: number; issue?: PriceFilterIssue } {
+  const parsed = parseTlAmount(text);
+  if (parsed.status === 'refused') return { issue: 'refused' };
+  if (parsed.status !== 'ok') return {};
+  return parsed.amount > SEARCH_PRICE_MAX ? { issue: 'aboveMax' } : { bound: parsed.amount };
+}
+
+/** A refusal first: the more basic error, and the first one a save shows. */
+const PRICE_FILTER_ISSUE_ORDER: readonly PriceFilterIssue[] = ['refused', 'aboveMax'];
+
 /**
- * The issue shown under the price fields (one message for both): a refusal first, as the more
- * basic error, then a bound above the max. Web `priceRangeIssue`.
+ * The distinct issues of the two price fields, a refusal first: the sheet shows one message per
+ * issue under the fields. Web `priceRangeIssues`.
  */
-export function priceRangeIssue(
-  f: Pick<ProductFilters, 'minPrice' | 'maxPrice'>,
-): PriceFilterIssue | undefined {
-  const issues = [priceFilterIssue(f.minPrice), priceFilterIssue(f.maxPrice)];
-  if (issues.includes('refused')) return 'refused';
-  return issues.includes('aboveMax') ? 'aboveMax' : undefined;
+export function priceRangeIssues(f: Pick<ProductFilters, 'minPrice' | 'maxPrice'>): PriceFilterIssue[] {
+  const found = [priceFilterIssue(f.minPrice), priceFilterIssue(f.maxPrice)];
+  return PRICE_FILTER_ISSUE_ORDER.filter((issue) => found.includes(issue));
 }
 
 /** The message of a price issue; the max reads as money ("9.999.999,00 TL"). Web `priceFilterIssueMessage`. */

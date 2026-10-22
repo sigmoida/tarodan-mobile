@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 import type { ChipNameOptions } from '@/utils/activeFilterChips';
 import {
   priceFilterIssueMessage,
-  priceRangeIssue,
+  priceRangeIssues,
   type ProductFilters,
 } from '@/utils/productFilters';
 import { buildSavedSearchDraft } from '../_lib/savedSearch';
@@ -30,7 +30,7 @@ export function useSaveSearch(filters: ProductFilters, names: ChipNameOptions) {
 
   // A refused or too large price is not applied to the search, so saving now would store a search
   // without the bound the user typed: `start` shows why instead (web `useSaveSearch`).
-  const priceIssue = priceRangeIssue(filters);
+  const [priceIssue] = priceRangeIssues(filters);
 
   const start = useCallback(() => {
     if (draft.isEmpty) return;
