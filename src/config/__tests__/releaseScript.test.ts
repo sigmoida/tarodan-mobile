@@ -5,7 +5,7 @@
  * EAS'e dokunmadan doğruluyoruz. Sahte eas'in JSON şekli eas-cli 24.x `--json`
  * çıktısıyla aynıdır (bkz. __fakes__/eas başı).
  */
-import { spawnSync } from 'child_process';
+import { spawnSync, type SpawnSyncOptions } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -14,6 +14,24 @@ import { parse } from 'yaml';
 const ROOT = path.resolve(__dirname, '../../..');
 const SCRIPT = path.join(ROOT, 'scripts/ci/release.sh');
 const FAKES = path.join(ROOT, 'scripts/ci/__fakes__');
+
+/**
+ * Runs bash and throws instead of letting a test assert on empty output, when bash
+ * could not start or overflowed the buffer (`res.error`), or when it crashed: killed
+ * by a signal, or a status above 128 (128 + signal number: `set -e` passes a killed
+ * command's status on, e.g. 141 = SIGPIPE under pipefail). release.sh and the
+ * workflow steps stop with `die` (1) or a command's own status (git's fatal is 128),
+ * never above 128, so such a status is a defect, not a scenario outcome. CI run
+ * 39736193958 only showed `outputs: {}` for such a crash.
+ */
+function runBash(args: string[], opts: Omit<SpawnSyncOptions, 'encoding'> = {}) {
+  const res = spawnSync('bash', args, { maxBuffer: 16 * 1024 * 1024, ...opts, encoding: 'utf8' });
+  if (res.error) throw res.error;
+  if (res.signal || (res.status ?? 0) > 128) {
+    throw new Error(`bash ${args.join(' ')} crashed (status ${res.status}, signal ${res.signal}):\n${res.stdout}\n${res.stderr}`);
+  }
+  return res;
+}
 
 type Build = Record<string, unknown>;
 type Submission = Record<string, unknown>;
@@ -126,9 +144,8 @@ function run(args: string[], opts: RunOpts = {}) {
   const eas = opts.easJson ? opts.easJson(realEasJson()) : realEasJson();
   fs.writeFileSync(path.join(root, 'eas.json'), typeof eas === 'string' ? eas : JSON.stringify(eas));
 
-  const res = spawnSync('bash', [script, ...args], {
+  const res = runBash([script, ...args], {
     cwd: dir,
-    encoding: 'utf8',
     env: {
       ...base,
       PATH: `${FAKES}:${process.env.PATH}`,
@@ -138,11 +155,7 @@ function run(args: string[], opts: RunOpts = {}) {
       ...seqEnv,
       ...opts.env,
     },
-    maxBuffer: 16 * 1024 * 1024,
   });
-  // Süreç başlatılamadı / tampon taştı: boş çıktıyla yanıltıcı bir assertion yerine
-  // asıl hatayı göster (CI'da bir kez nedeni görünmeyen "undefined" çıktı).
-  if (res.error) throw res.error;
   const outputs: Record<string, string> = {};
   for (const line of fs.readFileSync(outFile, 'utf8').split('\n')) {
     const i = line.indexOf('=');
@@ -1390,12 +1403,10 @@ function gitRepo(version = TEST_VERSION) {
     },
     tag: (name: string, ref = 'HEAD') => git(['tag', name, ref]),
     run: (args: string[], cwd = dir) => {
-      const res = spawnSync('bash', [path.join(cwd, 'scripts/ci/release.sh'), ...args], {
+      const res = runBash([path.join(cwd, 'scripts/ci/release.sh'), ...args], {
         cwd,
         env,
-        encoding: 'utf8',
       });
-      if (res.error) throw res.error;
       return { status: res.status, stdout: res.stdout, stderr: res.stderr, all: `${res.stdout}\n${res.stderr}` };
     },
     cleanup: () => fs.rmSync(dir, { recursive: true, force: true }),
@@ -1577,10 +1588,9 @@ describe('release.sh check-release-version — a release merge carries the compu
   });
   afterEach(() => repo.cleanup());
   const check = (env: Record<string, string> = {}) => {
-    const res = spawnSync('bash', [path.join(repo.dir, 'scripts/ci/release.sh'), 'check-release-version'], {
+    const res = runBash([path.join(repo.dir, 'scripts/ci/release.sh'), 'check-release-version'], {
       cwd: repo.dir,
       env: { ...repo.env, MODE: 'auto', SOURCE_REF: 'development', ...env },
-      encoding: 'utf8',
     });
     return { status: res.status, all: `${res.stdout}\n${res.stderr}` };
   };
@@ -1653,10 +1663,9 @@ describe('release.sh check-release-version — a release merge carries the compu
     repo.commitVersion('1.1.0');
     const shallow = path.join(repo.dir, 'shallow');
     repo.git(['clone', '-q', '--depth', '1', `file://${repo.dir}`, shallow]);
-    const res = spawnSync('bash', [path.join(shallow, 'scripts/ci/release.sh'), 'check-release-version'], {
+    const res = runBash([path.join(shallow, 'scripts/ci/release.sh'), 'check-release-version'], {
       cwd: shallow,
       env: { ...repo.env, MODE: 'auto', SOURCE_REF: 'development' },
-      encoding: 'utf8',
     });
     expect(res.status).not.toBe(0);
     expect(`${res.stdout}\n${res.stderr}`).toContain('shallow clone');
@@ -1719,9 +1728,8 @@ describe('release.sh — called from outside the checkout with a relative app.js
     const appJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'));
     appJson.expo.version = version;
     fs.writeFileSync(path.join(repo, 'app.json'), `${JSON.stringify(appJson, null, 2)}\n`);
-    const res = spawnSync('bash', [path.join(runnerTemp, 'release.sh'), ...args], {
+    const res = runBash([path.join(runnerTemp, 'release.sh'), ...args], {
       cwd: repo,
-      encoding: 'utf8',
       env: process.env,
     });
     const result = {
@@ -1801,7 +1809,7 @@ describe('release-bookkeeping step — tags the released commit and creates its 
     fs.writeFileSync(file, script!);
     fs.writeFileSync(log, '');
     // The shell GitHub Actions uses for `run:`.
-    const res = spawnSync('bash', ['--noprofile', '--norc', '-eo', 'pipefail', file], {
+    const res = runBash(['--noprofile', '--norc', '-eo', 'pipefail', file], {
       cwd: repo.dir,
       env: {
         ...repo.env,
@@ -1812,9 +1820,7 @@ describe('release-bookkeeping step — tags the released commit and creates its 
         FAKE_GH_LOG: log,
         ...env,
       },
-      encoding: 'utf8',
     });
-    if (res.error) throw res.error;
     const gh = fs.readFileSync(log, 'utf8').split('\n').filter(Boolean);
     return { status: res.status, all: `${res.stdout}\n${res.stderr}`, sha, gh, creates: gh.filter((l) => l.startsWith('gh release create')) };
   };
@@ -1994,7 +2000,7 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     const log = path.join(tmp, 'gh.log');
     fs.writeFileSync(file, script!);
     fs.writeFileSync(log, '');
-    const res = spawnSync('bash', ['--noprofile', '--norc', '-eo', 'pipefail', file], {
+    const res = runBash(['--noprofile', '--norc', '-eo', 'pipefail', file], {
       cwd: tmp,
       env: {
         ...repo.env,
@@ -2008,9 +2014,7 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
         FAKE_GH_LOG: log,
         ...env,
       },
-      encoding: 'utf8',
     });
-    if (res.error) throw res.error;
     const gh = fs.readFileSync(log, 'utf8').split('\n').filter(Boolean);
     return { status: res.status, all: `${res.stdout}\n${res.stderr}`, gh };
   };
@@ -2405,5 +2409,51 @@ describe('Master source guard step — a hotfix/* must be cut from master', () =
     expect(r.all).toContain(`::error::A PR into master must come from a branch of this repository (source: someone/tarodan-mobile:${ref}).`);
     expect(r.all).not.toContain('OK:');
     expect(r.gh).toEqual([]);
+  });
+});
+
+describe('pipes — no reader that exits before its input ends (pipefail + SIGPIPE)', () => {
+  // `printf '%s' "$msg" | head -n1` under pipefail: bash's printf writes line by line,
+  // so when head exits between two writes the writer dies of SIGPIPE (141). In an
+  // assignment that stopped `release.sh plan` before any output (CI run 39736193958:
+  // `outputs` was `{}`); in an `if` it flips the test, so a fail-closed guard passes.
+  // The rule is stated at the top of release.sh; GitHub runs `run:` steps with
+  // `bash -eo pipefail`, so it holds there too.
+  const EARLY_EXIT = /\|\s*(head\b|grep\b[^|]*\s-[A-Za-z]*[qm])/;
+  const offending = (text: string) =>
+    text
+      .split('\n')
+      .map((l, i) => `${i + 1}: ${l.trim()}`)
+      .filter((l) => !/^\d+: #/.test(l) && EARLY_EXIT.test(l));
+
+  it('the rule catches the pipes it forbids and allows the safe forms', () => {
+    expect(offending(`msg="$(printf '%s' "$m" | head -n1)"`)).toHaveLength(1);
+    expect(offending('if git tag --points-at HEAD | grep -qxF "$t"; then')).toHaveLength(1);
+    expect(offending(`if printf '%s\\n' "$all" | grep -E -q "$k="; then`)).toHaveLength(1);
+    expect(offending('x="$(git log | grep -m1 feat)"')).toHaveLength(1);
+    expect(offending('msg="${m%%$\'\\n\'*}"')).toEqual([]);
+    expect(offending('if grep -qxF "$t" <<< "$tags"; then')).toEqual([]);
+    expect(offending(`out="$(printf '%s' "$s" | node -e 'x')"`)).toEqual([]);
+    expect(offending('# a comment may name `| head -n1`')).toEqual([]);
+  });
+
+  it('release.sh has none', () => {
+    expect(offending(fs.readFileSync(SCRIPT, 'utf8'))).toEqual([]);
+  });
+
+  it('no workflow run step has one', () => {
+    const dir = path.join(ROOT, '.github/workflows');
+    const hits: string[] = [];
+    for (const f of fs.readdirSync(dir).filter((n) => /\.ya?ml$/.test(n))) {
+      const wf = parse(fs.readFileSync(path.join(dir, f), 'utf8')) as {
+        jobs?: Record<string, { steps?: { name?: string; run?: string }[] }>;
+      };
+      for (const [job, j] of Object.entries(wf.jobs ?? {})) {
+        for (const step of j.steps ?? []) {
+          if (step.run) hits.push(...offending(step.run).map((l) => `${f} ${job} "${step.name ?? ''}" ${l}`));
+        }
+      }
+    }
+    expect(hits).toEqual([]);
   });
 });
