@@ -1,5 +1,5 @@
 // Vendored copy of tarodan-app `packages/types/src/product-card-action.ts` (development
-// d2bd735b6). Everything below this header matches the source; change it there first.
+// 5571cec65). Everything below this header matches the source; change it there first.
 // Contract: tarodan-ops `contracts/deltas/2026-10-22-listing-boost.md`.
 
 /**
