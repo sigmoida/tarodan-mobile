@@ -33,6 +33,10 @@ export const styles = StyleSheet.create({
     height: THUMB,
     backgroundColor: colors.surface.alt,
   },
+  // Out-of-stock image (the listing card's `dimmed`, web `opacity-50`).
+  dimmed: {
+    opacity: 0.5,
+  },
   productInfo: {
     flex: 1,
     minWidth: 0,

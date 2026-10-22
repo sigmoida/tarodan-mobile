@@ -16,6 +16,15 @@ jest.mock('@/ui', () => ({
   toast: Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn(), dismiss: jest.fn() }),
 }));
 
+// The card's cart button is the shared toggle (`useCartToggle` -> `useCartSync`): a member's write is
+// mirrored to the server, so the cart API resolves without a network call.
+jest.mock('@/lib/api', () => ({
+  ...jest.requireActual('@/lib/api'),
+  cartApi: {
+    addItem: jest.fn(() => Promise.resolve({ data: {} })),
+    removeItem: jest.fn(() => Promise.resolve({ data: {} })),
+  },
+}));
 
 const mockState = {
   isAuthenticated: true,
@@ -57,6 +66,8 @@ jest.mock('@/stores/cartStore', () => {
     // `useCartSync.add` reddedilen eklemeyi geri alabilmek için ÖNCEKİ satırı
     // okur; sahte store da o alanı taşımalı.
     items: mockState.cartItems,
+    // `useCartSync.removeByProductId` reads the selection to restore it on a rollback.
+    deselectedIds: [],
     addItem: mockState.addItem,
     removeByProductId: mockState.removeByProductId,
     updateQuantity: mockState.updateQuantity,
@@ -68,6 +79,7 @@ jest.mock('@/stores/cartStore', () => {
   return { useCartStore };
 });
 
+import { useCartWritesStore } from '@/stores/cartWritesStore';
 import FavoritesScreen from '../index';
 
 const makeItem = (productId: string, title = 'Hot Wheels') => ({
@@ -87,6 +99,8 @@ const makeItem = (productId: string, title = 'Hot Wheels') => ({
 
 beforeEach(() => {
   resetRouterMocks();
+  // A toggle press holds the listing's write lock until its mirror settles; never leak it.
+  useCartWritesStore.getState().reset();
   mockState.fetchFavorites.mockClear();
   mockState.removeFromFavorites.mockClear();
   mockState.addItem.mockClear();
@@ -134,20 +148,19 @@ describe('J57 · favoriler ekranı — dolu liste', () => {
     expect(mockState.removeFromFavorites).toHaveBeenCalledWith('p1');
   });
 
-  it('"Sepete Ekle" sepette değilse addItem çağırır; sepetteyse "Sepete Git" sepete götürür (çıkarmaz)', () => {
+  it('the shared cart toggle (web parity): adds when not in the cart, removes when it is', () => {
     mockState.items = [makeItem('p1')];
     const first = renderWithProviders(<FavoritesScreen />);
-    fireEvent.press(screen.getByLabelText('Sepete Ekle'));
+    fireEvent.press(screen.getByTestId('product-card-cart-p1'));
     expect(mockState.addItem).toHaveBeenCalledWith(expect.objectContaining({ productId: 'p1' }));
     first.unmount();
 
     mockState.isInCart.mockReturnValue(true);
     mockState.cartItems = [{ id: 'c1', productId: 'p1', quantity: 1 }];
     renderWithProviders(<FavoritesScreen />);
-    expect(screen.queryByLabelText('Sepete Ekle')).toBeNull();
-    fireEvent.press(screen.getByLabelText('Sepete Git'));
-    expect(pushMock).toHaveBeenCalledWith('/cart');
-    expect(mockState.removeByProductId).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByTestId('product-card-cart-p1'));
+    expect(mockState.removeByProductId).toHaveBeenCalledWith('p1');
+    expect(pushMock).not.toHaveBeenCalledWith('/cart');
   });
 
   it('kartta satıcı adı + başlık + fiyat; indirimdeyse eski fiyat üstü çizili', () => {
@@ -166,7 +179,7 @@ describe('J57 · favoriler ekranı — dolu liste', () => {
     (item.product as any).availableQuantity = 2;
     mockState.items = [item];
     renderWithProviders(<FavoritesScreen />);
-    fireEvent.press(screen.getByLabelText('Sepete Ekle'));
+    fireEvent.press(screen.getByTestId('product-card-cart-p1'));
     expect(mockState.addItem).toHaveBeenCalledWith(
       expect.objectContaining({
         productId: 'p1',
@@ -187,7 +200,9 @@ describe('J57 · favoriler ekranı — dolu liste', () => {
 });
 
 describe('card action rule (productCardAction, web parity)', () => {
-  const cart = (id: string) => screen.queryByTestId(`favorite-cart-${id}`);
+  // `product.soldOut`, upper-cased like the listing card's overlay.
+  const SOLD_OUT = 'STOKTA YOK';
+  const cart = (id: string) => screen.queryByTestId(`product-card-cart-${id}`);
   const withProduct = (productId: string, patch: Record<string, unknown>) => {
     const item = makeItem(productId);
     Object.assign(item.product, patch);
@@ -208,34 +223,34 @@ describe('card action rule (productCardAction, web parity)', () => {
     expect(cart('p1')).toBeOnTheScreen();
   });
 
-  it('shows the cart toggle without a signed-in user id (the guest viewer case of the rule)', () => {
-    mockState.userId = null;
-    mockState.items = [makeItem('p1')];
-    renderWithProviders(<FavoritesScreen />);
-    expect(cart('p1')).toBeOnTheScreen();
-  });
-
   it.each([
     ['sold', { status: 'sold' }],
     ['reserved', { status: 'reserved' }],
     ['inactive', { status: 'inactive' }],
-  ])('hides the cart toggle for a %s listing and shows no status badge (web parity)', (_name, patch) => {
+    ['out of stock (availableQuantity 0)', { availableQuantity: 0 }],
+  ])('a %s listing: no cart toggle, the shared sold-out overlay (web parity)', (_name, patch) => {
     mockState.userId = 'me';
     mockState.items = [withProduct('p1', patch)];
     renderWithProviders(<FavoritesScreen />);
     expect(cart('p1')).toBeNull();
-    expect(screen.queryByText('Satıldı')).toBeNull();
-    expect(screen.queryByText('Aktif Değil')).toBeNull();
+    expect(screen.getByText(SOLD_OUT)).toBeOnTheScreen();
     expect(screen.getByTestId('favorite-remove-p1')).toBeOnTheScreen();
   });
 
-  it('hides the cart toggle and shows no badge when out of stock (availableQuantity 0)', () => {
+  it('keeps the overlay and hides the toggle for a sold listing that is still in the cart', () => {
     mockState.userId = 'me';
-    mockState.items = [withProduct('p1', { availableQuantity: 0 })];
+    mockState.isInCart.mockReturnValue(true);
+    mockState.cartItems = [{ id: 'c1', productId: 'p1', quantity: 1 }];
+    mockState.items = [withProduct('p1', { status: 'sold' })];
     renderWithProviders(<FavoritesScreen />);
     expect(cart('p1')).toBeNull();
-    expect(screen.queryByText('Satıldı')).toBeNull();
-    expect(screen.getByTestId('favorite-remove-p1')).toBeOnTheScreen();
+    expect(screen.getByText(SOLD_OUT)).toBeOnTheScreen();
+  });
+
+  it('draws no sold-out overlay for an in-stock listing', () => {
+    mockState.items = [withProduct('p1', { availableQuantity: 1 })];
+    renderWithProviders(<FavoritesScreen />);
+    expect(screen.queryByText(SOLD_OUT)).toBeNull();
   });
 
   it('hides the cart toggle for the viewer\'s own listing', () => {
@@ -270,10 +285,12 @@ describe('geri bildirim — eylemsiz toast (eski Snackbar her mesajda sepet eyle
     expect(toast.success).not.toHaveBeenCalled();
   });
 
-  it('sepete ekle -> toast.success', () => {
+  it('add to cart -> the shared card toast once', async () => {
     mockState.items = [makeItem('p1')];
     renderWithProviders(<FavoritesScreen />);
-    fireEvent.press(screen.getByLabelText('Sepete Ekle'));
+    fireEvent.press(screen.getByTestId('product-card-cart-p1'));
+    // The shared toggle toasts only once the member's server write settles.
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Ürün sepete eklendi'));
     expect(toast.success).toHaveBeenCalledTimes(1);
   });
 });

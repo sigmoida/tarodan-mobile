@@ -13,7 +13,7 @@ export interface WishlistItem {
     id: string;
     title: string;
     price: number;
-    /** İndirim öncesi fiyat (sunucu `productOriginalPrice`; yalnız kampanya indirimindeyse dolu). */
+    /** The pre-discount price (server `productOriginalPrice`; set only during a campaign discount). */
     originalPrice?: number;
     images: Array<{ url: string }>;
     condition: string;
@@ -80,13 +80,11 @@ function toQuantity(v: unknown): number | undefined {
 }
 
 /**
- * Backend `GET /wishlist` yanıtını `WishlistItem[]`'e eşler. Backend, item'ları
- * ya düz alanlarla (productTitle/productImage…) ya da iç içe `product` ile
- * döndürebilir; her iki şekli de tolere eder.
+ * Maps the `GET /wishlist` response to `WishlistItem[]`. The backend may return items with flat
+ * fields (productTitle/productImage...) or with a nested `product`; both shapes are accepted.
  *
- * `t` argüman alır (fallback ürün/satıcı adları çevrilebilsin) — saf fonksiyon
- * olduğu için `useTranslation` burada çağrılamaz, çağıran taraf canlı `t`'yi
- * geçirir (bkz. `@/utils/validation` başı — aynı gerekçe).
+ * Takes `t` (so the fallback product and seller names are translated): a pure function cannot call
+ * `useTranslation`, so the caller passes the live `t` (same reason as the top of `@/utils/validation`).
  */
 export function mapWishlist(data: any, t: TFunction): WishlistItem[] {
   const wishlistData = data?.items || data?.data || data || [];
