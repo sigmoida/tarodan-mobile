@@ -30,7 +30,7 @@ const mockState = {
   isAuthenticated: true,
   userId: null as string | null,
   items: [] as any[],
-  // Sepet store'undaki satırlar (favori listesinden ayrı); kart `inCart` bunu okur.
+  // The cart store's lines (separate from the favorites list); the card's `inCart` reads them.
   cartItems: [] as any[],
   fetchFavorites: jest.fn(),
   removeFromFavorites: jest.fn().mockResolvedValue(true),
@@ -63,8 +63,7 @@ jest.mock('@/hooks/useFavorites', () => ({
 
 jest.mock('@/stores/cartStore', () => {
   const cartState = () => ({
-    // `useCartSync.add` reddedilen eklemeyi geri alabilmek için ÖNCEKİ satırı
-    // okur; sahte store da o alanı taşımalı.
+    // `useCartSync.add` reads the PREVIOUS line to undo a refused add; the fake store carries it.
     items: mockState.cartItems,
     // `useCartSync.removeByProductId` reads the selection to restore it on a rollback.
     deselectedIds: [],
@@ -73,7 +72,7 @@ jest.mock('@/stores/cartStore', () => {
     updateQuantity: mockState.updateQuantity,
     isInCart: mockState.isInCart,
   });
-  // Selector'lü abonelik (`useCartStore((s) => ...)`) ve `useCartSync` aksiyonları (`getState()`).
+  // The selector subscription (`useCartStore((s) => ...)`) and the `useCartSync` actions (`getState()`).
   const useCartStore: any = (sel?: (s: any) => unknown) => (sel ? sel(cartState()) : cartState());
   useCartStore.getState = cartState;
   return { useCartStore };
@@ -285,12 +284,16 @@ describe('geri bildirim — eylemsiz toast (eski Snackbar her mesajda sepet eyle
     expect(toast.success).not.toHaveBeenCalled();
   });
 
-  it('add to cart -> the shared card toast once', async () => {
+  it('add to cart -> the shared card toast once, after the member\'s server write settles', async () => {
+    // The fake store really adds the line, so `useCartSync.add` mirrors it to the server.
+    mockState.addItem.mockImplementationOnce((line: Record<string, unknown>) => {
+      mockState.cartItems = [...mockState.cartItems, { ...line, id: 'c1', quantity: 1 }];
+    });
     mockState.items = [makeItem('p1')];
     renderWithProviders(<FavoritesScreen />);
     fireEvent.press(screen.getByTestId('product-card-cart-p1'));
-    // The shared toggle toasts only once the member's server write settles.
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Ürün sepete eklendi'));
+    expect(jest.requireMock('@/lib/api').cartApi.addItem).toHaveBeenCalledWith('p1', 1);
     expect(toast.success).toHaveBeenCalledTimes(1);
   });
 });

@@ -46,7 +46,13 @@ export const FavoriteCard = React.memo(function FavoriteCard({
   return (
     <Card variant="bordered" padding={0} style={styles.card} testID={`favorite-card-${item.productId}`}>
       <View style={styles.cardContent}>
-        <Pressable onPress={open} accessibilityRole="link" style={styles.imageWrap}>
+        <Pressable
+          onPress={open}
+          accessibilityRole="link"
+          // Name the link (the overlay text alone would read as "STOKTA YOK, link").
+          accessibilityLabel={outOfStock ? `${product.title}, ${t('product.soldOut')}` : product.title}
+          style={styles.imageWrap}
+        >
           <AppImage
             source={product.images}
             variant="card"
