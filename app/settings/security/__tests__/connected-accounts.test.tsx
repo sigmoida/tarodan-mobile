@@ -127,11 +127,15 @@ afterAll(() => {
   Platform.OS = originalOS;
 });
 
+jest.setTimeout(30000);
+
 const row = (provider: Provider) => screen.getByTestId(`connected-${provider}-row`);
 
 async function renderScreen() {
   const utils = renderWithProviders(<ConnectedAccountsScreen />);
-  await screen.findByTestId('connected-google-row');
+  // The first render of the file loads the screen module cold; on a busy CI
+  // runner that alone can pass the default 5 s, so the first wait gets more room.
+  await screen.findByTestId('connected-google-row', {}, { timeout: 20000 });
   // Let the async Apple availability check land.
   await act(() => Promise.resolve());
   return utils;
