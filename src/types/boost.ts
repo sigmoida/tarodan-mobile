@@ -1,6 +1,6 @@
 // Vendored copy of tarodan-app `packages/types/src/boost.ts` (development
-// d2bd735b6). Everything below this header matches the source; change it there first.
-// Contract: tarodan-ops `contracts/deltas/2026-10-22-listing-boost.md`.
+// 5571cec65). Everything below this header matches the source; change it there first.
+// Contract: tarodan-ops `contracts/deltas/2026-10-22-listing-boost.md`, `2026-10-22-boost-expected-price.md`.
 
 /**
  * Listing boost ("öne çıkarma"): the settings, rules and response shapes the
@@ -93,6 +93,11 @@ export interface BoostPackage {
   slug: string;
   /** A "Vitrin" package also places the listing in the home showcase. */
   showcaseOnHome: boolean;
+  /**
+   * At most one option per duration, ascending: the tier the purchase start
+   * resolves for the same listing price, so `price` is the `expectedPrice`
+   * the initiate call accepts.
+   */
   options: BoostDurationOption[];
 }
 
@@ -100,7 +105,11 @@ export interface BoostPackage {
 export interface BoostOptionsResponse {
   /** `isBoostEnabled` of the platform setting. */
   enabled: boolean;
-  /** The price the tiers are matched against (`boostTierBasePrice`). */
+  /**
+   * The price the tiers are matched against (`boostTierBasePrice`). A tier's
+   * band is half-open: `minAmount <= productPrice < maxAmount`, no
+   * `maxAmount` means no upper bound.
+   */
   productPrice: number;
   /** Packages with at least one tier for this price and this seller. */
   packages: BoostPackage[];
@@ -263,13 +272,37 @@ export interface BoostReminderResponse {
 }
 
 /**
+ * Whether the price the seller was shown (`InitiateBoostRequest.expectedPrice`)
+ * is the price the server charges, compared in whole kuruş: 59.9, 59.90 and
+ * 59.899999 are 59,90 TL, 59.89 is not. A value that is not a finite number
+ * never matches, so a caller without a price fails closed. The one comparison
+ * rule of the boost purchase: the API refuses a mismatch with 409
+ * `server.product.boostPriceChanged` before it writes anything.
+ */
+export function boostPriceMatches(expected: number, actual: number): boolean {
+  return (
+    Number.isFinite(expected) &&
+    Number.isFinite(actual) &&
+    Math.round(expected * 100) === Math.round(actual * 100)
+  );
+}
+
+/**
  * `POST /products/:id/boost/initiate` body. Both consents must be `true`
  * (anything else: 400 `server.product.boostConsentRequired`, nothing is
- * written); they are recorded with the boost order.
+ * written); they are recorded with the boost order. `expectedPrice` must be
+ * what the server charges now (`boostPriceMatches`), else 409
+ * `server.product.boostPriceChanged` and nothing is written.
  */
 export interface InitiateBoostRequest {
   packageId: string;
   durationDays: number;
+  /**
+   * The price the pre-information showed for this package and duration (TL,
+   * VAT included): `price` of the chosen `BoostDurationOption`. A JSON number
+   * with at most two decimals (text is a 400).
+   */
+  expectedPrice: number;
   /** Default `paytr`. */
   provider?: "paytr";
   /** The ending-soon reminder; kept only for premium members. */

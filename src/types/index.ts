@@ -41,6 +41,9 @@ export * from './admin';
 // Seller trust score types
 export * from './seller-trust';
 
+// Product search: the GET /products price filter bound (vendored from tarodan-app `packages/types`)
+export * from './product-search';
+
 // Saved searches (vendored from tarodan-app `packages/types`)
 export * from './saved-search';
 

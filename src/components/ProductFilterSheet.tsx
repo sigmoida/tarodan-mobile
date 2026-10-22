@@ -28,9 +28,11 @@ import {
 import { FilterOptionList, type FilterOption } from '@/components/filters/FilterOptionList';
 import {
   buildConditionOptions,
-  isPriceFilterRefused,
   keepGeneralAttributeSelections,
+  priceFilterIssue,
+  priceFilterIssueMessage,
   priceFilterParam,
+  priceRangeIssues,
   type ProductFilters,
 } from '@/utils/productFilters';
 import type { ProductFilterOptions } from '@/hooks/useProductFilterOptions';
@@ -445,19 +447,20 @@ function FilterSheetBody({
 /**
  * Min/max price fields and the quick ranges (web `SidebarFilters` `PriceRange`). The fields keep the
  * typed text in `filters` (see `priceFilterBound`): the request, the chip and a saved search read only
- * the parsed bound, so refused text ("1.000") filters nothing and shows `validation.amountFormatRefused`
- * instead of searching for 1 TL.
+ * the parsed bound, so refused text ("1.000") or a bound above the search maximum filters nothing and
+ * shows its message (`priceFilterIssueMessage`, one per issue) instead of searching for 1 TL or
+ * failing the search.
  */
 function PriceRange({ filters, onChange }: Pick<Props, 'filters' | 'onChange'>) {
   const { t } = useTranslation();
-  const minRefused = isPriceFilterRefused(filters.minPrice);
-  const maxRefused = isPriceFilterRefused(filters.maxPrice);
-  // No range is active while a field is refused: its "" would match an open range bound ("1.000"
+  const minInvalid = priceFilterIssue(filters.minPrice) !== undefined;
+  const maxInvalid = priceFilterIssue(filters.maxPrice) !== undefined;
+  const issues = priceRangeIssues(filters);
+  // No range is active while a field has an issue: its "" would match an open range bound ("1.000"
   // next to max 100 is not "0 - 100").
-  const bounds =
-    minRefused || maxRefused
-      ? null
-      : `${priceFilterParam(filters.minPrice)}-${priceFilterParam(filters.maxPrice)}`;
+  const bounds = issues.length
+    ? null
+    : `${priceFilterParam(filters.minPrice)}-${priceFilterParam(filters.maxPrice)}`;
   return (
     <View style={styles.section}>
       <SectionTitle>{t('product.priceRange')}</SectionTitle>
@@ -489,7 +492,7 @@ function PriceRange({ filters, onChange }: Pick<Props, 'filters' | 'onChange'>) 
             keyboardType="decimal-pad"
             value={filters.minPrice}
             onChangeText={(v) => onChange({ ...filters, minPrice: v })}
-            invalid={minRefused}
+            invalid={minInvalid}
             testID="filter-min-price"
           />
         </View>
@@ -503,13 +506,15 @@ function PriceRange({ filters, onChange }: Pick<Props, 'filters' | 'onChange'>) 
             keyboardType="decimal-pad"
             value={filters.maxPrice}
             onChangeText={(v) => onChange({ ...filters, maxPrice: v })}
-            invalid={maxRefused}
+            invalid={maxInvalid}
             testID="filter-max-price"
           />
         </View>
       </View>
-      {/* One message under the row (web), so the two fields stay aligned. */}
-      <FieldMessage error={minRefused || maxRefused ? t('validation.amountFormatRefused') : undefined} />
+      {/* The messages go under the row (web), one per issue, so the two fields stay aligned. */}
+      {issues.map((issue) => (
+        <FieldMessage key={issue} error={priceFilterIssueMessage(issue, t)} />
+      ))}
     </View>
   );
 }
