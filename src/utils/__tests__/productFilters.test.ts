@@ -6,12 +6,15 @@ import {
   filtersFromSearchParams,
   flattenUniqueListings,
   hasPriceFilter,
-  isPriceFilterRefused,
   priceFilterBound,
+  priceFilterIssue,
+  priceFilterIssueMessage,
   priceFilterParam,
   priceFilterText,
+  priceRangeIssues,
   type ProductFilters,
 } from '../productFilters';
+import { SEARCH_PRICE_MAX } from '@/types';
 
 const CAR_MODEL = '44444444-4444-4444-8444-444444444444';
 
@@ -315,12 +318,12 @@ describe('price filter bounds (web parity)', () => {
     ['12,', 12],
   ])('%j is the bound %d', (text, bound) => {
     expect(priceFilterBound(text)).toBe(bound);
-    expect(isPriceFilterRefused(text)).toBe(false);
+    expect(priceFilterIssue(text)).toBeUndefined();
   });
 
   it.each(['', '  ', '0', '0,00', ','])('%j sets no bound and is not refused', (text) => {
     expect(priceFilterBound(text)).toBeUndefined();
-    expect(isPriceFilterRefused(text)).toBe(false);
+    expect(priceFilterIssue(text)).toBeUndefined();
     expect(priceFilterParam(text)).toBe('');
   });
 
@@ -328,7 +331,7 @@ describe('price filter bounds (web parity)', () => {
   it.each(['1.000', '1.250,50', '1,000.50', '10.000', '1e3', '-5', 'abc', '1 000'])(
     '%j is refused and sets no bound',
     (text) => {
-      expect(isPriceFilterRefused(text)).toBe(true);
+      expect(priceFilterIssue(text)).toBe('refused');
       expect(priceFilterBound(text)).toBeUndefined();
     },
   );
@@ -344,6 +347,54 @@ describe('price filter bounds (web parity)', () => {
     expect(hasPriceFilter({ minPrice: '0', maxPrice: '0' })).toBe(false);
     expect(countActiveFilters({ ...EMPTY_FILTERS, minPrice: '1.000' })).toBe(0);
     expect(countActiveFilters({ ...EMPTY_FILTERS, minPrice: '1000', maxPrice: '2000' })).toBe(1);
+  });
+});
+
+/** Same cases as web `listings/_lib/params.test.ts` (price bounds above the search max). */
+describe('price bounds above the search max (web parity)', () => {
+  const above = [String(SEARCH_PRICE_MAX + 1), '10000000', '9999999,01', '9999999.01'];
+
+  it('takes the max itself as a bound', () => {
+    expect(priceFilterBound(String(SEARCH_PRICE_MAX))).toBe(SEARCH_PRICE_MAX);
+    expect(priceFilterIssue(String(SEARCH_PRICE_MAX))).toBeUndefined();
+  });
+
+  it.each(above)('%j sets no bound and is above the max', (text) => {
+    expect(priceFilterBound(text)).toBeUndefined();
+    expect(priceFilterParam(text)).toBe('');
+    expect(priceFilterIssue(text)).toBe('aboveMax');
+    expect(hasPriceFilter({ minPrice: text, maxPrice: '' })).toBe(false);
+    expect(countActiveFilters({ ...EMPTY_FILTERS, maxPrice: text })).toBe(0);
+  });
+
+  it('is never sent to GET /products (min or max)', () => {
+    const params = buildListParams({ ...EMPTY_FILTERS, minPrice: '10000000', maxPrice: '20000000' }, 1, 24);
+    expect(params).not.toHaveProperty('minPrice');
+    expect(params).not.toHaveProperty('maxPrice');
+  });
+
+  it('reads a legacy URL or saved-search value as no bound, prefilled so the field shows why', () => {
+    const f = filtersFromSearchParams({ maxPrice: '10000000', minPrice: '500' });
+    expect(f.maxPrice).toBe('10000000');
+    expect(priceFilterIssue(f.maxPrice)).toBe('aboveMax');
+    const params = buildListParams(f, 1, 24);
+    expect(params).not.toHaveProperty('maxPrice');
+    expect(params.minPrice).toBe(500);
+  });
+
+  it("lists each field's issue once, a refusal first", () => {
+    expect(priceRangeIssues({ minPrice: '', maxPrice: '' })).toEqual([]);
+    expect(priceRangeIssues({ minPrice: '100', maxPrice: '500' })).toEqual([]);
+    expect(priceRangeIssues({ minPrice: '', maxPrice: '10000000' })).toEqual(['aboveMax']);
+    expect(priceRangeIssues({ minPrice: '10000000', maxPrice: '20000000' })).toEqual(['aboveMax']);
+    expect(priceRangeIssues({ minPrice: '10000000', maxPrice: '1.000' })).toEqual(['refused', 'aboveMax']);
+  });
+
+  it('names the max as money in the message', () => {
+    const t = ((key: string, values?: { max?: string }) =>
+      values?.max ? `${key}|${values.max}` : key) as unknown as Parameters<typeof priceFilterIssueMessage>[1];
+    expect(priceFilterIssueMessage('aboveMax', t)).toBe('validation.maxValue|9.999.999,00 TL');
+    expect(priceFilterIssueMessage('refused', t)).toBe('validation.amountFormatRefused');
   });
 });
 
@@ -372,7 +423,7 @@ describe('price bounds in the API params', () => {
   it('a legacy grouped URL value is kept as field text and its bound ignored', () => {
     const f = filtersFromSearchParams({ minPrice: '1.000', maxPrice: '5000' });
     expect(f.minPrice).toBe('1.000');
-    expect(isPriceFilterRefused(f.minPrice)).toBe(true);
+    expect(priceFilterIssue(f.minPrice)).toBe('refused');
     const params = buildListParams(f, 1, 24);
     expect(params).not.toHaveProperty('minPrice');
     expect(params.maxPrice).toBe(5000);

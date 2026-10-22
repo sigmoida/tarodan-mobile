@@ -114,6 +114,20 @@ describe('search · save this search', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
+  it('a price above the search max shows the max and opens no save (the bound would be lost)', async () => {
+    await openSaveModal({ search: 'mustang', maxPrice: '10000000' });
+    expect(toastMock.error).toHaveBeenCalledWith('En fazla 9.999.999,00 TL olabilir');
+    expect(screen.queryByTestId('save-search-name')).toBeNull();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('a refused price and a too large one show the refusal first, once', async () => {
+    await openSaveModal({ search: 'mustang', minPrice: '1.000', maxPrice: '10000000' });
+    expect(toastMock.error).toHaveBeenCalledTimes(1);
+    expect(toastMock.error).toHaveBeenCalledWith(expect.stringMatching(/Tutar kabul edilmedi/));
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('a guest gets the sign-in prompt, not the modal; "Login" opens the login screen', async () => {
     useAuthStore.setState({ isAuthenticated: false });
     await openSaveModal({ tradeOnly: 'true' });
