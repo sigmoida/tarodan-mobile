@@ -38,8 +38,9 @@ the reference targets (`see src/ui/CLAUDE.md › Loading`).
   variants. No ad-hoc colours, sizes or variants; add missing pieces to the shared
   layer first.
 - **Copy rules.** No emoji or pictographs in copy; use theme icons (`Icon` from `@/ui`)
-  or words (" > " for paths). `src/i18n/__tests__/catalog-integrity.test.ts` fails on
-  pictographs in catalog values.
+  or words (" > " for paths). The legal marks © ® ™ are typography and allowed.
+  `src/i18n/__tests__/catalog-integrity.test.ts` fails on pictographs in catalog values
+  (same rule as tarodan-app's catalog gate).
 - **Fix what you touch.** Violations in the area you change are fixed in the same
   change; anything bigger goes to the tarodan-ops `backlog.md`.
 - Definition of Done: tarodan-ops `docs/definition-of-done.md` (every change, UI,

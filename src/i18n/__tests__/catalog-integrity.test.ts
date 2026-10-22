@@ -57,11 +57,14 @@ describe('katalog anahtar iskeleti', () => {
 describe('emoji ve piktogram yok', () => {
   /**
    * Copy rule: no emoji, pictographs or decorative arrows in user-facing text; use theme
-   * icons or words (" > " for paths). Covers Extended_Pictographic (emoji, also the copyright
-   * sign), arrows, misc symbols, dingbats and variation selectors / ZWJ. The multiplication sign
-   * and the minus sign are math, not pictographs, and are not matched.
+   * icons or words (" > " for paths). Same rule as tarodan-app's catalog gate
+   * (`packages/i18n/scripts/check-catalog.mjs` FORBIDDEN_GLYPH), lifted verbatim so synced
+   * values pass both: Extended_Pictographic plus flags, skin tones, keycap, VS16 and ZWJ,
+   * text-style stars/checks/crosses, the Arrows block and ASCII arrows. The legal marks
+   * (c), (r) and (tm) are typography and stay allowed.
    */
-  const PICTOGRAPH = /[\p{Extended_Pictographic}\u2190-\u21FF\u2B00-\u2BFF\u25A0-\u25FF\u2600-\u27BF]|\uFE0F|\u200D/u;
+  const PICTOGRAPH =
+    /(?![\u00A9\u00AE\u2122])\p{Extended_Pictographic}|\p{Regional_Indicator}|\p{Emoji_Modifier}|\u20E3|\uFE0F|\u200D|[\u2605\u2606\u2713\u2714\u2715\u2717\u2190-\u21FF]|->|<-|=>/u;
 
   it('hiçbir katalog değerinde piktogram yok', () => {
     const offenders: string[] = [];
