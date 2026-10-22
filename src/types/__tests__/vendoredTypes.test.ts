@@ -12,6 +12,7 @@ import path from 'path';
 
 import * as boost from '../boost';
 import * as cardAction from '../product-card-action';
+import * as negotiatedAmount from '../negotiated-amount';
 import { CONSENT_DOCUMENT_I18N_KEYS, CONSENT_DOCUMENT_KEYS } from '@/lib/shared/legalConsent';
 
 const VENDORED_HEADER_LINES = 3;
@@ -63,6 +64,22 @@ describe('vendored product card action', () => {
   });
 });
 
+describe('vendored negotiated amount ceiling', () => {
+  it('exports the ceiling and its check', () => {
+    expect(Object.keys(negotiatedAmount).sort()).toEqual(
+      ['TL_NEGOTIATED_AMOUNT_MAX', 'exceedsTlNegotiatedAmountMax'].sort(),
+    );
+  });
+
+  it('is 9,999,999 TL; the ceiling itself is allowed, either sign', () => {
+    expect(negotiatedAmount.TL_NEGOTIATED_AMOUNT_MAX).toBe(9_999_999);
+    expect(negotiatedAmount.exceedsTlNegotiatedAmountMax(9_999_999)).toBe(false);
+    expect(negotiatedAmount.exceedsTlNegotiatedAmountMax(-9_999_999)).toBe(false);
+    expect(negotiatedAmount.exceedsTlNegotiatedAmountMax(9_999_999.01)).toBe(true);
+    expect(negotiatedAmount.exceedsTlNegotiatedAmountMax(-9_999_999.01)).toBe(true);
+  });
+});
+
 describe('consent document catalog', () => {
   it('keeps the eight documents, in the source order', () => {
     expect(CONSENT_DOCUMENT_KEYS).toEqual([
@@ -89,7 +106,7 @@ describeWithSource('against the tarodan-app source (TARODAN_APP_ROOT)', () => {
   const body = (file: string) =>
     fs.readFileSync(file, 'utf8').split('\n').slice(VENDORED_HEADER_LINES).join('\n').trimStart();
 
-  it.each(['boost', 'product-card-action'])('%s matches packages/types/src', (name) => {
+  it.each(['boost', 'product-card-action', 'negotiated-amount'])('%s matches packages/types/src', (name) => {
     const vendored = body(path.join(__dirname, '..', `${name}.ts`));
     const source = fs.readFileSync(path.join(appRoot!, 'packages/types/src', `${name}.ts`), 'utf8');
     expect(vendored).toBe(source.trimStart());

@@ -1,7 +1,6 @@
 // Vendored copy of tarodan-app `packages/types/src/negotiated-amount.ts` (fix/trade-cash-client-cap
 // ceed0d0d3). Everything below this header matches the source; change it there first.
-// Contract: no API change; the API already refuses a larger amount (offers: `@Max`; trade cash:
-// 400 `server.trade.invalidCashAmount`).
+// Contract: no API change; the API already refuses a larger amount (`server.trade.invalidCashAmount`).
 
 /**
  * The ceiling of an amount two users agree on: an offer, a counter-offer and
