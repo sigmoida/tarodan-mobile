@@ -103,6 +103,54 @@ describe('J112 · isInFavorites / getFavoriteCount', () => {
     expect(b!.product.availableQuantity).toBe(4);
     expect(c!.product.availableQuantity).toBeUndefined();
   });
+
+  it('a present but negative or non-numeric stock fails closed to 0 (out of stock), never unlimited', async () => {
+    const { result } = await setup([
+      { ...srvItem('p1'), availableQuantity: -3 },
+      { ...srvItem('p2'), availableQuantity: 'abc' },
+      { ...srvItem('p3'), availableQuantity: '5' },
+      { ...srvItem('p4'), availableQuantity: null },
+    ]);
+    await waitFor(() => expect(result.current.getFavoriteCount()).toBe(4));
+    expect(result.current.items.map((i) => i.product.availableQuantity)).toEqual([0, 0, 5, undefined]);
+  });
+
+  it('maps maxQuantityPerOrder (flat or nested); missing or invalid = undefined (no per-order limit)', async () => {
+    const { result } = await setup([
+      { ...srvItem('p1'), maxQuantityPerOrder: 2 },
+      { ...srvItem('p2'), product: { maxQuantityPerOrder: '3' } },
+      srvItem('p3'),
+      { ...srvItem('p4'), maxQuantityPerOrder: null },
+      { ...srvItem('p5'), maxQuantityPerOrder: 0 },
+      { ...srvItem('p6'), maxQuantityPerOrder: -1 },
+      { ...srvItem('p7'), maxQuantityPerOrder: 1.5 },
+      { ...srvItem('p8'), maxQuantityPerOrder: 'abc' },
+    ]);
+    await waitFor(() => expect(result.current.getFavoriteCount()).toBe(8));
+    expect(result.current.items.map((i) => i.product.maxQuantityPerOrder)).toEqual([
+      2,
+      3,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it('a row without a seller id maps to an undefined seller id, never an empty string', async () => {
+    const { result } = await setup([
+      srvItem('p1'),
+      { ...srvItem('p2'), sellerId: '' },
+      { ...srvItem('p3'), sellerId: 42 },
+    ]);
+    await waitFor(() => expect(result.current.getFavoriteCount()).toBe(3));
+    const [a, b, c] = result.current.items;
+    expect(a!.product.seller.id).toBeUndefined();
+    expect(b!.product.seller.id).toBeUndefined();
+    expect(c!.product.seller.id).toBe('42');
+  });
 });
 
 describe('J21 · favoriye ekleme (addToFavorites optimistic)', () => {
