@@ -108,6 +108,12 @@ set -euo pipefail
 # `|| die` / `|| exit 1` kullanılır — ikisinde de aynı davranış (testler iki
 # sürümde de koşuldu).
 shopt -s inherit_errexit 2>/dev/null || true
+# Pipe rule: no reader that exits before its input ends (`head`, `grep -q`, `grep -m`).
+# With pipefail the writer then dies of SIGPIPE (status 141) whenever the reader quits
+# between two of its writes; bash's printf/echo write line by line, so this happens
+# under CPU load. In an assignment it stops the script, in an `if` it flips the test
+# (a fail-closed guard would pass). Use a here-string (`grep -q x <<< "$v"`) or bash
+# expansion instead. releaseScript.test.ts enforces this here and in workflow steps.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
@@ -218,7 +224,8 @@ assert_release_build_env() {
 # if eas-cli changes its line layout. <what> names what is refused.
 assert_no_eas_test_hooks() {
   local vars="$1" environment="$2" what="$3" hit
-  hit="$(printf '%s\n' "$vars" | grep -Eo '(^|[^A-Z0-9_])EXPO_PUBLIC_MAESTRO[A-Z0-9_]*=' | head -n1 | sed -E 's/^[^E]*//; s/=$//')" || true
+  # sed keeps the first hit and still reads to the end (no `head`: see the pipe rule at the top).
+  hit="$(grep -Eo '(^|[^A-Z0-9_])EXPO_PUBLIC_MAESTRO[A-Z0-9_]*=' <<< "$vars" | sed -E -n '1{s/^[^E]*//; s/=$//; p;}')" || true
   [ -z "$hit" ] \
     || die "EAS $environment environment defines $hit (an EXPO_PUBLIC_MAESTRO* test hook); Maestro/E2E test hooks never go into $what."
 }
@@ -463,7 +470,7 @@ check_release_version() {
   current="$(app_version)" || exit 1
   # A re-run of a merge that already shipped (the other platform failed): the tag
   # of this version is on HEAD, so there is nothing new to count.
-  if git -C "$ROOT" tag --points-at HEAD | grep -qxF "$TAG_PREFIX$current"; then
+  if grep -qxF "$TAG_PREFIX$current" <<< "$(git -C "$ROOT" tag --points-at HEAD)"; then
     echo "check-release-version: OK, HEAD is already tagged $TAG_PREFIX$current."
     return 0
   fi
@@ -516,7 +523,7 @@ assert_ota_eas_env() {
   keys="$(profile_env "$profile" | sed 's/=.*//')" || die "eas.json build.$profile env could not be read"
   for key in $keys; do
     # Not anchored either (fail closed): a value that only mentions the name also stops.
-    if printf '%s\n' "$all" | grep -Eq "(^|[^A-Z0-9_])$key="; then
+    if grep -Eq "(^|[^A-Z0-9_])$key=" <<< "$all"; then
       die "EAS $environment environment defines $key, which eas update --environment would use instead of eas.json build.$profile.env.$key (eas build keeps the eas.json value). Remove it from one of the two."
     fi
   done
@@ -787,7 +794,8 @@ plan() {
   local mode="${MODE:-auto}" want="${PLATFORM:-all}" android_enabled="${ANDROID_ENABLED:-false}"
   local sha="${SHA:-0000000}" msg version="" p fp state build_id decision last text
   local ota="" blocked="" kind="" source="${SOURCE_REF:-}" gated await
-  msg="$(printf '%s' "${COMMIT_MSG:-manual $env ($mode) ${sha:0:7}}" | head -n1)"
+  msg="${COMMIT_MSG:-manual $env ($mode) ${sha:0:7}}"
+  msg="${msg%%$'\n'*}"
   output "message=$msg"
 
   if [ "$env" = staging ]; then
