@@ -51,6 +51,7 @@ jest.mock('@/stores/authStore', () => ({
 }));
 
 jest.mock('@/hooks/useFavorites', () => ({
+  isOptimisticFavorite: jest.requireActual('@/hooks/useFavorites').isOptimisticFavorite,
   useFavorites: () => ({
     items: mockState.items,
     isLoading: false,
@@ -210,6 +211,16 @@ describe('J57 · favoriler ekranı — dolu liste', () => {
     expect(mockState.addItem).toHaveBeenCalledWith(
       expect.objectContaining({ productId: 'p1', seller: expect.objectContaining({ id: 'unknown' }) }),
     );
+  });
+
+  it('an optimistic row (add in flight) is a loading card with no cart action', () => {
+    const pending = { ...makeItem('p2'), id: 'temp-p2' };
+    mockState.items = [makeItem('p1'), pending];
+    renderWithProviders(<FavoritesScreen />);
+    expect(screen.getByTestId('favorite-pending-p2')).toBeOnTheScreen();
+    expect(screen.queryByTestId('favorite-card-p2')).toBeNull();
+    expect(screen.queryByTestId('product-card-cart-p2')).toBeNull();
+    expect(screen.getByTestId('product-card-cart-p1')).toBeOnTheScreen();
   });
 
   it('ürün kartına dokununca ürün detayına push eder', () => {

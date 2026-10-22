@@ -28,7 +28,7 @@ jest.mock('@/stores/authStore', () => ({
 }));
 
 import { wishlistApi } from '@/lib/api';
-import { useFavorites } from '../useFavorites';
+import { isOptimisticFavorite, useFavorites } from '../useFavorites';
 
 const wishlist = wishlistApi as unknown as {
   get: jest.Mock; add: jest.Mock; remove: jest.Mock; clear: jest.Mock;
@@ -163,6 +163,26 @@ describe('J21 · favoriye ekleme (addToFavorites optimistic)', () => {
     await waitFor(() =>
       expect(result.current.items.filter((i) => i.productId === 'p1')).toHaveLength(1),
     );
+  });
+
+  it('the optimistic row is marked optimistic and carries no seller id; the real row is not', async () => {
+    let resolveAdd: ((v: unknown) => void) | undefined;
+    wishlist.add.mockReturnValueOnce(new Promise((r) => (resolveAdd = r)));
+    const { result } = await setup([srvItem('p1')]);
+    await waitFor(() => expect(result.current.getFavoriteCount()).toBe(1));
+    let pending: Promise<boolean> = Promise.resolve(true);
+    act(() => {
+      pending = result.current.addToFavorites('p2');
+    });
+    await waitFor(() => expect(result.current.getFavoriteCount()).toBe(2));
+    const [real, temp] = result.current.items;
+    expect(isOptimisticFavorite(real!)).toBe(false);
+    expect(isOptimisticFavorite(temp!)).toBe(true);
+    expect(temp!.product.seller.id).toBeUndefined();
+    await act(async () => {
+      resolveAdd?.({ data: {} });
+      await pending;
+    });
   });
 
   it('ekleme başarısız olursa optimistic kayıt geri alınır (rollback)', async () => {

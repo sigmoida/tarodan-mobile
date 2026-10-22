@@ -34,6 +34,15 @@ export interface WishlistItem {
   addedAt: string;
 }
 
+/** Id prefix of an optimistic row: a favorite add whose real row has not arrived yet. */
+const OPTIMISTIC_ID_PREFIX = 'temp-';
+
+/**
+ * An optimistic row (placeholder title, price 0, no stock, cap or seller): the screen draws it as a
+ * loading card, never as a listing with a cart action (web: pending adds are loading tiles).
+ */
+export const isOptimisticFavorite = (item: WishlistItem): boolean => item.id.startsWith(OPTIMISTIC_ID_PREFIX);
+
 /** Veri yokken sabit boş liste: `items` kimliği render'lar arasında değişmez (türetilen Set/memo'lar boşuna yenilenmez). */
 const NO_ITEMS: WishlistItem[] = [];
 
@@ -207,7 +216,7 @@ export function useFavorites() {
     const alreadyThere = prev.some((i) => sameProduct(i.productId, productId));
     if (!alreadyThere) {
       const optimisticItem: WishlistItem = {
-        id: `temp-${productId}`,
+        id: `${OPTIMISTIC_ID_PREFIX}${productId}`,
         productId,
         product: {
           id: productId,
