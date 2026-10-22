@@ -4,7 +4,8 @@
  * for an id-only deep link, from the loaded option lists, and the empty rule and default name are
  * the vendored contract's.
  */
-import { canonicalizeSavedSearchQuery, savedSearchToRouteParams } from '@/types';
+import { createHash } from 'crypto';
+import { canonicalizeSavedSearchQuery, savedSearchToRouteParams, type SavedSearchQuery } from '@/types';
 import { buildListParams, EMPTY_FILTERS, filtersFromSearchParams, type ProductFilters } from '@/utils/productFilters';
 import { buildSavedSearchDraft, toCreateSavedSearchInput } from '../_lib/savedSearch';
 import { PAGE_SIZE } from '../_lib/searchConstants';
@@ -132,5 +133,46 @@ describe('save then run round trip', () => {
     expect(request(reopened)).toEqual(query);
     // The display names come back for the chips.
     expect(reopened).toMatchObject({ category: 'Diecast', brand: 'BMW', manufacturer: 'Hot Wheels', carModel: 'M3' });
+  });
+});
+
+// The API's dedupe key (tarodan-app `saved-search-hash.ts`): SHA-256 of the canonical query's JSON.
+// Mirrored here to pin that price parsing changes no stored hash (same cases as web `savedSearch.test.ts`).
+const queryHash = (query: SavedSearchQuery) => createHash('sha256').update(JSON.stringify(query)).digest('hex');
+
+describe('saved-search price criteria', () => {
+  // Stored criteria hold plain numbers, as the old clients saved them.
+  it.each<[string, SavedSearchQuery]>([
+    ['whole bounds', { maxPrice: 1000, minPrice: 100 }],
+    ['a decimal bound', { maxPrice: 1250.5, minPrice: 99.99 }],
+    ['a min alone', { minPrice: 1000, search: 'mustang' }],
+    ['a max alone', { maxPrice: 500, tradeOnly: true }],
+    ['a min above the max', { maxPrice: 100, minPrice: 500 }],
+  ])('re-saving a run search keeps the stored hash (%s)', (_, stored) => {
+    const run = filtersFromSearchParams(savedSearchToRouteParams(stored));
+    const { query } = buildSavedSearchDraft(run, {});
+    expect(query).toEqual(stored);
+    expect(queryHash(query)).toBe(queryHash(stored));
+  });
+
+  // Two stored shapes a run no longer applies (pinned, as on web): no TL amount has three decimals,
+  // and a 0 max is no bound. The stored rows and their hashes stay as they are.
+  it.each<[string, SavedSearchQuery, SavedSearchQuery]>([
+    ['three decimals', { minPrice: 99.999, search: 'a' }, { search: 'a' }],
+    ['a zero max', { maxPrice: 0, search: 'a' }, { search: 'a' }],
+  ])('a run ignores a stored bound with %s', (_, stored, run) => {
+    expect(buildSavedSearchDraft(filtersFromSearchParams(savedSearchToRouteParams(stored)), {}).query).toEqual(run);
+  });
+
+  it('saves typed text as the same canonical numbers as plain input', () => {
+    const typed = buildSavedSearchDraft(filters({ minPrice: '1250,50', maxPrice: '2000,00' }), {});
+    expect(typed.query).toEqual({ maxPrice: 2000, minPrice: 1250.5 });
+    expect(queryHash(typed.query)).toBe(queryHash({ maxPrice: 2000, minPrice: 1250.5 }));
+  });
+
+  it('saves no bound for refused text (never 1 TL for "1.000")', () => {
+    expect(buildSavedSearchDraft(filters({ search: 'mustang', minPrice: '1.000' }), {}).query).toEqual({
+      search: 'mustang',
+    });
   });
 });

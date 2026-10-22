@@ -120,3 +120,20 @@ describe('buildActiveChips · web parity filters', () => {
     expect(remove(f, 'disc')).toMatchObject({ tradeOnly: true, discountOnly: false });
   });
 });
+
+describe('buildActiveChips · price chip', () => {
+  const priceChip = (minPrice: string, maxPrice: string) =>
+    buildActiveChips({ ...EMPTY_FILTERS, minPrice, maxPrice }, jest.fn(), t).find((c) => c.key === 'price');
+
+  it('labels the applied bounds as TL amounts', () => {
+    expect(priceChip('1000', '1250,5')?.label).toBe('1.000,00 TL - 1.250,50 TL');
+    expect(priceChip('1000', '')?.label).toBe('1.000,00 TL - ∞');
+    expect(priceChip('', '500')?.label).toBe('0,00 TL - 500,00 TL');
+  });
+
+  it('never shows a refused "1.000" as 1 TL', () => {
+    expect(priceChip('1.000', '500')?.label).toBe('0,00 TL - 500,00 TL');
+    expect(priceChip('1.000', '')).toBeUndefined();
+    expect(priceChip('0', '')).toBeUndefined();
+  });
+});

@@ -5,6 +5,10 @@ import {
   countActiveFilters,
   filtersFromSearchParams,
   flattenUniqueListings,
+  hasPriceFilter,
+  isPriceFilterRefused,
+  priceFilterBound,
+  priceFilterParam,
   type ProductFilters,
 } from '../productFilters';
 
@@ -295,5 +299,86 @@ describe('filtersFromSearchParams · web URL parity', () => {
     it('Clear leaves only search and sort', () => {
       expect(clearProductFilters(f)).toEqual({ ...EMPTY_FILTERS, search: 'ferrari', sortBy: 'view_count_asc' });
     });
+  });
+});
+
+/** Same cases as web `listings/_lib/params.test.ts` (price filter bounds): both read with `parseTlAmount`. */
+describe('price filter bounds (web parity)', () => {
+  it.each([
+    ['1000', 1000],
+    ['1250.5', 1250.5],
+    ['1250,5', 1250.5],
+    ['1250,50', 1250.5],
+    ['0,57', 0.57],
+    [' 500 ', 500],
+    ['12,', 12],
+  ])('%j is the bound %d', (text, bound) => {
+    expect(priceFilterBound(text)).toBe(bound);
+    expect(isPriceFilterRefused(text)).toBe(false);
+  });
+
+  it.each(['', '  ', '0', '0,00', ','])('%j sets no bound and is not refused', (text) => {
+    expect(priceFilterBound(text)).toBeUndefined();
+    expect(isPriceFilterRefused(text)).toBe(false);
+    expect(priceFilterParam(text)).toBe('');
+  });
+
+  // "1.000" is one thousand to a Turkish user: refused, never 1 TL.
+  it.each(['1.000', '1.250,50', '1,000.50', '10.000', '1e3', '-5', 'abc', '1 000'])(
+    '%j is refused and sets no bound',
+    (text) => {
+      expect(isPriceFilterRefused(text)).toBe(true);
+      expect(priceFilterBound(text)).toBeUndefined();
+    },
+  );
+
+  it('the canonical value is a plain number with a dot', () => {
+    expect(priceFilterParam('1250,50')).toBe('1250.5');
+    expect(priceFilterParam('100,00')).toBe('100');
+  });
+
+  it('counts as a filter only when a bound is set', () => {
+    expect(hasPriceFilter({ minPrice: '100', maxPrice: '' })).toBe(true);
+    expect(hasPriceFilter({ minPrice: '1.000', maxPrice: '' })).toBe(false);
+    expect(hasPriceFilter({ minPrice: '0', maxPrice: '0' })).toBe(false);
+    expect(countActiveFilters({ ...EMPTY_FILTERS, minPrice: '1.000' })).toBe(0);
+    expect(countActiveFilters({ ...EMPTY_FILTERS, minPrice: '1000', maxPrice: '2000' })).toBe(1);
+  });
+});
+
+describe('price bounds in the API params', () => {
+  const api = (minPrice: string, maxPrice: string) =>
+    buildListParams({ ...EMPTY_FILTERS, minPrice, maxPrice }, 1, 24);
+
+  it('sends the parsed bounds as numbers', () => {
+    expect(api('1250,50', '2000')).toMatchObject({ minPrice: 1250.5, maxPrice: 2000 });
+  });
+
+  it('never sends refused text: "1.000" is no bound, not 1 TL', () => {
+    const params = api('1.000', '10.000');
+    expect(params).not.toHaveProperty('minPrice');
+    expect(params).not.toHaveProperty('maxPrice');
+  });
+
+  it('drops zero bounds (zero = no bound)', () => {
+    expect(api('0', '0')).toEqual({ limit: 24, page: 1 });
+  });
+
+  it('keeps a min above the max as it is (no swap, as on web)', () => {
+    expect(api('500', '100')).toMatchObject({ minPrice: 500, maxPrice: 100 });
+  });
+
+  it('a legacy grouped URL value is kept as field text and its bound ignored', () => {
+    const f = filtersFromSearchParams({ minPrice: '1.000', maxPrice: '5000' });
+    expect(f.minPrice).toBe('1.000');
+    expect(isPriceFilterRefused(f.minPrice)).toBe(true);
+    const params = buildListParams(f, 1, 24);
+    expect(params).not.toHaveProperty('minPrice');
+    expect(params.maxPrice).toBe(5000);
+  });
+
+  it('a canonical URL value (old links and saved searches) reads as written', () => {
+    const params = buildListParams(filtersFromSearchParams({ minPrice: '1000', maxPrice: '1250.5' }), 1, 24);
+    expect(params).toMatchObject({ minPrice: 1000, maxPrice: 1250.5 });
   });
 });

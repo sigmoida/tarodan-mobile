@@ -5,10 +5,15 @@
  * Alttan açılan panel: [Temizle] [N Sonuç Göster] gövdenin dışında sabit footer'da; uzun
  * listeler ilk 8 satır + "Tümünü göster".
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react-native';
 import ProductFilterSheet from '../ProductFilterSheet';
-import { EMPTY_FILTERS, keepGeneralAttributeSelections } from '../../utils/productFilters';
+import {
+  EMPTY_FILTERS,
+  buildListParams,
+  keepGeneralAttributeSelections,
+  type ProductFilters,
+} from '../../utils/productFilters';
 import type { ProductFilterOptions } from '../../hooks/useProductFilterOptions';
 
 const GENERAL = {
@@ -336,5 +341,82 @@ describe('ProductFilterSheet · custom attribute groups (multi-select, web toggl
     const onChange = setup({ rarity: ['rare'] });
     fireEvent.press(screen.getByText('Nadir'));
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ customAttributes: {} }));
+  });
+});
+
+describe('ProductFilterSheet · price range (web SidebarFilters parity)', () => {
+  const REFUSED = /Tutar kabul edilmedi/;
+  const changes: ProductFilters[] = [];
+
+  /** The sheet over real state, as on the search screen (each change re-renders the fields). */
+  function Sheet({ initial }: { initial: Partial<ProductFilters> }) {
+    const [filters, setFilters] = useState<ProductFilters>({ ...EMPTY_FILTERS, ...initial });
+    return (
+      <ProductFilterSheet
+        visible
+        onClose={jest.fn()}
+        filters={filters}
+        onChange={(next) => {
+          changes.push(next);
+          setFilters(next);
+        }}
+        onClear={() => setFilters(EMPTY_FILTERS)}
+        options={options()}
+        resultCount={0}
+      />
+    );
+  }
+  const setup = (initial: Partial<ProductFilters> = {}) => {
+    changes.length = 0;
+    render(<Sheet initial={initial} />);
+  };
+  const sent = () => buildListParams(changes.at(-1)!, 1, 24);
+  const min = () => screen.getByTestId('filter-min-price');
+  const max = () => screen.getByTestId('filter-max-price');
+  const preset = (label: string) => screen.getByRole('button', { name: label });
+
+  it('the fields use the decimal keyboard and keep the typed text', () => {
+    setup();
+    expect(min().props.keyboardType).toBe('decimal-pad');
+    expect(max().props.keyboardType).toBe('decimal-pad');
+    fireEvent.changeText(min(), '1250,50');
+    expect(min().props.value).toBe('1250,50');
+    expect(sent().minPrice).toBe(1250.5);
+    expect(screen.queryByText(REFUSED)).toBeNull();
+  });
+
+  it('refuses "1.000": shows the refusal and searches no min (not 1 TL)', () => {
+    setup({ minPrice: '500' });
+    fireEvent.changeText(min(), '1.000');
+    expect(screen.getByText(REFUSED)).toBeTruthy();
+    expect(min().props.value).toBe('1.000');
+    expect(sent()).not.toHaveProperty('minPrice');
+  });
+
+  it('shows a legacy grouped URL value as refused', () => {
+    setup({ minPrice: '1.000', maxPrice: '5000' });
+    expect(screen.getByText(REFUSED)).toBeTruthy();
+  });
+
+  it('zero is no bound and no error; a min above the max is kept (no swap)', () => {
+    setup();
+    fireEvent.changeText(max(), '0');
+    expect(screen.queryByText(REFUSED)).toBeNull();
+    expect(sent()).not.toHaveProperty('maxPrice');
+    fireEvent.changeText(min(), '500');
+    fireEvent.changeText(max(), '100');
+    expect(sent()).toMatchObject({ minPrice: 500, maxPrice: 100 });
+    expect(screen.queryByText(REFUSED)).toBeNull();
+  });
+
+  it('a quick range sets both bounds and is selected, also for typed text', () => {
+    setup();
+    expect(preset('1.000+ TL').props.accessibilityState).toMatchObject({ selected: false });
+    fireEvent.press(preset('1.000+ TL'));
+    expect(changes.at(-1)).toMatchObject({ minPrice: '1000', maxPrice: '' });
+    expect(preset('1.000+ TL').props.accessibilityState).toMatchObject({ selected: true });
+    fireEvent.changeText(min(), '100,00');
+    fireEvent.changeText(max(), '500');
+    expect(preset('100 - 500 TL').props.accessibilityState).toMatchObject({ selected: true });
   });
 });

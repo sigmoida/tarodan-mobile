@@ -3,6 +3,7 @@
  * `buildListApiParams`. Every product search/list screen (Search, Listings) uses this single source.
  */
 import type { TFunction } from 'i18next';
+import { parseTlAmount } from '@/lib/shared/tlAmount';
 
 export type ProductFilters = {
   search: string;
@@ -16,6 +17,10 @@ export type ProductFilters = {
   /** Selected colour slugs (multi-select, OR); `?color=red,black` in the URL, as on web. */
   colors: string[];
   condition: string;
+  /**
+   * Price bounds as text: what the user typed, or the URL value. Every reader goes through
+   * `priceFilterBound`; the request and saved searches get the bound, never this text.
+   */
   minPrice: string;
   maxPrice: string;
   tradeOnly: boolean;
@@ -56,6 +61,35 @@ export const EMPTY_FILTERS: ProductFilters = {
   manufacturerId: '',
   customAttributes: {},
 };
+
+/**
+ * The bound a price filter text sets, read with the shared TL parser (`parseTlAmount`, the one
+ * reader of typed TL amounts; web `priceFilterBound`): `undefined` when the text is empty, zero or
+ * refused, so such text never filters. "1.000" is refused (a Turkish user means one thousand),
+ * never read as 1 TL; that also holds for a legacy URL or saved-search value, whose bound is then
+ * ignored. Plain numbers ("1000", "1250.5", the canonical form) and a decimal comma ("1250,5") read
+ * as written. A min above the max is kept as it is (the API then finds nothing), as on web.
+ */
+export function priceFilterBound(text: string): number | undefined {
+  const parsed = parseTlAmount(text);
+  return parsed.status === 'ok' ? parsed.amount : undefined;
+}
+
+/** True when the price text is not an amount (`validation.amountFormatRefused`). */
+export function isPriceFilterRefused(text: string): boolean {
+  return parseTlAmount(text).status === 'refused';
+}
+
+/** The canonical value of a price bound: a plain number with a dot ("1250.5"), "" for none. */
+export function priceFilterParam(text: string): string {
+  const bound = priceFilterBound(text);
+  return bound === undefined ? '' : String(bound);
+}
+
+/** True when either price text sets a bound (the chip and the filter count). */
+export function hasPriceFilter(f: Pick<ProductFilters, 'minPrice' | 'maxPrice'>): boolean {
+  return priceFilterBound(f.minPrice) !== undefined || priceFilterBound(f.maxPrice) !== undefined;
+}
 
 /**
  * Üretici değişince/kalkınca YALNIZ üreticiye bağlı grup seçimleri düşer. Genel özel
@@ -145,8 +179,10 @@ export function buildListParams(
   if (search) p.search = search;
   if (f.categoryId) p.categoryId = f.categoryId;
   if (f.condition) p.condition = f.condition;
-  if (f.minPrice) p.minPrice = Number(f.minPrice);
-  if (f.maxPrice) p.maxPrice = Number(f.maxPrice);
+  const minPrice = priceFilterBound(f.minPrice);
+  if (minPrice !== undefined) p.minPrice = minPrice;
+  const maxPrice = priceFilterBound(f.maxPrice);
+  if (maxPrice !== undefined) p.maxPrice = maxPrice;
   if (f.brandId) p.brandId = f.brandId;
   else if (f.brand) p.brand = f.brand;
   if (f.carModelId) p.carModelId = f.carModelId;
@@ -199,7 +235,8 @@ export function countActiveFilters(f: ProductFilters): number {
   // Colours count as ONE filter however many are picked (web `activeFilterCount`).
   if (f.colors.length > 0) count += 1;
   if (f.condition) count += 1;
-  if (f.minPrice || f.maxPrice) count += 1;
+  // Refused or zero text sets no bound, so it is not a filter (web `activeFilterCount`).
+  if (hasPriceFilter(f)) count += 1;
   if (f.tradeOnly) count += 1;
   if (f.discountOnly) count += 1;
   if (f.preOrder) count += 1;
