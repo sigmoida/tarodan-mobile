@@ -140,7 +140,7 @@ describe('new trade · a refused cash amount blocks the wizard (web parity)', ()
       await hook.result.current.handleSubmit();
     });
     expect(errorToast).toHaveBeenCalledTimes(2);
-    expect(errorToast).toHaveBeenCalledWith(trCatalog.trade.cashFormatRefused);
+    expect(errorToast).toHaveBeenCalledWith(trCatalog.validation.amountFormatRefused);
     expect(tradesApi.create).not.toHaveBeenCalled();
     expect(hook.result.current.cashRefused).toBe(true);
 

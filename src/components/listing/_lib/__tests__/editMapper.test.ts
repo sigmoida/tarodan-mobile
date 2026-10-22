@@ -83,7 +83,8 @@ describe('toFormValues — form değerlerinin TAMAMI', () => {
     expect(toFormValues(RESPONSE)!.values).toEqual({
       title: 'Mini GT Volkswagen',
       description: 'Açıklama',
-      price: '551.07',
+      // Field text with a decimal comma, as the price field reads it (shared TL amount parser).
+      price: '551,07',
       quantity: '3',
       bundleSize: '',
       categoryId: 'cat-1',
@@ -112,8 +113,8 @@ describe('toFormValues — kaynak seçimi', () => {
   });
 
   it('fiyatı ÜST SEVİYEDEN değil `edit`ten okur', () => {
-    // Üst seviyede 999 var; doğru cevap 551.07.
-    expect(toFormValues(RESPONSE)!.values.price).toBe('551.07');
+    // The top level has 999; the right answer is 551.07 (field text: a decimal comma).
+    expect(toFormValues(RESPONSE)!.values.price).toBe('551,07');
   });
 
   it('kargo paket kademesini prefill eder', () => {

@@ -24,6 +24,7 @@ import { useDeleteListing } from './useDeleteListing';
 import { defaultSaleDates, salePayload } from '../_lib/sale';
 import { priceLimitHint, type PriceBaseline } from '../_lib/priceRules';
 import { usePriceLimits } from '@/hooks/usePriceLimits';
+import { tlAmountValue } from '@/lib/shared/tlAmount';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
 import { useLatestRef } from '@/hooks/useLatestRef';
 import { useStableCallback } from '@/hooks/useStableCallback';
@@ -539,7 +540,8 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
     return {
       title,
       description: description || undefined,
-      price: Number(getValues('price')),
+      // The schema has already refused text that is not a price (shared TL amount parser).
+      price: tlAmountValue(getValues('price')),
       categoryId,
       condition,
       brandId: brandId || undefined,

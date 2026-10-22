@@ -17,7 +17,7 @@ import type { TradeCounterController } from '../[id]/_hooks/useTradeCounter';
 jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').routerMock);
 
 const CASH_HELPER = trCatalog.trade.cashHelper;
-const CASH_REFUSED = trCatalog.trade.cashFormatRefused;
+const CASH_REFUSED = trCatalog.validation.amountFormatRefused;
 
 /** The counter body with the real cash state; the rest of the controller is a stub. */
 function render() {

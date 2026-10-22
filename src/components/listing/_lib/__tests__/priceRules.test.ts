@@ -11,6 +11,7 @@ const t = i18n.getFixedT('tr');
 const MIN = { minPrice: 250, maxPrice: null };
 const BOTH = { minPrice: 250, maxPrice: 5000 };
 const NONE = { minPrice: null, maxPrice: null };
+const REFUSED = 'Tutar kabul edilmedi. Binlik ayracı kullanmayın; kuruş için virgül kullanın, örn. 1250,50';
 const sale = (price: string, salePrice: string) => ({
   price,
   salePrice,
@@ -34,9 +35,24 @@ describe('priceFieldError', () => {
     expect(priceFieldError(t, '1', NONE)).toBeNull();
   });
 
-  it('boş / sayı olmayan değer biçim kuralına bırakılır', () => {
+  it('leaves empty or zero text to the schema format rule', () => {
     expect(priceFieldError(t, '', MIN)).toBeNull();
-    expect(priceFieldError(t, 'abc', MIN)).toBeNull();
+    expect(priceFieldError(t, '0', MIN)).toBeNull();
+  });
+
+  it('text that is not an amount is refused first, never also reported as below the minimum', () => {
+    // "1.000" is one thousand to a Turkish seller: refused, never read as 1 TL (under 250).
+    for (const text of ['1.000', '1.250,50', '12,505', 'abc']) {
+      expect(priceFieldError(t, text, MIN)).toBe(REFUSED);
+      expect(priceFieldError(t, text, NONE)).toBe(REFUSED);
+    }
+  });
+
+  it('reads a decimal comma: 249,99 is below 250, 1250,50 is not', () => {
+    expect(priceFieldError(t, '249,99', MIN)).toBe('Ürün fiyatı minimum 250,00 TL olmalıdır.');
+    expect(priceFieldError(t, '1250,50', MIN)).toBeNull();
+    // A stored price matches its comma text (edit prefill).
+    expect(priceFieldError(t, '100,50', MIN, ['100.5'])).toBeNull();
   });
 
   it('eski kayıt: saklı değerlerden birine eşitse hata yok, değilse var', () => {
@@ -75,9 +91,22 @@ describe('salePriceFieldError', () => {
     expect(salePriceFieldError(t, sale('500', '10'), NONE)).toBeNull();
   });
 
+  it('refused discount text blocks the save, limits or not: it would silently clear the sale', () => {
+    expect(salePriceFieldError(t, sale('5000', '1.000'), NONE)).toBe(REFUSED);
+    expect(salePriceFieldError(t, sale('5000', '1.000'), MIN)).toBe(REFUSED);
+    expect(salePriceFieldError(t, sale('5000', '1250,50'), MIN)).toBeNull();
+  });
+
   it('eski kayıt: saklı indirimli fiyat muaf, değiştirilince hata', () => {
     expect(salePriceFieldError(t, sale('500', '200'), MIN, ['500', '200'])).toBeNull();
     expect(salePriceFieldError(t, sale('500', '220'), MIN, ['500', '200'])).not.toBeNull();
+  });
+
+  it('a stored discount price matches its comma text (edit prefill), compared as a parsed amount', () => {
+    expect(salePriceFieldError(t, sale('500', '200,50'), MIN, ['500', '200.5'])).toBeNull();
+    expect(salePriceFieldError(t, sale('500', '210,50'), MIN, ['500', '200.5'])).toBe(
+      'İndirimli fiyat en az 250,00 TL olmalıdır.',
+    );
   });
 
   it('max de denetlenir (sunucu min ve max kontrol eder)', () => {
@@ -168,6 +197,37 @@ describe('şema + gönderim kapısı', () => {
         input({ ...grand, sale: { ...grand.sale, salePrice: '210' } }),
       ),
     ).toBe('İndirimli fiyat en az 250,00 TL olmalıdır.');
+  });
+
+  it('gate: "1.000" price or discount is refused before anything else, never 1 TL', () => {
+    expect(firstListingValidationError(t, input({ values: { ...values, price: '1.000' } }))).toBe(REFUSED);
+    expect(firstListingValidationError(t, input({ priceLimits: NONE, values: { ...values, price: '1.000' } }))).toBe(REFUSED);
+    expect(
+      firstListingValidationError(
+        t,
+        input({ priceLimits: undefined, sale: { salePrice: '1.000', saleStartDate: '', saleEndDate: '' } }),
+      ),
+    ).toBe(REFUSED);
+  });
+
+  it('schema: the 1 TL minimum reads the parsed amount, refusal first', () => {
+    const INVALID = 'Lütfen geçerli bir fiyat girin';
+    const price = (text: string) => {
+      const r = buildListingFormSchema(t, { priceLimits: NONE }).safeParse({ ...values, price: text });
+      return r.success ? null : r.error.issues.find((i) => i.path[0] === 'price')?.message ?? null;
+    };
+    expect(price('1')).toBeNull();
+    expect(price('1,00')).toBeNull();
+    for (const text of ['0,99', '0,50', '0', '', ',']) expect(price(text)).toBe(INVALID);
+    expect(price('0.999')).toBe(REFUSED);
+    // One issue at a time: refused text is not also reported as below the minimum.
+    const r = buildListingFormSchema(t, { priceLimits: MIN }).safeParse({ ...values, price: '1.000' });
+    expect(r.success ? [] : r.error.issues.map((i) => i.message)).toEqual([REFUSED]);
+  });
+
+  it('gate: "1000" and "1250,50" pass', () => {
+    expect(firstListingValidationError(t, input({ values: { ...values, price: '1000' } }))).toBeNull();
+    expect(firstListingValidationError(t, input({ values: { ...values, price: '1250,50' } }))).toBeNull();
   });
 
   it('kapı: sınırlar yüklenemediyse (yok) kural uygulanmaz', () => {

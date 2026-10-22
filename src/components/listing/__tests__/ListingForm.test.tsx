@@ -146,7 +146,7 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
     await screen.findByText('İlan Oluştur');
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Geçerli Başlık');
     fireEvent.changeText(screen.getByPlaceholderText('Ürün hakkında detaylı bilgi'), GECERLI_ACIKLAMA);
-    fireEvent.changeText(screen.getByPlaceholderText('0.00'), '0');
+    fireEvent.changeText(screen.getByPlaceholderText('0,00'), '0');
     fireEvent.press(screen.getByText('İlan Oluştur'));
     // `common.invalidPrice` reuse (rule #1).
     expect(toastErrorSpy).toHaveBeenCalledWith('Lütfen geçerli bir fiyat girin');
@@ -168,7 +168,7 @@ describe('J18/J55 · ilan formu input validasyonu', () => {
     await screen.findByText('İlan Oluştur');
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Geçerli Başlık');
     fireEvent.changeText(screen.getByPlaceholderText('Ürün hakkında detaylı bilgi'), GECERLI_ACIKLAMA);
-    fireEvent.changeText(screen.getByPlaceholderText('0.00'), '150');
+    fireEvent.changeText(screen.getByPlaceholderText('0,00'), '150');
     fireEvent.press(screen.getByText('İlan Oluştur'));
     expect(toastErrorSpy).toHaveBeenCalledWith('Lütfen bir kategori seçin.');
     expect(mockCreate).not.toHaveBeenCalled();
@@ -189,7 +189,7 @@ describe('J56 · komisyon önizleme bölümü', () => {
   it('J56.1 kategori seçilmeden fiyat girilince önizleme sorulmaz ve kutu çizilmez', async () => {
     renderWithProviders(<ListingForm mode="create" />);
     await screen.findByText('İlan Oluştur');
-    fireEvent.changeText(screen.getByPlaceholderText('0.00'), '500');
+    fireEvent.changeText(screen.getByPlaceholderText('0,00'), '500');
     await new Promise((r) => setTimeout(r, 600));
     expect(mockGet).not.toHaveBeenCalledWith('/orders/commission-preview', expect.anything());
     expect(screen.queryByText('Tahmini (satış başına)')).toBeNull();

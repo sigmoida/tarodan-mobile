@@ -45,4 +45,10 @@ describe('useCashAmount', () => {
     act(() => result.current.resetCashAmount('300'));
     expect(result.current).toMatchObject({ cashAmount: '300', cashRefused: false });
   });
+
+  it('a prefill the parser refuses blocks sending instead of going out as no cash', () => {
+    const { result } = renderHook(() => useCashAmount());
+    act(() => result.current.resetCashAmount('12,345'));
+    expect(result.current).toMatchObject({ cashAmount: '12,345', cashRefused: true });
+  });
 });

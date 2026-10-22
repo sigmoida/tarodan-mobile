@@ -41,7 +41,7 @@ export function BuyerCounterModal({
     // Modalı ÖNCE kapat: appAlert bir ui-native Modal açıkken çağrılırsa iOS donar.
     // [[mobile-modal-freeze-and-modalmessage-primitive]]
     onClose();
-    buyerCounter.mutate({ id: offer.id, amount: Number(amount) });
+    buyerCounter.mutate({ id: offer.id, amount });
   });
 
   return (

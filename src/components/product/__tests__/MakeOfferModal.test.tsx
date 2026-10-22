@@ -5,10 +5,10 @@
  */
 import React from 'react';
 import { appAlert, toast } from '@/ui';
-import {  } from 'react-native';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import MakeOfferModal from '../MakeOfferModal';
 import { renderWithProviders } from '../../../test-utils';
+import trCatalog from '@/i18n/lib/catalog/tr.json';
 
 // API'yi mock'la — ağ yok, deterministik.
 jest.mock('@/lib/api', () => ({
@@ -48,7 +48,7 @@ function renderModal(props: Partial<React.ComponentProps<typeof MakeOfferModal>>
 describe('MakeOfferModal', () => {
   beforeEach(() => {
     createMock.mockClear();
-    (appAlert as jest.Mock).mockImplementation(() => {});
+    (appAlert as jest.Mock).mockImplementation(() => undefined);
   });
 
   it('tutar klavyesi: normalde numeric, IS_MAESTRO açıkken default (return tuşu için)', () => {
@@ -183,6 +183,35 @@ describe('MakeOfferModal', () => {
     fireEvent.press(screen.getByTestId('offer-submit-button'));
     expect(onDismiss).not.toHaveBeenCalled();
     expect(createMock).not.toHaveBeenCalled();
+  });
+
+  describe('amount text (shared TL amount parser, web parity)', () => {
+    it('"1.000" is Turkish grouping: refused in the modal, no request, never 1 TL', async () => {
+      const { onDismiss } = renderModal({ listPrice: 1500 });
+      fireEvent.changeText(screen.getByTestId('offer-amount-input'), '1.000');
+      // Refused text keeps the button on, so pressing it says why.
+      expect(screen.getByTestId('offer-submit-button')).toBeEnabled();
+      fireEvent.press(screen.getByTestId('offer-submit-button'));
+
+      await waitFor(() => expect(screen.getByText(trCatalog.validation.amountFormatRefused)).toBeOnTheScreen());
+      expect(onDismiss).not.toHaveBeenCalled();
+      expect(createMock).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['1000', 1000],
+      ['1250,50', 1250.5],
+    ])('%p is sent exactly as %p', async (text, amount) => {
+      renderModal({ listPrice: 1500 });
+      fireEvent.changeText(screen.getByTestId('offer-amount-input'), text);
+      // The field keeps the decimal comma as typed.
+      expect(screen.getByTestId('offer-amount-input').props.value).toBe(text);
+      fireEvent.press(screen.getByTestId('offer-submit-button'));
+
+      await waitFor(() =>
+        expect(createMock).toHaveBeenCalledWith({ productId: 'prod-1', amount, message: undefined }),
+      );
+    });
   });
 
   it('çok düşük fiyatta liste fiyatına yuvarlanan çip çizilmez', () => {

@@ -32,6 +32,11 @@ describe('web ile eşitlenen ortak metinler', () => {
     ['product.sponsored', 'Sponsorlu', 'Sponsored'],
     ['legal.platformServiceSales.title', 'Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi', 'Pre-contract Information and Distance Service Contract'],
     ['legal.withdrawalWaiverTitle', 'Cayma Hakkı Onayı', 'Withdrawal Waiver'],
+    [
+      'validation.amountFormatRefused',
+      'Tutar kabul edilmedi. Binlik ayracı kullanmayın; kuruş için virgül kullanın, örn. 1250,50',
+      'This amount was not accepted. Do not use thousands separators; use a comma for kuruş, for example 1250,50',
+    ],
   ])('%s', (key, trValue, enValue) => {
     expect(get(tr, key)).toBe(trValue);
     expect(get(en, key)).toBe(enValue);

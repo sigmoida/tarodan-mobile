@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next';
-import type { PriceLimits } from '@/lib/shared/priceLimits';
+import { NO_PRICE_LIMITS, type PriceLimits } from '@/lib/shared/priceLimits';
 import { buildListingFormSchema, MIN_IMAGES, type ListingFormValues } from './schema';
 import { salePriceFieldError, type PriceBaseline } from './priceRules';
 
@@ -47,12 +47,13 @@ export function firstListingValidationError(
   if (!result.success) {
     return result.error.issues[0]?.message || t('listing.checkFieldsFallback');
   }
-  // İndirimli fiyat da tabanın altına inemez (sale alanları şema dışı).
-  if (input.priceLimits && input.sale) {
+  // The discount fields are outside the schema: refused discount text blocks the save (it
+  // would clear the sale), and the discount price cannot go below the floor either.
+  if (input.sale) {
     const saleError = salePriceFieldError(
       t,
       { price: input.values.price, ...input.sale },
-      input.priceLimits,
+      input.priceLimits ?? NO_PRICE_LIMITS,
       input.priceBaseline,
     );
     if (saleError) return saleError;

@@ -51,9 +51,10 @@ const refocus = () =>
     });
   });
 
-let mockAuthState: any = { isAuthenticated: true, user: { id: 'u1', isSeller: true } };
+type MockAuthState = { isAuthenticated: boolean; user: { id: string; isSeller: boolean } | null };
+let mockAuthState: MockAuthState = { isAuthenticated: true, user: { id: 'u1', isSeller: true } };
 jest.mock('@/stores/authStore', () => ({
-  useAuthStore: (sel?: (state: any) => unknown) => (sel ? sel(mockAuthState) : mockAuthState),
+  useAuthStore: (sel?: (state: MockAuthState) => unknown) => (sel ? sel(mockAuthState) : mockAuthState),
 }));
 
 jest.mock('@/lib/api', () => ({
@@ -111,7 +112,7 @@ beforeEach(() => {
   (productsApi.getMyListings as jest.Mock).mockResolvedValue({ data: { data: [] } });
   create.mockReset();
   update.mockReset();
-  (appAlert as jest.Mock).mockImplementation(() => {});
+  (appAlert as jest.Mock).mockImplementation(() => undefined);
   success = jest.spyOn(toast, 'success').mockImplementation(() => 1);
   errorToast = jest.spyOn(toast, 'error').mockImplementation(() => 1);
   useProductPickerDraft.setState({ active: false, selectedIds: [] });
@@ -217,6 +218,50 @@ describe('J114 · yeni indirim ekranı — validasyon', () => {
   });
 });
 
+describe('discount form: amount text (shared TL amount parser, web parity)', () => {
+  const REFUSED = 'Tutar kabul edilmedi. Binlik ayracı kullanmayın; kuruş için virgül kullanın, örn. 1250,50';
+  const fixedForm = () => {
+    renderWithProviders(<NewDiscountScreen />);
+    fireEvent.changeText(nameInput(), 'Sabit');
+    fireEvent.press(screen.getByText('Sabit (TL)'));
+  };
+
+  it('"1.000" is Turkish grouping: refused under the field, no request, never 1 TL', async () => {
+    fixedForm();
+    fireEvent.changeText(screen.getByTestId('discount-value'), '1.000');
+    fireEvent.changeText(screen.getByTestId('discount-min-cart'), '2.500');
+    fireEvent.press(screen.getByText('Oluştur'));
+    expect(await screen.findAllByText(REFUSED)).toHaveLength(2);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('sends "1000" and "1250,50" exactly; the field keeps the comma as typed', async () => {
+    create.mockResolvedValue({ data: {} });
+    fixedForm();
+    fireEvent.changeText(screen.getByTestId('discount-value'), '1250,50');
+    fireEvent.changeText(screen.getByTestId('discount-min-cart'), '1000');
+    expect(screen.getByTestId('discount-value').props.value).toBe('1250,50');
+    fireEvent.press(screen.getByText('Oluştur'));
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'fixed_amount', value: 1250.5, minCartValue: 1000 }),
+    );
+  });
+
+  it('edit prefills amounts with a decimal comma', async () => {
+    mockParams = { id: 'd3' };
+    (discountsApi.getAll as jest.Mock).mockResolvedValue({
+      data: {
+        items: [discountFixture({ id: 'd3', type: 'fixed_amount', value: 1250.5, minCartValue: 1000, maxDiscountAmount: 99.9 })],
+      },
+    });
+    renderWithProviders(<EditDiscountScreen />);
+    await waitFor(() => expect(screen.getByTestId('discount-value').props.value).toBe('1250,50'));
+    expect(screen.getByTestId('discount-min-cart').props.value).toBe('1000');
+    expect(screen.getByTestId('discount-max-discount').props.value).toBe('99,90');
+  });
+});
+
 describe('J114.12 indirimi düzenle ekranı', () => {
   it('bogo -> yüzde; PATCH gövdesinde eski adet alanları null gider', async () => {
     mockParams = { id: 'd2' };
@@ -234,7 +279,8 @@ describe('J114.12 indirimi düzenle ekranı', () => {
     expect(screen.getByDisplayValue('2')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByText('Yüzde (%)'));
-    fireEvent.changeText(screen.getByDisplayValue('0'), '15');
+    // bogo has no value, so the value field opens empty.
+    fireEvent.changeText(screen.getByTestId('discount-value'), '15');
     fireEvent.press(screen.getByText('Güncelle'));
 
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
