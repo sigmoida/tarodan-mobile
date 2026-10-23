@@ -6,7 +6,8 @@
  * `pnpm lint` çıktısındaki tarodan/* uyarıları.)
  */
 /* eslint-disable @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any */
-const plugin = require('eslint-plugin-tarodan');
+// Relative path: worktrees share the main checkout's node_modules, whose link would test that checkout's copy.
+const plugin = require('../../../eslint-plugin-tarodan');
 
 function makeContext() {
   const reports: unknown[] = [];
@@ -169,32 +170,56 @@ describe('tarodan/no-native-header', () => {
 });
 
 describe('tarodan/empty-state-standard', () => {
-  const el = (name: string, children: any[] = []) => ({
+  const jsxAttr = (name: string, value: any) => ({ type: 'JSXAttribute', name: { type: 'JSXIdentifier', name }, value });
+  const placement = (value: string) => jsxAttr('placement', { type: 'Literal', value });
+  const el = (name: string, children: any[] = [], attributes: any[] = []) => ({
     type: 'JSXElement',
-    openingElement: { name: { type: 'JSXIdentifier', name } },
+    openingElement: { name: { type: 'JSXIdentifier', name }, attributes },
     children,
   });
-  const visit = (expression: any) => {
+  const visit = (expression: any, listAttributes: any[] = []) => {
     const { reports, context } = makeContext();
     plugin.rules['empty-state-standard'].create(context).JSXAttribute({
       type: 'JSXAttribute',
       name: { type: 'JSXIdentifier', name: 'ListEmptyComponent' },
       value: { type: 'JSXExpressionContainer', expression },
+      parent: { type: 'JSXOpeningElement', attributes: listAttributes },
     });
-    return reports.length;
+    return reports.map((r: any) => r.messageId);
   };
-  it('ListEmptyComponent içinde View/Text yasak; EmptyState ve sarmalayıcılar serbest', () => {
-    expect(visit(el('View', [el('Text')]))).toBe(1);
-    expect(visit(el('RawText'))).toBe(1);
-    // Metinsiz View (iskelet) boş durum sayılmaz.
-    expect(visit(el('View', [el('SkeletonText')]))).toBe(0);
-    expect(visit(el('EmptyState'))).toBe(0);
-    expect(visit(el('ProductListEmpty'))).toBe(0);
+  // `contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}`
+  const pageListStyle = jsxAttr('contentContainerStyle', {
+    type: 'JSXExpressionContainer',
+    expression: {
+      type: 'CallExpression',
+      arguments: [{ type: 'ArrayExpression', elements: [{ type: 'Identifier', name: 'pageListContentStyle' }] }],
+    },
   });
-  it('koşullu dallar taranır', () => {
-    const cond = { type: 'ConditionalExpression', consequent: el('EmptyState'), alternate: el('Text') };
-    expect(visit(cond)).toBe(1);
-    expect(visit({ type: 'LogicalExpression', right: el('View', [el('Text')]) })).toBe(1);
+
+  it('forbids a hand-built View/Text; EmptyState and shared wrappers pass', () => {
+    expect(visit(el('View', [el('Text')]))).toEqual(['raw']);
+    expect(visit(el('RawText'))).toEqual(['raw']);
+    // A View without text (skeleton) is not an empty state.
+    expect(visit(el('View', [el('SkeletonText')]))).toEqual([]);
+    expect(visit(el('EmptyState', [], [placement('screen')]))).toEqual([]);
+    expect(visit(el('ProductListEmpty'))).toEqual([]);
+  });
+  it('checks conditional branches', () => {
+    const cond = { type: 'ConditionalExpression', consequent: el('EmptyState', [], [placement('list')]), alternate: el('Text') };
+    expect(visit(cond)).toEqual(['raw']);
+    expect(visit({ type: 'LogicalExpression', right: el('View', [el('Text')]) })).toEqual(['raw']);
+  });
+  it('EmptyState / ErrorState name their placement explicitly', () => {
+    expect(visit(el('EmptyState'))).toEqual(['placement']);
+    expect(visit(el('ErrorState'))).toEqual(['placement']);
+    expect(visit(el('ErrorState', [], [placement('inline')]))).toEqual([]);
+  });
+  it('a pageListContentStyle list takes placement="list"', () => {
+    expect(visit(el('EmptyState', [], [placement('list')]), [pageListStyle])).toEqual([]);
+    expect(visit(el('EmptyState', [], [placement('screen')]), [pageListStyle])).toEqual(['listPlacement']);
+    expect(visit(el('ErrorState', [], [placement('inline')]), [pageListStyle])).toEqual(['listPlacement']);
+    // A list without the page gutter may use `screen`.
+    expect(visit(el('EmptyState', [], [placement('screen')]), [jsxAttr('contentContainerStyle', null)])).toEqual([]);
   });
 });
 
