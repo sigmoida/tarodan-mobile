@@ -3133,7 +3133,6 @@
     "deleteCardBodyNeutral": "Are you sure you want to delete the {brand} •••• {last4} card?"
   },
   "seller": {
-    "premiumBadge": "Premium",
     "sellerProfile": "Seller Profile",
     "allListings": "All Listings",
     "activeListings": "Active Listings",
@@ -3184,8 +3183,10 @@
     "itemsListing": "Listings",
     "salesLabel": "Sales",
     "trustScore": {
-      "badge": "Trust score {rating}/5 · {level}",
-      "badgeNew": "Trust score: New seller",
+      "badge": "{rating}",
+      "badgeNew": "New seller",
+      "a11yLabel": "Trust score {rating} out of 5, {level}",
+      "a11yLabelNew": "Trust score: New seller",
       "levels": {
         "excellent": "Excellent",
         "trusted": "Trusted",

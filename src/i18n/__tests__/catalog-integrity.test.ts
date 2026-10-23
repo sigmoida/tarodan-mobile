@@ -148,8 +148,8 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     // İki haneli yıl format ipucu ("YY") — çevrilecek bir sözcük yok.
     'payment.expYearPlaceholder',
     'membership.premium',
-    // Satıcı kartı Premium rozeti: üyelik adı iki dilde de "Premium".
-    'seller.premiumBadge',
+    // Trust badge shows only the formatted number ("{rating}"); nothing to translate.
+    'seller.trustScore.badge',
     // Kurumsal üyelik rozeti: "Business" marka adı, iki dilde de aynı kalır.
     'home.businessBadge',
     'mobile.guestGarageTitle',
