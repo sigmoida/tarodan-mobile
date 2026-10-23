@@ -182,8 +182,13 @@ export function toMobileRoute(link: string): string | null {
       const listingId = listingIdFromParam(id);
       return listingId ? ['', 'product', listingId, ...seg.slice(2)].join('/') : null;
     }
+    // `/products/unavailable/<segment>`: the listing uuid is taken out like `/listings/<segment>`.
+    case 'products': {
+      if (seg[1] !== 'unavailable' || !seg[2]) return path;
+      const listingId = listingIdFromParam(seg[2]);
+      return listingId ? `/products/unavailable/${listingId}` : null;
+    }
     // Same name as the mobile route: passed through as is (read-only; the id may be a slug).
-    case 'products': // /products/unavailable/:id
     case 'collections':
     case 'favorites':
     case 'pricing':

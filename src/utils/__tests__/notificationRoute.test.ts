@@ -460,6 +460,15 @@ describe('toMobileRoute: listing URL segment', () => {
     expect(toMobileRoute(`/product/${SLUG}-${LISTING_ID.toUpperCase()}/reviews`)).toBe(`${PRODUCT}/reviews`);
   });
 
+  it('takes the listing uuid out of the unavailable listing path', () => {
+    expect(toMobileRoute(`/products/unavailable/${LISTING_ID}`)).toBe(`/products/unavailable/${LISTING_ID}`);
+    expect(toMobileRoute(`/products/unavailable/${SLUG}-${LISTING_ID.toUpperCase()}`)).toBe(
+      `/products/unavailable/${LISTING_ID}`,
+    );
+    expect(toMobileRoute('/products/unavailable/garbage')).toBeNull();
+    expect(toMobileRoute('/products/unavailable')).toBe('/products/unavailable');
+  });
+
   it('a notification link with a slug-uuid path opens the product screen', () => {
     expect(notificationRoute({ type: 'x', link: `/listings/${SLUG}-${LISTING_ID}`, data: {} })).toBe(PRODUCT);
     expect(notificationRoute({ type: 'x', link: `https://tarodan.com.tr/listings/${SLUG}-${LISTING_ID}`, data: {} })).toBe(
