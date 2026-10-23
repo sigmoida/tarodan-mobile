@@ -3,7 +3,7 @@ import { theme } from '@/ui';
 
 const { spacing } = theme;
 
-// Route-local stylesheet (app/CLAUDE.md › Worked examples) — kartlar web Card.
+// Route-local stylesheet (app/CLAUDE.md › Worked examples): cards are web Card.
 export const styles = StyleSheet.create({
   paymentCard: {
     gap: spacing[2],
@@ -17,9 +17,13 @@ export const styles = StyleSheet.create({
     flex: 1,
     gap: spacing[0.5],
   },
+  // Status badge on the left, date pushed to the right on the same row.
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[2],
+  },
+  metaDate: {
+    marginLeft: 'auto',
   },
 });

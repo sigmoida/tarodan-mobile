@@ -9,7 +9,8 @@ parity table is in tarodan-ops `docs/design-system.md`. Tokens: `src/theme/CLAUD
 - Never rebuild a primitive that exists: `Input`, `Textarea`, `Checkbox`, `Switch`,
   `Radio`, `Select`/`SelectSheet`, `Card`, `SectionCard`, `Badge`, `StatusBadge`,
   `Chip`, `Pill`, `Alert`, `Modal`, `BottomSheet`, `Spinner`, `Avatar`,
-  `Stack`/`VStack`/`HStack`, `Divider`, `ProgressBar`, `EmptyState`, `ErrorState`, ...
+  `Stack`/`VStack`/`HStack`, `Divider`, `ProgressBar`, `EmptyState`, `ErrorState`,
+  `Accordion`, ...
   Never hand-draw a pill/badge with `View + Text`.
 - Need a variant or state that doesn't exist? Add it here (shared), never fork a local
   copy. A new variant is designed on the web side (`@tarodan/ui`) first, or the same
@@ -138,6 +139,17 @@ first load or layout-less flows (payment, gates). Never hand-roll a loader.
   View + icon + Text. `tarodan/empty-state-standard` enforces this, and in a
   `ListEmptyComponent` it requires an explicit `placement` (`list` when the list's
   `contentContainerStyle` uses `pageListContentStyle`).
+
+## Accordion
+
+- Collapsible sections are `Accordion > AccordionItem > AccordionTrigger + AccordionContent`
+  (web `@tarodan/ui` Accordion names and props: `type` single | multiple, `collapsible`,
+  `value` / `defaultValue` / `onValueChange`). Never hand-roll a show/hide row.
+- The root draws no box, so it can wrap a `FlatList` whose rows are items (payment history).
+  `AccordionItem` draws no border either: put it in a `ListRowCard` / `SectionCard`.
+- The trigger is a 44 pt `button` with `accessibilityState.expanded` and a rotating chevron;
+  height and opacity animate over `theme.duration.normal`, instantly under reduce motion. The
+  content mounts only while open (and during the close animation).
 
 ## Feedback
 

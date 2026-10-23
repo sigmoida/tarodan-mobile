@@ -1,82 +1,70 @@
 import { useQuery } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { qk } from '@/lib/query';
-import { appAlert } from '@/ui';
 import { useAuthStore } from '@/stores/authStore';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 import { paymentsApi } from '@/lib/api';
-import type { Payment } from '../_lib/types';
-import { buildStatusConfig, formatDate, formatCurrency } from '../_lib/status';
+import type { Payment, PaymentHistoryApiItem, PaymentHistoryResponse } from '../_lib/types';
+
+function listOf(raw: PaymentHistoryResponse): PaymentHistoryApiItem[] {
+  if (Array.isArray(raw)) return raw;
+  return raw?.payments ?? raw?.data ?? [];
+}
+
+/** API row -> screen model. The provider is never shown (no fallback to it for the method). */
+function toPayment(p: PaymentHistoryApiItem, t: TFunction): Payment {
+  return {
+    id: p.id,
+    amount: Number(p.amount) || 0,
+    status: p.status,
+    method: p.method || undefined,
+    description:
+      p.description ||
+      p.product?.title ||
+      (p.orderNumber ? t('payment.orderNumberFallback', { id: p.orderNumber }) : t('checkout.title')),
+    createdAt: p.createdAt,
+    imageUrl: p.product?.images?.[0] || undefined,
+  };
+}
 
 /**
- * Ödeme geçmişi controller'ı — `GET /payments/me`, odakta (bayatsa) tazeleme, çekerek
- * yenileme ve detay uyarısı.
+ * Payment history controller: `GET /payments/me`, refetch on focus when stale and
+ * pull-to-refresh. The details open inline in the row (Accordion), so there is no dialog here.
  *
- * React Query'ye taşındı (src/lib/query/CLAUDE.md › Query hooks): sunucu yanıtı ekran modeline burada
- * çevriliyor, ama önbellek ve yükleme/yenileme durumları artık sorgunun
- * kendisinden geliyor — elle üç ayrı `useState` tutulmuyor.
+ * Moved to React Query (src/lib/query/CLAUDE.md › Query hooks): the response is mapped to the
+ * screen model here, while cache and loading/refresh states come from the query itself.
  */
 export function usePaymentHistory() {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const statusConfig = buildStatusConfig(t);
 
   const query = useQuery({
     queryKey: qk.payments.history,
     enabled: isAuthenticated,
     queryFn: async (): Promise<Payment[]> => {
-      // Web ile aynı kaynak: GET /payments/me. Yanıt alanları (orderNumber,
-      // product, provider) ekran modeline (description, method) burada çevrilir.
+      // Same source as web: GET /payments/me.
       const res = await paymentsApi.getMyPayments({ limit: 50 });
-      const raw: any = res.data;
-      const items: any[] = raw?.payments || raw?.data || (Array.isArray(raw) ? raw : []);
-      return items.map((p: any) => ({
-        id: p.id,
-        amount: Number(p.amount) || 0,
-        status: p.status,
-        method: p.method || (p.provider ? String(p.provider).toUpperCase() : ''),
-        description:
-          p.description || p.product?.title || (p.orderNumber ? t('payment.orderNumberFallback', { id: p.orderNumber }) : t('checkout.title')),
-        createdAt: p.createdAt,
-        invoiceUrl: p.invoiceUrl,
-        imageUrl: p.product?.images?.[0] || undefined,
-      }));
+      return listOf(res.data as PaymentHistoryResponse).map((p) => toPayment(p, t));
     },
   });
 
-  // Ekrana dönüşte yalnız bayatsa tazele (eskiden her odakta invalidate → istek).
+  // Back on the screen, refetch only when stale (it used to invalidate on every focus).
   useRefetchStaleOnFocus([qk.payments.history], isAuthenticated);
 
-  // Çekip-yenile göstergesi yalnız KULLANICI çektiğinde; `isRefetching` arka plan
-  // tazelemelerinde de true olup göstergeyi kendiliğinden döndürüyordu.
+  // The pull-to-refresh spinner only when the USER pulls; `isRefetching` is also true on
+  // background refetches and spun the indicator by itself.
   const { refreshing, onRefresh } = useRefresh(query.refetch);
-
-  const handlePaymentPress = (payment: Payment) => {
-    appAlert(
-      t('checkout.paymentDetail'),
-      [
-        t('payment.detailAmountLine', { value: formatCurrency(payment.amount) }),
-        t('payment.detailDateLine', { value: formatDate(payment.createdAt) }),
-        t('payment.detailStatusLine', { value: statusConfig[payment.status]?.label || payment.status }),
-        t('payment.detailMethodLine', { value: payment.method || '-' }),
-        payment.description ? t('payment.detailDescriptionLine', { value: payment.description }) : null,
-      ]
-        .filter(Boolean)
-        .join('\n'),
-      [{ text: t('common.ok') }],
-    );
-  };
 
   return {
     isAuthenticated,
     payments: query.data ?? [],
     isLoading: query.isLoading,
-    /** Geçmiş alınamadı (önbellekte de yok) — "geçmiş yok" değil, ErrorState + yeniden dene. */
+    /** History could not be loaded (and none is cached): not "no history", ErrorState + retry. */
     loadFailed: query.isError && !query.data,
     isRefreshing: refreshing,
     fetchPayments: onRefresh,
-    handlePaymentPress,
   };
 }
 
