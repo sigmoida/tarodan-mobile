@@ -65,9 +65,16 @@ describe('Button (web @tarodan/ui ölçüleri)', () => {
     expect(screen.getByTestId('icon-shopping-cart').props.stroke).toBe(theme.colors.primary[700]);
   });
 
+  it('a variant without a pressed fill still fades on the iOS press', () => {
+    render(<Button title="Kaydet" />);
+    expect(buttonStyle(true).opacity).toBe(0.85);
+  });
+
   it('outlinePrimary press: web active:bg-primary-100 on iOS, the ripple alone on Android', () => {
     render(<Button variant="outlinePrimary" title="Sepete Ekle" />);
     expect(buttonStyle(true).backgroundColor).toBe(theme.colors.primary[100]);
+    // The tint is the feedback: border and foreground keep full opacity (their AA contrast).
+    expect(buttonStyle(true).opacity).toBe(1);
     jest.replaceProperty(Platform, 'OS', 'android');
     expect(buttonStyle(true).backgroundColor).toBe('transparent');
   });

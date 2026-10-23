@@ -160,7 +160,9 @@ describe('J57 · favoriler ekranı — dolu liste', () => {
 
     mockState.items = [makeItem('p1')];
     const first = renderWithProviders(<FavoritesScreen />);
-    // Web Favorites keeps primary to add and danger to remove (not the listing card's outline).
+    // Favorites keeps its previous colours, primary to add and danger to remove, like web's
+    // Favorites footer, not the listing card's outline. Mobile draws them on the icon-only toggle,
+    // so `danger` is the IconButton's borderless red glyph (web: a filled danger button).
     expect(cartLook()).toEqual({ bg: colors.primary[600], fill: 'none', stroke: colors.text.inverted });
     fireEvent.press(screen.getByTestId('product-card-cart-p1'));
     expect(mockState.addItem).toHaveBeenCalledWith(expect.objectContaining({ productId: 'p1' }));

@@ -73,7 +73,7 @@ const variantStyle: Record<
 > = {
   primary: { bg: colors.primary[600], text: colors.text.inverted },
   secondary: { bg: colors.surface.alt, text: colors.text.heading },
-  // Beyaz zemin (web outline = bg-white + border): gri alt çubuk/kart üstünde de beyaz görünür.
+  // White fill (web outline = bg-white + border): stays white on a grey bar or card too.
   outline: { bg: colors.surface.elevated, text: colors.text.body, border: colors.border.DEFAULT },
   // Web `outline-primary`: the primary-toned outline, e.g. the card's "add to cart" (filled
   // `primary` once the listing is in the cart). The label is primary-700, not 600: 600 on white is
@@ -165,7 +165,10 @@ export const Button: React.FC<ButtonProps> = ({
           backgroundColor: showPressedStyle(pressed) && vs.pressedBg ? vs.pressedBg : vs.bg,
           borderColor: vs.border ?? 'transparent',
           borderWidth: vs.border ? 1 : 0,
-          opacity: disabled || isLoading ? 0.5 : showPressedStyle(pressed) ? 0.85 : 1,
+          // A variant with its own pressed fill (web `active:bg-*`) keeps full opacity, so the
+          // border and label stay at their contrast; the others fade on the iOS press.
+          opacity:
+            disabled || isLoading ? 0.5 : showPressedStyle(pressed) && !vs.pressedBg ? 0.85 : 1,
           alignSelf: fullWidth || grouped ? 'stretch' : 'flex-start',
         },
         isLink

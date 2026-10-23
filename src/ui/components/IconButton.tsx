@@ -79,7 +79,7 @@ const variantStyle: Record<
   ghost: { bg: 'transparent', fg: colors.text.muted },
   danger: { bg: 'transparent', fg: colors.danger[600] },
   success: { bg: 'transparent', fg: colors.success[600] },
-  // Takma adlar (eski mobil API).
+  // Aliases (old mobile API).
   plain: { bg: 'transparent', fg: colors.text.muted },
   solid: { bg: colors.primary[600], fg: colors.text.inverted },
   soft: { bg: colors.primary[50], fg: colors.primary[700] },
@@ -125,7 +125,10 @@ export const IconButton: React.FC<IconButtonProps> = ({
           borderColor: vs.border ?? 'transparent',
           borderWidth: vs.border ? 1 : 0,
           borderRadius: shape === 'round' ? ss.box / 2 : radiusRole.button,
-          opacity: disabled || isLoading ? 0.5 : showPressedStyle(pressed) ? 0.7 : 1,
+          // A variant with its own pressed fill (web `active:bg-*`) keeps full opacity, so the
+          // border and icon stay at their contrast; the others fade on the iOS press.
+          opacity:
+            disabled || isLoading ? 0.5 : showPressedStyle(pressed) && !vs.pressedBg ? 0.7 : 1,
         },
         style,
       ]}
