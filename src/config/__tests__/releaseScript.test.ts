@@ -376,6 +376,61 @@ describe('release.sh profil env\'i — hata yutulmaz, zorunlu env doğrulanır',
     },
   );
 
+  // Google sign-in ids (project tarodan-app, docs/RELEASE.md "Google sign-in clients"): the
+  // iOS id is a native input (the URL scheme), so an EAS value that eas update would use
+  // instead of eas.json could ship an id whose scheme the binary lacks (a crash on the tap),
+  // or a webClientId the API does not accept. Any such variable stops the OTA, whatever its
+  // value, in either scope, on both branches.
+  describe('Google sign-in ids', () => {
+    const GOOGLE_KEYS = [
+      'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID',
+      'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID',
+      'EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED',
+    ];
+    const OLD_PROJECT = '243308404313';
+    const branches = [
+      ['production', 'production'],
+      ['staging', 'preview'],
+    ] as const;
+
+    it.each(branches)('the %s OTA profile (%s) sets every Google key in its own env (no extends)', (_b, profile) => {
+      const own = realEasJson().build[profile]!.env ?? {};
+      for (const key of GOOGLE_KEYS) expect({ key, set: !!own[key] }).toEqual({ key, set: true });
+    });
+
+    it.each(
+      branches.flatMap(([branch, profile]) =>
+        GOOGLE_KEYS.flatMap((key) => (['project', 'account'] as const).map((scope) => [branch, profile, key, scope])),
+      ),
+    )('%s OTA: %s EAS environment defining %s (%s scope) stops it', (branch, profile, key, scope) => {
+      // The same value as eas.json: the guard is about the name, not the value.
+      const value = realEasJson().build[profile]!.env![key];
+      const file = `eas-env-${profile}-${scope}.txt`;
+      const dsn = profile === 'production' && scope === 'project' ? DSN_ENV[file as keyof typeof DSN_ENV] : '';
+      const r = ota(branch, profile, { fakeFiles: { [file]: `${dsn}${key}=${value}\n` } });
+      expect(r.status).not.toBe(0);
+      expect(r.all).toContain(key);
+      expect(r.easCalls('update')).toHaveLength(0);
+    });
+
+    it.each(branches)(
+      '%s OTA embeds the eas.json %s Google values, never ids leaked from the runner',
+      (branch, profile) => {
+        const leaked = {
+          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: `${OLD_PROJECT}-kdc77bd36flfhv6ujlb5tfd4qjteh94c.apps.googleusercontent.com`,
+          EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: `${OLD_PROJECT}-92c5475nff3874maoqes02ajakn81hvh.apps.googleusercontent.com`,
+          EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED: profile === 'production' ? 'true' : 'false',
+        };
+        const r = ota(branch, profile, { env: leaked });
+        expect(r.status).toBe(0);
+        const [update] = r.easCalls('update');
+        const own = realEasJson().build[profile]!.env!;
+        for (const key of GOOGLE_KEYS) expect(update).toContain(`${key}=${own[key]}`);
+        expect(update).not.toContain(OLD_PROJECT);
+      },
+    );
+  });
+
   it.each(['project', 'account'])('an unreadable EAS environment (%s scope) stops the OTA', (scope) => {
     const r = ota('production', 'production', { env: { FAKE_EAS_FAIL_ENV_LIST_SCOPE: scope } });
     expect(r.status).not.toBe(0);
