@@ -46,14 +46,18 @@ const line = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-const body = (orders: Array<Record<string, unknown>>, groupKind = 'group') => ({
+const body = (
+  orders: Array<Record<string, unknown>>,
+  groupKind = 'group',
+  viewerRole: string | undefined = 'buyer',
+) => ({
   id: 'g1',
   kind: groupKind,
   groupNumber: 'GRP-1',
   totalAmount: 100,
   status: 'paid',
   createdAt: '2026-10-20T09:00:00.000Z',
-  viewerRole: 'buyer',
+  viewerRole,
   payment: null,
   orders,
   packages: [],
@@ -63,8 +67,12 @@ function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>;
 }
 
-async function cancelAvailable(orders: Array<Record<string, unknown>>, groupKind?: string) {
-  getGroupMock.mockResolvedValue({ data: { success: true, data: body(orders, groupKind) } });
+async function cancelAvailable(
+  orders: Array<Record<string, unknown>>,
+  groupKind?: string,
+  viewerRole?: string,
+) {
+  getGroupMock.mockResolvedValue({ data: { success: true, data: body(orders, groupKind, viewerRole) } });
   const { result } = renderHook(() => useOrderGroup(), { wrapper });
   await waitFor(() => expect(result.current.group).toBeTruthy());
   return result.current.cancel.available;
@@ -145,4 +153,26 @@ it.each([
   ['no kind or origin, isMembership only', { kind: undefined, origin: undefined, isMembership: true }],
 ])('a mixed cart with a digital line offers no group cancel: %s', async (_label, signals) => {
   expect(await cancelAvailable([line(), line({ id: 'o2', ...signals })])).toBe(false);
+});
+
+describe('viewer role (web `group.viewerRole === "buyer"`)', () => {
+  it('the buyer view of a listing cart stays cancellable', async () => {
+    expect(await cancelAvailable([line()], 'group', 'buyer')).toBe(true);
+  });
+
+  it.each(['package', 'synthetic'])(
+    'a seller %s view is never cancellable, even before handover',
+    async (groupKind) => {
+      expect(await cancelAvailable([line({ isBuyer: false })], groupKind, 'seller')).toBe(false);
+      expect(await cancelAvailable([line({ isBuyer: false, status: 'pending_payment' })], groupKind, 'seller')).toBe(false);
+    },
+  );
+
+  it('a body without a viewer role offers nothing (fail closed)', async () => {
+    getGroupMock.mockResolvedValue({ data: { success: true, data: { ...body([line()]), viewerRole: undefined } } });
+    const { result } = renderHook(() => useOrderGroup(), { wrapper });
+    await waitFor(() => expect(result.current.group).toBeTruthy());
+    expect(result.current.group!.viewerRole).toBeNull();
+    expect(result.current.cancel.available).toBe(false);
+  });
 });

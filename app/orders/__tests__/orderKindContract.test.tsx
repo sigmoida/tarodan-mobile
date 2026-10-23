@@ -152,6 +152,7 @@ describe('GET /orders/groups/:id: the per-order kind decides, not the group kind
   const groupBody = (orders: Array<Record<string, unknown>>) => ({
     id: 'g1',
     kind: 'synthetic',
+    viewerRole: 'buyer',
     groupNumber: 'GRP-1',
     totalAmount: 59.9,
     status: 'paid',

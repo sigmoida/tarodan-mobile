@@ -35,6 +35,7 @@ const DIGITAL: Array<[string, Record<string, unknown>]> = [
 const group = (status: string, signals: Record<string, unknown>) => ({
   id: 'group-1',
   kind: 'synthetic',
+  viewerRole: 'buyer',
   groupNumber: 'GRP-1',
   totalAmount: 200,
   status,

@@ -33,6 +33,7 @@ export function useOrderGroup() {
       noteOrderKindFallback({ groupId: String(raw.id ?? id) }, raw.orders ?? []);
       return {
         id: raw.id,
+        viewerRole: raw.viewerRole === 'buyer' || raw.viewerRole === 'seller' ? raw.viewerRole : null,
         groupNumber: raw.groupNumber,
         totalAmount: Number(raw.totalAmount ?? 0),
         status: raw.status === 'mixed' ? 'mixed' : apiStatusToUi(raw.status),
@@ -104,7 +105,7 @@ export function useOrderGroup() {
     },
   });
 
-  const cancellable = !!group && isGroupCancellable(group.orders);
+  const cancellable = !!group && isGroupCancellable(group);
 
   const onRefresh = async () => {
     setRefreshing(true);

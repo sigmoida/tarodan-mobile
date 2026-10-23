@@ -74,6 +74,11 @@ export interface GroupPackage {
 
 export interface GroupDetail {
   id: string;
+  /**
+   * Who is looking: `GET /orders/groups/:id` also serves a seller's package view
+   * (`viewerRole: "seller"`, e.g. opened from a seller notification). Only the buyer may cancel.
+   */
+  viewerRole: 'buyer' | 'seller' | null;
   groupNumber: string;
   totalAmount: number;
   status: string;
