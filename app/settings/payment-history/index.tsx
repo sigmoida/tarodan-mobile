@@ -54,6 +54,8 @@ export default function PaymentHistoryScreen() {
           keyExtractor={paymentKey}
           renderItem={renderPayment}
           {...listWindowing}
+          // Rows change height while they open; Android's clipped-subview removal can blank them.
+          removeClippedSubviews={false}
           contentContainerStyle={page.contentStyle(pageListContentStyle)}
           refreshing={f.isRefreshing}
           onRefresh={() => f.fetchPayments()}

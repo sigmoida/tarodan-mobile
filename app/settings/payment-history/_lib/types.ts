@@ -26,7 +26,7 @@ export interface Payment {
   id: string;
   amount: number;
   status: string;
-  /** Payment method label from the API; the row falls back to a generic "Card". */
+  /** Payment method label from the API; the detail row is left out without it (never the provider). */
   method?: string;
   description: string;
   createdAt: string;

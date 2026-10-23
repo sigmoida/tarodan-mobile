@@ -121,8 +121,8 @@ describe('J78 · Inline details (accordion)', () => {
     settle();
     expect(details('p1')).toBeNull();
     expect(details('p2')).toBeOnTheScreen();
-    // No method from the API: a generic "Kart", never the provider.
-    expect(screen.getByText('Kart')).toBeOnTheScreen();
+    // No method from the API: no method row, and never the provider.
+    expect(screen.queryByText('Ödeme Yöntemi')).toBeNull();
     expect(screen.queryByText(/paytr/i, { includeHiddenElements: true })).toBeNull();
 
     fireEvent.press(row('p2'));

@@ -12,8 +12,10 @@ export const styles = StyleSheet.create({
   card: {
     overflow: 'hidden',
   },
+  // Longhands: the trigger's own paddingVertical would win over a `padding` shorthand.
   trigger: {
-    padding: spacing[4],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
   },
   row: {
     flexDirection: 'row',
