@@ -1,4 +1,13 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -18,7 +27,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { theme } from '../lib/theme';
-import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFeedback';
+import { androidRipple, pressedStyle, rippleClip, showPressedStyle } from '../lib/pressableFeedback';
 import { Icon } from '../icons';
 import { Text } from './Text';
 
@@ -51,6 +60,11 @@ export type AccordionProps = (AccordionSingleProps | AccordionMultipleProps) & {
 type RootContextValue = {
   openValues: readonly string[];
   toggle: (itemValue: string) => void;
+  /**
+   * Last measured content height per item. A list that unmounts an open row (FlatList
+   * windowing) remounts it at that height instead of drawing it collapsed for a frame.
+   */
+  heights: Map<string, number>;
 };
 
 type ItemContextValue = {
@@ -60,6 +74,8 @@ type ItemContextValue = {
   /** 0 = closed, 1 = open; drives the content height/opacity and the chevron. */
   progress: SharedValue<number>;
   toggle: () => void;
+  heightOf: () => number;
+  rememberHeight: (height: number) => void;
 };
 
 const RootContext = createContext<RootContextValue | null>(null);
@@ -90,10 +106,13 @@ export function Accordion(props: AccordionProps) {
     [isControlled, props.value, uncontrolled],
   );
 
-  // Items read `toggle` through their own context; keeping it stable means toggling one item
-  // re-renders only the items whose open state changed.
+  // `toggle` stays stable and reads the committed props and open values from this ref (updated
+  // after commit, so a discarded render never leaks into it).
   const latest = useRef({ props, openValues, isControlled });
-  latest.current = { props, openValues, isControlled };
+  useLayoutEffect(() => {
+    latest.current = { props, openValues, isControlled };
+  });
+  const heights = useRef(new Map<string, number>()).current;
 
   const toggle = useCallback((itemValue: string) => {
     const { props: p, openValues: current, isControlled: controlled } = latest.current;
@@ -110,7 +129,7 @@ export function Accordion(props: AccordionProps) {
     if (!controlled) setUncontrolled(next);
   }, []);
 
-  const ctx = useMemo(() => ({ openValues, toggle }), [openValues, toggle]);
+  const ctx = useMemo(() => ({ openValues, toggle, heights }), [openValues, toggle, heights]);
   return <RootContext.Provider value={ctx}>{props.children}</RootContext.Provider>;
 }
 
@@ -152,10 +171,15 @@ export function AccordionItem({ value, children, style, testID }: AccordionItemP
     });
   }, [open, reduceMotion, progress]);
 
-  const { toggle: rootToggle } = root;
+  const { toggle: rootToggle, heights } = root;
   const toggle = useCallback(() => rootToggle(value), [rootToggle, value]);
+  const heightOf = useCallback(() => heights.get(value) ?? 0, [heights, value]);
+  const rememberHeight = useCallback((h: number) => heights.set(value, h), [heights, value]);
   const mounted = open || closing;
-  const ctx = useMemo(() => ({ open, mounted, progress, toggle }), [open, mounted, progress, toggle]);
+  const ctx = useMemo(
+    () => ({ open, mounted, progress, toggle, heightOf, rememberHeight }),
+    [open, mounted, progress, toggle, heightOf, rememberHeight],
+  );
 
   return (
     <ItemContext.Provider value={ctx}>
@@ -190,12 +214,12 @@ export function AccordionTrigger({ children, style, ...rest }: AccordionTriggerP
       accessibilityState={{ ...rest.accessibilityState, expanded: item.open }}
       onPress={item.toggle}
       android_ripple={androidRipple()}
-      style={({ pressed }) => [styles.trigger, rippleClip(), showPressedStyle(pressed) && styles.triggerPressed, style]}
+      style={({ pressed }) => [styles.trigger, rippleClip(), showPressedStyle(pressed) && pressedStyle, style]}
     >
       <View style={styles.triggerBody}>
         {typeof children === 'string' ? <Text variant="label">{children}</Text> : children}
       </View>
-      <Animated.View style={chevronStyle} testID="accordion-chevron">
+      <Animated.View style={chevronStyle}>
         <Icon name="chevron-down" size={iconSize.sm} color={colors.text.muted} />
       </Animated.View>
     </Pressable>
@@ -215,8 +239,8 @@ export interface AccordionContentProps {
  */
 export function AccordionContent({ children, style, testID }: AccordionContentProps) {
   const item = useRequiredContext(ItemContext, 'AccordionContent');
-  const { progress } = item;
-  const height = useSharedValue(0);
+  const { progress, rememberHeight } = item;
+  const height = useSharedValue(item.heightOf());
   const animatedStyle = useAnimatedStyle(() => ({
     height: height.value * progress.value,
     opacity: progress.value,
@@ -224,8 +248,9 @@ export function AccordionContent({ children, style, testID }: AccordionContentPr
   const onLayout = useCallback(
     (e: LayoutChangeEvent) => {
       height.value = e.nativeEvent.layout.height;
+      rememberHeight(e.nativeEvent.layout.height);
     },
-    [height],
+    [height, rememberHeight],
   );
 
   if (!item.mounted) return null;
@@ -253,9 +278,6 @@ const styles = StyleSheet.create({
     minHeight: minTouchTarget,
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[3],
-  },
-  triggerPressed: {
-    backgroundColor: colors.surface.DEFAULT,
   },
   triggerBody: {
     flex: 1,
