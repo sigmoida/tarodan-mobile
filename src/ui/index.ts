@@ -208,6 +208,16 @@ export {
 export { Card, type CardProps } from './components/Card';
 export { ListRowCard, type ListRowCardProps } from './components/ListRowCard';
 export {
+	Accordion,
+	AccordionItem,
+	AccordionTrigger,
+	AccordionContent,
+	type AccordionProps,
+	type AccordionItemProps,
+	type AccordionTriggerProps,
+	type AccordionContentProps,
+} from './components/Accordion';
+export {
 	SectionCard,
 	SectionCardAction,
 	SECTION_CARD_METRICS,
