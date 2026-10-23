@@ -11,6 +11,8 @@ import { homeStyles as styles } from '../_lib/homeStyles';
 type RailProps = {
   items: ProductCardProduct[];
   isLoading?: boolean;
+  /** The rail never loaded (first load failed): hide it rather than show its empty state. */
+  failed?: boolean;
   onProductPress: (id: string) => void;
 };
 
@@ -27,6 +29,7 @@ function ProductRail({
   onSeeAll,
   items,
   isLoading,
+  failed,
   onProductPress,
   emptyState,
   testID,
@@ -37,7 +40,7 @@ function ProductRail({
   testID: string;
 }) {
   const favoriteProps = useProductCardFavorites();
-  if (!isLoading && items.length === 0 && !emptyState) return null;
+  if (!isLoading && items.length === 0 && (!emptyState || failed)) return null;
   return (
     <SectionCard title={title} action={<SectionCardAction onPress={onSeeAll} />} testID={testID}>
       {isLoading ? (

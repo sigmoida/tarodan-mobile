@@ -22,10 +22,19 @@ const toList = (body: any): any[] => {
   return Array.isArray(list) ? list : [];
 };
 
-/** Hata bir bölümü boş bırakır, ekranı bozmaz (web `Promise.allSettled`). */
-const safeList = async (load: () => Promise<{ data: unknown }>): Promise<any[]> => {
+/**
+ * Product rails: a failure THROWS (unlike `safeList`). React Query then keeps the last good list
+ * on a failed refetch (pull-to-refresh, focus, reconnect) instead of overwriting it with `[]` and
+ * making the rail vanish, and retries a 5xx (`retryUnlessClientError`). On a first load the query
+ * ends in `error` with no data: the rail stays hidden (see `failedPopular`). A genuinely empty
+ * 200 still resolves to `[]` and renders as empty. Same idea as the manufacturers strip below.
+ */
+const loadList = async (load: () => Promise<{ data: unknown }>) => toList((await load()).data);
+
+/** A failure leaves the section empty without breaking the screen (web `Promise.allSettled`); used by the non-product sections. */
+const safeList = async (load: () => Promise<{ data: unknown }>) => {
   try {
-    return toList((await load()).data);
+    return await loadList(load);
   } catch {
     return [];
   }
@@ -48,13 +57,13 @@ export function useHomeData() {
   const featured = useQuery({
     queryKey: qk.products.homeFeatured,
     queryFn: () =>
-      safeList(() => productsApi.getAll({ limit: 20, page: 1, homeShowcase: true, status: 'active' })),
+      loadList(() => productsApi.getAll({ limit: 20, page: 1, homeShowcase: true, status: 'active' })),
   });
 
   const onSale = useQuery({
     queryKey: qk.products.homeOnSale,
     queryFn: async () => {
-      const list = await safeList(() =>
+      const list = await loadList(() =>
         productsApi.getAll({ limit: 24, page: 1, discountOnly: true, status: 'active' }),
       );
       // Web gibi: yalnız gerçek indirimi olanlar.
@@ -67,13 +76,13 @@ export function useHomeData() {
   const trade = useQuery({
     queryKey: qk.products.homeTrade,
     queryFn: () =>
-      safeList(() => productsApi.getAll({ limit: 24, page: 1, tradeOnly: true, status: 'active' })),
+      loadList(() => productsApi.getAll({ limit: 24, page: 1, tradeOnly: true, status: 'active' })),
   });
 
   /** Popüler ilanlar — backend görüntülenme sayısına göre sıralar (web ile aynı uç). */
   const popular = useQuery({
     queryKey: qk.products.popular,
-    queryFn: () => safeList(() => productsApi.getPopular({ limit: 20, page: 1 })),
+    queryFn: () => loadList(() => productsApi.getPopular({ limit: 20, page: 1 })),
   });
 
   /**
@@ -112,6 +121,12 @@ export function useHomeData() {
     loadingTrade: trade.isLoading,
     popular: popular.data ?? [],
     loadingPopular: popular.isLoading,
+    /**
+     * The popular rail never loaded (first load failed, no data): hide it instead of showing the
+     * "be the first" empty state, which would be false. A failed refetch keeps the data, so this
+     * stays false then.
+     */
+    failedPopular: popular.isError && popular.data === undefined,
     manufacturers: manufacturers.data ?? [],
     loadingManufacturers: manufacturers.isLoading,
     topCollections: topCollections.data ?? [],
