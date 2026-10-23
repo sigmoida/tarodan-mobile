@@ -18,10 +18,12 @@
 //   1. Firebase / FCM: the staging package lives in a SEPARATE Firebase project
 //      (tarodan-staging; production is tarodan-prod) with its own google-services.json
 //      (see `resolveStagingGoogleServicesFile` below).
-//      Paket adı dosyada yoksa Gradle "No matching client found" ile düşer.
-//   2. Google Cloud OAuth — her paket için ayrı Android istemcisi (paket +
-//      SHA-1). Eksikse build düşmez, "Google ile giriş" sessizce çalışmaz;
-//      bu yüzden EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED bayrağı o işe kadar "false".
+//      If the package is missing from the file, Gradle fails with "No matching client found".
+//   2. Google Cloud OAuth: separate Android clients per package (package +
+//      SHA-1) in project tarodan-app. Without them the build passes but Google
+//      sign-in fails with DEVELOPER_ERROR, so EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED
+//      is "true" only in the profiles whose package has its clients AND whose
+//      real-device check passed (eas.json; production waits for that check).
 // Adım adım: docs/ANDROID_RELEASE.md
 
 const fs = require('fs');
@@ -322,36 +324,89 @@ function assertSentryBuildReady(env = process.env, warn = console.warn) {
   }
 }
 
-module.exports = ({ config }) => {
+// Google sign-in on iOS needs the reversed iOS OAuth client id registered as a URL
+// scheme in Info.plist; without it GIDSignIn throws when sign-in starts. Production
+// (`com.tarodan.app`) and staging (`com.tarodan.app.staging`) each have their own iOS
+// client in Google Cloud, so the scheme follows EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID, the
+// same value src/services/googleSignin.ts passes as `iosClientId`. The id in eas.json
+// is the one source; the scheme is derived from it, never typed. app.json lists the
+// plugin with empty options on purpose: should this mapping ever miss it, the plugin
+// fails loudly ("Missing iosUrlScheme") instead of falling back to its Firebase mode.
+const GOOGLE_SIGNIN_PLUGIN = '@react-native-google-signin/google-signin';
+const GOOGLE_CLIENT_ID = /^(\d+-[a-z0-9]+)\.apps\.googleusercontent\.com$/;
+
+/**
+ * The iOS URL scheme of a Google iOS OAuth client id
+ * (`<n>-<id>.apps.googleusercontent.com` -> `com.googleusercontent.apps.<n>-<id>`), or
+ * `null` when no id is set. A malformed id stops the config read: the plugin would
+ * register a scheme Google never redirects to, and sign-in would fail only on a device.
+ * The id is not trimmed: googleSignin.ts passes the raw value to `configure`, so a
+ * padded id would register a clean scheme for a client id that never matches it.
+ */
+function googleIosUrlScheme(iosClientId) {
+  const id = iosClientId ?? '';
+  if (id === '') return null;
+  const match = GOOGLE_CLIENT_ID.exec(id);
+  if (!match) {
+    throw new Error(
+      `[app.config] EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ${JSON.stringify(id)} is not a Google OAuth client id ` +
+        '("<number>-<id>.apps.googleusercontent.com"). Check the env of this eas.json build profile.',
+    );
+  }
+  return `com.googleusercontent.apps.${match[1]}`;
+}
+
+/**
+ * Sets the google-signin plugin's `iosUrlScheme` from the iOS client id. Without an id
+ * (a local run without Google env) the plugin entry is dropped: the Google button is
+ * hidden on iOS then (`isGoogleConfigured`), so no scheme is needed. That holds only
+ * while the bundle sees the same id as the native build, which is why every eas.json
+ * profile (development included) sets one; a dev client built from the development
+ * profile carries the production scheme, so a local .env must use the production iOS
+ * id or none. The plugin's no-options mode is never used: it is the Firebase variant,
+ * which would also wire Google Services into the Android build. Input is not mutated.
+ *
+ * `iosClientId` is a parameter for tests only.
+ */
+function withGoogleSignInScheme(plugins = [], iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID) {
+  const iosUrlScheme = googleIosUrlScheme(iosClientId);
+  return plugins.flatMap((entry) => {
+    const name = Array.isArray(entry) ? entry[0] : entry;
+    if (name !== GOOGLE_SIGNIN_PLUGIN) return [entry];
+    return iosUrlScheme ? [[GOOGLE_SIGNIN_PLUGIN, { iosUrlScheme }]] : [];
+  });
+}
+
+module.exports = ({ config: baseConfig }) => {
   assertSentryBuildReady();
+  const config = { ...baseConfig, plugins: withGoogleSignInScheme(baseConfig.plugins) };
   const isStaging = process.env.EXPO_PUBLIC_ENVIRONMENT === 'preview';
   if (!isStaging) {
     return config;
   }
 
-  // `associatedDomains` staging'e GİRMEZ. İki sebep, ikisi de bundle id
-  // sonekinden çıkıyor:
-  //   1. Yayındaki AASA yalnız `P2628CQK26.com.tarodan.app`'i talep ediyor;
-  //      `.staging` orada olmadığı için iOS doğrulamayı zaten geçemez. Yani
-  //      entitlement'ı taşımanın bir faydası yok.
-  //   2. Staging App ID'sinin provisioning profile'ında Associated Domains
-  //      yeteneği açık değil ve entitlement istendiği anda imzalama düşüyor
-  //      ("doesn't support the Associated Domains capability" — 2026-08-26).
-  // Staging'de de universal link isteniyorsa iki iş birlikte yapılmalı:
-  // AASA'ya `.staging` appID'si eklenmeli VE portal'da yetenek açılmalı.
+  // `associatedDomains` does NOT go into staging, for two reasons, both from the
+  // bundle id suffix:
+  //   1. The live AASA claims only `P2628CQK26.com.tarodan.app`; `.staging` is not
+  //      there, so iOS verification fails anyway and the entitlement is useless.
+  //   2. The staging App ID's provisioning profile does not have the Associated
+  //      Domains capability, and signing fails as soon as the entitlement is asked
+  //      for ("doesn't support the Associated Domains capability", 2026-08-26).
+  // For universal links on staging too, do both together: add the `.staging`
+  // appID to the AASA AND enable the capability in the portal.
   const { associatedDomains: _productionOnly, ...stagingIos } = config.ios;
 
   return {
     ...config,
-    // Ana ekranda kısa ad ("Tarodan (Staging)" iPhone'da "Tarodan(St…" diye kesiliyordu).
+    // Short home-screen name ("Tarodan (Staging)" was cut to "Tarodan(St…" on iPhone).
     name: 'Staging',
     ios: {
       ...stagingIos,
       bundleIdentifier: `${config.ios.bundleIdentifier}${STAGING_SUFFIX}`,
     },
-    // Android: iOS ile aynı model — staging paketi ayrı bir uygulama
-    // (`com.tarodan.app.staging`) ve yalnız staging alan adındaki App Links'i
-    // yakalar. Paket adı paths.json `stagingAndroidPackage`'dan okunur (tek kaynak).
+    // Android: the same model as iOS. The staging package is a separate app
+    // (`com.tarodan.app.staging`) and catches App Links on the staging domain only.
+    // The package name comes from paths.json `stagingAndroidPackage` (one source).
     android: {
       ...config.android,
       package: stagingAndroidPackage,
@@ -365,3 +420,5 @@ module.exports.resolveStagingGoogleServicesFile = resolveStagingGoogleServicesFi
 module.exports.isAndroidNativeContext = isAndroidNativeContext;
 module.exports.withStagingHosts = withStagingHosts;
 module.exports.assertSentryBuildReady = assertSentryBuildReady;
+module.exports.googleIosUrlScheme = googleIosUrlScheme;
+module.exports.withGoogleSignInScheme = withGoogleSignInScheme;

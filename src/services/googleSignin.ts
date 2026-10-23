@@ -32,7 +32,8 @@ function ensureConfigured() {
  * Is Google sign-in ON for Android? A per-build flag, on purpose: without an Android OAuth
  * client (package name + signing SHA-1) in Google Cloud, sign-in dies with `DEVELOPER_ERROR`
  * (docs/ANDROID_RELEASE.md, section 9). The flag is `'true'` only in the `eas.json` profiles
- * whose client exists (`easProfiles.test.ts` pins them); elsewhere the button stays hidden.
+ * whose clients exist and whose real-device check passed (`easProfiles.test.ts` pins them);
+ * elsewhere the button stays hidden.
  * Read `process.env.EXPO_PUBLIC_*` directly: Expo inlines the value at build time.
  */
 const ANDROID_ENABLED = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED === 'true';

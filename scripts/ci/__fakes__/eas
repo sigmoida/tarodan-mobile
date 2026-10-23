@@ -17,7 +17,15 @@ const readJson = (name, dflt) => {
   const p = path.join(dir, name);
   return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : dflt;
 };
-const envSeen = ['EXPO_PUBLIC_ENVIRONMENT', 'EXPO_PUBLIC_API_URL']
+// The env each call saw (what `eas update` would embed). The Google keys come last so
+// assertions on the first two keep matching by prefix.
+const envSeen = [
+  'EXPO_PUBLIC_ENVIRONMENT',
+  'EXPO_PUBLIC_API_URL',
+  'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID',
+  'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID',
+  'EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED',
+]
   .map((k) => `${k}=${process.env[k] ?? ''}`)
   .join(' ');
 fs.appendFileSync(path.join(dir, 'log'), `eas ${args.join(' ')} | ${envSeen}\n`);
