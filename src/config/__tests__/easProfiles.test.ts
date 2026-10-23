@@ -7,8 +7,10 @@
  *   EAS resolves it.)
  * - The `maestro` profile extends `preview` but has its own update channel: a staging
  *   OTA never reaches the Maestro build, and a Maestro OTA never reaches staging.
- * - `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` is "false" in every store/distribution
- *   profile until the Google Cloud Android OAuth clients exist.
+ * - `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` is "true" only where the package's Android
+ *   OAuth clients exist and the step is approved: the staging package
+ *   (`preview`/`staging`). Production flips after a real-device test of a
+ *   Play-installed staging build; Maestro and development stay "false".
  * - Google client ids come from the Google Cloud project `tarodan-app`
  *   (1048836099670): one web client for every profile, and one iOS client per
  *   bundle (production `com.tarodan.app`, staging `com.tarodan.app.staging`).
@@ -197,8 +199,18 @@ describe('eas.json — Google client ids (project tarodan-app)', () => {
   });
 });
 
-describe('eas.json — Google Android bayrağı', () => {
-  it.each(['development', 'preview', 'staging', 'production', 'maestro'])('%s: "false"', (name) => {
+// The Android OAuth clients of com.tarodan.app.staging exist in project tarodan-app
+// (2026-10-23), so the staging package shows Google on Android. Production stays off
+// until a Play-installed staging build passed sign-in on a real device
+// (docs/ANDROID_RELEASE.md section 9). Maestro overrides preview: E2E flows must not
+// depend on a Google account on the device. development builds com.tarodan.app.
+describe('eas.json — Google Android flag', () => {
+  it.each(['preview', 'staging'])('%s: "true" (staging package, clients exist)', (name) => {
+    expect(resolvedEnv(name).EXPO_PUBLIC_ENVIRONMENT).toBe('preview');
+    expect(resolvedEnv(name).EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED).toBe('true');
+  });
+
+  it.each(['production', 'development', 'maestro'])('%s: "false"', (name) => {
     expect(resolvedEnv(name).EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED).toBe('false');
   });
 });

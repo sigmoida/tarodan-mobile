@@ -39,7 +39,7 @@
         "EXPO_PUBLIC_WEB_URL": "https://staging.tarodan.com.tr",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1048836099670-5kdeenimv0bvj4plrrmeq2ue8p2284t8.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "1048836099670-cv0sohq8pdl7qksaq7fongauhga7705q.apps.googleusercontent.com",
-        "EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED": "false"
+        "EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED": "true"
       }
     },
     "maestro": {
@@ -54,7 +54,8 @@
         "autoIncrement": false
       },
       "env": {
-        "EXPO_PUBLIC_MAESTRO": "1"
+        "EXPO_PUBLIC_MAESTRO": "1",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED": "false"
       }
     },
     "production": {
@@ -93,7 +94,7 @@
         "EXPO_PUBLIC_WEB_URL": "https://staging.tarodan.com.tr",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1048836099670-5kdeenimv0bvj4plrrmeq2ue8p2284t8.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "1048836099670-cv0sohq8pdl7qksaq7fongauhga7705q.apps.googleusercontent.com",
-        "EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED": "false"
+        "EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED": "true"
       }
     }
   },

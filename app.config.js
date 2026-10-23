@@ -19,9 +19,10 @@
 //      (tarodan-staging; production is tarodan-prod) with its own google-services.json
 //      (see `resolveStagingGoogleServicesFile` below).
 //      Paket adı dosyada yoksa Gradle "No matching client found" ile düşer.
-//   2. Google Cloud OAuth — her paket için ayrı Android istemcisi (paket +
-//      SHA-1). Eksikse build düşmez, "Google ile giriş" sessizce çalışmaz;
-//      bu yüzden EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED bayrağı o işe kadar "false".
+//   2. Google Cloud OAuth: separate Android clients per package (package +
+//      SHA-1) in project tarodan-app. Without them the build passes but Google
+//      sign-in fails with DEVELOPER_ERROR, so EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED
+//      is "true" only in the profiles whose package has its clients (eas.json).
 // Adım adım: docs/ANDROID_RELEASE.md
 
 const fs = require('fs');
