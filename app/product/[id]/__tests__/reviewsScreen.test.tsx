@@ -33,11 +33,14 @@ describe('product reviews screen', () => {
     expect(await screen.findByText('Henüz değerlendirme yok')).toBeOnTheScreen();
   });
 
-  it('a failed load shows the error state with a retry, not "no reviews"', async () => {
+  it('a failed load shows the error state with a retry, not "no reviews" or a zero count', async () => {
+    (ratingsApi.getProductStats as jest.Mock).mockResolvedValueOnce({ data: { averageScore: 4.5 } });
     getProductRatings.mockRejectedValueOnce(new Error('network'));
     renderWithProviders(<ProductReviewsScreen />);
     expect(await screen.findByText('Bir şeyler ters gitti')).toBeOnTheScreen();
     expect(screen.queryByText('Henüz değerlendirme yok')).toBeNull();
+    // The rating summary would read "0 reviews" above the error.
+    expect(screen.queryByText('4.5')).toBeNull();
     fireEvent.press(screen.getByText('Tekrar Dene'));
     expect(await screen.findByText('Henüz değerlendirme yok')).toBeOnTheScreen();
   });

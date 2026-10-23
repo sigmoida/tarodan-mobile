@@ -21,7 +21,7 @@ const productKey = (p: { id: string }) => p.id;
  */
 export default function DiscountProductsScreen() {
   const { t } = useTranslation();
-  const { products, isLoading, isError, refetch } = useDiscountProducts(true);
+  const { products, isLoading, loadFailed, refetch } = useDiscountProducts(true);
   const selectedIds = useProductPickerDraft((s) => s.selectedIds);
   const toggle = useProductPickerDraft((s) => s.toggle);
   const page = usePageScrollHandler();
@@ -63,7 +63,7 @@ export default function DiscountProductsScreen() {
         {...listWindowing}
         contentContainerStyle={page.contentStyle(pageListContentStyle)}
         ListEmptyComponent={
-          isError ? (
+          loadFailed ? (
             <ErrorState placement="list" onRetry={() => void refetch()} />
           ) : (
             <EmptyState

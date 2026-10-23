@@ -5,7 +5,7 @@ import type { MyProduct } from '../_lib/types';
 
 /**
  * The seller's active listings for the product picker (at most 100). A failed load surfaces as
- * `isError` (the picker shows a retry), not as an empty list that reads "no active products".
+ * `loadFailed` (the picker shows a retry), not as an empty list that reads "no active products".
  */
 export function useDiscountProducts(enabled: boolean) {
   const query = useQuery({
@@ -21,7 +21,8 @@ export function useDiscountProducts(enabled: boolean) {
   return {
     products: query.data ?? [],
     isLoading: query.isLoading,
-    isError: query.isError,
+    /** The list never loaded (a failed background refetch keeps the cached list). */
+    loadFailed: query.isError && query.data === undefined,
     refetch: query.refetch,
   };
 }

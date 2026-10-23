@@ -59,7 +59,8 @@ export default function ProductReviewsScreen() {
         renderItem={({ item, index }) => <ReviewRow review={item} divided={index > 0} />}
         contentContainerStyle={page.contentStyle(styles.content)}
         ListHeaderComponent={
-          f.average != null || f.total > 0 ? (
+          // No summary while the list failed to load: its count would read "0 reviews".
+          !f.loadFailed && (f.average != null || f.total > 0) ? (
             <SectionCard style={styles.summary}>
               <View style={styles.summaryRow}>
                 <Icon name="star" variant="solid" size={iconSize.md} color={colors.warning[400]!} />
@@ -74,7 +75,7 @@ export default function ProductReviewsScreen() {
         ListEmptyComponent={
           f.isLoading || showSkeleton ? (
             showSkeleton ? <ReviewListSkeleton /> : null
-          ) : f.isError ? (
+          ) : f.loadFailed ? (
             <ErrorState placement="list" onRetry={() => void f.refetch()} />
           ) : (
             <EmptyState placement="list" icon="star" title={t('review.noReviews')} subtitle={t('emptyState.reviewsHint')} />

@@ -49,7 +49,7 @@ export default function BlockedUsersScreen() {
       scroll={page}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/profile'))}
       // No count while the list failed to load: "0" would contradict the error state below.
-      right={f.isError && f.blocked.length === 0 ? undefined : <TopBarLabel>{f.blocked.length}</TopBarLabel>}
+      right={f.loadFailed ? undefined : <TopBarLabel>{f.blocked.length}</TopBarLabel>}
       loading={f.isLoading}
       loadingFallback={<RowListSkeleton />}
     >
@@ -60,7 +60,7 @@ export default function BlockedUsersScreen() {
         {...listWindowing}
         contentContainerStyle={page.contentStyle(pageListContentStyle)}
         ListEmptyComponent={
-          f.isError ? (
+          f.loadFailed ? (
             <ErrorState
               placement="list"
               title={t('profile.blockedPage.loadFailed')}

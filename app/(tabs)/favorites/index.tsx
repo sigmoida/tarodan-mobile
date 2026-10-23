@@ -111,7 +111,7 @@ function FavoritesScreen() {
               variant="outline"
               title={t('favorites.exploreMoreProducts')}
               style={styles.moreButton}
-              onPress={() => router.push('/search')}
+              onPress={() => router.push(searchEntryHref('all'))}
             />
           ) : null
         }
