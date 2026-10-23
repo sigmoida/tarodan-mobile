@@ -10,7 +10,8 @@
  */
 import React from 'react';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { renderWithProviders } from '@/test-utils';
+import { makeTestQueryClient, renderWithProviders } from '@/test-utils';
+import { qk } from '@/lib/query';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
@@ -20,6 +21,7 @@ jest.mock('expo-router', () => ({
 
 jest.mock('@/lib/api', () => ({
   api: { get: jest.fn() },
+  shippingApi: { getOrderShipments: jest.fn(() => Promise.resolve({ data: null })) },
   ordersApi: { cancel: jest.fn(), confirm: jest.fn(), confirmReceipt: jest.fn() },
   refundsApi: { create: jest.fn(), cancel: jest.fn() },
   mediaApi: { uploadRefundEvidence: jest.fn() },
@@ -28,7 +30,7 @@ jest.mock('@/lib/api', () => ({
   sellerInvoiceApi: { status: jest.fn(() => Promise.resolve({ data: null })), download: jest.fn() },
 }));
 import { router } from 'expo-router';
-import { api, elogoInvoicesApi, sellerInvoiceApi } from '@/lib/api';
+import { api, elogoInvoicesApi, sellerInvoiceApi, shippingApi } from '@/lib/api';
 import OrderDetailScreen from '../[id]';
 
 const getMock = api.get as jest.Mock;
@@ -231,5 +233,30 @@ describe('invoices', () => {
     expect(await screen.findByTestId('order-invoice-card')).toBeOnTheScreen();
     expect(screen.queryByTestId('seller-invoice-card')).toBeNull();
     expect(sellerStatus).not.toHaveBeenCalled();
+  });
+});
+
+describe('shipment query', () => {
+  const shipments = shippingApi.getOrderShipments as jest.Mock;
+  beforeEach(() => shipments.mockClear());
+
+  /** The order is already cached (e.g. opened from the list), so it is known at the first render. */
+  async function renderCached(signals: Record<string, unknown>) {
+    const order = body(signals, {});
+    getMock.mockResolvedValue({ data: { data: order } });
+    const queryClient = makeTestQueryClient();
+    queryClient.setQueryData(qk.orders.detail('order-1'), order);
+    renderWithProviders(<OrderDetailScreen />, { queryClient });
+    await waitFor(() => expect(screen.getByText(`Sipariş #${String(order.orderNumber)}`)).toBeOnTheScreen());
+  }
+
+  it('a listing order loads its shipment', async () => {
+    await renderCached(listing);
+    await waitFor(() => expect(shipments).toHaveBeenCalledWith('order-1'));
+  });
+
+  it.each(DIGITAL)('a digital order never asks for one: %s', async (_label, signals) => {
+    await renderCached(signals);
+    expect(shipments).not.toHaveBeenCalled();
   });
 });

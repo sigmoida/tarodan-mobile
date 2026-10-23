@@ -81,3 +81,33 @@ describe.each(GATES)('%s', (_gate, status, find) => {
     expect(find()).toBeNull();
   });
 });
+
+describe('seller packages of a multi-package group', () => {
+  const twoPackages = (secondSignals: Record<string, unknown>) => ({
+    ...group('shipped', LISTING),
+    orders: [],
+    packages: [
+      {
+        id: 'pkg1', packageNumber: 'PKG-AAA', sellerId: 's1', seller: { id: 's1', displayName: 'Satıcı' },
+        shippingCost: 25, cargo: null, orders: [{ id: 'o1', ...LISTING }],
+      },
+      {
+        id: 'pkg2', packageNumber: 'PKG-BBB', sellerId: 'platform-1', seller: { id: 'platform-1', displayName: 'Tarodan' },
+        shippingCost: 0, cargo: null, orders: [{ id: 'o2', ...secondSignals }],
+      },
+    ],
+  });
+
+  it('draws a card for each listing package', async () => {
+    getGroupMock.mockResolvedValue({ data: { data: twoPackages(LISTING) } });
+    renderWithProviders(<OrderGroupDetailScreen />);
+    await waitFor(() => expect(screen.getAllByTestId('group-package-card')).toHaveLength(2));
+  });
+
+  it.each(DIGITAL)('draws no card for a package of digital orders: %s', async (_label, signals) => {
+    getGroupMock.mockResolvedValue({ data: { data: twoPackages(signals) } });
+    renderWithProviders(<OrderGroupDetailScreen />);
+    await waitFor(() => expect(screen.getAllByTestId('group-package-card')).toHaveLength(1));
+    expect(screen.queryByText('PKG-BBB')).toBeNull();
+  });
+});

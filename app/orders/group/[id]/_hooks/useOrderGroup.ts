@@ -10,6 +10,7 @@ import { captureException } from '@/services/sentry';
 import type { OrderCancellationReason } from '@/lib/shared/orderCancellation';
 import { apiStatusToUi } from '@/utils/orderStatus';
 import { noteOrderKindFallback } from '@/lib/shared/orderKindFallback';
+import { isDigitalOrder } from '@/types';
 import { isGroupCancellable } from '../_lib/status';
 import type { GroupDetail, GroupOrder, GroupPackage } from '../_lib/types';
 
@@ -63,6 +64,7 @@ export function useOrderGroup() {
               }
             : null,
           shippingCost: Number(p.shippingCost ?? 0),
+          isDigital: Array.isArray(p.orders) && p.orders.length > 0 && p.orders.every(isDigitalOrder),
           cargo: p.cargo
             ? {
                 trackingNumber: p.cargo.trackingNumber ?? null,

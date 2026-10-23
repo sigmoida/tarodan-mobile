@@ -53,6 +53,15 @@ describe('grup iptali kapısı', () => {
     expect(isGroupCancellable([line(), line({ id: 'o2', activeRefundRequest: { id: 'r1', status: 'pending_review' } })])).toBe(false);
   });
 
+  it('a line already moving with the carrier closes it (web `hasShipped`)', () => {
+    for (const status of ['picked_up', 'in_transit', 'delivered']) {
+      expect(isGroupCancellable([line(), line({ id: 'o2', shipment: { status } })])).toBe(false);
+    }
+    for (const status of ['pending', 'cancelled', 'failed']) {
+      expect(isGroupCancellable([line({ shipment: { status } })])).toBe(true);
+    }
+  });
+
   it('an empty group offers nothing', () => {
     expect(isGroupCancellable([])).toBe(false);
   });

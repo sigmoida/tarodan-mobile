@@ -10,7 +10,6 @@ import { formatPolicyDate } from '@/lib/shared/timingPolicy';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { isAwaitingDropoff, shipmentStatusLabel } from '@/lib/shipping/shipmentStatus';
 import { orderCancelMessage, type OrderCancelAudience } from '@/lib/shared/orderCancelMessage';
-import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
 
@@ -98,9 +97,10 @@ export function OrderCancelledInfo({
 }
 
 /**
- * Awaiting payment card with the "Pay" button. Never on a digital order while digital purchases
- * are off (`CAN_BUY_DIGITAL`, tarodan-ops ADR 0003): paying a web-started membership or boost
- * order in the app is an in-app digital purchase outside the store billing.
+ * Awaiting payment card with the "Pay" button. Never on a digital order (web `PaymentSection`): its
+ * detail is read-only, the payment belongs to the membership or boost checkout, and paying it here
+ * would be a digital purchase through PayTR inside the app (tarodan-ops ADR 0003), even once
+ * `CAN_BUY_DIGITAL` turns on for store billing.
  */
 export function OrderPayPendingCard({
   order,
@@ -114,7 +114,7 @@ export function OrderPayPendingCard({
   payPending: boolean;
 }) {
   const { t } = useTranslation();
-  if (view.isDigitalOrder && !CAN_BUY_DIGITAL) return null;
+  if (view.isDigitalOrder) return null;
   if (!(order.status === 'pending' && !view.isPaid && order.isBuyer !== false)) return null;
   return (
     <SectionCard title={t('order.statusPendingPayment')} bodyStyle={styles.stack}>

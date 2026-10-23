@@ -54,6 +54,11 @@ export interface GroupPackage {
     displayName: string;
   } | null;
   shippingCost: number;
+  /**
+   * Every order of the package is digital (membership, boost; web `isDigitalPackage`): it ships
+   * nothing, so it has no package number, shipping cost or cargo to show.
+   */
+  isDigital: boolean;
   cargo: {
     trackingNumber: string | null;
     /** Gerçek Sürat kodu — `deriveShipmentView`'e fallback olarak verilir. */

@@ -95,6 +95,9 @@ export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: bool
 export function GroupPackageCard({ pkg }: { pkg: GroupPackage }) {
   const { t } = useTranslation();
   const view = deriveShipmentView(pkg.cargo, pkg.cargo?.cargoCode);
+  // A digital package (web `isDigitalPackage`) has no number, shipping or cargo: this card holds
+  // nothing else (its order already shows as a line above), so it is not drawn.
+  if (pkg.isDigital) return null;
 
   return (
     <SectionCard

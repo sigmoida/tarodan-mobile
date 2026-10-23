@@ -39,7 +39,6 @@ export function deriveOrderView(
   // Kod/referans varlığı kartın kendi kapısı (bkz. OrderTrackingCard); burada
   // yalnızca sipariş durumuna göre gösterime uygunluk türetilir.
   const showTrackingCard =
-    !digital &&
     !!order.shippedAt &&
     isPostShipment &&
     !isCancelled &&

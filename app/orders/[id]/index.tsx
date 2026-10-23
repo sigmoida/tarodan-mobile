@@ -43,7 +43,8 @@ export default function OrderDetailScreen() {
   const invoices = useOrderInvoices(String(id), order?.status, actions.notify, isDigitalOrder(order));
   // Pull-to-refresh siparişle birlikte e-Arşiv listesini de yeniler.
   const { refreshing, onRefresh } = useRefresh(refetch, invoices.refreshElogoInvoices);
-  const { shipment } = useOrderShipment(id);
+  // A digital order ships nothing: no shipment query (nor its refetch on focus).
+  const { shipment } = useOrderShipment(isDigitalOrder(order) ? undefined : id);
   const policy = useTimingPolicy();
   const now = useDeadlineNow(order?.preparingDeadline);
 
