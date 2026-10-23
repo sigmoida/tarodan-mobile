@@ -118,7 +118,7 @@ export default function HomeScreen() {
           <FeaturedRail items={data.featured} isLoading={data.loadingFeatured} onProductPress={handleProductPress} />
           <OnSaleRail items={data.onSale} isLoading={data.loadingOnSale} onProductPress={handleProductPress} />
           <TradeRail items={data.trade} isLoading={!lowerReady || data.loadingTrade} onProductPress={handleProductPress} />
-          <PopularRail items={data.popular} isLoading={!lowerReady || data.loadingPopular} onProductPress={handleProductPress} />
+          <PopularRail items={data.popular} isLoading={!lowerReady || data.loadingPopular} failed={data.failedPopular} onProductPress={handleProductPress} />
           <TopCollections items={data.topCollections} isLoading={!lowerReady || data.loadingTopCollections} />
           <Spotlights
             collector={data.featuredCollector}

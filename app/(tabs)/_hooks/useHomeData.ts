@@ -22,22 +22,19 @@ const toList = (body: any): any[] => {
   return Array.isArray(list) ? list : [];
 };
 
-/** Hata bir bölümü boş bırakır, ekranı bozmaz (web `Promise.allSettled`). */
-const safeList = async (load: () => Promise<{ data: unknown }>): Promise<any[]> => {
-  try {
-    return toList((await load()).data);
-  } catch {
-    return [];
-  }
-};
+/**
+ * Every home section query THROWS on failure instead of resolving to an empty value. React Query
+ * then keeps the last good data on a failed refetch (pull-to-refresh, focus, reconnect) instead
+ * of overwriting it with `[]`/`null` and making the section vanish, and retries a 5xx or network
+ * error (`retryUnlessClientError`; the backoff keeps a skeleton or the refresh spinner up about
+ * 3 s longer on a failure, like every other screen). On a first load the query ends in `error`
+ * with no data: the section stays hidden (see `failedPopular`). A genuinely empty 200 still
+ * resolves to `[]` / the body as is and renders as empty. Same idea as the manufacturers strip.
+ */
+const loadList = async (load: () => Promise<{ data: unknown }>) => toList((await load()).data);
 
-const safeOne = async (load: () => Promise<{ data: unknown }>): Promise<any | null> => {
-  try {
-    return (await load()).data ?? null;
-  } catch {
-    return null;
-  }
-};
+/** Single-object sections (collector / business of the week): `null` when the API has none. */
+const loadOne = async (load: () => Promise<{ data: unknown }>): Promise<any | null> => (await load()).data ?? null;
 
 /**
  * Anasayfa içerik sorguları — web `app/page.tsx` ile aynı uçlar: Öne Çıkan (homeShowcase),
@@ -48,16 +45,16 @@ export function useHomeData() {
   const featured = useQuery({
     queryKey: qk.products.homeFeatured,
     queryFn: () =>
-      safeList(() => productsApi.getAll({ limit: 20, page: 1, homeShowcase: true, status: 'active' })),
+      loadList(() => productsApi.getAll({ limit: 20, page: 1, homeShowcase: true, status: 'active' })),
   });
 
   const onSale = useQuery({
     queryKey: qk.products.homeOnSale,
     queryFn: async () => {
-      const list = await safeList(() =>
+      const list = await loadList(() =>
         productsApi.getAll({ limit: 24, page: 1, discountOnly: true, status: 'active' }),
       );
-      // Web gibi: yalnız gerçek indirimi olanlar.
+      // Like web: only listings with a real discount.
       return list.filter(
         (p) => isProductOnSaleDisplay(p) && getProductOriginalPriceForDisplay(p) > getProductEffectivePrice(p),
       );
@@ -67,20 +64,21 @@ export function useHomeData() {
   const trade = useQuery({
     queryKey: qk.products.homeTrade,
     queryFn: () =>
-      safeList(() => productsApi.getAll({ limit: 24, page: 1, tradeOnly: true, status: 'active' })),
+      loadList(() => productsApi.getAll({ limit: 24, page: 1, tradeOnly: true, status: 'active' })),
   });
 
-  /** Popüler ilanlar — backend görüntülenme sayısına göre sıralar (web ile aynı uç). */
+  /** Popular listings: the API sorts by view count (same endpoint as web). */
   const popular = useQuery({
     queryKey: qk.products.popular,
-    queryFn: () => safeList(() => productsApi.getPopular({ limit: 20, page: 1 })),
+    queryFn: () => loadList(() => productsApi.getPopular({ limit: 20, page: 1 })),
   });
 
   /**
-   * Marka şeridi — web gibi `/manufacturers` (logolu). Üreticiler ekranıyla aynı sorgu.
-   * İlanı olmayan üretici şeritte yok (`select`; önbellekteki ham liste değişmez). Anahtar Üreticiler
-   * ve Kategoriler ekranlarıyla PAYLAŞILIR: hata `safeList` gibi `[]`'a çevrilip "başarılı" diye
-   * önbelleğe YAZILMAZ (diğer ekranlar hatayı görsün); sorgu hata verir, şerit `data` olmadan boş kalır.
+   * Brand strip: `/manufacturers` (with logos) like web, the same query as the Manufacturers screen.
+   * Manufacturers without listings are left out (`select`; the cached raw list is unchanged). The
+   * key is SHARED with the Manufacturers and Categories screens: a failure is never cached as a
+   * "successful" `[]` (those screens must see the error); the query errors and the strip stays
+   * empty without `data`.
    */
   const manufacturers = useQuery({
     queryKey: qk.catalog.manufacturers,
@@ -90,17 +88,17 @@ export function useHomeData() {
 
   const topCollections = useQuery({
     queryKey: qk.collections.top,
-    queryFn: () => safeList(() => userApi.getTopCollections({ limit: 20 })),
+    queryFn: () => loadList(() => userApi.getTopCollections({ limit: 20 })),
   });
 
   const featuredCollector = useQuery({
     queryKey: qk.products.featuredCollector,
-    queryFn: () => safeOne(() => userApi.getFeaturedCollector()),
+    queryFn: () => loadOne(() => userApi.getFeaturedCollector()),
   });
 
   const featuredBusiness = useQuery({
     queryKey: qk.products.featuredBusiness,
-    queryFn: () => safeOne(() => userApi.getFeaturedBusiness()),
+    queryFn: () => loadOne(() => userApi.getFeaturedBusiness()),
   });
 
   return {
@@ -112,14 +110,20 @@ export function useHomeData() {
     loadingTrade: trade.isLoading,
     popular: popular.data ?? [],
     loadingPopular: popular.isLoading,
+    /**
+     * The popular rail never loaded (first load failed, no data): hide it instead of showing the
+     * "be the first" empty state, which would be false. A failed refetch keeps the data, so this
+     * stays false then.
+     */
+    failedPopular: popular.isError && popular.data === undefined,
     manufacturers: manufacturers.data ?? [],
     loadingManufacturers: manufacturers.isLoading,
     topCollections: topCollections.data ?? [],
     loadingTopCollections: topCollections.isLoading,
-    /** Web gibi: haftanın koleksiyoneri yoksa en iyi koleksiyonların ilki. */
+    /** Like web: without a collector of the week, the first top collection. */
     featuredCollector: featuredCollector.data ?? topCollections.data?.[0] ?? null,
     featuredBusiness: featuredBusiness.data ?? null,
-    // Koleksiyoner yoksa en iyi koleksiyonların ilkine düşülür → o liste de beklenir (geç gelip zıplamasın).
+    // Without a collector the first top collection is used, so that list is awaited too (no late jump).
     loadingSpotlights:
       featuredCollector.isLoading ||
       featuredBusiness.isLoading ||
