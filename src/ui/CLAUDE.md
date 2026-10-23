@@ -117,14 +117,16 @@ first load or layout-less flows (payment, gates). Never hand-roll a loader.
 - Every empty screen, list or section uses `EmptyState`: `icon`, `title` and
   `subtitle` are **required**, the action is optional. Errors use `ErrorState` (+
   "Tekrar Dene" retry); a failed query never leaves the user without a retry.
-- Placement is built in, so every screen-level state sits in the same place:
-  `EMPTY_STATE_TOP_OFFSET` (64 pt) below the bar or list header, 16 pt from the
-  screen edges, centred.
+- Placement is built in: a screen-level state sits `EMPTY_STATE_TOP_OFFSET` (64 pt)
+  below the top of the content area (under the bar), 16 pt from the screen edges,
+  centred.
   - `placement="screen"` (default): `PageShell` `empty`, an `AppShell` child, or the
     `ListEmptyComponent` of a list **without** a gutter (messages, notifications).
   - `placement="list"`: the `ListEmptyComponent` of a list on `pageListContentStyle`.
-    The list's gutter is part of the offset, so it lands exactly where `screen` does
-    (pinned in `components/__tests__/EmptyState.test.tsx`). A shared empty wrapper
+    The list's gutter is part of the offset, so as the list's first item it lands
+    exactly where `screen` does (pinned in `components/__tests__/EmptyState.test.tsx`).
+    Under a `ListHeaderComponent` it sits the list gap + 48 pt below the header
+    (64 pt with the default `PAGE_SECTION_GAP`). A shared empty wrapper
     used only in such a list (`OffersEmpty`, `MyListingsEmpty`) sets it inside;
     `ProductListEmpty` takes it as a prop.
   - `placement="inline"`: inside a card, modal or section (and vertically-centred

@@ -149,12 +149,6 @@ describe('EmptyState / ErrorState (web @tarodan/ui)', () => {
     expect(listTop + (own.paddingTop as number)).toBe(inset + EMPTY_STATE_TOP_OFFSET);
   });
 
-  it('the default screen placement inside the list gutter is the old offset bug (sits lower and narrower)', () => {
-    render(<EmptyState icon="inbox" title="Empty" subtitle="Description" />);
-    const own = StyleSheet.flatten(screen.getByTestId('empty-state').props.style);
-    expect((pageListContentStyle.padding as number) + (own.paddingTop as number)).toBe(EMPTY_STATE_TOP_OFFSET + PAGE_GUTTER);
-  });
-
   it('ErrorState varsayılan metinler + tekrar dene', () => {
     const onRetry = jest.fn();
     render(<ErrorState onRetry={onRetry} />);

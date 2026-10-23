@@ -41,9 +41,9 @@ const { colors, spacing, radiusRole } = theme;
  * PLACEMENT RULE (the same everywhere): a fixed top offset (`EMPTY_STATE_TOP_OFFSET`, 64 pt) from
  * the top of the content area, centred horizontally, 16 pt from the screen edges. No vertical
  * centring: centring depends on the container height (tab bar, keyboard, header band, list header)
- * and would drift from screen to screen. `PageShell` `empty`, a list `ListEmptyComponent`
- * (`list`, which subtracts the `pageListContentStyle` gutter it already sits in) and the
- * screen-level states therefore all land in the same place. The placement lives IN the component,
+ * and would drift from screen to screen. `PageShell` `empty` and a list's first-item
+ * `ListEmptyComponent` (`list`, which subtracts the `pageListContentStyle` gutter it already sits
+ * in) therefore land in the same place. The placement lives IN the component,
  * so the caller adds no padding, margin or flex (lint: `tarodan/empty-state-standard`).
  */
 export const EMPTY_STATE_TOP_OFFSET = spacing[16];
