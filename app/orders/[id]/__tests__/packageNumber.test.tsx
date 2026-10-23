@@ -15,7 +15,7 @@ import { OrderStatusCard } from '../_components/OrderStatusCard';
 
 const view = {
   isPaid: true,
-  isMembershipOrder: false,
+  isDigitalOrder: false,
 } as any;
 
 function renderCard(extra: Record<string, unknown> = {}) {

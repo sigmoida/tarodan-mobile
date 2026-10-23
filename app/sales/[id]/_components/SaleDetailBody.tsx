@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, Pressable } from 'react-native';
 import { Button, SectionCard, Text, theme } from '@/ui';
@@ -62,7 +63,22 @@ function KV({
   );
 }
 
-/** Sipariş detay gövdesi — durum, ürünler, alıcı, adres, kargo, tutar kartları. */
+/** One item row: a link to the listing, or static content when `onPress` is absent (digital sale). */
+function SaleItemRow({ onPress, children }: { onPress?: () => void; children: ReactNode }) {
+  if (!onPress) {
+    return <View testID="sales-item-static" style={styles.itemRow}>{children}</View>;
+  }
+  return (
+    <Pressable testID="sales-item-link" style={styles.itemRow} onPress={onPress} accessibilityRole="link">
+      {children}
+    </Pressable>
+  );
+}
+
+/**
+ * Sale detail body: status, items, buyer, address, shipment and amount cards. A digital sale
+ * (`f.isDigital`) has no address, shipment or shipping line, and its items are not links.
+ */
 export function SaleDetailBody({ f }: { f: SaleDetailController }) {
   const { t, i18n } = useTranslation();
   const order = f.order;
@@ -72,7 +88,7 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
   const hasShipment = !!(s.cargoCode || s.reference);
   const p = order.pricing;
   const subtotal = p?.subtotal ?? order.subtotal;
-  const shipping = p?.shippingAmount ?? order.shippingCost;
+  const shipping = f.isDigital ? null : p?.shippingAmount ?? order.shippingCost;
   const commission = p?.commissionAmount ?? order.commission;
   // Stopaj yalnızca kurumsal satıcıda > 0 gelir (GVK 94/19, beyannamede mahsup edilir)
   const withholding = p?.withholdingTaxAmount ?? 0;
@@ -100,11 +116,9 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
       {/* Items */}
       <SectionCard title={t('product.title')} bodyStyle={styles.stack}>
         {(order.items || []).map((item) => (
-          <Pressable
+          <SaleItemRow
             key={item.id}
-            style={styles.itemRow}
-            onPress={() => router.push(`/product/${item.product?.id}`)}
-            accessibilityRole="button"
+            onPress={f.isDigital ? undefined : () => router.push(`/product/${item.product?.id}`)}
           >
             <AppImage source={item.product?.imageUrl} variant="card" style={styles.itemImg} />
             <View style={styles.itemInfo}>
@@ -123,7 +137,7 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
                 </Text>
               )}
             </View>
-          </Pressable>
+          </SaleItemRow>
         ))}
       </SectionCard>
 
@@ -139,7 +153,7 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
       ) : null}
 
       {/* Shipping Address */}
-      {order.shippingAddress ? (
+      {order.shippingAddress && !f.isDigital ? (
         <SectionCard title={t('checkout.shippingAddress')} bodyStyle={styles.stack}>
           <Text variant="body" weight="medium">{order.shippingAddress.fullName}</Text>
           <Text variant="bodySm" tone="muted">{order.shippingAddress.address}</Text>
@@ -153,60 +167,62 @@ export function SaleDetailBody({ f }: { f: SaleDetailController }) {
         </SectionCard>
       ) : null}
 
-      {/* Shipment — İKİ NUMARA, İKİ İŞ. Kod gelmeden satıcı ŞUBE REFERANSINI
-          görür (Sürat onu tanımaz, link verilmez); kod gelince gerçek Sürat
-          takip numarası + koddan KURULMUŞ link. Kalıp: `OrderTrackingCard`. */}
-      <SectionCard
-        testID="sales-shipment-card"
-        title={t('sale.shipmentSectionTitle', { carrier: 'Sürat Kargo' })}
-        bodyStyle={styles.stack}
-      >
-        {hasShipment ? (
-          <>
-            <KV value={f.isSurat ? 'Sürat Kargo' : f.shipmentProvider || 'Sürat Kargo'} bold />
+      {/* Shipment: two numbers, two jobs. Until the code arrives the seller sees the branch
+          reference (Sürat does not know it, no link); then the real Sürat tracking number and a
+          link built from that code. Same pattern as `OrderTrackingCard`. None on a digital sale. */}
+      {f.isDigital ? null : (
+        <SectionCard
+          testID="sales-shipment-card"
+          title={t('sale.shipmentSectionTitle', { carrier: 'Sürat Kargo' })}
+          bodyStyle={styles.stack}
+        >
+          {hasShipment ? (
+            <>
+              <KV value={f.isSurat ? 'Sürat Kargo' : f.shipmentProvider || 'Sürat Kargo'} bold />
 
-            {order.shipment?.status ? (
-              <KV testID="sales-shipment-status" value={shipmentStatusLabel(order.shipment.status, t)} />
-            ) : null}
+              {order.shipment?.status ? (
+                <KV testID="sales-shipment-status" value={shipmentStatusLabel(order.shipment.status, t)} />
+              ) : null}
 
-            {s.cargoCode ? (
-              <>
-                <Text variant="bodySm" tone="muted">{t('order.trackingNumber')}</Text>
-                <KV
-                  testID="sales-tracking-number"
-                  selectable
-                  bold
-                  value={s.cargoCode}
-                  copyMessage={t('order.cargoCodeCopied')}
-                />
-                {s.trackingUrl ? (
-                  <Button
-                    testID="sales-track-link"
-                    variant="outline"
-                    title={t('order.trackOnSurat')}
-                    onPress={f.handleTrack}
+              {s.cargoCode ? (
+                <>
+                  <Text variant="bodySm" tone="muted">{t('order.trackingNumber')}</Text>
+                  <KV
+                    testID="sales-tracking-number"
+                    selectable
+                    bold
+                    value={s.cargoCode}
+                    copyMessage={t('order.cargoCodeCopied')}
                   />
-                ) : null}
-              </>
-            ) : (
-              <>
-                <Text variant="bodySm" tone="muted">{t('order.cargoReference')}</Text>
-                <KV
-                  testID="sales-cargo-reference"
-                  selectable
-                  bold
-                  value={s.reference ?? ''}
-                  copyMessage={t('order.cargoCodeCopied')}
-                />
-                <Text variant="caption" tone="muted">{t('order.cargoRefInstructions')}</Text>
-                <Text variant="caption" tone="muted">{t('order.trackingAppearsAfterDropoff')}</Text>
-              </>
-            )}
-          </>
-        ) : (
-          <Text variant="caption" tone="muted">{t('sale.shipmentPendingNotice')}</Text>
-        )}
-      </SectionCard>
+                  {s.trackingUrl ? (
+                    <Button
+                      testID="sales-track-link"
+                      variant="outline"
+                      title={t('order.trackOnSurat')}
+                      onPress={f.handleTrack}
+                    />
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <Text variant="bodySm" tone="muted">{t('order.cargoReference')}</Text>
+                  <KV
+                    testID="sales-cargo-reference"
+                    selectable
+                    bold
+                    value={s.reference ?? ''}
+                    copyMessage={t('order.cargoCodeCopied')}
+                  />
+                  <Text variant="caption" tone="muted">{t('order.cargoRefInstructions')}</Text>
+                  <Text variant="caption" tone="muted">{t('order.trackingAppearsAfterDropoff')}</Text>
+                </>
+              )}
+            </>
+          ) : (
+            <Text variant="caption" tone="muted">{t('sale.shipmentPendingNotice')}</Text>
+          )}
+        </SectionCard>
+      )}
 
       {/* Totals */}
       <SectionCard title={t('sale.amountSummaryTitle')} bodyStyle={styles.stack}>

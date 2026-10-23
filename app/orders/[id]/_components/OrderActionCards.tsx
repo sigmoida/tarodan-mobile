@@ -13,7 +13,7 @@ import type { OrderView } from '../_lib/derive';
 
 const { colors, radius, spacing } = theme;
 
-/** Kargo öncesi sipariş iptali. */
+/** Pre-shipment cancel; never on a digital order. */
 export function OrderCancelCard({
   order,
   view,
@@ -26,7 +26,7 @@ export function OrderCancelCard({
   cancelPending: boolean;
 }) {
   const { t } = useTranslation();
-  if (!(order.isBuyer && !view.isMembershipOrder && view.isPreShipment && !order.activeRefundRequest)) return null;
+  if (!(order.isBuyer && !view.isDigitalOrder && view.isPreShipment && !order.activeRefundRequest)) return null;
   return (
     <SectionCard title={t('order.cancellationSection')} bodyStyle={styles.stack}>
       <Text variant="bodySm" tone="muted">
@@ -155,7 +155,7 @@ export function OrderRefundActionCard({
   // Pencere kapısı sunucu damgasından (`returnWindowEndsAt`) — bkz. `_lib/timing`.
   const eligible =
     order.isBuyer &&
-    !view.isMembershipOrder &&
+    !view.isDigitalOrder &&
     view.isPostShipment &&
     !order.activeRefundRequest &&
     order.payment?.status === 'completed' &&

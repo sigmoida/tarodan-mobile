@@ -16,7 +16,7 @@
  *  - son tarih henüz geçmemiş (geçmişse karar bir sonraki tarama turunda).
  */
 import type { TFunction } from 'i18next';
-import { isMembershipOrder } from './membershipOrder';
+import { isDigitalOrder, type DigitalOrderSignals } from '@/types';
 import { SERVER_TIME_ZONE, activeDateLocale } from './timingPolicy';
 
 export type PreparingDeadlineAudience = 'buyer' | 'seller';
@@ -27,14 +27,15 @@ export interface PreparingDeadlineNotice {
   audience: PreparingDeadlineAudience;
 }
 
-/** Notun okuduğu asgari sipariş şekli (sipariş + satış detay tipleri karşılar). */
-export interface PreparingDeadlineOrder {
+/**
+ * The minimum order shape the notice reads (the order and sale detail types satisfy it). A
+ * digital order (`DigitalOrderSignals`) has nothing to ship, so it never gets the notice.
+ */
+export interface PreparingDeadlineOrder extends DigitalOrderSignals {
   status: string;
   /** Sunucunun görüntüleyene göre yazdığı taraf bayrakları (`order-common.service`). */
   isBuyer?: boolean | null;
   isSeller?: boolean | null;
-  orderNumber?: string | null;
-  isMembership?: boolean | null;
   preparingDeadline?: string | null;
   preparingExtendedAt?: string | null;
   shipment?: { status?: string | null; shippedAt?: string | null } | null;
@@ -77,7 +78,7 @@ export function preparingDeadlineNoticeOf(
 ): PreparingDeadlineNotice | null {
   if (!order.preparingDeadline) return null;
   if (!order.isBuyer && !order.isSeller) return null;
-  if (isMembershipOrder(order)) return null;
+  if (isDigitalOrder(order)) return null;
   if (!PRE_SHIPMENT_STATUSES.includes(order.status)) return null;
   if (isHandedToCarrier(order.shipment)) return null;
   const deadlineMs = new Date(order.preparingDeadline).getTime();

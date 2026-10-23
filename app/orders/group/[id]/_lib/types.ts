@@ -1,3 +1,4 @@
+import type { OrderKind } from '@/types';
 import type { UiOrderStatus } from '@/utils/orderStatus';
 
 export interface GroupOrder {
@@ -12,6 +13,15 @@ export interface GroupOrder {
     imageUrl?: string;
   };
   seller: { id: string; displayName: string };
+  /**
+   * What the order sells (`listing` | `membership` | `boost`). Read through
+   * `isDigitalOrder` (`@/types`), never directly: an older API sends no `kind`.
+   */
+  kind?: OrderKind | null;
+  /** `platform_service` on a digital order: the fallback when `kind` is absent. */
+  origin?: string | null;
+  /** @deprecated True on every digital order; the last fallback of `isDigitalOrder`. */
+  isMembership?: boolean | null;
   /** Tarodan iç referansı (`PKG-…`) — satıcı şubede verir, ALICIYA GÖSTERİLMEZ. */
   trackingNumber?: string | null;
   /** Gerçek Sürat kodu (= `providerTrackingId`); takip bununla yapılır. */

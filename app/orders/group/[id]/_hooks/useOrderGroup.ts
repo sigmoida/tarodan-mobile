@@ -9,6 +9,8 @@ import { qk } from '@/lib/query';
 import { captureException } from '@/services/sentry';
 import type { OrderCancellationReason } from '@/lib/shared/orderCancellation';
 import { apiStatusToUi } from '@/utils/orderStatus';
+import { noteOrderKindFallback } from '@/lib/shared/orderKindFallback';
+import { isGroupCancellable } from '../_lib/status';
 import type { GroupDetail, GroupOrder, GroupPackage } from '../_lib/types';
 
 /**
@@ -27,6 +29,7 @@ export function useOrderGroup() {
     queryFn: async (): Promise<GroupDetail> => {
       const response = await ordersApi.getGroup(id!);
       const raw: any = response.data?.data ?? response.data;
+      noteOrderKindFallback({ groupId: String(raw.id ?? id) }, raw.orders ?? []);
       return {
         id: raw.id,
         groupNumber: raw.groupNumber,
@@ -99,20 +102,7 @@ export function useOrderGroup() {
     },
   });
 
-  /**
-   * Grup iptal edilebilir mi? Tek bir kalem bile kargoya verilmişse sunucu
-   * reddeder — butonu göstermek kullanıcıyı doğrudan o hataya yürütür.
-   */
-  // `status` burada UI durumu (`apiStatusToUi`): sunucunun `paid`/`preparing`
-  // ikilisi tek bir `processing`e iniyor. Kargoya devirden önceki durumlar
-  // yalnız `pending` (ödeme bekliyor) ve `processing`.
-  const CANCELLABLE_UI_STATUSES: Array<GroupOrder['status']> = ['pending', 'processing'];
-  const cancellable =
-    !!group &&
-    group.orders.length > 0 &&
-    group.orders.every(
-      (o) => o.cancellationType !== 'iptal' && CANCELLABLE_UI_STATUSES.includes(o.status),
-    );
+  const cancellable = !!group && isGroupCancellable(group.orders);
 
   const onRefresh = async () => {
     setRefreshing(true);

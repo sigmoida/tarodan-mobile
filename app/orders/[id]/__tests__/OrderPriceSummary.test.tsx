@@ -36,7 +36,7 @@ describe('OrderPriceSummary service VAT', () => {
       sellerNetAmount: 0,
     });
 
-    render(<OrderPriceSummary order={order} isMembershipOrder={false} />);
+    render(<OrderPriceSummary order={order} isDigitalOrder={false} />);
 
     expect(screen.getByText('22,40 TL')).toBeTruthy();
   });
@@ -52,7 +52,7 @@ describe('OrderPriceSummary service VAT', () => {
       sellerNetAmount: 0,
     });
 
-    render(<OrderPriceSummary order={order} isMembershipOrder={false} />);
+    render(<OrderPriceSummary order={order} isDigitalOrder={false} />);
 
     expect(screen.queryByText(/Hizmet KDV/i)).toBeNull();
   });
@@ -70,7 +70,7 @@ describe('OrderPriceSummary service VAT', () => {
       sellerNetAmount: 0,
     });
 
-    render(<OrderPriceSummary order={order} isMembershipOrder={false} />);
+    render(<OrderPriceSummary order={order} isDigitalOrder={false} />);
 
     // "KDV" yalnız hizmet KDV'si etiketinde geçmeli; tek başına "KDV" satırı olmamalı.
     expect(screen.queryByText('KDV')).toBeNull();
