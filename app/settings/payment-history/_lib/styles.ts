@@ -51,7 +51,7 @@ export const styles = StyleSheet.create({
     paddingBottom: spacing[4],
     gap: spacing[3],
   },
-  // A long description wraps on the right instead of pushing the label out.
+  // A long value (description, method) wraps on the right instead of pushing the label out.
   detailValue: {
     flexShrink: 1,
     textAlign: 'right',

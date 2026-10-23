@@ -61,7 +61,11 @@ export function PaymentHistoryItem({ item }: { item: Payment }) {
           <PaymentResultRow label={t('common.date')}>{formatDate(item.createdAt)}</PaymentResultRow>
           <PaymentResultRow label={t('common.status')}>{badge}</PaymentResultRow>
           {item.method ? (
-            <PaymentResultRow label={t('checkout.paymentMethod')}>{item.method}</PaymentResultRow>
+            <PaymentResultRow label={t('checkout.paymentMethod')}>
+              <Text variant="bodySm" weight="semibold" style={styles.detailValue}>
+                {item.method}
+              </Text>
+            </PaymentResultRow>
           ) : null}
           <PaymentResultRow label={t('common.description')}>
             <Text variant="bodySm" weight="semibold" style={styles.detailValue}>
