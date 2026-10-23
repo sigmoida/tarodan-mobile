@@ -84,9 +84,10 @@ describe('app.json — iOS Universal Links', () => {
 });
 
 /**
- * app.config.js — staging profili. `EXPO_PUBLIC_ENVIRONMENT=preview` (eas.json
- * `preview` ve `staging` profilleri) production app.json'ı staging host'uyla
- * genişletir; development/production app.json'ı olduğu gibi döner.
+ * app.config.js — staging profile. `EXPO_PUBLIC_ENVIRONMENT=preview` (eas.json
+ * `preview` and `staging` profiles) swaps the production hosts of app.json for the
+ * staging host; development/production keep app.json as it is, apart from the
+ * google-signin plugin options (covered in __tests__/app.config.test.ts).
  */
 describe('app.config.js — staging alan adi yalniz staging profilinde', () => {
   const makeConfig = require('../../../../app.config.js') as (ctx: {
@@ -104,12 +105,14 @@ describe('app.config.js — staging alan adi yalniz staging profilinde', () => {
   });
 
   it.each(['production', 'development', undefined])(
-    '%s: app.json aynen doner (staging host yok)',
+    '%s: app.json unchanged apart from plugins (no staging host)',
     (env) => {
       if (env === undefined) delete process.env.EXPO_PUBLIC_ENVIRONMENT;
       else process.env.EXPO_PUBLIC_ENVIRONMENT = env;
       const cfg = makeConfig({ config: base() });
-      expect(cfg).toEqual(base());
+      const { plugins: _plugins, ...rest } = cfg;
+      const { plugins: _basePlugins, ...baseRest } = base();
+      expect(rest).toEqual(baseRest);
       expect(hostsOf(cfg)).toEqual(['tarodan.com.tr']);
       expect(JSON.stringify(cfg)).not.toContain('staging.tarodan');
     },

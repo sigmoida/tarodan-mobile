@@ -322,8 +322,57 @@ function assertSentryBuildReady(env = process.env, warn = console.warn) {
   }
 }
 
-module.exports = ({ config }) => {
+// Google sign-in on iOS needs the reversed iOS OAuth client id registered as a URL
+// scheme in Info.plist; without it GIDSignIn throws when sign-in starts. Production
+// (`com.tarodan.app`) and staging (`com.tarodan.app.staging`) each have their own iOS
+// client in Google Cloud, so the scheme follows EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID, the
+// same value src/services/googleSignin.ts passes as `iosClientId`. The id in eas.json
+// is the one source; the scheme is derived from it, never typed. app.json lists the
+// plugin with empty options on purpose: should this mapping ever miss it, the plugin
+// fails loudly ("Missing iosUrlScheme") instead of falling back to its Firebase mode.
+const GOOGLE_SIGNIN_PLUGIN = '@react-native-google-signin/google-signin';
+const GOOGLE_CLIENT_ID = /^(\d+-[a-z0-9]+)\.apps\.googleusercontent\.com$/;
+
+/**
+ * The iOS URL scheme of a Google iOS OAuth client id
+ * (`<n>-<id>.apps.googleusercontent.com` -> `com.googleusercontent.apps.<n>-<id>`), or
+ * `null` when no id is set. A malformed id stops the config read: the plugin would
+ * register a scheme Google never redirects to, and sign-in would fail only on a device.
+ */
+function googleIosUrlScheme(iosClientId) {
+  const id = (iosClientId ?? '').trim();
+  if (!id) return null;
+  const match = GOOGLE_CLIENT_ID.exec(id);
+  if (!match) {
+    throw new Error(
+      `[app.config] EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID "${id}" is not a Google OAuth client id ` +
+        '("<number>-<id>.apps.googleusercontent.com"). Check the env of this eas.json build profile.',
+    );
+  }
+  return `com.googleusercontent.apps.${match[1]}`;
+}
+
+/**
+ * Sets the google-signin plugin's `iosUrlScheme` from the iOS client id. Without an id
+ * (a local run or the development profile without Google env) the plugin entry is
+ * dropped: the Google button is hidden on iOS then (`isGoogleConfigured`), so no scheme
+ * is needed. The plugin's no-options mode is never used: it is the Firebase variant,
+ * which would also wire Google Services into the Android build. Input is not mutated.
+ *
+ * `iosClientId` is a parameter for tests only.
+ */
+function withGoogleSignInScheme(plugins = [], iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID) {
+  const iosUrlScheme = googleIosUrlScheme(iosClientId);
+  return plugins.flatMap((entry) => {
+    const name = Array.isArray(entry) ? entry[0] : entry;
+    if (name !== GOOGLE_SIGNIN_PLUGIN) return [entry];
+    return iosUrlScheme ? [[GOOGLE_SIGNIN_PLUGIN, { iosUrlScheme }]] : [];
+  });
+}
+
+module.exports = ({ config: baseConfig }) => {
   assertSentryBuildReady();
+  const config = { ...baseConfig, plugins: withGoogleSignInScheme(baseConfig.plugins) };
   const isStaging = process.env.EXPO_PUBLIC_ENVIRONMENT === 'preview';
   if (!isStaging) {
     return config;
@@ -365,3 +414,5 @@ module.exports.resolveStagingGoogleServicesFile = resolveStagingGoogleServicesFi
 module.exports.isAndroidNativeContext = isAndroidNativeContext;
 module.exports.withStagingHosts = withStagingHosts;
 module.exports.assertSentryBuildReady = assertSentryBuildReady;
+module.exports.googleIosUrlScheme = googleIosUrlScheme;
+module.exports.withGoogleSignInScheme = withGoogleSignInScheme;
