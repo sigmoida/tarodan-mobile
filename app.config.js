@@ -338,14 +338,16 @@ const GOOGLE_CLIENT_ID = /^(\d+-[a-z0-9]+)\.apps\.googleusercontent\.com$/;
  * (`<n>-<id>.apps.googleusercontent.com` -> `com.googleusercontent.apps.<n>-<id>`), or
  * `null` when no id is set. A malformed id stops the config read: the plugin would
  * register a scheme Google never redirects to, and sign-in would fail only on a device.
+ * The id is not trimmed: googleSignin.ts passes the raw value to `configure`, so a
+ * padded id would register a clean scheme for a client id that never matches it.
  */
 function googleIosUrlScheme(iosClientId) {
-  const id = (iosClientId ?? '').trim();
-  if (!id) return null;
+  const id = iosClientId ?? '';
+  if (id === '') return null;
   const match = GOOGLE_CLIENT_ID.exec(id);
   if (!match) {
     throw new Error(
-      `[app.config] EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID "${id}" is not a Google OAuth client id ` +
+      `[app.config] EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ${JSON.stringify(id)} is not a Google OAuth client id ` +
         '("<number>-<id>.apps.googleusercontent.com"). Check the env of this eas.json build profile.',
     );
   }
@@ -354,9 +356,12 @@ function googleIosUrlScheme(iosClientId) {
 
 /**
  * Sets the google-signin plugin's `iosUrlScheme` from the iOS client id. Without an id
- * (a local run or the development profile without Google env) the plugin entry is
- * dropped: the Google button is hidden on iOS then (`isGoogleConfigured`), so no scheme
- * is needed. The plugin's no-options mode is never used: it is the Firebase variant,
+ * (a local run without Google env) the plugin entry is dropped: the Google button is
+ * hidden on iOS then (`isGoogleConfigured`), so no scheme is needed. That holds only
+ * while the bundle sees the same id as the native build, which is why every eas.json
+ * profile (development included) sets one; a dev client built from the development
+ * profile carries the production scheme, so a local .env must use the production iOS
+ * id or none. The plugin's no-options mode is never used: it is the Firebase variant,
  * which would also wire Google Services into the Android build. Input is not mutated.
  *
  * `iosClientId` is a parameter for tests only.

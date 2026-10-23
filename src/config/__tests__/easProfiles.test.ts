@@ -1,14 +1,14 @@
 /**
- * eas.json profil sözleşmesi.
+ * eas.json profile contract.
  *
- * - `EXPO_PUBLIC_MAESTRO*` (auto-login, maskesiz şifre) YALNIZ `maestro`
- *   profilinde olabilir. İnsan testçilerin kullandığı preview/staging ve
- *   mağaza build'i production hiçbir `EXPO_PUBLIC_MAESTRO*` taşımaz.
- *   (`extends` zinciri EAS'ın çözdüğü gibi birleştirilir.)
- * - `maestro` profili `preview`'dan türer ama kendi güncelleme kanalı vardır;
- *   staging OTA'sı Maestro build'ine, Maestro OTA'sı staging'e karışmaz.
- * - `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` Google Cloud Android OAuth istemcisi
- *   hazır olana kadar tüm mağaza/dağıtım profillerinde "false".
+ * - `EXPO_PUBLIC_MAESTRO*` (auto-login, unmasked password) may exist ONLY in the
+ *   `maestro` profile. preview/staging, which human testers use, and the store build
+ *   production carry no `EXPO_PUBLIC_MAESTRO*`. (The `extends` chain is merged the way
+ *   EAS resolves it.)
+ * - The `maestro` profile extends `preview` but has its own update channel: a staging
+ *   OTA never reaches the Maestro build, and a Maestro OTA never reaches staging.
+ * - `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` is "false" in every store/distribution
+ *   profile until the Google Cloud Android OAuth clients exist.
  * - Google client ids come from the Google Cloud project `tarodan-app`
  *   (1048836099670): one web client for every profile, and one iOS client per
  *   bundle (production `com.tarodan.app`, staging `com.tarodan.app.staging`).
@@ -165,15 +165,19 @@ const GOOGLE_IOS_CLIENT_ID = {
 };
 
 describe('eas.json — Google client ids (project tarodan-app)', () => {
-  it.each(['preview', 'staging', 'production', 'maestro'])(
+  it.each(['development', 'preview', 'staging', 'production', 'maestro'])(
     '%s uses the tarodan-web client as webClientId (the token audience)',
     (name) => {
       expect(resolvedEnv(name).EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID).toBe(GOOGLE_WEB_CLIENT_ID);
     },
   );
 
-  it('production uses the iOS client of com.tarodan.app', () => {
-    expect(resolvedEnv('production').EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID).toBe(GOOGLE_IOS_CLIENT_ID.production);
+  // development builds com.tarodan.app too (a dev client), so it carries the
+  // production scheme; without an id there, a local .env id would show the button in
+  // a binary that has no scheme, and tapping it would crash.
+  it.each(['production', 'development'])('%s uses the iOS client of com.tarodan.app', (name) => {
+    expect(resolvedEnv(name).EXPO_PUBLIC_ENVIRONMENT).toBe(name);
+    expect(resolvedEnv(name).EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID).toBe(GOOGLE_IOS_CLIENT_ID.production);
   });
 
   // These profiles set EXPO_PUBLIC_ENVIRONMENT=preview, so app.config.js builds the
@@ -194,7 +198,7 @@ describe('eas.json — Google client ids (project tarodan-app)', () => {
 });
 
 describe('eas.json — Google Android bayrağı', () => {
-  it.each(['preview', 'staging', 'production', 'maestro'])('%s: "false"', (name) => {
+  it.each(['development', 'preview', 'staging', 'production', 'maestro'])('%s: "false"', (name) => {
     expect(resolvedEnv(name).EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED).toBe('false');
   });
 });

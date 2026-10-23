@@ -81,7 +81,12 @@ describe('app.config — other environments', () => {
 describe('app.config — Google sign-in iOS URL scheme', () => {
   const PLUGIN = '@react-native-google-signin/google-signin';
   const { googleIosUrlScheme, withGoogleSignInScheme } = withVariant;
-  const builds: Record<string, { env: Record<string, string> }> = eas.build;
+  const builds: Record<string, { extends?: string; env?: Record<string, string> }> = eas.build;
+  /** The profile env with its `extends` chain merged, as EAS resolves it. */
+  const resolvedEnv = (name: string): Record<string, string> => {
+    const profile = builds[name]!;
+    return { ...(profile.extends ? resolvedEnv(profile.extends) : {}), ...(profile.env ?? {}) };
+  };
   const pluginOptions = (plugins: unknown[]) => {
     const entry = plugins.find((p) => Array.isArray(p) && p[0] === PLUGIN) as [string, unknown] | undefined;
     return entry?.[1];
@@ -89,10 +94,9 @@ describe('app.config — Google sign-in iOS URL scheme', () => {
 
   it('reverses an iOS client id into its URL scheme', () => {
     expect(googleIosUrlScheme('123-abc9.apps.googleusercontent.com')).toBe('com.googleusercontent.apps.123-abc9');
-    expect(googleIosUrlScheme(' 123-abc9.apps.googleusercontent.com\n')).toBe('com.googleusercontent.apps.123-abc9');
   });
 
-  it.each([undefined, '', '   '])('has no scheme without an id (%p)', (id) => {
+  it.each([undefined, ''])('has no scheme without an id (%p)', (id) => {
     expect(googleIosUrlScheme(id)).toBeNull();
   });
 
@@ -101,6 +105,11 @@ describe('app.config — Google sign-in iOS URL scheme', () => {
     '123-abc9',
     'abc9.apps.googleusercontent.com',
     '123-abc9.apps.googleusercontent.com.evil',
+    // Padded: googleSignin.ts would pass the padded id to configure, so it must not
+    // be normalised into a clean scheme here.
+    ' 123-abc9.apps.googleusercontent.com',
+    '123-abc9.apps.googleusercontent.com\n',
+    '   ',
   ])('stops the config read on a malformed id (%p)', (id) => {
     expect(() => googleIosUrlScheme(id)).toThrow(/EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID/);
   });
@@ -126,17 +135,16 @@ describe('app.config — Google sign-in iOS URL scheme', () => {
   it('drops the plugin without an id, never falling back to its Firebase mode', () => {
     const plugins = withGoogleSignInScheme(baseConfig.plugins, undefined);
     expect(plugins).toHaveLength(baseConfig.plugins.length - 1);
-    expect(plugins).not.toContain(PLUGIN);
-    expect(pluginOptions(plugins)).toBeUndefined();
+    expect(plugins.some((p: unknown) => (Array.isArray(p) ? p[0] : p) === PLUGIN)).toBe(false);
   });
 
   // Each profile that ships Google sign-in registers the scheme of its own iOS client,
   // so a staging binary never carries the production scheme (or the other way round).
-  it.each(['production', 'staging', 'preview', 'maestro'])(
+  it.each(['production', 'development', 'staging', 'preview', 'maestro'])(
     '%s registers the scheme of its own EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID',
     (profile) => {
-      const env = { ...builds.preview.env, ...builds[profile].env };
-      const iosClientId = env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+      const env = resolvedEnv(profile);
+      const iosClientId = env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!;
       expect(iosClientId).toBeTruthy();
       const result = evaluate(env.EXPO_PUBLIC_ENVIRONMENT, env);
       expect(pluginOptions(result.plugins)).toEqual({ iosUrlScheme: googleIosUrlScheme(iosClientId) });

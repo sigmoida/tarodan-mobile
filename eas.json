@@ -15,7 +15,10 @@
       },
       "env": {
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
-        "EXPO_PUBLIC_ENVIRONMENT": "development"
+        "EXPO_PUBLIC_ENVIRONMENT": "development",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1048836099670-5kdeenimv0bvj4plrrmeq2ue8p2284t8.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "1048836099670-vg49irvqvbiqrti1natihhpjlra2to5o.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED": "false"
       }
     },
     "preview": {
