@@ -32,6 +32,7 @@ jest.mock('@/hooks/useKeyboardHeight', () => ({
 
 import { productsApi } from '@/lib/api';
 import SearchScreen from '..';
+import { SearchSuggestions } from '../_components/SearchSuggestions';
 
 const { spacing } = theme;
 const mockGetAll = productsApi.getAll as jest.Mock;
@@ -148,5 +149,43 @@ describe('search - bottom tab bar', () => {
     await waitFor(() => expect(screen.getAllByTestId('search-result-card')).toHaveLength(2));
     expect(back.press()).toBe(false);
     back.restore();
+  });
+
+  describe('suggestions page bottom padding', () => {
+    const noop = () => undefined;
+    const renderSuggestions = () =>
+      renderWithProviders(
+        <SearchSuggestions
+          showRecentSearches
+          recentSearchQueries={['f40']}
+          inputEmpty
+          onClearRecent={noop}
+          onSelectRecent={noop}
+          onRemoveRecent={noop}
+          autocompleteOpen={false}
+          autocompleteQuery=""
+          autocomplete={undefined}
+          sellerResults={[]}
+          onPickSuggestion={noop}
+          onCloseAutocomplete={noop}
+          onNavigateSuggestion={noop}
+          onApplyFacet={noop}
+        />,
+      );
+    const padding = () =>
+      StyleSheet.flatten(screen.getByTestId('search-suggestions-page').props.contentContainerStyle).paddingBottom;
+
+    it('clears the keyboard while it is open (the bar is hidden then)', () => {
+      mockKeyboardHeight = 300;
+      renderSuggestions();
+      expect(padding()).toBe(300 + spacing[4]);
+    });
+
+    it('clears the tab bar when the keyboard closes but the page stays open (focused input)', () => {
+      mockKeyboardHeight = 0;
+      renderSuggestions();
+      expect(screen.getByText('f40')).toBeOnTheScreen();
+      expect(padding()).toBe(barTop + spacing[4]);
+    });
   });
 });
