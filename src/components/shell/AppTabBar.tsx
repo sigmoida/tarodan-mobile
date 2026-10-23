@@ -102,8 +102,9 @@ export function AppTabBar({ state, navigation }: BottomTabBarProps) {
 
 export interface TabBarViewProps {
   /**
-   * Odaktaki sekmenin `Tabs` rota adı. Sekme dışı yığın ekranında (`StackTabBar`: İlanlar, Kategori)
-   * `undefined`: vurgu yok, daralınca Ana Sayfa gibi yalnız "+" kalır.
+   * `Tabs` route name of the focused tab. On a non-tab stack screen (`StackTabBar`: category, search,
+   * manufacturer / brand / model products) it is `undefined`: no highlight, and when collapsed only
+   * the "+" remains, like Home.
    */
   activeName?: string;
   /** Sekmeye / "+"ya dokunuş (odaktaki sekmeye dokunuşta çağrılmaz). */

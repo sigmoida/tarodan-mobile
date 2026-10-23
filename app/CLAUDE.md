@@ -124,7 +124,16 @@ Shells are mandatory; the `screenShells` jest scan checks every `app/**` screen.
   and app settings; one menu model (see `src/components/CLAUDE.md` › Menu).
 - The bottom menu is the floating pill `AppTabBar` (Home, Favorites, Cart, Profile +
   the separate "+" sell button). Tab-root lists add `useTabBarInset()` as bottom
-  padding. Messages, Notifications and Search are stack routes.
+  padding. Messages and Notifications are stack routes without the bar.
+- **Stack screens with the bar** wrap their default export in `withStackTabBar`
+  (`@/components/shell/StackTabBar`): category, search, manufacturer / brand products
+  (`EntityProductsScreen`) and model detail. A plain list binds
+  `useTabBarPageScroll()` (`PageShell scroll={page}` + the list's `scroll`) and adds
+  `useTabBarInset()` as bottom padding; a list with its own scroll worklet (search)
+  composes `useTabBarScrollHandler()` into it with `useComposedEventHandler`. A
+  floating button on such a screen sits above the bar (`useTabBarTop()`), never on
+  the "+". The bar hides while the keyboard is open (`TabBarView`). A tap uses
+  `router.dismissTo` back to the tabs underneath.
 - **Stack screens use `PageShell`** (`@/components/common/PageShell`): floating glass
   top bar, back arrow, centred title, optional right action, optional fixed bottom
   bar, keyboard + safe area, `loading` / `empty` / `error` + `onRetry`. `loading` and

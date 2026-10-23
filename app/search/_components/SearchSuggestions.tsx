@@ -4,6 +4,7 @@ import { View, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Text, theme, Icon } from '@/ui';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
 
 import { styles } from '../_lib/searchStyles';
 import type { SearchController } from '../_hooks/useSearch';
@@ -13,9 +14,10 @@ import { formatPrice } from '@/utils/format';
 const { colors, spacing } = theme;
 
 /**
- * Öneri SAYFASI: üst barın altındaki tüm alanı kaplar (sonuçların ve çubukların yerine), kart değil.
- * Kutu boşken son aramalar, ≥2 karakterden sonra zengin öneri (öneriler/ürünler/satıcılar/markalar/
- * üreticiler/kategoriler). Tek kaydırma; alt dolgu klavye kadar (son satır klavyenin altında kalmaz).
+ * Suggestions PAGE: covers the whole area below the top bar (in place of the results and the bars),
+ * not a card. Recent searches while the box is empty, rich suggestions after >= 2 characters
+ * (suggestions / products / sellers / brands / manufacturers / categories). One scroll; the bottom
+ * padding clears the keyboard while it is open, otherwise the floating tab bar.
  */
 export interface SearchSuggestionsProps {
   showRecentSearches: boolean;
@@ -55,13 +57,18 @@ function SearchSuggestionsBase({
 }: SearchSuggestionsProps) {
   const { t } = useTranslation();
   const keyboardHeight = useKeyboardHeight();
+  // The floating tab bar (`withStackTabBar`) hides only while the keyboard is open. When the keyboard
+  // closes but the input keeps focus (Android back, iPad hardware keyboard) the page stays open and
+  // the bar is back, so the last rows clear the bar instead of the keyboard.
+  const tabBarInset = useTabBarInset();
+  const bottomInset = keyboardHeight > 0 ? keyboardHeight + spacing[4] : tabBarInset;
   return (
     <ScrollView
       style={styles.suggestionsScroll}
-      contentContainerStyle={{ paddingBottom: keyboardHeight + spacing[4] }}
+      contentContainerStyle={{ paddingBottom: bottomInset }}
       keyboardShouldPersistTaps="handled"
-      // Kaydırma klavyeyi KAPATMAZ: kapanış input'u blur eder, blur 200 ms sonra paneli kapatır →
-      // sayfa kaydırılırken kaybolurdu (alt satırlar erişilmez). Alt dolgu klavye kadar.
+      // Scrolling does NOT dismiss the keyboard: dismissing blurs the input, and the blur closes the
+      // panel 200 ms later, so the page would vanish mid-scroll (bottom rows unreachable).
       keyboardDismissMode="none"
       testID="search-suggestions-page"
     >
