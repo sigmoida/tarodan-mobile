@@ -14,8 +14,11 @@ export function productNotFoundState(t: TFunction, onAction: () => void): NonNul
   };
 }
 
-/** A listing route whose param holds no listing uuid (garbage or a truncated link): no request is made. */
+/**
+ * A listing route whose param holds no listing uuid (garbage or a truncated link): no request is made.
+ * The default top bar stays, so the back arrow works on every listing route (detail, reviews, edit).
+ */
 export function ProductNotFound() {
   const { t } = useTranslation();
-  return <PageShell header={false} mode="list" padding={false} empty emptyState={productNotFoundState(t, goBackOrHome)} />;
+  return <PageShell mode="list" padding={false} empty emptyState={productNotFoundState(t, goBackOrHome)} />;
 }

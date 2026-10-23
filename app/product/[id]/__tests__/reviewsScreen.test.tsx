@@ -62,6 +62,7 @@ describe('product reviews screen', () => {
     mockRouteId = 'garbage';
     renderWithProviders(<ProductReviewsScreen />);
     expect(await screen.findByText('Ürün bulunamadı')).toBeOnTheScreen();
+    expect(screen.getByTestId('screen-header-back')).toBeOnTheScreen();
     expect(getProductRatings).not.toHaveBeenCalled();
     expect(ratingsApi.getProductStats).not.toHaveBeenCalled();
   });

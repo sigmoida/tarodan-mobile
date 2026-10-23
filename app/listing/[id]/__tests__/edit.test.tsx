@@ -41,6 +41,8 @@ describe('listing edit route', () => {
     mockRouteId = 'garbage';
     renderWithProviders(<EditListingScreen />);
     expect(await screen.findByText('Ürün bulunamadı')).toBeOnTheScreen();
+    // The top bar stays: the back arrow is never dead on a listing route.
+    expect(screen.getByTestId('screen-header-back')).toBeOnTheScreen();
     expect(mockForm).not.toHaveBeenCalled();
   });
 });
