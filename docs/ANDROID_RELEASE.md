@@ -289,47 +289,53 @@ alınır:
 
 ---
 
-## 9. Google ile giriş (Android)
+## 9. Google sign-in (Android)
 
-`@react-native-google-signin` Android'de, Google Cloud'da **paket adı + imza
-SHA-1** eşleşen bir **Android OAuth istemcisi** ister. Eksikse build düşmez;
-giriş çalışma anında `DEVELOPER_ERROR` (kod 10) ile ölür.
+On Android, `@react-native-google-signin` needs an **Android OAuth client** in Google
+Cloud that matches the **package name + signing SHA-1**. Without it the build still
+passes; sign-in dies at run time with `DEVELOPER_ERROR` (code 10).
 
-Bu istemciler Firebase projelerinde **değil**, mobil web client ID'nin bulunduğu
-**GCP projesinde (`243308404313`)** oluşturulur — iki paket için ayrı ayrı
-(Firebase'de otomatik oluşan istemciler buna sayılmaz):
+These clients are created in the Google Cloud project **`tarodan-app`
+(`1048836099670`)**, the project that holds the `tarodan-web` client the app sends as
+`webClientId` and the two iOS clients (see `RELEASE.md`, "Google sign-in clients").
+Not in the Firebase projects (the clients Firebase creates automatically do not
+count), and not in the old project `243308404313`, which is no longer accessible to
+the team. One set per package:
 
-| OAuth Android istemcisi | Paket                     | SHA-1'ler                                      |
-| ----------------------- | ------------------------- | ---------------------------------------------- |
-| #1                      | `com.tarodan.app`         | upload (EAS) + Play App Signing                |
-| #2                      | `com.tarodan.app.staging` | upload (EAS, staging'e ait) + Play App Signing |
+| Android OAuth client | Package                   | SHA-1s                                           |
+| -------------------- | ------------------------- | ------------------------------------------------ |
+| #1                   | `com.tarodan.app`         | upload (EAS) + Play App Signing                  |
+| #2                   | `com.tarodan.app.staging` | upload (EAS, the staging one) + Play App Signing |
 
-Her paket için **iki** SHA-1 gerekir (bir istemciye birden çok SHA-1 eklenemez;
-her SHA-1 için ayrı Android istemcisi oluşturulur):
+Each package needs **two** SHA-1s (a client takes one SHA-1; create a separate Android
+client for each SHA-1):
 
-- **Upload SHA-1:** `eas credentials -p android` → build profili → Keystore →
-  `SHA1 Fingerprint`. EAS/preview APK'ları ve ilk testler bununla imzalı.
-- **Play App Signing SHA-1:** Play Console → ilgili uygulama → Test and release
-  → **App integrity → App signing key certificate → SHA-1**. Mağazadan inen
-  sürümler bununla imzalı.
+- **Upload SHA-1:** `eas credentials -p android` -> build profile -> Keystore ->
+  `SHA1 Fingerprint`. EAS/preview APKs and the first tests are signed with it.
+- **Play App Signing SHA-1:** Play Console -> the app -> Test and release ->
+  **App integrity -> App signing key certificate -> SHA-1**. Store installs are
+  signed with it.
 
-Uygulama `webClientId`'yi `serverClientID` olarak gönderir; token'ın `aud`'u web
-client ID'dir (bkz. `RELEASE.md` "Google sign-in audience"). Android istemcileri
-eklemek API tarafında yeni bir `aud` gerektirmez.
+The app sends `webClientId` as `serverClientID`, so the token's `aud` is the
+`tarodan-web` client id (see `RELEASE.md`, "Google sign-in audience"). Adding the
+Android clients needs no new `aud` on the API side. The API keeps the old mobile web
+client (`243308404313-kdc77…`) in `GOOGLE_CLIENT_ID_ANDROID` for the binaries already
+in the stores until `min_supported_app_version_ios/android` passes the first version
+built with the new ids; do not put an Android client id in that slot before then.
 
-**Bayrak ne zaman açılır:** `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` şu an `eas.json`'daki
-tüm profillerde `"false"`. Şunların hepsi tamamlanınca ilgili profilde `"true"`
-yapılır (**Kullanıcı** karar verir; kodu bir PR ile değiştirir ve
-`src/config/__tests__/easProfiles.test.ts` içindeki "false" beklentisini
-günceller):
+**When the flag goes on:** `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` is `"false"` in every
+`eas.json` profile today. It becomes `"true"` in a profile once all of these are done
+(the **user** decides; the change is a PR that also updates the "false" expectation in
+`src/config/__tests__/easProfiles.test.ts`):
 
-1. İlgili paketin iki Android OAuth istemcisi (upload + Play) oluşturuldu,
-2. İlk AAB Play'e yüklendi ve Play App Signing SHA-1 alındı,
-3. Gerçek cihazda, **Play'den kurulan** sürümle giriş denendi.
+1. Both Android OAuth clients of that package (upload + Play) exist in project
+   `tarodan-app`,
+2. The first AAB is uploaded to Play and the Play App Signing SHA-1 is known,
+3. Sign-in was tried on a real device, with the build **installed from Play**.
 
-Staging'i (upload SHA-1 yeterliyse) önce açabilirsiniz; production'ı Play App
-Signing SHA-1 hazır olmadan açmayın. Bayrak değişince native değil JS olsa da
-`eas.json` değiştiği için fingerprint değişir: yeni build gerekir.
+Staging can go first (if the upload SHA-1 is enough); do not turn production on
+before the Play App Signing SHA-1 is in place. The flag is JS, but `eas.json` is a
+fingerprint input, so flipping it needs a new build.
 
 ---
 

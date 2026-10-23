@@ -357,7 +357,7 @@ describe('docs/ANDROID_RELEASE.md', () => {
     'com.tarodan.app.staging',
     'tarodan-staging',
     'tarodan-prod',
-    '243308404313',
+    '1048836099670',
     'GOOGLE_SERVICES_JSON_STAGING',
     'ANDROID_RELEASE_ENABLED',
     'EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED',
