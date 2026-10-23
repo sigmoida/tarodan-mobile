@@ -275,7 +275,7 @@ export default function PaymentScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader floating={false} title={t('checkout.securePayment')} subtitle="PayTR" onBack={handleCancel} />
+      <ScreenHeader floating={false} title={t('checkout.securePayment')} onBack={handleCancel} />
 
       {state.loading ? (
         <View style={styles.center}>

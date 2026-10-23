@@ -150,7 +150,7 @@ it('yeni kart: "kartımı sakla" varsayılan işaretli, `saveCard` her zaman aç
   );
   await waitFor(() => expect(screen.getByTestId('card-save')).toBeOnTheScreen());
   // Sepette abonelik ifadesi yok — "sonraki ödemeler".
-  expect(screen.getByText("Kartımı sonraki ödemeler için PayTR'da sakla")).toBeOnTheScreen();
+  expect(screen.getByText('Kartımı sonraki ödemeler için güvenle sakla')).toBeOnTheScreen();
   expect(screen.queryByText(/yenileme/i)).toBeNull();
 
   fireEvent.press(screen.getByTestId('card-save'));
@@ -177,7 +177,7 @@ it('üyelik + dijital satış KAPALI: abonelik ifadesi yok (Apple 2.1(b))', asyn
   renderWithProviders(
     <CardPaymentForm target={{ orderId: 'o-mem' }} purpose="membership" cardStorageEnabled onSuccess={jest.fn()} />,
   );
-  expect(await screen.findByText("Kartımı sonraki ödemeler için PayTR'da sakla")).toBeOnTheScreen();
+  expect(await screen.findByText('Kartımı sonraki ödemeler için güvenle sakla')).toBeOnTheScreen();
   expect(screen.queryByText(/yenile/i)).toBeNull();
 });
 
