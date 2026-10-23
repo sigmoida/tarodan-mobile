@@ -98,6 +98,19 @@ describe('Accordion', () => {
     expect(expanded('a')).toBe(false);
   });
 
+  it('two presses before a commit both count', () => {
+    const onValueChange = jest.fn();
+    render(<Sections type="multiple" onValueChange={onValueChange} />);
+    // One act: both presses run before React commits the first one.
+    act(() => {
+      fireEvent.press(screen.getByTestId('trigger-a'));
+      fireEvent.press(screen.getByTestId('trigger-b'));
+    });
+    expect(onValueChange).toHaveBeenLastCalledWith(['a', 'b']);
+    expect(expanded('a')).toBe(true);
+    expect(expanded('b')).toBe(true);
+  });
+
   it('controlled: follows `value`, not its own state', () => {
     const onValueChange = jest.fn();
     const { rerender } = render(<Sections type="single" collapsible value="" onValueChange={onValueChange} />);

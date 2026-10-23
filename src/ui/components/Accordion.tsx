@@ -106,8 +106,8 @@ export function Accordion(props: AccordionProps) {
     [isControlled, props.value, uncontrolled],
   );
 
-  // `toggle` stays stable and reads the committed props and open values from this ref (updated
-  // after commit, so a discarded render never leaks into it).
+  // `toggle` stays stable and reads the committed props and open values from this ref (synced
+  // after commit, so a discarded render never leaks into it; `toggle` also writes its result).
   const latest = useRef({ props, openValues, isControlled });
   useLayoutEffect(() => {
     latest.current = { props, openValues, isControlled };
@@ -126,6 +126,8 @@ export function Accordion(props: AccordionProps) {
       next = isOpen ? current.filter((v) => v !== itemValue) : [...current, itemValue];
       p.onValueChange?.(next);
     }
+    // Two presses before the next commit must build on each other, not on the same stale set.
+    latest.current = { ...latest.current, openValues: next };
     if (!controlled) setUncontrolled(next);
   }, []);
 
