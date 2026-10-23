@@ -104,10 +104,12 @@ describe('seller packages of a multi-package group', () => {
     await waitFor(() => expect(screen.getAllByTestId('group-package-card')).toHaveLength(2));
   });
 
-  it.each(DIGITAL)('draws no card for a package of digital orders: %s', async (_label, signals) => {
+  it.each(DIGITAL)('a digital package has no card and does not make the group multi-package: %s', async (_label, signals) => {
     getGroupMock.mockResolvedValue({ data: { data: twoPackages(signals) } });
     renderWithProviders(<OrderGroupDetailScreen />);
-    await waitFor(() => expect(screen.getAllByTestId('group-package-card')).toHaveLength(1));
+    await waitFor(() => expect(screen.getByText('GRP-1')).toBeOnTheScreen());
+    // One shipping package left: the order rows already carry it, so no breakdown card at all.
+    expect(screen.queryByTestId('group-package-card')).toBeNull();
     expect(screen.queryByText('PKG-BBB')).toBeNull();
   });
 });

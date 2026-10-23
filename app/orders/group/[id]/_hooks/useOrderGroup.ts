@@ -112,8 +112,13 @@ export function useOrderGroup() {
     setRefreshing(false);
   };
 
+  // Cargo breakdown cards: a digital package (web `isDigitalPackage`) ships nothing, so it has no
+  // card and does not count towards the "2+ packages" rule of the screen.
+  const shippingPackages = group ? group.packages.filter((p) => !p.isDigital) : [];
+
   return {
     group,
+    shippingPackages,
     isLoading,
     error,
     refetch,

@@ -2,6 +2,7 @@ import i18n from '@/i18n/config';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { isAwaitingDropoff } from '@/lib/shipping/shipmentStatus';
 import { isDigitalOrder } from '@/types';
+import { isHandedToCarrier } from '@/lib/shared/preparingDeadline';
 import type { GroupOrder } from './types';
 
 // Durum haritası TEK kaynakta (`@/lib/shared/orderStatus`); burada yeniden
@@ -38,14 +39,11 @@ export const formatDate = (dateString: string) =>
  */
 const CANCELLABLE_UI_STATUSES: ReadonlyArray<GroupOrder['status']> = ['pending', 'processing'];
 
-/** Shipment statuses that still mean "not handed to the carrier" (web `hasShipped`). */
-const UNSHIPPED_SHIPMENT_STATUSES: readonly string[] = ['pending', 'cancelled', 'failed'];
-
 /**
  * Whether the whole group can be cancelled (web `isGroupCancellable`; this screen is buyer-only, so
  * web's `viewerRole` check has no counterpart). The server refuses once a single line has been
  * handed to the carrier, so offering the button would walk the user into that error. A line that
- * is cancelled, already moving with the carrier (shipment past `pending`), has an active refund
+ * is cancelled, already with the carrier (`isHandedToCarrier`: moving status or `shippedAt`), has an active refund
  * request or is a digital order (membership, boost: never cancelled from here) closes it.
  */
 export function isGroupCancellable(orders: readonly GroupOrder[]): boolean {
@@ -57,7 +55,7 @@ export function isGroupCancellable(orders: readonly GroupOrder[]): boolean {
         o.cancellationType !== 'iptal' &&
         !o.activeRefundRequest &&
         CANCELLABLE_UI_STATUSES.includes(o.status) &&
-        (!o.shipment?.status || UNSHIPPED_SHIPMENT_STATUSES.includes(o.shipment.status)),
+        !isHandedToCarrier(o.shipment),
     )
   );
 }

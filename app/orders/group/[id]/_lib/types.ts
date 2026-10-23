@@ -35,6 +35,8 @@ export interface GroupOrder {
     trackingNumber?: string | null;
     cargoCode?: string | null;
     status?: string;
+    /** First physical handover stamp; set means the parcel is with the carrier. */
+    shippedAt?: string | null;
   } | null;
 }
 

@@ -42,8 +42,8 @@ export default function OrderGroupDetailScreen() {
             grupta. Tek paketli grupta üstteki sipariş satırı zaten aynı kargo
             bilgisini taşıyor, ayrı kart tekrar olurdu (CLAUDE.md › Principles).
           */}
-          {f.group.packages.length > 1 &&
-            f.group.packages.map((pkg) => <GroupPackageCard key={pkg.id} pkg={pkg} />)}
+          {f.shippingPackages.length > 1 &&
+            f.shippingPackages.map((pkg) => <GroupPackageCard key={pkg.id} pkg={pkg} />)}
           {/*
             Sepetin tamamını iptal — web'de 2026-08-12'den beri var. Kapı
             `cancel.available`: tek kalem bile kargoya verilmişse sunucu

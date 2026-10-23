@@ -36,14 +36,6 @@ export function deriveOrderView(
   const isCancelled = order.status === 'cancelled' || order.cancellationType === 'iptal';
   const isDelivered = ['delivered', 'awaiting_confirmation', 'completed'].includes(order.status);
 
-  // Kod/referans varlığı kartın kendi kapısı (bkz. OrderTrackingCard); burada
-  // yalnızca sipariş durumuna göre gösterime uygunluk türetilir.
-  const showTrackingCard =
-    !!order.shippedAt &&
-    isPostShipment &&
-    !isCancelled &&
-    order.status !== 'refunded';
-
   const isPaid =
     !!order.paidAt ||
     order.payment?.status === 'completed' ||
@@ -83,7 +75,6 @@ export function deriveOrderView(
     isPostShipment,
     isCancelled,
     isDelivered,
-    showTrackingCard,
     isPaid,
     refundWindowEnd,
     payoutReleaseDate,

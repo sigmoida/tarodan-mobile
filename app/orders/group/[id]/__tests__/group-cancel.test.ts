@@ -53,11 +53,16 @@ describe('grup iptali kapısı', () => {
     expect(isGroupCancellable([line(), line({ id: 'o2', activeRefundRequest: { id: 'r1', status: 'pending_review' } })])).toBe(false);
   });
 
-  it('a line already moving with the carrier closes it (web `hasShipped`)', () => {
+  it('a line already with the carrier closes it (web `hasShipped`)', () => {
     for (const status of ['picked_up', 'in_transit', 'delivered']) {
       expect(isGroupCancellable([line(), line({ id: 'o2', shipment: { status } })])).toBe(false);
     }
-    for (const status of ['pending', 'cancelled', 'failed']) {
+    // The handover stamp counts even when the status did not move (unknown carrier code).
+    expect(isGroupCancellable([line({ shipment: { status: 'pending', shippedAt: '2026-10-22T09:00:00.000Z' } })])).toBe(false);
+  });
+
+  it('a line still at the seller keeps it open, label printed included', () => {
+    for (const status of ['pending', 'label_created', 'cancelled', 'failed']) {
       expect(isGroupCancellable([line({ shipment: { status } })])).toBe(true);
     }
   });
