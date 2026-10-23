@@ -86,8 +86,10 @@ iOS prod + staging'i yan yana tutabilir.
   yalnız `com.tarodan.app` içindir.
 - **Android / Google Sign-In:** separate Android OAuth clients for both packages
   (upload + Play App Signing SHA-1), created in the Google Cloud project `tarodan-app`
-  (`1048836099670`). The flag `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` stays `"false"`
-  until that is done. Details: `docs/ANDROID_RELEASE.md` §9.
+  (`1048836099670`); both sets exist since 2026-10-23. The flag
+  `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` is `"true"` on `preview`/`staging` and stays
+  `"false"` on production until the real-device check. Details:
+  `docs/ANDROID_RELEASE.md` §9.
 - **iOS / Google Sign-In:** `com.tarodan.app.staging` has its own iOS OAuth client
   in the same project; `eas.json` sets it on `preview`/`staging` and the production
   client on `production`, and `app.config.js` derives each URL scheme from it. See

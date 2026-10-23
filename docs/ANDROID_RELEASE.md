@@ -300,15 +300,23 @@ These clients are created in the Google Cloud project **`tarodan-app`
 `webClientId` and the two iOS clients (see `RELEASE.md`, "Google sign-in clients").
 Not in the Firebase projects (the clients Firebase creates automatically do not
 count), and not in the old project `243308404313`, which is no longer accessible to
-the team. One set per package:
+the team. The app code needs no Android client id: the SDK matches the package and
+the signing certificate, and `webClientId` (`tarodan-web`) is what it asks the token
+for.
 
-| Android OAuth client | Package                   | SHA-1s                                           |
-| -------------------- | ------------------------- | ------------------------------------------------ |
-| #1                   | `com.tarodan.app`         | upload (EAS) + Play App Signing                  |
-| #2                   | `com.tarodan.app.staging` | upload (EAS, the staging one) + Play App Signing |
+Each SHA-1 needs its own Android client (a client takes one SHA-1). State on
+2026-10-23 (created by the user):
 
-Each package needs **two** SHA-1s (a client takes one SHA-1; create a separate Android
-client for each SHA-1):
+| Package                   | Android OAuth clients (SHA-1)                                                     | Flag (`eas.json`)                        |
+| ------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------- |
+| `com.tarodan.app`         | the 3 Play App Signing certificates + EAS upload key `E1:08:BC:…:DE:C9`           | `"false"` on `production`, `development` |
+| `com.tarodan.app.staging` | the 3 Play App Signing certificates + EAS upload key (staging) `71:B1:99:…:91:FF` | `"true"` on `preview`, `staging`         |
+
+The full SHA-1 values live in Google Cloud (APIs & Services -> Credentials) and in
+the sources below; this repo keeps only the shortened form. `maestro` keeps the flag
+`"false"` on purpose (E2E flows must not depend on a Google account on the device).
+
+Where the SHA-1s come from:
 
 - **Upload SHA-1:** `eas credentials -p android` -> build profile -> Keystore ->
   `SHA1 Fingerprint`. EAS/preview APKs and the first tests are signed with it.
@@ -323,19 +331,26 @@ client (`243308404313-kdc77…`) in `GOOGLE_CLIENT_ID_ANDROID` for the binaries 
 in the stores until `min_supported_app_version_ios/android` passes the first version
 built with the new ids; do not put an Android client id in that slot before then.
 
-**When the flag goes on:** `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` is `"false"` in every
-`eas.json` profile today. It becomes `"true"` in a profile once all of these are done
-(the **user** decides; the change is a PR that also updates the "false" expectation in
+**When the production flag goes on:** `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` becomes
+`"true"` on `production` once all of these are done (the **user** decides; the change
+is a PR that also updates the expectation in
 `src/config/__tests__/easProfiles.test.ts`):
 
-1. Both Android OAuth clients of that package (upload + Play) exist in project
-   `tarodan-app`,
-2. The first AAB is uploaded to Play and the Play App Signing SHA-1 is known,
-3. Sign-in was tried on a real device, with the build **installed from Play**.
+1. A staging build **installed from Play** (internal testing) signed in with Google on
+   a real Android device (the Play App Signing SHA-1 path, not only the upload key),
+2. The same build passed the step-up with a Google-only account (Settings >
+   Security, and the account deletion confirm step),
+3. The production package's clients above are confirmed against the Play Console
+   App integrity page of `com.tarodan.app`.
 
-Staging can go first (if the upload SHA-1 is enough); do not turn production on
-before the Play App Signing SHA-1 is in place. The flag is JS, but `eas.json` is a
+Until then a Google-only account on production Android cannot pass the step-up in the
+app, so the admin setting `auth_require_reauth_for_sensitive_actions` stays **off**
+(tarodan-ops `compat.md`, hazards 5 and 6). The flag is JS, but `eas.json` is a
 fingerprint input, so flipping it needs a new build.
+
+The Play App Signing **SHA-256** values for `assetlinks` go to
+`docs/wellknown/fingerprints.json` (section 10) only when read from Play Console;
+never guess them.
 
 ---
 
@@ -454,5 +469,6 @@ production` (Play internal, `com.tarodan.app`); artmamışsa build yok, koşu
   `android.blockedPermissions` ile manifestten çıkarılıyor (galeri seçimi izinsiz;
   zamanlanmış yerel bildirim yok). Native değişikliktir: yeni AAB/APK gerekir, eski
   APK'lar OTA almayı bırakır (fingerprint değişir).
-- `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` kapalıyken Android'de Google giriş seçeneği
-  hiç sunulmaz (`src/services/googleSignin.ts`); bayrak Bölüm 9'daki koşullarla açılır.
+- While `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` is off (production today), Android
+  offers no Google sign-in (`src/services/googleSignin.ts`); the flag goes on under
+  the conditions in section 9.

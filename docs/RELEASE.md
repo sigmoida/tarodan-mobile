@@ -633,14 +633,14 @@ therefore cannot be tested end to end in the app. To close it, the SHA-256 of th
 signing key (`eas credentials -p android`) must be added to `assetlinks.json` on the
 web side; no rebuild is needed. See [`deep-links.md`](./deep-links.md).
 
-**Google sign-in (Android).** No Android OAuth client exists yet, so the button
-stays hidden on Android (`EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` is `"false"` in every
-profile). `@react-native-google-signin` on Android needs an Android OAuth client that
-matches the package name **and** the signing SHA-1; without it sign-in fails with
-`DEVELOPER_ERROR` (code 10). Each package (`com.tarodan.app`,
-`com.tarodan.app.staging`) needs its own clients, created in the Google Cloud project
-`tarodan-app` (`1048836099670`); the SHA-256 from the same command also closes the
-deep-links gap. Steps: [`ANDROID_RELEASE.md`](./ANDROID_RELEASE.md) section 9.
+**Google sign-in (Android).** The Android OAuth clients of both packages exist in the
+Google Cloud project `tarodan-app` (`1048836099670`) since 2026-10-23.
+`EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` is `"true"` on `preview`/`staging` and `"false"`
+on `production` until a Play-installed staging build passed sign-in on a real device.
+`@react-native-google-signin` on Android needs a client that matches the package name
+**and** the signing SHA-1; a missing one fails with `DEVELOPER_ERROR` (code 10). The
+SHA-256 from the same source also closes the deep-links gap. Steps and state:
+[`ANDROID_RELEASE.md`](./ANDROID_RELEASE.md) section 9.
 
 **Google sign-in clients (project `tarodan-app`, `1048836099670`).** Since
 2026-10-23 every new build uses the OAuth clients of this project; the old project
