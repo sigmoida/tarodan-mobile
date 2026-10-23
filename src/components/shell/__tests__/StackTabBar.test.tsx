@@ -1,7 +1,8 @@
 /**
- * Menülü yığın ekranları (İlanlar, Kategori): `withStackTabBar` ekranı yüzen alt menüyle sarar.
- * Rota tabanlı: sekme vurgusu yok, daralınca Ana Sayfa gibi yalnız "+" kalır, dokunuş `router.dismissTo`
- * ile alttaki `(tabs)`'a döner. Menü yalnız bu iki ekranda (arama / ürün detayı / diğer yığın ekranları yok).
+ * Stack screens with the bar (category, search, manufacturer / brand / model products): `withStackTabBar`
+ * wraps the screen with the floating bottom bar. Route based: no tab highlight, when collapsed only the
+ * "+" remains, a tap pops back to the `(tabs)` underneath with `router.dismissTo`. The bar is limited to
+ * those screens (product detail and other stack screens do not get it).
  */
 import fs from 'fs';
 import path from 'path';
@@ -104,7 +105,7 @@ describe('withStackTabBar — yığın ekranında yüzen alt menü', () => {
   });
 });
 
-describe('menü yalnız İlanlar ve Kategori yığın ekranlarında', () => {
+describe('the bar is limited to the product result stack screens', () => {
   const appDir = path.resolve(__dirname, '../../../../app');
   const files: string[] = [];
   const walk = (dir: string) => {
@@ -118,9 +119,17 @@ describe('menü yalnız İlanlar ve Kategori yığın ekranlarında', () => {
   walk(appDir);
   const rel = (f: string) => path.relative(appDir, f).split(path.sep).join('/');
 
-  it('withStackTabBar kullananlar: yalnız category/[slug] (eski /listings artık aramaya yönlendirme; arama, ürün detayı vb. YOK)', () => {
+  it('withStackTabBar users: category, search, model detail (product detail etc. have none)', () => {
     const users = files.filter((f) => fs.readFileSync(f, 'utf8').includes('withStackTabBar(')).map(rel).sort();
-    expect(users).toEqual(['category/[slug]/index.tsx']);
+    expect(users).toEqual(['category/[slug]/index.tsx', 'models/[slug]/index.tsx', 'search/index.tsx']);
+  });
+
+  it('manufacturer / brand routes get the bar through the shared EntityProductsScreen', () => {
+    const shared = fs.readFileSync(path.resolve(__dirname, '../../catalog/EntityProductsScreen.tsx'), 'utf8');
+    expect(shared).toContain('withStackTabBar(');
+    for (const route of ['ureticiler/[slug].tsx', 'brands/[slug].tsx']) {
+      expect([route, fs.readFileSync(path.join(appDir, route), 'utf8').includes('<EntityProductsScreen')]).toEqual([route, true]);
+    }
   });
 
   it('AppTabBar yalnız sekme layout\'unda bağlı', () => {
