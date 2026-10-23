@@ -213,6 +213,8 @@ describe('tarodan/empty-state-standard', () => {
     expect(visit(el('EmptyState'))).toEqual(['placement']);
     expect(visit(el('ErrorState'))).toEqual(['placement']);
     expect(visit(el('ErrorState', [], [placement('inline')]))).toEqual([]);
+    // A spread may carry the placement: not reported.
+    expect(visit(el('EmptyState', [], [{ type: 'JSXSpreadAttribute' }]))).toEqual([]);
   });
   it('a pageListContentStyle list takes placement="list"', () => {
     expect(visit(el('EmptyState', [], [placement('list')]), [pageListStyle])).toEqual([]);

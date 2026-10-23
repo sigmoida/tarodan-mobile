@@ -49,20 +49,21 @@ const { colors, spacing, radiusRole } = theme;
 export const EMPTY_STATE_TOP_OFFSET = spacing[16];
 const SCREEN_SIDE_PADDING = spacing[4];
 const SCREEN_BOTTOM_PADDING = spacing[8];
+const SCREEN_METRICS = {
+  circle: 64,
+  icon: 28,
+  paddingTop: EMPTY_STATE_TOP_OFFSET,
+  paddingBottom: SCREEN_BOTTOM_PADDING,
+  paddingHorizontal: SCREEN_SIDE_PADDING,
+} as const;
 export const emptyStateMetrics = {
-  screen: {
-    circle: 64,
-    icon: 28,
-    paddingTop: EMPTY_STATE_TOP_OFFSET,
-    paddingBottom: SCREEN_BOTTOM_PADDING,
-    paddingHorizontal: SCREEN_SIDE_PADDING,
-  },
+  screen: SCREEN_METRICS,
+  // The screen metrics minus the list gutter the state already sits in.
   list: {
-    circle: 64,
-    icon: 28,
-    paddingTop: EMPTY_STATE_TOP_OFFSET - PAGE_GUTTER,
-    paddingBottom: SCREEN_BOTTOM_PADDING - PAGE_GUTTER,
-    paddingHorizontal: SCREEN_SIDE_PADDING - PAGE_GUTTER,
+    ...SCREEN_METRICS,
+    paddingTop: SCREEN_METRICS.paddingTop - PAGE_GUTTER,
+    paddingBottom: SCREEN_METRICS.paddingBottom - PAGE_GUTTER,
+    paddingHorizontal: SCREEN_METRICS.paddingHorizontal - PAGE_GUTTER,
   },
   inline: {
     circle: 48,

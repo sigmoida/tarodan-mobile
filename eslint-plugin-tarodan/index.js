@@ -424,10 +424,13 @@ const emptyStateStandard = {
           if (name && RAW_EMPTY_ROOTS.has(name) && containsText(el)) {
             context.report({ node: el, messageId: 'raw', data: { name } });
           } else if (name && STATE_COMPONENTS.has(name)) {
-            const placement = jsxAttr(el.openingElement.attributes, 'placement');
-            if (!placement) {
+            const attrs = el.openingElement.attributes || [];
+            const placement = jsxAttr(attrs, 'placement');
+            // A spread may carry the placement: unknown, like a non-literal value.
+            const hasSpread = attrs.some((a) => a.type === 'JSXSpreadAttribute');
+            if (!placement && !hasSpread) {
               context.report({ node: el, messageId: 'placement', data: { name } });
-            } else if (onPageListGutter) {
+            } else if (placement && onPageListGutter) {
               const value = literalAttrValue(placement);
               if (value !== undefined && value !== 'list') {
                 context.report({ node: el, messageId: 'listPlacement', data: { name } });
