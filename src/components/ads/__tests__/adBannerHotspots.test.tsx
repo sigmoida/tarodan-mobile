@@ -29,6 +29,7 @@ jest.mock('expo-router', () => ({
 }));
 
 import { AdBanner } from '../AdBanner';
+const LISTING_ID = '0b1e5c1a-7d2f-4e3a-9c4b-5d6e7f8a9b0c';
 
 const baseAd = {
   id: 'ad-1',
@@ -79,12 +80,12 @@ describe('AdBanner — hotspots', () => {
 
   it('kendi sitemizin ürün linkini mobil ürün ekranına çevirir', () => {
     const { getByTestId } = renderWith({
-      hotspots: [hotspot({ linkUrl: 'https://tarodan.com.tr/listings/p-42' })],
+      hotspots: [hotspot({ linkUrl: `https://tarodan.com.tr/listings/ferrari-${LISTING_ID}` })],
     });
 
     fireEvent.press(getByTestId('ad-hotspot-h-1'));
 
-    expect(mockPush).toHaveBeenCalledWith('/product/p-42');
+    expect(mockPush).toHaveBeenCalledWith(`/product/${LISTING_ID}`);
   });
 
   it('dış adresi tarayıcıda açar', () => {

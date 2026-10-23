@@ -16,8 +16,10 @@ import {
   usePageScrollHandler,
 } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
+import { ProductNotFound } from '@/components/product';
 import { listWindowing } from '@/lib/list/windowing';
 import { ListFooterRetry } from '@/components/common/ListFooterRetry';
+import { listingIdFromParam } from '@/lib/product/listingParam';
 import { useAllProductReviews } from './_hooks/useAllProductReviews';
 import { ReviewRow } from './_components/ReviewRow';
 import { ReviewListSkeleton } from './_components/ReviewListSkeleton';
@@ -28,11 +30,9 @@ const { colors, spacing, iconSize } = theme;
  * Ürün değerlendirmeleri — PageShell + puan özeti (SectionCard) ve sayfalı liste. Veri
  * `useAllProductReviews`; satır `ReviewRow` (detaydaki önizlemeyle ortak).
  */
-export default function ProductReviewsScreen() {
+function ProductReviews({ productId }: { productId: string }) {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams();
-  const productId = String(id);
-  const f = useAllProductReviews(productId, !!id);
+  const f = useAllProductReviews(productId, true);
   const [refreshing, setRefreshing] = useState(false);
   const page = usePageScrollHandler();
   // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
@@ -107,6 +107,13 @@ export default function ProductReviewsScreen() {
       />
     </PageShell>
   );
+}
+
+/** `[id]` may be a `<slug>-<uuid>` segment: the reviews request gets the uuid, and none is made without one. */
+export default function ProductReviewsScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const productId = listingIdFromParam(id);
+  return productId ? <ProductReviews productId={productId} /> : <ProductNotFound />;
 }
 
 const styles = StyleSheet.create({

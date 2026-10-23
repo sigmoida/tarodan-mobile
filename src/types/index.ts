@@ -55,6 +55,10 @@ export * from './product-card-action';
 // tarodan-app `packages/types`)
 export * from './virtual-order';
 
+// Listing URL slugs: `/listings/<slug>-<uuid>` builder and parser (vendored from tarodan-app
+// `packages/types`)
+export * from './slug';
+
 // Common types
 export interface PaginationMeta {
   total: number;

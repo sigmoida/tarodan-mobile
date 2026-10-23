@@ -5,10 +5,11 @@
  * Backend stok/satın alma mantığı backend-only.
  */
 import React from "react";
-import { screen, fireEvent, waitFor } from "@testing-library/react-native";
+import { screen, fireEvent } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
 
-let mockParams: Record<string, string> = { productId: "prod-1" };
+const PRODUCT_ID = "0b1e5c1a-7d2f-4e3a-9c4b-5d6e7f8a9b0c";
+let mockParams: Record<string, string> = { productId: PRODUCT_ID };
 jest.mock("expo-router", () => ({
   Stack: { Screen: () => null },
   router: { push: jest.fn() },
@@ -53,14 +54,14 @@ describe("J52 · Stok-yok ekranı", () => {
     getOne.mockReset();
     getSimilar.mockReset();
     pushMock.mockReset();
-    mockParams = { productId: "prod-1" };
+    mockParams = { productId: PRODUCT_ID };
   });
 
   it("J52.1 stok-yok hero başlık ve gövde gösterilir", async () => {
     getOne.mockResolvedValue({
       data: {
         data: {
-          id: "prod-1",
+          id: PRODUCT_ID,
           title: "Deri Ceket",
           status: "sold",
           quantity: 0,
@@ -80,7 +81,7 @@ describe("J52 · Stok-yok ekranı", () => {
     getOne.mockResolvedValue({
       data: {
         data: {
-          id: "prod-1",
+          id: PRODUCT_ID,
           title: "Deri Ceket",
           status: "sold",
           quantity: 0,
@@ -100,7 +101,7 @@ describe("J52 · Stok-yok ekranı", () => {
     getOne.mockResolvedValue({
       data: {
         data: {
-          id: "prod-1",
+          id: PRODUCT_ID,
           title: "Deri Ceket",
           status: "active",
           quantity: 3,
@@ -114,14 +115,14 @@ describe("J52 · Stok-yok ekranı", () => {
       await screen.findByTestId("unavailable-hero-title"),
     ).toHaveTextContent("İyi haber: ürün tekrar satışta!");
     fireEvent.press(screen.getByText("Ürünü Gör"));
-    expect(pushMock).toHaveBeenCalledWith("/product/prod-1");
+    expect(pushMock).toHaveBeenCalledWith(`/product/${PRODUCT_ID}`);
   });
 
   it("J52.4 benzer ürün yoksa boş metin gösterilir", async () => {
     getOne.mockResolvedValue({
       data: {
         data: {
-          id: "prod-1",
+          id: PRODUCT_ID,
           title: "Deri Ceket",
           status: "sold",
           quantity: 0,
@@ -140,7 +141,7 @@ describe("J52 · Stok-yok ekranı", () => {
     getOne.mockResolvedValue({
       data: {
         data: {
-          id: "prod-1",
+          id: PRODUCT_ID,
           title: "Deri Ceket",
           status: "sold",
           quantity: 0,
@@ -155,5 +156,29 @@ describe("J52 · Stok-yok ekranı", () => {
     renderWithProviders(<ProductUnavailableScreen />);
 
     expect(await screen.findByText("Benzer Ceket")).toBeOnTheScreen();
+  });
+
+  it("takes the listing uuid out of a slug-uuid or upper-case param before any request", async () => {
+    mockParams = { productId: `deri-ceket-${PRODUCT_ID.toUpperCase()}` };
+    getOne.mockResolvedValue({
+      data: { data: { id: PRODUCT_ID, title: "Deri Ceket", status: "active", quantity: 3 } },
+    });
+    getSimilar.mockResolvedValue({ data: { data: [] } });
+    renderWithProviders(<ProductUnavailableScreen />);
+
+    fireEvent.press(await screen.findByText("Ürünü Gör"));
+    expect(getOne).toHaveBeenCalledWith(PRODUCT_ID);
+    expect(getSimilar).toHaveBeenCalledWith(PRODUCT_ID, expect.anything());
+    expect(pushMock).toHaveBeenCalledWith(`/product/${PRODUCT_ID}`);
+  });
+
+  it("shows not found and makes no request without a listing uuid", async () => {
+    mockParams = { productId: "garbage" };
+    renderWithProviders(<ProductUnavailableScreen />);
+
+    expect(await screen.findByText("Ürün bulunamadı")).toBeOnTheScreen();
+    expect(screen.getByTestId("screen-header-back")).toBeOnTheScreen();
+    expect(getOne).not.toHaveBeenCalled();
+    expect(getSimilar).not.toHaveBeenCalled();
   });
 });

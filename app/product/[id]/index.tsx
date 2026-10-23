@@ -21,7 +21,7 @@ import { useGuestPrompt } from './_hooks/useGuestPrompt';
 import { useProductActions } from './_hooks/useProductActions';
 import { useProductScroll } from './_hooks/useProductScroll';
 import { useSimilarProducts } from '@/hooks/useSimilarProducts';
-import { SimilarProductsCard } from '@/components/product';
+import { ProductNotFound, productNotFoundState, SimilarProductsCard } from '@/components/product';
 import { ProductTopActions } from './_components/ProductTopActions';
 import { ProductTopBar } from './_components/ProductTopBar';
 import { ProductScrollView } from './_components/ProductScrollView';
@@ -30,6 +30,7 @@ import { ProductTitleBlock } from './_components/ProductTitleBlock';
 import { ProductDescription } from './_components/ProductDescription';
 import { ProductBuyBar, ProductOfferTradeRow, ProductSecondaryActions } from './_components/ProductActions';
 import { getOfferTradeAvailability } from './_lib/engagement';
+import { listingIdFromParam } from '@/lib/product/listingParam';
 import { usePriceLimits } from '@/hooks/usePriceLimits';
 import { SellerCard } from './_components/SellerCard';
 import { ProductSpecs } from './_components/ProductSpecs';
@@ -51,10 +52,8 @@ const { spacing } = theme;
  * ürünler (sorgularıyla) itiş animasyonu bitince bağlanır (`useTransitionReady`). Ağ/5xx hatası
  * "bulunamadı" değil, hata + Tekrar Dene.
  */
-export default function ProductDetailScreen() {
+function ProductDetail({ productId }: { productId: string }) {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams();
-  const productId = String(id);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
 
@@ -64,7 +63,7 @@ export default function ProductDetailScreen() {
   const full = !!product && !productQuery.isPlaceholderData;
   const fullProduct = full ? product : null;
   const sectionsReady = useTransitionReady();
-  const { data: reviews } = useProductReviews(productId, !!id && sectionsReady);
+  const { data: reviews } = useProductReviews(productId, sectionsReady);
   const { data: similar } = useSimilarProducts(productId, full && sectionsReady);
   // Çekip-yenile yok: ekrana dönüşte detay + yorumlar bayatsa ya da 30 sn'den eskiyse sessizce tazelenir.
   useRefetchStaleOnFocus([qk.products.detail(productId), qk.products.reviews(productId)], true, {
@@ -126,13 +125,7 @@ export default function ProductDetailScreen() {
       error={!product && isError && !retrying ? productQuery.error : undefined}
       onRetry={refetchProduct}
       empty={!isLoading && !isError && !product}
-      emptyState={{
-        icon: 'cube',
-        title: t('product.productNotFoundTitle'),
-        subtitle: t('emptyState.notFoundHint'),
-        actionLabel: t('common.goBack'),
-        onAction: goBack,
-      }}
+      emptyState={productNotFoundState(t, goBack)}
       footer={
         ready ? (
           <>
@@ -264,6 +257,17 @@ export default function ProductDetailScreen() {
       ) : null}
     </PageShell>
   );
+}
+
+/**
+ * Route entry. The `[id]` param is a listing URL segment (`<slug>-<uuid>` from a universal link, or a
+ * bare uuid from the app's own links): the uuid is taken out here, before any query or action, so the
+ * API, the cache keys and the cart only ever see the uuid. No uuid -> "not found" without a request.
+ */
+export default function ProductDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const productId = listingIdFromParam(id);
+  return productId ? <ProductDetail productId={productId} /> : <ProductNotFound />;
 }
 
 const styles = StyleSheet.create({

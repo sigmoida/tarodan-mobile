@@ -16,6 +16,7 @@ jest.mock('expo-router', () => ({
 import { openAdLink, resolveAdLink, isOwnWebUrl, isPurchaseLink } from '../openAdLink';
 
 const route = (r: string) => ({ kind: 'route', route: r });
+const LISTING_ID = '0b1e5c1a-7d2f-4e3a-9c4b-5d6e7f8a9b0c';
 
 describe('resolveAdLink — mobil karşılığı olan web yolları', () => {
   it.each([
@@ -38,7 +39,7 @@ describe('resolveAdLink — mobil karşılığı olan web yolları', () => {
   });
 
   it('ortak eşleyiciden gelen yollar (ürün, koleksiyon) korunur', () => {
-    expect(resolveAdLink('https://tarodan.com.tr/listings/p-42')).toEqual(route('/product/p-42'));
+    expect(resolveAdLink(`https://tarodan.com.tr/listings/ferrari-${LISTING_ID}`)).toEqual(route(`/product/${LISTING_ID}`));
     expect(resolveAdLink('/collections/9')).toEqual(route('/collections/9'));
   });
 
@@ -85,7 +86,7 @@ describe('resolveAdLink — dış site ve güvenlik', () => {
   it.each(['javascript:alert(1)', 'data:text/html,x', '//evil.com/x', '/\\evil.com', 'tarodan://membership', '', '   ', null, undefined])(
     'güvensiz/boş %p engellenir',
     (input) => {
-      expect(resolveAdLink(input as any)).toEqual({ kind: 'blocked', reason: 'unsafe' });
+      expect(resolveAdLink(input as string | null | undefined)).toEqual({ kind: 'blocked', reason: 'unsafe' });
     },
   );
 });
@@ -186,5 +187,34 @@ describe('openAdLink', () => {
     expect(openAdLink('/wishlist')).toBe(true);
     expect(mockDismissTo).toHaveBeenLastCalledWith('/(tabs)/favorites');
     expect(mockPush).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Ad hotspots and banners link to listings with whatever URL the admin pasted: the canonical
+ * `/listings/<slug>-<uuid>` with campaign parameters, an old bare-uuid link, or a broken one.
+ * A listing link opens the native product screen by the uuid; one with no uuid never pushes an
+ * unknown route and falls back to the in-app web page (where the site answers it).
+ */
+describe('resolveAdLink: listing links (ADR 0017)', () => {
+  const SEGMENT = `ferrari-f40-${LISTING_ID}`;
+
+  it.each([
+    ['a relative canonical link with utm parameters', `/listings/${SEGMENT}?utm_source=ad&utm_campaign=x`],
+    ['an absolute canonical link with a trailing slash', `https://tarodan.com.tr/listings/${SEGMENT}/`],
+    ['an English canonical link', `https://tarodan.com.tr/en/listings/${SEGMENT}`],
+    ['a stale slug with an upper-case uuid', `/listings/eski-${LISTING_ID.toUpperCase()}`],
+  ])('%s opens the product screen with the bare uuid', (_label, link) => {
+    expect(resolveAdLink(link)).toEqual(route(`/product/${LISTING_ID}`));
+  });
+
+  it('a listing link without a uuid opens the site in the in-app web screen, not a route', () => {
+    expect(resolveAdLink('/listings/garbage')).toEqual({ kind: 'web', url: 'https://tarodan.com.tr/listings/garbage' });
+  });
+
+  it('openAdLink pushes the product route for a canonical listing link', () => {
+    mockPush.mockClear();
+    expect(openAdLink(`https://tarodan.com.tr/listings/${SEGMENT}?utm_source=ad`)).toBe(true);
+    expect(mockPush).toHaveBeenCalledWith(`/product/${LISTING_ID}`);
   });
 });

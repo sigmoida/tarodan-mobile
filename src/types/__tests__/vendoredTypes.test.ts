@@ -13,6 +13,7 @@ import path from 'path';
 import * as boost from '../boost';
 import * as cardAction from '../product-card-action';
 import * as negotiatedAmount from '../negotiated-amount';
+import * as slug from '../slug';
 import * as virtualOrder from '../virtual-order';
 import { CONSENT_DOCUMENT_I18N_KEYS, CONSENT_DOCUMENT_KEYS } from '@/lib/shared/legalConsent';
 
@@ -57,6 +58,58 @@ describe('vendored boost types', () => {
     expect(boost.isBoostEnabled('')).toBe(true);
     expect(boost.isBoostEnabled(' FALSE ')).toBe(false);
   });
+});
+
+describe('vendored listing slug helpers', () => {
+  const ID = '0b1e5c1a-7d2f-4e3a-9c4b-5d6e7f8a9b0c';
+
+  it('exports the slug rules and the listing URL helpers', () => {
+    expect(Object.keys(slug).sort()).toEqual(
+      [
+        'LISTING_SLUG_MAX_LENGTH',
+        'generateSlug',
+        'listingPath',
+        'listingPathSegment',
+        'listingSlug',
+        'parseListingParam',
+        'transliterateTurkish',
+      ].sort(),
+    );
+    expect(slug.LISTING_SLUG_MAX_LENGTH).toBe(80);
+  });
+
+  it('builds the canonical path with a transliterated slug and the uuid last', () => {
+    expect(slug.listingPath({ id: ID, title: 'Ferrari F40 1:18 Bburago Kırmızı' })).toBe(
+      `/listings/ferrari-f40-1-18-bburago-kirmizi-${ID}`,
+    );
+    expect(slug.listingPathSegment({ id: ID, title: 'Öz Çelik' })).toBe(`oz-celik-${ID}`);
+  });
+
+  it('falls back to the bare uuid for an empty or reserved slug', () => {
+    expect(slug.listingPath({ id: ID })).toBe(`/listings/${ID}`);
+    expect(slug.listingPath({ id: ID, title: '!!!' })).toBe(`/listings/${ID}`);
+    expect(slug.listingPath({ id: ID, title: 'Edit' })).toBe(`/listings/${ID}`);
+  });
+
+  it('cuts the slug at 80 characters on a word boundary', () => {
+    const result = slug.listingSlug('word '.repeat(40));
+    expect(result.length).toBeLessThanOrEqual(80);
+    expect(result.endsWith('-')).toBe(false);
+  });
+
+  it('parseListingParam takes the trailing uuid and ignores the slug', () => {
+    expect(slug.parseListingParam(ID)).toBe(ID);
+    expect(slug.parseListingParam(`any-old-title-${ID}`)).toBe(ID);
+    expect(slug.parseListingParam(ID.toUpperCase())).toBe(ID);
+    expect(slug.parseListingParam(`Title-${ID.toUpperCase()}`)).toBe(ID);
+  });
+
+  it.each([undefined, null, '', 'garbage', '123', `${ID}x`, `-${ID}`, `title${ID}`])(
+    'parseListingParam refuses %p',
+    (param) => {
+      expect(slug.parseListingParam(param)).toBeNull();
+    },
+  );
 });
 
 describe('vendored product card action', () => {
@@ -135,7 +188,7 @@ describeWithSource('against the tarodan-app source (TARODAN_APP_ROOT)', () => {
   const body = (file: string) =>
     fs.readFileSync(file, 'utf8').split('\n').slice(VENDORED_HEADER_LINES).join('\n').trimStart();
 
-  it.each(['boost', 'product-card-action', 'negotiated-amount', 'virtual-order'])('%s matches packages/types/src', (name) => {
+  it.each(['boost', 'product-card-action', 'negotiated-amount', 'slug', 'virtual-order'])('%s matches packages/types/src', (name) => {
     const vendored = body(path.join(__dirname, '..', `${name}.ts`));
     const source = fs.readFileSync(path.join(appRoot!, 'packages/types/src', `${name}.ts`), 'utf8');
     expect(vendored).toBe(source.trimStart());

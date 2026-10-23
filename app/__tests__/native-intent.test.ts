@@ -21,9 +21,76 @@ import { redirectSystemPath } from '../+native-intent';
 
 const call = (path: string, initial = true) => redirectSystemPath({ path, initial });
 
+const LISTING_ID = '0b1e5c1a-7d2f-4e3a-9c4b-5d6e7f8a9b0c';
+
+describe('redirectSystemPath: listing URL segments (ADR 0017)', () => {
+  const SLUG = 'ferrari-f40-kirmizi';
+
+  it.each([
+    ['https universal link, slug-uuid', `https://tarodan.com.tr/listings/${SLUG}-${LISTING_ID}`],
+    ['https universal link, English locale', `https://tarodan.com.tr/en/listings/${SLUG}-${LISTING_ID}`],
+    ['https universal link, bare uuid', `https://tarodan.com.tr/listings/${LISTING_ID}`],
+    ['https universal link, upper-case uuid', `https://tarodan.com.tr/listings/${LISTING_ID.toUpperCase()}`],
+    ['https universal link, stale slug', `https://tarodan.com.tr/listings/old-title-${LISTING_ID}`],
+    ['custom scheme', `tarodan://listings/${SLUG}-${LISTING_ID}`],
+    ['path without the leading slash', `listings/${SLUG}-${LISTING_ID}`],
+    ['the product route with a segment', `tarodan://product/${SLUG}-${LISTING_ID}`],
+  ])('%s opens the product screen with the bare uuid', (_label, url) => {
+    expect(call(url)).toBe(`/product/${LISTING_ID}`);
+    expect(call(url, false)).toBe(`/product/${LISTING_ID}`);
+  });
+
+  it('the edit link opens the edit screen with the bare uuid', () => {
+    expect(call(`https://tarodan.com.tr/listings/${SLUG}-${LISTING_ID}/edit`)).toBe(`/listing/${LISTING_ID}/edit`);
+  });
+
+  it('a segment with no uuid is handed to expo-router as is (its not-found screen)', () => {
+    expect(call('https://tarodan.com.tr/listings/garbage')).toBe('https://tarodan.com.tr/listings/garbage');
+    expect(call('https://tarodan.com.tr/listings/42')).toBe('https://tarodan.com.tr/listings/42');
+  });
+});
+
+/**
+ * The URL shapes the OS hands the hook beyond the canonical one: Android App Links pass the URL as
+ * typed (a trailing slash survives), the custom scheme comes with two or three slashes, share sheets
+ * and campaigns append a query, and a pre-ADR-0017 `/listings/<uuid>/<anything>` link is still in
+ * old shares. Cold start and warm open must agree on every one.
+ */
+describe('redirectSystemPath: listing link shapes from the OS', () => {
+  const SEGMENT = `ferrari-f40-${LISTING_ID}`;
+  const PRODUCT = `/product/${LISTING_ID}`;
+
+  it.each([
+    ['Android App Link with a trailing slash', `https://tarodan.com.tr/listings/${SEGMENT}/`],
+    ['Android App Link, English locale, trailing slash', `https://tarodan.com.tr/en/listings/${SEGMENT}/`],
+    ['www host', `https://www.tarodan.com.tr/listings/${SEGMENT}`],
+    ['custom scheme with a trailing slash', `tarodan://listings/${SEGMENT}/`],
+    ['custom scheme with three slashes', `tarodan:///listings/${SEGMENT}`],
+    ['a campaign query', `https://tarodan.com.tr/listings/${SEGMENT}?utm_source=whatsapp&utm_medium=share`],
+    ['a fragment after the query', `https://tarodan.com.tr/listings/${SEGMENT}?ref=share#reviews`],
+    ['an un-encoded Turkish slug', `https://tarodan.com.tr/listings/kırmızı-çelik-${LISTING_ID}`],
+    ['an old uuid-first link with a trailing word', `https://tarodan.com.tr/listings/${LISTING_ID}/eski-baslik`],
+    ['an upper-case bare uuid with a trailing slash', `https://tarodan.com.tr/listings/${LISTING_ID.toUpperCase()}/`],
+  ])('%s opens the product screen with the bare uuid', (_label, url) => {
+    expect(call(url)).toBe(PRODUCT);
+    expect(call(url, false)).toBe(PRODUCT);
+  });
+
+  it('the edit link survives a trailing slash and a locale prefix', () => {
+    expect(call(`https://tarodan.com.tr/en/listings/${SEGMENT}/edit/`)).toBe(`/listing/${LISTING_ID}/edit`);
+    expect(call(`tarodan://listings/${SEGMENT}/edit`, false)).toBe(`/listing/${LISTING_ID}/edit`);
+  });
+
+  it('a listing link on a warm open is a stack push, never the tab dismiss path', () => {
+    mockDismissTo.mockClear();
+    call(`https://tarodan.com.tr/listings/${SEGMENT}/`, false);
+    expect(mockDismissTo).not.toHaveBeenCalled();
+  });
+});
+
 describe('redirectSystemPath — web yolu → mobil rota', () => {
   it('https universal link\'i mobil rotaya çevirir', () => {
-    expect(call('https://tarodan.com.tr/listings/123')).toBe('/product/123');
+    expect(call(`https://tarodan.com.tr/listings/${LISTING_ID}`)).toBe(`/product/${LISTING_ID}`);
   });
 
   it('ilan listesi (takas vitrini, popüler…) ön filtreli aramaya gider, sorgu korunur', () => {
@@ -43,11 +110,11 @@ describe('redirectSystemPath — web yolu → mobil rota', () => {
   });
 
   it('custom scheme bağlantısını çözer (baş slash olmadan gelen host segmenti)', () => {
-    expect(call('tarodan://product/p-1')).toBe('/product/p-1');
+    expect(call(`tarodan://product/${LISTING_ID}`)).toBe(`/product/${LISTING_ID}`);
   });
 
   it('zaten çıkarılmış, baş slash\'siz yolu da çözer', () => {
-    expect(call('listings/123')).toBe('/product/123');
+    expect(call(`listings/${LISTING_ID}`)).toBe(`/product/${LISTING_ID}`);
   });
 
   it('locale önekli web yolunu çözer', () => {
@@ -173,7 +240,7 @@ describe('redirectSystemPath — uygulama açıkken sekme hedefi', () => {
   });
 
   it('yığın hedefi açık uygulamada da yol olarak döner (dismissTo yok)', () => {
-    expect(call('https://tarodan.com.tr/listings/123', false)).toBe('/product/123');
+    expect(call(`https://tarodan.com.tr/listings/${LISTING_ID}`, false)).toBe(`/product/${LISTING_ID}`);
     expect(mockDismissTo).not.toHaveBeenCalled();
   });
 });
