@@ -329,10 +329,15 @@ const restrictButtonIcon = {
 };
 
 /**
- * Boş durum TEK bileşenden gelir (`EmptyState`, `@/ui`): ikon + başlık + alt başlık, aynı
- * yerleşim. `ListEmptyComponent` içinde elle çizilmiş boş görünüm (View/Text/RawText/Pressable)
- * yasak (metin içeren View/Text) — EmptyState (ya da onu saran ortak bileşen: ProductListEmpty,
- * OffersEmpty…), Skeleton ve ErrorState kullanılır. Koşullu / mantıksal dallar içindeki kök öğeler de taranır.
+ * Empty states come from ONE component (`EmptyState`, `@/ui`): icon + title + subtitle, one
+ * placement. Inside a `ListEmptyComponent`:
+ * - a hand-built empty view (View/Text/RawText/Pressable with text) is not allowed; use EmptyState
+ *   (or a shared wrapper of it: ProductListEmpty, OffersEmpty...), a Skeleton or ErrorState;
+ * - an `EmptyState` / `ErrorState` names its `placement` explicitly (`list` on
+ *   `pageListContentStyle`, `screen` on a list without a gutter, `inline` in a card or modal); the
+ *   `screen` default inside a list with the page gutter sat 16 pt lower and 32 pt narrower than `PageShell` empty;
+ * - when the list's `contentContainerStyle` uses `pageListContentStyle`, that placement is `list`.
+ * Roots inside conditional / logical branches are checked too.
  */
 const RAW_EMPTY_ROOTS = new Set(['View', 'Text', 'RawText', 'Pressable', 'Image']);
 const TEXT_TAGS = new Set(['Text', 'RawText']);
@@ -361,14 +366,47 @@ function jsxRootsOf(expr, out = []) {
   return out;
 }
 
+const STATE_COMPONENTS = new Set(['EmptyState', 'ErrorState']);
+
+/** The JSX attribute `name` of an element (opening element attributes), or null. */
+function jsxAttr(attributes, name) {
+  return (
+    (attributes || []).find((a) => a.type === 'JSXAttribute' && a.name && a.name.name === name) || null
+  );
+}
+
+/** A string-literal attribute value (`p="x"` or `p={'x'}`), or undefined when it is not a literal. */
+function literalAttrValue(attr) {
+  const v = attr && attr.value;
+  if (!v) return undefined;
+  if (v.type === 'Literal') return v.value;
+  if (v.type === 'JSXExpressionContainer' && v.expression.type === 'Literal') return v.expression.value;
+  return undefined;
+}
+
+/** Does the AST below `node` reference the identifier `name` (e.g. `[pageListContentStyle, x]`)? */
+function referencesIdentifier(node, name) {
+  if (!node || typeof node !== 'object') return false;
+  if (node.type === 'Identifier' && node.name === name) return true;
+  return Object.keys(node).some((k) => {
+    if (k === 'parent' || k === 'loc' || k === 'range') return false;
+    const child = node[k];
+    return Array.isArray(child) ? child.some((c) => referencesIdentifier(c, name)) : referencesIdentifier(child, name);
+  });
+}
+
 /** @type {import('eslint').Rule.RuleModule} */
 const emptyStateStandard = {
   meta: {
     type: 'suggestion',
-    docs: { description: 'ListEmptyComponent içinde elle çizilmiş boş durum yerine EmptyState kullan' },
+    docs: { description: 'Use EmptyState with an explicit placement in ListEmptyComponent, not a hand-built view' },
     schema: [],
     messages: {
-      raw: "ListEmptyComponent içinde elle çizilmiş <{{name}}> — boş durum için EmptyState (@/ui: ikon + başlık + alt başlık) kullan. Bkz. src/ui/CLAUDE.md › Empty and error states.",
+      raw: "Hand-built <{{name}}> in ListEmptyComponent: use EmptyState (@/ui: icon + title + subtitle). See src/ui/CLAUDE.md › Empty and error states.",
+      placement:
+        "<{{name}}> in ListEmptyComponent needs an explicit placement: `list` on pageListContentStyle, `screen` on a list without a gutter, `inline` in a card or modal. See src/ui/CLAUDE.md › Empty and error states.",
+      listPlacement:
+        "<{{name}}> in a pageListContentStyle list takes placement=\"list\" (the list gutter is part of its offset). See src/ui/CLAUDE.md › Empty and error states.",
     },
   },
   create(context) {
@@ -377,11 +415,27 @@ const emptyStateStandard = {
         if (node.name.type !== 'JSXIdentifier' || node.name.name !== 'ListEmptyComponent') return;
         const v = node.value;
         if (!v || v.type !== 'JSXExpressionContainer') return;
+        const listAttrs = node.parent && node.parent.attributes;
+        const contentStyle = jsxAttr(listAttrs, 'contentContainerStyle');
+        const onPageListGutter = !!contentStyle && referencesIdentifier(contentStyle.value, 'pageListContentStyle');
         for (const el of jsxRootsOf(v.expression)) {
           const name = tagName(el);
-          // Metin içermeyen View (iskelet, yükleniyor) boş durum değildir.
+          // A View without text (skeleton, loading) is not an empty state.
           if (name && RAW_EMPTY_ROOTS.has(name) && containsText(el)) {
             context.report({ node: el, messageId: 'raw', data: { name } });
+          } else if (name && STATE_COMPONENTS.has(name)) {
+            const attrs = el.openingElement.attributes || [];
+            const placement = jsxAttr(attrs, 'placement');
+            // A spread may carry the placement: unknown, like a non-literal value.
+            const hasSpread = attrs.some((a) => a.type === 'JSXSpreadAttribute');
+            if (!placement && !hasSpread) {
+              context.report({ node: el, messageId: 'placement', data: { name } });
+            } else if (placement && onPageListGutter) {
+              const value = literalAttrValue(placement);
+              if (value !== undefined && value !== 'list') {
+                context.report({ node: el, messageId: 'listPlacement', data: { name } });
+              }
+            }
           }
         }
       },

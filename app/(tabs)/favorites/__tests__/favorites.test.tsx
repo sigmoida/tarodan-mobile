@@ -123,11 +123,12 @@ describe('J57 · favoriler ekranı — misafir', () => {
 });
 
 describe('J57 · favoriler ekranı — boş durum', () => {
-  it('liste boşken boş durum metni ve keşfet butonu görünür', () => {
+  it('an empty list shows the web copy (favorites.emptyDesc / browseProducts) and opens the listings search', () => {
     mockState.items = [];
     renderWithProviders(<FavoritesScreen />);
     expect(screen.getByText('Henüz favoriniz yok')).toBeOnTheScreen();
-    fireEvent.press(screen.getByText('Ürünleri Keşfet'));
+    expect(screen.getByText('Beğendiğin ürünleri favorilerine ekle, buradan kolayca takip et.')).toBeOnTheScreen();
+    fireEvent.press(screen.getByText('Ürünleri İncele'));
     expect(pushMock).toHaveBeenCalledWith('/search');
   });
 });

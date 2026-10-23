@@ -118,12 +118,10 @@ export {
 } from './components/HeaderIconButton';
 export {
 	PageShell,
-	PAGE_GUTTER,
-	PAGE_SECTION_GAP,
-	pageListContentStyle,
 	type PageShellProps,
 	type PageShellMode,
 } from './components/PageShell';
+export { PAGE_GUTTER, PAGE_SECTION_GAP, pageListContentStyle } from './lib/pageLayout';
 export { PageHeader, type PageHeaderProps } from './components/PageHeader';
 export { EmptyState, EMPTY_STATE_TOP_OFFSET, type EmptyStateProps, type EmptyStatePlacement } from './components/EmptyState';
 export { ErrorState, type ErrorStateProps } from './components/ErrorState';

@@ -24,16 +24,7 @@ import { ScreenLoader } from '../loading/ScreenLoader';
 import { SkeletonText } from '../loading/Skeleton';
 import { useDelayedLoading } from '../loading/useDelayedLoading';
 import { useToastBottomInset } from './Toast';
-
-/** Sayfa kenar boşluğu (web telefon `px-4`) ve bölüm aralığı (web PageShell `space-y-4`). */
-export const PAGE_GUTTER = theme.spacing[4];
-export const PAGE_SECTION_GAP = theme.spacing[4];
-
-/** `mode="list"` ekranların FlatList'i için hazır içerik stili (gutter + bölüm aralığı). */
-export const pageListContentStyle: ViewStyle = {
-  padding: PAGE_GUTTER,
-  gap: PAGE_SECTION_GAP,
-};
+import { PAGE_GUTTER, PAGE_SECTION_GAP } from '../lib/pageLayout';
 
 export type PageShellMode = 'scroll' | 'list' | 'static';
 
@@ -49,8 +40,9 @@ export interface PageShellProps
   /** Üst barın yerine özel düğüm; `false` = üst bar yok (ör. tam ekran akış). */
   header?: React.ReactNode | false;
   /**
-   * Gövde: `scroll` (varsayılan; ScrollView + gutter + bölüm aralığı), `list` (çocuk kendi
-   * FlatList'ini getirir — `pageListContentStyle` kullanın), `static` (kaymayan View).
+   * Body: `scroll` (default; ScrollView + gutter + section gap), `list` (the child brings its own
+   * FlatList with `pageListContentStyle`; its empty state takes `placement="list"`), `static`
+   * (a non-scrolling View).
    */
   mode?: PageShellMode;
   children?: React.ReactNode;
@@ -85,7 +77,7 @@ export interface PageShellProps
   loadingVariant?: 'skeleton' | 'spinner';
   /** Özel yükleniyor görünümü (ör. ekranın kendi kart iskeleti). */
   loadingFallback?: React.ReactNode;
-  /** Boş durum: true ise `emptyState` çizilir. */
+  /** Empty: when true, `emptyState` is drawn (screen placement; a list's own empty state matches it). */
   empty?: boolean;
   emptyState?: EmptyStateProps;
   /** Hata: truthy ise ErrorState (+ `onRetry`). */

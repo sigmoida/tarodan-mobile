@@ -364,6 +364,16 @@ describe('Ürün seçimi — ayrı ekran + taslak', () => {
     renderWithProviders(<DiscountProductsScreen />);
     expect(await screen.findByText('Aktif ürününüz yok.')).toBeOnTheScreen();
   });
+
+  it('picker: a failed load shows the error state with a retry, not "no active products"', async () => {
+    const getMyListings = productsApi.getMyListings as jest.Mock;
+    getMyListings.mockRejectedValueOnce(new Error('network'));
+    renderWithProviders(<DiscountProductsScreen />);
+    expect(await screen.findByText('Bir şeyler ters gitti')).toBeOnTheScreen();
+    expect(screen.queryByText('Aktif ürününüz yok.')).toBeNull();
+    fireEvent.press(screen.getByText('Tekrar Dene'));
+    expect(await screen.findByText('Aktif ürününüz yok.')).toBeOnTheScreen();
+  });
 });
 
 describe('Taslak koruması (geri oku / Android geri tuşu)', () => {

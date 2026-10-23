@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
 import { Chip, type ChipSize } from './Chip';
-import { PAGE_GUTTER } from './PageShell';
+import { PAGE_GUTTER } from '../lib/pageLayout';
 
 export interface ChipTabItem<K extends string = string> {
   key: K;

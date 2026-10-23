@@ -97,9 +97,10 @@ export default function CollectionsScreen() {
               </View>
             ) : null
           ) : f.isError ? (
-            <ErrorState onRetry={() => void f.refetch()} />
+            <ErrorState placement="list" onRetry={() => void f.refetch()} />
           ) : (
             <EmptyState
+              placement="list"
               testID="collections-empty"
               icon="rectangle-stack"
               title={mineEmpty ? t('collection.noCollections') : t('collection.browseEmptyTitle')}

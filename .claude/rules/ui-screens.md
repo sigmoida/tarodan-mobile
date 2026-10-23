@@ -27,8 +27,9 @@ full section; read it before deviating. Web at phone width is the reference.
 - **Product tiles:** always `ProductCard`; lists use `ProductGrid`; favourites via
   `useProductCardFavorites()`. See `src/components/CLAUDE.md` › Product card.
 - **Empty and error:** `EmptyState` (icon + title + subtitle required) and
-  `ErrorState` with retry; `placement="inline"` inside cards, modals and sections.
-  See `src/ui/CLAUDE.md` › Empty and error states.
+  `ErrorState` with retry; `placement="list"` in the `ListEmptyComponent` of a
+  `pageListContentStyle` list, `placement="inline"` inside cards, modals and
+  sections. See `src/ui/CLAUDE.md` › Empty and error states.
 - **Loading:** skeletons for lists and cards, `ScreenLoader` only for first load or
   layout-less flows, one `LoadingIndicator`, `useDelayedLoading`. See
   `src/ui/CLAUDE.md` › Loading.

@@ -117,14 +117,27 @@ first load or layout-less flows (payment, gates). Never hand-roll a loader.
 - Every empty screen, list or section uses `EmptyState`: `icon`, `title` and
   `subtitle` are **required**, the action is optional. Errors use `ErrorState` (+
   "Tekrar Dene" retry); a failed query never leaves the user without a retry.
-- Placement is built in: `placement="screen"` (default) sits at
-  `EMPTY_STATE_TOP_OFFSET` from the top of the content, centred horizontally, so
-  `PageShell` `empty` and a main `ListEmptyComponent` match. Inside a card, modal or
-  section (and vertically-centred gate screens) pass `placement="inline"` (24 pt top,
-  8 pt bottom, 48 pt circle). `ErrorState` takes the same prop.
+- Placement is built in: a screen-level state sits `EMPTY_STATE_TOP_OFFSET` (64 pt)
+  below the top of the content area (under the bar), 16 pt from the screen edges,
+  centred.
+  - `placement="screen"` (default): `PageShell` `empty`, an `AppShell` child, or the
+    `ListEmptyComponent` of a list **without** a gutter (messages, notifications).
+  - `placement="list"`: the `ListEmptyComponent` of a list on `pageListContentStyle`.
+    The list's gutter is part of the offset, so as the list's first item it lands
+    exactly where `screen` does (pinned in `components/__tests__/EmptyState.test.tsx`).
+    Under a `ListHeaderComponent` it sits the list gap + 48 pt below the header
+    (64 pt with the default `PAGE_SECTION_GAP`). A shared empty wrapper
+    used only in such a list (`OffersEmpty`, `MyListingsEmpty`) sets it inside;
+    `ProductListEmpty` takes it as a prop.
+  - `placement="inline"`: inside a card, modal or section (and vertically-centred
+    gate screens); 24 pt top, 8 pt bottom, 48 pt circle.
+  - `ErrorState` takes the same prop. A list skeleton keeps the list gutter (no
+    placement), like the `PageShell` skeleton.
 - Give each a unique `testID` when several can render on one screen (defaults
   `empty-state` / `error-state`). Never wrap it in extra padding/margin or hand-draw
-  View + icon + Text (`tarodan/empty-state-standard`).
+  View + icon + Text. `tarodan/empty-state-standard` enforces this, and in a
+  `ListEmptyComponent` it requires an explicit `placement` (`list` when the list's
+  `contentContainerStyle` uses `pageListContentStyle`).
 
 ## Feedback
 

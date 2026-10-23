@@ -101,9 +101,10 @@ export default function ManufacturersScreen() {
               </View>
             ) : null
           ) : f.error ? (
-            <ErrorState onRetry={() => f.refetch()} />
+            <ErrorState placement="list" onRetry={() => f.refetch()} />
           ) : (
             <EmptyState
+              placement="list"
               icon="magnifying-glass"
               title={f.hasAny ? t('common.noResults') : t('product.noManufacturersYet')}
               subtitle={f.hasAny ? t('search.tryDifferent') : t('emptyState.manufacturersHint')}

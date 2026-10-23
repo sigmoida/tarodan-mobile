@@ -226,13 +226,14 @@ export const MyListingCard = React.memo(function MyListingCard({
 });
 
 // ---------------------------------------------------------------------------
-// Empty state
+// Empty state (the listings FlatList's `ListEmptyComponent`, on `pageListContentStyle`)
 // ---------------------------------------------------------------------------
 export function MyListingsEmpty({ filter }: { filter: MyListingsController['filter'] }) {
   const { t } = useTranslation();
   if (filter === 'expired') {
     return (
       <EmptyState
+        placement="list"
         icon="clock"
         title={t('profile.expiredListings.empty')}
         subtitle={t('profile.expiredListings.emptyDescription')}
@@ -241,6 +242,7 @@ export function MyListingsEmpty({ filter }: { filter: MyListingsController['filt
   }
   return (
     <EmptyState
+      placement="list"
       icon="tag"
       title={
         filter === 'all'

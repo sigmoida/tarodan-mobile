@@ -4,6 +4,7 @@ import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Checkbox, EmptyState, Text, theme, useToastBottomInset, usePageScrollValue } from '@/ui';
+import { searchEntryHref } from '@/lib/navigation/searchHref';
 import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset, useTabBarTop } from '@/components/shell/tabBarLayout';
@@ -43,7 +44,7 @@ function CartScreen() {
           title={t('cart.empty')}
           subtitle={t('cart.emptyDesc')}
           actionLabel={t('cart.browseListings')}
-          onAction={() => router.replace('/')}
+          onAction={() => router.push(searchEntryHref('all'))}
         />
       </AppShell>
     );

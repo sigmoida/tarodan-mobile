@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { Button, EmptyState, Input, SkeletonText, pageListContentStyle, usePageScrollHandler } from '@/ui';
+import { Button, EmptyState, ErrorState, Input, SkeletonText, pageListContentStyle, usePageScrollHandler } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { listWindowing } from '@/lib/list/windowing';
@@ -42,7 +42,7 @@ export default function AddCollectionItemsScreen() {
     >
       <Animated.FlatList
         {...page.listProps}
-        data={f.isLoading ? [] : f.filtered}
+        data={f.isLoading || f.loadFailed ? [] : f.filtered}
         keyExtractor={listingKey}
         renderItem={renderListing}
         {...listWindowing}
@@ -62,15 +62,18 @@ export default function AddCollectionItemsScreen() {
             <View testID="add-items-skeleton">
               <SkeletonText lines={6} />
             </View>
+          ) : f.loadFailed ? (
+            <ErrorState placement="list" onRetry={f.retry} />
           ) : f.listings.length === 0 ? (
             <EmptyState
+              placement="list"
               icon="cube"
               title={t('collection.noActiveListings')}
               subtitle={t('emptyState.collectionAddListingHint')}
               action={<Button title={t('product.createListing')} onPress={() => navigateTo('/(tabs)/sell')} />}
             />
           ) : (
-            <EmptyState icon="magnifying-glass" title={t('collection.noSearchMatch')} subtitle={t('search.tryDifferent')} />
+            <EmptyState placement="list" icon="magnifying-glass" title={t('collection.noSearchMatch')} subtitle={t('search.tryDifferent')} />
           )
         }
       />

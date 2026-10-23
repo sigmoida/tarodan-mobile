@@ -59,6 +59,7 @@ export default function PaymentHistoryScreen() {
         onRefresh={() => f.fetchPayments()}
         ListEmptyComponent={
           <EmptyState
+            placement="list"
             icon="receipt-percent"
             title={t('payment.noHistory')}
             subtitle={t('payment.noPaymentsSubtitle')}

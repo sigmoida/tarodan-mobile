@@ -92,9 +92,10 @@ export default function MessagesScreen() {
             </View>
           ) : f.isError ? (
             // Hata "henüz mesaj yok" gibi görünmesin — yeniden dene.
-            <ErrorState onRetry={() => f.refetch()} />
+            <ErrorState placement="screen" onRetry={() => f.refetch()} />
           ) : (
             <EmptyState
+              placement="screen"
               icon="chat-bubble-left-ellipsis"
               title={t("message.noMessagesYet")}
               subtitle={t("message.startConversationShort")}

@@ -164,7 +164,7 @@ export default function OffersScreen() {
             ) : null
           ) : isError ? (
             // Hatayı boş durumdan ayır: "Henüz teklif yok" bir yükleme hatasını maskelememeli.
-            <ErrorState message={t("offer.loadOffersFailed")} onRetry={() => refetch()} />
+            <ErrorState placement="list" message={t("offer.loadOffersFailed")} onRetry={() => refetch()} />
           ) : (
             <OffersEmpty tab={activeTab} />
           )

@@ -15,7 +15,7 @@ export function useBlockedUsers() {
     enabled: isAuthenticated,
     queryFn: async (): Promise<BlockedUser[]> => {
       const response = await userApi.getBlockedUsers();
-      const payload = (response.data as any)?.data ?? response.data;
+      const payload = (response.data as { data?: unknown } | undefined)?.data ?? response.data;
       return Array.isArray(payload) ? payload : [];
     },
   });
@@ -24,7 +24,8 @@ export function useBlockedUsers() {
     isAuthenticated,
     blocked: query.data ?? [],
     isLoading: isAuthenticated && query.isLoading,
-    isError: query.isError,
+    /** The list never loaded (a failed background refetch keeps the cached list). */
+    loadFailed: query.isError && query.data === undefined,
     refetch: query.refetch,
   };
 }
