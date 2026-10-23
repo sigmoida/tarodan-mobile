@@ -626,12 +626,12 @@ Aynı sürümün yeni build'i        gh workflow run mobile-production.yml --ref
 
 ## Known gaps (Android / Google)
 
-**Deep links (staging).** `assetlinks.json` staging domaini için yayında değil;
-`https://staging.tarodan.com.tr/...` linkleri uygulama yerine tarayıcıda açılır
-(`tarodan://` linkleri çalışır). E-posta doğrulama / şifre sıfırlama akışı bu
-yüzden uygulama içinde uçtan uca test edilemez. Kapatmak için imza anahtarının
-SHA-256'sı (`eas credentials -p android`) web tarafında `assetlinks.json`'a
-eklenmeli — rebuild gerekmez. Bkz. [`deep-links.md`](./deep-links.md).
+**Deep links (staging).** `assetlinks.json` is not published for the staging
+domain, so `https://staging.tarodan.com.tr/...` links open in the browser instead of
+the app (`tarodan://` links work). The e-mail verification and password reset flows
+therefore cannot be tested end to end in the app. To close it, the SHA-256 of the
+signing key (`eas credentials -p android`) must be added to `assetlinks.json` on the
+web side; no rebuild is needed. See [`deep-links.md`](./deep-links.md).
 
 **Google sign-in (Android).** No Android OAuth client exists yet, so the button
 stays hidden on Android (`EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` is `"false"` in every
@@ -647,16 +647,19 @@ deep-links gap. Steps: [`ANDROID_RELEASE.md`](./ANDROID_RELEASE.md) section 9.
 `243308404313` is no longer accessible to the team. The ids are public and live in
 `eas.json` (pinned by `src/config/__tests__/easProfiles.test.ts`):
 
-| eas.json variable                  | Profiles                                                     | Client                                  |
-| ---------------------------------- | ------------------------------------------------------------ | --------------------------------------- |
-| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | `preview`, `staging`, `production` (`maestro` via `extends`) | `tarodan-web` (web application)         |
-| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | `production`                                                 | iOS client of `com.tarodan.app`         |
-| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | `preview`, `staging` (`maestro` via `extends`)               | iOS client of `com.tarodan.app.staging` |
+| eas.json variable                  | Profiles                                                   | Client                                  |
+| ---------------------------------- | ---------------------------------------------------------- | --------------------------------------- |
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | every profile (`maestro` via `extends`)                    | `tarodan-web` (web application)         |
+| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | `production`, `development` (both build `com.tarodan.app`) | iOS client of `com.tarodan.app`         |
+| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | `preview`, `staging` (`maestro` via `extends`)             | iOS client of `com.tarodan.app.staging` |
 
 The iOS URL scheme (`iosUrlScheme` of the google-signin config plugin) is **derived**
 in `app.config.js` from `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
 (`<n>-<id>.apps.googleusercontent.com` -> `com.googleusercontent.apps.<n>-<id>`), so
 each bundle registers the scheme of its own client; never type it in `app.json`.
+A dev client from the `development` profile therefore carries the production scheme:
+a local `.env` must set the production iOS id or none, or the button shows in a
+binary without the matching scheme and the tap crashes.
 Changing an id changes the runtime fingerprint (eas.json and the plugin options):
 a new store build, never an OTA. If an EAS environment also defines
 `EXPO_PUBLIC_GOOGLE_*`, it must hold the same value as `eas.json`, or the OTA and the
