@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, PAGE_GUTTER, theme } from '@/ui';
+import { Button, EmptyState, PAGE_GUTTER, theme, type EmptyStatePlacement } from '@/ui';
 import type { ProductCardLayout } from './ProductCard';
 import { SkeletonProductCard } from './SkeletonProductCard';
 
@@ -47,19 +47,23 @@ export function ProductGridSkeleton({
 }
 
 /**
- * Ürün listelerinin TEK boş durumu (web `ListingsGrid` boş hali): "Henüz ilan yok" + filtre varsa
- * "Filtrelerinizi değiştirmeyi deneyin" ve temizle düğmesi; filtre yoksa ilk ilanı vermeye davet.
+ * The ONE empty state of product lists (web `ListingsGrid` empty): "No listings yet" plus, when
+ * filtered, "Try adjusting your filters" and a clear button; otherwise an invitation to list the
+ * first item. `placement` follows the host list (`list` in `ProductGrid` on the page gutter).
  */
 export function ProductListEmpty({
   filtered = false,
   onClearFilters,
+  placement,
 }: {
   filtered?: boolean;
   onClearFilters?: () => void;
+  placement?: EmptyStatePlacement;
 }) {
   const { t } = useTranslation();
   return (
     <EmptyState
+      placement={placement}
       icon="magnifying-glass"
       title={t('product.noListings')}
       subtitle={filtered ? t('product.tryAdjustingFilters') : t('home.beTheFirst')}

@@ -64,6 +64,15 @@ describe('engellenen kullanıcılar listesi', () => {
     expect(await screen.findByText('profile.blockedPage.empty')).toBeTruthy();
   });
 
+  it('a failed load shows the error state with a retry, not the empty copy', async () => {
+    getBlockedUsers.mockRejectedValueOnce(new Error('network'));
+    renderWithProviders(<BlockedUsersScreen />);
+    expect(await screen.findByText('profile.blockedPage.loadFailed')).toBeTruthy();
+    expect(screen.queryByText('profile.blockedPage.empty')).toBeNull();
+    fireEvent.press(screen.getByText('mobile.errorRetry'));
+    await waitFor(() => expect(getBlockedUsers).toHaveBeenCalledTimes(2));
+  });
+
   it('"Engeli Kaldır" DELETE /users/:id/block çağırır', async () => {
     getBlockedUsers.mockResolvedValue({
       data: [{ id: 'u1', displayName: 'Ayşe', blockedAt: '2026-09-01T10:00:00.000Z' }],

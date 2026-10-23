@@ -64,13 +64,14 @@ export default function AddCollectionItemsScreen() {
             </View>
           ) : f.listings.length === 0 ? (
             <EmptyState
+              placement="list"
               icon="cube"
               title={t('collection.noActiveListings')}
               subtitle={t('emptyState.collectionAddListingHint')}
               action={<Button title={t('product.createListing')} onPress={() => navigateTo('/(tabs)/sell')} />}
             />
           ) : (
-            <EmptyState icon="magnifying-glass" title={t('collection.noSearchMatch')} subtitle={t('search.tryDifferent')} />
+            <EmptyState placement="list" icon="magnifying-glass" title={t('collection.noSearchMatch')} subtitle={t('search.tryDifferent')} />
           )
         }
       />

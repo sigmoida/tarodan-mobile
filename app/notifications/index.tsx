@@ -79,9 +79,10 @@ export default function NotificationsScreen() {
           onRefresh={f.handleRefresh}
           ListEmptyComponent={
             f.loadFailed ? (
-              <ErrorState onRetry={f.retry} />
+              <ErrorState placement="screen" onRetry={f.retry} />
             ) : (
               <EmptyState
+                placement="screen"
                 icon="bell"
                 title={t('notification.noneYet')}
                 subtitle={t('notification.emptyListDesc')}

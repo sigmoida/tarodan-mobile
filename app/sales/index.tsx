@@ -104,9 +104,10 @@ export default function SalesScreen() {
             </View>
           ) : s.loadFailed ? (
             // Filtre çipleri (liste başlığı) yerinde kalır.
-            <ErrorState onRetry={() => s.refetch()} />
+            <ErrorState placement="list" onRetry={() => s.refetch()} />
           ) : (
             <EmptyState
+              placement="list"
               icon="shopping-cart"
               title={t('sale.emptyTitle')}
               subtitle={t('sale.emptySubtitle')}

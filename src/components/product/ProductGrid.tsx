@@ -160,13 +160,13 @@ export function ProductGrid({
   // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
   const showSkeleton = useDelayedLoading(loading);
   const empty = errorMessage ? (
-    <ErrorState message={errorMessage} onRetry={onRetry} />
+    <ErrorState placement="list" message={errorMessage} onRetry={onRetry} />
   ) : loading || showSkeleton ? (
     showSkeleton ? <ProductGridSkeleton layout={layout} /> : null
   ) : emptyTitle ? (
-    <EmptyState icon="magnifying-glass" title={emptyTitle} subtitle={emptySubtitle} />
+    <EmptyState placement="list" icon="magnifying-glass" title={emptyTitle} subtitle={emptySubtitle} />
   ) : (
-    <ProductListEmpty filtered={filtered} onClearFilters={onClearFilters} />
+    <ProductListEmpty placement="list" filtered={filtered} onClearFilters={onClearFilters} />
   );
 
   return (

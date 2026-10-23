@@ -63,7 +63,7 @@ export default function DiscountProductsScreen() {
         {...listWindowing}
         contentContainerStyle={page.contentStyle(pageListContentStyle)}
         ListEmptyComponent={
-          <EmptyState icon="cube" title={t('discount.noActiveProducts')} subtitle={t('home.noProductsYetHint')} />
+          <EmptyState placement="list" icon="cube" title={t('discount.noActiveProducts')} subtitle={t('home.noProductsYetHint')} />
         }
         renderItem={renderProduct}
       />

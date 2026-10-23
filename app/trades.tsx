@@ -182,7 +182,7 @@ export default function TradesScreen() {
         }
         ListEmptyComponent={
           isError ? (
-            <ErrorState message={t('trade.listLoadFailedHint')} onRetry={() => refetch()} />
+            <ErrorState placement="list" message={t('trade.listLoadFailedHint')} onRetry={() => refetch()} />
           ) : isLoading || showSkeleton ? (
             showSkeleton ? (
               <View style={styles.skeletons} testID="trades-skeleton">
@@ -192,6 +192,7 @@ export default function TradesScreen() {
             ) : null
           ) : (
             <EmptyState
+              placement="list"
               icon="arrows-right-left"
               title={t('trade.noTrades')}
               subtitle={filter === 'all' ? t('trade.noTradesHint') : t('trade.noTradesFilteredHint')}

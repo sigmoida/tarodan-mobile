@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, TopBarLabel, pageListContentStyle, usePageScrollHandler } from '@/ui';
+import { EmptyState, ErrorState, TopBarLabel, pageListContentStyle, usePageScrollHandler } from '@/ui';
 
 import { listWindowing } from '@/lib/list/windowing';
 import type { BlockedUser } from '@/lib/api';
@@ -59,11 +59,20 @@ export default function BlockedUsersScreen() {
         {...listWindowing}
         contentContainerStyle={page.contentStyle(pageListContentStyle)}
         ListEmptyComponent={
-          <EmptyState
-            icon="no-symbol"
-            title={f.isError ? t('profile.blockedPage.loadFailed') : t('profile.blockedPage.empty')}
-            subtitle={t('profile.blockedPage.emptyDesc')}
-          />
+          f.isError ? (
+            <ErrorState
+              placement="list"
+              title={t('profile.blockedPage.loadFailed')}
+              onRetry={() => void f.refetch()}
+            />
+          ) : (
+            <EmptyState
+              placement="list"
+              icon="no-symbol"
+              title={t('profile.blockedPage.empty')}
+              subtitle={t('profile.blockedPage.emptyDesc')}
+            />
+          )
         }
         renderItem={renderBlocked}
       />

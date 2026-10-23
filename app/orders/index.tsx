@@ -95,7 +95,7 @@ export default function OrdersScreen() {
         ListFooterComponent={f.isFetchingNextPage ? <Spinner style={styles.footerSpinner} /> : null}
         ListEmptyComponent={
           failed ? (
-            <ErrorState message={t('order.loadFailedRetry')} onRetry={() => f.refetch()} />
+            <ErrorState placement="list" message={t('order.loadFailedRetry')} onRetry={() => f.refetch()} />
           ) : loading ? (
             <View style={styles.list}>
               <SkeletonCard />
@@ -104,6 +104,7 @@ export default function OrdersScreen() {
             </View>
           ) : (
             <EmptyState
+              placement="list"
               icon="receipt-percent"
               title={emptyTitle}
               subtitle={t('order.startShopping')}

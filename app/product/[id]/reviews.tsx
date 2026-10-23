@@ -74,7 +74,7 @@ export default function ProductReviewsScreen() {
           f.isLoading || showSkeleton ? (
             showSkeleton ? <ReviewListSkeleton /> : null
           ) : (
-            <EmptyState icon="star" title={t('review.noReviews')} subtitle={t('emptyState.reviewsHint')} />
+            <EmptyState placement="list" icon="star" title={t('review.noReviews')} subtitle={t('emptyState.reviewsHint')} />
           )
         }
         onEndReached={() => {

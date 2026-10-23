@@ -84,6 +84,7 @@ export default function DiscountsScreen() {
         }
         ListEmptyComponent={
           <EmptyState
+            placement="list"
             icon="tag"
             title={t('discount.emptyTitle')}
             subtitle={t('discount.emptySubtitle')}
