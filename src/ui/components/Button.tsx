@@ -16,15 +16,12 @@ import { useButtonGroup } from '../lib/buttonGroup';
 import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFeedback';
 import { LoadingIndicator } from '../loading/LoadingIndicator';
 
-/**
- * Web `@tarodan/ui` Button variants. Single-word names are the same; a multi-word web name is
- * camelCased like the rest of `@/ui` (web `outline-primary` = `outlinePrimary`).
- */
+/** Web `@tarodan/ui` Button variants, same names as web. */
 export type ButtonVariant =
   | 'primary'
   | 'secondary'
   | 'outline'
-  | 'outlinePrimary'
+  | 'outline-primary'
   | 'ghost'
   | 'danger'
   | 'success'
@@ -78,7 +75,7 @@ const variantStyle: Record<
   // Web `outline-primary`: the primary-toned outline, e.g. the card's "add to cart" (filled
   // `primary` once the listing is in the cart). The label is primary-700, not 600: 600 on white is
   // 3.56:1, under WCAG AA 4.5:1; 700 is 5.18:1. Transparent like web (not `outline`'s white).
-  outlinePrimary: {
+  'outline-primary': {
     bg: 'transparent',
     text: colors.primary[700],
     border: colors.primary[600],

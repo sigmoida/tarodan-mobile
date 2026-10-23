@@ -11,9 +11,8 @@ import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFee
 import { LoadingIndicator } from '../loading/LoadingIndicator';
 
 /**
- * Web `@tarodan/ui` IconButton variants: primary, secondary, outline, outlinePrimary (web
- * `outline-primary`; multi-word names are camelCased like the rest of `@/ui`), ghost (default),
- * danger, success. Web also has `warning` (solid), which mobile does not have yet. Old mobile names
+ * Web `@tarodan/ui` IconButton variants: primary, secondary, outline, outline-primary,
+ * ghost (default), danger, success. Web also has `warning` (solid), which mobile does not have yet. Old mobile names
  * still work as aliases: `plain` -> ghost, `solid` -> primary, `soft` -> brand tint
  * (primary-50/700; no web counterpart).
  */
@@ -21,7 +20,7 @@ export type IconButtonVariant =
   | 'primary'
   | 'secondary'
   | 'outline'
-  | 'outlinePrimary'
+  | 'outline-primary'
   | 'ghost'
   | 'danger'
   | 'success'
@@ -70,7 +69,7 @@ const variantStyle: Record<
   outline: { bg: 'transparent', fg: colors.text.body, border: colors.border.DEFAULT },
   // Web `outline-primary`: transparent, primary-600 border, primary-700 icon (the same tokens as
   // the `Button` variant, so the icon-only and text toggles look alike).
-  outlinePrimary: {
+  'outline-primary': {
     bg: 'transparent',
     fg: colors.primary[700],
     border: colors.primary[600],

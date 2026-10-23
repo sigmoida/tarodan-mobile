@@ -25,8 +25,8 @@ describe('IconButton (web @tarodan/ui)', () => {
     expect(boxStyle().backgroundColor).toBe(theme.colors.primary[600]);
   });
 
-  it('outlinePrimary (web outline-primary): transparent, primary-600 border, primary-700 icon', () => {
-    render(<IconButton icon="shopping-cart" variant="outlinePrimary" accessibilityLabel="Sepete ekle" />);
+  it('outline-primary: transparent, primary-600 border, primary-700 icon', () => {
+    render(<IconButton icon="shopping-cart" variant="outline-primary" accessibilityLabel="Sepete ekle" />);
     expect(boxStyle()).toMatchObject({
       backgroundColor: 'transparent',
       borderColor: theme.colors.primary[600],
@@ -43,8 +43,8 @@ describe('IconButton (web @tarodan/ui)', () => {
     expect(boxStyle(true).opacity).toBe(0.7);
   });
 
-  it('outlinePrimary press: web active:bg-primary-100 on iOS, the ripple alone on Android', () => {
-    render(<IconButton icon="shopping-cart" variant="outlinePrimary" accessibilityLabel="Sepete ekle" />);
+  it('outline-primary press: web active:bg-primary-100 on iOS, the ripple alone on Android', () => {
+    render(<IconButton icon="shopping-cart" variant="outline-primary" accessibilityLabel="Sepete ekle" />);
     expect(boxStyle(true).backgroundColor).toBe(theme.colors.primary[100]);
     // The tint is the feedback: border and foreground keep full opacity (their AA contrast).
     expect(boxStyle(true).opacity).toBe(1);
@@ -52,12 +52,12 @@ describe('IconButton (web @tarodan/ui)', () => {
     expect(boxStyle(true).backgroundColor).toBe('transparent');
   });
 
-  it('outlinePrimary dims like the other variants when disabled or loading', () => {
+  it('outline-primary dims like the other variants when disabled or loading', () => {
     const { rerender } = render(
-      <IconButton icon="shopping-cart" variant="outlinePrimary" disabled accessibilityLabel="Sepete ekle" />,
+      <IconButton icon="shopping-cart" variant="outline-primary" disabled accessibilityLabel="Sepete ekle" />,
     );
     expect(boxStyle().opacity).toBe(0.5);
-    rerender(<IconButton icon="shopping-cart" variant="outlinePrimary" isLoading accessibilityLabel="Sepete ekle" />);
+    rerender(<IconButton icon="shopping-cart" variant="outline-primary" isLoading accessibilityLabel="Sepete ekle" />);
     expect(boxStyle().opacity).toBe(0.5);
     expect(screen.getByRole('button').props.accessibilityState).toEqual({ disabled: true, busy: true });
   });

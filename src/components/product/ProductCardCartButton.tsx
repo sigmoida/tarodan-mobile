@@ -17,7 +17,7 @@ export type CardActionPresentation = 'icon' | 'text';
 export type CartButtonPlacement = 'card' | 'favorites';
 
 const VARIANTS = {
-  card: { add: 'outlinePrimary', remove: 'primary' },
+  card: { add: 'outline-primary', remove: 'primary' },
   favorites: { add: 'primary', remove: 'danger' },
 } as const;
 
@@ -25,8 +25,7 @@ const VARIANTS = {
  * The listing card's cart toggle (web `ProductCardCartButton`): "Sepete Ekle", or "Sepetten
  * Çıkar" when the listing is already in the cart (D10).
  *
- * - Look (web parity, `placement`): on a card a primary outline (`outlinePrimary`, web
- *   `outline-primary`) while the listing is not in the cart, filled `primary` once it is; in
+ * - Look (web parity, `placement`): on a card a primary outline (`outline-primary`) while the listing is not in the cart, filled `primary` once it is; in
  *   Favorites primary, then danger. The glyph is the outline icon to add and the solid icon once in
  *   the cart (like web), so the state is carried by shape as well as colour; on the card it also
  *   follows the fill (outline glyph on the outline button, solid on the filled one).

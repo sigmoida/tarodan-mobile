@@ -45,15 +45,15 @@ describe('Button (web @tarodan/ui ölçüleri)', () => {
   });
 
   it('web varyantlarının hepsi çizilir', () => {
-    for (const v of ['secondary', 'outline', 'outlinePrimary', 'ghost', 'danger', 'success', 'warning', 'link'] as const) {
+    for (const v of ['secondary', 'outline', 'outline-primary', 'ghost', 'danger', 'success', 'warning', 'link'] as const) {
       const { unmount } = render(<Button variant={v} title={v} />);
       expect(screen.getByText(v)).toBeTruthy();
       unmount();
     }
   });
 
-  it('outlinePrimary (web outline-primary): transparent, primary-600 border, primary-700 label', () => {
-    render(<Button variant="outlinePrimary" title="Sepete Ekle" icon="shopping-cart" />);
+  it('outline-primary: transparent, primary-600 border, primary-700 label', () => {
+    render(<Button variant="outline-primary" title="Sepete Ekle" icon="shopping-cart" />);
     expect(buttonStyle()).toMatchObject({
       backgroundColor: 'transparent',
       borderColor: theme.colors.primary[600],
@@ -70,8 +70,8 @@ describe('Button (web @tarodan/ui ölçüleri)', () => {
     expect(buttonStyle(true).opacity).toBe(0.85);
   });
 
-  it('outlinePrimary press: web active:bg-primary-100 on iOS, the ripple alone on Android', () => {
-    render(<Button variant="outlinePrimary" title="Sepete Ekle" />);
+  it('outline-primary press: web active:bg-primary-100 on iOS, the ripple alone on Android', () => {
+    render(<Button variant="outline-primary" title="Sepete Ekle" />);
     expect(buttonStyle(true).backgroundColor).toBe(theme.colors.primary[100]);
     // The tint is the feedback: border and foreground keep full opacity (their AA contrast).
     expect(buttonStyle(true).opacity).toBe(1);
@@ -79,8 +79,8 @@ describe('Button (web @tarodan/ui ölçüleri)', () => {
     expect(buttonStyle(true).backgroundColor).toBe('transparent');
   });
 
-  it('outlinePrimary dims like the other variants when disabled', () => {
-    render(<Button variant="outlinePrimary" title="Sepete Ekle" disabled />);
+  it('outline-primary dims like the other variants when disabled', () => {
+    render(<Button variant="outline-primary" title="Sepete Ekle" disabled />);
     expect(buttonStyle().opacity).toBe(0.5);
   });
 
