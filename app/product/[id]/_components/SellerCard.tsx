@@ -1,16 +1,16 @@
 import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
-import { Avatar, Badge, Button, SectionCard, Text, theme, Icon, ButtonRow } from '@/ui';
+import { Avatar, Button, SectionCard, Text, theme, Icon, ButtonRow } from '@/ui';
 import { resolveAvatarSource } from '@/utils/imageUrl';
 import type { ProductSeller } from '../_lib/types';
 
 const { colors, spacing, iconSize } = theme;
 
 /**
- * Satıcı kartı (web `SellerCard`): SectionCard "Satıcı" içinde avatar + ad
- * + puan + satış sayısı; altında "Mesaj Gönder" (secondary) ve "Profili Gör" (outline). Sahip kendi
- * ilanında butonları görmez.
+ * Seller card (web `SellerCard`): SectionCard "Seller" with avatar, name, rating and sales count;
+ * below it "Send message" (secondary) and "View profile" (outline). The owner does not see the
+ * buttons on their own listing. The seller's package (Premium) is deliberately not shown.
  */
 export function SellerCard({
   seller,
@@ -36,16 +36,6 @@ export function SellerCard({
             <Text variant="body" weight="semibold" numberOfLines={1} style={styles.name}>
               {seller.displayName}
             </Text>
-            {seller.isPremium ? (
-              <Badge
-                testID="product-seller-premium-badge"
-                variant="warning"
-                size="sm"
-                icon={<Icon name="star" variant="solid" size={iconSize.sm} color={colors.warning[800]!} />}
-              >
-                {t('seller.premiumBadge')}
-              </Badge>
-            ) : null}
           </View>
           <View style={styles.statsRow}>
             {rating > 0 ? (

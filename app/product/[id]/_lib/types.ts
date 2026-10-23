@@ -7,8 +7,6 @@ export interface ProductSeller {
   displayName?: string;
   avatarUrl?: string;
   verified?: boolean;
-  /** Satıcı geçerli Premium üyelikte mi (API ürün detayı `seller.isPremium`). */
-  isPremium?: boolean;
   rating?: number;
   totalSales?: number;
   responseTime?: string;

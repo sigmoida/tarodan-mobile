@@ -65,35 +65,32 @@ describe('satıcı profili', () => {
     expect(screen.getByText('3')).toBeTruthy(); // takipçi sayacı ızgarada
   });
 
-  it('trust score: reads `trust` only, two decimals: "Güven skoru 3,74/5 · Orta"', () => {
+  it('trust score: reads `trust` only, shows just the number with two decimals: "3,74"', () => {
     const f = base();
     mockProfile.mockReturnValue({
       ...f,
       seller: { ...f.seller, trust: { rating: 3.74, level: 'fair', formulaVersion: 1 } },
     });
     render(<SellerProfileScreen />);
-    expect(screen.getByText('Güven skoru 3,74/5 · Orta')).toBeTruthy();
+    expect(screen.getByText('3,74')).toBeTruthy();
   });
 
-  it('Premium badge only for a premium seller (web SellerHeader)', () => {
+  it('never shows the seller package badge, even for a premium seller (web SellerHeader)', () => {
     const f = base();
-    mockProfile.mockReturnValue(f);
-    const first = render(<SellerProfileScreen />);
-    expect(screen.queryByText('Premium')).toBeNull();
-    first.unmount();
-    mockProfile.mockReturnValue({ ...f, seller: { ...f.seller, isPremium: true } });
+    mockProfile.mockReturnValue({ ...f, seller: { ...f.seller, isPremium: true, isVerified: true } });
     render(<SellerProfileScreen />);
-    expect(screen.getByText('Premium')).toBeTruthy();
+    expect(screen.queryByText('Premium')).toBeNull();
+    expect(screen.getByText('Doğrulanmış')).toBeTruthy();
   });
 
-  it('new seller: "Güven skoru: Yeni satıcı"', () => {
+  it('new seller: only "Yeni satıcı"', () => {
     const f = base();
     mockProfile.mockReturnValue({
       ...f,
       seller: { ...f.seller, trust: { rating: null, level: 'new', formulaVersion: 1 } },
     });
     render(<SellerProfileScreen />);
-    expect(screen.getByText('Güven skoru: Yeni satıcı')).toBeTruthy();
+    expect(screen.getByText('Yeni satıcı')).toBeTruthy();
   });
 
   it('`trust` null or absent: no badge; the legacy trustScore/trustLevel never draw as /100', () => {

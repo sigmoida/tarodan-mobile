@@ -19,7 +19,7 @@ function Metric({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 /**
- * Seller header card (web `SellerHeader`): avatar, name + badges (Premium / Verified / trust score),
+ * Seller header card (web `SellerHeader`): avatar, name + badges (Verified / trust score),
  * member-since date, Message + Follow buttons and the 2x2 counter grid (Listings, Sales, Trades,
  * Followers). The average rating sits in the reviews card title. Report/block live in the top bar
  * menu. The trust badge reads `trust` only (never the legacy `trustScore`).
@@ -50,11 +50,6 @@ export function SellerProfileCard({ f }: { f: SellerProfileController }) {
               <Text variant="h2" numberOfLines={1} style={styles.name}>
                 {seller.displayName}
               </Text>
-              {seller.isPremium ? (
-                <Badge variant="default" size="sm">
-                  {t('seller.premiumBadge')}
-                </Badge>
-              ) : null}
               {seller.isVerified ? (
                 <Badge variant="success" size="sm">
                   {t('seller.verified')}

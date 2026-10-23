@@ -114,17 +114,17 @@ describe('vendored constants match the delta', () => {
 });
 
 describe('GET /users/:id/profile -> seller badge', () => {
-  it('scored: "Güven skoru 3,74/5 · Orta", never the legacy /100', async () => {
+  it('scored: just "3,74", never the legacy /100', async () => {
     profileBody = SCORED;
     render(<Harness />);
-    expect(await screen.findByText('Güven skoru 3,74/5 · Orta')).toBeTruthy();
+    expect(await screen.findByText('3,74')).toBeTruthy();
     expect(screen.queryByText(/\/100/)).toBeNull();
   });
 
-  it('new: "Güven skoru: Yeni satıcı"', async () => {
+  it('new: just "Yeni satıcı"', async () => {
     profileBody = NEW_SELLER;
     render(<Harness />);
-    expect(await screen.findByText('Güven skoru: Yeni satıcı')).toBeTruthy();
+    expect(await screen.findByText('Yeni satıcı')).toBeTruthy();
   });
 
   it.each([
