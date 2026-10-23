@@ -20,9 +20,10 @@ const SKELETON_COUNT = 3;
 const RAIL_LIMIT = 12;
 
 /**
- * Anasayfa ürün rayı (web `HomeSection` + `ProductRail`): SectionCard (vurgu çubuklu başlık +
- * "Tümünü gör ›") içinde yatay kayan 160pt kartlar. Mobilde yatay ray platform kalıbıdır; kart
- * web `HomeProductCard` gibi meta satırsız. Yüklenirken iskelet; `emptyState` yoksa boş ray çizilmez.
+ * Home product rail (web `HomeSection` + `ProductRail`): horizontally scrolling 160pt cards in a
+ * SectionCard (accent-bar title + "See all"). A horizontal rail is the mobile platform pattern;
+ * the card has no meta row, like web `HomeProductCard`. Skeleton while loading. An empty rail is
+ * not drawn without an `emptyState`, nor when it `failed` (never loaded).
  */
 function ProductRail({
   title,

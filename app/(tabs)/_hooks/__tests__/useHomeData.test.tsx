@@ -11,13 +11,20 @@ import { qk } from '@/lib/query';
 
 const mockGetAll = jest.fn();
 const mockGetPopular = jest.fn();
+const mockGetTopCollections = jest.fn();
+const mockGetFeaturedCollector = jest.fn();
+const mockGetFeaturedBusiness = jest.fn();
 jest.mock('@/lib/api', () => ({
   manufacturersApi: { findAll: () => Promise.resolve({ data: [] }) },
   productsApi: {
     getAll: (params: unknown) => mockGetAll(params),
     getPopular: (params: unknown) => mockGetPopular(params),
   },
-  userApi: new Proxy({}, { get: () => () => Promise.resolve({ data: [] }) }),
+  userApi: {
+    getTopCollections: () => mockGetTopCollections(),
+    getFeaturedCollector: () => mockGetFeaturedCollector(),
+    getFeaturedBusiness: () => mockGetFeaturedBusiness(),
+  },
 }));
 
 import { useHomeData } from '../useHomeData';
@@ -55,6 +62,9 @@ describe('useHomeData product rails', () => {
     jest.clearAllMocks();
     serveRails();
     mockGetPopular.mockResolvedValue({ data: { data: [product('p1')] } });
+    mockGetTopCollections.mockResolvedValue({ data: [] });
+    mockGetFeaturedCollector.mockResolvedValue({ data: null });
+    mockGetFeaturedBusiness.mockResolvedValue({ data: null });
   });
 
   it('keeps the last good rails when a refetch fails', async () => {
@@ -142,5 +152,58 @@ describe('useHomeData product rails', () => {
     });
     await waitFor(() => expect(result.current.popular).toHaveLength(1));
     expect(result.current.failedPopular).toBe(false);
+  });
+});
+
+describe('useHomeData collections and spotlights', () => {
+  const collection = (id: string) => ({ id, name: `Collection ${id}`, items: [] });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetAll.mockResolvedValue({ data: { data: [] } });
+    mockGetPopular.mockResolvedValue({ data: { data: [] } });
+    mockGetTopCollections.mockResolvedValue({ data: [collection('c1'), collection('c2')] });
+    mockGetFeaturedCollector.mockResolvedValue({ data: collection('fc') });
+    mockGetFeaturedBusiness.mockResolvedValue({ data: { id: 'b1', companyName: 'Biz' } });
+  });
+
+  it('keeps the last good collections and spotlights when a refetch fails', async () => {
+    const { result } = setup();
+    await waitFor(() => expect(result.current.topCollections).toHaveLength(2));
+    await waitFor(() => expect(result.current.featuredBusiness?.id).toBe('b1'));
+    expect(result.current.featuredCollector?.id).toBe('fc');
+
+    mockGetTopCollections.mockRejectedValue(serverError());
+    mockGetFeaturedCollector.mockRejectedValue(serverError());
+    mockGetFeaturedBusiness.mockRejectedValue(serverError());
+    await act(async () => {
+      await result.current.refetchAll();
+    });
+
+    expect(result.current.topCollections.map((c: { id: string }) => c.id)).toEqual(['c1', 'c2']);
+    expect(result.current.featuredCollector?.id).toBe('fc');
+    expect(result.current.featuredBusiness?.id).toBe('b1');
+    expect(result.current.loadingSpotlights).toBe(false);
+  });
+
+  it('first-load failure: sections stay empty, no endless skeleton, collector falls back as before', async () => {
+    mockGetFeaturedCollector.mockRejectedValue(serverError());
+    mockGetFeaturedBusiness.mockRejectedValue(serverError());
+    const { result, client } = setup();
+
+    await waitFor(() => expect(client.getQueryState(qk.products.featuredBusiness)?.status).toBe('error'));
+    await waitFor(() => expect(result.current.loadingSpotlights).toBe(false));
+    expect(client.getQueryData(qk.products.featuredCollector)).toBeUndefined();
+    expect(result.current.featuredBusiness).toBeNull();
+    // Unchanged fallback: no collector of the week -> the first top collection.
+    expect(result.current.featuredCollector?.id).toBe('c1');
+  });
+
+  it('an API "none" (null body) is a successful null, not a failure', async () => {
+    mockGetFeaturedBusiness.mockResolvedValue({ data: null });
+    const { result, client } = setup();
+    await waitFor(() => expect(client.getQueryState(qk.products.featuredBusiness)?.status).toBe('success'));
+    expect(client.getQueryData(qk.products.featuredBusiness)).toBeNull();
+    expect(result.current.featuredBusiness).toBeNull();
   });
 });
