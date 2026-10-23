@@ -10,6 +10,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Button, EmptyState, ErrorState, pageListContentStyle, useDelayedLoading, usePageScrollValue } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
+import { searchEntryHref } from '@/lib/navigation/searchHref';
 import { useStableCallback } from '@/hooks/useStableCallback';
 import { isOptimisticFavorite, type WishlistItem } from '@/hooks/useFavorites';
 import { tabDiag } from '@/components/_tabDiag';
@@ -88,17 +89,19 @@ function FavoritesScreen() {
             showSkeleton ? <FavoritesSkeleton /> : null
           ) : loadFailed ? (
             <ErrorState
+              placement="list"
               title={t('favorites.loadFailedTitle')}
               message={t('favorites.loadErrorDesc')}
               onRetry={() => f.fetchFavorites()}
             />
           ) : (
             <EmptyState
+              placement="list"
               icon="heart"
               title={t('favorites.empty')}
-              subtitle={t('favorites.emptyStateDesc')}
-              actionLabel={t('order.exploreProducts')}
-              onAction={() => router.push('/search')}
+              subtitle={t('favorites.emptyDesc')}
+              actionLabel={t('favorites.browseProducts')}
+              onAction={() => router.push(searchEntryHref('all'))}
             />
           )
         }

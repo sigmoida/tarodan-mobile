@@ -921,7 +921,6 @@
     "loadingText": "Loading favorites...",
     "loadFailedTitle": "Failed to load",
     "loadErrorDesc": "There was a problem loading your favorites.",
-    "emptyStateDesc": "Add products you like to your favorites to easily keep track of them",
     "recommendationsTitle": "You might also like",
     "exploreMoreProducts": "Explore More Products"
   },

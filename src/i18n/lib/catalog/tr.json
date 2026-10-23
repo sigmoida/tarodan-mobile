@@ -921,7 +921,6 @@
     "loadingText": "Favoriler yükleniyor...",
     "loadFailedTitle": "Yüklenemedi",
     "loadErrorDesc": "Favorileriniz yüklenirken bir hata oluştu.",
-    "emptyStateDesc": "Beğendiğiniz ürünleri favorilere ekleyerek kolayca takip edin",
     "recommendationsTitle": "Beğenebileceğiniz",
     "exploreMoreProducts": "Daha Fazla Ürün Keşfet"
   },
