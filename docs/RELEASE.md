@@ -661,9 +661,11 @@ A dev client from the `development` profile therefore carries the production sch
 a local `.env` must set the production iOS id or none, or the button shows in a
 binary without the matching scheme and the tap crashes.
 Changing an id changes the runtime fingerprint (eas.json and the plugin options):
-a new store build, never an OTA. If an EAS environment also defines
-`EXPO_PUBLIC_GOOGLE_*`, it must hold the same value as `eas.json`, or the OTA and the
-build disagree.
+a new store build, never an OTA. The EAS environments must **not** define
+`EXPO_PUBLIC_GOOGLE_*` (nor any other key of the profile's `eas.json` env):
+`eas update --environment` would use the EAS value while `eas build` keeps the
+`eas.json` one, so `release.sh` stops the OTA when it finds such a variable, whatever
+its value.
 
 **Server side: Google sign-in audience.** The API checks the incoming `idToken`
 against an audience list built from `GOOGLE_CLIENT_ID_WEB`, `GOOGLE_CLIENT_ID_IOS`
