@@ -168,7 +168,7 @@ export function useProductActions({
           title: product.title,
           price: formatPrice(product.price),
         }),
-        productShareUrl(product.id),
+        productShareUrl(product),
         product.title,
       );
       await Share.share(content, options);

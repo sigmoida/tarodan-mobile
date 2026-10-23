@@ -8,6 +8,7 @@ import { collectionShareUrl, productShareUrl } from '@/utils/share';
 import { resolveAdLink } from '@/lib/ads/openAdLink';
 import { legalEmbedUrl } from '@/lib/legal/webDocs';
 
+const PRODUCT_ID = '0b1e5c1a-7d2f-4e3a-9c4b-5d6e7f8a9b0c';
 const ORIGINAL = process.env.EXPO_PUBLIC_WEB_URL;
 afterEach(() => {
   if (ORIGINAL === undefined) delete process.env.EXPO_PUBLIC_WEB_URL;
@@ -30,7 +31,9 @@ describe('@/lib/web', () => {
 
   it('üç tüketici aynı tabanı kullanır (paylaşım, reklam, yasal belgeler)', () => {
     process.env.EXPO_PUBLIC_WEB_URL = 'https://staging.tarodan.com.tr';
-    expect(productShareUrl('p1')).toBe('https://staging.tarodan.com.tr/listings/p1');
+    expect(productShareUrl({ id: PRODUCT_ID, title: 'Tomica' })).toBe(
+      `https://staging.tarodan.com.tr/listings/tomica-${PRODUCT_ID}`,
+    );
     expect(collectionShareUrl('c1')).toBe('https://staging.tarodan.com.tr/collections/c1');
     expect(resolveAdLink('/bilinmeyen-yol-xyz')).toEqual({
       kind: 'web',
