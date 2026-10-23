@@ -4,7 +4,6 @@ export interface Payment {
   orderNumber?: string;
   amount: number;
   currency?: string;
-  provider: string;
   status: string;
   failureReason?: string;
   product?: { id: string; title: string };

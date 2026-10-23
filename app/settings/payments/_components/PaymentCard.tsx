@@ -9,7 +9,7 @@ import { formatDate } from '../_lib/status';
 import type { Payment } from '../_lib/types';
 import type { PaymentsController } from '../_hooks/usePayments';
 
-/** Tek ödeme kartı — durum/sağlayıcı, tutar, hata, aksiyonlar (iptal/tekrar/sipariş). */
+/** One payment card: order and amount, status badge with the date on the right, error, actions (cancel/retry/order). */
 export function PaymentCard({ p, f }: { p: Payment; f: PaymentsController }) {
   const { t } = useTranslation();
   const statusConfig = buildPaymentStatusConfig(t);
@@ -33,16 +33,12 @@ export function PaymentCard({ p, f }: { p: Payment; f: PaymentsController }) {
         </Text>
       </View>
 
-      <View style={styles.metaRow}>
+      <View style={styles.metaRow} testID={`payment-meta-${p.id}`}>
         <StatusBadge status={statusKey} config={statusConfig} size="sm" />
-        <Text variant="caption" weight="medium">
-          {p.provider?.toUpperCase()}
+        <Text variant="caption" tone="subtle" style={styles.metaDate}>
+          {formatDate(p.paidAt || p.createdAt)}
         </Text>
       </View>
-
-      <Text variant="caption" tone="subtle">
-        {formatDate(p.paidAt || p.createdAt)}
-      </Text>
 
       {p.failureReason ? (
         <Alert variant="danger">{p.failureReason}</Alert>
