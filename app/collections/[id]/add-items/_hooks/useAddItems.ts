@@ -29,7 +29,12 @@ export function useAddItems() {
   const inFlight = useRef(0);
 
   // Kullanıcının kendi ilanları — yalnız active/sold (backend görünür item filtresiyle birebir).
-  const { data: listings = [], isLoading: listingsLoading } = useQuery<Listing[]>({
+  const {
+    data: listings = [],
+    isLoading: listingsLoading,
+    isLoadingError: listingsError,
+    refetch: refetchListings,
+  } = useQuery<Listing[]>({
     queryKey: qk.products.myListingsForCollection,
     queryFn: async () => {
       const res = await productsApi.getMyListings({ limit: 100 });
@@ -39,7 +44,12 @@ export function useAddItems() {
   });
 
   // Koleksiyondaki ürünler → productId -> collectionItemId haritası (tek gerçek kaynak sunucu).
-  const { data: serverMap = {}, isLoading: collectionLoading } = useQuery<Record<string, string>>({
+  const {
+    data: serverMap = {},
+    isLoading: collectionLoading,
+    isLoadingError: collectionError,
+    refetch: refetchCollection,
+  } = useQuery<Record<string, string>>({
     queryKey: qk.collections.picker(collectionId),
     staleTime: 0,
     queryFn: async () => {
@@ -136,6 +146,14 @@ export function useAddItems() {
     listings,
     filtered,
     isLoading: listingsLoading || collectionLoading,
+    // Either first read failed (no data at all): without the listings the picker is empty, without
+    // the collection map every row would claim "not added". The screen shows ErrorState with a
+    // retry instead. A failed background refetch keeps the rows already on screen.
+    loadFailed: listingsError || collectionError,
+    retry: () => {
+      if (listingsError) void refetchListings();
+      if (collectionError) void refetchCollection();
+    },
     effectiveItemId,
     toggle,
   };

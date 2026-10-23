@@ -49,6 +49,8 @@ export function useAllProductReviews(productId: string, enabled: boolean) {
     total,
     average,
     isLoading: list.isLoading,
+    /** The first page failed: the screen shows ErrorState with a retry, not "no reviews". */
+    isError: list.isError && reviews.length === 0,
     hasNextPage: list.hasNextPage,
     isFetchingNextPage: list.isFetchingNextPage,
     /** Sonraki sayfa yüklenemedi → liste altında "Tekrar dene" satırı. */

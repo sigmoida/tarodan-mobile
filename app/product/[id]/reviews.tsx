@@ -5,6 +5,7 @@ import { useState, useCallback } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   EmptyState,
+  ErrorState,
   SectionCard,
   Spinner,
   Text,
@@ -73,6 +74,8 @@ export default function ProductReviewsScreen() {
         ListEmptyComponent={
           f.isLoading || showSkeleton ? (
             showSkeleton ? <ReviewListSkeleton /> : null
+          ) : f.isError ? (
+            <ErrorState placement="list" onRetry={() => void f.refetch()} />
           ) : (
             <EmptyState placement="list" icon="star" title={t('review.noReviews')} subtitle={t('emptyState.reviewsHint')} />
           )

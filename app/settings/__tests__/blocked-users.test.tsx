@@ -69,6 +69,8 @@ describe('engellenen kullanıcılar listesi', () => {
     renderWithProviders(<BlockedUsersScreen />);
     expect(await screen.findByText('profile.blockedPage.loadFailed')).toBeTruthy();
     expect(screen.queryByText('profile.blockedPage.empty')).toBeNull();
+    // No "0" count in the top bar while the list failed to load.
+    expect(screen.queryByText('0')).toBeNull();
     fireEvent.press(screen.getByText('mobile.errorRetry'));
     await waitFor(() => expect(getBlockedUsers).toHaveBeenCalledTimes(2));
   });
