@@ -1,12 +1,13 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform } from 'react-native';
 import { render, screen } from '@testing-library/react-native';
 import { IconButton, iconButtonBoxSize, theme } from '@/ui';
+import { pressableStyle } from '@/test-utils';
 
-const boxStyle = () => {
-  const style = screen.getByRole('button').props.style;
-  return StyleSheet.flatten(typeof style === 'function' ? style({ pressed: false }) : style);
-};
+const boxStyle = (pressed = false) => pressableStyle(screen.getByRole('button'), pressed);
+
+// `jest.replaceProperty(Platform, 'OS', ...)` in a test is undone after it.
+afterEach(() => jest.restoreAllMocks());
 
 describe('IconButton (web @tarodan/ui)', () => {
   it('web boyutları xs/sm/md/lg = 24/32/40/48', () => {
@@ -22,6 +23,36 @@ describe('IconButton (web @tarodan/ui)', () => {
   it('eski takma adlar çalışır (solid → primary)', () => {
     render(<IconButton icon="plus" variant="solid" accessibilityLabel="Ekle" />);
     expect(boxStyle().backgroundColor).toBe(theme.colors.primary[600]);
+  });
+
+  it('outlinePrimary (web outline-primary): transparent, primary-600 border, primary-700 icon', () => {
+    render(<IconButton icon="shopping-cart" variant="outlinePrimary" accessibilityLabel="Sepete ekle" />);
+    expect(boxStyle()).toMatchObject({
+      backgroundColor: 'transparent',
+      borderColor: theme.colors.primary[600],
+      borderWidth: 1,
+      borderRadius: theme.radius.lg,
+      opacity: 1,
+    });
+    // 700, not 600: the AA contrast choice web made (600 on white is 3.56:1).
+    expect(screen.getByTestId('icon-shopping-cart').props.stroke).toBe(theme.colors.primary[700]);
+  });
+
+  it('outlinePrimary press: web active:bg-primary-100 on iOS, the ripple alone on Android', () => {
+    render(<IconButton icon="shopping-cart" variant="outlinePrimary" accessibilityLabel="Sepete ekle" />);
+    expect(boxStyle(true).backgroundColor).toBe(theme.colors.primary[100]);
+    jest.replaceProperty(Platform, 'OS', 'android');
+    expect(boxStyle(true).backgroundColor).toBe('transparent');
+  });
+
+  it('outlinePrimary dims like the other variants when disabled or loading', () => {
+    const { rerender } = render(
+      <IconButton icon="shopping-cart" variant="outlinePrimary" disabled accessibilityLabel="Sepete ekle" />,
+    );
+    expect(boxStyle().opacity).toBe(0.5);
+    rerender(<IconButton icon="shopping-cart" variant="outlinePrimary" isLoading accessibilityLabel="Sepete ekle" />);
+    expect(boxStyle().opacity).toBe(0.5);
+    expect(screen.getByRole('button').props.accessibilityState).toEqual({ disabled: true, busy: true });
   });
 
   it('dokunma alanı en az 44pt', () => {

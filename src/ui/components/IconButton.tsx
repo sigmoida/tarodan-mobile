@@ -11,14 +11,17 @@ import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFee
 import { LoadingIndicator } from '../loading/LoadingIndicator';
 
 /**
- * Web `@tarodan/ui` IconButton varyantları: primary, secondary, outline, ghost (varsayılan),
- * danger, success. Eski mobil adlar takma ad olarak çalışmaya devam eder:
- * `plain` → ghost, `solid` → primary, `soft` → marka tonu (primary-50/700; web'de karşılığı yok).
+ * Web `@tarodan/ui` IconButton variants: primary, secondary, outline, outlinePrimary (web
+ * `outline-primary`; multi-word names are camelCased like the rest of `@/ui`), ghost (default),
+ * danger, success. Web also has `warning` (solid), which mobile does not have yet. Old mobile names
+ * still work as aliases: `plain` -> ghost, `solid` -> primary, `soft` -> brand tint
+ * (primary-50/700; no web counterpart).
  */
 export type IconButtonVariant =
   | 'primary'
   | 'secondary'
   | 'outline'
+  | 'outlinePrimary'
   | 'ghost'
   | 'danger'
   | 'success'
@@ -57,10 +60,22 @@ const sizeMap: Record<IconButtonSize, { box: number; icon: number }> = {
 /** Düğmenin kenar uzunluğu (pt) — bunu kullanan yerleşim hesapları ölçüyü buradan türetir. */
 export const iconButtonBoxSize = (size: IconButtonSize): number => sizeMap[size].box;
 
-const variantStyle: Record<IconButtonVariant, { bg: string; fg: string; border?: string }> = {
+/** `pressedBg` = web `active:bg-*`, drawn on the iOS press (Android shows the ripple). */
+const variantStyle: Record<
+  IconButtonVariant,
+  { bg: string; fg: string; border?: string; pressedBg?: string }
+> = {
   primary: { bg: colors.primary[600], fg: colors.text.inverted },
   secondary: { bg: colors.surface.alt, fg: colors.text.heading },
   outline: { bg: 'transparent', fg: colors.text.body, border: colors.border.DEFAULT },
+  // Web `outline-primary`: transparent, primary-600 border, primary-700 icon (the same tokens as
+  // the `Button` variant, so the icon-only and text toggles look alike).
+  outlinePrimary: {
+    bg: 'transparent',
+    fg: colors.primary[700],
+    border: colors.primary[600],
+    pressedBg: colors.primary[100],
+  },
   ghost: { bg: 'transparent', fg: colors.text.muted },
   danger: { bg: 'transparent', fg: colors.danger[600] },
   success: { bg: 'transparent', fg: colors.success[600] },
@@ -106,7 +121,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
         {
           width: ss.box,
           height: ss.box,
-          backgroundColor: vs.bg,
+          backgroundColor: showPressedStyle(pressed) && vs.pressedBg ? vs.pressedBg : vs.bg,
           borderColor: vs.border ?? 'transparent',
           borderWidth: vs.border ? 1 : 0,
           borderRadius: shape === 'round' ? ss.box / 2 : radiusRole.button,
