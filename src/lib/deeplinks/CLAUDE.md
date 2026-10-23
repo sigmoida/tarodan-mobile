@@ -17,6 +17,12 @@ Universal Links (iOS) and App Links (Android). Full hand-over doc:
   (exists on web; unconfirmed entries are never published), optional `neverNavigate`
   (no navigation from any scheme, e.g. PayTR 3DS returns) and a `comment`.
   Excluding a path is a decision too: it stays in the table.
+- **Listing segments.** A listing URL is `/listings/<slug>-<uuid>` (ADR 0017): the uuid is
+  the key, the slug is decoration. `/listings/*` (AASA) and `pathPrefix /listings/`
+  (Android) already cover every shape, so the table needs no entry per shape. The mapper
+  (`toMobileRoute`) and the `product/[id]`, `product/[id]/reviews` and `listing/[id]/edit`
+  screens take the id with `listingIdFromParam` (`@/lib/product/listingParam`, over the
+  vendored `parseListingParam`); a segment with no uuid maps to nothing (not-found).
 - Locales follow next-intl `as-needed`: `defaultLocale` (`tr`) is unprefixed and is
   not claimed with a prefix.
 - `index.ts` is pure (no network, no fs). There is deliberately **no** AASA/assetlinks

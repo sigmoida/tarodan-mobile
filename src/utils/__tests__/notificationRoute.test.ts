@@ -4,6 +4,8 @@
  */
 import { notificationRoute, toMobileRoute } from '../notificationRoute';
 
+const LISTING_ID = '0b1e5c1a-7d2f-4e3a-9c4b-5d6e7f8a9b0c';
+
 /**
  * Yol enjeksiyonu (HIGH) — çözülmüş kimlik expo-router parametresi olarak API yoluna
  * giriyordu (`x/../../offers/<id>/accept`). Biçim dışı kimlik rotaya hiç girmez.
@@ -25,9 +27,8 @@ describe('kimlik biçimi doğrulaması', () => {
   });
 
   it('slug segmentleri (nokta, @, :, yüzde kodlu Türkçe harf) düşmez', () => {
-    expect(toMobileRoute('/listings/vintage-araba.v2')).toBe('/product/vintage-araba.v2');
-    expect(toMobileRoute('/listings/ak%C4%B1ll%C4%B1-%C3%A7ocuk-oyuncağ%C4%B1')).toBe(
-      '/product/ak%C4%B1ll%C4%B1-%C3%A7ocuk-oyuncağ%C4%B1',
+    expect(toMobileRoute('/collections/ak%C4%B1ll%C4%B1-%C3%A7ocuk-oyuncağ%C4%B1')).toBe(
+      '/collections/ak%C4%B1ll%C4%B1-%C3%A7ocuk-oyuncağ%C4%B1',
     );
     expect(toMobileRoute('/collections/ali@koleksiyon')).toBe('/collections/ali@koleksiyon');
     expect(toMobileRoute('/seller/magaza:tr')).toBe('/seller/magaza:tr');
@@ -66,12 +67,12 @@ describe('kimlik biçimi doğrulaması', () => {
     ]) {
       expect(toMobileRoute(bad)).toBeNull();
     }
-    expect(toMobileRoute(`/listings/${'a'.repeat(128)}`)).toBe(`/product/${'a'.repeat(128)}`);
+    expect(toMobileRoute(`/collections/${'a'.repeat(128)}`)).toBe(`/collections/${'a'.repeat(128)}`);
   });
 
-  it('bildirim linki: slug\'lı ürün yolu çözülür', () => {
-    expect(notificationRoute({ type: 'x', link: '/listings/vintage-araba.v2', data: {} })).toBe(
-      '/product/vintage-araba.v2',
+  it('notification link: a slug-uuid listing path resolves to the bare uuid', () => {
+    expect(notificationRoute({ type: 'x', link: `/listings/vintage-araba-${LISTING_ID}`, data: {} })).toBe(
+      `/product/${LISTING_ID}`,
     );
   });
 
@@ -88,7 +89,6 @@ describe('toMobileRoute — derin bağlantı yolları', () => {
     expect(toMobileRoute('/tr/listings?discountOnly=true&sortBy=price_asc')).toBe(
       '/search?discountOnly=true&sortBy=price_asc',
     );
-    expect(toMobileRoute('/listings/42')).toBe('/product/42');
   });
 
   it('e-posta doğrulama token\'ını korur', () => {
@@ -131,9 +131,7 @@ describe('toMobileRoute — derin bağlantı yolları', () => {
     expect(toMobileRoute('/profile/refund-requests/rr-1')).toBe('/refund-requests/rr-1');
   });
 
-  it('ilan düzenleme bağlantısını mobil ilan düzenlemeye eşler', () => {
-    expect(toMobileRoute('/listings/p-1/edit')).toBe('/listing/p-1/edit');
-  });
+
 
   it('ödeme dönüş URL\'lerini eşlemez (WebView içinde yakalanır)', () => {
     expect(toMobileRoute('/payment/success?paymentId=p1')).toBeNull();
@@ -143,11 +141,12 @@ describe('toMobileRoute — derin bağlantı yolları', () => {
 
 describe('toMobileRoute — locale oneki', () => {
   it('en onekli urun linkini cozer', () => {
-    expect(toMobileRoute('/en/listings/123')).toBe('/product/123');
+    expect(toMobileRoute(`/en/listings/${LISTING_ID}`)).toBe(`/product/${LISTING_ID}`);
+    expect(toMobileRoute(`/en/listings/ferrari-f40-${LISTING_ID}`)).toBe(`/product/${LISTING_ID}`);
   });
 
   it('tr onekli urun linkini cozer', () => {
-    expect(toMobileRoute('/tr/listings/123')).toBe('/product/123');
+    expect(toMobileRoute(`/tr/listings/${LISTING_ID}`)).toBe(`/product/${LISTING_ID}`);
   });
 
   it('onekli sorgu parametresini korur', () => {
@@ -403,5 +402,69 @@ describe('boost notifications', () => {
 
   it('/profile/boosts has no mobile list screen: the profile tab', () => {
     expect(toMobileRoute('/profile/boosts')).toBe('/(tabs)/profile');
+  });
+});
+
+/**
+ * Listing URLs (ADR 0017): `/listings/<slug>-<uuid>`. The uuid is the key and the slug is decoration,
+ * so every shape of the same listing maps to the same mobile route.
+ */
+describe('toMobileRoute: listing URL segment', () => {
+  const PRODUCT = `/product/${LISTING_ID}`;
+  const EDIT = `/listing/${LISTING_ID}/edit`;
+  const SLUG = 'ferrari-f40-1-18-bburago-kirmizi';
+
+  it.each([
+    ['a bare uuid', LISTING_ID],
+    ['the canonical slug-uuid', `${SLUG}-${LISTING_ID}`],
+    ['an upper-case uuid', LISTING_ID.toUpperCase()],
+    ['a slug with an upper-case uuid', `${SLUG}-${LISTING_ID.toUpperCase()}`],
+    ['a stale slug (title edited since)', `old-title-${LISTING_ID}`],
+    ['a percent-encoded Turkish slug', `k%C4%B1rm%C4%B1z-%C3%A7ocuk-${LISTING_ID}`],
+  ])('%s -> the product screen with the lower-case uuid', (_label, segment) => {
+    expect(toMobileRoute(`/listings/${segment}`)).toBe(PRODUCT);
+  });
+
+  it.each([
+    ['/en/listings/<slug>-<uuid>', `/en/listings/${SLUG}-${LISTING_ID}`],
+    ['/tr/listings/<uuid>', `/tr/listings/${LISTING_ID}`],
+    ['a trailing slash', `/listings/${SLUG}-${LISTING_ID}/`],
+    ['a query string', `/listings/${SLUG}-${LISTING_ID}?ref=share`],
+  ])('keeps working under %s', (_label, link) => {
+    expect(toMobileRoute(link)).toBe(PRODUCT);
+  });
+
+  it('maps the edit link of every segment shape to the edit screen with the uuid', () => {
+    expect(toMobileRoute(`/listings/${LISTING_ID}/edit`)).toBe(EDIT);
+    expect(toMobileRoute(`/listings/${SLUG}-${LISTING_ID}/edit`)).toBe(EDIT);
+    expect(toMobileRoute(`/en/listings/${LISTING_ID.toUpperCase()}/edit`)).toBe(EDIT);
+  });
+
+  it.each([
+    ['garbage', 'garbage'],
+    ['a numeric id', '42'],
+    ['a literal "new"', 'new'],
+    ['a truncated uuid', LISTING_ID.slice(0, -1)],
+    ['a uuid with a character glued on', `${LISTING_ID}x`],
+    ['a uuid with no separator before it', `slug${LISTING_ID}`],
+    ['a leading hyphen only', `-${LISTING_ID}`],
+  ])('%s maps to nothing (the app shows its not-found screen)', (_label, segment) => {
+    expect(toMobileRoute(`/listings/${segment}`)).toBeNull();
+    expect(toMobileRoute(`/listings/${segment}/edit`)).toBeNull();
+    expect(toMobileRoute(`/product/${segment}`)).toBeNull();
+  });
+
+  it('canonicalises the product screen path too, keeping a sub-route', () => {
+    expect(toMobileRoute(`/product/${LISTING_ID}`)).toBe(PRODUCT);
+    expect(toMobileRoute(`/product/${SLUG}-${LISTING_ID}`)).toBe(PRODUCT);
+    expect(toMobileRoute(`/product/${SLUG}-${LISTING_ID.toUpperCase()}/reviews`)).toBe(`${PRODUCT}/reviews`);
+  });
+
+  it('a notification link with a slug-uuid path opens the product screen', () => {
+    expect(notificationRoute({ type: 'x', link: `/listings/${SLUG}-${LISTING_ID}`, data: {} })).toBe(PRODUCT);
+    expect(notificationRoute({ type: 'x', link: `https://tarodan.com.tr/listings/${SLUG}-${LISTING_ID}`, data: {} })).toBe(
+      PRODUCT,
+    );
+    expect(notificationRoute({ type: 'x', link: '/listings/garbage', data: {} })).toBeNull();
   });
 });

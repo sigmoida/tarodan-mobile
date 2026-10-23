@@ -25,7 +25,7 @@
       "comment": "sifremi unuttum -> (auth)/forgot-password" },
     { "pattern": "/corporate/invite", "sample": "/corporate/invite?token=inv-1", "include": true, "confirmed": true,
       "comment": "kurumsal davet -> (auth)/corporate-invite" },
-    { "pattern": "/listings/*", "sample": "/listings/123", "include": true, "confirmed": true,
+    { "pattern": "/listings/*", "sample": "/listings/ferrari-f40-0b1e5c1a-7d2f-4e3a-9c4b-5d6e7f8a9b0c", "include": true, "confirmed": true,
       "comment": "urun detayi -> product/[id]; /listings/:id/edit -> listing/[id]/edit" },
     { "pattern": "/collections/*", "sample": "/collections/9", "include": true, "confirmed": true,
       "comment": "koleksiyon -> collections/[id]" },

@@ -16,6 +16,7 @@ jest.mock('expo-router', () => ({
 import { openAdLink, resolveAdLink, isOwnWebUrl, isPurchaseLink } from '../openAdLink';
 
 const route = (r: string) => ({ kind: 'route', route: r });
+const LISTING_ID = '0b1e5c1a-7d2f-4e3a-9c4b-5d6e7f8a9b0c';
 
 describe('resolveAdLink — mobil karşılığı olan web yolları', () => {
   it.each([
@@ -38,7 +39,7 @@ describe('resolveAdLink — mobil karşılığı olan web yolları', () => {
   });
 
   it('ortak eşleyiciden gelen yollar (ürün, koleksiyon) korunur', () => {
-    expect(resolveAdLink('https://tarodan.com.tr/listings/p-42')).toEqual(route('/product/p-42'));
+    expect(resolveAdLink(`https://tarodan.com.tr/listings/ferrari-${LISTING_ID}`)).toEqual(route(`/product/${LISTING_ID}`));
     expect(resolveAdLink('/collections/9')).toEqual(route('/collections/9'));
   });
 

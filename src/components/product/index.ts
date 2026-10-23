@@ -12,3 +12,4 @@ export { default as MakeOfferModal } from './MakeOfferModal';
 export { default as AddToCollectionModal } from './AddToCollectionModal';
 export { ProductPrice, type ProductPriceProps } from './ProductPrice';
 export { SimilarProductsCard } from './SimilarProductsCard';
+export { ProductNotFound, productNotFoundState } from './ProductNotFound';

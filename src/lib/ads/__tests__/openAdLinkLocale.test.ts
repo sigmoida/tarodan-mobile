@@ -5,6 +5,7 @@
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
 import { resolveAdLink } from '../openAdLink';
+const LISTING_ID = '0b1e5c1a-7d2f-4e3a-9c4b-5d6e7f8a9b0c';
 
 describe('resolveAdLink — locale öneki', () => {
   it('/en/listings?… → /search?… (filtre korunur)', () => {
@@ -24,7 +25,7 @@ describe('resolveAdLink — locale öneki', () => {
   });
 
   it('locale önekli diğer yollar da mobil rotaya çıkar', () => {
-    expect(resolveAdLink('/en/listings/p-1')).toEqual({ kind: 'route', route: '/product/p-1' });
+    expect(resolveAdLink(`/en/listings/${LISTING_ID}`)).toEqual({ kind: 'route', route: `/product/${LISTING_ID}` });
     expect(resolveAdLink('/en/manufacturers/hot-wheels')).toEqual({
       kind: 'route',
       route: '/ureticiler/hot-wheels',

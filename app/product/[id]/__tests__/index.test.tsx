@@ -4,11 +4,16 @@
  */
 import React from 'react';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { Share } from 'react-native';
 import { renderWithProviders } from '@/test-utils';
+
+// The `[id]` route param is a listing URL segment (`<slug>-<uuid>` or a bare uuid), see `listingIdFromParam`.
+const PRODUCT_ID = '0b1e5c1a-7d2f-4e3a-9c4b-5d6e7f8a9b0c';
+let mockRouteId: string | string[] = PRODUCT_ID;
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) },
-  useLocalSearchParams: () => ({ id: 'p1' }),
+  useLocalSearchParams: () => ({ id: mockRouteId }),
   useFocusEffect: jest.fn(),
 }));
 
@@ -79,7 +84,7 @@ const persistentClient = () =>
 
 function productFixture(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'p1',
+    id: PRODUCT_ID,
     title: 'Vintage Model Araba',
     price: 1200,
     condition: 'good',
@@ -105,6 +110,7 @@ describe('Ürün detay ekranı', () => {
     ratingsMock.mockClear();
     mockTransitionReady = true;
     mockAuth = { isAuthenticated: false, user: null };
+    mockRouteId = PRODUCT_ID;
   });
 
   it('ürünü render eder (başlık + alıcı aksiyonları)', async () => {
@@ -291,7 +297,7 @@ describe('Ürün detay ekranı', () => {
     fireEvent.press(screen.getByTestId('product-detail-trade-button'));
     expect(appAlert).not.toHaveBeenCalled();
     expect(jest.requireMock('expo-router').router.push).toHaveBeenCalledWith(
-      '/trade/new?targetProductId=p1&targetSellerId=s1',
+      `/trade/new?targetProductId=${PRODUCT_ID}&targetSellerId=s1`,
     );
   });
 
@@ -423,7 +429,7 @@ describe('Ürün detay ekranı', () => {
     // Yeniden render / tazeleme görüntülenmeyi yeniden saymaz.
     view.rerender(<ProductDetailScreen />);
     await act(async () => {
-      await queryClient.refetchQueries({ queryKey: qk.products.detail('p1') });
+      await queryClient.refetchQueries({ queryKey: qk.products.detail(PRODUCT_ID) });
     });
     expect(incrementViewMock).toHaveBeenCalledTimes(1);
   });
@@ -457,7 +463,7 @@ describe('Ürün detay ekranı', () => {
   it('liste önbelleğindeki kartla anında açılır: galeri + başlık + fiyat; tam veri isteyen bölümler iskelet, alt bar yok', async () => {
     const queryClient = persistentClient();
     queryClient.setQueryData(qk.products.homeFeatured, [
-      { id: 'p1', title: 'Kart Başlığı', price: 990, images: [{ url: 'https://x/a.jpg' }], seller: { id: 's1' } },
+      { id: PRODUCT_ID, title: 'Kart Başlığı', price: 990, images: [{ url: 'https://x/a.jpg' }], seller: { id: 's1' } },
     ]);
     let resolveDetail: (v: unknown) => void = () => undefined;
     getOneMock.mockReturnValue(new Promise((r) => (resolveDetail = r)));
@@ -501,5 +507,75 @@ describe('Ürün detay ekranı', () => {
     expect(screen.getByTestId('product-specs')).toBeOnTheScreen();
     expect(screen.queryByTestId('product-deferred-skeleton')).toBeNull();
     expect(ratingsMock).toHaveBeenCalledTimes(1);
+  });
+
+  describe('the [id] param is a listing URL segment', () => {
+    const SLUG_SEGMENT = `ferrari-f40-1-18-bburago-kirmizi-${PRODUCT_ID}`;
+
+    it.each([
+      ['a slug-uuid segment', SLUG_SEGMENT],
+      ['an upper-case uuid', PRODUCT_ID.toUpperCase()],
+      ['a stale slug', `old-title-${PRODUCT_ID}`],
+      ['an array param', [SLUG_SEGMENT, 'ignored']],
+    ])('%s: loads the product by the bare uuid, never the segment', async (_label, param) => {
+      mockRouteId = param;
+      getOneMock.mockResolvedValue({ data: { data: productFixture() } });
+      const queryClient = persistentClient();
+      renderWithProviders(<ProductDetailScreen />, { queryClient });
+
+      await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+      expect(getOneMock).toHaveBeenCalledTimes(1);
+      expect(getOneMock).toHaveBeenCalledWith(PRODUCT_ID);
+      expect(queryClient.getQueryData(qk.products.detail(PRODUCT_ID))).toBeTruthy();
+      await waitFor(() => expect(incrementViewMock).toHaveBeenCalledWith(PRODUCT_ID));
+      expect(ratingsMock).toHaveBeenCalledWith(PRODUCT_ID);
+    });
+
+    it('the actions use the parsed uuid: trade link, sub-routes and the owner edit link', async () => {
+      mockRouteId = SLUG_SEGMENT;
+      mockAuth = { isAuthenticated: true, user: { id: 'u9', membershipTier: 'premium' } as unknown as { id: string } };
+      getOneMock.mockResolvedValue({ data: { data: productFixture({ tradeAvailable: true }) } });
+      renderWithProviders(<ProductDetailScreen />);
+
+      await waitFor(() => expect(screen.getByTestId('product-detail-trade-button')).toBeOnTheScreen());
+      const { push } = jest.requireMock('expo-router').router;
+      fireEvent.press(screen.getByTestId('product-detail-trade-button'));
+      expect(push).toHaveBeenCalledWith(`/trade/new?targetProductId=${PRODUCT_ID}&targetSellerId=s1`);
+      for (const [route] of push.mock.calls) {
+        expect(route).not.toContain('ferrari');
+      }
+    });
+
+    it('share builds the canonical slug-uuid link from the loaded product', async () => {
+      mockRouteId = `stale-slug-${PRODUCT_ID}`;
+      const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction });
+      getOneMock.mockResolvedValue({ data: { data: productFixture({ title: 'Ferrari F40 Kırmızı' }) } });
+      renderWithProviders(<ProductDetailScreen />);
+
+      await waitFor(() => expect(screen.getByLabelText('Paylaş')).toBeOnTheScreen());
+      fireEvent.press(screen.getByLabelText('Paylaş'));
+      await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
+      const content = share.mock.calls[0]![0] as { message: string };
+      expect(content.message).toContain(`https://tarodan.com.tr/listings/ferrari-f40-kirmizi-${PRODUCT_ID}`);
+      expect(content.message).not.toContain('stale-slug');
+      share.mockRestore();
+    });
+
+    it.each([
+      ['garbage', 'garbage'],
+      ['a numeric id', '42'],
+      ['a truncated uuid', PRODUCT_ID.slice(0, -1)],
+      ['a missing param', undefined as unknown as string],
+    ])('%s: shows "not found" and makes no request', async (_label, param) => {
+      mockRouteId = param;
+      (productsApi.getMyById as jest.Mock).mockClear();
+      renderWithProviders(<ProductDetailScreen />);
+
+      expect(await screen.findByText('Ürün bulunamadı')).toBeOnTheScreen();
+      expect(getOneMock).not.toHaveBeenCalled();
+      expect(productsApi.getMyById).not.toHaveBeenCalled();
+      expect(incrementViewMock).not.toHaveBeenCalled();
+      expect(ratingsMock).not.toHaveBeenCalled();
+    });
   });
 });

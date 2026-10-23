@@ -1,9 +1,12 @@
 import { useLocalSearchParams } from 'expo-router';
+import { listingIdFromParam } from '@/lib/product/listingParam';
+import { ProductNotFound } from '@/components/product';
 import ListingForm from '@/components/listing/ListingForm';
 
-// İlan düzenleme ekranı. Form mantığı ortak <ListingForm> bileşeninde (create ile aynı).
+// Listing edit screen. The form logic is the shared <ListingForm> (same as create).
 export default function EditListingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const productId = Array.isArray(id) ? id[0] : id;
-  return <ListingForm mode="edit" productId={productId} />;
+  // `[id]` may be a `<slug>-<uuid>` segment: the form loads and saves by the uuid.
+  const productId = listingIdFromParam(id);
+  return productId ? <ListingForm mode="edit" productId={productId} /> : <ProductNotFound />;
 }
