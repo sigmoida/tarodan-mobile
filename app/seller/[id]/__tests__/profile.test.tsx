@@ -61,7 +61,7 @@ describe('satıcı profili', () => {
     expect(screen.getByText('Satış')).toBeTruthy();
     expect(screen.getByText('Takas')).toBeTruthy();
     expect(screen.getByText('Takipçi')).toBeTruthy();
-    expect(screen.queryByText(/4,5/)).toBeNull(); // the average is not in the header but in the reviews card
+    expect(screen.queryByText(/4[.,]5/)).toBeNull(); // the average is not in the header but in the reviews card
     expect(screen.getByText('3')).toBeTruthy(); // takipçi sayacı ızgarada
   });
 
