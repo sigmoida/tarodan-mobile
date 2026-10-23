@@ -3,6 +3,7 @@
  * fonksiyonu kullanır (DRY) — bu yüzden e-posta/davet/takip yolları da burada.
  */
 import { notificationRoute, toMobileRoute } from '../notificationRoute';
+import { LISTING_SLUG_MAX_LENGTH, listingPath } from '@/types';
 
 const LISTING_ID = '0b1e5c1a-7d2f-4e3a-9c4b-5d6e7f8a9b0c';
 
@@ -486,5 +487,77 @@ describe('toMobileRoute: listing URL segment', () => {
       PRODUCT,
     );
     expect(notificationRoute({ type: 'x', link: '/listings/garbage', data: {} })).toBeNull();
+  });
+});
+
+/**
+ * The in-app notification row as `GET /notifications` returns it: `link` is the API template
+ * (`notification-link.ts`: LISTING `/listings/{{productId}}`, UNAVAILABLE
+ * `/products/unavailable/{{productId}}`) and `data` keeps `productId`. The list, the push tap (flat
+ * payload, no link) and a link-only row must open the same screen for the same listing.
+ */
+describe('notificationRoute: listing rows built from the API templates', () => {
+  const PRODUCT = `/product/${LISTING_ID}`;
+  const UNAVAILABLE = `/products/unavailable/${LISTING_ID}`;
+
+  it.each([
+    'price_drop',
+    'seller_new_listing',
+    'product_liked',
+    'wishlist_sold',
+    'listing_expiring',
+    'listing_views_milestone',
+    'product_approved',
+  ])('%s: in-app row, push payload and link-only row agree', (type) => {
+    const link = `/listings/${LISTING_ID}`;
+    expect(notificationRoute({ type, link, data: { productId: LISTING_ID } })).toBe(PRODUCT);
+    expect(notificationRoute({ type, data: { productId: LISTING_ID, type } })).toBe(PRODUCT);
+    expect(notificationRoute({ type, link, data: {} })).toBe(PRODUCT);
+  });
+
+  it.each(['order_cancelled_out_of_stock', 'offer_cancelled_out_of_stock'])(
+    '%s: in-app row, push payload and link-only row open the unavailable screen',
+    (type) => {
+      const link = `/products/unavailable/${LISTING_ID}`;
+      expect(notificationRoute({ type, link, data: { productId: LISTING_ID } })).toBe(UNAVAILABLE);
+      expect(notificationRoute({ type, data: { productId: LISTING_ID, type } })).toBe(UNAVAILABLE);
+      expect(notificationRoute({ type, link, data: {} })).toBe(UNAVAILABLE);
+    },
+  );
+
+  it('back_in_stock (API template LISTING) opens the unavailable screen from every shape', () => {
+    const type = 'back_in_stock';
+    expect(notificationRoute({ type, link: `/listings/${LISTING_ID}`, data: { productId: LISTING_ID } })).toBe(
+      UNAVAILABLE,
+    );
+    expect(notificationRoute({ type, data: { productId: LISTING_ID } })).toBe(UNAVAILABLE);
+  });
+
+  it('a percent-encoded productId in the template link still maps (the API encodes the token)', () => {
+    expect(notificationRoute({ type: 'price_drop', link: `/listings/${encodeURIComponent(LISTING_ID)}`, data: {} })).toBe(
+      PRODUCT,
+    );
+  });
+});
+
+/**
+ * `toMobileRoute` refuses a path segment longer than 128 characters. The canonical segment is at
+ * most `LISTING_SLUG_MAX_LENGTH` + `-` + a 36-character uuid, so a longer slug limit in the shared
+ * helper would silently break the longest canonical links on mobile.
+ */
+describe('toMobileRoute: the longest canonical listing link', () => {
+  it('fits the segment cap', () => {
+    expect(LISTING_SLUG_MAX_LENGTH + 1 + LISTING_ID.length).toBeLessThanOrEqual(128);
+  });
+
+  it.each([
+    ['many short words', 'kelime '.repeat(60)],
+    ['one word longer than the limit', 'a'.repeat(200)],
+    ['Turkish letters that expand nowhere', 'Çok Güzel Şık Öğrenci Işıklı Üretim '.repeat(6)],
+  ])('%s resolves to the product screen', (_label, title) => {
+    const path = listingPath({ id: LISTING_ID, title });
+    expect(path.length).toBeGreaterThan(`/listings/${LISTING_ID}`.length + LISTING_SLUG_MAX_LENGTH - 10);
+    expect(toMobileRoute(path)).toBe(`/product/${LISTING_ID}`);
+    expect(toMobileRoute(`/en${path}/edit`)).toBe(`/listing/${LISTING_ID}/edit`);
   });
 });
