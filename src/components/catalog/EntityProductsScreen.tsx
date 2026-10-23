@@ -14,9 +14,9 @@ import { useEntityProducts, type CatalogEntityKind } from './useEntityProducts';
 const { spacing } = theme;
 
 /**
- * Marka / üretici detayı (web `ManufacturerDetailClient`): PageShell (ad üst barda) + logo ve "N Aktif
- * ilanlar" muted satırı, altında üreticinin ürünleri tek ürün ızgarasında. `/brands/:slug` ve
- * `/ureticiler/:slug` aynı ekranı kullanır; fark yalnız API ve boş durum metni.
+ * Brand / manufacturer detail (web `ManufacturerDetailClient`): PageShell (name in the top bar) + logo and
+ * the muted "N active listings" line, with the entity's products below in one product grid.
+ * `/brands/:slug` and `/ureticiler/:slug` share this screen; only the API and the empty-state copy differ.
  * Floating bottom tab bar (`withStackTabBar`) like the category screen: one scroll handler collapses it
  * (`useTabBarPageScroll`) and the grid keeps `useTabBarInset()` as bottom padding, so rows and the
  * list-placed empty / error states clear the bar.
