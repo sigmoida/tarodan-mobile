@@ -18,11 +18,12 @@
 //   1. Firebase / FCM: the staging package lives in a SEPARATE Firebase project
 //      (tarodan-staging; production is tarodan-prod) with its own google-services.json
 //      (see `resolveStagingGoogleServicesFile` below).
-//      Paket adı dosyada yoksa Gradle "No matching client found" ile düşer.
+//      If the package is missing from the file, Gradle fails with "No matching client found".
 //   2. Google Cloud OAuth: separate Android clients per package (package +
 //      SHA-1) in project tarodan-app. Without them the build passes but Google
 //      sign-in fails with DEVELOPER_ERROR, so EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED
-//      is "true" only in the profiles whose package has its clients (eas.json).
+//      is "true" only in the profiles whose package has its clients AND whose
+//      real-device check passed (eas.json; production waits for that check).
 // Adım adım: docs/ANDROID_RELEASE.md
 
 const fs = require('fs');
@@ -384,29 +385,28 @@ module.exports = ({ config: baseConfig }) => {
     return config;
   }
 
-  // `associatedDomains` staging'e GİRMEZ. İki sebep, ikisi de bundle id
-  // sonekinden çıkıyor:
-  //   1. Yayındaki AASA yalnız `P2628CQK26.com.tarodan.app`'i talep ediyor;
-  //      `.staging` orada olmadığı için iOS doğrulamayı zaten geçemez. Yani
-  //      entitlement'ı taşımanın bir faydası yok.
-  //   2. Staging App ID'sinin provisioning profile'ında Associated Domains
-  //      yeteneği açık değil ve entitlement istendiği anda imzalama düşüyor
-  //      ("doesn't support the Associated Domains capability" — 2026-08-26).
-  // Staging'de de universal link isteniyorsa iki iş birlikte yapılmalı:
-  // AASA'ya `.staging` appID'si eklenmeli VE portal'da yetenek açılmalı.
+  // `associatedDomains` does NOT go into staging, for two reasons, both from the
+  // bundle id suffix:
+  //   1. The live AASA claims only `P2628CQK26.com.tarodan.app`; `.staging` is not
+  //      there, so iOS verification fails anyway and the entitlement is useless.
+  //   2. The staging App ID's provisioning profile does not have the Associated
+  //      Domains capability, and signing fails as soon as the entitlement is asked
+  //      for ("doesn't support the Associated Domains capability", 2026-08-26).
+  // For universal links on staging too, do both together: add the `.staging`
+  // appID to the AASA AND enable the capability in the portal.
   const { associatedDomains: _productionOnly, ...stagingIos } = config.ios;
 
   return {
     ...config,
-    // Ana ekranda kısa ad ("Tarodan (Staging)" iPhone'da "Tarodan(St…" diye kesiliyordu).
+    // Short home-screen name ("Tarodan (Staging)" was cut to "Tarodan(St…" on iPhone).
     name: 'Staging',
     ios: {
       ...stagingIos,
       bundleIdentifier: `${config.ios.bundleIdentifier}${STAGING_SUFFIX}`,
     },
-    // Android: iOS ile aynı model — staging paketi ayrı bir uygulama
-    // (`com.tarodan.app.staging`) ve yalnız staging alan adındaki App Links'i
-    // yakalar. Paket adı paths.json `stagingAndroidPackage`'dan okunur (tek kaynak).
+    // Android: the same model as iOS. The staging package is a separate app
+    // (`com.tarodan.app.staging`) and catches App Links on the staging domain only.
+    // The package name comes from paths.json `stagingAndroidPackage` (one source).
     android: {
       ...config.android,
       package: stagingAndroidPackage,
