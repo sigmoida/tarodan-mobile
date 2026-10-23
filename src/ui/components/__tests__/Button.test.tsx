@@ -1,14 +1,14 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Button, theme } from '@/ui';
+import { pressableStyle } from '@/test-utils';
 import { touchSlop } from '../Button';
 
-const buttonStyle = () => {
-  const btn = screen.getByRole('button');
-  const style = btn.props.style;
-  return StyleSheet.flatten(typeof style === 'function' ? style({ pressed: false }) : style);
-};
+const buttonStyle = (pressed = false) => pressableStyle(screen.getByRole('button'), pressed);
+
+// `jest.replaceProperty(Platform, 'OS', ...)` in a test is undone after it.
+afterEach(() => jest.restoreAllMocks());
 
 describe('Button (web @tarodan/ui ölçüleri)', () => {
   it.each([
@@ -45,11 +45,43 @@ describe('Button (web @tarodan/ui ölçüleri)', () => {
   });
 
   it('web varyantlarının hepsi çizilir', () => {
-    for (const v of ['secondary', 'outline', 'ghost', 'danger', 'success', 'warning', 'link'] as const) {
+    for (const v of ['secondary', 'outline', 'outline-primary', 'ghost', 'danger', 'success', 'warning', 'link'] as const) {
       const { unmount } = render(<Button variant={v} title={v} />);
       expect(screen.getByText(v)).toBeTruthy();
       unmount();
     }
+  });
+
+  it('outline-primary: transparent, primary-600 border, primary-700 label', () => {
+    render(<Button variant="outline-primary" title="Sepete Ekle" icon="shopping-cart" />);
+    expect(buttonStyle()).toMatchObject({
+      backgroundColor: 'transparent',
+      borderColor: theme.colors.primary[600],
+      borderWidth: 1,
+      opacity: 1,
+    });
+    // 700, not 600: the AA contrast choice web made (600 on white is 3.56:1).
+    expect(StyleSheet.flatten(screen.getByText('Sepete Ekle').props.style).color).toBe(theme.colors.primary[700]);
+    expect(screen.getByTestId('icon-shopping-cart').props.stroke).toBe(theme.colors.primary[700]);
+  });
+
+  it('a variant without a pressed fill still fades on the iOS press', () => {
+    render(<Button title="Kaydet" />);
+    expect(buttonStyle(true).opacity).toBe(0.85);
+  });
+
+  it('outline-primary press: web active:bg-primary-100 on iOS, the ripple alone on Android', () => {
+    render(<Button variant="outline-primary" title="Sepete Ekle" />);
+    expect(buttonStyle(true).backgroundColor).toBe(theme.colors.primary[100]);
+    // The tint is the feedback: border and foreground keep full opacity (their AA contrast).
+    expect(buttonStyle(true).opacity).toBe(1);
+    jest.replaceProperty(Platform, 'OS', 'android');
+    expect(buttonStyle(true).backgroundColor).toBe('transparent');
+  });
+
+  it('outline-primary dims like the other variants when disabled', () => {
+    render(<Button variant="outline-primary" title="Sepete Ekle" disabled />);
+    expect(buttonStyle().opacity).toBe(0.5);
   });
 
   it('44pt altındaki görsel ölçüde dokunma alanı hitSlop ile 44e tamamlanır', () => {

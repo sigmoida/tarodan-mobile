@@ -24,9 +24,10 @@ const { colors } = theme;
  * stock left) dims it under the shared "sold out" overlay, like web's card. The heart removes the
  * favorite. The cart button follows the shared card rule (`productCardAction`, same as web): only
  * for another seller's active, in-stock listing, and it is the shared listing-card toggle
- * (`ProductCardCartButton`: add, or remove when already in the cart). Otherwise the slot is empty,
- * like web. The heart and cart are SIBLINGS of the navigation Pressable, not nested in it (a nested
- * pressable can swallow the parent's touch).
+ * (`ProductCardCartButton`: add, or remove when already in the cart), with web's Favorites colours
+ * (`placement="favorites"`: primary, then danger; the listing card uses the outline). Otherwise the
+ * slot is empty, like web. The heart and cart are SIBLINGS of the navigation Pressable, not nested
+ * in it (a nested pressable can swallow the parent's touch).
  */
 export const FavoriteCard = React.memo(function FavoriteCard({
   item,
@@ -89,7 +90,7 @@ export const FavoriteCard = React.memo(function FavoriteCard({
               testID={`favorite-remove-${item.productId}`}
               onPress={() => onRemove(item.productId)}
             />
-            {showCart ? <ProductCardCartButton listing={product} presentation="icon" /> : null}
+            {showCart ? <ProductCardCartButton listing={product} presentation="icon" placement="favorites" /> : null}
           </View>
         </View>
       </View>

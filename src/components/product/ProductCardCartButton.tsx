@@ -9,13 +9,29 @@ import type { CartListing } from '@/lib/cart/cartItemFromListing';
 export type CardActionPresentation = 'icon' | 'text';
 
 /**
+ * Where the toggle sits, which picks its colours (web `ProductCardCartButton`):
+ * - `card`: the listing card. Primary outline to add, filled primary once in the cart.
+ * - `favorites`: the Favorites row, web's `full` footer button. Primary to add, danger once in
+ *   the cart (web keeps that mapping there).
+ */
+export type CartButtonPlacement = 'card' | 'favorites';
+
+const VARIANTS = {
+  card: { add: 'outline-primary', remove: 'primary' },
+  favorites: { add: 'primary', remove: 'danger' },
+} as const;
+
+/**
  * The listing card's cart toggle (web `ProductCardCartButton`): "Sepete Ekle", or "Sepetten
  * Çıkar" when the listing is already in the cart (D10).
  *
+ * - Look (web parity, `placement`): on a card a primary outline (`outline-primary`) while the listing is not in the cart, filled `primary` once it is; in
+ *   Favorites primary, then danger. The glyph is the outline icon to add and the solid icon once in
+ *   the cart (like web), so the state is carried by shape as well as colour; on the card it also
+ *   follows the fill (outline glyph on the outline button, solid on the filled one).
  * - `icon`: the icon-only toggle names the listing and what a press does
- *   (`product.cardAction.*Aria`, like web), with a solid icon and the danger colour once in the
- *   cart, so colour is not the only cue. Web adds `aria-pressed`; mobile does not pair a changing
- *   label with `selected` (VoiceOver would read "remove ..., selected").
+ *   (`product.cardAction.*Aria`, like web). Web adds `aria-pressed`; mobile does not pair a
+ *   changing label with `selected` (VoiceOver would read "remove ..., selected").
  * - `text`: the same toggle with its visible label.
  *
  * While a member's write runs the button looks busy and ignores presses (`useCartToggle`).
@@ -23,14 +39,16 @@ export type CardActionPresentation = 'icon' | 'text';
 export function ProductCardCartButton({
   listing,
   presentation,
+  placement = 'card',
 }: {
   listing: CartListing;
   presentation: CardActionPresentation;
+  placement?: CartButtonPlacement;
 }) {
   const { t } = useTranslation();
   const cart = useCartToggle(listing);
   const { inCart, isPending } = cart;
-  const variant = inCart ? 'danger' : 'primary';
+  const variant = inCart ? VARIANTS[placement].remove : VARIANTS[placement].add;
   const iconVariant = inCart ? 'solid' : 'outline';
   const testID = `product-card-cart-${listing.id}`;
   const busyStyle = isPending ? styles.busy : undefined;

@@ -16,11 +16,12 @@ import { useButtonGroup } from '../lib/buttonGroup';
 import { androidRipple, rippleClip, showPressedStyle } from '../lib/pressableFeedback';
 import { LoadingIndicator } from '../loading/LoadingIndicator';
 
-/** Web `@tarodan/ui` Button varyantları (adlar aynı). */
+/** Web `@tarodan/ui` Button variants, same names as web. */
 export type ButtonVariant =
   | 'primary'
   | 'secondary'
   | 'outline'
+  | 'outline-primary'
   | 'ghost'
   | 'danger'
   | 'success'
@@ -59,12 +60,27 @@ export interface ButtonProps extends Omit<PressableProps, 'style'> {
 const { colors, radiusRole, spacing, typography, controlHeight, iconSize, minTouchTarget } =
   theme;
 
-/** Web: `bg-* text-*` (+ outline için `border-border`). `text` = etiket/ikon rengi. */
-const variantStyle: Record<ButtonVariant, { bg: string; text: string; border?: string }> = {
+/**
+ * Web: `bg-* text-*` (+ the outline variants' border). `text` = the label and icon colour.
+ * `pressedBg` = web `active:bg-*`, drawn on the iOS press (Android shows the ripple).
+ */
+const variantStyle: Record<
+  ButtonVariant,
+  { bg: string; text: string; border?: string; pressedBg?: string }
+> = {
   primary: { bg: colors.primary[600], text: colors.text.inverted },
   secondary: { bg: colors.surface.alt, text: colors.text.heading },
-  // Beyaz zemin (web outline = bg-white + border): gri alt çubuk/kart üstünde de beyaz görünür.
+  // White fill (web outline = bg-white + border): stays white on a grey bar or card too.
   outline: { bg: colors.surface.elevated, text: colors.text.body, border: colors.border.DEFAULT },
+  // Web `outline-primary`: the primary-toned outline, e.g. the card's "add to cart" (filled
+  // `primary` once the listing is in the cart). The label is primary-700, not 600: 600 on white is
+  // 3.56:1, under WCAG AA 4.5:1; 700 is 5.18:1. Transparent like web (not `outline`'s white).
+  'outline-primary': {
+    bg: 'transparent',
+    text: colors.primary[700],
+    border: colors.primary[600],
+    pressedBg: colors.primary[100],
+  },
   ghost: { bg: 'transparent', text: colors.text.body },
   danger: { bg: colors.danger[600], text: colors.text.inverted },
   success: { bg: colors.success[600], text: colors.text.inverted },
@@ -143,10 +159,13 @@ export const Button: React.FC<ButtonProps> = ({
         styles.base,
         rippleClip(),
         {
-          backgroundColor: vs.bg,
+          backgroundColor: showPressedStyle(pressed) && vs.pressedBg ? vs.pressedBg : vs.bg,
           borderColor: vs.border ?? 'transparent',
           borderWidth: vs.border ? 1 : 0,
-          opacity: disabled || isLoading ? 0.5 : showPressedStyle(pressed) ? 0.85 : 1,
+          // A variant with its own pressed fill (web `active:bg-*`) keeps full opacity, so the
+          // border and label stay at their contrast; the others fade on the iOS press.
+          opacity:
+            disabled || isLoading ? 0.5 : showPressedStyle(pressed) && !vs.pressedBg ? 0.85 : 1,
           alignSelf: fullWidth || grouped ? 'stretch' : 'flex-start',
         },
         isLink
