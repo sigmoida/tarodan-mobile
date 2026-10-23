@@ -5,9 +5,9 @@
  * good on the viewer's own listing.
  */
 import React from 'react';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { toast } from '@/ui';
-import { renderWithProviders } from '@/test-utils';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { theme, toast } from '@/ui';
+import { pressableStyle, renderWithProviders } from '@/test-utils';
 import { useCartStore } from '@/stores/cartStore';
 import { useCartWritesStore } from '@/stores/cartWritesStore';
 import { captureException } from '@/services/sentry';
@@ -58,6 +58,38 @@ const listing: ProductCardProduct = {
 };
 
 const cartButton = () => screen.queryByTestId('product-card-cart-p1');
+
+/** The cart toggle's box (background, border) and its cart glyph's colours. */
+function cartLook() {
+  const button = cartButton()!;
+  const box = pressableStyle(button);
+  const glyph = within(button).getByTestId('icon-shopping-cart').props;
+  return {
+    backgroundColor: box.backgroundColor,
+    borderColor: box.borderColor,
+    borderWidth: box.borderWidth,
+    glyphFill: glyph.fill,
+    glyphStroke: glyph.stroke,
+  };
+}
+
+const { colors } = theme;
+/** Web `outline-primary`: not in the cart. Primary-600 border, outline glyph in primary-700. */
+const NOT_IN_CART_LOOK = {
+  backgroundColor: 'transparent',
+  borderColor: colors.primary[600],
+  borderWidth: 1,
+  glyphFill: 'none',
+  glyphStroke: colors.primary[700],
+};
+/** Web `primary`: in the cart. Solid glyph on the filled button. */
+const IN_CART_LOOK = {
+  backgroundColor: colors.primary[600],
+  borderColor: 'transparent',
+  borderWidth: 0,
+  glyphFill: colors.text.inverted,
+  glyphStroke: undefined,
+};
 
 /** The card root measured at `width` (its `onLayout`). */
 function layoutCard(width: number) {
@@ -519,6 +551,23 @@ describe('ProductCard action: text or icon-only by the card width', () => {
     layoutCard(containers.cardWide + 40);
     fireEvent.press(screen.getByText('Sepete Ekle'));
     await waitFor(() => expect(screen.getByText('Sepetten Çıkar')).toBeTruthy());
+  });
+
+  it.each([
+    ['icon-only', containers.cardWide - 1],
+    ['text', containers.cardWide],
+  ])('%s toggle: primary outline until added, filled primary once in the cart (web parity)', async (_name, width) => {
+    renderWithProviders(<ProductCard product={listing} />);
+    layoutCard(width);
+    expect(cartLook()).toEqual(NOT_IN_CART_LOOK);
+
+    fireEvent.press(cartButton()!);
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Ürün sepete eklendi'));
+    expect(cartLook()).toEqual(IN_CART_LOOK);
+
+    fireEvent.press(cartButton()!);
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Ürün sepetten çıkarıldı'));
+    expect(cartLook()).toEqual(NOT_IN_CART_LOOK);
   });
 
   it('list: icon-only at the end of the price line (web below xs)', () => {

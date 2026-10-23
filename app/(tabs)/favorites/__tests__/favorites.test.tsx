@@ -4,9 +4,9 @@
  * Sadece MOBİL-UI: render/durum gösterimi + navigasyon wiring.
  */
 import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
-import { toast } from '@/ui';
-import { renderWithProviders } from '@/test-utils';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react-native';
+import { theme, toast } from '@/ui';
+import { pressableStyle, renderWithProviders } from '@/test-utils';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
@@ -150,8 +150,18 @@ describe('J57 · favoriler ekranı — dolu liste', () => {
   });
 
   it('the shared cart toggle (web parity): adds when not in the cart, removes when it is', () => {
+    /** Box fill plus the glyph colours of the row's cart toggle. */
+    const cartLook = () => {
+      const button = screen.getByTestId('product-card-cart-p1');
+      const glyph = within(button).getByTestId('icon-shopping-cart').props;
+      return { bg: pressableStyle(button).backgroundColor, fill: glyph.fill, stroke: glyph.stroke };
+    };
+    const { colors } = theme;
+
     mockState.items = [makeItem('p1')];
     const first = renderWithProviders(<FavoritesScreen />);
+    // Web Favorites keeps primary to add and danger to remove (not the listing card's outline).
+    expect(cartLook()).toEqual({ bg: colors.primary[600], fill: 'none', stroke: colors.text.inverted });
     fireEvent.press(screen.getByTestId('product-card-cart-p1'));
     expect(mockState.addItem).toHaveBeenCalledWith(expect.objectContaining({ productId: 'p1' }));
     first.unmount();
@@ -159,6 +169,7 @@ describe('J57 · favoriler ekranı — dolu liste', () => {
     mockState.isInCart.mockReturnValue(true);
     mockState.cartItems = [{ id: 'c1', productId: 'p1', quantity: 1 }];
     renderWithProviders(<FavoritesScreen />);
+    expect(cartLook()).toEqual({ bg: 'transparent', fill: colors.danger[600], stroke: undefined });
     fireEvent.press(screen.getByTestId('product-card-cart-p1'));
     expect(mockState.removeByProductId).toHaveBeenCalledWith('p1');
     expect(pushMock).not.toHaveBeenCalledWith('/cart');
