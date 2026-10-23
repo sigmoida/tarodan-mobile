@@ -1,5 +1,5 @@
-// Vendored copy of tarodan-app `packages/types/src/slug.ts` (feat/api-listing-slug-param
-// c455c1be6). Everything below this header matches the source; change it there first.
+// Vendored copy of tarodan-app `packages/types/src/slug.ts` (development
+// a90424c34). Everything below this header matches the source; change it there first.
 // Contract: tarodan-ops ADR 0017 (listing URL `/listings/<slug>-<uuid>`); the API takes the same segment.
 
 /**
