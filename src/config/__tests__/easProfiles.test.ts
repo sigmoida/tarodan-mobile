@@ -9,6 +9,9 @@
  *   staging OTA'sı Maestro build'ine, Maestro OTA'sı staging'e karışmaz.
  * - `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` Google Cloud Android OAuth istemcisi
  *   hazır olana kadar tüm mağaza/dağıtım profillerinde "false".
+ * - Google client ids come from the Google Cloud project `tarodan-app`
+ *   (1048836099670): one web client for every profile, and one iOS client per
+ *   bundle (production `com.tarodan.app`, staging `com.tarodan.app.staging`).
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -147,6 +150,47 @@ describe('CI workflow\'ları — Maestro kapısını taşımaz', () => {
       expect(code).not.toMatch(/EXPO_PUBLIC_MAESTRO/);
     },
   );
+});
+
+// Public OAuth client ids (not secrets) of the Google Cloud project `tarodan-app`
+// (1048836099670). The API accepts them as token audiences; the old project
+// 243308404313 stays accepted there for app versions already in the stores.
+// The iOS URL scheme is derived from the iOS id in app.config.js
+// (__tests__/app.config.test.ts pins that per profile).
+const GOOGLE_PROJECT = '1048836099670';
+const GOOGLE_WEB_CLIENT_ID = '1048836099670-5kdeenimv0bvj4plrrmeq2ue8p2284t8.apps.googleusercontent.com';
+const GOOGLE_IOS_CLIENT_ID = {
+  production: '1048836099670-vg49irvqvbiqrti1natihhpjlra2to5o.apps.googleusercontent.com',
+  staging: '1048836099670-cv0sohq8pdl7qksaq7fongauhga7705q.apps.googleusercontent.com',
+};
+
+describe('eas.json — Google client ids (project tarodan-app)', () => {
+  it.each(['preview', 'staging', 'production', 'maestro'])(
+    '%s uses the tarodan-web client as webClientId (the token audience)',
+    (name) => {
+      expect(resolvedEnv(name).EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID).toBe(GOOGLE_WEB_CLIENT_ID);
+    },
+  );
+
+  it('production uses the iOS client of com.tarodan.app', () => {
+    expect(resolvedEnv('production').EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID).toBe(GOOGLE_IOS_CLIENT_ID.production);
+  });
+
+  // These profiles set EXPO_PUBLIC_ENVIRONMENT=preview, so app.config.js builds the
+  // com.tarodan.app.staging bundle, which has its own iOS client.
+  it.each(['preview', 'staging', 'maestro'])('%s uses the iOS client of com.tarodan.app.staging', (name) => {
+    expect(resolvedEnv(name).EXPO_PUBLIC_ENVIRONMENT).toBe('preview');
+    expect(resolvedEnv(name).EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID).toBe(GOOGLE_IOS_CLIENT_ID.staging);
+  });
+
+  it('no profile points at another Google Cloud project', () => {
+    for (const name of Object.keys(eas.build)) {
+      const env = resolvedEnv(name);
+      for (const key of Object.keys(env).filter((k) => k.startsWith('EXPO_PUBLIC_GOOGLE_') && k.endsWith('_CLIENT_ID'))) {
+        expect({ name, key, project: env[key]!.split('-')[0] }).toEqual({ name, key, project: GOOGLE_PROJECT });
+      }
+    }
+  });
 });
 
 describe('eas.json — Google Android bayrağı', () => {
