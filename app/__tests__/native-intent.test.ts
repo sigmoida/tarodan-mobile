@@ -50,6 +50,44 @@ describe('redirectSystemPath: listing URL segments (ADR 0017)', () => {
   });
 });
 
+/**
+ * The URL shapes the OS hands the hook beyond the canonical one: Android App Links pass the URL as
+ * typed (a trailing slash survives), the custom scheme comes with two or three slashes, share sheets
+ * and campaigns append a query, and a pre-ADR-0017 `/listings/<uuid>/<anything>` link is still in
+ * old shares. Cold start and warm open must agree on every one.
+ */
+describe('redirectSystemPath: listing link shapes from the OS', () => {
+  const SEGMENT = `ferrari-f40-${LISTING_ID}`;
+  const PRODUCT = `/product/${LISTING_ID}`;
+
+  it.each([
+    ['Android App Link with a trailing slash', `https://tarodan.com.tr/listings/${SEGMENT}/`],
+    ['Android App Link, English locale, trailing slash', `https://tarodan.com.tr/en/listings/${SEGMENT}/`],
+    ['www host', `https://www.tarodan.com.tr/listings/${SEGMENT}`],
+    ['custom scheme with a trailing slash', `tarodan://listings/${SEGMENT}/`],
+    ['custom scheme with three slashes', `tarodan:///listings/${SEGMENT}`],
+    ['a campaign query', `https://tarodan.com.tr/listings/${SEGMENT}?utm_source=whatsapp&utm_medium=share`],
+    ['a fragment after the query', `https://tarodan.com.tr/listings/${SEGMENT}?ref=share#reviews`],
+    ['an un-encoded Turkish slug', `https://tarodan.com.tr/listings/kırmızı-çelik-${LISTING_ID}`],
+    ['an old uuid-first link with a trailing word', `https://tarodan.com.tr/listings/${LISTING_ID}/eski-baslik`],
+    ['an upper-case bare uuid with a trailing slash', `https://tarodan.com.tr/listings/${LISTING_ID.toUpperCase()}/`],
+  ])('%s opens the product screen with the bare uuid', (_label, url) => {
+    expect(call(url)).toBe(PRODUCT);
+    expect(call(url, false)).toBe(PRODUCT);
+  });
+
+  it('the edit link survives a trailing slash and a locale prefix', () => {
+    expect(call(`https://tarodan.com.tr/en/listings/${SEGMENT}/edit/`)).toBe(`/listing/${LISTING_ID}/edit`);
+    expect(call(`tarodan://listings/${SEGMENT}/edit`, false)).toBe(`/listing/${LISTING_ID}/edit`);
+  });
+
+  it('a listing link on a warm open is a stack push, never the tab dismiss path', () => {
+    mockDismissTo.mockClear();
+    call(`https://tarodan.com.tr/listings/${SEGMENT}/`, false);
+    expect(mockDismissTo).not.toHaveBeenCalled();
+  });
+});
+
 describe('redirectSystemPath — web yolu → mobil rota', () => {
   it('https universal link\'i mobil rotaya çevirir', () => {
     expect(call(`https://tarodan.com.tr/listings/${LISTING_ID}`)).toBe(`/product/${LISTING_ID}`);
