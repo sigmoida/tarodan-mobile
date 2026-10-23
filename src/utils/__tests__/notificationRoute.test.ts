@@ -249,8 +249,8 @@ it('offer_counter gönderilen teklifler sekmesine gider', () => {
 it('stok bitmiş ürün bildirimi "artık satışta değil" ekranına gider', () => {
   // Ürün detayı yerine bu ekran doğru hedef; bilgi YALNIZ tipte var.
   for (const type of ['order_cancelled_out_of_stock', 'offer_cancelled_out_of_stock', 'back_in_stock']) {
-    expect(notificationRoute({ type, link: '/listings/p1', data: { productId: 'p1' } })).toBe(
-      '/products/unavailable/p1',
+    expect(notificationRoute({ type, link: `/listings/${LISTING_ID}`, data: { productId: LISTING_ID } })).toBe(
+      `/products/unavailable/${LISTING_ID}`,
     );
   }
 });
@@ -466,7 +466,18 @@ describe('toMobileRoute: listing URL segment', () => {
       `/products/unavailable/${LISTING_ID}`,
     );
     expect(toMobileRoute('/products/unavailable/garbage')).toBeNull();
-    expect(toMobileRoute('/products/unavailable')).toBe('/products/unavailable');
+    expect(toMobileRoute('/products/unavailable')).toBeNull();
+    expect(toMobileRoute('/products')).toBeNull();
+    expect(toMobileRoute(`/products/other/${LISTING_ID}`)).toBeNull();
+  });
+
+  it('an out-of-stock notification opens the unavailable screen with the lower-case uuid only', () => {
+    const type = 'back_in_stock';
+    expect(notificationRoute({ type, data: { productId: LISTING_ID.toUpperCase() } })).toBe(
+      `/products/unavailable/${LISTING_ID}`,
+    );
+    // No uuid: not the unavailable screen; the generic resolution (here the product screen) decides.
+    expect(notificationRoute({ type, data: { productId: 'garbage' } })).toBe('/product/garbage');
   });
 
   it('a notification link with a slug-uuid path opens the product screen', () => {

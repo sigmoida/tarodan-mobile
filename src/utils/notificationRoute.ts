@@ -184,7 +184,8 @@ export function toMobileRoute(link: string): string | null {
     }
     // `/products/unavailable/<segment>`: the listing uuid is taken out like `/listings/<segment>`.
     case 'products': {
-      if (seg[1] !== 'unavailable' || !seg[2]) return path;
+      // The only mobile `/products` route is `products/unavailable/[productId]`: anything else maps to nothing.
+      if (seg[1] !== 'unavailable' || !seg[2]) return null;
       const listingId = listingIdFromParam(seg[2]);
       return listingId ? `/products/unavailable/${listingId}` : null;
     }
@@ -344,7 +345,8 @@ export function notificationRoute(n: NotificationLike | null | undefined): strin
   // Stok kalmayan ürün: `/product/:id` yerine "artık satışta değil" ekranı.
   // Kimlik aynı, hedefi ayıran tek sinyal tip — bu yüzden kimliklerden önce.
   if (n?.type && OUT_OF_STOCK_TYPES.has(n.type)) {
-    const pid = safeId(d.productId ?? d.product_id);
+    // Same rule as the `/products/unavailable/<segment>` link: the listing uuid, or no target here.
+    const pid = listingIdFromParam(safeId(d.productId ?? d.product_id));
     if (pid) return `/products/unavailable/${pid}`;
   }
 

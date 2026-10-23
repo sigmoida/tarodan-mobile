@@ -5,7 +5,7 @@
  * Backend stok/satın alma mantığı backend-only.
  */
 import React from "react";
-import { screen, fireEvent, waitFor } from "@testing-library/react-native";
+import { screen, fireEvent } from "@testing-library/react-native";
 import { renderWithProviders } from "@/test-utils";
 
 const PRODUCT_ID = "0b1e5c1a-7d2f-4e3a-9c4b-5d6e7f8a9b0c";
@@ -177,6 +177,7 @@ describe("J52 · Stok-yok ekranı", () => {
     renderWithProviders(<ProductUnavailableScreen />);
 
     expect(await screen.findByText("Ürün bulunamadı")).toBeOnTheScreen();
+    expect(screen.getByTestId("screen-header-back")).toBeOnTheScreen();
     expect(getOne).not.toHaveBeenCalled();
     expect(getSimilar).not.toHaveBeenCalled();
   });
