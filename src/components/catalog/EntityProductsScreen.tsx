@@ -5,6 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { Text, theme } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { ProductGrid } from '@/components/product';
+import { withStackTabBar } from '@/components/shell/StackTabBar';
+import { useTabBarPageScroll } from '@/components/shell/TabBarCollapse';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { EntityLogo } from './EntityLogo';
 import { useEntityProducts, type CatalogEntityKind } from './useEntityProducts';
 
@@ -14,20 +17,28 @@ const { spacing } = theme;
  * Marka / üretici detayı (web `ManufacturerDetailClient`): PageShell (ad üst barda) + logo ve "N Aktif
  * ilanlar" muted satırı, altında üreticinin ürünleri tek ürün ızgarasında. `/brands/:slug` ve
  * `/ureticiler/:slug` aynı ekranı kullanır; fark yalnız API ve boş durum metni.
+ * Floating bottom tab bar (`withStackTabBar`) like the category screen: one scroll handler collapses it
+ * (`useTabBarPageScroll`) and the grid keeps `useTabBarInset()` as bottom padding, so rows and the
+ * list-placed empty / error states clear the bar.
  */
-export function EntityProductsScreen({ kind }: { kind: CatalogEntityKind }) {
+function EntityProductsBody({ kind }: { kind: CatalogEntityKind }) {
   const { t } = useTranslation();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const f = useEntityProducts(kind, slug);
   const { entity } = f;
   const isBrand = kind === 'brand';
+  const page = useTabBarPageScroll();
+  const tabInset = useTabBarInset();
 
   return (
     <PageShell
       title={entity?.name || (isBrand ? t('product.brand') : t('product.manufacturer'))}
       mode="list"
+      scroll={page}
     >
       <ProductGrid
+        scroll={page}
+        bottomInset={tabInset}
         items={f.products}
         loading={f.loading}
         refreshing={f.refreshing}
@@ -56,6 +67,8 @@ export function EntityProductsScreen({ kind }: { kind: CatalogEntityKind }) {
     </PageShell>
   );
 }
+
+export const EntityProductsScreen = withStackTabBar(EntityProductsBody);
 
 const styles = StyleSheet.create({
   header: { gap: spacing[2] },

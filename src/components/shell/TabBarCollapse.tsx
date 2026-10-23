@@ -23,9 +23,10 @@ import {
 } from './tabBarScroll';
 
 /**
- * Alt menü daralma sinyalinin TEK kaynağı: tab layout'ta bir paylaşılan değer (`collapsed`);
- * sekme köklerinin kaydırılabilir listeleri `useTabBarScrollHandler` ile yazar, `AppTabBar` okur.
- * Menülü yığın ekranlarında (`withStackTabBar`: İlanlar, Kategori) ekrana özel ayrı bir sağlayıcı var.
+ * The ONE source of the bottom bar collapse signal: a shared value (`collapsed`) in the tab layout;
+ * the scrollable lists of the tab roots write it through `useTabBarScrollHandler`, `AppTabBar` reads it.
+ * Stack screens with the bar (`withStackTabBar`: category, search, manufacturer / brand / model
+ * product screens) get their own provider per screen.
  */
 /** `onOffset` köprüsünün en küçük ofset adımı (pt). */
 const OFFSET_BRIDGE_STEP = 16;
@@ -168,11 +169,13 @@ export function useTabBarScrollHandler(onOffset?: (y: number) => void, pageScrol
 }
 
 /**
- * Menülü yığın ekranlarının (İlanlar, Kategori — `withStackTabBar`) liste sinyali: TEK handler hem alt
- * menüyü daraltır hem üst barın kaydırma kenarını (`scrollY`) besler — sekme köklerindeki
- * `usePageScrollValue()` + `useTabBarScrollHandler(undefined, page.scrollY)` kalıbının `PageScroll`
- * biçimi. `usePageScrollHandler` yerine geçer: `<PageShell scroll={page}>` +
+ * List signal of the stack screens with the bar (`withStackTabBar`): ONE handler both collapses the bottom
+ * bar and feeds the top bar scroll edge (`scrollY`) - the `PageScroll` form of the tab roots'
+ * `usePageScrollValue()` + `useTabBarScrollHandler(undefined, page.scrollY)` pattern. Replaces
+ * `usePageScrollHandler`: `<PageShell scroll={page}>` +
  * `<Animated.FlatList {...page.listProps} contentContainerStyle={page.contentStyle(base)} />`.
+ * A list that already has its own scroll worklet (search) composes `useTabBarScrollHandler()` into it
+ * with `useComposedEventHandler` instead.
  */
 export function useTabBarPageScroll(): PageScroll {
   const value = usePageScrollValue();

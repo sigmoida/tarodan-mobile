@@ -1,9 +1,9 @@
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, RefreshControl } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { useComposedEventHandler } from 'react-native-reanimated';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
-import { ErrorState, FAB, FAB_SIZE_SM, Spinner, theme, useDelayedLoading, useFabContentInset } from '@/ui';
+import { ErrorState, FAB, Spinner, theme, useDelayedLoading } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { ListFooterRetry } from '@/components/common/ListFooterRetry';
 import {
@@ -13,11 +13,14 @@ import {
   ProductSortModal,
 } from '@/components/product';
 import ProductFilterSheet from '@/components/ProductFilterSheet';
+import { withStackTabBar } from '@/components/shell/StackTabBar';
+import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { styles } from './_lib/searchStyles';
 import { SEARCH_DRAW_DISTANCE, SEARCH_NUM_COLUMNS } from './_lib/searchConstants';
 import { useTransitionReady } from '@/hooks/useTransitionReady';
 import { useSearch } from './_hooks/useSearch';
+import { useSearchBottomChrome } from './_hooks/useSearchBottomChrome';
 import { useSaveSearch } from './_hooks/useSaveSearch';
 import { SaveSearchModal } from './_modals/SaveSearchModal';
 import { SearchBars } from './_components/SearchBars';
@@ -45,7 +48,7 @@ const NO_ITEMS: any[] = [];
  * İkisi de `useTransitionReady`'ye bağlı: odak ve sonuç kartları geçiş bitince (o ana dek iskelet;
  * sorgu arka planda zaten koşar).
  */
-export default function SearchScreen() {
+function SearchScreen() {
   const { t } = useTranslation();
   const f = useSearch();
   const saveSearch = useSaveSearch(f.filters, f.options);
@@ -71,12 +74,16 @@ export default function SearchScreen() {
     [isList, favoriteProps],
   );
 
-  // Son sonuç satırı yukarı-çık FAB'ının ve gezinme çubuğunun altında kalmasın.
-  const fabInset = useFabContentInset(FAB_SIZE_SM);
+  // One scroll handler for the list: the search bars collapse / scroll-to-top flag (`useSearch`) and the
+  // floating tab bar collapse run side by side (composed, never two `onScroll` props).
+  const tabScroll = useTabBarScrollHandler();
+  const onResultsScroll = useComposedEventHandler([f.handleResultsScroll, tabScroll.onScroll]);
+  // The last result row stays clear of the scroll-to-top FAB, which floats above the tab bar.
+  const { listBottomInset, scrollTopFabStyle } = useSearchBottomChrome();
   // Liste prop'ları kararlı kalsın: ekran render olsa da liste boş yere uzlaştırılmasın.
   const contentContainerStyle = useMemo(
-    () => [styles.listContent, { paddingTop: f.headerHeight, paddingBottom: fabInset }],
-    [f.headerHeight, fabInset],
+    () => [styles.listContent, { paddingTop: f.headerHeight, paddingBottom: listBottomInset }],
+    [f.headerHeight, listBottomInset],
   );
   const refreshControl = useMemo(
     () => (
@@ -194,7 +201,9 @@ export default function SearchScreen() {
             // Hücre geri dönüşümü (FlashList v2): pencere = drawDistance; getItemLayout/estimatedItemSize gerekmez.
             drawDistance={SEARCH_DRAW_DISTANCE}
             showsVerticalScrollIndicator={false}
-            onScroll={f.handleResultsScroll}
+            onScroll={onResultsScroll}
+            onLayout={tabScroll.onLayout}
+            onContentSizeChange={tabScroll.onContentSizeChange}
             scrollEventThrottle={16}
             keyboardDismissMode="on-drag"
             refreshControl={refreshControl}
@@ -212,7 +221,7 @@ export default function SearchScreen() {
             icon="chevron-up"
             size="sm"
             placement="bottomRight"
-            style={styles.scrollTopFab}
+            style={scrollTopFabStyle}
             onPress={f.scrollToTop}
             accessibilityLabel={t('search.scrollToTop')}
           />
@@ -243,3 +252,5 @@ export default function SearchScreen() {
     </PageShell>
   );
 }
+
+export default withStackTabBar(SearchScreen);
