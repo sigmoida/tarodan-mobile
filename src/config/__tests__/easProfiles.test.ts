@@ -189,6 +189,40 @@ describe('eas.json — Google client ids (project tarodan-app)', () => {
     expect(resolvedEnv(name).EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID).toBe(GOOGLE_IOS_CLIENT_ID.staging);
   });
 
+  // The old project's ids must not survive anywhere a build or a local run reads them: a
+  // dev client carries the production scheme, so an old iOS id in .env.example (copied
+  // into a local .env) would show the button and crash the tap. Docs and tests may still
+  // name the old project (the API keeps accepting it for binaries in the stores).
+  it('no shipped config or app code carries an id of the old project 243308404313', () => {
+    const root = path.resolve(__dirname, '../../..');
+    const walk = (dir: string): string[] =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) return e.name === '__tests__' ? [] : walk(p);
+        return /\.(ts|tsx|js|json)$/.test(e.name) ? [p] : [];
+      });
+    const files = [
+      ...['app.json', 'app.config.js', 'eas.json', '.env.example', 'google-services.json', 'google-services.staging.json']
+        .map((f) => path.join(root, f))
+        .filter((f) => fs.existsSync(f)),
+      ...walk(path.join(root, 'plugins')),
+      ...walk(path.join(root, 'src')),
+    ];
+    expect(files.length).toBeGreaterThan(50);
+    const hits = files.filter((f) => fs.readFileSync(f, 'utf8').includes('243308404313'));
+    expect(hits.map((f) => path.relative(root, f))).toEqual([]);
+  });
+
+  // A dev client is built from the `development` profile (com.tarodan.app, production
+  // scheme). The id a local .env sets is inlined into the bundle that dev client runs, so
+  // the template may hold only that id or none (docs/RELEASE.md).
+  it('.env.example sets the production iOS client id or none', () => {
+    const example = fs.readFileSync(path.resolve(__dirname, '../../../.env.example'), 'utf8');
+    const line = /^EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=(.*)$/m.exec(example);
+    const value = line?.[1]?.trim() ?? '';
+    expect([GOOGLE_IOS_CLIENT_ID.production, '']).toContain(value);
+  });
+
   it('no profile points at another Google Cloud project', () => {
     for (const name of Object.keys(eas.build)) {
       const env = resolvedEnv(name);
