@@ -61,7 +61,7 @@ describe('satıcı profili', () => {
     expect(screen.getByText('Satış')).toBeTruthy();
     expect(screen.getByText('Takas')).toBeTruthy();
     expect(screen.getByText('Takipçi')).toBeTruthy();
-    expect(screen.queryByText('4.5')).toBeNull(); // ortalama puan başlıkta değil, değerlendirmeler kartında
+    expect(screen.queryByText(/4,5/)).toBeNull(); // the average is not in the header but in the reviews card
     expect(screen.getByText('3')).toBeTruthy(); // takipçi sayacı ızgarada
   });
 
@@ -131,6 +131,8 @@ describe('satıcı profili', () => {
     mockProfile.mockReturnValue({ ...base(), activeTab: 'reviews' });
     const { unmount } = render(<SellerProfileScreen />);
     expect(screen.getByText('Harika satıcı')).toBeTruthy();
+    // Review average in the UI locale (web SellerHeader `formatRating`): "4,5", never "4.5".
+    expect(screen.getByTestId('seller-reviews-average')).toHaveTextContent('4,5 (2)');
     unmount();
     mockProfile.mockReturnValue({ ...base(), activeTab: 'collections' });
     render(<SellerProfileScreen />);

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Avatar, Button, SectionCard, Text, theme, Icon, ButtonRow } from '@/ui';
+import { formatRating } from '@/utils/format';
 import { resolveAvatarSource } from '@/utils/imageUrl';
 import type { ProductSeller } from '../_lib/types';
 
@@ -23,7 +24,7 @@ export function SellerCard({
   onPressSeller: () => void;
   onMessage: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   if (!seller) return null;
   const rating = Number(seller.rating) || 0;
   const totalRatings = Number(seller.totalRatings) || 0;
@@ -42,7 +43,7 @@ export function SellerCard({
               <View style={styles.stat}>
                 <Icon name="star" variant="solid" size={iconSize.sm} color={colors.warning[400]!} />
                 <Text variant="bodySm" weight="medium">
-                  {rating.toFixed(1)}
+                  {formatRating(rating, i18n.language)}
                 </Text>
                 {totalRatings > 0 ? (
                   <Text variant="bodySm" tone="subtle">

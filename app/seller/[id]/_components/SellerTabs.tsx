@@ -10,6 +10,7 @@ import { sellerRatingSummary } from '../_lib/rating';
 import { styles } from '../_lib/styles';
 import type { SellerProfileController } from '../_hooks/useSellerProfile';
 import { ReviewAuthorName } from '@/components/reviews/ReviewAuthorName';
+import { formatRating } from '@/utils/format';
 
 const { colors, iconSize } = theme;
 
@@ -30,7 +31,7 @@ function useVisibleCount(pageSize: number) {
 
 /** Sekme çubuğu + içerik (web `SellerProfileClient`): ilanlar (ProductCard), değerlendirmeler, koleksiyonlar. */
 export function SellerTabs({ f }: { f: SellerProfileController }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { activeTab, products, reviews, collections } = f;
   const rating = sellerRatingSummary(f);
   // Kendi profilinde ilanların hepsi kullanıcının: kalp hiç çizilmez (DTO'da satıcı olmasa da).
@@ -81,7 +82,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
                 <View style={styles.reviewsAverage} testID="seller-reviews-average">
                   <Icon name="star" variant="solid" size={theme.iconSize.sm} color={theme.colors.warning[500]!} />
                   <Text variant="bodySm" weight="semibold" tone="heading">
-                    {rating.average.toFixed(1)} ({rating.total})
+                    {formatRating(rating.average, i18n.language)} ({rating.total})
                   </Text>
                 </View>
               ) : null

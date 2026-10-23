@@ -250,6 +250,18 @@ describe('Ürün detay ekranı', () => {
     expect(within(screen.getByTestId('product-seller-card')).queryByText('Premium')).toBeNull();
   });
 
+  it('seller card shows the review average in the UI locale ("3,7", not "3.7")', async () => {
+    getOneMock.mockResolvedValue({
+      data: { data: productFixture({ seller: { id: 's1', displayName: 'Ali Veli', rating: 3.74, totalRatings: 12 } }) },
+    });
+    renderWithProviders(<ProductDetailScreen />);
+    await waitFor(() => expect(screen.getByTestId('product-seller-card')).toBeOnTheScreen());
+    const card = within(screen.getByTestId('product-seller-card'));
+    expect(card.getByText('3,7')).toBeOnTheScreen();
+    expect(card.getByText('(12)')).toBeOnTheScreen();
+    expect(card.queryByText('3.7')).toBeNull();
+  });
+
   it('üyeliği takasa izin vermeyen kullanıcıda da Takas Teklifi düğmesi + rozet görünür; basınca dialog, /trade/new yok', async () => {
     mockAuth = { isAuthenticated: true, user: { id: 'u9', membershipTier: 'free' } as any };
     getOneMock.mockResolvedValue({ data: { data: productFixture({ tradeAvailable: true }) } });

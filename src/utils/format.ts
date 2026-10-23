@@ -108,6 +108,26 @@ export function formatPriceNumber(price: number | string | null | undefined): st
   return tlNumberFmt.format(numPrice);
 }
 
+// A star rating reads with the UI locale's decimal separator ("4,5" / "4.5").
+const ratingFmts = new Map<string, Intl.NumberFormat>();
+const ratingFmt = (locale: string): Intl.NumberFormat => {
+  let fmt = ratingFmts.get(locale);
+  if (!fmt) {
+    fmt = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    ratingFmts.set(locale, fmt);
+  }
+  return fmt;
+};
+
+/**
+ * A 0 to 5 review average with exactly one decimal in the UI locale: "4,5" (tr), "4.5" (en).
+ * Web `formatRating` (`apps/web/src/lib/format.ts`). The seller trust score has its own
+ * two-decimal `formatTrustRating` in `@/types/seller-trust`.
+ */
+export function formatRating(value: number, locale: string): string {
+  return ratingFmt(locale).format(value);
+}
+
 /** Sayaç biçimi (görüntülenme/beğeni) — web `formatCount`: "1.590"; dil sabit tr-TR. */
 export function formatCount(value: number | null | undefined): string {
   return (value ?? 0).toLocaleString('tr-TR');
