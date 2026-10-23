@@ -89,7 +89,7 @@ describe('app.json — iOS Universal Links', () => {
  * staging host; development/production keep app.json as it is, apart from the
  * google-signin plugin options (covered in __tests__/app.config.test.ts).
  */
-describe('app.config.js — staging alan adi yalniz staging profilinde', () => {
+describe('app.config.js — the staging host only in the staging profile', () => {
   const makeConfig = require('../../../../app.config.js') as (ctx: {
     config: Record<string, any>;
   }) => Record<string, any>;
@@ -98,21 +98,30 @@ describe('app.config.js — staging alan adi yalniz staging profilinde', () => {
     (cfg.android.intentFilters[0].data as Array<Record<string, string>>)
       .filter((d) => d.host)
       .map((d) => d.host);
-  const saved = process.env.EXPO_PUBLIC_ENVIRONMENT;
-  afterEach(() => {
-    if (saved === undefined) delete process.env.EXPO_PUBLIC_ENVIRONMENT;
-    else process.env.EXPO_PUBLIC_ENVIRONMENT = saved;
+  // EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID is cleared so a developer's shell never changes
+  // the result (a malformed id there would make app.config.js throw).
+  const keys = ['EXPO_PUBLIC_ENVIRONMENT', 'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID'] as const;
+  const saved = keys.map((k) => [k, process.env[k]] as const);
+  beforeEach(() => {
+    delete process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
   });
+  afterEach(() => {
+    saved.forEach(([k, v]) => (v === undefined ? delete process.env[k] : (process.env[k] = v)));
+  });
+  /** Plugins without the google-signin entry, whose options app.config.js sets. */
+  const otherPlugins = (plugins: unknown[]) =>
+    plugins.filter((p) => (Array.isArray(p) ? p[0] : p) !== '@react-native-google-signin/google-signin');
 
   it.each(['production', 'development', undefined])(
-    '%s: app.json unchanged apart from plugins (no staging host)',
+    '%s: app.json unchanged apart from the google-signin plugin (no staging host)',
     (env) => {
       if (env === undefined) delete process.env.EXPO_PUBLIC_ENVIRONMENT;
       else process.env.EXPO_PUBLIC_ENVIRONMENT = env;
       const cfg = makeConfig({ config: base() });
-      const { plugins: _plugins, ...rest } = cfg;
-      const { plugins: _basePlugins, ...baseRest } = base();
+      const { plugins, ...rest } = cfg;
+      const { plugins: basePlugins, ...baseRest } = base();
       expect(rest).toEqual(baseRest);
+      expect(otherPlugins(plugins)).toEqual(otherPlugins(basePlugins));
       expect(hostsOf(cfg)).toEqual(['tarodan.com.tr']);
       expect(JSON.stringify(cfg)).not.toContain('staging.tarodan');
     },
