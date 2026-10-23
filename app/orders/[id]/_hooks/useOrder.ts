@@ -3,6 +3,7 @@ import { api } from '@/lib/api';
 import { apiPath } from '@/lib/api/path';
 import { isNotFoundError, qk } from '@/lib/query';
 import { apiStatusToUi } from '@/utils/orderStatus';
+import { noteOrderKindFallback } from '@/lib/shared/orderKindFallback';
 import type { OrderDetail } from '../_lib/types';
 
 /** GET /orders/:id — status UI'ya normalize edilir, adet items[0]'a düşer. */
@@ -15,6 +16,7 @@ export function useOrder(id: string | undefined) {
         const response = await api.get(apiPath`/orders/${id ?? ''}`);
         const data = response.data?.data ?? response.data;
         if (!data) return null;
+        noteOrderKindFallback({ orderId: String(data.id ?? id) }, [data]);
         return {
           ...data,
           status: apiStatusToUi(data.status),

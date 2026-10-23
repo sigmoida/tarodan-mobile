@@ -9,8 +9,9 @@ import type { OrderDetail } from '../_lib/types';
 import type { OrderView } from '../_lib/derive';
 
 /**
- * Sipariş numarası + durum rozeti + zaman çizelgesi. Zaman çizelgesi web'de yok; sade hâliyle
- * kalır (nokta + çizgi, süs ikonu yok).
+ * Order number, status badge and timeline. Web has no timeline; it stays plain (dot and line, no
+ * decorative icon). A digital order ships nothing, so it has no shipped or delivered step: paid is
+ * its last step unless a cancel or refund step follows.
  */
 export function OrderStatusCard({ order, view }: { order: OrderDetail; view: OrderView }) {
   const { t } = useTranslation();
@@ -34,19 +35,30 @@ export function OrderStatusCard({ order, view }: { order: OrderDetail; view: Ord
 
       <View>
         <TimelineItem label={t('order.timelineCreated')} date={formatDate(order.createdAt)} isActive />
-        <TimelineItem label={t('order.timelinePaymentMade')} date={formatDate(order.paidAt)} isActive={view.isPaid} />
         <TimelineItem
-          testID="order-shipped-timeline"
-          label={t('order.statusShipped')}
-          date={formatDate(order.shippedAt)}
-          isActive={!!order.shippedAt}
+          testID="order-paid-timeline"
+          label={t('order.timelinePaymentMade')}
+          date={formatDate(order.paidAt)}
+          isActive={view.isPaid}
+          isLast={view.isDigitalOrder && !view.showRefundCancelStep}
         />
-        <TimelineItem
-          label={t('order.statusDelivered')}
-          date={formatDate(order.deliveredAt)}
-          isActive={!!order.deliveredAt}
-          isLast={!view.showRefundCancelStep}
-        />
+        {view.isDigitalOrder ? null : (
+          <>
+            <TimelineItem
+              testID="order-shipped-timeline"
+              label={t('order.statusShipped')}
+              date={formatDate(order.shippedAt)}
+              isActive={!!order.shippedAt}
+            />
+            <TimelineItem
+              testID="order-delivered-timeline"
+              label={t('order.statusDelivered')}
+              date={formatDate(order.deliveredAt)}
+              isActive={!!order.deliveredAt}
+              isLast={!view.showRefundCancelStep}
+            />
+          </>
+        )}
         {view.showRefundCancelStep && (
           <TimelineItem
             testID="order-refundcancel-timeline"

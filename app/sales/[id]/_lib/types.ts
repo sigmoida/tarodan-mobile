@@ -1,3 +1,5 @@
+import type { OrderKind } from '@/types';
+
 export interface Order {
   id: string;
   orderNumber?: string;
@@ -8,8 +10,15 @@ export interface Order {
   cancelReason?: string | null;
   /** `cancelReason`'ın stabil kategorisi — yalnız `cancelled` siparişte dolu. */
   cancelCategory?: string | null;
-  /** Üyelik/dijital sipariş (hazırlık notu gösterilmez). */
-  isMembership?: boolean;
+  /**
+   * What the order sells (`listing` | `membership` | `boost`). Read through
+   * `isDigitalOrder` (`@/types`), never directly: an older API sends no `kind`.
+   */
+  kind?: OrderKind | null;
+  /** `platform_service` on a digital order: the fallback when `kind` is absent. */
+  origin?: string | null;
+  /** @deprecated True on every digital order; the last fallback of `isDigitalOrder`. */
+  isMembership?: boolean | null;
   /** Sunucunun görüntüleyene göre yazdığı taraf bayrakları. */
   isBuyer?: boolean;
   isSeller?: boolean;

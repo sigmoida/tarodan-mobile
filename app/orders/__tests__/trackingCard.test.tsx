@@ -20,7 +20,7 @@ type BannerProps = React.ComponentProps<typeof OrderRefundBanner>;
 
 function renderCard({ role, shipment }: { role: 'buyer' | 'seller'; shipment: any }) {
   const order = { id: 'o1', status: 'shipped', shipment: null } as any;
-  const view = { isDelivered: false, showTrackingCard: true } as any;
+  const view = { isDelivered: false, isDigitalOrder: false } as any;
   return renderWithProviders(
     <OrderTrackingCard
       order={order}

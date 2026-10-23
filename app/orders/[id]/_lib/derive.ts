@@ -1,9 +1,9 @@
-// order'dan türetilen tüm görünüm değerleri — tek saf fonksiyon.
+// Every view value derived from the order: one pure function.
 import { REFUND_STATUS_META } from './status';
 import i18n from '@/i18n/config';
 import type { PublicTimingPolicy } from '@/lib/api/timingRules';
 import { preparingDeadlineNoticeOf } from '@/lib/shared/preparingDeadline';
-import { isMembershipOrder as isMembership } from '@/lib/shared/membershipOrder';
+import { isDigitalOrder } from '@/types';
 import { computePayoutDate, isPastRefundWindow, orderTimingValues, returnWindowEnd } from './timing';
 import type { OrderDetail } from './types';
 
@@ -22,9 +22,12 @@ export function deriveOrderView(
   policy: PublicTimingPolicy,
   now: Date = new Date(),
 ) {
-  const isMembershipOrder = isMembership(order);
+  // A digital order (membership, boost) sells a platform service, not goods: no shipping,
+  // tracking, escrow, cancel, refund request, rating or preparing note (contract delta
+  // 2026-10-23-order-kind). Every card reads this one flag.
+  const digital = isDigitalOrder(order);
 
-  const canRate = !isMembershipOrder && ['delivered', 'completed'].includes(order.status);
+  const canRate = !digital && ['delivered', 'completed'].includes(order.status);
 
   const isPreShipment = ['pending', 'processing'].includes(order.status);
   const isPostShipment = ['shipped', 'delivered', 'awaiting_confirmation', 'completed'].includes(
@@ -32,14 +35,6 @@ export function deriveOrderView(
   );
   const isCancelled = order.status === 'cancelled' || order.cancellationType === 'iptal';
   const isDelivered = ['delivered', 'awaiting_confirmation', 'completed'].includes(order.status);
-
-  // Kod/referans varlığı kartın kendi kapısı (bkz. OrderTrackingCard); burada
-  // yalnızca sipariş durumuna göre gösterime uygunluk türetilir.
-  const showTrackingCard =
-    !!order.shippedAt &&
-    isPostShipment &&
-    !isCancelled &&
-    order.status !== 'refunded';
 
   const isPaid =
     !!order.paidAt ||
@@ -74,13 +69,12 @@ export function deriveOrderView(
   const timing = orderTimingValues(order, policy);
 
   return {
-    isMembershipOrder,
+    isDigitalOrder: digital,
     canRate,
     isPreShipment,
     isPostShipment,
     isCancelled,
     isDelivered,
-    showTrackingCard,
     isPaid,
     refundWindowEnd,
     payoutReleaseDate,

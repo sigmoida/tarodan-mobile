@@ -13,6 +13,7 @@ import path from 'path';
 import * as boost from '../boost';
 import * as cardAction from '../product-card-action';
 import * as negotiatedAmount from '../negotiated-amount';
+import * as virtualOrder from '../virtual-order';
 import { CONSENT_DOCUMENT_I18N_KEYS, CONSENT_DOCUMENT_KEYS } from '@/lib/shared/legalConsent';
 
 const VENDORED_HEADER_LINES = 3;
@@ -80,6 +81,34 @@ describe('vendored negotiated amount ceiling', () => {
   });
 });
 
+describe('vendored virtual order kinds', () => {
+  it('exports the kinds and the digital-order rule', () => {
+    expect(Object.keys(virtualOrder).sort()).toEqual(
+      ['ORDER_KINDS', 'VIRTUAL_ORDER_KINDS', 'isDigitalOrder', 'isVirtualOrderKind'].sort(),
+    );
+    expect(virtualOrder.ORDER_KINDS).toEqual(['listing', 'membership', 'boost']);
+    expect(virtualOrder.VIRTUAL_ORDER_KINDS).toEqual(['membership', 'boost']);
+  });
+
+  it('a non-empty kind decides; any kind other than listing is digital', () => {
+    expect(virtualOrder.isDigitalOrder({ kind: 'listing', origin: 'platform_service', isMembership: true })).toBe(false);
+    expect(virtualOrder.isDigitalOrder({ kind: 'membership' })).toBe(true);
+    expect(virtualOrder.isDigitalOrder({ kind: 'boost', isMembership: false })).toBe(true);
+    // A kind added later is never shown as goods.
+    expect(virtualOrder.isDigitalOrder({ kind: 'gift_card' })).toBe(true);
+  });
+
+  it('without a kind it falls back to origin, then the deprecated isMembership', () => {
+    expect(virtualOrder.isDigitalOrder({ origin: 'platform_service' })).toBe(true);
+    expect(virtualOrder.isDigitalOrder({ kind: '', origin: 'platform_service' })).toBe(true);
+    expect(virtualOrder.isDigitalOrder({ kind: null, isMembership: true })).toBe(true);
+    expect(virtualOrder.isDigitalOrder({ origin: 'direct_sale', isMembership: false })).toBe(false);
+    expect(virtualOrder.isDigitalOrder({})).toBe(false);
+    expect(virtualOrder.isDigitalOrder(null)).toBe(false);
+    expect(virtualOrder.isDigitalOrder(undefined)).toBe(false);
+  });
+});
+
 describe('consent document catalog', () => {
   it('keeps the eight documents, in the source order', () => {
     expect(CONSENT_DOCUMENT_KEYS).toEqual([
@@ -106,7 +135,7 @@ describeWithSource('against the tarodan-app source (TARODAN_APP_ROOT)', () => {
   const body = (file: string) =>
     fs.readFileSync(file, 'utf8').split('\n').slice(VENDORED_HEADER_LINES).join('\n').trimStart();
 
-  it.each(['boost', 'product-card-action', 'negotiated-amount'])('%s matches packages/types/src', (name) => {
+  it.each(['boost', 'product-card-action', 'negotiated-amount', 'virtual-order'])('%s matches packages/types/src', (name) => {
     const vendored = body(path.join(__dirname, '..', `${name}.ts`));
     const source = fs.readFileSync(path.join(appRoot!, 'packages/types/src', `${name}.ts`), 'utf8');
     expect(vendored).toBe(source.trimStart());

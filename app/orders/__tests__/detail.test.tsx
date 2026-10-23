@@ -145,7 +145,7 @@ describe('J78 · Alıcı onay butonu KALDIRILDI + escrow bilgisi', () => {
     expect(screen.queryByTestId('order-escrow-info')).toBeNull();
   });
 
-  it('üyelik siparişinde escrow kartı görünmez', async () => {
+  it('a digital (membership) order shows no escrow card', async () => {
     getMock.mockResolvedValue({
       data: { data: orderFixture({ status: 'delivered', isBuyer: true, isMembership: true }) },
     });
@@ -239,13 +239,13 @@ describe('J79 · İade talep butonu görünürlüğü', () => {
 // Parite A-1.4 · İade kanıtı kuralı (kusur nedeninde kanıt + açıklama zorunlu) iade talebi
 // ekranına taşındı: `app/orders/[id]/__tests__/refundScreen.test.tsx`.
 
-describe('Üyelik/dijital sipariş — fiziksel ürün aksiyonları gizlenir', () => {
+describe('Digital order (membership): physical-goods actions are hidden', () => {
   beforeEach(() => {
     getMock.mockReset();
     mockParams = { id: 'order-1' };
   });
 
-  // Üyelik siparişi: sanal ürün + platform satıcısı, "MEM-" sipariş no, isMembership=true
+  // Membership order: virtual product, platform seller, "MEM-" number, isMembership true
   const membershipFixture = (overrides: Record<string, unknown> = {}) =>
     orderFixture({
       orderNumber: 'MEM-1781257318265-BENIPST9F',
@@ -294,9 +294,11 @@ describe('Üyelik/dijital sipariş — fiziksel ürün aksiyonları gizlenir', (
     expect(screen.queryByText('Teslimat Adresi')).toBeNull();
   });
 
-  it('isMembership alanı yoksa "MEM-" önekiyle de gizlenir (geriye dönük)', async () => {
+  // The order number is not a signal (the API derives `kind` from the product, never the
+  // number); an API without `kind` falls back to `origin`. Full matrix: digitalOrderDetail.test.
+  it('without kind or isMembership it is hidden through origin (older API)', async () => {
     getMock.mockResolvedValue({
-      data: { data: membershipFixture({ isMembership: undefined }) },
+      data: { data: membershipFixture({ isMembership: undefined, origin: 'platform_service' }) },
     });
     renderWithProviders(<OrderDetailScreen />);
     await waitFor(() =>

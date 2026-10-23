@@ -38,9 +38,9 @@ export default function OrderGroupDetailScreen() {
             <GroupOrderRow key={order.id} order={order} multi={f.group!.orders.length > 1} />
           ))}
           {/*
-            Satıcı-bazlı kargo kırılımı (B10) — yalnız 2+ paketli (çok satıcılı)
-            grupta. Tek paketli grupta üstteki sipariş satırı zaten aynı kargo
-            bilgisini taşıyor, ayrı kart tekrar olurdu (CLAUDE.md › Principles).
+            Per-seller package breakdown (B10), only in a group of 2+ packages (several sellers),
+            like web `multiPackage`, which counts digital packages too. In a one-package group the
+            order row above already carries the same shipping data; a second card would repeat it.
           */}
           {f.group.packages.length > 1 &&
             f.group.packages.map((pkg) => <GroupPackageCard key={pkg.id} pkg={pkg} />)}

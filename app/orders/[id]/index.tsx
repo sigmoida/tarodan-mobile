@@ -26,6 +26,7 @@ import {
   OrderHelpCard,
 } from './_components/OrderActionCards';
 import { CancelOrderModal } from '@/components/orders/CancelOrderModal';
+import { isDigitalOrder } from '@/types';
 
 /**
  * Sipariş detayı — İNCE ekran: PageShell + SectionCard dizisi. Durum kapılı kartlar kendini gizler
@@ -39,10 +40,12 @@ export default function OrderDetailScreen() {
 
   const { data: order, isLoading, isError, refetch } = useOrder(id);
   const actions = useOrderActions(String(id), order ?? undefined);
-  const invoices = useOrderInvoices(String(id), order?.status, actions.notify);
+  const invoices = useOrderInvoices(String(id), order?.status, actions.notify, isDigitalOrder(order));
   // Pull-to-refresh siparişle birlikte e-Arşiv listesini de yeniler.
   const { refreshing, onRefresh } = useRefresh(refetch, invoices.refreshElogoInvoices);
-  const { shipment } = useOrderShipment(id);
+  // A digital order ships nothing: once it is known (cached or loaded) its shipment is not queried
+  // nor refetched on focus. On a cold open the one request fired before the order arrives stays.
+  const { shipment } = useOrderShipment(isDigitalOrder(order) ? undefined : id);
   const policy = useTimingPolicy();
   const now = useDeadlineNow(order?.preparingDeadline);
 
@@ -106,10 +109,10 @@ export default function OrderDetailScreen() {
       <PreparingDeadlineNotice notice={view.preparingNotice} />
       <OrderPayPendingCard order={order} view={view} onPay={actions.initiatePayment} payPending={actions.payPending} />
       <OrderTrackingCard order={order} view={view} shipment={shipment} isSeller={isSeller} />
-      <OrderProductCard order={order} />
-      <OrderSellerCard order={order} />
-      <OrderAddressCard order={order} isMembershipOrder={view.isMembershipOrder} />
-      <OrderPriceSummary order={order} isMembershipOrder={view.isMembershipOrder} />
+      <OrderProductCard order={order} isDigitalOrder={view.isDigitalOrder} />
+      <OrderSellerCard order={order} isDigitalOrder={view.isDigitalOrder} />
+      <OrderAddressCard order={order} isDigitalOrder={view.isDigitalOrder} />
+      <OrderPriceSummary order={order} isDigitalOrder={view.isDigitalOrder} />
       <OrderCancelCard order={order} view={view} onCancel={actions.handleCancelOrder} cancelPending={actions.cancelOrderPending} />
       <OrderRatingButtons order={order} view={view} onRate={(type) => openOrderReview(order.id, type)} />
       <OrderRefundBanner

@@ -51,6 +51,10 @@ export * from './saved-search';
 export * from './boost';
 export * from './product-card-action';
 
+// Virtual (digital) orders: order kinds and the one digital-order gating rule (vendored from
+// tarodan-app `packages/types`)
+export * from './virtual-order';
+
 // Common types
 export interface PaginationMeta {
   total: number;

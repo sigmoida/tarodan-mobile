@@ -13,10 +13,17 @@ import type { Notify } from '../_lib/types';
 const MAX_INVOICE_BYTES = 10 * 1024 * 1024;
 
 /**
- * eLogo e-Arşiv belgeleri (taraf başına üç belge, liste) + kurumsal satıcı
- * faturası query'leri + görüntüleme handler'ları.
+ * eLogo e-Archive documents (three per party, a list), the business seller invoice queries and
+ * their view handlers. A digital order (`isDigital`: membership, boost; sold by the platform)
+ * has no seller invoice, so it is neither fetched nor shown (web parity); its e-Archive documents
+ * stay.
  */
-export function useOrderInvoices(id: string, orderStatus: string | undefined, notify: Notify) {
+export function useOrderInvoices(
+  id: string,
+  orderStatus: string | undefined,
+  notify: Notify,
+  isDigital: boolean,
+) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   // Web kuralı: ödeme öncesi (`pending_payment` → UI `pending`) ve iptal
@@ -28,7 +35,7 @@ export function useOrderInvoices(id: string, orderStatus: string | undefined, no
 
   const { data: sellerInvoice } = useQuery({
     queryKey: qk.orders.sellerInvoice(id),
-    enabled: invoiceEnabled,
+    enabled: invoiceEnabled && !isDigital,
     queryFn: async () => {
       try {
         const res = await sellerInvoiceApi.status(id);
@@ -101,7 +108,7 @@ export function useOrderInvoices(id: string, orderStatus: string | undefined, no
     elogoLoadFailed: elogo.loadFailed,
     /** Pull-to-refresh ve "Tekrar Dene" — e-Arşiv listesini yeniden çeker. */
     refreshElogoInvoices: elogo.refresh,
-    sellerInvoice,
+    sellerInvoice: isDigital ? null : sellerInvoice,
     viewSellerInvoice,
     downloadingSellerInvoice,
     pickAndUploadSellerInvoice,

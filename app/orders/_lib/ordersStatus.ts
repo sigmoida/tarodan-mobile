@@ -1,3 +1,4 @@
+import { isDigitalOrder, type OrderKind } from '@/types';
 import { apiStatusToUi, type UiOrderStatus } from '@/utils/orderStatus';
 import { formatPrice } from '@/utils/format';
 
@@ -18,6 +19,15 @@ export interface Order {
   };
   trackingNumber?: string;
   createdAt: string;
+  /**
+   * What the order sells (`listing` | `membership` | `boost`). Read through
+   * `isDigitalOrder` (`@/types`), never directly: an older API sends no `kind`.
+   */
+  kind?: OrderKind | null;
+  /** `platform_service` on a digital order: the fallback when `kind` is absent. */
+  origin?: string | null;
+  /** @deprecated True on every digital order; the last fallback of `isDigitalOrder`. */
+  isMembership?: boolean | null;
   isBuyer?: boolean;
   hasProductRating?: boolean;
   hasSellerRating?: boolean;
@@ -100,6 +110,9 @@ export const formatOrderDate = (dateString: string) =>
 
 export const formatOrderPrice = (price: number) => formatPrice(price);
 
-// Yalnızca alıcı, teslim alınmış/tamamlanmış siparişi değerlendirebilir.
+// Only the buyer rates a delivered or completed order of goods; the API refuses a digital
+// order (`server.rating.membershipOrder`).
 export const canRateOrder = (order: Order) =>
-  order.isBuyer === true && ['delivered', 'completed'].includes(order.status);
+  order.isBuyer === true &&
+  !isDigitalOrder(order) &&
+  ['delivered', 'completed'].includes(order.status);

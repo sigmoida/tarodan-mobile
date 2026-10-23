@@ -1,11 +1,20 @@
-// Sipariş detay route'unun DTO tipleri.
+// DTO types of the order detail route.
+import type { OrderKind } from '@/types';
 
 export interface OrderDetail {
   id: string;
   orderNumber: string;
   /** Teslimat/paket numarası (`PKG-…`) — kargo oluşunca gelir, eski siparişlerde null. */
   packageNumber?: string | null;
-  isMembership?: boolean;
+  /**
+   * What the order sells (`listing` | `membership` | `boost`). Read through
+   * `isDigitalOrder` (`@/types`), never directly: an older API sends no `kind`.
+   */
+  kind?: OrderKind | null;
+  /** `platform_service` on a digital order: the fallback when `kind` is absent. */
+  origin?: string | null;
+  /** @deprecated True on every digital order; the last fallback of `isDigitalOrder`. */
+  isMembership?: boolean | null;
   status: string;
   quantity?: number;
   cancellationType?: 'iptal' | 'iade' | null;
