@@ -104,12 +104,13 @@ describe('seller packages of a multi-package group', () => {
     await waitFor(() => expect(screen.getAllByTestId('group-package-card')).toHaveLength(2));
   });
 
-  it.each(DIGITAL)('a digital package has no card and does not make the group multi-package: %s', async (_label, signals) => {
+  it.each(DIGITAL)('a digital package keeps only its seller header (web `isDigitalPackage`): %s', async (_label, signals) => {
     getGroupMock.mockResolvedValue({ data: { data: twoPackages(signals) } });
     renderWithProviders(<OrderGroupDetailScreen />);
-    await waitFor(() => expect(screen.getByText('GRP-1')).toBeOnTheScreen());
-    // One shipping package left: the order rows already carry it, so no breakdown card at all.
-    expect(screen.queryByTestId('group-package-card')).toBeNull();
+    // Both packages count towards the 2+ rule, like web `multiPackage`.
+    await waitFor(() => expect(screen.getAllByTestId('group-package-card')).toHaveLength(2));
+    expect(screen.getByText('PKG-AAA')).toBeOnTheScreen();
     expect(screen.queryByText('PKG-BBB')).toBeNull();
+    expect(screen.getAllByText('Kargo')).toHaveLength(1);
   });
 });

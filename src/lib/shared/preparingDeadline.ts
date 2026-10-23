@@ -59,12 +59,7 @@ const SHIPMENT_IN_MOTION_STATUSES: readonly string[] = [
   'returned',
 ];
 
-/**
- * Whether the parcel has been handed to the carrier: a moving shipment status or the first
- * physical handover stamp (`shippedAt`). The server's rule; the preparing note and the group
- * cancel read it.
- */
-export function isHandedToCarrier(shipment: PreparingDeadlineOrder['shipment']): boolean {
+function isHandedToCarrier(shipment: PreparingDeadlineOrder['shipment']): boolean {
   if (!shipment) return false;
   return (
     (!!shipment.status && SHIPMENT_IN_MOTION_STATUSES.includes(shipment.status)) ||

@@ -61,6 +61,10 @@ describe('grup iptali kapısı', () => {
     expect(isGroupCancellable([line({ shipment: { status: 'pending', shippedAt: '2026-10-22T09:00:00.000Z' } })])).toBe(false);
   });
 
+  it('an unknown carrier status closes it (fail closed, like web)', () => {
+    expect(isGroupCancellable([line({ shipment: { status: 'at_transfer_center' } })])).toBe(false);
+  });
+
   it('a line still at the seller keeps it open, label printed included', () => {
     for (const status of ['pending', 'label_created', 'cancelled', 'failed']) {
       expect(isGroupCancellable([line({ shipment: { status } })])).toBe(true);

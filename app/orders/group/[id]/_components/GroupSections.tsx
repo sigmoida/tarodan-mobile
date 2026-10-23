@@ -85,12 +85,13 @@ export function GroupOrderRow({ order, multi }: { order: GroupOrder; multi: bool
 }
 
 /**
- * Satıcı-bazlı paket kırılımı (B10). Yalnızca 2+ paketli grupta gösterilir —
- * tek paketli grupta üstteki sipariş satırının kendi kargo satırı zaten aynı
- * bilgiyi taşıyor, ayrı kart tekrar olurdu (CLAUDE.md › Principles).
+ * Per-seller package breakdown (B10), drawn only in a group of 2+ packages: in a one-package
+ * group the order row above already carries the same shipping data (CLAUDE.md › Principles).
+ * A digital package (web `isDigitalPackage`) ships nothing, so like web it keeps only its seller
+ * header: no package number, shipping cost, cargo code or tracking.
  *
- * Takip linki HER ZAMAN `deriveShipmentView` ile kurulur — sunucunun
- * `cargo.trackingUrl`'ı hiç okunmaz (bkz. `_hooks/useOrderGroup.ts`).
+ * The tracking link is always built by `deriveShipmentView`; the server's `cargo.trackingUrl` is
+ * never read (see `_hooks/useOrderGroup.ts`).
  */
 export function GroupPackageCard({ pkg }: { pkg: GroupPackage }) {
   const { t } = useTranslation();
@@ -106,22 +107,26 @@ export function GroupPackageCard({ pkg }: { pkg: GroupPackage }) {
           : undefined
       }
     >
-      {pkg.packageNumber && (
-        <InfoRow label={t('order.packageNumber')} value={pkg.packageNumber} />
-      )}
-      <InfoRow label={t('checkout.shipping')} value={formatPrice(pkg.shippingCost)} />
-      {view.cargoCode ? (
-        <InfoRow label={t('order.trackingNumber')} value={view.cargoCode} />
-      ) : view.isCodePending ? (
-        <Text variant="bodySm" tone="muted">{t('shipping.codePending')}</Text>
-      ) : null}
-      {view.trackingUrl && (
-        <Button
-          variant="outline"
-          size="sm"
-          title={t('order.trackOnSurat')}
-          onPress={() => void openExternalUrlSafely(view.trackingUrl)}
-        />
+      {pkg.isDigital ? null : (
+        <>
+          {pkg.packageNumber && (
+            <InfoRow label={t('order.packageNumber')} value={pkg.packageNumber} />
+          )}
+          <InfoRow label={t('checkout.shipping')} value={formatPrice(pkg.shippingCost)} />
+          {view.cargoCode ? (
+            <InfoRow label={t('order.trackingNumber')} value={view.cargoCode} />
+          ) : view.isCodePending ? (
+            <Text variant="bodySm" tone="muted">{t('shipping.codePending')}</Text>
+          ) : null}
+          {view.trackingUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              title={t('order.trackOnSurat')}
+              onPress={() => void openExternalUrlSafely(view.trackingUrl)}
+            />
+          )}
+        </>
       )}
     </SectionCard>
   );
