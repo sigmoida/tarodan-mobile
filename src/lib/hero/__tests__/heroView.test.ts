@@ -50,6 +50,12 @@ describe('heroImageUrl', () => {
       'https://cdn.example/a.jpg',
     );
   });
+
+  it('wide falls back to the mobile image when a slide has no desktop image (never blank)', () => {
+    expect(heroImageUrl(slide({ imageUrl: ' ', mobileImageUrl: 'https://cdn.example/m.jpg' }), { wide: true })).toBe(
+      'https://cdn.example/m.jpg',
+    );
+  });
 });
 
 describe('visibleSlides', () => {

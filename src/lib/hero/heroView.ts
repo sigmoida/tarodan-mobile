@@ -20,14 +20,15 @@ export function pickLocalized(text: LocalizedText | null | undefined, locale: st
 }
 
 /**
- * Görsel: `mobileImageUrl ?? imageUrl`. `wide` (tablet, side-by-side hero like web `md`): the
- * desktop `imageUrl`, which web also shows beside the text from `md` up.
+ * Image: `mobileImageUrl ?? imageUrl`. `wide` (tablet, side-by-side hero like web `md`): the
+ * desktop `imageUrl`, which web also shows beside the text from `md` up (the mobile image when a
+ * slide has no desktop image, so a slide `visibleSlides` admits is never blank).
  */
 export function heroImageUrl(
   slide: Pick<HeroSlide, 'imageUrl' | 'mobileImageUrl'>,
   { wide = false }: { wide?: boolean } = {},
 ): string {
-  if (wide) return slide.imageUrl;
+  if (wide) return slide.imageUrl?.trim() || slide.mobileImageUrl?.trim() || '';
   return slide.mobileImageUrl?.trim() || slide.imageUrl;
 }
 
