@@ -81,13 +81,14 @@ const HeroSlideItem = React.memo(function HeroSlideItem({
             {subtitle}
           </Text>
         )}
-        <View style={s.buttons}>
+        <View style={split ? [s.buttons, s.splitButtons] : s.buttons}>
           {ctas.map(({ index, cta }) =>
             cta ? (
               <Button
                 key={index}
                 variant={index === 1 ? 'primary' : 'outline'}
-                fullWidth
+                fullWidth={!split}
+                style={split ? s.splitButton : undefined}
                 title={cta.label}
                 testID={`hero-cta-${slide.id}-${index}`}
                 onPress={() => {

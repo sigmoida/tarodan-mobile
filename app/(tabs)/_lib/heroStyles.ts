@@ -42,6 +42,9 @@ export const heroStyles = StyleSheet.create({
   splitBody: { flex: 1, justifyContent: 'center' },
   title: { textAlign: 'left' },
   buttons: { gap: spacing[2], marginTop: spacing[2] },
+  // Tablets (split slide): the two calls to action side by side, equal width.
+  splitButtons: { flexDirection: 'row' },
+  splitButton: { flex: 1 },
   dots: {
     height: HERO_DOTS_HEIGHT,
     flexDirection: 'row',

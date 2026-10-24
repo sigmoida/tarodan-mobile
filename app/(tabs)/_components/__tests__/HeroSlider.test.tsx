@@ -377,6 +377,26 @@ describe('HeroSection on large screens', () => {
     expect(StyleSheet.flatten(imgOf(api).props.style).width).toBe(480);
   });
 
+  it('iPad: the two calls to action stand side by side, equal width; phone: stacked full width', () => {
+    const two = slide({ cta2: { label: { tr: 'Koleksiyonlar' }, href: '/collections' } });
+    setWindow(820, 1180);
+    const api = render(<HeroSection slides={[two]} locale="tr" />);
+    layout(api, 786);
+    const ctas = [api.getByTestId('hero-cta-s1-1'), api.getByTestId('hero-cta-s1-2')];
+    const row = ctas[0]!.parent!;
+    let n: any = row;
+    while (n && StyleSheet.flatten(n.props.style)?.flexDirection !== 'row') n = n.parent;
+    expect(n).toBeTruthy();
+    for (const cta of ctas) expect(StyleSheet.flatten(cta.props.style).flex).toBe(1);
+    api.unmount();
+    setWindow(390, 844);
+    const phone = render(<HeroSection slides={[two]} locale="tr" />);
+    layout(phone, 358);
+    for (const id of ['hero-cta-s1-1', 'hero-cta-s1-2']) {
+      expect(StyleSheet.flatten(phone.getByTestId(id).props.style).flex).toBeUndefined();
+    }
+  });
+
   it('HeroReserved follows the split geometry on a tablet', () => {
     setWindow(1032, 1376);
     const api = render(<HeroReserved />);
