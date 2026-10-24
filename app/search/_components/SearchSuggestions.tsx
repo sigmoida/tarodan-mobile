@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { PAGE_GUTTER, Text, theme, Icon, usePageGutter } from '@/ui';
+import { Text, theme, Icon, usePageGutter } from '@/ui';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 
@@ -62,12 +62,13 @@ function SearchSuggestionsBase({
   // the bar is back, so the last rows clear the bar instead of the keyboard.
   const tabBarInset = useTabBarInset();
   const bottomInset = keyboardHeight > 0 ? keyboardHeight + spacing[4] : tabBarInset;
-  // The rows bring the phone gutter themselves; tablets add the difference to the page gutter.
-  const extraGutter = usePageGutter() - PAGE_GUTTER;
+  // Rows keep their full-width separators and press areas; their content sits at the page gutter.
+  const gutter = usePageGutter();
+  const rowGutter = React.useMemo(() => ({ paddingHorizontal: gutter }), [gutter]);
   return (
     <ScrollView
       style={styles.suggestionsScroll}
-      contentContainerStyle={{ paddingBottom: bottomInset, paddingHorizontal: extraGutter }}
+      contentContainerStyle={{ paddingBottom: bottomInset }}
       keyboardShouldPersistTaps="handled"
       // Scrolling does NOT dismiss the keyboard: dismissing blurs the input, and the blur closes the
       // panel 200 ms later, so the page would vanish mid-scroll (bottom rows unreachable).
@@ -77,7 +78,7 @@ function SearchSuggestionsBase({
       {/* Recent Searches */}
       {showRecentSearches && recentSearchQueries.length > 0 && inputEmpty && (
         <View>
-          <View style={styles.recentSearchesHeader}>
+          <View style={[styles.recentSearchesHeader, rowGutter]}>
             <Text style={styles.recentSearchesTitle}>{t('search.recentSearches')}</Text>
             <Pressable onPress={onClearRecent}>
               <Text style={styles.clearRecentText}>{t('common.clear')}</Text>
@@ -86,7 +87,7 @@ function SearchSuggestionsBase({
           {recentSearchQueries.map((query, index) => (
             <Pressable
               key={index}
-              style={styles.recentSearchItem}
+              style={[styles.recentSearchItem, rowGutter]}
               onPress={() => onSelectRecent(query)}
             >
               <Text style={styles.recentSearchText}>{query}</Text>
@@ -106,11 +107,11 @@ function SearchSuggestionsBase({
         <View>
             {autocomplete.suggestions && autocomplete.suggestions.length > 0 ? (
               <View style={styles.acSection}>
-                <Text style={styles.acSectionTitle}>{t('search.suggestions')}</Text>
+                <Text style={[styles.acSectionTitle, rowGutter]}>{t('search.suggestions')}</Text>
                 {autocomplete.suggestions.slice(0, 5).map((s, i) => (
                   <Pressable
                     key={`s-${i}`}
-                    style={styles.acItem}
+                    style={[styles.acItem, rowGutter]}
                     onPress={() => onPickSuggestion(s)}
                   >
                     <Text style={styles.acItemText}>{s}</Text>
@@ -121,11 +122,11 @@ function SearchSuggestionsBase({
 
             {autocomplete.products && autocomplete.products.length > 0 ? (
               <View style={styles.acSection}>
-                <Text style={styles.acSectionTitle}>{t('product.title')}</Text>
+                <Text style={[styles.acSectionTitle, rowGutter]}>{t('product.title')}</Text>
                 {autocomplete.products.slice(0, 5).map((p) => (
                   <Pressable
                     key={`p-${p.id}`}
-                    style={styles.acItem}
+                    style={[styles.acItem, rowGutter]}
                     onPress={() => {
                       onCloseAutocomplete();
                       onNavigateSuggestion();
@@ -145,11 +146,11 @@ function SearchSuggestionsBase({
 
             {sellerResults.length > 0 ? (
               <View style={styles.acSection}>
-                <Text style={styles.acSectionTitle}>{t('search.sellers')}</Text>
+                <Text style={[styles.acSectionTitle, rowGutter]}>{t('search.sellers')}</Text>
                 {sellerResults.slice(0, 6).map((s) => (
                   <Pressable
                     key={`s-${s.id}`}
-                    style={styles.acItem}
+                    style={[styles.acItem, rowGutter]}
                     onPress={() => {
                       onCloseAutocomplete();
                       onNavigateSuggestion();
@@ -169,11 +170,11 @@ function SearchSuggestionsBase({
 
             {autocomplete.brands && autocomplete.brands.length > 0 ? (
               <View style={styles.acSection}>
-                <Text style={styles.acSectionTitle}>{t('brands.title')}</Text>
+                <Text style={[styles.acSectionTitle, rowGutter]}>{t('brands.title')}</Text>
                 {autocomplete.brands.slice(0, 5).map((b) => (
                   <Pressable
                     key={`b-${b.id}`}
-                    style={styles.acItem}
+                    style={[styles.acItem, rowGutter]}
                     onPress={() => onApplyFacet({ brandId: b.id, brand: b.name })}
                   >
                     <Text style={styles.acItemText}>{b.name}</Text>
@@ -184,11 +185,11 @@ function SearchSuggestionsBase({
 
             {autocomplete.manufacturers && autocomplete.manufacturers.length > 0 ? (
               <View style={styles.acSection}>
-                <Text style={styles.acSectionTitle}>{t('nav.manufacturers')}</Text>
+                <Text style={[styles.acSectionTitle, rowGutter]}>{t('nav.manufacturers')}</Text>
                 {autocomplete.manufacturers.slice(0, 5).map((m) => (
                   <Pressable
                     key={`mf-${m.id}`}
-                    style={styles.acItem}
+                    style={[styles.acItem, rowGutter]}
                     onPress={() =>
                       onApplyFacet({ manufacturerId: m.id, manufacturer: m.name })
                     }
@@ -201,12 +202,12 @@ function SearchSuggestionsBase({
 
             {autocomplete.categories && autocomplete.categories.length > 0 ? (
               <View style={styles.acSection}>
-                <Text style={styles.acSectionTitle}>{t('footer.categories')}</Text>
+                <Text style={[styles.acSectionTitle, rowGutter]}>{t('footer.categories')}</Text>
                 {autocomplete.categories.slice(0, 5).map((c) => (
                   <Pressable
                     key={`c-${c.id}`}
                     testID="search-category-suggestion"
-                    style={styles.acItem}
+                    style={[styles.acItem, rowGutter]}
                     onPress={() =>
                       onApplyFacet({ categoryId: c.id, category: c.name })
                     }
