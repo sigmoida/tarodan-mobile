@@ -264,9 +264,9 @@ describe('Siparişlerim · large screens', () => {
 
   it.each([
     [390, theme.spacing[4]],
-    [820, (820 - theme.contentWidths.readable) / 2],
-    [1032, (1032 - theme.contentWidths.readable) / 2],
-  ])('%d pt: the row list content side padding is %d (readable width)', async (width, side) => {
+    [820, theme.spacing[6]],
+    [1032, theme.spacing[8]],
+  ])('%d pt: the row list content side padding is %d (page gutter)', async (width, side) => {
     setWindow(width, 1200);
     getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture()] } });
     renderWithProviders(<OrdersScreen />);

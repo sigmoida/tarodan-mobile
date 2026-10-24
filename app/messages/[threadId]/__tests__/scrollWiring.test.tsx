@@ -149,14 +149,15 @@ describe('mesaj thread · large screens', () => {
 
   it.each([
     [390, theme.spacing[4]],
-    [820, (820 - theme.contentWidths.readable) / 2],
-    [1032, (1032 - theme.contentWidths.readable) / 2],
-  ])('%d pt: messages take the readable width (side %d) and the input bar is capped at it', (width, side) => {
+    [820, theme.spacing[6]],
+    [1032, theme.spacing[8]],
+  ])('%d pt: messages and the input bar take the page gutter (%d), uncapped', (width, side) => {
     setWindow(width, 1200);
     renderWithProviders(<MessageThreadScreen />);
     const flat = StyleSheet.flatten(screen.UNSAFE_getByType(FlatList).props.contentContainerStyle);
     expect(flat.paddingLeft ?? flat.paddingHorizontal ?? flat.padding).toBe(side);
-    const bar = StyleSheet.flatten(screen.getByTestId('page-shell-footer').children[0]!.props.style);
-    expect(bar.maxWidth).toBe(theme.contentWidths.readable);
+    const bar = StyleSheet.flatten(screen.getByTestId('page-shell-footer').props.style);
+    expect(bar.paddingHorizontal).toBe(side);
+    expect(StyleSheet.flatten(screen.getByTestId('page-shell-footer').children[0]!.props.style).maxWidth).toBeUndefined();
   });
 });

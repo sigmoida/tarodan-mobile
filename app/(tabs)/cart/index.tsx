@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { Checkbox, EmptyState, Text, theme, useReadableContentStyle, useToastBottomInset, usePageScrollValue } from '@/ui';
+import { Checkbox, EmptyState, Text, theme, usePageContentStyle, useToastBottomInset, usePageScrollValue } from '@/ui';
 import { searchEntryHref } from '@/lib/navigation/searchHref';
 import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
@@ -33,8 +33,8 @@ function CartScreen() {
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
   const [barHeight, setBarHeight] = useState(0);
   const hasItems = f.items.length > 0;
-  // Readable width on large screens; the checkout bar is centred at the same width.
-  const contentStyle = useReadableContentStyle([styles.content, { paddingBottom: tabInset + barHeight + spacing[2] }]);
+  // Large screens: edge to edge with the tablet gutter; the checkout bar follows it.
+  const contentStyle = usePageContentStyle([styles.content, { paddingBottom: tabInset + barHeight + spacing[2] }]);
   // Toast ödeme çubuğunun üstünde dursun (alt menünün kaydından sonra bağlanır → öncelikli).
   useToastBottomInset(hasItems && barHeight > 0 ? tabTop + spacing[2] + barHeight : null);
 

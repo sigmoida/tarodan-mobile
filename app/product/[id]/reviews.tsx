@@ -14,7 +14,7 @@ import {
   Icon,
   useDelayedLoading,
   usePageScrollHandler,
-  useReadableContentStyle,
+  usePageContentStyle,
 } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { ProductNotFound } from '@/components/product';
@@ -36,8 +36,8 @@ function ProductReviews({ productId }: { productId: string }) {
   const f = useAllProductReviews(productId, true);
   const [refreshing, setRefreshing] = useState(false);
   const page = usePageScrollHandler();
-  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
-  const listContentStyle = useReadableContentStyle(styles.content);
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle(styles.content);
   // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
   const showSkeleton = useDelayedLoading(f.isLoading);
 

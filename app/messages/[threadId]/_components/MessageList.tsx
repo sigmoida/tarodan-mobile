@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, FlatList } from 'react-native';
-import { Avatar, SkeletonChatBubble, Text, theme, useReadableContentStyle } from '@/ui';
+import { Avatar, SkeletonChatBubble, Text, theme, usePageContentStyle } from '@/ui';
 
 import { parseMessageContent } from '@/utils/contentFilter';
 import { AppImage } from '@/components/AppImage';
@@ -114,8 +114,8 @@ type Row =
 
 export function MessageList({ f }: { f: MessageThreadController }) {
   const { user, other } = f;
-  // Readable width on large screens; the input bar (PageShell footer) is centred at the same width.
-  const contentStyle = useReadableContentStyle(styles.messagesContent);
+  // Large screens: edge to edge with the tablet gutter, like the input bar (PageShell footer).
+  const contentStyle = usePageContentStyle(styles.messagesContent);
 
   const rows = React.useMemo<Row[]>(() => {
     const out: Row[] = [];

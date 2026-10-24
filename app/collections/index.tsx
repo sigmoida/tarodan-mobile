@@ -5,12 +5,13 @@ import {
   theme,
   EmptyState,
   ErrorState,
-  PAGE_GUTTER,
   gridCellWidth,
+  pageGutter,
   pageListContentStyle,
   Spinner,
   useDelayedLoading,
   useGridColumns,
+  usePageContentStyle,
   usePageScrollHandler,
 } from '@/ui';
 import { router } from 'expo-router';
@@ -45,9 +46,11 @@ export default function CollectionsScreen() {
   // Fixed cell width: a short last row keeps the card size instead of stretching across the row.
   const { width: windowWidth } = useWindowDimensions();
   const cellStyle = useMemo(
-    () => ({ width: gridCellWidth(windowWidth - 2 * PAGE_GUTTER, columns, COLLECTION_GRID_GAP) }),
+    () => ({ width: gridCellWidth(windowWidth - 2 * pageGutter(windowWidth), columns, COLLECTION_GRID_GAP) }),
     [windowWidth, columns],
   );
+  // Large screens: the tablet gutter (the cell width deducts the same one).
+  const listContentStyle = usePageContentStyle([pageListContentStyle, styles.footer]);
   const renderCollection = useCallback(
     ({ item }: { item: any }) => (
       <View style={cellStyle}>
@@ -64,7 +67,6 @@ export default function CollectionsScreen() {
     <PageShell
       title={t('collection.collections')}
       mode="list"
-      contentWidth="full"
       scroll={page}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       overlay={<CollectionsSheets f={f} />}
@@ -80,7 +82,7 @@ export default function CollectionsScreen() {
         {...listWindowing}
         numColumns={columns}
         columnWrapperStyle={styles.row}
-        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.footer])}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         onEndReached={f.loadMore}

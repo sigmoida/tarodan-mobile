@@ -5,7 +5,7 @@ import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
-import { pageListContentStyle, theme, usePageScrollValue, useReadableContentStyle } from '@/ui';
+import { pageListContentStyle, theme, usePageScrollValue, usePageContentStyle } from '@/ui';
 
 import { useProfile } from './_hooks/useProfile';
 import { ProfileGuestView } from './_components/ProfileGuestView';
@@ -26,8 +26,8 @@ function ProfileScreen() {
   // Hook sırası sabit kalsın diye erken return'den ÖNCE çağrılır (app/CLAUDE.md › Thin screens).
   const tabInset = useTabBarInset();
   const page = usePageScrollValue();
-  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
-  const listContentStyle = useReadableContentStyle([pageListContentStyle, { paddingBottom: tabInset }]);
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle([pageListContentStyle, { paddingBottom: tabInset }]);
   // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
 

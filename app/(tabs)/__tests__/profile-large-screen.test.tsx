@@ -1,6 +1,6 @@
 /**
- * Profile tab root on large screens: the menu takes the readable width (src/ui/CLAUDE.md › Large
- * screens), the scroll view itself still spans the window; phones keep the page gutter.
+ * Profile tab root on large screens: the menu goes edge to edge with the tablet gutter
+ * (src/ui/CLAUDE.md › Large screens); phones keep the page gutter.
  */
 import React from 'react';
 import { Dimensions, ScrollView, StyleSheet } from 'react-native';
@@ -53,8 +53,8 @@ describe('profile width', () => {
 
   it.each([
     [390, PAGE_GUTTER],
-    [820, (820 - theme.contentWidths.readable) / 2],
-    [1032, (1032 - theme.contentWidths.readable) / 2],
+    [820, theme.spacing[6]],
+    [1032, theme.spacing[8]],
   ])('%d pt: member and guest menus have side padding %d', (width, side) => {
     setWindow(width, 1200);
     mockF = member;

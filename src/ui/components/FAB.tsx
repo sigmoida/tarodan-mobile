@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, type PressableProps, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
 import {
   FAB_SIZE_SM,
@@ -9,7 +9,7 @@ import {
   useFloatingBottomOffset,
 } from '../lib/floating';
 import { RawText } from './Text';
-import { useReadableGutter, type ContentWidth } from '../lib/windowClass';
+import { tabletSidePadding } from '../lib/windowClass';
 import { RefIcon, type IconRef, type IconVariant } from '../icons';
 
 export type FABVariant = 'primary' | 'secondary';
@@ -31,11 +31,6 @@ export interface FABProps extends Omit<PressableProps, 'style'> {
    * vererek küçük kalır, konumu yine aynıdır. Ekranın kaydırma içeriği `useFabContentInset()` kadar alt boşluk bırakır.
    */
   placement?: 'bottomRight';
-  /**
-   * `bottomRight` on large screens: `readable` keeps the FAB at the right edge of a readable-width
-   * body (a row list such as my listings), `full` (default) at the window's side gap. No-op on phones.
-   */
-  contentWidth?: ContentWidth;
 }
 
 const { colors, radius, spacing } = theme;
@@ -64,11 +59,11 @@ export const FAB: React.FC<FABProps> = ({
   style,
   accessibilityLabel,
   placement,
-  contentWidth = 'full',
   ...rest
 }) => {
   const floatingBottom = useFloatingBottomOffset();
-  const readableRight = useReadableGutter(FLOATING_SIDE_GAP);
+  // Large screens: the right edge follows the tablet page gutter (phones: the side gap).
+  const sideGap = tabletSidePadding(FLOATING_SIDE_GAP, useWindowDimensions().width);
   const floating = placement === 'bottomRight';
   // Sağ altta boyut verilmezse "+" ile aynı çap; verilirse (ikincil FAB) o boyut.
   const ss = size ? sizeMap[size] : floating ? FLOATING_SIZE : sizeMap.md;
@@ -81,7 +76,7 @@ export const FAB: React.FC<FABProps> = ({
         styles.base,
         floating && {
           position: 'absolute',
-          right: contentWidth === 'readable' ? readableRight : FLOATING_SIDE_GAP,
+          right: sideGap,
           bottom: floatingBottom,
         },
         {

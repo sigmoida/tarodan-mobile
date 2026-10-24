@@ -2,7 +2,7 @@ import { RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { pageListContentStyle, theme } from '@/ui';
+import { pageListContentStyle, theme, usePageContentStyle } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { withStackTabBar } from '@/components/shell/StackTabBar';
 import { useTabBarPageScroll } from '@/components/shell/TabBarCollapse';
@@ -23,12 +23,13 @@ function ModelDetailScreen() {
   const f = useModelDetail();
   const page = useTabBarPageScroll();
   const tabInset = useTabBarInset();
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const contentStyle = usePageContentStyle([pageListContentStyle, { paddingBottom: tabInset }]);
   return (
     <PageShell
       title={f.model?.name ?? t('product.model')}
       subtitle={f.model?.brand?.name}
       mode="list"
-      contentWidth="full"
       scroll={page}
       loading={f.modelQuery.isLoading}
       error={f.modelLoadFailed || undefined}
@@ -46,7 +47,7 @@ function ModelDetailScreen() {
         <Animated.ScrollView
           {...page.listProps}
           testID="model-detail-scroll"
-          contentContainerStyle={page.contentStyle([pageListContentStyle, { paddingBottom: tabInset }])}
+          contentContainerStyle={page.contentStyle(contentStyle)}
           keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl

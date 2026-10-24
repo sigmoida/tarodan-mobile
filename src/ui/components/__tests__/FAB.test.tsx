@@ -74,13 +74,12 @@ describe('FAB bottomRight on large screens', () => {
   });
 
   it.each([
-    [390, 'full' as const, FLOATING_SIDE_GAP],
-    [390, 'readable' as const, FLOATING_SIDE_GAP],
-    [1032, 'full' as const, FLOATING_SIDE_GAP],
-    [1032, 'readable' as const, (1032 - theme.contentWidths.readable) / 2],
-  ])('%d pt, contentWidth %s: right %d', (width, contentWidth, right) => {
+    [390, FLOATING_SIDE_GAP],
+    [820, theme.spacing[6]],
+    [1032, theme.spacing[8]],
+  ])('%d pt: right %d (the page gutter)', (width, right) => {
     setWindow(width, 1200);
-    render(<FAB testID="fab" icon="plus" accessibilityLabel="Yeni" placement="bottomRight" contentWidth={contentWidth} />);
+    render(<FAB testID="fab" icon="plus" accessibilityLabel="Yeni" placement="bottomRight" />);
     expect(fabStyle().right).toBe(right);
   });
 });

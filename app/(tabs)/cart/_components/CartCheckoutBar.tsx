@@ -1,7 +1,7 @@
 import { View, type LayoutChangeEvent } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { Button, PAGE_GUTTER, Text, useReadableGutter } from '@/ui';
+import { Button, Text, usePageGutter } from '@/ui';
 import { formatServerPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import type { CartController } from '../_hooks/useCart';
@@ -20,8 +20,8 @@ interface Props {
  */
 export function CartCheckoutBar({ f, bottom, onLayout }: Props) {
   const { t } = useTranslation();
-  // Large screens: the bar keeps the cart body's readable width (phones: the page gutter).
-  const side = useReadableGutter(PAGE_GUTTER);
+  // The bar sits at the page gutter, like the cart body (wider on tablets).
+  const side = usePageGutter();
   return (
     <View
       style={[styles.checkoutBarWrap, { bottom, left: side, right: side }]}

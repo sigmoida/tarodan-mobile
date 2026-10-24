@@ -22,8 +22,6 @@ export default function CollectionDetailScreen() {
     <PageShell
       title=""
       onBack={goBack}
-      // Item card grid: full width on tablets (more columns), not the readable width.
-      contentWidth="full"
       loading={f.isLoading}
       empty={!f.isLoading && !f.collection}
       emptyState={{

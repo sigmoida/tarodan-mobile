@@ -8,6 +8,7 @@ import {
   pageListContentStyle,
   theme,
   useDelayedLoading,
+  usePageContentStyle,
   useShellPageScroll,
   type PageScroll,
 } from '@/ui';
@@ -165,7 +166,10 @@ export function ProductGrid({
   // Ekran kendi sinyalini verdiyse kabuğa bağlanılmaz (kabuk zaten o sinyali gösterir).
   const shellPage = useShellPageScroll(!scroll);
   const page = scroll ?? shellPage;
-  const content = bottomInset == null ? styles.content : [styles.content, { paddingBottom: bottomInset }];
+  // Large screens: the tablet gutter (`productCellWidth` deducts the same one).
+  const content = usePageContentStyle(
+    bottomInset == null ? styles.content : [styles.content, { paddingBottom: bottomInset }],
+  );
 
   // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
   const showSkeleton = useDelayedLoading(loading);

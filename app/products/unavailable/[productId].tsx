@@ -22,7 +22,6 @@ function ProductUnavailable({ id }: { id: string }) {
   return (
     <PageShell
       // Similar listings grid: full width on tablets (its columns follow the window).
-      contentWidth="full"
       title={t('stockout.page.screenTitle')}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/' as any))}
       loading={loading}

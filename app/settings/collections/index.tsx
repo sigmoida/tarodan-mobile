@@ -26,13 +26,11 @@ export default function CollectionsScreen() {
 
   return (
     <PageShell
-      // Card grid: full width on tablets (more columns), not the readable form width.
-      contentWidth="full"
       contentStyle={{ paddingBottom: fabInset }}
       title={title}
       onBack={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)"))}
       loading={f.isLoading}
-      loadingFallback={<RowListSkeleton rows={4} contentWidth="full" />}
+      loadingFallback={<RowListSkeleton rows={4} />}
       error={f.loadFailed || undefined}
       onRetry={f.retry}
       refreshing={f.refreshing}

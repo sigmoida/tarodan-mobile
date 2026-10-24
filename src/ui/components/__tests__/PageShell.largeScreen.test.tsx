@@ -1,13 +1,12 @@
 /**
- * PageShell on large screens: `scroll` and `list` bodies are readable by default (672 pt, centred),
- * `contentWidth="full"` and `static` span the window minus the gutter, the footer bar content is
- * capped. A `list` page's own list takes the width through `useReadableContentStyle`. Phones are
- * unchanged (the page gutter only).
+ * PageShell on large screens: every body goes edge to edge; the side padding becomes the tablet
+ * gutter (`pageGutter`: 24 pt medium, 32 pt expanded+), the footer bar spans the window with the
+ * same gutter, nothing is capped or centred. Phones are unchanged (the page gutter only).
  */
 import React from 'react';
 import { Dimensions, FlatList, ScrollView, StyleSheet } from 'react-native';
 import { act, render, screen } from '@testing-library/react-native';
-import { PageShell, RawText, pageListContentStyle, theme, useReadableContentStyle, type PageShellContentWidth } from '@/ui';
+import { PageShell, RawText, pageListContentStyle, theme, usePageContentStyle } from '@/ui';
 
 const setWindow = (width: number, height: number) =>
   Dimensions.set({
@@ -16,78 +15,57 @@ const setWindow = (width: number, height: number) =>
   });
 
 const contentStyle = () => StyleSheet.flatten(screen.UNSAFE_getByType(ScrollView).props.contentContainerStyle);
+const footer = () => StyleSheet.flatten(screen.getByTestId('page-shell-footer').props.style);
 const footerContent = () => StyleSheet.flatten(screen.getByTestId('page-shell-footer').children[0]!.props.style);
 
-describe('PageShell content width', () => {
-  afterEach(() => setWindow(375, 667));
+const GUTTERS: Array<[number, number, number]> = [
+  [390, 844, theme.spacing[4]],
+  [626, 890, theme.spacing[6]],
+  [820, 1180, theme.spacing[6]],
+  [1032, 1376, theme.spacing[8]],
+  [1180, 820, theme.spacing[8]],
+];
 
-  it('phone: the body keeps the 16 pt gutter', () => {
-    setWindow(390, 844);
-    render(
-      <PageShell title="Form">
-        <RawText>body</RawText>
-      </PageShell>,
-    );
-    expect(contentStyle().paddingHorizontal).toBe(theme.spacing[4]);
+describe('PageShell width', () => {
+  afterEach(() => {
+    screen.unmount();
+    setWindow(375, 667);
   });
 
-  it('foldable inner display (626 pt): still the gutter (672 + gutters does not fit)', () => {
-    setWindow(626, 890);
-    render(
-      <PageShell title="Form">
-        <RawText>body</RawText>
-      </PageShell>,
-    );
-    expect(contentStyle().paddingHorizontal).toBe(theme.spacing[4]);
-  });
-
-  it.each([
-    [820, 1180],
-    [1032, 1376],
-  ])('tablet %d pt: the scroll body is centred at the readable width', (width, height) => {
+  it.each(GUTTERS)('%d pt: the scroll body side padding is the page gutter', (width, height, gutter) => {
     setWindow(width, height);
     render(
       <PageShell title="Form">
         <RawText>body</RawText>
       </PageShell>,
     );
-    const pad = contentStyle().paddingHorizontal as number;
-    expect(width - 2 * pad).toBe(theme.contentWidths.readable);
+    expect(contentStyle().paddingHorizontal).toBe(gutter);
+    expect(contentStyle().maxWidth).toBeUndefined();
   });
 
-  it('tablet: contentWidth="full" keeps the gutter (grid pages)', () => {
+  it('tablet: padding={false} stays full bleed', () => {
     setWindow(1032, 1376);
     render(
-      <PageShell title="Grid" contentWidth="full">
+      <PageShell title="Media" padding={false}>
         <RawText>body</RawText>
       </PageShell>,
     );
-    expect(contentStyle().paddingHorizontal).toBe(theme.spacing[4]);
+    expect(contentStyle().paddingHorizontal).toBe(0);
   });
 
-  it('tablet: a static body is full width by default and readable on request', () => {
+  it('tablet: a static body takes the gutter too', () => {
     setWindow(1032, 1376);
-    const view = render(
-      <PageShell title="S" mode="static" testID="ps">
+    render(
+      <PageShell title="S" mode="static">
         <RawText>body</RawText>
       </PageShell>,
     );
-    // The static body is the nearest ancestor of the child that carries the body padding.
-    const staticBody = () => {
-      let node = screen.getByText('body').parent;
-      while (node && StyleSheet.flatten(node.props.style)?.padding === undefined) node = node.parent;
-      return StyleSheet.flatten(node!.props.style);
-    };
-    expect(staticBody().paddingHorizontal).toBe(theme.spacing[4]);
-    view.rerender(
-      <PageShell title="S" mode="static" contentWidth="readable" testID="ps">
-        <RawText>body</RawText>
-      </PageShell>,
-    );
-    expect(staticBody().paddingHorizontal).toBe((1032 - theme.contentWidths.readable) / 2);
+    let node = screen.getByText('body').parent;
+    while (node && StyleSheet.flatten(node.props.style)?.padding === undefined) node = node.parent;
+    expect(StyleSheet.flatten(node!.props.style).paddingHorizontal).toBe(theme.spacing[8]);
   });
 
-  it('tablet: the default loading skeleton takes the readable width too (no jump)', () => {
+  it('tablet: the default loading skeleton takes the same gutter (no jump)', () => {
     jest.useFakeTimers();
     setWindow(1032, 1376);
     render(
@@ -96,38 +74,36 @@ describe('PageShell content width', () => {
       </PageShell>,
     );
     act(() => void jest.advanceTimersByTime(theme.loading.delayMs + 10));
-    const style = StyleSheet.flatten(screen.getByTestId('page-shell-skeleton').props.style);
-    expect(style.paddingHorizontal).toBe((1032 - theme.contentWidths.readable) / 2);
+    expect(StyleSheet.flatten(screen.getByTestId('page-shell-skeleton').props.style).paddingHorizontal).toBe(
+      theme.spacing[8],
+    );
     jest.useRealTimers();
   });
 
-  it('the footer content is capped at the readable width and centred', () => {
-    setWindow(1032, 1376);
+  it.each(GUTTERS)('%d pt: the footer spans the window with the page gutter, uncapped', (width, height, gutter) => {
+    setWindow(width, height);
     render(
       <PageShell title="Form" footer={<RawText>Save</RawText>}>
         <RawText>body</RawText>
       </PageShell>,
     );
-    expect(footerContent()).toMatchObject({ maxWidth: theme.contentWidths.readable, alignSelf: 'center', width: '100%' });
+    expect(footer().paddingHorizontal).toBe(gutter);
+    expect(footerContent().maxWidth).toBeUndefined();
+    expect(footerContent().alignSelf).toBeUndefined();
   });
 });
 
-/** A `mode="list"` screen as the row lists write it: the shell's width and the list's padding. */
-function ListScreen({ contentWidth, loading }: { contentWidth?: PageShellContentWidth; loading?: boolean }) {
-  const readableStyle = useReadableContentStyle(pageListContentStyle);
+/** A `mode="list"` screen as the lists write it. */
+function ListScreen({ loading }: { loading?: boolean }) {
+  const style = usePageContentStyle(pageListContentStyle);
   return (
-    <PageShell title="List" mode="list" contentWidth={contentWidth} loading={loading}>
-      <FlatList
-        data={['a']}
-        renderItem={({ item }) => <RawText>{item}</RawText>}
-        contentContainerStyle={contentWidth === 'full' ? pageListContentStyle : readableStyle}
-      />
+    <PageShell title="List" mode="list" loading={loading}>
+      <FlatList data={['a']} renderItem={({ item }) => <RawText>{item}</RawText>} contentContainerStyle={style} />
     </PageShell>
   );
 }
 
 describe('PageShell list mode width', () => {
-  // Unmount before restoring the window: a resize re-renders a mounted screen outside act().
   afterEach(() => {
     screen.unmount();
     setWindow(375, 667);
@@ -136,32 +112,14 @@ describe('PageShell list mode width', () => {
     const flat = StyleSheet.flatten(screen.UNSAFE_getByType(FlatList).props.contentContainerStyle);
     return flat.paddingLeft ?? flat.paddingHorizontal ?? flat.padding;
   };
-  const skeletonPad = () => {
-    act(() => void jest.advanceTimersByTime(theme.loading.delayMs + 10));
-    return StyleSheet.flatten(screen.getByTestId('page-shell-skeleton').props.style).paddingHorizontal;
-  };
 
-  it.each([
-    [390, 844, theme.spacing[4]],
-    [820, 1180, (820 - theme.contentWidths.readable) / 2],
-    [1032, 1376, (1032 - theme.contentWidths.readable) / 2],
-  ])('readable row list at %d pt: list padding %d', (width, height, pad) => {
+  it.each(GUTTERS)('list at %d pt: list padding is the page gutter', (width, height, gutter) => {
     setWindow(width, height);
     render(<ListScreen />);
-    expect(listPad()).toBe(pad);
+    expect(listPad()).toBe(gutter);
   });
 
-  it.each([
-    [390, 844],
-    [820, 1180],
-    [1032, 1376],
-  ])('full grid list at %d pt: the page gutter only', (width, height) => {
-    setWindow(width, height);
-    render(<ListScreen contentWidth="full" />);
-    expect(listPad()).toBe(theme.spacing[4]);
-  });
-
-  it('the list body itself is not narrowed (the side margins scroll)', () => {
+  it('the list body itself is not narrowed', () => {
     setWindow(1032, 1376);
     render(<ListScreen />);
     let node = screen.UNSAFE_getByType(FlatList).parent;
@@ -173,16 +131,12 @@ describe('PageShell list mode width', () => {
     }
   });
 
-  it.each([
-    [390, undefined, theme.spacing[4]],
-    [820, undefined, (820 - theme.contentWidths.readable) / 2],
-    [1032, undefined, (1032 - theme.contentWidths.readable) / 2],
-    [1032, 'full' as const, theme.spacing[4]],
-  ])('list-mode skeleton at %d pt (contentWidth %s) matches the list width', (width, contentWidth, pad) => {
+  it.each(GUTTERS)('list-mode skeleton at %d pt matches the list gutter', (width, height, gutter) => {
     jest.useFakeTimers();
-    setWindow(width, 1200);
-    render(<ListScreen contentWidth={contentWidth} loading />);
-    expect(skeletonPad()).toBe(pad);
+    setWindow(width, height);
+    render(<ListScreen loading />);
+    act(() => void jest.advanceTimersByTime(theme.loading.delayMs + 10));
+    expect(StyleSheet.flatten(screen.getByTestId('page-shell-skeleton').props.style).paddingHorizontal).toBe(gutter);
     jest.useRealTimers();
   });
 });

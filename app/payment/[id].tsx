@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, BackHandler } from 'react-native';
-import { Alert, Button, Spinner, Text, theme, appAlert, useReadableGutter } from '@/ui';
+import { Alert, Button, Spinner, Text, theme, appAlert, usePageGutter } from '@/ui';
 import { router, useFocusEffect, useLocalSearchParams, Redirect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '@/lib/api';
@@ -45,8 +45,8 @@ const { colors } = theme;
  */
 export default function PaymentScreen() {
   const { t } = useTranslation();
-  // The notice keeps the card form's readable width on large screens (phones: the page gutter).
-  const noticeSide = useReadableGutter(theme.spacing[4]);
+  // The notice keeps the card form's side gutter (phones: the page gutter; tablets: the wider one).
+  const noticeSide = usePageGutter();
   const params = useLocalSearchParams<{
     id: string;
     guest?: string;
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.surface.DEFAULT,
   },
-  // marginHorizontal: the readable gutter, set inline.
+  // marginHorizontal: the page gutter, set inline.
   safeNotice: { marginTop: theme.spacing[2] },
   center: {
     flex: 1,

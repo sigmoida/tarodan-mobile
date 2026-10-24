@@ -15,8 +15,6 @@ export default function ModelsScreen() {
   return (
     <PageShell
       title={t('models.title')}
-      // Model card grids: full width on tablets (more columns), not the readable width.
-      contentWidth="full"
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
       loading={f.isLoading}

@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, ErrorState, Spinner, TopBarAction, usePageScrollHandler, useReadableContentStyle } from '@/ui';
+import { EmptyState, ErrorState, Spinner, TopBarAction, usePageScrollHandler, usePageContentStyle } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
@@ -21,8 +21,8 @@ export default function NotificationsScreen() {
   const { t } = useTranslation();
   const f = useNotifications();
   const page = usePageScrollHandler();
-  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
-  const listContentStyle = useReadableContentStyle(styles.listContent);
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle(styles.listContent);
   const title = t('notification.notifications');
 
   const renderItem = useCallback(

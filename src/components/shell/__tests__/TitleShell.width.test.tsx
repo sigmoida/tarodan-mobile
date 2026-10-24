@@ -1,12 +1,11 @@
 /**
- * Tab-root shells on large screens: the bar and the content box span the window (the child's list
- * keeps scrolling on the side margins); a readable tab root's list centres its content at the
- * readable width through `useReadableContentStyle`. Phones keep the page gutter.
+ * Tab-root shells on large screens: the bar and the content box span the window; a tab root's list
+ * takes the tablet gutter through `usePageContentStyle`. Phones keep the page gutter.
  */
 import React from 'react';
 import { Dimensions, FlatList, StyleSheet, Text } from 'react-native';
 import { render, screen } from '@testing-library/react-native';
-import { pageListContentStyle, theme, useReadableContentStyle } from '@/ui';
+import { pageListContentStyle, theme, usePageContentStyle } from '@/ui';
 import { AppShell } from '../AppShell';
 import { TitleShell } from '../TitleShell';
 
@@ -26,8 +25,8 @@ const setWindow = (width: number, height: number) =>
     screen: { width, height, scale: 2, fontScale: 2 },
   });
 
-function ReadableList() {
-  const style = useReadableContentStyle(pageListContentStyle);
+function GutterList() {
+  const style = usePageContentStyle(pageListContentStyle);
   return <FlatList data={['row']} renderItem={({ item }) => <Text>{item}</Text>} contentContainerStyle={style} />;
 }
 
@@ -47,17 +46,17 @@ describe.each([
 
   it.each([
     [390, theme.spacing[4]],
-    [820, (820 - theme.contentWidths.readable) / 2],
-    [1032, (1032 - theme.contentWidths.readable) / 2],
-  ])('%d pt: the readable list content side padding is %d', (width, pad) => {
+    [820, theme.spacing[6]],
+    [1032, theme.spacing[8]],
+  ])('%d pt: the list content side padding is %d', (width, pad) => {
     setWindow(width, 1200);
-    render(shell(<ReadableList />));
+    render(shell(<GutterList />));
     expect(listPad()).toBe(pad);
   });
 
-  it('tablet: the content box is not narrowed, so the side margins scroll', () => {
+  it('tablet: the content box is not narrowed (edge to edge)', () => {
     setWindow(1032, 1376);
-    render(shell(<ReadableList />));
+    render(shell(<GutterList />));
     const box = StyleSheet.flatten(screen.getByTestId('app-shell-content').props.style);
     expect(box.paddingHorizontal ?? 0).toBe(0);
     expect(box.maxWidth).toBeUndefined();

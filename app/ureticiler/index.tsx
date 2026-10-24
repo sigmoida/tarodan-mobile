@@ -15,7 +15,7 @@ import {
   ListRowCard,
   useDelayedLoading,
   usePageScrollHandler,
-  useReadableContentStyle,
+  usePageContentStyle,
 } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
@@ -55,8 +55,8 @@ export default function ManufacturersScreen() {
   const { t } = useTranslation();
   const f = useManufacturers();
   const page = usePageScrollHandler();
-  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
-  const listContentStyle = useReadableContentStyle(styles.content);
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle(styles.content);
   // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
   const showSkeleton = useDelayedLoading(f.isLoading);
 

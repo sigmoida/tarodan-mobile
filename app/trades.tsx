@@ -12,7 +12,7 @@ import {
   theme,
   useDelayedLoading,
   usePageScrollHandler,
-  useReadableContentStyle,
+  usePageContentStyle,
 } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { tradesApi } from '@/lib/api';
@@ -60,8 +60,8 @@ export default function TradesScreen() {
   const [filter, setFilter] = useState<TradesTabFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
   const page = usePageScrollHandler();
-  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
-  const listContentStyle = useReadableContentStyle(pageListContentStyle);
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle(pageListContentStyle);
 
   const { data: tradesPayload, isLoading, isError, refetch } = useQuery({
     queryKey: qk.trades.list({ filter }),

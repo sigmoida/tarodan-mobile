@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, PAGE_GUTTER, gridCellWidth, theme, useGridColumns, type EmptyStatePlacement } from '@/ui';
+import { Button, EmptyState, gridCellWidth, pageGutter, theme, useGridColumns, type EmptyStatePlacement } from '@/ui';
 import type { ProductCardLayout } from './ProductCard';
 import { SkeletonProductCard } from './SkeletonProductCard';
 
@@ -18,9 +18,9 @@ export function useProductGridColumns(): number {
   return useGridColumns();
 }
 
-/** A card's width in the listing grid (page gutters and the gaps between `columns` deducted). */
+/** A card's width in the listing grid (page gutters (`pageGutter`) and the gaps between `columns` deducted). */
 export function productCellWidth(windowWidth: number, columns: number): number {
-  return gridCellWidth(windowWidth - PAGE_GUTTER * 2, columns, PRODUCT_GRID_GAP);
+  return gridCellWidth(windowWidth - pageGutter(windowWidth) * 2, columns, PRODUCT_GRID_GAP);
 }
 
 /** A card's width in the listing grid of the current window. */

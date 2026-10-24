@@ -118,7 +118,6 @@ function ProductDetail({ productId }: { productId: string }) {
     <PageShell
       header={false}
       mode="list"
-      contentWidth="full"
       padding={false}
       loading={isLoading || retrying}
       loadingFallback={<ProductSkeleton />}

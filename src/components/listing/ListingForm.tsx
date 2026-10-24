@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, KeyboardAvoidingView } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { theme, useKeyboardAvoid, usePageScrollValue, useReadableGutter, useShellPageScroll } from '@/ui';
+import { useKeyboardAvoid, usePageGutter, usePageScrollValue, useShellPageScroll } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
@@ -56,8 +56,8 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
   // Oluşturma (sekme kökü): içerik yüzen alt menü hapının altında kalmasın -> alt dolgu tabInset.
   const tabPad = useMemo(() => (f.isEdit ? null : { paddingBottom: tabInset }), [f.isEdit, tabInset]);
-  // Tablets: the form keeps the readable width, centred (phones: the 16 pt gutter, unchanged).
-  const sidePad = useReadableGutter(theme.spacing[4]);
+  // Full width with the page gutter (phones: 16 pt, unchanged; tablets: the wider gutter).
+  const sidePad = usePageGutter();
   const sidePadStyle = useMemo(() => ({ paddingHorizontal: sidePad }), [sidePad]);
 
   if (gate) return gate;

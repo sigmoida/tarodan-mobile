@@ -3,6 +3,9 @@ import { GLASS_ICON_BUTTON_SIZE, theme } from '@/ui';
 
 const { colors, spacing, typography } = theme;
 
+/** Half the column gap of the result grid: each cell pads this much on both sides. */
+export const CELL_HALF_GAP = spacing[1.5];
+
 // Arama ekranının route-local stylesheet'i. Kart ve sıralama paneli artık ortak
 // (`@/components/product`); burada yalnız üst bardaki arama alanı, öneri paneli ve liste düzeni kalır.
 export const styles = StyleSheet.create({
@@ -114,13 +117,14 @@ export const styles = StyleSheet.create({
   // İçerik dolgusu: yalnız padding* geçerli; paddingTop ekranda ölçülen çubuk yüksekliğiyle ezilir.
   // Yatay: içerik 16 - 6 = 10 + hücre 6 → kenar boşluğu 16, kartlar arası 6 + 6 = 12; ızgarada kart
   // genişliği (W - 20) / 2 - 12 = (W - 32 - 12) / 2 (eskisiyle aynı), tek sütunda W - 20 - 12 = W - 32.
+  // Tablets: the screen sets `paddingHorizontal` to `pageGutter - CELL_HALF_GAP` (same value on phones).
   listContent: {
-    paddingHorizontal: spacing[4] - spacing[1.5],
+    paddingHorizontal: spacing[4] - CELL_HALF_GAP,
     paddingBottom: spacing[4],
     paddingTop: spacing[2],
   },
   // Hücre: satırlar arası boşluk altta, yatayda simetrik. `flex: 1` → kart satırın en uzun hücresine yayılır.
-  cell: { flex: 1, paddingBottom: spacing[3], paddingHorizontal: spacing[1.5] },
+  cell: { flex: 1, paddingBottom: spacing[3], paddingHorizontal: CELL_HALF_GAP },
   // Üst çubuklar ölçülene kadar liste görünmez ama YERLEŞİR (opacity, display değil):
   // doğru üst boşlukla tek seferde konumlanır, kullanıcı ara kareyi görmez.
   listWrap: { flex: 1 },

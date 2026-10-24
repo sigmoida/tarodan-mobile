@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, ErrorState, TopBarLabel, pageListContentStyle, usePageScrollHandler, useReadableContentStyle } from '@/ui';
+import { Button, EmptyState, ErrorState, TopBarLabel, pageListContentStyle, usePageScrollHandler, usePageContentStyle } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
@@ -25,8 +25,8 @@ export default function DiscountProductsScreen() {
   const selectedIds = useProductPickerDraft((s) => s.selectedIds);
   const toggle = useProductPickerDraft((s) => s.toggle);
   const page = usePageScrollHandler();
-  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
-  const listContentStyle = useReadableContentStyle(pageListContentStyle);
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle(pageListContentStyle);
   const title = t('discount.pickProducts');
 
   const renderProduct = useCallback(

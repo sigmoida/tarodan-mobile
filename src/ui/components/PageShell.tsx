@@ -26,12 +26,9 @@ import { SkeletonText } from '../loading/Skeleton';
 import { useDelayedLoading } from '../loading/useDelayedLoading';
 import { useToastBottomInset } from './Toast';
 import { PAGE_GUTTER, PAGE_SECTION_GAP } from '../lib/pageLayout';
-import { readableGutter, type ContentWidth } from '../lib/windowClass';
+import { pageGutter, tabletSidePadding } from '../lib/windowClass';
 
 export type PageShellMode = 'scroll' | 'list' | 'static';
-
-/** Body width on large screens: `readable` centres it at `theme.contentWidths.readable`. */
-export type PageShellContentWidth = ContentWidth;
 
 export interface PageShellProps
   extends Pick<
@@ -50,16 +47,6 @@ export interface PageShellProps
    * (a non-scrolling View).
    */
   mode?: PageShellMode;
-  /**
-   * Body width on large screens (no-op on phones). `readable` (default in `scroll` and `list`:
-   * forms, settings, detail pages, row lists) centres the body at `theme.contentWidths.readable`
-   * (672 pt); `full` (default in `static`, whose child brings its own layout) spans the window
-   * minus the normal gutter. A page whose body is a card grid or media passes `full`. In `list`
-   * mode the shell cannot pad the child's list: the list wraps its `contentContainerStyle` in
-   * `useReadableContentStyle` (and a `full` grid list does not); this prop then sizes the shell's
-   * own skeleton the same way. The `footer` bar is always centred at the readable width.
-   */
-  contentWidth?: PageShellContentWidth;
   children?: React.ReactNode;
   /** Sabit alt bar (ana aksiyon) — üst çizgili, güvenli alan dahil. */
   footer?: React.ReactNode;
@@ -130,7 +117,6 @@ export const PageShell: React.FC<PageShellProps> = ({
   titleFill,
   header,
   mode = 'scroll',
-  contentWidth = mode === 'static' ? 'full' : 'readable',
   children,
   footer,
   overlay,
@@ -155,12 +141,13 @@ export const PageShell: React.FC<PageShellProps> = ({
   const insets = useSafeAreaInsets();
   const pad = padding === false ? 0 : spacing[padding];
   const { width: windowWidth } = useWindowDimensions();
-  // Large screens: side padding that centres the body at the readable width (phones: `pad` itself).
-  const readable = contentWidth === 'readable';
-  const sidePad = readable ? readableGutter(windowWidth, pad) : pad;
+  // Large screens: every body goes edge to edge with the tablet gutter (phones: `pad` itself). In
+  // `list` mode the child's list pads itself with `usePageContentStyle` (src/ui/CLAUDE.md › Large screens).
+  const sidePad = tabletSidePadding(pad, windowWidth);
   // The default skeleton takes the same width as the body it stands for (no jump when data arrives).
   const skeletonPad = pad || PAGE_GUTTER;
-  const skeletonSidePad = readable ? readableGutter(windowWidth, skeletonPad) : skeletonPad;
+  const skeletonSidePad = tabletSidePadding(skeletonPad, windowWidth);
+  const footerSidePad = pageGutter(windowWidth);
   const keyboard = useKeyboardAvoid(keyboardAware);
 
   // Özel `header` akışta çizilir (ör. sohbet: opak, floating={false}); `false` = bar yok; aksi halde YÜZEN bar.
@@ -269,7 +256,7 @@ export const PageShell: React.FC<PageShellProps> = ({
         <View
           // Klavye açıkken çubuk klavyenin üstünde: güvenli alan (home indicator / gezinti çubuğu)
           // klavyenin altında kalır, eklenirse klavye üstünde boş şerit olur.
-          style={[styles.footer, { paddingBottom: spacing[3] + (keyboard.keyboardOpen ? 0 : insets.bottom) }]}
+          style={[styles.footer, { paddingHorizontal: footerSidePad, paddingBottom: spacing[3] + (keyboard.keyboardOpen ? 0 : insets.bottom) }]}
           onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
           testID="page-shell-footer"
         >
@@ -327,14 +314,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.elevated,
     borderTopWidth: 1,
     borderTopColor: colors.border.DEFAULT,
-    paddingHorizontal: PAGE_GUTTER,
+    // paddingHorizontal: the page gutter (`pageGutter`), set inline.
     paddingTop: spacing[3],
   },
-  // Large screens: the action bar keeps the readable width, centred (phones: full width).
+  // Full width on every window; the footer's own content lays itself out for the width.
   footerContent: {
-    width: '100%',
-    maxWidth: theme.contentWidths.readable,
-    alignSelf: 'center',
     gap: spacing[2],
   },
 });

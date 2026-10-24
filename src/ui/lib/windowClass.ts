@@ -1,17 +1,13 @@
 import { StyleSheet, useWindowDimensions, type DimensionValue, type StyleProp, type ViewStyle } from 'react-native';
 import { theme } from './theme';
+import { PAGE_GUTTER } from './pageLayout';
 
-const { breakpoints, contentWidths } = theme;
-
-/**
- * Body width of a screen on large screens: `readable` centres it at `contentWidths.readable`
- * (forms, settings, row lists), `full` spans the window minus the normal gutter (card grids, media).
- */
-export type ContentWidth = 'readable' | 'full';
+const { breakpoints } = theme;
 
 /**
- * Large-screen layout rules: ONE classifier for widths, one column-count rule for card grids and
- * one readable content width. Every rule is a no-op below `breakpoints.medium` (600 pt), so phone
+ * Large-screen layout rules: ONE classifier for widths, one column-count rule per grid kind and one
+ * page gutter. Every screen goes edge to edge; layouts re-proportion by width class instead of
+ * centring a narrow column. Every rule is a no-op below `breakpoints.medium` (600 pt), so phone
  * layouts are unchanged. Inputs are measured widths (window or component), never device models.
  */
 
@@ -87,49 +83,72 @@ export function gridCellStyle(
 }
 
 /**
- * Side padding that keeps content at most `maxWidth` wide and centred in a `width`-wide container,
- * but never less than `gutter`. Phones get `gutter` itself.
+ * Side gutter of page content per width class: phones keep the 16 pt page gutter (`PAGE_GUTTER`),
+ * tablets get a wider one so an edge-to-edge layout does not hug the screen edge.
  */
-export function readableGutter(width: number, gutter: number, maxWidth: number = contentWidths.readable): number {
-  return Math.max(gutter, Math.round((width - maxWidth) / 2));
+export const PAGE_GUTTERS: GridColumnSpec = {
+  compact: PAGE_GUTTER,
+  medium: theme.spacing[6],
+  expanded: theme.spacing[8],
+  large: theme.spacing[8],
+};
+
+/**
+ * Page gutter (pt) for content that spans a `width`-wide window: THE side padding of every shell,
+ * list, footer and floating bar on large screens. `PAGE_GUTTER` on phones.
+ */
+export function pageGutter(width: number): number {
+  return PAGE_GUTTERS[windowClassOf(width)];
 }
 
-/** `readableGutter` for content that spans the window. */
-export function useReadableGutter(gutter: number, maxWidth: number = contentWidths.readable): number {
-  return readableGutter(useWindowDimensions().width, gutter, maxWidth);
+/** `pageGutter` of the current window. */
+export function usePageGutter(): number {
+  return pageGutter(useWindowDimensions().width);
+}
+
+/**
+ * A side padding of `own` pt widened to the tablet gutter: phones get `own` back, tablets
+ * `max(own, pageGutter)`. A deliberate full-bleed side (0) stays 0 (inbox rows, the product
+ * gallery), as does a non-numeric one.
+ */
+export function tabletSidePadding<T>(own: T, width: number): T | number {
+  if (typeof own !== 'number' || own <= 0 || windowClassOf(width) === 'compact') return own;
+  return Math.max(own, pageGutter(width));
 }
 
 /**
  * `base` (the `contentContainerStyle` of a list or ScrollView) with its side padding widened to the
- * readable gutter: the content centres at `maxWidth` while the scroll view itself keeps the whole
- * window, so a drag on the side margins still scrolls. Each side's own padding is `paddingLeft` /
- * `paddingRight`, else `paddingHorizontal`, else `padding`, else 0 (a full-bleed row list such as
- * messages); it is kept when it is wider. On phones, or with a non-numeric side padding, `base`
- * comes back as it is. `paddingStart` / `paddingEnd` are not read (not used in the app).
+ * tablet gutter (`tabletSidePadding`). Each side's own padding is `paddingLeft` / `paddingRight`,
+ * else `paddingHorizontal`, else `padding`, else 0. On phones, or when nothing changes, `base`
+ * comes back as it is (the same object), so phone layouts stay pixel-identical.
  */
-export function readableContentStyle(
-  base: StyleProp<ViewStyle>,
-  width: number,
-  maxWidth: number = contentWidths.readable,
-): StyleProp<ViewStyle> {
+export function pageContentStyle(base: StyleProp<ViewStyle>, width: number): StyleProp<ViewStyle> {
+  if (windowClassOf(width) === 'compact') return base;
   const flat = StyleSheet.flatten(base) ?? {};
   const shared = flat.paddingHorizontal ?? flat.padding ?? 0;
   const left = flat.paddingLeft ?? shared;
   const right = flat.paddingRight ?? shared;
-  if (typeof left !== 'number' || typeof right !== 'number') return base;
-  const centre = readableGutter(width, 0, maxWidth);
-  if (centre <= left && centre <= right) return base;
-  return [base, { paddingLeft: Math.max(left, centre), paddingRight: Math.max(right, centre) }];
+  const nextLeft = tabletSidePadding(left, width);
+  const nextRight = tabletSidePadding(right, width);
+  if (nextLeft === left && nextRight === right) return base;
+  return [base, { paddingLeft: nextLeft as number, paddingRight: nextRight as number }];
 }
 
 /**
- * `readableContentStyle` for a list or ScrollView that spans the window: the row lists of
+ * `pageContentStyle` for a list or ScrollView that spans the window: the lists of
  * `PageShell mode="list"` and the tab roots (`AppShell`), whose shells cannot pad a child's scroll
  * content themselves.
  */
-export function useReadableContentStyle(
-  base: StyleProp<ViewStyle>,
-  maxWidth: number = contentWidths.readable,
-): StyleProp<ViewStyle> {
-  return readableContentStyle(base, useWindowDimensions().width, maxWidth);
+export function usePageContentStyle(base: StyleProp<ViewStyle>): StyleProp<ViewStyle> {
+  return pageContentStyle(base, useWindowDimensions().width);
 }
+
+/**
+ * Row lists (orders, sales, offers, my listings, ...) as a card grid on large screens: one column on
+ * phones, 2 on medium, 3 on expanded and 4 on large windows (each card keeps roughly its phone
+ * width, ~300-480 pt, instead of stretching).
+ */
+export const ROW_CARD_COLUMNS: GridColumnSpec = { compact: 1, medium: 2, expanded: 3, large: 4 };
+
+/** Column gap of the row card grid (% of the row; ~16-20 pt on tablets). */
+export const ROW_GRID_GAP_PERCENT = 2;

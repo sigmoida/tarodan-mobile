@@ -9,7 +9,7 @@ import {
   pageListContentStyle,
   useFabContentInset,
   usePageScrollHandler,
-  useReadableContentStyle,
+  usePageContentStyle,
 } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
@@ -42,8 +42,8 @@ export default function MyListingsScreen() {
   const f = useMyListings();
   const fabInset = useFabContentInset();
   const page = usePageScrollHandler();
-  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
-  const listContentStyle = useReadableContentStyle([pageListContentStyle, { paddingBottom: fabInset }]);
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle([pageListContentStyle, { paddingBottom: fabInset }]);
   const { openActionMenu, isExpiredTab, selection } = f;
   const selected = selection.selected;
   // Kararlı renderItem (satır başına closure yok → memo'lu MyListingCard yeniden çizilmez).
@@ -99,7 +99,6 @@ export default function MyListingsScreen() {
               icon="plus"
               accessibilityLabel={f.t('listing.createNewA11y')}
               placement="bottomRight"
-              contentWidth="readable"
               onPress={() => navigateTo('/(tabs)/sell')}
             />
           )}

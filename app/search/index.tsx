@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { View, RefreshControl } from 'react-native';
 import Animated, { useComposedEventHandler } from 'react-native-reanimated';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
-import { ErrorState, FAB, Spinner, theme, useDelayedLoading } from '@/ui';
+import { ErrorState, FAB, Spinner, theme, useDelayedLoading, usePageGutter } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { ListFooterRetry } from '@/components/common/ListFooterRetry';
 import {
@@ -17,7 +17,7 @@ import ProductFilterSheet from '@/components/ProductFilterSheet';
 import { withStackTabBar } from '@/components/shell/StackTabBar';
 import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
-import { styles } from './_lib/searchStyles';
+import { CELL_HALF_GAP, styles } from './_lib/searchStyles';
 import { SEARCH_DRAW_DISTANCE } from './_lib/searchConstants';
 import { useTransitionReady } from '@/hooks/useTransitionReady';
 import { useSearch } from './_hooks/useSearch';
@@ -84,9 +84,14 @@ function SearchScreen() {
   // The last result row stays clear of the scroll-to-top FAB, which floats above the tab bar.
   const { listBottomInset, scrollTopFabStyle } = useSearchBottomChrome();
   // Liste prop'ları kararlı kalsın: ekran render olsa da liste boş yere uzlaştırılmasın.
+  // Large screens: the page gutter (the cells add their half gap on each side, see `styles.listContent`).
+  const gutter = usePageGutter();
   const contentContainerStyle = useMemo(
-    () => [styles.listContent, { paddingTop: f.headerHeight, paddingBottom: listBottomInset }],
-    [f.headerHeight, listBottomInset],
+    () => [
+      styles.listContent,
+      { paddingTop: f.headerHeight, paddingBottom: listBottomInset, paddingHorizontal: gutter - CELL_HALF_GAP },
+    ],
+    [f.headerHeight, listBottomInset, gutter],
   );
   const refreshControl = useMemo(
     () => (
@@ -156,7 +161,6 @@ function SearchScreen() {
     <PageShell
       title={t('common.search')}
       mode="list"
-      contentWidth="full"
       keyboardAware={false}
       titleFill
       titleSlot={

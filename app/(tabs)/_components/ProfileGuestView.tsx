@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
-import { Button, Card, SectionCard, Text, pageListContentStyle, theme, usePageScrollValue, type IconName, useReadableContentStyle } from '@/ui';
+import { Button, Card, SectionCard, Text, pageListContentStyle, theme, usePageScrollValue, type IconName, usePageContentStyle } from '@/ui';
 
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
@@ -25,8 +25,8 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
   const { t } = useTranslation();
   const tabInset = useTabBarInset();
   const page = usePageScrollValue();
-  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
-  const listContentStyle = useReadableContentStyle([pageListContentStyle, { paddingBottom: tabInset }]);
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle([pageListContentStyle, { paddingBottom: tabInset }]);
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
 
   const quickLinks: { label: string; to: string; icon: IconName }[] = [

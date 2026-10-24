@@ -41,8 +41,8 @@ export interface TitleShellProps {
  * tam yükseklikte; bar üstünde yüzer.
  *
  * Width: the bar and the content box span the window, so the child's list scrolls on the side
- * margins too. A readable tab root (profile, cart, favourites) wraps its list's
- * `contentContainerStyle` in `useReadableContentStyle` (src/ui/CLAUDE.md › Large screens).
+ * margins too. A tab root (profile, cart, favourites) wraps its list's `contentContainerStyle` in
+ * `usePageContentStyle` for the tablet gutter (src/ui/CLAUDE.md › Large screens).
  */
 export const TitleShell: React.FC<TitleShellProps> = ({
   title,

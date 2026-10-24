@@ -120,7 +120,6 @@ export {
 	PageShell,
 	type PageShellProps,
 	type PageShellMode,
-	type PageShellContentWidth,
 } from './components/PageShell';
 export { PAGE_GUTTER, PAGE_SECTION_GAP, pageListContentStyle } from './lib/pageLayout';
 export {
@@ -129,14 +128,17 @@ export {
   gridCellStyle,
   gridCellWidth,
   gridColumns,
-  readableContentStyle,
-  readableGutter,
+  PAGE_GUTTERS,
+  ROW_CARD_COLUMNS,
+  ROW_GRID_GAP_PERCENT,
+  pageContentStyle,
+  pageGutter,
+  tabletSidePadding,
   useGridColumns,
-  useReadableContentStyle,
-  useReadableGutter,
+  usePageContentStyle,
+  usePageGutter,
   useWindowClass,
   windowClassOf,
-  type ContentWidth,
   type GridColumnSpec,
   type WindowClass,
 } from './lib/windowClass';
