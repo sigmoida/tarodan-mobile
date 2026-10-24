@@ -25,6 +25,16 @@ export function zoomImageSide(pageWidth: number, areaHeight: number): number {
 }
 
 /**
+ * Horizontal pan limit (pt) of the scaled image: how far its edge may move before the page edge shows
+ * past it. Phones (side = page width) get the old `side * (scale - 1) / 2`; a landscape page wider
+ * than the square stops the photo at its own edge.
+ */
+export function panLimitX(side: number, scale: number, pageWidth: number): number {
+  'worklet';
+  return Math.max(0, (side * scale - pageWidth) / 2);
+}
+
+/**
  * Tam ekran görüntüleyici sayfası: pinch + double-tap zoom, zoom'luyken pan.
  * Native ScrollView zoom'u Android'de çalışmadığı için gesture-handler/reanimated ile
  * iki platformda da aynı davranır. Zoom'luyken dış yatay sayfalama kaymasın diye
@@ -69,8 +79,8 @@ export default function ZoomableImage({
       } else {
         const s = DOUBLE_TAP_SCALE;
         // Dokunulan nokta merkezde kalacak şekilde kaydır; görsel sınırları içinde tut
-        const maxTx = (side * (s - 1)) / 2;
-        const maxTy = (side * (s - 1)) / 2; // görsel side x side boyutunda
+        const maxTx = panLimitX(side, s, width);
+        const maxTy = (side * (s - 1)) / 2; // the image is side x side
         const nextTx = clamp((width / 2 - e.x) * (s - 1), -maxTx, maxTx);
         const nextTy = clamp((areaHeight / 2 - e.y) * (s - 1), -maxTy, maxTy);
         scale.value = withTiming(s);
@@ -89,7 +99,7 @@ export default function ZoomableImage({
     })
     .onEnd(() => {
       savedScale.value = scale.value;
-      const maxTx = (side * (scale.value - 1)) / 2;
+      const maxTx = panLimitX(side, scale.value, width);
       const maxTy = (side * (scale.value - 1)) / 2;
       tx.value = clamp(tx.value, -maxTx, maxTx);
       ty.value = clamp(ty.value, -maxTy, maxTy);
@@ -101,7 +111,7 @@ export default function ZoomableImage({
   const pan = Gesture.Pan()
     .enabled(zoomed)
     .onUpdate((e) => {
-      const maxTx = (side * (scale.value - 1)) / 2;
+      const maxTx = panLimitX(side, scale.value, width);
       const maxTy = (side * (scale.value - 1)) / 2;
       tx.value = clamp(savedTx.value + e.translationX, -maxTx, maxTx);
       ty.value = clamp(savedTy.value + e.translationY, -maxTy, maxTy);
