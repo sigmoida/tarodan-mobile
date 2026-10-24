@@ -65,8 +65,7 @@ rule is a no-op below 600 pt: phones stay as they are.
   from expanded, `MenuGroupList`).
 - Floating controls may keep a cap: `Modal`, `AlertDialog` and `Toast` cap themselves, and the tab bar pill is centred at
   `TAB_BAR_MAX_WIDTH` (480). `BottomSheet` spans the window like page content. Page content
-  never caps. `theme.contentWidths.readable` is
-  an upstream token kept in sync; page code does not use it.
+  never caps.
 
 ## Typography
 

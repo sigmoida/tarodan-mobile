@@ -17,7 +17,7 @@ import { typography } from "./typography";
 import { motion } from "./motion";
 import { zIndex } from "./z-index";
 import { containers } from "./containers";
-import { breakpoints, contentWidths } from "./breakpoints";
+import { breakpoints } from "./breakpoints";
 import { roles } from "./roles";
 
 export const tokens = {
@@ -30,7 +30,6 @@ export const tokens = {
   zIndex,
   containers,
   breakpoints,
-  contentWidths,
   roles,
 } as const;
 
