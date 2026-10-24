@@ -4,7 +4,6 @@ import {
   HERO_BORDER_WIDTH,
   HERO_DOTS_HEIGHT,
   HERO_IMAGE_RATIO,
-  HERO_MARGIN_X,
   HERO_SPLIT_IMAGE_MAX_WIDTH,
   HERO_SPLIT_IMAGE_RATIO,
   heroImageSize,
@@ -15,12 +14,13 @@ import {
 } from '../heroLayout';
 import { heroStyles } from '../heroStyles';
 import { homeStyles } from '../homeStyles';
-import { HOME_GUTTER, HOME_SECTION_GAP } from '../homeLayout';
+import { HOME_SECTION_GAP } from '../homeLayout';
+import { PAGE_GUTTER } from '@/ui';
 
 describe('heroReservedHeight', () => {
   it('genişlikten hesaplanır: kenarlık + görsel (oran) + gövde tabanı + nokta şeridi', () => {
     const screen = 390;
-    const inner = screen - 2 * HERO_MARGIN_X - 2 * HERO_BORDER_WIDTH;
+    const inner = screen - 2 * PAGE_GUTTER - 2 * HERO_BORDER_WIDTH;
     expect(heroReservedHeight(screen)).toBeCloseTo(
       2 * HERO_BORDER_WIDTH + inner / HERO_IMAGE_RATIO + HERO_BODY_MIN_HEIGHT + HERO_DOTS_HEIGHT,
       5,
@@ -78,7 +78,6 @@ describe('hero sabitleri', () => {
     expect(StyleSheet.flatten(heroStyles.body).minHeight).toBe(HERO_BODY_MIN_HEIGHT);
     expect(StyleSheet.flatten(heroStyles.dots).height).toBe(HERO_DOTS_HEIGHT);
     expect(StyleSheet.flatten(heroStyles.shell).borderWidth).toBe(HERO_BORDER_WIDTH);
-    expect(StyleSheet.flatten(heroStyles.shell).marginHorizontal).toBe(HERO_MARGIN_X);
   });
 });
 
@@ -87,26 +86,26 @@ describe('ana sayfa bölüm hizası (tek kaynak homeLayout)', () => {
     for (const st of [heroStyles.shell, heroStyles.reserved]) {
       const f: ViewStyle = StyleSheet.flatten(st);
       expect(f.marginTop).toBe(HOME_SECTION_GAP);
-      expect(f.marginHorizontal).toBe(HOME_GUTTER);
+      // The side margin comes from `heroMarginX(width)` only (no static copy).
+      expect(f.marginHorizontal).toBeUndefined();
       expect(f.marginBottom).toBeUndefined();
     }
-    expect(HERO_MARGIN_X).toBe(HOME_GUTTER);
   });
 
   it('bölümler (üretici şeridi, kartlar) aynı kenar ve aynı aralık', () => {
-    const s = StyleSheet.flatten(homeStyles.sections);
-    expect(s.paddingHorizontal).toBe(HOME_GUTTER);
+    const s: ViewStyle = StyleSheet.flatten(homeStyles.sections);
+    expect(s.paddingHorizontal).toBeUndefined(); // the screen sets the page gutter
     expect(s.paddingVertical).toBe(HOME_SECTION_GAP);
     expect(s.gap).toBe(HOME_SECTION_GAP);
   });
 });
 
 describe('hero on tablets follows the page gutter', () => {
-  it('phones keep HERO_MARGIN_X; tablets the page gutter, and the inner width deducts it', () => {
-    expect(heroMarginX(390)).toBe(HERO_MARGIN_X);
+  it('the hero margin is the page gutter (16 phones, wider tablets); the inner width deducts it', () => {
+    expect(heroMarginX(390)).toBe(PAGE_GUTTER);
     expect(heroMarginX(820)).toBe(24);
     expect(heroMarginX(1032)).toBe(32);
     expect(heroInnerWidth(1032)).toBe(1032 - 2 * 32 - 2 * HERO_BORDER_WIDTH);
-    expect(heroInnerWidth(390)).toBe(390 - 2 * HERO_MARGIN_X - 2 * HERO_BORDER_WIDTH);
+    expect(heroInnerWidth(390)).toBe(390 - 2 * PAGE_GUTTER - 2 * HERO_BORDER_WIDTH);
   });
 });

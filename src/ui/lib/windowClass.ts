@@ -21,11 +21,12 @@ export function windowClassOf(width: number): WindowClass {
   return 'compact';
 }
 
-const CLASS_ORDER: readonly WindowClass[] = ['compact', 'medium', 'expanded', 'large'];
+/** Smallest window width of each class: the breakpoint tokens (typed, so a new class must be added). */
+const CLASS_MIN_WIDTH: Record<WindowClass, number> = { compact: 0, ...breakpoints };
 
 /** Whether `cls` is `min` or wider: THE ordered comparison of width classes (`'expanded'` and up, ...). */
 export function isAtLeast(cls: WindowClass, min: WindowClass): boolean {
-  return CLASS_ORDER.indexOf(cls) >= CLASS_ORDER.indexOf(min);
+  return CLASS_MIN_WIDTH[cls] >= CLASS_MIN_WIDTH[min];
 }
 
 /** Width class of the current window; re-renders on rotation, fold/unfold and window resizes. */

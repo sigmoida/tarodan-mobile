@@ -3,7 +3,7 @@ import { ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { Checkbox, EmptyState, Text, theme, usePageContentStyle, usePageGutter, useToastBottomInset, usePageScrollValue, usePageOffsetHandler } from '@/ui';
+import { Checkbox, EmptyState, Text, theme, usePageGutter, useToastBottomInset, usePageScrollValue, usePageOffsetHandler } from '@/ui';
 import { searchEntryHref } from '@/lib/navigation/searchHref';
 import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
@@ -40,10 +40,15 @@ function CartScreen() {
   const gutter = usePageGutter();
   // The floating bar exists only in one-column layouts; its height pads the list and lifts the toast.
   const barInset = layout.twoColumn ? 0 : barHeight;
-  // Large screens: edge to edge with the tablet gutter; the checkout bar follows it.
-  const contentStyle = usePageContentStyle([styles.content, { paddingBottom: tabInset + barInset + spacing[2] }]);
-  // Two columns: the items keep the left gutter, the panel brings the gap and the right gutter.
+  // Large screens: edge to edge with the tablet gutter; the checkout bar follows it. Memoised: the
+  // cart re-renders on every quote and selection change.
   const { contentStyle: withTopInset } = page;
+  // One column: the page gutter on both sides, the bottom clears the tab bar and the checkout bar.
+  const columnStyle = useMemo(
+    () => withTopInset([styles.content, { paddingHorizontal: gutter, paddingBottom: tabInset + barInset + spacing[2] }]),
+    [withTopInset, gutter, tabInset, barInset],
+  );
+  // Two columns: the items keep the left gutter, the panel brings the gap and the right gutter.
   const itemsStyle = useMemo(
     () => withTopInset([styles.content, { paddingLeft: gutter, paddingRight: 0, paddingBottom: tabInset }]),
     [withTopInset, gutter, tabInset],
@@ -134,7 +139,7 @@ function CartScreen() {
             {...page.scrollProps}
             scrollEventThrottle={16}
             testID="cart-scroll"
-            contentContainerStyle={page.contentStyle(contentStyle)}
+            contentContainerStyle={columnStyle}
             showsVerticalScrollIndicator={false}
           >
             {items}

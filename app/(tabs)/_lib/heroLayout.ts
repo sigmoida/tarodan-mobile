@@ -1,5 +1,4 @@
-import { tabletSidePadding, theme, windowClassOf } from '@/ui';
-import { HOME_GUTTER } from './homeLayout';
+import { pageGutter, theme, windowClassOf } from '@/ui';
 
 const { spacing } = theme;
 
@@ -25,12 +24,9 @@ export const HERO_SPLIT_IMAGE_RATIO = 4 / 3;
 export const HERO_SPLIT_IMAGE_MAX_WIDTH = 480;
 /** Shell border (each side). */
 export const HERO_BORDER_WIDTH = 1;
-/** Shell side margin on phones (each side; the same edge as the home sections). */
-export const HERO_MARGIN_X = HOME_GUTTER;
-
-/** Shell side margin for a window: `HERO_MARGIN_X` widened to the tablet page gutter. */
+/** Shell side margin for a window (each side): the page gutter, the same edge as the home sections. */
 export function heroMarginX(screenWidth: number): number {
-  return tabletSidePadding(HERO_MARGIN_X, screenWidth) as number;
+  return pageGutter(screenWidth);
 }
 /** Body minimum height: padding + title + subtitle + room for one or two buttons. */
 export const HERO_BODY_MIN_HEIGHT = 168;

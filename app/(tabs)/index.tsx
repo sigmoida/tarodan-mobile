@@ -1,7 +1,7 @@
-import { View, RefreshControl, useWindowDimensions } from 'react-native';
+import { View, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { useState, useCallback, useEffect } from 'react';
-import { tabletSidePadding, theme, usePageOffsetHandler, usePageScrollValue } from '@/ui';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { theme, usePageGutter, usePageOffsetHandler, usePageScrollValue } from '@/ui';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useGuestStore } from '@/stores/guestStore';
@@ -10,7 +10,6 @@ import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { floatingBarScrollProps, useFloatingBarInset } from '@/components/shell/floatingBar';
 import { homeStyles as styles } from './_lib/homeStyles';
-import { HOME_GUTTER } from './_lib/homeLayout';
 import { useHomeData } from './_hooks/useHomeData';
 import { useHomeGuestPrompt } from './_hooks/useHomeGuestPrompt';
 import { useAfterFirstFrame } from './_hooks/useAfterFirstFrame';
@@ -56,8 +55,8 @@ export default function HomeScreen() {
   // Yuvalar (topbar/header/footer) aynı tohumu ve gösterim kümesini paylaşır.
   const adSession = useAdSession();
   // Large screens: the sections and ad slots take the tablet gutter, like the hero and the top bar.
-  const { width: windowWidth } = useWindowDimensions();
-  const sideGutter = { paddingHorizontal: tabletSidePadding(HOME_GUTTER, windowWidth) };
+  const gutter = usePageGutter();
+  const sideGutter = useMemo(() => ({ paddingHorizontal: gutter }), [gutter]);
 
   const [refreshing, setRefreshing] = useState(false);
   const tabInset = useTabBarInset();

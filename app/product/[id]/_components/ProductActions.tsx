@@ -7,6 +7,7 @@ import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { cartQuantityLimit } from '../_lib/quantity';
 import { isPurchasable, type OfferTradeAvailability } from '../_lib/engagement';
 import type { Product } from '../_lib/types';
+import type { OfferTradePlacement } from '../_lib/layout';
 
 const { spacing, iconSize, priceColor, typography } = theme;
 
@@ -146,25 +147,26 @@ export function ProductBuyBar({
  * Bu iki eylemin TEK birincil girişi (fiyatın yanındaki çipler yalnız kısayol). Görünürlük
  * `getOfferTradeAvailability`'den: sahipte ve satılamayan ilanda hiç çizilmez. İkisi de geçerliyse
  * eşit genişlikte yan yana, biri geçerliyse tam genişlik. Kompakt (`md`), etiket tek satır.
- * `inline` (tablets): the buttons keep their natural width, right-aligned (above the buy bar on
- * medium windows, inside its row from `expanded` up).
+ * `placement` (`productDetailLayout().offerTrade`): `stacked` (phones, equal halves), `above`
+ * (medium, right-aligned at natural width) or `inline` (inside the buy bar row, natural width).
  */
 export function ProductOfferTradeRow({
   availability,
   onTrade,
   onMakeOffer,
-  inline = false,
+  placement = 'stacked',
 }: {
   availability: OfferTradeAvailability;
   onTrade: () => void;
   onMakeOffer: () => void;
-  inline?: boolean;
+  placement?: OfferTradePlacement;
 }) {
   const { t } = useTranslation();
   if (!availability.offer && !availability.trade) return null;
-  const cell = inline ? styles.cellInline : styles.cell;
+  const natural = placement !== 'stacked';
+  const cell = natural ? styles.cellInline : styles.cell;
   return (
-    <View style={[styles.pair, inline && styles.pairInline]} testID="product-offer-trade-row">
+    <View style={[styles.pair, natural && styles.pairInline]} testID="product-offer-trade-row">
       {availability.trade ? (
         <Button
           testID="product-detail-trade-button"

@@ -5,13 +5,15 @@ import {
   HERO_BORDER_WIDTH,
   HERO_DOTS_HEIGHT,
   HERO_IMAGE_RATIO,
-  HERO_MARGIN_X,
   HERO_SPLIT_IMAGE_RATIO,
 } from './heroLayout';
 import { HOME_SECTION_GAP } from './homeLayout';
 
-/** Hero kabuğunun dış boşluğu: üst bardan ve yanlardan bölümlerle aynı; alttaki boşluğu bölümler verir. */
-const heroOuter = { marginTop: HOME_SECTION_GAP, marginHorizontal: HERO_MARGIN_X } as const;
+/**
+ * Hero kabuğunun üst boşluğu (üst bardan bölümlerle aynı); alttaki boşluğu bölümler verir. The side
+ * margin is `heroMarginX(width)`, set by the slider and the reserved block.
+ */
+const heroOuter = { marginTop: HOME_SECTION_GAP } as const;
 
 const { colors, spacing, radius } = theme;
 

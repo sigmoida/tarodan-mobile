@@ -12,8 +12,8 @@ import { SCROLL_EDGE_FULL_AT, isAtLeast, windowClassOf } from '@/ui';
  *   gallery takes `GALLERY_SPLIT_FRACTION` of the window on the left, the title / price / seller
  *   column the rest; specs, reviews and similar listings run full width below. The buy bar has the
  *   price on the left and the buy buttons on the right at their natural width (`wideBar`); the
- *   offer / trade buttons sit right-aligned above it on medium windows and join the bar's one row
- *   from `expanded` up (`inlineOfferTrade`), where there is room for all of them next to the price.
+ *   offer / trade buttons (`offerTrade`) sit right-aligned above it on medium windows and join the
+ *   bar's one row from `expanded` up, where there is room for all of them next to the price.
  */
 
 /** Share of the window the gallery square takes beside the info column (`medium` and wider). */
@@ -26,18 +26,24 @@ export interface ProductDetailLayout {
   gallerySide: number;
   /** Buy buttons at their natural width on the right (no stretched button). */
   wideBar: boolean;
-  /** Offer / trade buttons inside the buy bar row (else in their own row above it). */
-  inlineOfferTrade: boolean;
+  /**
+   * Where the offer / trade buttons go: `stacked` (phones: their own row above the bar, equal
+   * halves), `above` (medium: their own row, right-aligned at natural width), `inline` (expanded and
+   * up: inside the buy bar row at natural width).
+   */
+  offerTrade: OfferTradePlacement;
 }
+
+export type OfferTradePlacement = 'stacked' | 'above' | 'inline';
 
 export function productDetailLayout(windowWidth: number): ProductDetailLayout {
   const cls = windowClassOf(windowWidth);
-  if (cls === 'compact') return { split: false, gallerySide: windowWidth, wideBar: false, inlineOfferTrade: false };
+  if (cls === 'compact') return { split: false, gallerySide: windowWidth, wideBar: false, offerTrade: 'stacked' };
   return {
     split: true,
     gallerySide: Math.floor(windowWidth * GALLERY_SPLIT_FRACTION),
     wideBar: true,
-    inlineOfferTrade: isAtLeast(cls, 'expanded'),
+    offerTrade: isAtLeast(cls, 'expanded') ? 'inline' : 'above',
   };
 }
 

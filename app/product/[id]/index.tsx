@@ -117,13 +117,13 @@ function ProductDetail({ productId }: { productId: string }) {
   const retrying = !product && isError && productQuery.isFetching;
   // Phones: the offer / trade row above the buy bar; medium: above it at natural width;
   // expanded and up: inside the buy bar row (`productDetailLayout`).
-  const { wideBar, inlineOfferTrade } = useProductDetailLayout();
+  const { wideBar, offerTrade } = useProductDetailLayout();
   const offerTradeRow = (
     <ProductOfferTradeRow
       availability={availability}
       onTrade={actions.handleTrade}
       onMakeOffer={actions.handleMakeOffer}
-      inline={wideBar}
+      placement={offerTrade}
     />
   );
   return (
@@ -140,7 +140,7 @@ function ProductDetail({ productId }: { productId: string }) {
       footer={
         ready ? (
           <>
-            {inlineOfferTrade ? null : offerTradeRow}
+            {offerTrade === 'inline' ? null : offerTradeRow}
             <ProductBuyBar
               product={product}
               isOwner={isOwner}
@@ -151,7 +151,7 @@ function ProductDetail({ productId }: { productId: string }) {
               onGoToCart={actions.handleGoToCart}
               onEdit={() => router.push(`/listing/${product.id}/edit` as any)}
               wide={wideBar}
-              extraActions={inlineOfferTrade ? offerTradeRow : null}
+              extraActions={offerTrade === 'inline' ? offerTradeRow : null}
             />
           </>
         ) : undefined
