@@ -55,7 +55,7 @@ interface ProductGridBaseProps {
   showMeta?: boolean;
   testID?: string;
   /**
-   * Ekranın kendi kaydırma sinyali (ör. alt menülü yığın ekranı: `useTabBarPageScroll()`, aynı değer
+   * Ekranın kendi kaydırma sinyali (ör. alt menülü yığın ekranı: `usePageScrollHandler()`, aynı değer
    * `<PageShell scroll={page}>`a da verilir). Verilirse kabuk bağlamı yerine liste buna bağlanır.
    */
   scroll?: PageScroll;

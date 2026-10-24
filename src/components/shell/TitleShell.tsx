@@ -19,7 +19,7 @@ export interface TitleShellProps {
   subtitle?: string;
   /**
    * Ekranın kendi listesinin kaydırma sinyali (`usePageScrollValue()`; sekme kökleri
-   * `useTabBarScrollHandler(undefined, page.scrollY)` ile tek handler'dan besler). Verilirse içerik
+   * `usePageOffsetHandler(page.scrollY)` ile tek handler'dan besler). Verilirse içerik
    * bar ALTINDAN kayar: liste `page.scrollProps` + `page.contentStyle` ile üst boşluğu kendisi açar.
    * Verilmezse gövde bar altında başlar ve kenar efekti SABİT şerittir.
    */

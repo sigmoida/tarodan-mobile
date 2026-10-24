@@ -107,25 +107,16 @@ describe('search - bottom tab bar', () => {
     expect(screen.getByTestId('tab-sell')).toBeOnTheScreen();
   });
 
-  it('one composed scroll handler drives the tab bar collapse and the search scroll-to-top flag', async () => {
+  it('scrolling the results never changes the bar (no collapse)', async () => {
     renderWithProviders(<SearchScreen />);
     await waitFor(() => expect(screen.getAllByTestId('search-result-card')).toHaveLength(2));
-    const pill = () => screen.getByTestId('app-tab-pill', { includeHiddenElements: true });
-    expect(pill().props.pointerEvents).toBe('auto');
-
+    const pillStyle = () => StyleSheet.flatten(screen.getByTestId('app-tab-pill').props.style);
+    const before = pillStyle();
     for (let y = 0; y <= 1200; y += 100) scrollTo(y);
-    await waitFor(() => expect(pill().props.pointerEvents).toBe('none'));
-    expect(await screen.findByLabelText('En üste dön')).toBeOnTheScreen();
-
     for (let y = 1200; y >= 900; y -= 50) scrollTo(y);
-    await waitFor(() => expect(pill().props.pointerEvents).toBe('auto'));
-  });
-
-  it('wires the list measurements to the bar (layout and content size) next to the scroll handler', async () => {
-    renderWithProviders(<SearchScreen />);
-    await waitFor(() => expect(screen.getAllByTestId('search-result-card')).toHaveLength(2));
-    expect(typeof list().props.onLayout).toBe('function');
-    expect(typeof list().props.onContentSizeChange).toBe('function');
+    expect(pillStyle()).toEqual(before);
+    expect(screen.getByTestId('app-tab-pill').props.pointerEvents).toBeUndefined();
+    expect(screen.getByTestId('tab-sell')).toBeOnTheScreen();
     expect(list().props.onScroll).toBeTruthy();
   });
 

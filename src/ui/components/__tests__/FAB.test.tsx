@@ -14,7 +14,7 @@ import {
   useFabContentInset,
 } from '../../lib/floating';
 import { theme } from '../../lib/theme';
-import { TAB_PILL_SIDE_GAP, TAB_SELL_SIZE, tabPillBottomOffset } from '@/components/shell/tabBarLayout';
+import { TAB_PILL_HEIGHT, TAB_PILL_SIDE_GAP, tabPillBottomOffset } from '@/components/shell/tabBarLayout';
 
 function fabStyle() {
   const style = screen.getByTestId('fab').props.style;
@@ -22,19 +22,19 @@ function fabStyle() {
 }
 
 describe('FAB bottomRight', () => {
-  it('alt menünün "+" düğmesiyle aynı ölçü ve konum', () => {
+  it('alt menü hapıyla aynı yükseklik, sağ kenar ve alt uzaklık', () => {
     render(<FAB testID="fab" icon="plus" accessibilityLabel="Yeni" placement="bottomRight" />);
     const f = fabStyle();
     expect(f.position).toBe('absolute');
-    expect(f.height).toBe(TAB_SELL_SIZE);
-    expect(f.minWidth).toBe(TAB_SELL_SIZE);
+    expect(f.height).toBe(TAB_PILL_HEIGHT);
+    expect(f.minWidth).toBe(TAB_PILL_HEIGHT);
     expect(f.right).toBe(TAB_PILL_SIDE_GAP);
     // Test ortamında güvenli alan 0 → hap ile aynı formül.
     expect(f.bottom).toBe(tabPillBottomOffset(0));
     expect(f.bottom).toBe(floatingBottomOffset(0));
   });
 
-  it('ikincil FAB (size verilmiş, ör. yukarı çık) küçük kalır ama konumu "+" ile aynı', () => {
+  it('ikincil FAB (size verilmiş) küçük kalır, konumu aynı', () => {
     render(<FAB testID="fab" icon="chevron-up" size="sm" accessibilityLabel="Yukarı" placement="bottomRight" />);
     const f = fabStyle();
     expect(f.height).toBe(FAB_SIZE_SM);
@@ -49,8 +49,8 @@ describe('FAB bottomRight', () => {
     expect(f.position).toBeUndefined();
   });
 
-  it('tek kaynak: "+" ve FAB sabitleri aynı', () => {
-    expect(TAB_SELL_SIZE).toBe(FLOATING_ACTION_SIZE);
+  it('tek kaynak: alt menü ve FAB sabitleri aynı', () => {
+    expect(TAB_PILL_HEIGHT).toBe(FLOATING_ACTION_SIZE);
     expect(TAB_PILL_SIDE_GAP).toBe(FLOATING_SIDE_GAP);
   });
 

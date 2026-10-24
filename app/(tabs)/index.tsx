@@ -1,7 +1,7 @@
 import { View, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useState, useCallback, useEffect } from 'react';
-import { theme, usePageScrollValue } from '@/ui';
+import { theme, usePageOffsetHandler, usePageScrollValue } from '@/ui';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useGuestStore } from '@/stores/guestStore';
@@ -9,7 +9,6 @@ import { SignupPrompt } from '@/components/SignupPrompt';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { floatingBarScrollProps, useFloatingBarInset } from '@/components/shell/floatingBar';
-import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { homeStyles as styles } from './_lib/homeStyles';
 import { useHomeData } from './_hooks/useHomeData';
 import { useHomeGuestPrompt } from './_hooks/useHomeGuestPrompt';
@@ -48,11 +47,10 @@ export default function HomeScreen() {
   useEffect(() => {
     if (!showHero) resetHero();
   }, [showHero, resetHero]);
-  // Tab bar daralma sinyali + hero görünürlüğü (ofset UI thread'inden seyrek köprülenir) + üst barın
-  // kaydırma kenarı (`page.scrollY`) — TEK handler.
+  // Hero görünürlüğü (ofset UI thread'inden seyrek köprülenir) + üst barın kaydırma kenarı
+  // (`page.scrollY`) — TEK handler.
   const page = usePageScrollValue();
-  const tabScroll = useTabBarScrollHandler(heroView.onScrollOffset, page.scrollY);
-  const { onLayout: onTabScrollLayout } = tabScroll;
+  const onPageScroll = usePageOffsetHandler(page.scrollY, heroView.onScrollOffset);
   const guest = useHomeGuestPrompt(isAuthenticated);
   // Yuvalar (topbar/header/footer) aynı tohumu ve gösterim kümesini paylaşır.
   const adSession = useAdSession();
@@ -92,12 +90,8 @@ export default function HomeScreen() {
           />
         }
         showsVerticalScrollIndicator={false}
-        onScroll={tabScroll.onScroll}
-        onContentSizeChange={tabScroll.onContentSizeChange}
-        onLayout={(e) => {
-          onTabScrollLayout(e);
-          heroView.onViewportLayout(e);
-        }}
+        onScroll={onPageScroll}
+        onLayout={heroView.onViewportLayout}
         scrollEventThrottle={16}
       >
         <AdBanner position="topbar" session={adSession} />

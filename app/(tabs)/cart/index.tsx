@@ -3,12 +3,11 @@ import { ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
-import { Checkbox, EmptyState, Text, theme, usePageContentStyle, usePageGutter, useToastBottomInset, usePageScrollValue } from '@/ui';
+import { Checkbox, EmptyState, Text, theme, usePageContentStyle, usePageGutter, useToastBottomInset, usePageScrollValue, usePageOffsetHandler } from '@/ui';
 import { searchEntryHref } from '@/lib/navigation/searchHref';
 import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset, useTabBarTop } from '@/components/shell/tabBarLayout';
-import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { useCart } from './_hooks/useCart';
 import { styles } from './_lib/styles';
 import { CartItemRow } from './_components/CartItemRow';
@@ -33,7 +32,8 @@ function CartScreen() {
   const tabInset = useTabBarInset();
   const tabTop = useTabBarTop();
   const page = usePageScrollValue();
-  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
+  // The list feeds the top bar scroll edge (the tab bar is fixed: no collapse).
+  const onPageScroll = usePageOffsetHandler(page.scrollY);
   const [barHeight, setBarHeight] = useState(0);
   const hasItems = f.items.length > 0;
   const layout = useCartLayout();
@@ -96,7 +96,7 @@ function CartScreen() {
       {layout.twoColumn ? (
         <View style={styles.twoColumn} testID="cart-two-column">
           <Animated.ScrollView
-            {...tabScroll}
+            onScroll={onPageScroll}
             {...page.scrollProps}
             scrollEventThrottle={16}
             testID="cart-scroll"
@@ -123,7 +123,7 @@ function CartScreen() {
       ) : (
         <>
           <Animated.ScrollView
-            {...tabScroll}
+            onScroll={onPageScroll}
             {...page.scrollProps}
             scrollEventThrottle={16}
             testID="cart-scroll"

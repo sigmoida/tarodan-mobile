@@ -3569,8 +3569,7 @@
   "mobile": {
     "googleDeveloperError": "Google sign-in is not available in this version of the app right now. Please sign in with your e-mail address, or try again later.",
     "noPasswordAccountNoProvider": "This account has no password. Set a password to sign in here.",
-    "tabBarSell": "Create Listing",
-    "tabBarExpandHint": "Shows the tab bar",
+    "tabBarSellLabel": "Sell",
     "addressTitlePlaceholder": "e.g. Home, Work",
     "bioPlaceholder": "Tell us about yourself",
     "cancel": "Cancel",

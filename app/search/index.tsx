@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, RefreshControl } from 'react-native';
-import Animated, { useComposedEventHandler } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { ErrorState, FAB, Spinner, theme, useDelayedLoading, usePageGutter } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
@@ -15,7 +15,6 @@ import {
 } from '@/components/product';
 import ProductFilterSheet from '@/components/ProductFilterSheet';
 import { withStackTabBar } from '@/components/shell/StackTabBar';
-import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { CELL_HALF_GAP, styles } from './_lib/searchStyles';
 import { SEARCH_DRAW_DISTANCE } from './_lib/searchConstants';
@@ -77,10 +76,6 @@ function SearchScreen() {
     [isList, favoriteProps],
   );
 
-  // One scroll handler for the list: the search bars collapse / scroll-to-top flag (`useSearch`) and the
-  // floating tab bar collapse run side by side (composed, never two `onScroll` props).
-  const tabScroll = useTabBarScrollHandler();
-  const onResultsScroll = useComposedEventHandler([f.handleResultsScroll, tabScroll.onScroll]);
   // The last result row stays clear of the scroll-to-top FAB, which floats above the tab bar.
   const { listBottomInset, scrollTopFabStyle } = useSearchBottomChrome();
   // Liste prop'ları kararlı kalsın: ekran render olsa da liste boş yere uzlaştırılmasın.
@@ -209,9 +204,8 @@ function SearchScreen() {
             // Hücre geri dönüşümü (FlashList v2): pencere = drawDistance; getItemLayout/estimatedItemSize gerekmez.
             drawDistance={SEARCH_DRAW_DISTANCE}
             showsVerticalScrollIndicator={false}
-            onScroll={onResultsScroll}
-            onLayout={tabScroll.onLayout}
-            onContentSizeChange={tabScroll.onContentSizeChange}
+            // The search bars collapse / scroll-to-top flag (`useSearch`); the tab bar is fixed.
+            onScroll={f.handleResultsScroll}
             scrollEventThrottle={16}
             keyboardDismissMode="on-drag"
             refreshControl={refreshControl}

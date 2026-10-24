@@ -3,11 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
-import { Button, Card, SectionCard, Text, pageListContentStyle, theme, usePageScrollValue, type IconName, usePageContentStyle } from '@/ui';
+import { Button, Card, SectionCard, Text, pageListContentStyle, theme, usePageScrollValue, usePageOffsetHandler, type IconName, usePageContentStyle } from '@/ui';
 
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
-import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { SignupPrompt } from '@/components/SignupPrompt';
 import UpgradeCta from '@/components/UpgradeCta';
 import { formatPrice } from '@/utils/format';
@@ -27,7 +26,8 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
   const page = usePageScrollValue();
   // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
   const listContentStyle = usePageContentStyle([pageListContentStyle, { paddingBottom: tabInset }]);
-  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
+  // The list feeds the top bar scroll edge (the tab bar is fixed: no collapse).
+  const onPageScroll = usePageOffsetHandler(page.scrollY);
 
   const quickLinks: { label: string; to: string; icon: IconName }[] = [
     { label: t('mobile.guestOrderTrack'), to: '/order-track', icon: 'truck' },
@@ -36,7 +36,7 @@ export function ProfileGuestView({ f }: { f: ProfileController }) {
   return (
     <AppShell variant="title" title={t('profile.profile')} scroll={page} leading="none" actions="settings">
       <Animated.ScrollView
-        {...tabScroll}
+        onScroll={onPageScroll}
         {...page.scrollProps}
         scrollEventThrottle={16}
         // Sayfa kenarı + kartlar arası boşluk (üye profiliyle aynı kart düzeni).

@@ -14,7 +14,7 @@ export function useHeroVisibility() {
 
   const update = useCallback(() => setVisible(isHeroInView(metrics.current)), []);
 
-  /** Ofset doğrudan (UI thread'i handler'ı `useTabBarScrollHandler(onOffset)` ile köprüler). */
+  /** Ofset doğrudan (UI thread'i handler'ı `usePageOffsetHandler(scrollY, onOffset)` ile köprüler). */
   const onScrollOffset = useCallback(
     (y: number) => {
       metrics.current.scrollY = y;

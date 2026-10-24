@@ -8,7 +8,7 @@ import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, ErrorState, pageListContentStyle, useDelayedLoading, usePageScrollValue, usePageContentStyle, useRowGrid } from '@/ui';
+import { Button, EmptyState, ErrorState, pageListContentStyle, useDelayedLoading, usePageScrollValue, usePageOffsetHandler, usePageContentStyle, useRowGrid } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
 import { searchEntryHref } from '@/lib/navigation/searchHref';
 import { useStableCallback } from '@/hooks/useStableCallback';
@@ -16,7 +16,6 @@ import { isOptimisticFavorite, type WishlistItem } from '@/hooks/useFavorites';
 import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
-import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { useFavoritesScreen } from './_hooks/useFavoritesScreen';
 import { styles } from './_lib/styles';
 import { FavoriteCard } from './_components/FavoriteCard';
@@ -37,8 +36,8 @@ function FavoritesScreen() {
   const listContentStyle = usePageContentStyle([pageListContentStyle, { paddingBottom: tabInset }]);
   // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
   const grid = useRowGrid();
-  // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
-  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
+  // The list feeds the top bar scroll edge (the tab bar is fixed: no collapse).
+  const onPageScroll = usePageOffsetHandler(page.scrollY);
   // Kararlı renderItem + memo'lu kart: işleyiciler referans-kararlı (en güncel `f`'i çağırır), sepet
   // durumu kartın kendi seçicisinde — ekran render olsa da satırlar yeniden çizilmez.
   const onRemove = useStableCallback(f.handleRemove);
@@ -82,7 +81,7 @@ function FavoritesScreen() {
       <Animated.FlatList
         key={grid.listKey}
         numColumns={grid.numColumns}
-        {...tabScroll}
+        onScroll={onPageScroll}
         {...page.scrollProps}
         scrollEventThrottle={16}
         testID="favorites-list"

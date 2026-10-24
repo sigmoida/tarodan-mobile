@@ -4,6 +4,7 @@ export { theme, type Theme } from './lib/theme';
 export { useHeaderTopInset, useHeaderBarInset } from './lib/header';
 export {
 	usePageScrollHandler,
+	usePageOffsetHandler,
 	usePageScrollValue,
 	useShellPageScroll,
 	useShellScrollState,

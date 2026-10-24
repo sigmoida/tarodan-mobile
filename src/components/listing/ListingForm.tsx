@@ -2,10 +2,9 @@ import React, { useMemo } from 'react';
 import { View, KeyboardAvoidingView } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { useKeyboardAvoid, usePageGutter, usePageScrollValue, useShellPageScroll } from '@/ui';
+import { useKeyboardAvoid, usePageGutter, usePageScrollValue, usePageOffsetHandler, useShellPageScroll } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
-import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 
 import { styles } from './_lib/styles';
 import type { ListingFormProps } from './_lib/types';
@@ -52,8 +51,8 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
   const ownScroll = usePageScrollValue();
   const shellScroll = useShellPageScroll(!gate && !f.isEdit);
   const page = f.isEdit ? ownScroll : (shellScroll ?? ownScroll);
-  // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
-  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
+  // The list feeds the top bar scroll edge (the tab bar is fixed: no collapse).
+  const onPageScroll = usePageOffsetHandler(page.scrollY);
   // Oluşturma (sekme kökü): içerik yüzen alt menü hapının altında kalmasın -> alt dolgu tabInset.
   const tabPad = useMemo(() => (f.isEdit ? null : { paddingBottom: tabInset }), [f.isEdit, tabInset]);
   // Full width with the page gutter (phones: 16 pt, unchanged; tablets: the wider gutter).
@@ -65,7 +64,7 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
   const form = (
     <Animated.ScrollView
       style={styles.scroll}
-      {...tabScroll}
+      onScroll={onPageScroll}
       {...page.scrollProps}
       scrollEventThrottle={16}
       // Görsel sürüklenirken form kaymaz (sürükleme ile kaydırma çatışmasın).

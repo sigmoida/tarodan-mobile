@@ -51,13 +51,12 @@ describe('model detail - bottom tab bar', () => {
     expect(screen.getByTestId('tab-home').props.accessibilityState).toEqual({ selected: false });
   });
 
-  it('the page scroll view pads its bottom by the bar inset and is bound to the bar handler', () => {
+  it('the page scroll view pads its bottom by the bar inset and feeds the top bar edge', () => {
     mockDetail.mockReturnValue(detail());
     render(<ModelDetailScreen />);
     const scroll = screen.getByTestId('model-detail-scroll');
     expect(StyleSheet.flatten(scroll.props.contentContainerStyle).paddingBottom).toBe(barInset);
     expect(scroll.props.onScroll).toBeTruthy();
-    expect(typeof scroll.props.onContentSizeChange).toBe('function');
     expect(scroll.props.refreshControl).toBeTruthy();
   });
 
