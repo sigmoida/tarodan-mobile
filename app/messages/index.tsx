@@ -5,7 +5,7 @@
  * Expanded and wider windows: master–detail (`_lib/layout`): the list on the left, the selected
  * conversation on the right (`MessageThreadView`), selected in place instead of pushed.
  */
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RefreshControl, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { router } from "expo-router";
@@ -45,6 +45,13 @@ export default function MessagesScreen() {
   // Master–detail: the conversation open in the right-hand pane (none until the user picks one).
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const closeSelected = useCallback(() => setSelectedId(null), []);
+  // The window narrowed below expanded (split screen, fold) with a conversation open: keep it open
+  // as its own pushed screen instead of dropping the user on the bare inbox.
+  useEffect(() => {
+    if (masterDetail || !selectedId) return;
+    setSelectedId(null);
+    router.push(`/messages/${selectedId}`);
+  }, [masterDetail, selectedId]);
   // Kararlı renderItem (erken return'den ÖNCE — hook sırası sabit).
   const renderThread = useCallback(
     ({ item }: { item: MessageThread }) =>

@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
-import { fireEvent, screen, within } from '@testing-library/react-native';
+import { act, fireEvent, screen, within } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 import { isMessagesMasterDetail } from '../_lib/layout';
@@ -127,5 +127,19 @@ describe('messages master–detail', () => {
     fireEvent.press(screen.getByTestId('thread-row-t1'));
     expect(mockThreadQuery).toHaveBeenLastCalledWith('t1');
     expect(pane().getAllByText('Ayşe').length).toBeGreaterThan(0);
+  });
+
+  it('narrowing from 1032 to 820 pt with a thread open pushes that thread instead of dropping it', () => {
+    setWindow(1032, 1376);
+    renderWithProviders(<MessagesScreen />);
+    fireEvent.press(screen.getByTestId('thread-row-t2'));
+    expect(pushMock).not.toHaveBeenCalled();
+    act(() => setWindow(820, 1180));
+    expect(screen.queryByTestId('messages-master-detail')).toBeNull();
+    expect(pushMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).toHaveBeenCalledWith('/messages/t2');
+    // Widening again does not reopen a stale selection.
+    act(() => setWindow(1032, 1376));
+    expect(within(screen.getByTestId('messages-detail-pane')).getByText('message.selectConversationTitle')).toBeOnTheScreen();
   });
 });
