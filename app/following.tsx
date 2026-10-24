@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import Animated from 'react-native-reanimated';
-import { pageListContentStyle, usePageScrollHandler } from '@/ui';
+import { pageListContentStyle, usePageScrollHandler, useReadableContentStyle } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
@@ -26,6 +26,8 @@ export default function FollowingScreen() {
   const { following, isLoading, isError, fetchFollowing, unfollowSeller, getFollowingCount } = useFollowing();
   const [refreshing, setRefreshing] = useState(false);
   const page = usePageScrollHandler();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = useReadableContentStyle(pageListContentStyle);
 
   // Ekrana dönüşte yalnız bayatsa tazele (takip/bırakma zaten önbelleği güncelliyor).
   useRefetchStaleOnFocus([qk.follow.following], isAuthenticated);
@@ -86,7 +88,7 @@ export default function FollowingScreen() {
         keyExtractor={sellerKey}
         renderItem={renderSeller}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle(pageListContentStyle)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         refreshing={refreshing}
         onRefresh={onRefresh}
       />

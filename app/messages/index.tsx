@@ -19,6 +19,7 @@ import {
   SkeletonText,
   theme,
   usePageScrollHandler,
+  useReadableContentStyle,
 } from "@/ui";
 import { useMessagesTab } from "./_hooks/useMessagesTab";
 import { styles } from "./_lib/styles";
@@ -33,6 +34,8 @@ export default function MessagesScreen() {
   const { t } = useTranslation();
   const f = useMessagesTab();
   const page = usePageScrollHandler();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = useReadableContentStyle(styles.listContent);
   const title = t("mobile.messagesTitle");
   // Kararlı renderItem (erken return'den ÖNCE — hook sırası sabit).
   const renderThread = useCallback(
@@ -102,7 +105,7 @@ export default function MessagesScreen() {
             />
           )
         }
-        contentContainerStyle={page.contentStyle(styles.listContent)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl

@@ -17,10 +17,11 @@
  * etmiyor (o iş `useAutoScroll.test.tsx`'te), yalnızca kabloyu kilitliyor.
  */
 import React from 'react';
-import { FlatList } from 'react-native';
+import { Dimensions, FlatList, StyleSheet } from 'react-native';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { resetRouterMocks } from '@/test-utils/router-mock';
+import { theme } from '@/ui';
 
 jest.mock('expo-router', () => ({
   ...require('@/test-utils/router-mock').routerMock,
@@ -132,5 +133,30 @@ describe('mesaj thread — auto-scroll kabloları (review fix #1)', () => {
     // Regresyon: handleSend içindeki forceScrollToBottom() çağrısı silinirse bu
     // hiç tetiklenmez → kullanıcı yukarıda okurken kendi mesajı gönderilince dibe kaymaz.
     expect(mockForceScrollToBottom).toHaveBeenCalled();
+  });
+});
+
+describe('mesaj thread · large screens', () => {
+  const setWindow = (width: number, height: number) =>
+    Dimensions.set({
+      window: { width, height, scale: 2, fontScale: 2 },
+      screen: { width, height, scale: 2, fontScale: 2 },
+    });
+  afterEach(() => {
+    screen.unmount();
+    setWindow(375, 667);
+  });
+
+  it.each([
+    [390, theme.spacing[4]],
+    [820, (820 - theme.contentWidths.readable) / 2],
+    [1032, (1032 - theme.contentWidths.readable) / 2],
+  ])('%d pt: messages take the readable width (side %d) and the input bar is capped at it', (width, side) => {
+    setWindow(width, 1200);
+    renderWithProviders(<MessageThreadScreen />);
+    const flat = StyleSheet.flatten(screen.UNSAFE_getByType(FlatList).props.contentContainerStyle);
+    expect(flat.paddingLeft ?? flat.paddingHorizontal ?? flat.padding).toBe(side);
+    const bar = StyleSheet.flatten(screen.getByTestId('page-shell-footer').children[0]!.props.style);
+    expect(bar.maxWidth).toBe(theme.contentWidths.readable);
   });
 });

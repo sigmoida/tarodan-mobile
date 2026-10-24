@@ -14,6 +14,7 @@ import {
   Icon,
   useDelayedLoading,
   usePageScrollHandler,
+  useReadableContentStyle,
 } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { ProductNotFound } from '@/components/product';
@@ -35,6 +36,8 @@ function ProductReviews({ productId }: { productId: string }) {
   const f = useAllProductReviews(productId, true);
   const [refreshing, setRefreshing] = useState(false);
   const page = usePageScrollHandler();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = useReadableContentStyle(styles.content);
   // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
   const showSkeleton = useDelayedLoading(f.isLoading);
 
@@ -57,7 +60,7 @@ function ProductReviews({ productId }: { productId: string }) {
         data={f.isLoading ? [] : f.reviews}
         keyExtractor={(item, index) => item.id ?? String(index)}
         renderItem={({ item, index }) => <ReviewRow review={item} divided={index > 0} />}
-        contentContainerStyle={page.contentStyle(styles.content)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         ListHeaderComponent={
           // No summary while the list failed to load: its count would read "0 reviews".
           !f.loadFailed && (f.average != null || f.total > 0) ? (

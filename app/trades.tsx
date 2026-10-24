@@ -12,6 +12,7 @@ import {
   theme,
   useDelayedLoading,
   usePageScrollHandler,
+  useReadableContentStyle,
 } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { tradesApi } from '@/lib/api';
@@ -59,6 +60,8 @@ export default function TradesScreen() {
   const [filter, setFilter] = useState<TradesTabFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
   const page = usePageScrollHandler();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = useReadableContentStyle(pageListContentStyle);
 
   const { data: tradesPayload, isLoading, isError, refetch } = useQuery({
     queryKey: qk.trades.list({ filter }),
@@ -161,7 +164,7 @@ export default function TradesScreen() {
       <Animated.FlatList
         {...page.listProps}
         data={isError || isLoading ? [] : tradesList}
-        contentContainerStyle={page.contentStyle(pageListContentStyle)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         refreshing={refreshing}
         onRefresh={onRefresh}
         keyExtractor={tradeKey}

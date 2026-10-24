@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, ErrorState, TopBarLabel, pageListContentStyle, usePageScrollHandler } from '@/ui';
+import { Button, EmptyState, ErrorState, TopBarLabel, pageListContentStyle, usePageScrollHandler, useReadableContentStyle } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
@@ -25,6 +25,8 @@ export default function DiscountProductsScreen() {
   const selectedIds = useProductPickerDraft((s) => s.selectedIds);
   const toggle = useProductPickerDraft((s) => s.toggle);
   const page = usePageScrollHandler();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = useReadableContentStyle(pageListContentStyle);
   const title = t('discount.pickProducts');
 
   const renderProduct = useCallback(
@@ -61,7 +63,7 @@ export default function DiscountProductsScreen() {
         data={products}
         keyExtractor={productKey}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle(pageListContentStyle)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         ListEmptyComponent={
           loadFailed ? (
             <ErrorState placement="list" onRetry={() => void refetch()} />

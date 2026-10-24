@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { EmptyState, theme, useHeaderTopInset, type EmptyStateProps } from '@/ui';
+import { EmptyState, theme, useHeaderTopInset, useReadableContentStyle, type EmptyStateProps } from '@/ui';
 import { useBlockHardwareBack } from '@/hooks/useBlockHardwareBack';
 
 const { colors, spacing } = theme;
@@ -38,11 +38,13 @@ export const GateScreen: React.FC<GateScreenProps> = ({
   testID,
 }) => {
   const topInset = useHeaderTopInset();
+  // Readable width on large screens: the actions do not stretch across a tablet window.
+  const contentStyle = useReadableContentStyle(styles.content);
   useBlockHardwareBack(onHardwareBack);
   return (
     <SafeAreaView style={styles.root} edges={['bottom']} testID={testID}>
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: topInset + spacing[4] }]}
+        contentContainerStyle={[contentStyle, { paddingTop: topInset + spacing[4] }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

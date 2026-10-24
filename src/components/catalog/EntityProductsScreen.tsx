@@ -34,6 +34,7 @@ function EntityProductsBody({ kind }: { kind: CatalogEntityKind }) {
     <PageShell
       title={entity?.name || (isBrand ? t('product.brand') : t('product.manufacturer'))}
       mode="list"
+      contentWidth="full"
       scroll={page}
     >
       <ProductGrid

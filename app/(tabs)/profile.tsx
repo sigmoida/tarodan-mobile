@@ -5,7 +5,7 @@ import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
-import { pageListContentStyle, theme, usePageScrollValue } from '@/ui';
+import { pageListContentStyle, theme, usePageScrollValue, useReadableContentStyle } from '@/ui';
 
 import { useProfile } from './_hooks/useProfile';
 import { ProfileGuestView } from './_components/ProfileGuestView';
@@ -26,6 +26,8 @@ function ProfileScreen() {
   // Hook sırası sabit kalsın diye erken return'den ÖNCE çağrılır (app/CLAUDE.md › Thin screens).
   const tabInset = useTabBarInset();
   const page = usePageScrollValue();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = useReadableContentStyle([pageListContentStyle, { paddingBottom: tabInset }]);
   // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
 
@@ -38,7 +40,7 @@ function ProfileScreen() {
         {...page.scrollProps}
         scrollEventThrottle={16}
         // Sayfa kenarı + kartlar arası boşluk (kimlik kartı + grup kartları).
-        contentContainerStyle={page.contentStyle([pageListContentStyle, { paddingBottom: tabInset }])}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

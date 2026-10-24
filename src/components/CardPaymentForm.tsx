@@ -3,7 +3,7 @@ import { View, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { useTranslation } from 'react-i18next';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
-import { Button, Input, Checkbox, Text, theme, appAlert, Icon, RadioIndicator, LoadingIndicator } from '@/ui';
+import { Button, Input, Checkbox, Text, theme, appAlert, Icon, RadioIndicator, LoadingIndicator, useReadableContentStyle } from '@/ui';
 import { paymentsApi } from '@/lib/api';
 import type { PaymentPurpose } from '@/lib/payment/capabilities';
 import { buildDirectFormBody, type DirectFormBody, type DirectFormTarget } from '@/lib/payment/directFormBody';
@@ -91,6 +91,8 @@ export default function CardPaymentForm({
   paymentId: initialPaymentId,
 }: Props) {
   const { t } = useTranslation();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens); the 3DS page stays full.
+  const formContentStyle = useReadableContentStyle(styles.container);
   // Kart numarası / CVV ve 3DS sayfası ekran görüntüsüne, kayda ve uygulama değiştiriciye düşmez.
   useScreenCaptureProtection();
   // Kayıtlı kart listesi yalnız bu amaçta kart saklama açıkken alınır.
@@ -395,7 +397,7 @@ export default function CardPaymentForm({
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={formContentStyle} keyboardShouldPersistTaps="handled">
       <View style={styles.titleRow}>
         <Icon name="credit-card" size={22} color={colors.primary[500]} />
         <Text variant="h3">{t('payment.cardFormTitle')}</Text>

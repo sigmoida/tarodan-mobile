@@ -8,6 +8,7 @@ import {
   Spinner,
   pageListContentStyle,
   usePageScrollHandler,
+  useReadableContentStyle,
 } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -34,6 +35,8 @@ export default function SalesScreen() {
   const s = useSales();
   const actions = useSaleActions();
   const page = usePageScrollHandler();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = useReadableContentStyle([pageListContentStyle, styles.list]);
   // Kararlı renderItem (erken return'den ÖNCE — hook sırası sabit).
   const { handleMarkAsProcessing, openShipDialog } = actions;
   const { isPending: updating, variables: updatingVars } = actions.updateStatusMutation;
@@ -84,7 +87,7 @@ export default function SalesScreen() {
         data={loading ? [] : s.filteredSales}
         keyExtractor={saleKey}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         refreshing={s.refreshing}
         onRefresh={s.onRefresh}
         onEndReached={s.loadMore}

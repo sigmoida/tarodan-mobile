@@ -8,7 +8,7 @@ import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, ErrorState, pageListContentStyle, useDelayedLoading, usePageScrollValue } from '@/ui';
+import { Button, EmptyState, ErrorState, pageListContentStyle, useDelayedLoading, usePageScrollValue, useReadableContentStyle } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
 import { searchEntryHref } from '@/lib/navigation/searchHref';
 import { useStableCallback } from '@/hooks/useStableCallback';
@@ -33,6 +33,8 @@ function FavoritesScreen() {
   // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
   const showSkeleton = useDelayedLoading(initialLoading);
   const page = usePageScrollValue();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = useReadableContentStyle([pageListContentStyle, { paddingBottom: tabInset }]);
   // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
   // Kararlı renderItem + memo'lu kart: işleyiciler referans-kararlı (en güncel `f`'i çağırır), sepet
@@ -80,7 +82,7 @@ function FavoritesScreen() {
         data={initialLoading || loadFailed ? [] : f.items}
         keyExtractor={favoriteKey}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle([pageListContentStyle, { paddingBottom: tabInset }])}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         progressViewOffset={page.topInset}
         refreshing={f.refreshing}
         onRefresh={f.onRefresh}

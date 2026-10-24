@@ -32,7 +32,7 @@ export default function CollectionsScreen() {
       title={title}
       onBack={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)"))}
       loading={f.isLoading}
-      loadingFallback={<RowListSkeleton rows={4} />}
+      loadingFallback={<RowListSkeleton rows={4} contentWidth="full" />}
       error={f.loadFailed || undefined}
       onRetry={f.retry}
       refreshing={f.refreshing}

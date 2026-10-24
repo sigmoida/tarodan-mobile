@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, ErrorState, TopBarLabel, pageListContentStyle, usePageScrollHandler } from '@/ui';
+import { EmptyState, ErrorState, TopBarLabel, pageListContentStyle, usePageScrollHandler, useReadableContentStyle } from '@/ui';
 
 import { listWindowing } from '@/lib/list/windowing';
 import type { BlockedUser } from '@/lib/api';
@@ -25,6 +25,8 @@ export default function BlockedUsersScreen() {
   const { requestUnblock, pending } = useBlockUser();
   const title = t('profile.blockedPage.title');
   const page = usePageScrollHandler();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = useReadableContentStyle(pageListContentStyle);
   const renderBlocked = useCallback(
     ({ item }: { item: BlockedUser }) => (
       <BlockedUserRow item={item} busy={pending} onUnblock={requestUnblock} />
@@ -58,7 +60,7 @@ export default function BlockedUsersScreen() {
         data={f.blocked}
         keyExtractor={blockedKey}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle(pageListContentStyle)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         ListEmptyComponent={
           f.loadFailed ? (
             <ErrorState

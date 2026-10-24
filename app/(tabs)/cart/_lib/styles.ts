@@ -52,9 +52,8 @@ export const styles = StyleSheet.create({
 
   // --- Sabit ödeme çubuğu (yüzen alt menünün üstünde kart) ---
   checkoutBarWrap: {
+    // left / right: the readable gutter, set by `CartCheckoutBar`.
     position: 'absolute',
-    left: PAGE_GUTTER,
-    right: PAGE_GUTTER,
     padding: spacing[3],
     borderRadius: radiusRole.card,
     borderWidth: 1,

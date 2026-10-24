@@ -1,7 +1,7 @@
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Accordion, EmptyState, pageListContentStyle, usePageScrollHandler } from '@/ui';
+import { Accordion, EmptyState, pageListContentStyle, usePageScrollHandler, useReadableContentStyle } from '@/ui';
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
@@ -21,6 +21,8 @@ export default function PaymentHistoryScreen() {
   const { t } = useTranslation();
   const f = usePaymentHistory();
   const page = usePageScrollHandler();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = useReadableContentStyle(pageListContentStyle);
   const title = t('mobile.settingsPaymentHistory');
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
@@ -56,7 +58,7 @@ export default function PaymentHistoryScreen() {
           {...listWindowing}
           // Rows change height while they open; Android's clipped-subview removal can blank them.
           removeClippedSubviews={false}
-          contentContainerStyle={page.contentStyle(pageListContentStyle)}
+          contentContainerStyle={page.contentStyle(listContentStyle)}
           refreshing={f.isRefreshing}
           onRefresh={() => f.fetchPayments()}
           ListEmptyComponent={

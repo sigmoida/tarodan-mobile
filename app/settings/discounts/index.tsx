@@ -7,6 +7,7 @@ import {
   TopBarAction,
   pageListContentStyle,
   usePageScrollHandler,
+  useReadableContentStyle,
 } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
@@ -31,6 +32,8 @@ export default function DiscountsScreen() {
   const { t } = useTranslation();
   const f = useDiscounts();
   const page = usePageScrollHandler();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = useReadableContentStyle(pageListContentStyle);
   const { toggleActive, openEdit, handleDelete } = f;
   // Kararlı renderItem (erken return'den ÖNCE — hook sırası sabit).
   const renderDiscount = useCallback(
@@ -71,7 +74,7 @@ export default function DiscountsScreen() {
         keyExtractor={discountKey}
         renderItem={renderDiscount}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle(pageListContentStyle)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         refreshing={f.refreshing}
         onRefresh={f.onRefresh}
         ListHeaderComponent={

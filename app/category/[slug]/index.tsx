@@ -24,6 +24,7 @@ function CategoryScreen() {
     <PageShell
       title={f.category?.name || t('common.category')}
       mode="list"
+      contentWidth="full"
       scroll={page}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       overlay={

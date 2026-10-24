@@ -64,6 +64,7 @@ export default function CollectionsScreen() {
     <PageShell
       title={t('collection.collections')}
       mode="list"
+      contentWidth="full"
       scroll={page}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
       overlay={<CollectionsSheets f={f} />}

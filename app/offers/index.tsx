@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { View, StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
-import { ErrorState, pageListContentStyle, theme, useDelayedLoading, usePageScrollHandler } from "@/ui";
+import { ErrorState, pageListContentStyle, theme, useDelayedLoading, usePageScrollHandler, useReadableContentStyle } from "@/ui";
 import { PageShell } from "@/components/common/PageShell";
 import { useAuthStore } from "@/stores/authStore";
 import { useTimingValues } from "@/hooks/useTimingPolicy";
@@ -33,6 +33,8 @@ export default function OffersScreen() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const authLoading = useAuthStore((s) => s.isLoading);
   const page = usePageScrollHandler();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = useReadableContentStyle([pageListContentStyle, styles.list]);
   const [activeTab, setActiveTab] = useState<TabType>(
     tabFromUrl === "sent" ? "sent" : "received",
   );
@@ -169,7 +171,7 @@ export default function OffersScreen() {
             <OffersEmpty tab={activeTab} />
           )
         }
-        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         refreshing={refreshing}
         onRefresh={onRefresh}
       />

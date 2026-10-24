@@ -15,6 +15,7 @@ import {
   ListRowCard,
   useDelayedLoading,
   usePageScrollHandler,
+  useReadableContentStyle,
 } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
@@ -54,6 +55,8 @@ export default function ManufacturersScreen() {
   const { t } = useTranslation();
   const f = useManufacturers();
   const page = usePageScrollHandler();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = useReadableContentStyle(styles.content);
   // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
   const showSkeleton = useDelayedLoading(f.isLoading);
 
@@ -65,7 +68,7 @@ export default function ManufacturersScreen() {
         keyExtractor={manufacturerKey}
         renderItem={renderManufacturer}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle(styles.content)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl

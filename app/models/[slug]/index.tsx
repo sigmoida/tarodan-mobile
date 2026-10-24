@@ -28,6 +28,7 @@ function ModelDetailScreen() {
       title={f.model?.name ?? t('product.model')}
       subtitle={f.model?.brand?.name}
       mode="list"
+      contentWidth="full"
       scroll={page}
       loading={f.modelQuery.isLoading}
       error={f.modelLoadFailed || undefined}

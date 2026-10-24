@@ -9,6 +9,7 @@ import {
   Spinner,
   pageListContentStyle,
   usePageScrollHandler,
+  useReadableContentStyle,
 } from '@/ui';
 import { router } from 'expo-router';
 
@@ -37,6 +38,8 @@ export default function OrdersScreen() {
   const { t } = useTranslation();
   const f = useOrders();
   const page = usePageScrollHandler();
+  // Readable width on large screens (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = useReadableContentStyle([pageListContentStyle, styles.list]);
   const emptyTitle = useOrdersEmptyTitle(f.filter);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
@@ -86,7 +89,7 @@ export default function OrdersScreen() {
         keyExtractor={entryKey}
         renderItem={renderEntry}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         refreshing={f.refreshing}
         onRefresh={f.onRefresh}
         onEndReached={f.loadMore}

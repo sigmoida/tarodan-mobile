@@ -62,13 +62,46 @@ the file and this branch's copy is identical to it.
   left-aligned, which `space-between` would not do with 3+ columns).
 - `readableGutter(width, gutter)` / `useReadableGutter(gutter)`: the side
   padding that centres content at `contentWidths.readable`.
+- `readableContentStyle(base, width)` / `useReadableContentStyle(base)`: a list's
+  or ScrollView's `contentContainerStyle` with its side padding widened to that
+  gutter (the scroll view keeps the whole window, so the side margins scroll);
+  phones get `base` back unchanged.
+
+## Width rule (decided 2026-10-24)
+
+"Same outer frame on every screen, two inner widths by content type." Every
+screen starts at the same page gutter; inside it the body is:
+
+- **readable** (672 pt, centred) for everything people read or fill in: forms,
+  settings, the profile menu, legal and content pages, auth, payment, gates and
+  required steps, the chat thread (its input bar follows), the cart (one column
+  for now) and every **row list**: orders, sales, offers, trades, messages,
+  notifications, my listings, blocked users, payment history, discounts,
+  discount products, following, product reviews, add-to-collection picker,
+  manufacturers (`/ureticiler` renders rows, not a grid) and favourites (row
+  cards, not a grid);
+- **full** (window minus the gutter) for card grids and media: search,
+  category, models and model detail, collections and collection detail, seller,
+  brand / manufacturer products, my / liked collections, home, product detail
+  (keeps its split layout).
+
+Top bars stay full width; only the body changes. `PageShell` `contentWidth`
+defaults to `readable` in `scroll` **and `list`** mode (`static` stays `full`),
+so the grid list screens opt out with `contentWidth="full"` (6 call sites) and
+the row lists keep the default. A shell cannot pad a child's list, so each row
+list / tab root wraps its `contentContainerStyle` in `useReadableContentStyle`
+(a jest scan, `src/components/common/__tests__/listWidths.test.ts`, requires
+every list-mode screen to do one or the other). Floating elements over a
+readable body follow it: the cart checkout bar (`useReadableGutter`), the my
+listings FAB (`FAB contentWidth="readable"`), `RowListSkeleton`.
 
 Components:
 
-- `PageShell`: new `contentWidth?: 'readable' | 'full'`. `scroll` mode defaults
-  to `readable` (forms, settings, detail pages); `list` / `static` default to
-  `full` (lists bring their own FlatList). The footer bar content is always
-  centred at the readable width. Grid pages in `scroll` mode pass `full`.
+- `PageShell`: new `contentWidth?: 'readable' | 'full'`. `scroll` and `list`
+  default to `readable`, `static` to `full` (see "Width rule"). The footer bar
+  content is always centred at the readable width. Grid pages pass `full`.
+- `FAB`: `contentWidth="readable"` puts a `bottomRight` FAB at the right edge
+  of a readable body instead of the window's side gap.
 - `BottomSheet` (and so `SelectSheet` / `ActionSheet`): centred, max width
   640 pt (Material bottom sheet max width).
 - `AppTabBar`: the pill + "+" row is capped at 480 pt and centred; the "+"
@@ -91,17 +124,20 @@ Components:
 | Seller profile, collection detail, models, my / liked collections, similar listings | `gridCellStyle` + `useGridColumns`; the `scroll` page passes `contentWidth="full"`.                                                                                                                                                                                     |
 | Listing create / edit form                                                          | Its own ScrollView uses `useReadableGutter`.                                                                                                                                                                                                                            |
 | Forms and settings (`PageShell` scroll)                                             | Centred at 672 pt automatically.                                                                                                                                                                                                                                        |
+| Row lists (`PageShell` list) and the chat thread                                    | `useReadableContentStyle` on the list content; skeletons and empty states inside it follow. Chat: the input bar is the readable footer.                                                                                                                                 |
+| Tab roots: profile (member + guest), cart, favourites                               | `useReadableContentStyle` on the scroll content; the cart checkout bar uses the same gutter. Sell already had it (`ListingForm`).                                                                                                                                       |
+| Payment card form, gate screens, required steps                                     | `useReadableContentStyle` on their own ScrollViews (required steps: the action bar too); the 3DS page stays full.                                                                                                                                                       |
 
 ## Out of scope
 
-- Row lists in `list` mode (orders, addresses, notifications, messages) stay full
-  width; a list-detail (master/detail) layout is a separate design question.
+- A list-detail (master/detail) layout for row lists is a separate design
+  question; rows take the readable width meanwhile.
+- A two-column cart on tablets.
 - The product list layout (`layout="list"`) stays one column.
 - Stat tiles (`settings/business`, seller metrics, seller dashboard) keep their
   2x2 grid; they sit in readable-width pages.
 - Home product rails (fixed 160 pt cards, horizontal) are unchanged: a wider
   window simply shows more cards.
-- Tab-root shells (`AppShell`: profile, cart, favourites) keep full width.
 - Any native config change (see below).
 
 ## Known limitations (accepted for this branch)
@@ -112,8 +148,12 @@ Components:
 - Grid columns follow the window width, not the grid's measured width; a grid in
   a narrower container (the categories pane, a readable-width page) must pass a
   spec or the page must use `contentWidth="full"`.
-- The floating tab bar row is centred while FABs keep the window's right gutter,
-  so on tablets they no longer share a right edge. To judge in the eye-test.
+- The floating tab bar row is centred while FABs on grid screens keep the
+  window's right gutter, so on tablets they no longer share a right edge. To
+  judge in the eye-test. The my listings FAB sits at its readable body's edge.
+- Nothing enforces the list padding beyond the jest scan: a new row list that
+  forgets `useReadableContentStyle` fails the scan, but a list in a child
+  component must be added to its `LIST_IN_CHILD` map.
 - Collection cells now have a fixed width: an odd last card on a phone is half
   wide (it stretched across the row before). Every other phone layout is
   unchanged.
@@ -155,6 +195,11 @@ Unit (jest, `--maxWorkers=2`):
 - Render tests with a mocked window width (390 / 820 / 1032 / 626): PageShell
   readable padding and footer cap, BottomSheet max width, ProductGrid column
   count and key, hero split layout.
+- Width rule: `readableContentStyle` (phones return the same object), PageShell
+  list mode readable vs full and its skeleton, TitleShell / AppShell (content
+  box not narrowed, readable child list), FAB `contentWidth`, and per screen
+  group: orders (row list), chat thread (body + input bar), profile (member +
+  guest), cart (body + checkout bar); plus the list-mode inventory scan.
 
 Existing tests must stay green. The react-native jest mock reports a
 750x1334 window (device pixels of an iPhone 8, read as points), which would be

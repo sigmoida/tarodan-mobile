@@ -156,6 +156,7 @@ function SearchScreen() {
     <PageShell
       title={t('common.search')}
       mode="list"
+      contentWidth="full"
       keyboardAware={false}
       titleFill
       titleSlot={

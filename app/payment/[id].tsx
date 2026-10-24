@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, BackHandler } from 'react-native';
-import { Alert, Button, Spinner, Text, theme, appAlert } from '@/ui';
+import { Alert, Button, Spinner, Text, theme, appAlert, useReadableGutter } from '@/ui';
 import { router, useFocusEffect, useLocalSearchParams, Redirect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '@/lib/api';
@@ -45,6 +45,8 @@ const { colors } = theme;
  */
 export default function PaymentScreen() {
   const { t } = useTranslation();
+  // The notice keeps the card form's readable width on large screens (phones: the page gutter).
+  const noticeSide = useReadableGutter(theme.spacing[4]);
   const params = useLocalSearchParams<{
     id: string;
     guest?: string;
@@ -289,7 +291,7 @@ export default function PaymentScreen() {
         </View>
       ) : state.target ? (
         <View style={{ flex: 1 }}>
-          <Alert variant="success" icon="lock-closed" style={styles.safeNotice}>
+          <Alert variant="success" icon="lock-closed" style={[styles.safeNotice, { marginHorizontal: noticeSide }]}>
             {t('payment.sslNotice')}
           </Alert>
           <CardPaymentForm
@@ -314,7 +316,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.surface.DEFAULT,
   },
-  safeNotice: { marginHorizontal: theme.spacing[4], marginTop: theme.spacing[2] },
+  // marginHorizontal: the readable gutter, set inline.
+  safeNotice: { marginTop: theme.spacing[2] },
   center: {
     flex: 1,
     alignItems: 'center',

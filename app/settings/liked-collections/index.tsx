@@ -40,7 +40,7 @@ export default function LikedCollectionsScreen() {
       // Card grid: full width on tablets (more columns), not the readable form width.
       contentWidth="full"
       loading={f.isLoading}
-      loadingFallback={<RowListSkeleton rows={4} />}
+      loadingFallback={<RowListSkeleton rows={4} contentWidth="full" />}
       error={f.error ? true : undefined}
       errorTitle={t("common.error")}
       errorMessage={t("collection.likedLoadErrorDesc")}
