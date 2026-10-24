@@ -51,9 +51,11 @@ const ENVIRONMENT_LABEL = {
 
 /**
  * The label text: `1.2.3 (343) · a1b2c3 (Staging)`. Production has no environment
- * suffix; without a build number only the version shows; the embedded bundle shows
- * the embedded marker instead of an id. Null when the version is unknown (the row
- * is then hidden). Takes `t` from the caller (`src/i18n/CLAUDE.md` › Build labels at
+ * suffix; without a build number only the version shows. On the embedded bundle
+ * staging and development show the embedded marker instead of an id; production
+ * shows only the version (the marker means nothing to a user, the id still helps
+ * support once an OTA is applied). Null when the version is unknown (the row is
+ * then hidden). Takes `t` from the caller (`src/i18n/CLAUDE.md` › Build labels at
  * call time).
  */
 export function formatAppBuildLabel(info: AppBuildInfo, t: TFunction): string | null {
@@ -61,8 +63,9 @@ export function formatAppBuildLabel(info: AppBuildInfo, t: TFunction): string | 
   const version = info.buildNumber
     ? t("mobile.appBuildVersion", { version: info.version, build: info.buildNumber })
     : info.version;
-  const update = info.updateId ?? t("mobile.appBuildEmbedded");
   const environment = ENVIRONMENT_LABEL[info.environment];
+  if (!environment && !info.updateId) return version;
+  const update = info.updateId ?? t("mobile.appBuildEmbedded");
   return environment
     ? t("mobile.appBuildLabelWithEnvironment", { version, update, environment: t(environment) })
     : t("mobile.appBuildLabel", { version, update });

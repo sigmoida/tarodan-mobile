@@ -135,10 +135,17 @@ describe('formatAppBuildLabel', () => {
     expect(label()).toBe('1.2.3 · a1b2c3');
   });
 
-  it('shows the embedded marker instead of an id on the embedded bundle', () => {
+  it('production on the embedded bundle: only the version, no embedded marker', () => {
     setBuild({ appEnvironment: 'production', isEmbeddedLaunch: true });
-    expect(label()).toBe('1.2.3 (343) · embedded');
-    expect(label(tr)).toBe('1.2.3 (343) · yerleşik');
+    expect(label()).toBe('1.2.3 (343)');
+    expect(label(tr)).toBe('1.2.3 (343)');
+    setBuild({ appEnvironment: 'production', isEmbeddedLaunch: true, buildNumber: null });
+    expect(label()).toBe('1.2.3');
+  });
+
+  it('staging on the embedded bundle: the embedded marker instead of an id', () => {
+    setBuild({ isEmbeddedLaunch: true });
+    expect(label()).toBe('1.2.3 (343) · embedded (Staging)');
   });
 
   it('is translated: Turkish staging label', () => {
