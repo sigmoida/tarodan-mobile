@@ -129,17 +129,24 @@ describe('messages master–detail', () => {
     expect(pane().getAllByText('Ayşe').length).toBeGreaterThan(0);
   });
 
-  it('narrowing from 1032 to 820 pt with a thread open pushes that thread instead of dropping it', () => {
+  it('narrowing from 1032 to 820 pt keeps the open thread mounted full width (no push, draft kept); back closes it', () => {
     setWindow(1032, 1376);
     renderWithProviders(<MessagesScreen />);
     fireEvent.press(screen.getByTestId('thread-row-t2'));
-    expect(pushMock).not.toHaveBeenCalled();
+    fireEvent.changeText(screen.getByPlaceholderText('message.typeMessage'), 'yarım kalan cevap');
     act(() => setWindow(820, 1180));
-    expect(screen.queryByTestId('messages-master-detail')).toBeNull();
-    expect(pushMock).toHaveBeenCalledTimes(1);
-    expect(pushMock).toHaveBeenCalledWith('/messages/t2');
-    // Widening again does not reopen a stale selection.
+    expect(pushMock).not.toHaveBeenCalled();
+    const pane = within(screen.getByTestId('messages-detail-pane'));
+    // Same composer instance: the draft is still there.
+    expect(pane.getByDisplayValue('yarım kalan cevap')).toBeOnTheScreen();
+    expect(StyleSheet.flatten(screen.getByTestId('messages-detail-pane').props.style).flex).toBe(1);
+    // Widening again restores the two panes with the same thread.
     act(() => setWindow(1032, 1376));
-    expect(within(screen.getByTestId('messages-detail-pane')).getByText('message.selectConversationTitle')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('messages-detail-pane')).getByDisplayValue('yarım kalan cevap')).toBeOnTheScreen();
+    // Narrow again: the back arrow closes the thread and shows the plain inbox.
+    act(() => setWindow(820, 1180));
+    fireEvent.press(within(screen.getByTestId('messages-detail-pane')).getByTestId('screen-header-back'));
+    expect(screen.queryByTestId('messages-master-detail')).toBeNull();
+    expect(screen.getByText('Ayşe')).toBeOnTheScreen();
   });
 });

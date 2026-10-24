@@ -5,10 +5,10 @@
  * Expanded and wider windows: master–detail (`_lib/layout`): the list on the left, the selected
  * conversation on the right (`MessageThreadView`), selected in place instead of pushed.
  */
-import { useCallback, useEffect, useState } from "react";
-import { RefreshControl, View } from "react-native";
+import { useCallback, useState } from "react";
+import { BackHandler, RefreshControl, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { listWindowing } from "@/lib/list/windowing";
 import type { MessageThread } from "@/stores/messagesStore";
@@ -45,13 +45,21 @@ export default function MessagesScreen() {
   // Master–detail: the conversation open in the right-hand pane (none until the user picks one).
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const closeSelected = useCallback(() => setSelectedId(null), []);
-  // The window narrowed below expanded (split screen, fold) with a conversation open: keep it open
-  // as its own pushed screen instead of dropping the user on the bare inbox.
-  useEffect(() => {
-    if (masterDetail || !selectedId) return;
-    setSelectedId(null);
-    router.push(`/messages/${selectedId}`);
-  }, [masterDetail, selectedId]);
+  // The window narrowed below expanded (split screen, fold) with a conversation open: the SAME tree
+  // stays mounted (no push, no remount: the draft survives), the inbox pane hides and the
+  // conversation takes the window with a back arrow; widening again restores the two panes.
+  const narrowWithThread = !masterDetail && selectedId != null;
+  // Android back then closes that conversation (like its back arrow) instead of leaving the inbox.
+  useFocusEffect(
+    useCallback(() => {
+      if (!narrowWithThread) return undefined;
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        closeSelected();
+        return true;
+      });
+      return () => sub.remove();
+    }, [narrowWithThread, closeSelected]),
+  );
   // Kararlı renderItem (erken return'den ÖNCE — hook sırası sabit).
   const renderThread = useCallback(
     ({ item }: { item: MessageThread }) =>
@@ -141,13 +149,19 @@ export default function MessagesScreen() {
     </PageShell>
   );
 
-  if (!masterDetail) return inbox;
+  if (!masterDetail && !selectedId) return inbox;
   return (
     <View style={styles.masterDetail} testID="messages-master-detail">
-      <View style={styles.masterPane}>{inbox}</View>
-      <View style={styles.detailPane} testID="messages-detail-pane">
+      <View style={narrowWithThread ? styles.paneHidden : styles.masterPane}>{inbox}</View>
+      <View style={narrowWithThread ? styles.fill : styles.detailPane} testID="messages-detail-pane">
         {selectedId ? (
-          <MessageThreadView key={selectedId} threadId={selectedId} embedded onExit={closeSelected} />
+          <MessageThreadView
+            key={selectedId}
+            threadId={selectedId}
+            embedded
+            onExit={closeSelected}
+            onBack={narrowWithThread ? closeSelected : undefined}
+          />
         ) : (
           <EmptyState
             placement="screen"

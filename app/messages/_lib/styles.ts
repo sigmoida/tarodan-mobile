@@ -37,6 +37,9 @@ export const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderLeftColor: colors.border.DEFAULT,
   },
+  // Narrowed below expanded with a thread open: the inbox pane stays mounted but hidden.
+  paneHidden: { display: 'none' },
+  fill: { flex: 1 },
   // The open thread's row in the inbox (pressed-state tone, kept while it is open).
   threadRowSelected: { backgroundColor: colors.surface.alt },
   productRefText: {
