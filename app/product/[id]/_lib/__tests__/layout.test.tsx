@@ -18,18 +18,18 @@ const setWindow = (width: number, height: number) =>
 describe('productDetailLayout', () => {
   it('phones (and the foldable outer display): window-wide square above the info, stacked bar', () => {
     for (const w of [320, 390, 430, 466]) {
-      expect(productDetailLayout(w)).toEqual({ split: false, gallerySide: w, wideBar: false });
+      expect(productDetailLayout(w)).toEqual({ split: false, gallerySide: w, wideBar: false, inlineOfferTrade: false });
     }
   });
 
   it.each([
-    [626, 281],
-    [820, 369], // iPad Air 11" portrait
-    [1032, 464],
-    [1180, 531], // iPad Air 11" landscape
-    [1366, 614],
-  ])('%d pt: gallery beside the info at 45%% (%d pt), one-row bar', (w, side) => {
-    expect(productDetailLayout(w)).toEqual({ split: true, gallerySide: side, wideBar: true });
+    [626, 281, false],
+    [820, 369, false], // iPad Air 11" portrait: offer / trade above the bar
+    [1032, 464, true],
+    [1180, 531, true], // iPad Air 11" landscape: everything in one row
+    [1366, 614, true],
+  ])('%d pt: gallery beside the info at 45%% (%d pt), wide bar, offer / trade inline: %s', (w, side, inline) => {
+    expect(productDetailLayout(w)).toEqual({ split: true, gallerySide: side, wideBar: true, inlineOfferTrade: inline });
     expect(side).toBe(Math.floor(w * GALLERY_SPLIT_FRACTION));
   });
 

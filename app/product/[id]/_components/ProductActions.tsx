@@ -32,8 +32,8 @@ function unavailableLabel(product: Product, t: (k: any) => string): string {
  * Sahipte fiyat + "Düzenle". Etiketler tek satır (Button sığmazsa küçültür); fiyat küçülür.
  * Web kartta/detayda ilan bazlı kargo bilgisi göstermediği için kargo satırı yok.
  *
- * `wide` (tablets, `productDetailLayout().wideBar`): one full-width row laid out for the width: the
- * price on the left, `extraActions` (the inline offer / trade buttons) and the buy buttons on the
+ * `wide` (tablets, `productDetailLayout().wideBar`): the row is laid out for the width: the price on
+ * the left, `extraActions` (the offer / trade buttons from `expanded` up) and the buy buttons on the
  * right at their natural width; no button stretches across the bar.
  */
 export function ProductBuyBar({
@@ -146,7 +146,8 @@ export function ProductBuyBar({
  * Bu iki eylemin TEK birincil girişi (fiyatın yanındaki çipler yalnız kısayol). Görünürlük
  * `getOfferTradeAvailability`'den: sahipte ve satılamayan ilanda hiç çizilmez. İkisi de geçerliyse
  * eşit genişlikte yan yana, biri geçerliyse tam genişlik. Kompakt (`md`), etiket tek satır.
- * `inline` (tablets): the buttons sit inside the buy bar row at their natural width.
+ * `inline` (tablets): the buttons keep their natural width, right-aligned (above the buy bar on
+ * medium windows, inside its row from `expanded` up).
  */
 export function ProductOfferTradeRow({
   availability,
@@ -163,7 +164,7 @@ export function ProductOfferTradeRow({
   if (!availability.offer && !availability.trade) return null;
   const cell = inline ? styles.cellInline : styles.cell;
   return (
-    <View style={styles.pair} testID="product-offer-trade-row">
+    <View style={[styles.pair, inline && styles.pairInline]} testID="product-offer-trade-row">
       {availability.trade ? (
         <Button
           testID="product-detail-trade-button"
@@ -251,4 +252,5 @@ const styles = StyleSheet.create({
   pair: { flexDirection: 'row', gap: spacing[2] },
   cell: { flex: 1, paddingHorizontal: spacing[2] },
   cellInline: { flexShrink: 0, paddingHorizontal: spacing[4] },
+  pairInline: { justifyContent: 'flex-end' },
 });

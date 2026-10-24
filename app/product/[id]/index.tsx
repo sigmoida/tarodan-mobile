@@ -115,8 +115,9 @@ function ProductDetail({ productId }: { productId: string }) {
   const ready = visible && full;
   // Hata sonrası "Tekrar Dene" sürerken iskelet (hata kartı basılı kalmasın).
   const retrying = !product && isError && productQuery.isFetching;
-  // Phones: the offer / trade row above the buy bar; tablets: inline in the one-row buy bar.
-  const { wideBar } = useProductDetailLayout();
+  // Phones: the offer / trade row above the buy bar; medium: above it at natural width;
+  // expanded and up: inside the buy bar row (`productDetailLayout`).
+  const { wideBar, inlineOfferTrade } = useProductDetailLayout();
   const offerTradeRow = (
     <ProductOfferTradeRow
       availability={availability}
@@ -139,7 +140,7 @@ function ProductDetail({ productId }: { productId: string }) {
       footer={
         ready ? (
           <>
-            {wideBar ? null : offerTradeRow}
+            {inlineOfferTrade ? null : offerTradeRow}
             <ProductBuyBar
               product={product}
               isOwner={isOwner}
@@ -150,7 +151,7 @@ function ProductDetail({ productId }: { productId: string }) {
               onGoToCart={actions.handleGoToCart}
               onEdit={() => router.push(`/listing/${product.id}/edit` as any)}
               wide={wideBar}
-              extraActions={wideBar ? offerTradeRow : null}
+              extraActions={inlineOfferTrade ? offerTradeRow : null}
             />
           </>
         ) : undefined

@@ -609,11 +609,21 @@ describe('Product detail on large screens', () => {
     expect(StyleSheet.flatten(screen.getByTestId('product-detail-add-to-cart-button').props.style).flexGrow).toBe(1);
   });
 
-  it.each([
-    [820, 1180],
-    [1180, 820],
-  ])('iPad %d pt: split layout; one-row bar with price left and every action inline, nothing stretched', async (w, h) => {
-    setWindow(w, h);
+  it('iPad portrait (820 pt): split; offer / trade right-aligned above the bar; buttons at natural width', async () => {
+    setWindow(820, 1180);
+    getOneMock.mockResolvedValue({ data: { data: productFixture({ tradeAvailable: true }) } });
+    renderWithProviders(<ProductDetailScreen />);
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    expect(screen.getByTestId('product-split-layout')).toBeOnTheScreen();
+    expect(inBarRow('product-detail-offer-button')).toBe(false);
+    expect(inBarRow('product-detail-buy-now-button')).toBe(true);
+    expect(StyleSheet.flatten(screen.getByTestId('product-offer-trade-row').props.style).justifyContent).toBe('flex-end');
+    expect(StyleSheet.flatten(screen.getByTestId('product-detail-offer-button').props.style).flex).toBeUndefined();
+    expect(StyleSheet.flatten(screen.getByTestId('product-detail-add-to-cart-button').props.style).flexGrow).toBeUndefined();
+  });
+
+  it('iPad landscape (1180 pt): split; one-row bar with price left and every action inline, nothing stretched', async () => {
+    setWindow(1180, 820);
     getOneMock.mockResolvedValue({ data: { data: productFixture({ tradeAvailable: true }) } });
     renderWithProviders(<ProductDetailScreen />);
     await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
@@ -623,6 +633,5 @@ describe('Product detail on large screens', () => {
     }
     expect(screen.getAllByTestId('product-detail-offer-button')).toHaveLength(1);
     expect(StyleSheet.flatten(screen.getByTestId('product-detail-add-to-cart-button').props.style).flexGrow).toBeUndefined();
-    expect(StyleSheet.flatten(screen.getByTestId('product-detail-offer-button').props.style).flex).toBeUndefined();
   });
 });
