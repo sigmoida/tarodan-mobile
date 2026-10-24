@@ -24,6 +24,11 @@ and has no `theme` export.
   Reconciling it is a tarodan-ops backlog item; don't "fix" it as a side effect.
 - `containers` (`theme.containers.cardWide`) are component widths, compared with
   the width a component measures (`onLayout`), never with the screen width.
+- `breakpoints` (window classes `medium` 600 / `expanded` 840 / `large` 1200, Material)
+  and `contentWidths.readable` (672, web `max-w-2xl`) are window / content widths
+  (`theme.breakpoints`, `theme.contentWidths`; classify with `windowClassOf` from `@/ui`).
+  `breakpoints.ts` was added here first (2026-10-24) and is **pending upstream** in
+  `packages/design-tokens` with a tarodan-ops `docs/design-system.md` note.
 - Light theme only; there is no dark mode on any platform.
 
 ## Using tokens

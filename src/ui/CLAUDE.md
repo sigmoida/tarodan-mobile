@@ -28,6 +28,25 @@ parity table is in tarodan-ops `docs/design-system.md`. Tokens: `src/theme/CLAUD
 - No off-scale numeric `fontSize` / `fontWeight` / `borderRadius` / `lineHeight` in a
   `StyleSheet` (`tarodan/no-raw-style-values`): use `theme.typography` / `radiusRole`.
 
+## Large screens
+
+iPad, the foldable iPhone and Android tablets use the same screens; the shared layer
+adapts them. Decide by a **measured width** (`useWindowDimensions` / `onLayout`), never
+by device model, so Split View, folding and resizable windows re-lay out. Every rule is
+a no-op below 600 pt: phones stay as they are.
+
+- Width class: `windowClassOf(width)` / `useWindowClass()` (`src/ui/lib/windowClass.ts`,
+  tokens in `theme.breakpoints`). Never a local `width > 700` check.
+- Card grids: columns from `useGridColumns()` / `gridColumns(width, spec)`
+  (`CARD_GRID_COLUMNS` 2 / 3 / 4 / 5). A `FlatList` / `FlashList` puts the count in its
+  `key`. Fixed cells use `gridCellWidth`; percentage `flexWrap` grids use
+  `gridCellStyle(index, columns)` (never `width: '48%'` + `space-between`).
+- Readable width: `PageShell` `scroll` bodies and the footer centre at
+  `theme.contentWidths.readable`; a `scroll` page whose body is a card grid passes
+  `contentWidth="full"`. A screen with its own ScrollView form uses `useReadableGutter`.
+- `BottomSheet` is centred at `SHEET_MAX_WIDTH` (640); `Modal`, `AlertDialog` and
+  `Toast` already cap themselves.
+
 ## Typography
 
 - Noto Sans 400/500/600/700, same as web. The weight -> font-file mapping and the
