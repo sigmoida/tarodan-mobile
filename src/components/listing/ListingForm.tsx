@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, KeyboardAvoidingView } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { useKeyboardAvoid, usePageScrollValue, useShellPageScroll } from '@/ui';
+import { theme, useKeyboardAvoid, usePageScrollValue, useReadableGutter, useShellPageScroll } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
@@ -56,6 +56,9 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
   // Oluşturma (sekme kökü): içerik yüzen alt menü hapının altında kalmasın -> alt dolgu tabInset.
   const tabPad = useMemo(() => (f.isEdit ? null : { paddingBottom: tabInset }), [f.isEdit, tabInset]);
+  // Tablets: the form keeps the readable width, centred (phones: the 16 pt gutter, unchanged).
+  const sidePad = useReadableGutter(theme.spacing[4]);
+  const sidePadStyle = useMemo(() => ({ paddingHorizontal: sidePad }), [sidePad]);
 
   if (gate) return gate;
 
@@ -67,7 +70,7 @@ export default function ListingForm({ mode, productId }: ListingFormProps) {
       scrollEventThrottle={16}
       // Görsel sürüklenirken form kaymaz (sürükleme ile kaydırma çatışmasın).
       scrollEnabled={!f.imageDragActive}
-      contentContainerStyle={page.contentStyle([styles.scrollContent, tabPad])}
+      contentContainerStyle={page.contentStyle([styles.scrollContent, sidePadStyle, tabPad])}
       keyboardShouldPersistTaps="handled"
     >
       <ListingHeaderBanners f={f} />
