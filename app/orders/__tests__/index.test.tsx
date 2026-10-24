@@ -7,7 +7,7 @@
  * Backend onay/iade/escrow aktarımı backend-only.
  */
 import React from 'react';
-import { Dimensions, StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { theme } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
@@ -291,8 +291,8 @@ describe('Siparişlerim · large screens', () => {
     expect(list.props.numColumns).toBe(columns);
     // Tablets wrap each card in a percentage grid cell; phones render the card as before.
     const cellWidths = screen.UNSAFE_root.findAll(
-      (n: { type: unknown; props: { style?: unknown } }) =>
-        n.type === 'View' && typeof StyleSheet.flatten(n.props.style as never)?.width === 'string',
+      (n: { type: unknown; props: { style?: StyleProp<ViewStyle> } }) =>
+        n.type === 'View' && typeof StyleSheet.flatten(n.props.style)?.width === 'string',
     );
     expect(cellWidths.length > 0).toBe(columns > 1);
   });
