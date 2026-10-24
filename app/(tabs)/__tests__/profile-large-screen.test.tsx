@@ -68,4 +68,15 @@ describe('profile width', () => {
     expect(screen.getByTestId('profile-go-login-button')).toBeTruthy();
     expect(sidePad()).toBe(side);
   });
+
+  it.each([
+    [390, false],
+    [820, false],
+    [1032, true],
+  ])('%d pt: member menu groups in two columns: %s', (width, twoColumns) => {
+    setWindow(width, 1200);
+    mockF = member;
+    renderWithProviders(<ProfileScreen />);
+    expect(screen.queryByTestId('menu-group-columns') != null).toBe(twoColumns);
+  });
 });
