@@ -71,6 +71,14 @@ describe('AppTabBar — fixed five-item bar', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
+  it('the pill has the card border on its surface (1 pt border.DEFAULT)', () => {
+    setup();
+    expect(StyleSheet.flatten(screen.getByTestId('app-tab-pill').props.style)).toMatchObject({
+      borderWidth: 1,
+      borderColor: theme.colors.border.DEFAULT,
+    });
+  });
+
   it('every item is at least 44 pt high', () => {
     setup();
     for (const id of BAR_ORDER) {

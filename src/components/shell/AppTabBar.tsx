@@ -53,8 +53,9 @@ export const TAB_BAR_ORDER: readonly TabBarRoute[] = TABS.map((tab) => tab.name)
  * "+" (İlan Ver / Sell), Cart, Profile, the "+" exactly in the centre. It never collapses or shrinks:
  * it is always drawn at full size above the content (`position: absolute`; lists add
  * `useTabBarInset` as bottom padding). The "+" is a tab-like item with its label; its icon sits in a
- * filled primary circle. The surface is `GlassSurface` (iOS 26 Liquid Glass, opaque white elsewhere).
- * The selected item has the solid icon and the neutral grey highlight, which
+ * filled primary circle. The surface is `GlassSurface` (iOS 26 Liquid Glass, opaque white elsewhere)
+ * with a 1 pt `border.DEFAULT` edge on both variants (the card border), so the bar separates from
+ * the content behind it. The selected item has the solid icon and the neutral grey highlight, which
  * slides between items. Phones: the window minus the side gaps; tablets: a centred floating pill
  * capped at `TAB_BAR_MAX_WIDTH` (the iPadOS floating tab bar look). Hidden while the keyboard is open.
  *
@@ -203,10 +204,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     height: TAB_PILL_HEIGHT,
   },
-  // Yüzey (cam / opak beyaz + kenarlık + gölge) `GlassSurface`'ten; burada yalnız yerleşim.
+  // Yüzey (cam / opak beyaz + gölge) `GlassSurface`'ten. The card border (1 pt `border.DEFAULT`) on
+  // both variants: the glass surface has none of its own, the opaque one already uses the same edge.
   pill: {
     alignSelf: "stretch",
     paddingHorizontal: PILL_PADDING_X,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
   },
   pillContent: {
     flex: 1,

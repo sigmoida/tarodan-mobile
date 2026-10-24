@@ -43,6 +43,11 @@ describe('AppTabBar — Liquid Glass', () => {
     expect(screen.getByTestId('tab-sell')).toBeTruthy();
   });
 
+  it('the glass pill has the same 1 pt border.DEFAULT edge as the fallback', () => {
+    setup();
+    expect(flat('app-tab-pill')).toMatchObject({ borderWidth: 1, borderColor: theme.colors.border.DEFAULT });
+  });
+
   it('aktif sekme vurgusu nötr gray-100 (turuncu değil); sekme düğmesinin kendisinde zemin yok', () => {
     setup(2);
     ['tab-home', 'tab-favorites'].forEach((id, i) =>
