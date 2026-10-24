@@ -1,7 +1,8 @@
 # Large-screen layout (iPad, foldable iPhone, Android tablets)
 
 Status: in progress on `feat/app-large-screen-layout` (not for release until the
-user has eye-tested it in the simulator).
+user has eye-tested it in the simulator). Revised 2026-10-24 after the first iPad
+eye-test: the readable column is replaced by edge-to-edge layouts.
 
 ## Problem
 
@@ -21,123 +22,88 @@ Android 16 regardless of the manifest lock, see "Native side").
   component's own width, never the device model. Split View, Stage Manager, the
   folding iPhone and Android resizable windows then work the same way, and a
   runtime resize re-lays out.
-- **Phones stay pixel-identical.** Every rule below is a no-op under 600 pt
-  (and the width caps are larger than any phone).
-- One source of truth: the width classes and content widths are tokens; one
-  hook classifies the width; one helper derives grid column counts.
+- **Phones stay pixel-identical.** Every rule below is a no-op under 600 pt.
+- **Edge to edge, designed for the width (decided 2026-10-24, after the first iPad
+  eye-test).** The centred 672 pt "readable" column was rejected: it read as a
+  stretched phone. Every screen spans the window with a wider tablet gutter, and
+  layouts re-proportion by width class (more columns, side-by-side panes) in
+  portrait and landscape. Reference: the Amazon iPad app.
+- One source of truth: the width classes are tokens; one hook classifies the width;
+  one helper per decision (gutter, card grid columns, row grid columns, each
+  screen's pane split).
 
 ## Width classes (tokens)
 
-`src/theme/breakpoints.ts` (new), exposed as `theme.breakpoints` and
+`src/theme/breakpoints.ts`, exposed as `theme.breakpoints` and
 `theme.contentWidths`. They match the Material window size classes:
 
-| Class      | Window width   | Examples                                                 |
-| ---------- | -------------- | -------------------------------------------------------- |
-| `compact`  | < 600 pt       | every phone, foldable iPhone outer display               |
-| `medium`   | 600 to 839 pt  | foldable iPhone inner (626), iPad Air 11" portrait (820) |
-| `expanded` | 840 to 1199 pt | iPad 13" portrait (1032), small tablets in landscape     |
-| `large`    | >= 1200 pt     | Android tablets in landscape (1280+)                     |
+| Class      | Window width   | Examples                                                        |
+| ---------- | -------------- | --------------------------------------------------------------- |
+| `compact`  | < 600 pt       | every phone, foldable iPhone outer display                      |
+| `medium`   | 600 to 839 pt  | foldable iPhone inner (626), iPad Air 11" portrait (820)        |
+| `expanded` | 840 to 1199 pt | iPad 13" portrait (1032), iPad Air 11" landscape (1180)         |
+| `large`    | >= 1200 pt     | iPad 13" landscape (1366), Android tablets in landscape (1280+) |
 
-`contentWidths.readable = 672` (web `max-w-2xl`, the width web uses for form
-and detail pages).
-
-**Upstream:** `src/theme` is a synced copy of tarodan-app
-`packages/design-tokens`. The same `breakpoints` and `contentWidths` tokens have
-to be added there (a new `breakpoints.ts`, exported from the package index; web
-keeps its Tailwind `screens`, which serve CSS media queries) with a note in
-tarodan-ops `docs/design-system.md`. Done 2026-10-24: tarodan-app f96c2d751 adds
-the file and this branch's copy is identical to it.
+`contentWidths.readable = 672` stays in `src/theme` as the synced copy of the
+upstream token (tarodan-app `packages/design-tokens/src/breakpoints.ts`,
+f96c2d751), but app code no longer uses it (a jest scan forbids it in page code).
+Whether upstream keeps it is a design-system decision for tarodan-ops.
 
 ## Shared layer (`@/ui`)
 
 `src/ui/lib/windowClass.ts`:
 
 - `windowClassOf(width)` and `useWindowClass()`.
-- `CARD_GRID_COLUMNS` (`compact 2, medium 3, expanded 4, large 5`, web listings
-  `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4`) and `gridColumns(width, spec?)` /
-  `useGridColumns(spec?)`: the one column-count rule for card grids.
-- `gridCellStyle(index, columns, gapPercent)`: width + left margin in percent
-  for the `flexWrap` grids that used `width: '48%'` + `space-between` (two
-  columns give exactly the old 48% / 4% geometry; a short last row stays
-  left-aligned, which `space-between` would not do with 3+ columns).
-- `readableGutter(width, gutter)` / `useReadableGutter(gutter)`: the side
-  padding that centres content at `contentWidths.readable`.
-- `readableContentStyle(base, width)` / `useReadableContentStyle(base)`: a list's
-  or ScrollView's `contentContainerStyle` with its side padding widened to that
-  gutter (the scroll view keeps the whole window, so the side margins scroll);
-  phones get `base` back unchanged.
+- `pageGutter(width)` / `usePageGutter()`: the side gutter, `PAGE_GUTTERS` =
+  16 (compact), `spacing[6]` 24 (medium), `spacing[8]` 32 (expanded, large).
+  `tabletSidePadding(own, width)` widens an existing side padding to it (phones and
+  full-bleed 0 sides unchanged); `pageContentStyle(base, width)` /
+  `usePageContentStyle(base)` apply it to a list's `contentContainerStyle`.
+- `CARD_GRID_COLUMNS` (2 / 3 / 4 / 5) with `gridColumns` / `useGridColumns`,
+  `gridCellWidth`, `gridCellStyle`: card grids.
+- `ROW_CARD_COLUMNS` (1 / 2 / 3 / 4) and `useRowGrid()` (`src/ui/lib/rowGrid.tsx`):
+  row lists as card grids (`listKey`, `numColumns`, `cell(index, card)`).
 
-## Width rule (decided 2026-10-24)
-
-"Same outer frame on every screen, two inner widths by content type." Every
-screen starts at the same page gutter; inside it the body is:
-
-- **readable** (672 pt, centred) for everything people read or fill in: forms,
-  settings, the profile menu, legal and content pages, auth, payment, gates and
-  required steps, the chat thread (its input bar follows), the cart (one column
-  for now) and every **row list**: orders, sales, offers, trades, messages,
-  notifications, my listings, blocked users, payment history, discounts,
-  discount products, following, product reviews, add-to-collection picker,
-  manufacturers (`/ureticiler` renders rows, not a grid) and favourites (row
-  cards, not a grid);
-- **full** (window minus the gutter) for card grids and media: search,
-  category, models and model detail, collections and collection detail, seller,
-  brand / manufacturer products, my / liked collections, home, product detail
-  (keeps its split layout).
-
-Top bars stay full width; only the body changes. `PageShell` `contentWidth`
-defaults to `readable` in `scroll` **and `list`** mode (`static` stays `full`),
-so the grid list screens opt out with `contentWidth="full"` (6 call sites) and
-the row lists keep the default. A shell cannot pad a child's list, so each row
-list / tab root wraps its `contentContainerStyle` in `useReadableContentStyle`
-(a jest scan, `src/components/common/__tests__/listWidths.test.ts`, requires
-every list-mode screen to do one or the other). Floating elements over a
-readable body follow it: the cart checkout bar (`useReadableGutter`), the my
-listings FAB (`FAB contentWidth="readable"`), `RowListSkeleton`.
-
-Components:
-
-- `PageShell`: new `contentWidth?: 'readable' | 'full'`. `scroll` and `list`
-  default to `readable`, `static` to `full` (see "Width rule"). The footer bar
-  content is always centred at the readable width. Grid pages pass `full`.
-- `FAB`: `contentWidth="readable"` puts a `bottomRight` FAB at the right edge
-  of a readable body instead of the window's side gap.
-- `BottomSheet` (and so `SelectSheet` / `ActionSheet`): centred, max width
-  640 pt (Material bottom sheet max width).
-- `AppTabBar`: the pill + "+" row is capped at 480 pt and centred; the "+"
-  travel derives from the row width, not the window width.
-- `ZoomableImage`: `useWindowDimensions` instead of a module-level
-  `Dimensions.get`; the image square is `min(width, page height)` so landscape
-  does not crop it.
+Applied in the shared components: `PageShell` (body, skeleton, footer bar),
+`ScreenHeader`, the home `FloatingSearchBar`, `InboxRow`, `FAB`, `RowListSkeleton`,
+`ProductGrid` / `productCellWidth`, `MenuGroupList`. `BottomSheet` keeps its 640 pt
+centred cap (a floating control, not page content).
 
 ## Screens
 
-| Screen / component                                                                  | Change                                                                                                                                                                                                                                                                  |
-| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Home hero (`app/(tabs)`)                                                            | From `medium` up the slide is split like web `md`: image (4:3, at most 480 pt wide) beside the text, `imageSide` decides the side, the desktop image is used. `heroReservedHeight` follows the same geometry.                                                           |
-| Home "Top collections"                                                              | Column count from `useGridColumns`.                                                                                                                                                                                                                                     |
-| Product detail                                                                      | `compact`: unchanged. `medium`: gallery square capped at 480 pt, centred. `expanded`+: gallery (max 560 pt) beside the title / price / description / seller column; specs, reviews and similar listings below. The top bar threshold reads the same `useGallerySize()`. |
-| `ProductGrid`, `ProductGridSkeleton`                                                | Columns from `useGridColumns`; the cell width and the `FlatList` key follow it.                                                                                                                                                                                         |
-| Search                                                                              | Columns from `useGridColumns` (FlashList key already includes the count). `SEARCH_NUM_COLUMNS` goes.                                                                                                                                                                    |
-| Categories                                                                          | Grid columns from the window class; the FlatList is re-keyed on change; skeleton follows.                                                                                                                                                                               |
-| Collections browse                                                                  | Columns from `useGridColumns`; re-keyed; skeleton rows follow.                                                                                                                                                                                                          |
-| Seller profile, collection detail, models, my / liked collections, similar listings | `gridCellStyle` + `useGridColumns`; the `scroll` page passes `contentWidth="full"`.                                                                                                                                                                                     |
-| Listing create / edit form                                                          | Its own ScrollView uses `useReadableGutter`.                                                                                                                                                                                                                            |
-| Forms and settings (`PageShell` scroll)                                             | Centred at 672 pt automatically.                                                                                                                                                                                                                                        |
-| Row lists (`PageShell` list) and the chat thread                                    | `useReadableContentStyle` on the list content; skeletons and empty states inside it follow. Chat: the input bar is the readable footer.                                                                                                                                 |
-| Tab roots: profile (member + guest), cart, favourites                               | `useReadableContentStyle` on the scroll content; the cart checkout bar uses the same gutter. Sell already had it (`ListingForm`).                                                                                                                                       |
-| Payment card form, gate screens, required steps                                     | `useReadableContentStyle` on their own ScrollViews (required steps: the action bar too); the 3DS page stays full.                                                                                                                                                       |
+| Screen                                                                          | Phone (< 600)                         | Medium (600 to 839)                                  | Expanded / large (>= 840)                                                    |
+| ------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Product detail                                                                  | gallery square above, stacked buy bar | split: gallery 45% left, info right; one-row buy bar | same split; one-row buy bar (price left, offer / trade / buy actions right)  |
+| Cart                                                                            | one column, floating checkout bar     | one column, full-width bar, button at natural width  | items 62% left, summary + checkout panel right (own scroll), no floating bar |
+| Orders, sales, offers, trades, following, my listings, blocked users            | one column of cards                   | 2-column card grid                                   | 3 columns (expanded), 4 (large)                                              |
+| Payment history, discounts, discount products, favourites, manufacturers        | one column                            | 2-column grid                                        | 3 / 4 columns                                                                |
+| Notifications, product reviews                                                  | full-width divider rows               | same, at the tablet gutter                           | same                                                                         |
+| Messages                                                                        | inbox, thread pushed                  | inbox, thread pushed                                 | master–detail: inbox 35% left, selected thread right (in place)              |
+| Settings, profile menu                                                          | one column of section cards           | one column at the tablet gutter                      | two independent, balanced columns of section cards                           |
+| Forms (edit profile, address, listing form, auth, payment card, required steps) | as before                             | full width at the tablet gutter                      | same (no paired fields: no form row component exists, forms not rebuilt)     |
+| Home, search, category, collections, models, seller, brand / manufacturer       | 2-column grids                        | 3 columns                                            | 4 / 5 columns; rails show more cards; nothing capped                         |
+| Tab bar                                                                         | fixed 5-item pill, window width       | centred floating pill, 480 pt                        | centred floating pill, 480 pt                                                |
+
+## Tab bar (decided 2026-10-24)
+
+The bottom tab bar is fixed: it no longer collapses on scroll, on any width. One
+pill with five items, Home, Favorites, "+" (İlan Ver / Sell), Cart, Profile, the
+"+" in the centre with a label (`mobile.tabBarSellLabel`) and its icon in a filled
+primary circle. The pill has the card border (1 pt `border.DEFAULT`) on the glass
+and the opaque surface. Lists feed only the top bar edge (`usePageOffsetHandler`,
+`usePageScrollHandler`). The search screen's floating scroll-to-top button is gone.
+Phones change visibly here by the user's request.
 
 ## Out of scope
 
-- A list-detail (master/detail) layout for row lists is a separate design
-  question; rows take the readable width meanwhile.
-- A two-column cart on tablets.
+- Paired form fields side by side: there is no shared form row component, and the
+  brief excludes rebuilding forms.
+- Row list skeletons stay one column (the grid appears with the data).
 - The product list layout (`layout="list"`) stays one column.
-- Stat tiles (`settings/business`, seller metrics, seller dashboard) keep their
-  2x2 grid; they sit in readable-width pages.
-- Home product rails (fixed 160 pt cards, horizontal) are unchanged: a wider
-  window simply shows more cards.
+- Home product rails (fixed 160 pt cards, horizontal) are unchanged: a wider window
+  simply shows more cards.
+- Deep links and push notifications open `/messages/[threadId]` full screen on every
+  width (not into the master–detail pane).
 - Any native config change (see below).
 
 ## Known limitations (accepted for this branch)
@@ -145,18 +111,11 @@ Components:
 - A list whose column count changes (rotation or fold/unfold across a class
   boundary) is re-keyed, so it re-mounts at the top: `FlatList` cannot change
   `numColumns` in place. Within a class nothing re-mounts.
-- Grid columns follow the window width, not the grid's measured width; a grid in
-  a narrower container (the categories pane, a readable-width page) must pass a
-  spec or the page must use `contentWidth="full"`.
-- The floating tab bar row is centred while FABs on grid screens keep the
-  window's right gutter, so on tablets they no longer share a right edge. To
-  judge in the eye-test. The my listings FAB sits at its readable body's edge.
-- Nothing enforces the list padding beyond the jest scan: a new row list that
-  forgets `useReadableContentStyle` fails the scan, but a list in a child
-  component must be added to its `LIST_IN_CHILD` map.
-- Collection cells now have a fixed width: an odd last card on a phone is half
-  wide (it stretched across the row before). Every other phone layout is
-  unchanged.
+- Grid columns follow the window width, not the grid's measured width.
+- In a row grid an expanding card (order groups, payment history accordions) makes
+  its row taller; the neighbour keeps its height with empty space below.
+- The messages pane selection is local state: closing the messages screen and
+  opening it again shows the placeholder (a push from the pane and back keeps it).
 
 ## Native side (decision for the user, not in this branch)
 
@@ -183,28 +142,23 @@ branch does not touch `app.json`, `app.config.js`, the manifest or Info.plist.
 
 Unit (jest, `--maxWorkers=2`):
 
-- `windowClassOf` boundaries (599 / 600 / 839 / 840 / 1199 / 1200),
-  `gridColumns` per class and with a custom spec, `gridCellStyle` (2 columns =
-  48% / 4%, 3 and 4 columns sum to <= 100%), `readableGutter` (phone =
-  gutter, iPad = centred).
-- `heroReservedHeight`: phone formula unchanged; split geometry at 626 / 820 /
-  1032; capped image width.
-- Product gallery size: phone = width, medium cap, expanded split cap; the top
-  bar threshold uses it.
-- `tabBarRowWidth`: phone = window minus gutters, wide = cap.
-- Render tests with a mocked window width (390 / 820 / 1032 / 626): PageShell
-  readable padding and footer cap, BottomSheet max width, ProductGrid column
-  count and key, hero split layout.
-- Width rule: `readableContentStyle` (phones return the same object), PageShell
-  list mode readable vs full and its skeleton, TitleShell / AppShell (content
-  box not narrowed, readable child list), FAB `contentWidth`, and per screen
-  group: orders (row list), chat thread (body + input bar), profile (member +
-  guest), cart (body + checkout bar); plus the list-mode inventory scan.
+- `windowClassOf` boundaries, `gridColumns`, `gridCellStyle`, `pageGutter`,
+  `tabletSidePadding`, `pageContentStyle` (phones return the same object),
+  `ROW_CARD_COLUMNS` and `useRowGrid` at 390 / 820 / 1032 / 1180 / 1366.
+- PageShell body, skeleton and footer gutter, TitleShell / AppShell, FAB.
+- Product detail: split at 820 and 1180, phone layout at 390, one-row buy bar.
+- Cart: two columns at 1032 / 1180, one column at 820 / 390.
+- Row lists: orders grid columns at 390 / 820 / 1032 / 1366; a scan that every
+  listed row list uses `useRowGrid`; a scan that every `mode="list"` screen pads
+  its list with the gutter and nothing uses `contentWidths.readable`.
+- Messages: master–detail at 1032 (selecting a thread renders it on the right, no
+  push), push at 820 / 390.
+- Settings and profile: two columns at 1032, one at 820 / 390.
+- Tab bar: five items, "+" at index 2 with its label, navigation, a11y, border,
+  scrolling never changes the bar, no FAB on bar screens.
 
-Existing tests must stay green. The react-native jest mock reports a
-750x1334 window (device pixels of an iPhone 8, read as points), which would be
-`medium` and silently move every render test onto the tablet path.
-`jest.setup.ts` therefore sets the default window to the same phone in points
-(375x667); tests that need another width set it themselves.
+The react-native jest mock reports a 750x1334 window (device pixels of an iPhone 8,
+read as points), which would be `medium`. `jest.setup.ts` therefore sets the
+default window to 375x667; tests that need another width set it themselves.
 
 Manual (user, simulator): see the eye-test checklist in the hand-over report.

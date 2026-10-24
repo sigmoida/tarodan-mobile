@@ -32,34 +32,40 @@ parity table is in tarodan-ops `docs/design-system.md`. Tokens: `src/theme/CLAUD
 
 iPad, the foldable iPhone and Android tablets use the same screens; the shared layer
 adapts them. Decide by a **measured width** (`useWindowDimensions` / `onLayout`), never
-by device model, so Split View, folding and resizable windows re-lay out. Every rule is
-a no-op below 600 pt: phones stay as they are.
+by device model, so Split View, folding, rotation and resizable windows re-lay out. Every
+rule is a no-op below 600 pt: phones stay as they are.
 
+- **Edge to edge, re-proportioned.** Every screen spans the window; there is no centred
+  narrow column anywhere. A wide window gets a wider gutter and a layout designed for
+  the width (more columns, side-by-side panes), never a stretched phone layout and never
+  a capped, centred body. Reference: the Amazon iPad app.
 - Width class: `windowClassOf(width)` / `useWindowClass()` (`src/ui/lib/windowClass.ts`,
-  tokens in `theme.breakpoints`). Never a local `width > 700` check.
-- Card grids: columns from `useGridColumns()` / `gridColumns(width, spec)`
+  tokens in `theme.breakpoints`: `medium` >= 600, `expanded` >= 840, `large` >= 1200).
+  Never a local `width > 700` check.
+- **Gutter:** `pageGutter(width)` / `usePageGutter()` is THE side padding (16 on phones,
+  `spacing[6]` on medium, `spacing[8]` on expanded and large). `tabletSidePadding`
+  widens an existing side padding to it (0 stays full bleed); a list or
+  ScrollView wraps its `contentContainerStyle` in `usePageContentStyle(base)`. `PageShell`
+  applies it to its body, skeleton and footer bar; `ScreenHeader`, the home search bar,
+  `InboxRow` and the FAB read it too. A shell cannot pad a child's list, so every
+  `mode="list"` screen pads its own (`listGutters.test.ts` checks it).
+- **Card grids:** columns from `useGridColumns()` / `gridColumns(width, spec)`
   (`CARD_GRID_COLUMNS` 2 / 3 / 4 / 5). A `FlatList` / `FlashList` puts the count in its
-  `key`. Fixed cells use `gridCellWidth`; percentage `flexWrap` grids use
-  `gridCellStyle(index, columns)` (never `width: '48%'` + `space-between`).
-- **Body width rule:** every screen has the same outer frame (the page gutter); inside it
-  the body is **readable** (centred at `theme.contentWidths.readable`, 672) for anything
-  people read or fill in: forms, settings, menus, legal and content pages, auth, payment,
-  chat and **row lists** (orders, messages, notifications, favourites, cart, ...). It is
-  **full** (window minus the gutter) only for card grids and media: search, category,
-  models, collections, seller, product detail, home. Top bars stay full width.
-- `PageShell` `contentWidth` defaults to `readable` in `scroll` and `list` mode (`static`:
-  `full`); a grid or media page passes `contentWidth="full"`. The footer bar is always
-  readable.
-- A shell cannot pad a child's list, so the list does it: a readable `list` page or tab
-  root (`AppShell`) wraps its `contentContainerStyle` in `useReadableContentStyle(base)`
-  (the base side padding becomes the readable gutter; the list itself still spans the
-  window, so the side margins scroll). Its header, empty state and skeleton sit inside
-  that padding; `RowListSkeleton` is readable itself. A floating or fixed element over a
-  readable body uses `useReadableGutter` (cart checkout bar), a FAB passes
-  `contentWidth="readable"`. A screen with its own ScrollView form uses
-  `useReadableContentStyle` or `useReadableGutter` too. Never a second width formula.
-- `BottomSheet` is centred at `SHEET_MAX_WIDTH` (640); `Modal`, `AlertDialog` and
-  `Toast` already cap themselves.
+  `key`. Fixed cells use `gridCellWidth` (deduct `2 * pageGutter`); percentage `flexWrap`
+  grids use `gridCellStyle(index, columns)` (never `width: '48%'` + `space-between`).
+- **Row lists** (orders, sales, offers, my listings, favourites, ...) become card grids:
+  `useRowGrid()` (`ROW_CARD_COLUMNS` 1 / 2 / 3 / 4) gives `listKey`, `numColumns` and
+  `cell(index, card)`. Divider rows (inbox, notifications, reviews) stay one full-width
+  column.
+- **Panes:** a screen whose content has a natural second column splits on wider classes
+  with its own `_lib/layout.ts` helper (one source per screen): product detail
+  (gallery 45% beside the info from medium), cart (items + summary panel from expanded),
+  messages (master–detail from expanded), settings / profile menu cards (two columns
+  from expanded, `MenuGroupList`).
+- Floating controls may keep a cap: `BottomSheet` is centred at `SHEET_MAX_WIDTH` (640),
+  `Modal`, `AlertDialog` and `Toast` cap themselves, and the tab bar pill is centred at
+  `TAB_BAR_MAX_WIDTH` (480). Page content never does. `theme.contentWidths.readable` is
+  an upstream token kept in sync; page code does not use it.
 
 ## Typography
 
