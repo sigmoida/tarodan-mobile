@@ -10,9 +10,9 @@ const { spacing } = theme;
  *
  * - gallery above (phones): gallery, then one padded column: `head` (title, price), `description`,
  *   `rest` (actions, seller), `specs`, `below` (reviews, similar listings); the phone order.
- * - split (medium and wider windows): the gallery (starting under the floating top bar) beside a
- *   column with `head` and `rest`; under them `description` and `specs` side by side; then `below`
- *   across the full width.
+ * - split (medium and wider windows): the gallery (under the floating top bar, inset by the page
+ *   gutter) beside a column with `head`, `description` and `rest`; then `specs` (its cards side by
+ *   side, see `ProductSpecs`) and `below` across the full width.
  */
 export function ProductBodyLayout({
   gallery,
@@ -52,21 +52,20 @@ export function ProductBodyLayout({
   return (
     <>
       <View style={styles.splitRow} testID="product-split-layout">
-        <View style={{ width: layout.gallerySide, paddingTop: barInset }} testID="product-gallery-column">
+        <View
+          style={{ width: layout.gallerySide + gutter.paddingHorizontal, paddingLeft: gutter.paddingHorizontal, paddingTop: barInset }}
+          testID="product-gallery-column"
+        >
           {gallery}
         </View>
         <View style={[styles.body, gutter, styles.splitInfo, { paddingTop: barInset }]} testID="product-info-column">
           {head}
+          {description}
           {rest}
         </View>
       </View>
       <View style={[styles.body, gutter, styles.splitBelow]} testID="product-below">
-        {description || specs ? (
-          <View style={styles.pairRow} testID="product-description-specs-row">
-            {description ? <View style={styles.pairCell}>{description}</View> : null}
-            {specs ? <View style={styles.pairCell}>{specs}</View> : null}
-          </View>
-        ) : null}
+        {specs}
         {below}
       </View>
     </>
@@ -78,6 +77,4 @@ const styles = StyleSheet.create({
   splitRow: { flexDirection: 'row', alignItems: 'flex-start' },
   splitInfo: { flex: 1, minWidth: 0 },
   splitBelow: { paddingTop: 0 },
-  pairRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing[4] },
-  pairCell: { flex: 1, minWidth: 0 },
 });

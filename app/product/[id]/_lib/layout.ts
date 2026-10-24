@@ -1,5 +1,5 @@
 import { useWindowDimensions } from 'react-native';
-import { SCROLL_EDGE_FULL_AT, windowClassOf } from '@/ui';
+import { SCROLL_EDGE_FULL_AT, pageGutter, windowClassOf } from '@/ui';
 
 /**
  * Product detail layout by window width — ONE source for the gallery square, the screen layout, the
@@ -9,9 +9,10 @@ import { SCROLL_EDGE_FULL_AT, windowClassOf } from '@/ui';
  * - `compact` (phones): the gallery is an edge-to-edge square of the window width (unchanged), the
  *   buy bar stacks the offer / trade row above price + buttons.
  * - `medium` and up (foldable iPhone inner, iPad portrait and landscape, tablets): `split`: the
- *   gallery takes `GALLERY_SPLIT_FRACTION` of the window on the left with the specs and reviews
- *   under it, the title / price / description / seller column the rest; similar listings run full
- *   width below. The buy bar is one row: the price on the left, the offer / trade buttons and the
+ *   gallery column takes `GALLERY_SPLIT_FRACTION` of the window on the left (the square inset by
+ *   the page gutter, never touching the window edge), the title / price / description / seller
+ *   column the rest; the specs cards (side by side), reviews and similar listings run full width
+ *   below. The buy bar is one row: the price on the left, the offer / trade buttons and the
  *   buy buttons on the right at their natural width (`wideBar`, `offerTrade: 'inline'`).
  */
 
@@ -39,7 +40,8 @@ export function productDetailLayout(windowWidth: number): ProductDetailLayout {
   if (cls === 'compact') return { split: false, gallerySide: windowWidth, wideBar: false, offerTrade: 'stacked' };
   return {
     split: true,
-    gallerySide: Math.floor(windowWidth * GALLERY_SPLIT_FRACTION),
+    // The column is GALLERY_SPLIT_FRACTION of the window; the square sits inside its left gutter.
+    gallerySide: Math.floor(windowWidth * GALLERY_SPLIT_FRACTION) - pageGutter(windowWidth),
     wideBar: true,
     offerTrade: 'inline',
   };

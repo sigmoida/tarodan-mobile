@@ -5,6 +5,7 @@ import { SectionCard, Text, theme } from '@/ui';
 import { asLabel, formatCondition } from '@/utils/format';
 import { colorValue, materialValue, scaleValue, technicalAttributeRows } from '../_lib/attributes';
 import type { Product } from '../_lib/types';
+import { useProductDetailLayout } from '../_lib/layout';
 
 const { colors, spacing } = theme;
 
@@ -31,9 +32,11 @@ function DetailRows({ rows }: { rows: Row[] }) {
 /**
  * "Özellikler" ve "Teknik özellikler" kartları (web `ProductSpecs`): iki ayrı SectionCard,
  * satır satır etiket/değer. Teknik kart yalnız model/renk/kutu durumu/nitelik varsa çizilir.
+ * Tablets (`useProductDetailLayout().split`): the two cards stand side by side.
  */
 export function ProductSpecs({ product }: { product: Product }) {
   const { t } = useTranslation();
+  const { split } = useProductDetailLayout();
   const available = product.availableQuantity ?? product.quantity;
   const category = typeof product.category === 'object' ? product.category?.name : product.category;
   const color = colorValue(product);
@@ -74,16 +77,30 @@ export function ProductSpecs({ product }: { product: Product }) {
   }
   technicalRows.forEach((r) => technical.push(r));
 
+  const details = (
+    <SectionCard title={t('product.detailsSection')} testID="product-specs">
+      <DetailRows rows={info} />
+    </SectionCard>
+  );
+  const technicalCard =
+    technical.length > 0 ? (
+      <SectionCard title={t('product.technicalDetails')} testID="product-technical">
+        <DetailRows rows={technical} />
+      </SectionCard>
+    ) : null;
+
+  if (split) {
+    return (
+      <View style={styles.pair} testID="product-specs-row">
+        <View style={styles.pairCell}>{details}</View>
+        {technicalCard ? <View style={styles.pairCell}>{technicalCard}</View> : null}
+      </View>
+    );
+  }
   return (
     <>
-      <SectionCard title={t('product.detailsSection')} testID="product-specs">
-        <DetailRows rows={info} />
-      </SectionCard>
-      {technical.length > 0 ? (
-        <SectionCard title={t('product.technicalDetails')} testID="product-technical">
-          <DetailRows rows={technical} />
-        </SectionCard>
-      ) : null}
+      {details}
+      {technicalCard}
     </>
   );
 }
@@ -93,4 +110,6 @@ const styles = StyleSheet.create({
   divided: { borderTopWidth: 1, borderTopColor: colors.border.DEFAULT },
   label: { flexShrink: 0 },
   value: { flex: 1 },
+  pair: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing[4] },
+  pairCell: { flex: 1, minWidth: 0 },
 });

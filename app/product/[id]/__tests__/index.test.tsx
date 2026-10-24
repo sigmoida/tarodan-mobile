@@ -635,4 +635,28 @@ describe('Product detail on large screens', () => {
     expect(screen.getAllByTestId('product-detail-offer-button')).toHaveLength(1);
     expect(StyleSheet.flatten(screen.getByTestId('product-detail-add-to-cart-button').props.style).flexGrow).toBeUndefined();
   });
+
+  it('iPad (1180 pt): badges and counters beside the price; the specs cards side by side', async () => {
+    setWindow(1180, 820);
+    getOneMock.mockResolvedValue({ data: { data: productFixture() } });
+    renderWithProviders(<ProductDetailScreen />);
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    const priceRow = screen.getByTestId('product-price-row');
+    expect(StyleSheet.flatten(priceRow.props.style).flexDirection).toBe('row');
+    expect(within(priceRow).getByTestId('product-price')).toBeOnTheScreen();
+    expect(within(priceRow).getByTestId('product-counters')).toBeOnTheScreen();
+    const specsRow = await screen.findByTestId('product-specs-row');
+    expect(StyleSheet.flatten(specsRow.props.style).flexDirection).toBe('row');
+    expect(within(specsRow).getByTestId('product-specs')).toBeOnTheScreen();
+  });
+
+  it('phone (390 pt): no price row, the specs cards stacked', async () => {
+    setWindow(390, 844);
+    getOneMock.mockResolvedValue({ data: { data: productFixture() } });
+    renderWithProviders(<ProductDetailScreen />);
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    expect(screen.queryByTestId('product-price-row')).toBeNull();
+    await screen.findByTestId('product-specs');
+    expect(screen.queryByTestId('product-specs-row')).toBeNull();
+  });
 });

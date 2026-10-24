@@ -6,6 +6,7 @@ import React from 'react';
 import { Dimensions, StyleSheet, Text } from 'react-native';
 import { render, screen } from '@testing-library/react-native';
 import { SCROLL_EDGE_FULL_AT } from '@/ui';
+import { pageGutter } from '@/ui';
 import { GALLERY_SPLIT_FRACTION, productDetailLayout, topBarEdgeShift } from '../layout';
 import { ProductBodyLayout } from '../../_components/ProductBodyLayout';
 
@@ -23,14 +24,14 @@ describe('productDetailLayout', () => {
   });
 
   it.each([
-    [626, 281, 'inline'],
-    [820, 369, 'inline'], // iPad Air 11" portrait: one-row bar
-    [1032, 464, 'inline'],
-    [1180, 531, 'inline'], // iPad Air 11" landscape: everything in one row
-    [1366, 614, 'inline'],
-  ] as const)('%d pt: gallery beside the info at 45%% (%d pt), wide bar, offer / trade %s', (w, side, offerTrade) => {
+    [626, 257, 'inline'],
+    [820, 345, 'inline'], // iPad Air 11" portrait: one-row bar
+    [1032, 432, 'inline'],
+    [1180, 499, 'inline'], // iPad Air 11" landscape: everything in one row
+    [1366, 582, 'inline'],
+  ] as const)('%d pt: gallery column at 45%%, square %d pt inside the gutter, wide bar, offer / trade %s', (w, side, offerTrade) => {
     expect(productDetailLayout(w)).toEqual({ split: true, gallerySide: side, wideBar: true, offerTrade });
-    expect(side).toBe(Math.floor(w * GALLERY_SPLIT_FRACTION));
+    expect(side).toBe(Math.floor(w * GALLERY_SPLIT_FRACTION) - pageGutter(w));
   });
 
   it('the landscape gallery fits the window height (1180 x 820)', () => {
@@ -84,25 +85,23 @@ describe('ProductBodyLayout', () => {
   });
 
   it.each([
-    [820, 369, 24],
-    [1180, 531, 32],
-  ])('iPad %d pt: gallery under the top bar beside head + rest; description and specs side by side; below full width', (w, side, gutter) => {
+    [820, 345, 24],
+    [1180, 499, 32],
+  ])('iPad %d pt: gallery %d pt inset by the %d pt gutter under the top bar; head, description, rest beside it; specs and below full width', (w, side, gutter) => {
     setWindow(w, 1000);
     render(tree);
     const galleryColumn = StyleSheet.flatten(screen.getByTestId('product-gallery-column').props.style);
-    expect(galleryColumn.width).toBe(side);
+    expect(galleryColumn.width).toBe(side + gutter);
+    expect(galleryColumn.paddingLeft).toBe(gutter);
     expect(galleryColumn.paddingTop).toBeGreaterThan(0);
     const info = screen.getByTestId('product-info-column');
     expect(StyleSheet.flatten(info.props.style).paddingTop).toBe(galleryColumn.paddingTop);
     expect(StyleSheet.flatten(info.props.style).paddingHorizontal).toBe(gutter);
-    expect(inside('head', 'product-info-column')).toBe(true);
-    expect(inside('rest', 'product-info-column')).toBe(true);
-    const pair = screen.getByTestId('product-description-specs-row');
-    expect(StyleSheet.flatten(pair.props.style).flexDirection).toBe('row');
-    expect(inside('description', 'product-description-specs-row')).toBe(true);
-    expect(inside('specs', 'product-description-specs-row')).toBe(true);
-    expect(inside('below', 'product-description-specs-row')).toBe(false);
-    expect(inside('below', 'product-below')).toBe(true);
+    for (const block of ['head', 'description', 'rest']) expect([block, inside(block, 'product-info-column')]).toEqual([block, true]);
+    for (const block of ['specs', 'below']) {
+      expect([block, inside(block, 'product-info-column')]).toEqual([block, false]);
+      expect([block, inside(block, 'product-below')]).toEqual([block, true]);
+    }
     expect(StyleSheet.flatten(screen.getByTestId('product-below').props.style).paddingHorizontal).toBe(gutter);
   });
 });
