@@ -46,6 +46,16 @@ export function useGridColumns(spec: GridColumnSpec = CARD_GRID_COLUMNS): number
   return gridColumns(useWindowDimensions().width, spec);
 }
 
+/**
+ * Width (pt) of one cell in a `columns`-column grid whose content box is `contentWidth` wide, with
+ * `gap` pt between columns. A fixed cell width keeps a short last row at the same width as full
+ * rows (a `flex: 1` cell would stretch across the empty columns).
+ */
+export function gridCellWidth(contentWidth: number, columns: number, gap: number): number {
+  const cols = Math.max(1, Math.floor(columns));
+  return Math.max(0, (contentWidth - gap * (cols - 1)) / cols);
+}
+
 /** Percentages kept to 4 decimals, so a full row never sums past 100% and wraps early. */
 const toPercent = (value: number): DimensionValue => `${Math.floor(value * 10000) / 10000}%`;
 

@@ -4,6 +4,7 @@
  * "Herkese açık / Benim" sekmeleri (Benim yalnız girişli) ve sonsuz kaydırma.
  */
 import React from 'react';
+import { Dimensions, FlatList, StyleSheet } from 'react-native';
 import { screen, fireEvent, waitFor, within } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
@@ -167,5 +168,36 @@ describe('Koleksiyon tarama', () => {
     expect(list.props.refreshControl.props.refreshing).toBe(false);
     resolveNext?.({ data: { collections: [col('c2', 'Porsche')], total: 1, page: 1, pageSize: 20 } });
     expect(await screen.findByText('Porsche')).toBeOnTheScreen();
+  });
+});
+
+describe('Koleksiyon tarama on large screens', () => {
+  const setWindow = (width: number, height: number) =>
+    Dimensions.set({
+      window: { width, height, scale: 2, fontScale: 2 },
+      screen: { width, height, scale: 2, fontScale: 2 },
+    });
+  afterEach(() => setWindow(375, 667));
+
+  it.each([
+    [375, 2],
+    [820, 3],
+    [1032, 4],
+  ])('%d pt window -> %d columns; a lone card keeps the cell width', async (width, columns) => {
+    setWindow(width, 1200);
+    browseMock.mockReset();
+    categoriesMock.mockResolvedValue({ data: [] });
+    browseMock.mockResolvedValue({
+      data: { collections: [col('c1', 'Ferrari Koleksiyonu')], total: 1, page: 1, pageSize: 20 },
+    });
+    renderWithProviders(<CollectionsScreen />);
+    await screen.findByText('Ferrari Koleksiyonu');
+    const list = screen.UNSAFE_getAllByType(FlatList).find((l) => l.props.testID === 'collections-list')!;
+    expect(list.props.numColumns).toBe(columns);
+    // Cell = (window - 2 x 16 gutter - gaps) / columns, even alone in its row.
+    let cell = screen.getByText('Ferrari Koleksiyonu').parent;
+    while (cell && StyleSheet.flatten(cell.props.style)?.width === undefined) cell = cell.parent;
+    const expected = (width - 32 - 12 * (columns - 1)) / columns;
+    expect(StyleSheet.flatten(cell!.props.style).width).toBeCloseTo(expected, 5);
   });
 });

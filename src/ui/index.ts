@@ -126,6 +126,7 @@ export { PAGE_GUTTER, PAGE_SECTION_GAP, pageListContentStyle } from './lib/pageL
 export {
   CARD_GRID_COLUMNS,
   gridCellStyle,
+  gridCellWidth,
   gridColumns,
   readableGutter,
   useGridColumns,

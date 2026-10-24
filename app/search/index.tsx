@@ -11,13 +11,14 @@ import {
   ProductGridSkeleton,
   ProductListEmpty,
   ProductSortModal,
+  useProductGridColumns,
 } from '@/components/product';
 import ProductFilterSheet from '@/components/ProductFilterSheet';
 import { withStackTabBar } from '@/components/shell/StackTabBar';
 import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { styles } from './_lib/searchStyles';
-import { SEARCH_DRAW_DISTANCE, SEARCH_NUM_COLUMNS } from './_lib/searchConstants';
+import { SEARCH_DRAW_DISTANCE } from './_lib/searchConstants';
 import { useTransitionReady } from '@/hooks/useTransitionReady';
 import { useSearch } from './_hooks/useSearch';
 import { useSearchBottomChrome } from './_hooks/useSearchBottomChrome';
@@ -56,7 +57,9 @@ function SearchScreen() {
 
   // Stable renderItem (#75) — memoized ProductCard bails out on unchanged rows.
   const isList = f.layout === 'list';
-  const columns = isList ? 1 : SEARCH_NUM_COLUMNS;
+  // Same column rule as every listing grid (2 on phones, more on tablets); the list key follows it.
+  const gridColumns = useProductGridColumns();
+  const columns = isList ? 1 : gridColumns;
   const favoriteProps = useProductCardFavorites();
   const renderResult = useCallback(
     ({ item }: ListRenderItemInfo<any>) => (

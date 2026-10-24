@@ -4,6 +4,7 @@ import { theme } from '../theme';
 import {
   CARD_GRID_COLUMNS,
   gridCellStyle,
+  gridCellWidth,
   gridColumns,
   readableGutter,
   useGridColumns,
@@ -96,6 +97,17 @@ describe('gridCellStyle', () => {
     expect(gridCellStyle(3, 3, 4).marginLeft).toBe(0);
     expect(gridCellStyle(4, 4, 4).marginLeft).toBe(0);
     expect(gridCellStyle(5, 4, 4).marginLeft).toBe('4%');
+  });
+});
+
+describe('gridCellWidth', () => {
+  it('splits the content box minus the gaps', () => {
+    expect(gridCellWidth(358, 2, 12)).toBe(173);
+    expect(gridCellWidth(1000, 4, 12)).toBe(241);
+  });
+  it('one column = the whole box; never negative', () => {
+    expect(gridCellWidth(300, 1, 12)).toBe(300);
+    expect(gridCellWidth(10, 4, 12)).toBe(0);
   });
 });
 

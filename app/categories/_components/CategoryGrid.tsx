@@ -3,7 +3,7 @@ import { RefreshControl, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { ErrorState, SectionCardAction, theme } from '@/ui';
-import { CATEGORY_GRID_COLUMNS } from '../_lib/layout';
+import { useCategoryGridColumns } from '../_lib/layout';
 import type { CategoryGroup, CategoryTileData } from '../_lib/groups';
 import { GridSkeleton } from './CategoriesSkeleton';
 import { CategoryTile } from './CategoryTile';
@@ -15,12 +15,12 @@ const { colors, spacing } = theme;
 /** Son satırdaki boş hücreler (kutular satırı doldurmasın, hizalı kalsın). */
 type Cell = CategoryTileData | { id: string; spacer: true };
 
-function withSpacers(tiles: CategoryTileData[]): Cell[] {
-  const rest = tiles.length % CATEGORY_GRID_COLUMNS;
+function withSpacers(tiles: CategoryTileData[], columns: number): Cell[] {
+  const rest = tiles.length % columns;
   if (rest === 0) return tiles;
   return [
     ...tiles,
-    ...Array.from({ length: CATEGORY_GRID_COLUMNS - rest }, (_, i) => ({ id: `spacer-${i}`, spacer: true as const })),
+    ...Array.from({ length: columns - rest }, (_, i) => ({ id: `spacer-${i}`, spacer: true as const })),
   ];
 }
 
@@ -46,7 +46,7 @@ interface CategoryGridProps {
 }
 
 /**
- * Sağ alan: 2 sütunlu ızgara (+ altta `SectionCardAction` bağlantısı, ör. "Tüm Üreticiler"); başlık
+ * Sağ alan: telefonda 2 sütunlu (tablette daha fazla, `useCategoryGridColumns`) ızgara (+ altta `SectionCardAction` bağlantısı, ör. "Tüm Üreticiler"); başlık
  * bandı yok (seçili grup rayda vurgulu). Alt kategori düzeyinde ızgaranın başında "‹ Üst kategori"
  * kırıntısı (birlikte kayar). Kaydırılabilir, çekip yenilenir.
  */
@@ -71,7 +71,8 @@ export function CategoryGrid({
   useLayoutEffect(() => {
     resetGrid();
   }, [resetGrid]);
-  const data = useMemo(() => withSpacers(tiles), [tiles]);
+  const columns = useCategoryGridColumns();
+  const data = useMemo(() => withSpacers(tiles, columns), [tiles, columns]);
 
   const renderItem = useCallback(
     ({ item }: { item: Cell }) => (
@@ -115,13 +116,15 @@ export function CategoryGrid({
 
   return (
     <Animated.FlatList
+      // `numColumns` cannot change in place (rotation, fold/unfold): re-mount on a new count.
+      key={`columns-${columns}`}
       style={styles.grid}
       {...scroll.page.scrollProps}
       onScroll={scroll.onGridScroll}
       scrollEventThrottle={16}
       testID="categories-grid"
       data={data}
-      numColumns={CATEGORY_GRID_COLUMNS}
+      numColumns={columns}
       keyExtractor={keyExtractor}
       renderItem={renderItem}
       columnWrapperStyle={styles.row}

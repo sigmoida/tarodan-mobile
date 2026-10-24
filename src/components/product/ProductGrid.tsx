@@ -14,7 +14,13 @@ import {
 import { ListFooterRetry } from '@/components/common/ListFooterRetry';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { ProductCard, type ProductCardLayout, type ProductCardProduct } from './ProductCard';
-import { PRODUCT_GRID_GAP, ProductGridSkeleton, ProductListEmpty, useProductCellWidth } from './ProductListStates';
+import {
+  PRODUCT_GRID_GAP,
+  ProductGridSkeleton,
+  ProductListEmpty,
+  useProductCellWidth,
+  useProductGridColumns,
+} from './ProductListStates';
 
 const { colors } = theme;
 
@@ -95,7 +101,8 @@ const GridCell = React.memo(function GridCell({
 });
 
 /**
- * Ürün listelerinin TEK ızgara/listesi: 2 sütun (web `grid-cols-2 gap-3`) ya da tek sütun liste, sonsuz
+ * Ürün listelerinin TEK ızgara/listesi: telefonda 2 sütun (web `grid-cols-2 gap-3`; tablette
+ * `useProductGridColumns`) ya da tek sütun liste, sonsuz
  * kaydırma, çekip yenileme; yükleniyor = iskelet, boş = tek boş durum, hata = ErrorState.
  * Kartlar memo'lu `ProductCard`; `renderItem` kararlı (kaydırmada satırlar yeniden çizilmez).
  * Favori kalbi otomatik bağlanır (`useProductCardFavorites`; kendi ilanında yok, misafirde giriş akışı).
@@ -126,7 +133,9 @@ export function ProductGrid({
   scroll,
   bottomInset,
 }: ProductGridProps) {
-  const columns = layout === 'list' ? 1 : 2;
+  // Grid: 2 columns on phones, more on tablets (window width); the list's `key` follows the count.
+  const gridColumns = useProductGridColumns();
+  const columns = layout === 'list' ? 1 : gridColumns;
   // Tek tük kalan son kart komşusundan geniş olmasın: hücre genişliği açık verilir.
   const cellWidth = useProductCellWidth();
   // Favori kalbi: liste başına tek Set; hücreye ilkel `isFavorite` + sabit toggle (memo korunur).
