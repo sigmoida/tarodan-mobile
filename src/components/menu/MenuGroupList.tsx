@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { PAGE_SECTION_GAP, SectionCard, useWindowClass } from '@/ui';
+import { PAGE_SECTION_GAP, SectionCard, isAtLeast, useWindowClass } from '@/ui';
 import type { ProfileBadgeKey, ProfileMenuGroup } from '@/lib/menu/profileMenu';
 import { ProfileRow } from './ProfileRow';
 
@@ -54,7 +54,7 @@ export function MenuGroupList({
     </SectionCard>
   );
 
-  if (windowClass !== 'expanded' && windowClass !== 'large') return <>{groups.map(card)}</>;
+  if (!isAtLeast(windowClass, 'expanded')) return <>{groups.map(card)}</>;
   const [left, right] = splitMenuColumns(groups);
   return (
     <View style={styles.columns} testID="menu-group-columns">

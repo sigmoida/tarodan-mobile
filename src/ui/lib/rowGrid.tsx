@@ -3,11 +3,9 @@ import { View, useWindowDimensions } from 'react-native';
 import { ROW_CARD_COLUMNS, ROW_GRID_GAP_PERCENT, gridCellStyle, gridColumns, type GridColumnSpec } from './windowClass';
 
 export interface RowGrid {
-  /** Column count for the current window (1 on phones). */
-  columns: number;
   /** The list's `key`: a `FlatList` cannot change `numColumns` in place, so it re-mounts on a change. */
   listKey: string;
-  /** `numColumns` for the `FlatList` (1 on phones, the `FlatList` default). */
+  /** Column count, the `FlatList`'s `numColumns` (1 on phones, the `FlatList` default). */
   numColumns: number;
   /**
    * Wraps a rendered card in its grid cell (`gridCellStyle`: percentage width + left gap, a short
@@ -32,7 +30,6 @@ export function useRowGrid(spec: GridColumnSpec = ROW_CARD_COLUMNS): RowGrid {
   const columns = gridColumns(useWindowDimensions().width, spec);
   return React.useMemo(
     () => ({
-      columns,
       listKey: `row-grid-${columns}`,
       numColumns: columns,
       cell: (index, card) =>

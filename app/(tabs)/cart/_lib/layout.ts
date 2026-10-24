@@ -1,5 +1,5 @@
 import { useWindowDimensions } from 'react-native';
-import { windowClassOf } from '@/ui';
+import { isAtLeast, windowClassOf } from '@/ui';
 
 /**
  * Cart layout by window width (layout only: amounts, gates and actions are the same in every
@@ -23,9 +23,8 @@ export interface CartLayout {
 
 export function cartLayout(windowWidth: number): CartLayout {
   const cls = windowClassOf(windowWidth);
-  if (cls === 'compact') return { twoColumn: false, wideBar: false };
-  if (cls === 'medium') return { twoColumn: false, wideBar: true };
-  return { twoColumn: true, wideBar: false };
+  if (isAtLeast(cls, 'expanded')) return { twoColumn: true, wideBar: false };
+  return { twoColumn: false, wideBar: cls === 'medium' };
 }
 
 export function useCartLayout(): CartLayout {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
@@ -43,8 +43,15 @@ function CartScreen() {
   // Large screens: edge to edge with the tablet gutter; the checkout bar follows it.
   const contentStyle = usePageContentStyle([styles.content, { paddingBottom: tabInset + barInset + spacing[2] }]);
   // Two columns: the items keep the left gutter, the panel brings the gap and the right gutter.
-  const itemsStyle = [styles.content, { paddingLeft: gutter, paddingRight: 0, paddingBottom: tabInset }];
-  const panelStyle = [styles.content, { paddingHorizontal: gutter, paddingBottom: tabInset }];
+  const { contentStyle: withTopInset } = page;
+  const itemsStyle = useMemo(
+    () => withTopInset([styles.content, { paddingLeft: gutter, paddingRight: 0, paddingBottom: tabInset }]),
+    [withTopInset, gutter, tabInset],
+  );
+  const panelStyle = useMemo(
+    () => withTopInset([styles.content, { paddingHorizontal: gutter, paddingBottom: tabInset }]),
+    [withTopInset, gutter, tabInset],
+  );
   // Toast ödeme çubuğunun üstünde dursun (alt menünün kaydından sonra bağlanır → öncelikli).
   useToastBottomInset(hasItems && barInset > 0 ? tabTop + spacing[2] + barInset : null);
 
@@ -101,7 +108,7 @@ function CartScreen() {
             scrollEventThrottle={16}
             testID="cart-scroll"
             style={styles.itemsColumn}
-            contentContainerStyle={page.contentStyle(itemsStyle)}
+            contentContainerStyle={itemsStyle}
             showsVerticalScrollIndicator={false}
           >
             {items}
@@ -111,7 +118,7 @@ function CartScreen() {
             {...page.scrollProps}
             testID="cart-summary-panel"
             style={styles.summaryColumn}
-            contentContainerStyle={page.contentStyle(panelStyle)}
+            contentContainerStyle={panelStyle}
             showsVerticalScrollIndicator={false}
           >
             <CartSummary f={f} />

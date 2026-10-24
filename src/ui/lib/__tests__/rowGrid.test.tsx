@@ -28,7 +28,6 @@ describe('useRowGrid', () => {
   ])('%d pt -> %d columns, keyed by the count', (w, h, columns) => {
     setWindow(w, h);
     const { result } = renderHook(() => useRowGrid());
-    expect(result.current.columns).toBe(columns);
     expect(result.current.numColumns).toBe(columns);
     expect(result.current.listKey).toBe(`row-grid-${columns}`);
   });

@@ -21,6 +21,13 @@ export function windowClassOf(width: number): WindowClass {
   return 'compact';
 }
 
+const CLASS_ORDER: readonly WindowClass[] = ['compact', 'medium', 'expanded', 'large'];
+
+/** Whether `cls` is `min` or wider: THE ordered comparison of width classes (`'expanded'` and up, ...). */
+export function isAtLeast(cls: WindowClass, min: WindowClass): boolean {
+  return CLASS_ORDER.indexOf(cls) >= CLASS_ORDER.indexOf(min);
+}
+
 /** Width class of the current window; re-renders on rotation, fold/unfold and window resizes. */
 export function useWindowClass(): WindowClass {
   return windowClassOf(useWindowDimensions().width);

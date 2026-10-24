@@ -7,6 +7,7 @@ import {
   gridCellStyle,
   gridCellWidth,
   gridColumns,
+  isAtLeast,
   PAGE_GUTTERS,
   ROW_CARD_COLUMNS,
   pageContentStyle,
@@ -51,6 +52,16 @@ describe('windowClassOf', () => {
     expect(windowClassOf(theme.breakpoints.medium)).toBe('medium');
     expect(windowClassOf(theme.breakpoints.expanded)).toBe('expanded');
     expect(windowClassOf(theme.breakpoints.large)).toBe('large');
+  });
+});
+
+describe('isAtLeast', () => {
+  it('orders the classes compact < medium < expanded < large', () => {
+    expect(isAtLeast('expanded', 'expanded')).toBe(true);
+    expect(isAtLeast('large', 'expanded')).toBe(true);
+    expect(isAtLeast('medium', 'expanded')).toBe(false);
+    expect(isAtLeast('compact', 'medium')).toBe(false);
+    expect(isAtLeast('compact', 'compact')).toBe(true);
   });
 });
 

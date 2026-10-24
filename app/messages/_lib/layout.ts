@@ -1,5 +1,5 @@
 import { useWindowDimensions } from 'react-native';
-import { windowClassOf } from '@/ui';
+import { isAtLeast, windowClassOf } from '@/ui';
 
 /**
  * Messages layout by window width. Phones and medium windows: the inbox is a list and a thread is
@@ -10,8 +10,7 @@ import { windowClassOf } from '@/ui';
 export const MASTER_PANE_FRACTION = 0.35;
 
 export function isMessagesMasterDetail(windowWidth: number): boolean {
-  const cls = windowClassOf(windowWidth);
-  return cls === 'expanded' || cls === 'large';
+  return isAtLeast(windowClassOf(windowWidth), 'expanded');
 }
 
 export function useMessagesMasterDetail(): boolean {

@@ -130,6 +130,7 @@ export {
   gridCellStyle,
   gridCellWidth,
   gridColumns,
+  isAtLeast,
   PAGE_GUTTERS,
   ROW_CARD_COLUMNS,
   ROW_GRID_GAP_PERCENT,
