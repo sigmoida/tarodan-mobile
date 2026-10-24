@@ -5,8 +5,8 @@ import { formatAppBuildLabel, getAppBuildInfo } from '@/constants/appBuildInfo';
 
 /**
  * The build label at the very bottom of Settings (`1.2.3 (343) · a1b2c3 (Staging)`):
- * small, muted, centred and not pressable. Testers and support read it to tell which
- * binary and OTA a report comes from.
+ * small, muted, centred, not pressable and selectable. Testers and support read and
+ * copy it to tell which binary and OTA a report comes from.
  */
 export function AppBuildLabel() {
   const { t } = useTranslation();
@@ -16,6 +16,7 @@ export function AppBuildLabel() {
     <Text
       variant="caption"
       align="center"
+      selectable
       testID="settings-build-label"
       accessibilityLabel={t('mobile.appBuildAccessibilityLabel', { label })}
     >

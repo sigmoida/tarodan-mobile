@@ -27,8 +27,9 @@ export interface AppBuildInfo {
 }
 
 export function getAppBuildInfo(): AppBuildInfo {
-  // Without an applied OTA (embedded launch, or expo-updates off in a dev client) the
-  // id is the embedded manifest's or missing; neither names an OTA, so show neither.
+  // Without an applied OTA the id is the embedded manifest's (embedded launch) or missing
+  // (expo-updates off: dev client, Metro). Neither names an OTA, so both count as the
+  // embedded bundle; the label shows the embedded marker for them.
   const updateId =
     !Updates.isEmbeddedLaunch && Updates.updateId
       ? Updates.updateId.slice(0, UPDATE_ID_LENGTH)
@@ -40,6 +41,13 @@ export function getAppBuildInfo(): AppBuildInfo {
     environment: buildEnvironment(),
   };
 }
+
+/** The environment suffix of the label; production has none. */
+const ENVIRONMENT_LABEL = {
+  production: null,
+  staging: "mobile.appEnvironmentStaging",
+  development: "mobile.appEnvironmentDevelopment",
+} as const satisfies Record<SentryEnvironment, string | null>;
 
 /**
  * The label text: `1.2.3 (343) · a1b2c3 (Staging)`. Production has no environment
@@ -54,20 +62,8 @@ export function formatAppBuildLabel(info: AppBuildInfo, t: TFunction): string | 
     ? t("mobile.appBuildVersion", { version: info.version, build: info.buildNumber })
     : info.version;
   const update = info.updateId ?? t("mobile.appBuildEmbedded");
-  switch (info.environment) {
-    case "production":
-      return t("mobile.appBuildLabel", { version, update });
-    case "staging":
-      return t("mobile.appBuildLabelWithEnvironment", {
-        version,
-        update,
-        environment: t("mobile.appEnvironmentStaging"),
-      });
-    case "development":
-      return t("mobile.appBuildLabelWithEnvironment", {
-        version,
-        update,
-        environment: t("mobile.appEnvironmentDevelopment"),
-      });
-  }
+  const environment = ENVIRONMENT_LABEL[info.environment];
+  return environment
+    ? t("mobile.appBuildLabelWithEnvironment", { version, update, environment: t(environment) })
+    : t("mobile.appBuildLabel", { version, update });
 }
