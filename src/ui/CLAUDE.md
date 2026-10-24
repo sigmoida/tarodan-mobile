@@ -63,9 +63,9 @@ rule is a no-op below 600 pt: phones stay as they are.
   (gallery 45% beside the info from medium), cart (items + summary panel from expanded),
   messages (master–detail from expanded), settings / profile menu cards (two columns
   from expanded, `MenuGroupList`).
-- Floating controls may keep a cap: `BottomSheet` is centred at `SHEET_MAX_WIDTH` (640),
-  `Modal`, `AlertDialog` and `Toast` cap themselves, and the tab bar pill is centred at
-  `TAB_BAR_MAX_WIDTH` (480). Page content never does. `theme.contentWidths.readable` is
+- Floating controls may keep a cap: `Modal`, `AlertDialog` and `Toast` cap themselves, and the tab bar pill is centred at
+  `TAB_BAR_MAX_WIDTH` (480). `BottomSheet` spans the window like page content. Page content
+  never caps. `theme.contentWidths.readable` is
   an upstream token kept in sync; page code does not use it.
 
 ## Typography

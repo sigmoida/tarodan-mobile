@@ -142,11 +142,6 @@ const PAN_FAIL_OFFSET_X = 24;
 const DRAG_CLOSE_CONFIRM_MS = 150;
 /** Odaklanan alanın görünür alanın kenarından en az bu kadar içeride durması (pt). */
 const REVEAL_MARGIN = spacing[4];
-/**
- * Widest a sheet gets (pt; Material bottom sheet max width). On tablets and unfolded foldables the
- * sheet is centred at this width instead of spanning the window; phones are narrower, so unchanged.
- */
-export const SHEET_MAX_WIDTH = 640;
 const GRABBER_WIDTH = 36;
 const GRABBER_HEIGHT = 4;
 
@@ -542,9 +537,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlay.black50 },
   sheet: {
+    // Spans the window on every width (tablets included), like the rest of the edge-to-edge layout.
     width: '100%',
-    maxWidth: SHEET_MAX_WIDTH,
-    alignSelf: 'center',
     backgroundColor: colors.surface.elevated,
     borderTopLeftRadius: radiusRole.sheet,
     borderTopRightRadius: radiusRole.sheet,

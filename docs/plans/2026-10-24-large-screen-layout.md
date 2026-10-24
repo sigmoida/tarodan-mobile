@@ -66,8 +66,8 @@ Whether upstream keeps it is a design-system decision for tarodan-ops.
 
 Applied in the shared components: `PageShell` (body, skeleton, footer bar),
 `ScreenHeader`, the home `FloatingSearchBar`, `InboxRow`, `FAB`, `RowListSkeleton`,
-`ProductGrid` / `productCellWidth`, `MenuGroupList`. `BottomSheet` keeps its 640 pt
-centred cap (a floating control, not page content).
+`ProductGrid` / `productCellWidth`, `MenuGroupList`. `BottomSheet` spans the window on
+tablets too (user decision 2026-10-24; the 640 pt cap was dropped).
 
 ## Screens
 
