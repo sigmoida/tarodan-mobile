@@ -49,14 +49,13 @@ describe('AppTabBar — fixed five-item bar', () => {
     expect(screen.queryByTestId('tab-collapsed')).toBeNull();
   });
 
-  it('the "+" item carries its label from the catalog (tr "İlan Ver") and a filled primary circle', () => {
+  it('the "+" item carries its label from the catalog (tr "İlan Ver") and looks like the other tabs', () => {
     setup();
     const sell = screen.getByTestId('tab-sell');
     expect(within(sell).getByText('İlan Ver')).toBeTruthy();
     expect(sell.props.accessibilityLabel).toBe('İlan Ver');
-    expect(StyleSheet.flatten(screen.getByTestId('tab-sell-icon').props.style).backgroundColor).toBe(
-      theme.colors.primary[600],
-    );
+    // No filled primary circle: the same plain icon as Home / Favorites / Cart / Profile.
+    expect(StyleSheet.flatten(screen.getByTestId('tab-sell-icon').props.style)?.backgroundColor).toBeUndefined();
     expect(screen.getByLabelText('Favoriler')).toBeTruthy();
     expect(screen.getByLabelText('Sepet')).toBeTruthy();
   });

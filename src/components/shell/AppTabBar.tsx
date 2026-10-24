@@ -27,7 +27,6 @@ const TAB_ACTIVE_FILL = colors.gray[100] as string;
 /** Hapın iç yatay dolgusu. */
 const PILL_PADDING_X = spacing[1];
 /** The "+" item's filled circle: the tab icon box plus 4 pt (a negative margin keeps the labels aligned). */
-const SELL_CIRCLE_SIZE = iconSize.lg + spacing[1];
 
 const SELL_ROUTE = "sell";
 
@@ -52,8 +51,8 @@ export const TAB_BAR_ORDER: readonly TabBarRoute[] = TABS.map((tab) => tab.name)
  * Bottom tab bar (plain RN views): ONE fixed pill with five items side by side, Home, Favorites,
  * "+" (İlan Ver / Sell), Cart, Profile, the "+" exactly in the centre. It never collapses or shrinks:
  * it is always drawn at full size above the content (`position: absolute`; lists add
- * `useTabBarInset` as bottom padding). The "+" is a tab-like item with its label; its icon sits in a
- * filled primary circle. The surface is `GlassSurface` (iOS 26 Liquid Glass, opaque white elsewhere)
+ * `useTabBarInset` as bottom padding). The "+" is drawn exactly like the other items (same icon
+ * size, colour and outline/solid states) with its label. The surface is `GlassSurface` (iOS 26 Liquid Glass, opaque white elsewhere)
  * with a 1 pt `border.DEFAULT` edge on both variants (the card border), so the bar separates from
  * the content behind it. The selected item has the solid icon and the neutral grey highlight, which
  * slides between items. Phones: the window minus the side gaps; tablets: a centred floating pill
@@ -132,22 +131,16 @@ export function TabBarView({ activeName, onNavigate }: TabBarViewProps) {
                   if (!focused) onNavigate(tab.name);
                 }}
               >
-                {isSell ? (
-                  <View style={styles.sellCircle} testID="tab-sell-icon">
-                    <Icon name="plus" variant="solid" size={iconSize.md} color={colors.white} />
-                  </View>
-                ) : (
-                  <View>
-                    <Icon name={tab.icon} variant={focused ? "solid" : "outline"} size={iconSize.lg} color={color} />
-                    {tab.badge && (
-                      <CountBadge
-                        count={counts[tab.badge]}
-                        ringColor={focused ? TAB_ACTIVE_FILL : colors.surface.elevated}
-                        style={styles.badge}
-                      />
-                    )}
-                  </View>
-                )}
+                <View testID={isSell ? "tab-sell-icon" : undefined}>
+                  <Icon name={tab.icon} variant={focused ? "solid" : "outline"} size={iconSize.lg} color={color} />
+                  {tab.badge && (
+                    <CountBadge
+                      count={counts[tab.badge]}
+                      ringColor={focused ? TAB_ACTIVE_FILL : colors.surface.elevated}
+                      style={styles.badge}
+                    />
+                  )}
+                </View>
                 <Text
                   variant="caption"
                   weight="semibold"
@@ -238,16 +231,6 @@ const styles = StyleSheet.create({
     backgroundColor: TAB_ACTIVE_FILL,
   },
   itemContent: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  // The "+" icon in a filled primary circle; its layout box stays the icons' height (labels aligned).
-  sellCircle: {
-    width: SELL_CIRCLE_SIZE,
-    height: SELL_CIRCLE_SIZE,
-    marginVertical: -spacing[0.5],
-    borderRadius: radius.full,
-    backgroundColor: colors.primary[600],
     alignItems: "center",
     justifyContent: "center",
   },
