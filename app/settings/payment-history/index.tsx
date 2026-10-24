@@ -1,7 +1,8 @@
+import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Accordion, EmptyState, pageListContentStyle, usePageScrollHandler } from '@/ui';
+import { Accordion, EmptyState, pageListContentStyle, usePageScrollHandler, usePageContentStyle, useRowGrid } from '@/ui';
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
@@ -11,8 +12,6 @@ import { PaymentHistoryItem } from './_components/PaymentHistoryItem';
 import type { Payment } from './_lib/types';
 
 const paymentKey = (item: Payment) => item.id;
-const renderPayment = ({ item }: { item: Payment }) => <PaymentHistoryItem item={item} />;
-
 /**
  * Payment history: PageShell (skeleton) + web Card rows that open their details inline, one at a
  * time (Accordion); EmptyState when there are none.
@@ -21,6 +20,14 @@ export default function PaymentHistoryScreen() {
   const { t } = useTranslation();
   const f = usePaymentHistory();
   const page = usePageScrollHandler();
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle(pageListContentStyle);
+  // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
+  const grid = useRowGrid();
+  const renderPayment = useCallback(
+    ({ item, index }: { item: Payment; index: number }) => grid.cell(index, <PaymentHistoryItem item={item} />),
+    [grid],
+  );
   const title = t('mobile.settingsPaymentHistory');
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
@@ -49,6 +56,8 @@ export default function PaymentHistoryScreen() {
     >
       <Accordion type="single" collapsible>
         <Animated.FlatList
+          key={grid.listKey}
+          numColumns={grid.numColumns}
           {...page.listProps}
           data={f.payments}
           keyExtractor={paymentKey}
@@ -56,7 +65,7 @@ export default function PaymentHistoryScreen() {
           {...listWindowing}
           // Rows change height while they open; Android's clipped-subview removal can blank them.
           removeClippedSubviews={false}
-          contentContainerStyle={page.contentStyle(pageListContentStyle)}
+          contentContainerStyle={page.contentStyle(listContentStyle)}
           refreshing={f.isRefreshing}
           onRefresh={() => f.fetchPayments()}
           ListEmptyComponent={

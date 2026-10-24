@@ -24,14 +24,13 @@ export interface AuthShellProps {
 
 const { spacing } = theme;
 
-/** Web `AuthCard`: `max-w-md`. */
-const MAX_WIDTH = 448;
-
 /**
  * TÜM giriş/kayıt ekranlarının ortak kabuğu — standart `PageShell` (cam/beyaz üst bar, geri oku,
  * klavye + güvenli alan) üstüne kartsız, beyaz zeminli sade içerik: opsiyonel açıklama, form,
  * ikincil bağlantılar. Başlık YALNIZ üst barda; logo ve içerik başlığı yok. Ekran yalnız
  * alanlarını (ya da durum içeriğini) `children` olarak verir.
+ * Large screens: full width at the page gutter like every other screen (web's `max-w-md` card is a
+ * desktop layout; the app goes edge to edge, src/ui/CLAUDE.md › Large screens).
  */
 export const AuthShell: React.FC<AuthShellProps> = ({
   title,
@@ -72,9 +71,6 @@ export const AuthShell: React.FC<AuthShellProps> = ({
 
 const styles = StyleSheet.create({
   column: {
-    width: '100%',
-    maxWidth: MAX_WIDTH,
-    alignSelf: 'center',
     gap: spacing[4],
   },
   hero: {

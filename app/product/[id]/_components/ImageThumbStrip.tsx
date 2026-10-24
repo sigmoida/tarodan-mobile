@@ -27,9 +27,14 @@ const STRIP_PADDING = spacing[4];
  * content (the list itself clamps only at 0, and an iOS scroll view with bounce keeps an offset past
  * the end, which would leave blank space after the last thumbnail).
  */
-export function centredThumbOffset(index: number, count: number, viewport: number): number {
-  const content = 2 * STRIP_PADDING + count * THUMB_SIZE + Math.max(count - 1, 0) * THUMB_GAP;
-  const centre = STRIP_PADDING + index * THUMB_STEP + THUMB_SIZE / 2;
+export function centredThumbOffset(
+  index: number,
+  count: number,
+  viewport: number,
+  edgePadding: number = STRIP_PADDING,
+): number {
+  const content = 2 * edgePadding + count * THUMB_SIZE + Math.max(count - 1, 0) * THUMB_GAP;
+  const centre = edgePadding + index * THUMB_STEP + THUMB_SIZE / 2;
   return Math.min(Math.max(centre - viewport / 2, 0), Math.max(content - viewport, 0));
 }
 
@@ -38,6 +43,13 @@ type StripProps = {
   selectedIndex: number;
   onSelect: (index: number) => void;
   testID: string;
+  /** Expected strip width (pt) for the first frame; defaults to the window width (the viewer). */
+  viewportWidth?: number;
+  /**
+   * Side padding of the thumbnails (pt). Default: the page gutter of an edge-to-edge strip. 0 when
+   * the strip sits under an inset gallery (tablet split), so the thumbnails line up with its edges.
+   */
+  edgePadding?: number;
 };
 
 /**
@@ -54,15 +66,16 @@ export function ImageThumbStrip(props: StripProps) {
   return <ThumbList {...props} />;
 }
 
-function ThumbList({ images, selectedIndex, onSelect, testID }: StripProps) {
+function ThumbList({ images, selectedIndex, onSelect, testID, viewportWidth, edgePadding = STRIP_PADDING }: StripProps) {
   const { t } = useTranslation();
   const listRef = useRef<FlatList<ProductImage>>(null);
   const total = images.length;
   const selected = Math.min(Math.max(selectedIndex, 0), total - 1);
-  // Both callers span the window, so its width places the first frame; the measured width of the
-  // list then corrects it in place on the first layout.
+  // The expected width (the gallery square, or the window for the viewer) places the first frame;
+  // the measured width of the list then corrects it in place on the first layout.
   const { width: windowWidth } = useWindowDimensions();
-  const [initialOffset] = useState(() => ({ x: centredThumbOffset(selected, total, windowWidth), y: 0 }));
+  const firstViewport = viewportWidth ?? windowWidth;
+  const [initialOffset] = useState(() => ({ x: centredThumbOffset(selected, total, firstViewport, edgePadding), y: 0 }));
   const [viewport, setViewport] = useState(0);
   const centred = useRef(false);
 
@@ -70,11 +83,11 @@ function ThumbList({ images, selectedIndex, onSelect, testID }: StripProps) {
   useEffect(() => {
     if (viewport <= 0) return;
     listRef.current?.scrollToOffset({
-      offset: centredThumbOffset(selected, total, viewport),
+      offset: centredThumbOffset(selected, total, viewport, edgePadding),
       animated: centred.current,
     });
     centred.current = true;
-  }, [selected, total, viewport]);
+  }, [selected, total, viewport, edgePadding]);
 
   const onLayout = useCallback((e: LayoutChangeEvent) => setViewport(e.nativeEvent.layout.width), []);
 
@@ -117,7 +130,7 @@ function ThumbList({ images, selectedIndex, onSelect, testID }: StripProps) {
       renderItem={renderItem}
       // Fixed height so the strip is part of the first layout (no jump when the thumbnails mount).
       style={styles.list}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={{ paddingHorizontal: edgePadding }}
     />
   );
 }
@@ -126,7 +139,6 @@ const ThumbGap = () => <View style={styles.gap} />;
 
 const styles = StyleSheet.create({
   list: { flexGrow: 0, height: THUMB_SIZE },
-  content: { paddingHorizontal: STRIP_PADDING },
   gap: { width: THUMB_GAP },
   thumb: {
     width: THUMB_SIZE,

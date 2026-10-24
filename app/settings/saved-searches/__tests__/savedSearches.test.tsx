@@ -6,6 +6,7 @@
  */
 import React from 'react';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 import { renderWithProviders } from '@/test-utils';
 import { resetRouterMocks, pushMock } from '@/test-utils/router-mock';
 import { appAlert, toast } from '@/ui';
@@ -291,5 +292,45 @@ describe('fetchAllSavedSearches', () => {
     list.mockResolvedValueOnce(page([search()]));
     expect((await fetchAllSavedSearches()).items).toHaveLength(1);
     expect(list).toHaveBeenCalledTimes(1);
+  });
+
+  describe('layout', () => {
+    const setWindow = (width: number, height: number) =>
+      Dimensions.set({
+        window: { width, height, scale: 2, fontScale: 2 },
+        screen: { width, height, scale: 2, fontScale: 2 },
+      });
+    afterEach(() => setWindow(375, 667));
+
+    it('no intro text above the list', async () => {
+      list.mockResolvedValue(page([search()]));
+      renderWithProviders(<SavedSearchesScreen />);
+      expect(await screen.findByText('BMW 1/18')).toBeOnTheScreen();
+      expect(screen.queryByText('Kayıtlı aramalarınızı buradan yeniden çalıştırabilir veya silebilirsiniz.')).toBeNull();
+    });
+
+    it('phone (390 pt): one column', async () => {
+      setWindow(390, 844);
+      list.mockResolvedValue(page([search(), search({ id: 's2' })]));
+      renderWithProviders(<SavedSearchesScreen />);
+      await screen.findAllByText('BMW 1/18');
+      expect(StyleSheet.flatten(screen.getByTestId('saved-search-list').props.style).flexDirection).toBeUndefined();
+    });
+
+    it.each([
+      [820, 1180],
+      [1180, 820],
+    ])('tablet %d x %d pt: cards in two columns', async (w, h) => {
+      setWindow(w, h);
+      list.mockResolvedValue(page([search(), search({ id: 's2' }), search({ id: 's3' })]));
+      renderWithProviders(<SavedSearchesScreen />);
+      await screen.findAllByText('BMW 1/18');
+      const listView = screen.getByTestId('saved-search-list');
+      expect(StyleSheet.flatten(listView.props.style)).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
+      const widths = listView.children.map((c: any) => StyleSheet.flatten(c.props.style)?.width);
+      expect(widths).toHaveLength(3);
+      for (const width of widths) expect(parseFloat(String(width))).toBeGreaterThan(40);
+      for (const width of widths) expect(parseFloat(String(width))).toBeLessThan(50);
+    });
   });
 });

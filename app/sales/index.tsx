@@ -8,6 +8,7 @@ import {
   Spinner,
   pageListContentStyle,
   usePageScrollHandler,
+  usePageContentStyle, useRowGrid,
 } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -34,20 +35,26 @@ export default function SalesScreen() {
   const s = useSales();
   const actions = useSaleActions();
   const page = usePageScrollHandler();
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle([pageListContentStyle, styles.list]);
+  // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
+  const grid = useRowGrid();
   // Kararlı renderItem (erken return'den ÖNCE — hook sırası sabit).
   const { handleMarkAsProcessing, openShipDialog } = actions;
   const { isPending: updating, variables: updatingVars } = actions.updateStatusMutation;
   const updatingId = updating ? updatingVars?.orderId : undefined;
   const renderSale = useCallback(
-    ({ item }: { item: Sale }) => (
-      <SaleCard
-        sale={item}
-        onPrepare={handleMarkAsProcessing}
-        onShip={openShipDialog}
-        isUpdating={updatingId === item.id}
-      />
-    ),
-    [handleMarkAsProcessing, openShipDialog, updatingId],
+    ({ item, index }: { item: Sale; index: number }) =>
+      grid.cell(
+        index,
+        <SaleCard
+          sale={item}
+          onPrepare={handleMarkAsProcessing}
+          onShip={openShipDialog}
+          isUpdating={updatingId === item.id}
+        />,
+      ),
+    [handleMarkAsProcessing, openShipDialog, updatingId, grid],
   );
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
@@ -79,12 +86,14 @@ export default function SalesScreen() {
       overlay={<ShipDialog actions={actions} />}
     >
       <Animated.FlatList
+        key={grid.listKey}
+        numColumns={grid.numColumns}
         {...page.listProps}
         testID="sales-list"
         data={loading ? [] : s.filteredSales}
         keyExtractor={saleKey}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         refreshing={s.refreshing}
         onRefresh={s.onRefresh}
         onEndReached={s.loadMore}

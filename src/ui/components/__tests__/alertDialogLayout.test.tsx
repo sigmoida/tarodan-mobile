@@ -7,7 +7,7 @@
  * - Kart: min(340, ekran - 48), başlık ortalı, uzun mesajda yalnız gövde kayar.
  */
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import { AlertDialogHost, alertButtonLayout, appAlert, resetAlertQueueForTests } from '../AlertDialog';
 import { theme } from '../../lib/theme';
@@ -125,7 +125,7 @@ describe('appAlert kartı', () => {
     expect(title.fontWeight).toBe(theme.typography.fontWeight.bold);
     expect(StyleSheet.flatten(screen.getByText('Mesaj').props.style).textAlign).toBe('center');
     const card = StyleSheet.flatten(screen.getByTestId('alert-dialog').props.style);
-    expect(card.width).toBe(Math.min(340, 750 - 48)); // jest pencere genişliği 750
+    expect(card.width).toBe(Math.min(340, Dimensions.get('window').width - 48));
   });
 
   it('uzun mesaj kaydırılabilir gövdede (kart pencereye sığana dek küçülür)', () => {

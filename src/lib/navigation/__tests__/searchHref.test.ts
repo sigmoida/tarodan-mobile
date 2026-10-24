@@ -5,7 +5,6 @@
  */
 import {
   SEARCH_ENTRIES,
-  curatedEntryLabelKey,
   listingsToSearchHref,
   searchCategoryHref,
   searchEntryHref,
@@ -160,40 +159,6 @@ describe('filtersFromSearchParams — web /listings parametre adları', () => {
   it('sıralama doğrulaması buildSortOptions ile aynı tek diziden', () => {
     for (const { value } of buildSortOptions(t)) {
       expect(filtersFromSearchParams({ sortBy: value }).sortBy).toBe(value);
-    }
-  });
-});
-
-describe('curatedEntryLabelKey — vitrin bağlam başlığı', () => {
-  it.each([
-    ['popular', 'home.popularListings'],
-    ['newArrivals', 'nav.newArrivals'],
-    ['onSale', 'product.onSale'],
-    ['tradeShowcase', 'nav.tradeShowcase'],
-  ] as const)('%s ön ayarı aynen etkinken → %s', (entry, key) => {
-    expect(curatedEntryLabelKey(filtersFromSearchParams(paramsOf(searchEntryHref(entry))))).toBe(key);
-  });
-
-  it('kullanıcı filtre/sıralama/metin değiştirince başlık kaybolur; filtresiz arama başlıksız', () => {
-    const trade = filtersFromSearchParams(paramsOf(searchEntryHref('tradeShowcase')));
-    expect(curatedEntryLabelKey(EMPTY_FILTERS)).toBeNull();
-    expect(curatedEntryLabelKey({ ...trade, sortBy: 'price_asc' })).toBeNull();
-    expect(curatedEntryLabelKey({ ...trade, scale: '1:64' })).toBeNull();
-    expect(curatedEntryLabelKey({ ...trade, search: 'ferrari' })).toBeNull();
-    expect(curatedEntryLabelKey({ ...trade, customAttributes: { rarity: [] } })).toBe('nav.tradeShowcase');
-  });
-
-  it('the new filters count as a change too: a colour, car model, pre-order, limited or set drops the title', () => {
-    const trade = filtersFromSearchParams(paramsOf(searchEntryHref('tradeShowcase')));
-    expect(curatedEntryLabelKey({ ...trade, colors: [] })).toBe('nav.tradeShowcase');
-    for (const extra of [
-      { colors: ['red'] },
-      { carModelId: 'cm1' },
-      { preOrder: true },
-      { limited: true },
-      { set: true },
-    ]) {
-      expect(curatedEntryLabelKey({ ...trade, ...extra })).toBeNull();
     }
   });
 });

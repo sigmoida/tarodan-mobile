@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { Text, theme } from '@/ui';
+import { theme } from '@/ui';
 import { ProductListControls } from './ProductListControls';
 import { ActiveFilterChips, type ActiveFilterChip } from './ActiveFilterChips';
 
@@ -20,8 +20,6 @@ export interface ProductListToolbarProps {
   onSave?: () => void;
   /** Nothing to save: the button is disabled. */
   saveDisabled?: boolean;
-  /** Small muted result count text ("61 listings"); not drawn when missing. */
-  resultLabel?: string;
   chips?: ActiveFilterChip[];
   onClearFilters?: () => void;
   /** A screen-specific extra row (e.g. the category scale chips), below the control row. */
@@ -32,7 +30,7 @@ export interface ProductListToolbarProps {
 /**
  * The ONE toolbar of the product lists (listings, search, category...). The order is the same on
  * every screen: search box (if any) -> [Filters (count)] [Sort] ... [grid/list] -> screen-specific
- * extra row -> small muted result count -> removable active filter chips + "Clear". Screens never
+ * extra row -> removable active filter chips + "Clear". No result count text (on any device). Screens never
  * lay out their own toolbar; they only pass data and callbacks.
  */
 export function ProductListToolbar({
@@ -45,7 +43,6 @@ export function ProductListToolbar({
   onLayoutChange,
   onSave,
   saveDisabled,
-  resultLabel,
   chips = [],
   onClearFilters,
   extra,
@@ -65,11 +62,6 @@ export function ProductListToolbar({
         saveDisabled={saveDisabled}
       />
       {extra}
-      {resultLabel ? (
-        <Text variant="caption" tone="muted" testID="result-count">
-          {resultLabel}
-        </Text>
-      ) : null}
       {chips.length > 0 && onClearFilters ? <ActiveFilterChips chips={chips} onClear={onClearFilters} /> : null}
     </View>
   );

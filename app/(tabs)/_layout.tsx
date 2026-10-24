@@ -2,7 +2,6 @@ import { Tabs } from "expo-router";
 import { theme } from "@/ui";
 import { useTranslation } from "react-i18next";
 import { AppTabBar } from "@/components/shell/AppTabBar";
-import { TabBarCollapseProvider, TabBarFocusReset } from "@/components/shell/TabBarCollapse";
 
 const { colors } = theme;
 
@@ -17,24 +16,24 @@ export default function TabLayout() {
   const { t } = useTranslation();
 
   return (
-    <TabBarCollapseProvider>
-      <TabBarFocusReset />
-      <Tabs
-        tabBar={(props) => <AppTabBar {...props} />}
-        screenOptions={{
-          tabBarActiveTintColor: colors.text.heading,
-          tabBarInactiveTintColor: colors.text.heading,
-          headerShown: false,
-        }}
-      >
-        <Tabs.Screen name="index" options={{ title: t("nav.home") }} />
-        <Tabs.Screen name="sell" options={{ title: "" }} />
-        <Tabs.Screen name="favorites/index" options={{ title: t("nav.favorites") }} />
-        <Tabs.Screen name="cart/index" options={{ title: t("nav.cart") }} />
-        <Tabs.Screen name="profile" options={{ title: t("nav.profile") }} />
-        {/* Hidden screens */}
-        <Tabs.Screen name="create" options={{ href: null }} />
-      </Tabs>
-    </TabBarCollapseProvider>
+    <Tabs
+      tabBar={(props) => <AppTabBar {...props} />}
+      screenOptions={{
+        tabBarActiveTintColor: colors.text.heading,
+        tabBarInactiveTintColor: colors.text.heading,
+        headerShown: false,
+      }}
+    >
+      <Tabs.Screen name="index" options={{ title: t("nav.home") }} />
+      <Tabs.Screen name="sell" options={{ title: "" }} />
+      <Tabs.Screen
+        name="favorites/index"
+        options={{ title: t("nav.favorites") }}
+      />
+      <Tabs.Screen name="cart/index" options={{ title: t("nav.cart") }} />
+      <Tabs.Screen name="profile" options={{ title: t("nav.profile") }} />
+      {/* Hidden screens */}
+      <Tabs.Screen name="create" options={{ href: null }} />
+    </Tabs>
   );
 }

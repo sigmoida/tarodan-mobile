@@ -8,13 +8,20 @@ import {
   pageListContentStyle,
   theme,
   useDelayedLoading,
+  usePageContentStyle,
   useShellPageScroll,
   type PageScroll,
 } from '@/ui';
 import { ListFooterRetry } from '@/components/common/ListFooterRetry';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { ProductCard, type ProductCardLayout, type ProductCardProduct } from './ProductCard';
-import { PRODUCT_GRID_GAP, ProductGridSkeleton, ProductListEmpty, useProductCellWidth } from './ProductListStates';
+import {
+  PRODUCT_GRID_GAP,
+  ProductGridSkeleton,
+  ProductListEmpty,
+  useProductCellWidth,
+  useProductGridColumns,
+} from './ProductListStates';
 
 const { colors } = theme;
 
@@ -48,7 +55,7 @@ interface ProductGridBaseProps {
   showMeta?: boolean;
   testID?: string;
   /**
-   * Ekranın kendi kaydırma sinyali (ör. alt menülü yığın ekranı: `useTabBarPageScroll()`, aynı değer
+   * Ekranın kendi kaydırma sinyali (ör. alt menülü yığın ekranı: `usePageScrollHandler()`, aynı değer
    * `<PageShell scroll={page}>`a da verilir). Verilirse kabuk bağlamı yerine liste buna bağlanır.
    */
   scroll?: PageScroll;
@@ -95,12 +102,14 @@ const GridCell = React.memo(function GridCell({
 });
 
 /**
- * Ürün listelerinin TEK ızgara/listesi: 2 sütun (web `grid-cols-2 gap-3`) ya da tek sütun liste, sonsuz
- * kaydırma, çekip yenileme; yükleniyor = iskelet, boş = tek boş durum, hata = ErrorState.
- * Kartlar memo'lu `ProductCard`; `renderItem` kararlı (kaydırmada satırlar yeniden çizilmez).
- * Favori kalbi otomatik bağlanır (`useProductCardFavorites`; kendi ilanında yok, misafirde giriş akışı).
- * Bir kabuğun (`PageShell mode="list"` / `AppShell`) altındaysa listeyi kabuğun kaydırma kenarı
- * sinyaline OTOMATİK bağlar (içerik üst barın altından kayar, ekranlar değişmez); kabuk yoksa düz liste.
+ * THE grid / list of listings: 2 columns on phones (web `grid-cols-2 gap-3`; more on tablets,
+ * `useProductGridColumns`) or a one-column list, infinite scroll, pull to refresh; loading =
+ * skeleton, empty = one empty state, error = ErrorState. Cards are memoised `ProductCard`s and
+ * `renderItem` is stable (rows do not re-render while scrolling). The favourite heart is wired
+ * automatically (`useProductCardFavorites`; none on the user's own listing, sign-in flow for
+ * guests). Under a shell (`PageShell mode="list"` / `AppShell`) the list binds to the shell's
+ * scroll-edge signal AUTOMATICALLY (content slides under the top bar, screens stay unchanged);
+ * without a shell it is a plain list.
  */
 export function ProductGrid({
   items,
@@ -126,7 +135,9 @@ export function ProductGrid({
   scroll,
   bottomInset,
 }: ProductGridProps) {
-  const columns = layout === 'list' ? 1 : 2;
+  // Grid: 2 columns on phones, more on tablets (window width); the list's `key` follows the count.
+  const gridColumns = useProductGridColumns();
+  const columns = layout === 'list' ? 1 : gridColumns;
   // Tek tük kalan son kart komşusundan geniş olmasın: hücre genişliği açık verilir.
   const cellWidth = useProductCellWidth();
   // Favori kalbi: liste başına tek Set; hücreye ilkel `isFavorite` + sabit toggle (memo korunur).
@@ -155,7 +166,10 @@ export function ProductGrid({
   // Ekran kendi sinyalini verdiyse kabuğa bağlanılmaz (kabuk zaten o sinyali gösterir).
   const shellPage = useShellPageScroll(!scroll);
   const page = scroll ?? shellPage;
-  const content = bottomInset == null ? styles.content : [styles.content, { paddingBottom: bottomInset }];
+  // Large screens: the tablet gutter (`productCellWidth` deducts the same one).
+  const content = usePageContentStyle(
+    bottomInset == null ? styles.content : [styles.content, { paddingBottom: bottomInset }],
+  );
 
   // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
   const showSkeleton = useDelayedLoading(loading);

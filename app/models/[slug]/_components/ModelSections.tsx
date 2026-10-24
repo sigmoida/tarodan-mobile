@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, ErrorState, SectionCard, SkeletonCard, Text } from '@/ui';
+import { EmptyState, ErrorState, SectionCard, SkeletonCard, Text, gridCellStyle, useGridColumns } from '@/ui';
 import { ProductCard } from '@/components/product';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { styles } from '../_lib/styles';
@@ -46,6 +46,7 @@ export function ModelProductsGrid({ f }: { f: ModelDetailController }) {
   const { t } = useTranslation();
   const { model, products, productsQuery } = f;
   const favoriteProps = useProductCardFavorites();
+  const columns = useGridColumns();
 
   return (
     <SectionCard
@@ -58,12 +59,11 @@ export function ModelProductsGrid({ f }: { f: ModelDetailController }) {
     >
       {productsQuery.isLoading ? (
         <View style={styles.grid}>
-          <View style={styles.cell}>
-            <SkeletonCard />
-          </View>
-          <View style={styles.cell}>
-            <SkeletonCard />
-          </View>
+          {Array.from({ length: columns }, (_, i) => (
+            <View key={i} style={gridCellStyle(i, columns)}>
+              <SkeletonCard />
+            </View>
+          ))}
         </View>
       ) : productsQuery.isError && products.length === 0 ? (
         <ErrorState placement="inline" onRetry={() => productsQuery.refetch()} testID="model-products-error" />
@@ -71,8 +71,8 @@ export function ModelProductsGrid({ f }: { f: ModelDetailController }) {
         <EmptyState icon="cube" title={t('home.noProductsYet')} subtitle={t('models.noProductsForModel')} />
       ) : (
         <View style={styles.grid}>
-          {products.map((p) => (
-            <View key={p.id} style={styles.cell}>
+          {products.map((p, index) => (
+            <View key={p.id} style={gridCellStyle(index, columns)}>
               <ProductCard product={p} {...favoriteProps(p)} />
             </View>
           ))}

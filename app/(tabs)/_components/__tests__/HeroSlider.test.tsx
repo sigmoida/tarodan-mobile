@@ -336,3 +336,74 @@ describe('HeroSection', () => {
     spy.mockRestore();
   });
 });
+
+describe('HeroSection on large screens', () => {
+  const setWindow = (width: number, height: number) =>
+    Dimensions.set({
+      window: { width, height, scale: 2, fontScale: 2 },
+      screen: { width, height, scale: 2, fontScale: 2 },
+    });
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => {
+    jest.useRealTimers();
+    setWindow(375, 667);
+  });
+
+  const imgOf = (api: ReturnType<typeof render>, id = 's1') => api.getByTestId(`hero-image-${id}`);
+  const slideStyle = (api: ReturnType<typeof render>, id = 's1') =>
+    StyleSheet.flatten(api.getByTestId(`hero-slide-${id}`).props.style);
+
+  it('phone: image on top (16:10, mobile image), slide is a column', () => {
+    const api = render(<HeroSection slides={[slide({ mobileImageUrl: 'https://cdn.example/m.jpg' })]} locale="tr" />);
+    layout(api, 358);
+    expect(slideStyle(api).flexDirection).toBeUndefined();
+    expect([imgOf(api).props.source].flat()[0]).toEqual({ uri: 'https://cdn.example/m.jpg' });
+  });
+
+  it('iPad (820 pt): image beside the text, desktop image, half the page wide', () => {
+    setWindow(820, 1180);
+    const api = render(<HeroSection slides={[slide({ mobileImageUrl: 'https://cdn.example/m.jpg' })]} locale="tr" />);
+    layout(api, 786);
+    expect(slideStyle(api).flexDirection).toBe('row');
+    expect([imgOf(api).props.source].flat()[0]).toEqual({ uri: 'https://cdn.example/a.jpg' });
+    expect(StyleSheet.flatten(imgOf(api).props.style).width).toBe(393);
+  });
+
+  it('imageSide "right" puts the image after the text', () => {
+    setWindow(1032, 1376);
+    const api = render(<HeroSection slides={[slide({ imageSide: 'right' })]} locale="tr" />);
+    layout(api, 998);
+    expect(slideStyle(api).flexDirection).toBe('row-reverse');
+    expect(StyleSheet.flatten(imgOf(api).props.style).width).toBe(480);
+  });
+
+  it('iPad: the two calls to action stand side by side, equal width; phone: stacked full width', () => {
+    const two = slide({ cta2: { label: { tr: 'Koleksiyonlar' }, href: '/collections' } });
+    setWindow(820, 1180);
+    const api = render(<HeroSection slides={[two]} locale="tr" />);
+    layout(api, 786);
+    const ctas = [api.getByTestId('hero-cta-s1-1'), api.getByTestId('hero-cta-s1-2')];
+    const row = ctas[0]!.parent!;
+    let n: any = row;
+    while (n && StyleSheet.flatten(n.props.style)?.flexDirection !== 'row') n = n.parent;
+    expect(n).toBeTruthy();
+    for (const cta of ctas) expect(StyleSheet.flatten(cta.props.style).flex).toBe(1);
+    api.unmount();
+    setWindow(390, 844);
+    const phone = render(<HeroSection slides={[two]} locale="tr" />);
+    layout(phone, 358);
+    for (const id of ['hero-cta-s1-1', 'hero-cta-s1-2']) {
+      expect(StyleSheet.flatten(phone.getByTestId(id).props.style).flex).toBeUndefined();
+    }
+  });
+
+  it('HeroReserved follows the split geometry on a tablet', () => {
+    setWindow(1032, 1376);
+    const api = render(<HeroReserved />);
+    expect(StyleSheet.flatten(api.getByTestId('hero-reserved').props.style).height).toBeCloseTo(
+      heroReservedHeight(1032),
+      5,
+    );
+    expect(heroReservedHeight(1032)).toBeLessThan(400);
+  });
+});

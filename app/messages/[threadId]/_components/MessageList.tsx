@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, FlatList } from 'react-native';
-import { Avatar, SkeletonChatBubble, Text, theme } from '@/ui';
+import { Avatar, SkeletonChatBubble, Text, theme, usePageContentStyle } from '@/ui';
 
 import { parseMessageContent } from '@/utils/contentFilter';
 import { AppImage } from '@/components/AppImage';
@@ -114,6 +114,8 @@ type Row =
 
 export function MessageList({ f }: { f: MessageThreadController }) {
   const { user, other } = f;
+  // Large screens: edge to edge with the tablet gutter, like the input bar (PageShell footer).
+  const contentStyle = usePageContentStyle(styles.messagesContent);
 
   const rows = React.useMemo<Row[]>(() => {
     const out: Row[] = [];
@@ -152,7 +154,7 @@ export function MessageList({ f }: { f: MessageThreadController }) {
   if (f.isLoadingMessages && f.messages.length === 0) {
     return (
       // Sohbetin kendi yerleşimi: karşılıklı balonlar (gerçek balonla aynı ölçüler).
-      <View style={[styles.loadingContainer, styles.messagesContent]} testID="message-list-skeleton">
+      <View style={[styles.loadingContainer, contentStyle]} testID="message-list-skeleton">
         {SKELETON_BUBBLES.map((b, i) => (
           <SkeletonChatBubble key={i} side={b.side} width={b.width} lines={b.lines} showAvatar={b.showAvatar} />
         ))}
@@ -167,7 +169,7 @@ export function MessageList({ f }: { f: MessageThreadController }) {
       keyExtractor={(row) => row.key}
       renderItem={renderItem}
       style={[styles.messagesList, !f.isPositioned && styles.messagesListHidden]}
-      contentContainerStyle={styles.messagesContent}
+      contentContainerStyle={contentStyle}
       onContentSizeChange={f.handleContentSizeChange}
       onScroll={f.handleScroll}
       scrollEventThrottle={16}

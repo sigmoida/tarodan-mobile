@@ -6,6 +6,7 @@ import {
   View,
   type StyleProp,
   type ViewStyle,
+  useWindowDimensions,
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +26,7 @@ import { SkeletonText } from '../loading/Skeleton';
 import { useDelayedLoading } from '../loading/useDelayedLoading';
 import { useToastBottomInset } from './Toast';
 import { PAGE_GUTTER, PAGE_SECTION_GAP } from '../lib/pageLayout';
+import { pageGutter, tabletSidePadding } from '../lib/windowClass';
 
 export type PageShellMode = 'scroll' | 'list' | 'static';
 
@@ -138,6 +140,14 @@ export const PageShell: React.FC<PageShellProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const pad = padding === false ? 0 : spacing[padding];
+  const { width: windowWidth } = useWindowDimensions();
+  // Large screens: every body goes edge to edge with the tablet gutter (phones: `pad` itself). In
+  // `list` mode the child's list pads itself with `usePageContentStyle` (src/ui/CLAUDE.md › Large screens).
+  const sidePad = tabletSidePadding(pad, windowWidth);
+  // The default skeleton takes the same width as the body it stands for (no jump when data arrives).
+  const skeletonPad = pad || PAGE_GUTTER;
+  const skeletonSidePad = tabletSidePadding(skeletonPad, windowWidth);
+  const footerSidePad = pageGutter(windowWidth);
   const keyboard = useKeyboardAvoid(keyboardAware);
 
   // Özel `header` akışta çizilir (ör. sohbet: opak, floating={false}); `false` = bar yok; aksi halde YÜZEN bar.
@@ -191,7 +201,7 @@ export const PageShell: React.FC<PageShellProps> = ({
       (loadingVariant === 'spinner' ? (
         <ScreenLoader />
       ) : (
-        <View style={[styles.skeleton, { padding: pad || PAGE_GUTTER }]} testID="page-shell-skeleton">
+        <View style={[styles.skeleton, { padding: skeletonPad, paddingHorizontal: skeletonSidePad }]} testID="page-shell-skeleton">
           <SkeletonText lines={2} />
           <SkeletonText lines={3} />
           <SkeletonText lines={3} />
@@ -205,8 +215,8 @@ export const PageShell: React.FC<PageShellProps> = ({
         style={styles.fill}
         contentContainerStyle={
           hasBar
-            ? own.contentStyle([styles.scrollContent, { padding: pad }, !footer && { paddingBottom: pad + insets.bottom }, contentStyle])
-            : [styles.scrollContent, { padding: pad }, !footer && { paddingBottom: pad + insets.bottom }, contentStyle]
+            ? own.contentStyle([styles.scrollContent, { padding: pad, paddingHorizontal: sidePad }, !footer && { paddingBottom: pad + insets.bottom }, contentStyle])
+            : [styles.scrollContent, { padding: pad, paddingHorizontal: sidePad }, !footer && { paddingBottom: pad + insets.bottom }, contentStyle]
         }
         keyboardShouldPersistTaps="handled"
         onScroll={own.onScroll}
@@ -228,7 +238,7 @@ export const PageShell: React.FC<PageShellProps> = ({
       </Animated.ScrollView>
     );
   } else if (mode === 'static') {
-    body = <View style={[styles.fill, { padding: pad }, contentStyle]}>{children}</View>;
+    body = <View style={[styles.fill, { padding: pad, paddingHorizontal: sidePad }, contentStyle]}>{children}</View>;
   } else {
     body = <View style={[styles.fill, contentStyle]}>{children}</View>;
   }
@@ -246,11 +256,11 @@ export const PageShell: React.FC<PageShellProps> = ({
         <View
           // Klavye açıkken çubuk klavyenin üstünde: güvenli alan (home indicator / gezinti çubuğu)
           // klavyenin altında kalır, eklenirse klavye üstünde boş şerit olur.
-          style={[styles.footer, { paddingBottom: spacing[3] + (keyboard.keyboardOpen ? 0 : insets.bottom) }]}
+          style={[styles.footer, { paddingHorizontal: footerSidePad, paddingBottom: spacing[3] + (keyboard.keyboardOpen ? 0 : insets.bottom) }]}
           onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
           testID="page-shell-footer"
         >
-          {footer}
+          <View style={styles.footerContent}>{footer}</View>
         </View>
       ) : null}
     </>
@@ -304,8 +314,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.elevated,
     borderTopWidth: 1,
     borderTopColor: colors.border.DEFAULT,
-    paddingHorizontal: PAGE_GUTTER,
+    // paddingHorizontal: the page gutter (`pageGutter`), set inline.
     paddingTop: spacing[3],
+  },
+  // Full width on every window; the footer's own content lays itself out for the width.
+  footerContent: {
     gap: spacing[2],
   },
 });

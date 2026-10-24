@@ -2,11 +2,13 @@
  * Mesajlar — yığın ekranı (sekme köklerinin üst barındaki Mesajlar düğmesinden ve `/messages` derin
  * bağlantısından açılır): PageShell (geri oklu yüzen bar) + sohbet listesi; yükleniyor = Skeleton,
  * boş/misafir = EmptyState, çekip yenileme. Mantık `_hooks/useMessagesTab`'de; ekran yalnız kompozisyon.
+ * Expanded and wider windows: master–detail (`_lib/layout`): the list on the left, the selected
+ * conversation on the right (`MessageThreadView`), selected in place instead of pushed.
  */
-import { useCallback } from "react";
-import { RefreshControl, View } from "react-native";
+import { useCallback, useState } from "react";
+import { BackHandler, RefreshControl, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { listWindowing } from "@/lib/list/windowing";
 import type { MessageThread } from "@/stores/messagesStore";
@@ -19,10 +21,13 @@ import {
   SkeletonText,
   theme,
   usePageScrollHandler,
+  usePageContentStyle,
 } from "@/ui";
 import { useMessagesTab } from "./_hooks/useMessagesTab";
 import { styles } from "./_lib/styles";
 import { ThreadRow } from "./_components/ThreadRow";
+import { useMessagesMasterDetail } from "./_lib/layout";
+import { MessageThreadView } from "./[threadId]/_components/MessageThreadView";
 
 const { colors } = theme;
 const SKELETON_ROWS = [0, 1, 2, 3, 4];
@@ -33,11 +38,37 @@ export default function MessagesScreen() {
   const { t } = useTranslation();
   const f = useMessagesTab();
   const page = usePageScrollHandler();
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle(styles.listContent);
   const title = t("mobile.messagesTitle");
+  const masterDetail = useMessagesMasterDetail();
+  // Master–detail: the conversation open in the right-hand pane (none until the user picks one).
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const closeSelected = useCallback(() => setSelectedId(null), []);
+  // The window narrowed below expanded (split screen, fold) with a conversation open: the SAME tree
+  // stays mounted (no push, no remount: the draft survives), the inbox pane hides and the
+  // conversation takes the window with a back arrow; widening again restores the two panes.
+  const narrowWithThread = !masterDetail && selectedId != null;
+  // Android back then closes that conversation (like its back arrow) instead of leaving the inbox.
+  useFocusEffect(
+    useCallback(() => {
+      if (!narrowWithThread) return undefined;
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        closeSelected();
+        return true;
+      });
+      return () => sub.remove();
+    }, [narrowWithThread, closeSelected]),
+  );
   // Kararlı renderItem (erken return'den ÖNCE — hook sırası sabit).
   const renderThread = useCallback(
-    ({ item }: { item: MessageThread }) => <ThreadRow thread={item} f={f} />,
-    [f],
+    ({ item }: { item: MessageThread }) =>
+      masterDetail ? (
+        <ThreadRow thread={item} f={f} selected={item.id === selectedId} onOpen={setSelectedId} />
+      ) : (
+        <ThreadRow thread={item} f={f} />
+      ),
+    [f, masterDetail, selectedId],
   );
 
   if (!f.isAuthenticated) {
@@ -69,7 +100,7 @@ export default function MessagesScreen() {
       </View>
     ) : null;
 
-  return (
+  const inbox = (
     <PageShell title={title} mode="list" scroll={page}>
       <Animated.FlatList
         {...page.listProps}
@@ -102,7 +133,7 @@ export default function MessagesScreen() {
             />
           )
         }
-        contentContainerStyle={page.contentStyle(styles.listContent)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -116,5 +147,30 @@ export default function MessagesScreen() {
         renderItem={renderThread}
       />
     </PageShell>
+  );
+
+  if (!masterDetail && !selectedId) return inbox;
+  return (
+    <View style={styles.masterDetail} testID="messages-master-detail">
+      <View style={narrowWithThread ? styles.paneHidden : styles.masterPane}>{inbox}</View>
+      <View style={narrowWithThread ? styles.fill : styles.detailPane} testID="messages-detail-pane">
+        {selectedId ? (
+          <MessageThreadView
+            key={selectedId}
+            threadId={selectedId}
+            embedded
+            onExit={closeSelected}
+            onBack={narrowWithThread ? closeSelected : undefined}
+          />
+        ) : (
+          <EmptyState
+            placement="screen"
+            icon="chat-bubble-left-right"
+            title={t("message.selectConversationTitle")}
+            subtitle={t("message.selectConversation")}
+          />
+        )}
+      </View>
+    </View>
   );
 }

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, ErrorState, TopBarLabel, pageListContentStyle, usePageScrollHandler } from '@/ui';
+import { Button, EmptyState, ErrorState, TopBarLabel, pageListContentStyle, usePageScrollHandler, usePageContentStyle, useRowGrid } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
@@ -25,13 +25,16 @@ export default function DiscountProductsScreen() {
   const selectedIds = useProductPickerDraft((s) => s.selectedIds);
   const toggle = useProductPickerDraft((s) => s.toggle);
   const page = usePageScrollHandler();
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle(pageListContentStyle);
+  // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
+  const grid = useRowGrid();
   const title = t('discount.pickProducts');
 
   const renderProduct = useCallback(
-    ({ item }: { item: (typeof products)[number] }) => (
-      <ProductPickRow product={item} checked={selectedIds.includes(item.id)} onToggle={toggle} />
-    ),
-    [selectedIds, toggle],
+    ({ item, index }: { item: (typeof products)[number]; index: number }) =>
+      grid.cell(index, <ProductPickRow product={item} checked={selectedIds.includes(item.id)} onToggle={toggle} />),
+    [selectedIds, toggle, grid],
   );
 
   const gate = DiscountsGate({ title });
@@ -57,11 +60,13 @@ export default function DiscountProductsScreen() {
       }
     >
       <Animated.FlatList
+        key={grid.listKey}
+        numColumns={grid.numColumns}
         {...page.listProps}
         data={products}
         keyExtractor={productKey}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle(pageListContentStyle)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         ListEmptyComponent={
           loadFailed ? (
             <ErrorState placement="list" onRetry={() => void refetch()} />

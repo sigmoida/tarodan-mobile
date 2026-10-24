@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { Button, EmptyState, ErrorState, Input, SkeletonText, pageListContentStyle, usePageScrollHandler } from '@/ui';
+import { Button, EmptyState, ErrorState, Input, SkeletonText, pageListContentStyle, usePageScrollHandler, usePageContentStyle } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { listWindowing } from '@/lib/list/windowing';
@@ -19,6 +19,8 @@ export default function AddCollectionItemsScreen() {
   const { t } = useTranslation();
   const f = useAddItems();
   const page = usePageScrollHandler();
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle([pageListContentStyle, styles.list]);
   const { effectiveItemId, pending, toggle } = f;
   const renderListing = useCallback(
     ({ item }: { item: Listing }) => (
@@ -46,7 +48,7 @@ export default function AddCollectionItemsScreen() {
         keyExtractor={listingKey}
         renderItem={renderListing}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <Input

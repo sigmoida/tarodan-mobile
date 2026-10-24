@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { PAGE_GUTTER, PAGE_SECTION_GAP, theme } from '@/ui';
+import { CART_ITEMS_FRACTION } from './layout';
 
 const { colors, spacing, radiusRole } = theme;
 
@@ -51,10 +52,8 @@ export const styles = StyleSheet.create({
   actions: { gap: spacing[2], marginTop: spacing[4] },
 
   // --- Sabit ödeme çubuğu (yüzen alt menünün üstünde kart) ---
-  checkoutBarWrap: {
-    position: 'absolute',
-    left: PAGE_GUTTER,
-    right: PAGE_GUTTER,
+  // The card look, shared by the floating bar and the summary panel's checkout card.
+  checkoutCard: {
     padding: spacing[3],
     borderRadius: radiusRole.card,
     borderWidth: 1,
@@ -62,7 +61,16 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface.elevated,
     ...theme.shadow.soft,
   },
+  // left / right: the page gutter, set by `CartCheckoutBar`.
+  checkoutBarWrap: { position: 'absolute' },
   checkoutBar: { flexDirection: 'row', alignItems: 'center', gap: spacing[4] },
+  checkoutBarWide: { justifyContent: 'space-between' },
   checkoutTotal: { flexShrink: 1, minWidth: 0 },
   checkoutButton: { flex: 1 },
+  checkoutButtonWide: { flexShrink: 0, paddingHorizontal: spacing[8] },
+
+  // --- Two columns (expanded and up, `cartLayout`) ---
+  twoColumn: { flex: 1, flexDirection: 'row' },
+  itemsColumn: { flex: CART_ITEMS_FRACTION },
+  summaryColumn: { flex: 1 - CART_ITEMS_FRACTION },
 });

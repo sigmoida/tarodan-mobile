@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, ErrorState, TopBarLabel, pageListContentStyle, usePageScrollHandler } from '@/ui';
+import { EmptyState, ErrorState, TopBarLabel, pageListContentStyle, usePageScrollHandler, usePageContentStyle, useRowGrid } from '@/ui';
 
 import { listWindowing } from '@/lib/list/windowing';
 import type { BlockedUser } from '@/lib/api';
@@ -25,11 +25,14 @@ export default function BlockedUsersScreen() {
   const { requestUnblock, pending } = useBlockUser();
   const title = t('profile.blockedPage.title');
   const page = usePageScrollHandler();
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle(pageListContentStyle);
+  // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
+  const grid = useRowGrid();
   const renderBlocked = useCallback(
-    ({ item }: { item: BlockedUser }) => (
-      <BlockedUserRow item={item} busy={pending} onUnblock={requestUnblock} />
-    ),
-    [pending, requestUnblock],
+    ({ item, index }: { item: BlockedUser; index: number }) =>
+      grid.cell(index, <BlockedUserRow item={item} busy={pending} onUnblock={requestUnblock} />),
+    [pending, requestUnblock, grid],
   );
 
   if (!f.isAuthenticated) {
@@ -54,11 +57,13 @@ export default function BlockedUsersScreen() {
       loadingFallback={<RowListSkeleton />}
     >
       <Animated.FlatList
+        key={grid.listKey}
+        numColumns={grid.numColumns}
         {...page.listProps}
         data={f.blocked}
         keyExtractor={blockedKey}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle(pageListContentStyle)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         ListEmptyComponent={
           f.loadFailed ? (
             <ErrorState

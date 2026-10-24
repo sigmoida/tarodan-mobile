@@ -24,7 +24,8 @@ Marketplace components built from `@/ui` primitives, grouped by feature
 
 - **One product card.** Every product tile is `ProductCard` (`@/components/product`;
   grid + list, mirrors web `ProductCard` at phone width); never a local card.
-- Lists use `ProductGrid` (skeleton -> single empty state -> error), sort via
+- Lists use `ProductGrid` (skeleton -> single empty state -> error; columns from
+  `useProductGridColumns`, 2 on phones, more on tablets), sort via
   `ProductSortModal`, active filters via `ActiveFilterChips`. Collection tiles are
   `CollectionCard` (`@/components/collection`).
 - Cards carry a favourite heart (decided for web and mobile together): a small glass

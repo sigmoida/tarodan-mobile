@@ -8,6 +8,12 @@ export const styles = StyleSheet.create({
   list: {
     gap: spacing[3],
   },
+  // Tablets: cards wrap into the `useRowGrid` columns (the cells carry the column gap).
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: spacing[3],
+  },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

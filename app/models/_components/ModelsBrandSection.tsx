@@ -1,14 +1,15 @@
 import { View, Pressable } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { useTranslation } from 'react-i18next';
-import { SectionCard, Text } from '@/ui';
+import { SectionCard, Text, gridCellStyle, useGridColumns } from '@/ui';
 import { router } from 'expo-router';
 import { styles } from '../_lib/styles';
 import type { Brand, CarModel } from '../_lib/types';
 
-/** Bir markanın başlığı (SectionCard) + o markaya ait model kartları (2 sütun). */
+/** One brand's title (SectionCard) + its model cards (2 columns on phones, more on tablets). */
 export function ModelsBrandSection({ brand, models }: { brand: Brand; models: CarModel[] }) {
   const { t } = useTranslation();
+  const columns = useGridColumns();
   return (
     <SectionCard
       title={brand.name}
@@ -21,10 +22,10 @@ export function ModelsBrandSection({ brand, models }: { brand: Brand; models: Ca
       }
     >
       <View style={styles.grid}>
-        {models.map((m) => (
+        {models.map((m, index) => (
           <Pressable
             key={m.id}
-            style={({ pressed }) => [styles.modelCard, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.modelCard, gridCellStyle(index, columns), pressed && styles.pressed]}
             onPress={() => router.push({ pathname: '/models/[slug]', params: { slug: m.slug } } as any)}
             accessibilityRole="button"
             accessibilityLabel={m.name}

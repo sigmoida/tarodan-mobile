@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { View, StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
-import { ErrorState, pageListContentStyle, theme, useDelayedLoading, usePageScrollHandler } from "@/ui";
+import { ErrorState, pageListContentStyle, theme, useDelayedLoading, usePageScrollHandler, usePageContentStyle, useRowGrid } from "@/ui";
 import { PageShell } from "@/components/common/PageShell";
 import { useAuthStore } from "@/stores/authStore";
 import { useTimingValues } from "@/hooks/useTimingPolicy";
@@ -33,6 +33,10 @@ export default function OffersScreen() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const authLoading = useAuthStore((s) => s.isLoading);
   const page = usePageScrollHandler();
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle([pageListContentStyle, styles.list]);
+  // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
+  const grid = useRowGrid();
   const [activeTab, setActiveTab] = useState<TabType>(
     tabFromUrl === "sent" ? "sent" : "received",
   );
@@ -73,7 +77,7 @@ export default function OffersScreen() {
 
   // Stable renderItem (#75) — memoized OfferCard skips rows that didn't change.
   const renderOffer = useCallback(
-    ({ item }: { item: Offer }) => (
+    ({ item, index }: { item: Offer; index: number }) => grid.cell(index, (
       <OfferCard
         offer={item}
         tab={activeTab}
@@ -93,8 +97,9 @@ export default function OffersScreen() {
         onOpenCounter={setCounterOffer}
         onOpenBuyerCounter={setBuyerCounterOffer}
       />
-    ),
+    )),
     [
+      grid,
       activeTab,
       estimatedNetByOfferId,
       pendingOfferIds,
@@ -144,6 +149,8 @@ export default function OffersScreen() {
       }
     >
       <Animated.FlatList
+        key={grid.listKey}
+        numColumns={grid.numColumns}
         {...page.listProps}
         data={isLoading || isError ? [] : offers}
         keyExtractor={(item) => item.id}
@@ -169,7 +176,7 @@ export default function OffersScreen() {
             <OffersEmpty tab={activeTab} />
           )
         }
-        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.list])}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         refreshing={refreshing}
         onRefresh={onRefresh}
       />

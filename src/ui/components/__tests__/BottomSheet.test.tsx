@@ -485,3 +485,16 @@ describe('revealScrollOffset', () => {
     expect(revealScrollOffset(600, 400, 0, 200, 16)).toBe(584);
   });
 });
+
+describe('BottomSheet on large screens', () => {
+  it('spans the window on tablets too (no width cap)', () => {
+    render(
+      <BottomSheet isOpen onClose={() => undefined} title="Sheet">
+        <RNText>body</RNText>
+      </BottomSheet>,
+    );
+    const style = StyleSheet.flatten(screen.getByTestId('bottom-sheet').props.style);
+    expect(style.width).toBe('100%');
+    expect(style.maxWidth).toBeUndefined();
+  });
+});

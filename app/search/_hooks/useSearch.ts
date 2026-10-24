@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Keyboard, type LayoutChangeEvent } from 'react-native';
-import type { FlashListRef } from '@shopify/flash-list';
 import {
   useAnimatedScrollHandler,
   useSharedValue,
@@ -30,13 +29,11 @@ import {
   type ProductFilters,
 } from '@/utils/productFilters';
 import { useSearchFilterOptions } from './useSearchFilterOptions';
-import { curatedEntryLabelKey } from '@/lib/navigation/searchHref';
 import { buildActiveChips } from '@/utils/activeFilterChips';
 import { PAGE_SIZE } from '../_lib/searchConstants';
 import {
   BARS_ANIM_MS,
   nextBarsHidden,
-  shouldShowScrollTop,
 } from '../_lib/barsCollapse';
 
 // Kararlı boş dizi: `sellerAutoRes.data ?? []` her render'da yeni referans üretiyordu.
@@ -97,10 +94,7 @@ export function useSearch() {
 
   // Sonuç listesi aşağı kaydırılınca üst çubukları (arama + filtre) gizle, yukarı kaydırınca geri getir.
   // Karar ve animasyon UI thread'inde (Reanimated scroll handler + shared value); JS'e yalnız
-  // eşik geçişleri (en üste dön düğmesi, öneri panelini kapatma) döner.
-  // Liste yeterince aşağı inince "en üste dön" butonunu göster.
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  const listRef = useRef<FlashListRef<any>>(null);
+  // eşik geçişleri (öneri panelini kapatma) döner.
 
   // Üst çubukları absolute bir katmanda tutup translateY ile kaydırıyoruz (liste reflow olmaz → takılmaz).
   // Yükseklik TAHMİN EDİLMEZ: 0'dan başlar ve ilk `onLayout` ölçümüyle yazılır. Ölçüm
@@ -112,7 +106,6 @@ export function useSearch() {
   const barsHidden = useSharedValue(false);
   const headerHeightSV = useSharedValue(0);
   const lastScrollY = useSharedValue(0);
-  const scrollTopVisible = useSharedValue(false);
   const panelsOpenSV = useSharedValue(false);
   useEffect(() => {
     headerHeightSV.value = headerHeight;
@@ -308,11 +301,6 @@ export function useSearch() {
       }),
     [filters, customAttributes, categories, brands, manufacturers, carModels, colors, t],
   );
-  // Vitrin girişi bağlamı ("Takas vitrini", "Popüler ilanlar"…): canlı filtrelerden türer, kullanıcı
-  // filtre/sıralamayı değiştirince kaybolur.
-  const contextLabelKey = curatedEntryLabelKey(filters);
-  const contextLabel = contextLabelKey ? t(contextLabelKey) : null;
-
   // Öneri/geçmiş paneli görünür mü? (X kapat tuşu ve input köşe stilinde kullanılır)
   const recentPanelOpen =
     showRecentSearches && recentSearchQueries.length > 0 && inputEmpty;
@@ -373,18 +361,9 @@ export function useSearch() {
           duration: BARS_ANIM_MS,
         });
       }
-      const showTop = shouldShowScrollTop(y);
-      if (showTop !== scrollTopVisible.value) {
-        scrollTopVisible.value = showTop;
-        scheduleOnRN(setShowScrollTop, showTop);
-      }
       lastScrollY.value = y;
     },
   });
-
-  const scrollToTop = () => {
-    listRef.current?.scrollToOffset({ offset: 0, animated: true });
-  };
 
   return {
     // filters / search box
@@ -401,7 +380,6 @@ export function useSearch() {
     clearAllFilters,
     activeChips,
     /** Vitrin girişi bağlam başlığı ("Takas vitrini"…) ya da null. */
-    contextLabel,
     activeFiltersCount,
     // options for the filter sheet
     options,
@@ -443,15 +421,12 @@ export function useSearch() {
     isFetchNextPageError,
     fetchNextPage,
     // collapsible bars + scroll
-    listRef,
     headerHeight,
     barsMeasured,
     barsHidden,
     barsTranslateY,
     onBarsLayout,
     handleResultsScroll,
-    showScrollTop,
-    scrollToTop,
     layout,
     setLayout,
     // modals

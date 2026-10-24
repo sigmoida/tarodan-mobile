@@ -57,7 +57,7 @@ describe('J12 · Kategori liste', () => {
     await waitFor(() => expect(screen.getByText('Arabalar')).toBeOnTheScreen());
     expect(await screen.findByText('Kırmızı Araba')).toBeOnTheScreen();
     expect(screen.getByText('Mavi Araba')).toBeOnTheScreen();
-    expect(screen.getByText('2 ürün bulundu')).toBeOnTheScreen();
+    expect(screen.queryByText(/ürün bulundu/)).toBeNull();
     // Yüzen alt menü bu yığın ekranında da görünür (withStackTabBar).
     expect(screen.getByTestId('app-tab-bar')).toBeOnTheScreen();
   });

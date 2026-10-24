@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useLayoutEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, type ScrollViewProps, type StyleProp, type ViewStyle } from 'react-native';
 import { useAnimatedScrollHandler, useSharedValue, type SharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { useHeaderBarInset } from './header';
 
 /**
@@ -84,8 +85,8 @@ export interface PageScroll extends PageScrollValue {
 }
 
 /**
- * Yalnız sinyal değeri (handler YOK) — başka bir handler `scrollY`'yi besleyecekse (sekme kökleri:
- * `useTabBarScrollHandler(undefined, page.scrollY)` tek handler ile hem alt menüyü hem üst barı sürer).
+ * Yalnız sinyal değeri (handler YOK): the shell's own value (tab roots, the listing form) whose list
+ * feeds it with `usePageOffsetHandler(page.scrollY)`.
  */
 export function usePageScrollValue(): PageScrollValue {
   const scrollY = useSharedValue(0);
@@ -98,6 +99,34 @@ export function usePageScrollValue(): PageScrollValue {
       contentStyle: (base?: StyleProp<ViewStyle>) => withTopInset(base, topInset),
     }),
     [scrollY, topInset],
+  );
+}
+
+/** Smallest offset step (pt) of the optional JS bridge in `usePageOffsetHandler`. */
+const OFFSET_BRIDGE_STEP = 16;
+
+/**
+ * The scroll worklet that feeds a page's `scrollY` (the top bar scroll edge), for a list bound to a
+ * `PageScrollValue` it did not create (tab roots: `usePageScrollValue()` + this). `onOffset` is an
+ * optional JS bridge (e.g. the home hero visibility): called every >= 16 pt and at the top, not on
+ * every frame. Spread as `onScroll={handler}` with `scrollEventThrottle={16}`.
+ */
+export function usePageOffsetHandler(scrollY: SharedValue<number>, onOffset?: (y: number) => void) {
+  const lastSent = useSharedValue(0);
+  return useAnimatedScrollHandler(
+    {
+      onScroll: (e) => {
+        scrollY.value = pageScrollOffset(e.contentOffset.y, e.contentInset?.top ?? 0);
+        if (onOffset) {
+          const y = e.contentOffset.y;
+          if (Math.abs(y - lastSent.value) >= OFFSET_BRIDGE_STEP || (y <= 0 && lastSent.value !== y)) {
+            lastSent.value = y;
+            scheduleOnRN(onOffset, y);
+          }
+        }
+      },
+    },
+    [scrollY, onOffset],
   );
 }
 
@@ -116,15 +145,7 @@ export function usePageScrollValue(): PageScrollValue {
  */
 export function usePageScrollHandler(): PageScroll {
   const value = usePageScrollValue();
-  const { scrollY } = value;
-  const onScroll = useAnimatedScrollHandler(
-    {
-      onScroll: (e) => {
-        scrollY.value = pageScrollOffset(e.contentOffset.y, e.contentInset?.top ?? 0);
-      },
-    },
-    [scrollY],
-  );
+  const onScroll = usePageOffsetHandler(value.scrollY);
   return useMemo(
     () => ({
       ...value,

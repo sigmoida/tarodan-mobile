@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import Animated from 'react-native-reanimated';
-import { pageListContentStyle, usePageScrollHandler } from '@/ui';
+import { pageListContentStyle, usePageScrollHandler, usePageContentStyle, useRowGrid } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
@@ -26,6 +26,10 @@ export default function FollowingScreen() {
   const { following, isLoading, isError, fetchFollowing, unfollowSeller, getFollowingCount } = useFollowing();
   const [refreshing, setRefreshing] = useState(false);
   const page = usePageScrollHandler();
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle(pageListContentStyle);
+  // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
+  const grid = useRowGrid();
 
   // Ekrana dönüşte yalnız bayatsa tazele (takip/bırakma zaten önbelleği güncelliyor).
   useRefetchStaleOnFocus([qk.follow.following], isAuthenticated);
@@ -43,8 +47,9 @@ export default function FollowingScreen() {
     void unfollowRef.current(seller.id);
   }, []);
   const renderSeller = useCallback(
-    ({ item }: { item: FollowedSeller }) => <FollowingSellerRow seller={item} onUnfollow={handleUnfollow} />,
-    [handleUnfollow],
+    ({ item, index }: { item: FollowedSeller; index: number }) =>
+      grid.cell(index, <FollowingSellerRow seller={item} onUnfollow={handleUnfollow} />),
+    [handleUnfollow, grid],
   );
 
   // Not authenticated
@@ -80,13 +85,15 @@ export default function FollowingScreen() {
       }}
     >
       <Animated.FlatList
+        key={grid.listKey}
+        numColumns={grid.numColumns}
         {...page.listProps}
         testID="following-list"
         data={following}
         keyExtractor={sellerKey}
         renderItem={renderSeller}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle(pageListContentStyle)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         refreshing={refreshing}
         onRefresh={onRefresh}
       />

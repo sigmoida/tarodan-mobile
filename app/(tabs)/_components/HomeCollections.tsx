@@ -3,12 +3,14 @@ import { Pressable, View } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Avatar, SectionCard, SectionCardAction, Skeleton, Text } from '@/ui';
+import { Avatar, SectionCard, SectionCardAction, Skeleton, Text, gridCellStyle, useGridColumns } from '@/ui';
 import { formatCount } from '@/utils/format';
 import { homeStyles as styles } from '../_lib/homeStyles';
 
 const COLLECTION_LIMIT = 6;
 const PREVIEW_SLOTS = [0, 1, 2];
+/** Column gap of the collection grid (% of the row; web `gap-4`): two columns = 47% cells. */
+const HOME_COLLECTION_GAP_PERCENT = 6;
 
 function collectorName(user: any, fallback: string): string {
   return user?.publicName || user?.displayName || fallback;
@@ -56,9 +58,10 @@ function CollectionCard({ collection }: { collection: any }) {
   );
 }
 
-/** "En İyi Koleksiyonlar" (web `TopCollections`): telefonda 2 sütun, en çok 6 koleksiyon. */
+/** "Top collections" (web `TopCollections`): 2 columns on phones (more on tablets), at most 6 collections. */
 export function TopCollections({ items, isLoading }: { items: any[]; isLoading?: boolean }) {
   const { t } = useTranslation();
+  const columns = useGridColumns();
   if (!isLoading && items.length === 0) return null;
   return (
     <SectionCard
@@ -69,12 +72,12 @@ export function TopCollections({ items, isLoading }: { items: any[]; isLoading?:
       <View style={styles.collectionGrid}>
         {isLoading
           ? PREVIEW_SLOTS.slice(0, 2).map((i) => (
-              <View key={i} style={styles.collectionCell}>
+              <View key={i} style={gridCellStyle(i, columns, HOME_COLLECTION_GAP_PERCENT)}>
                 <Skeleton height={190} />
               </View>
             ))
-          : items.slice(0, COLLECTION_LIMIT).map((c) => (
-              <View key={c.id} style={styles.collectionCell}>
+          : items.slice(0, COLLECTION_LIMIT).map((c, index) => (
+              <View key={c.id} style={gridCellStyle(index, columns, HOME_COLLECTION_GAP_PERCENT)}>
                 <CollectionCard collection={c} />
               </View>
             ))}

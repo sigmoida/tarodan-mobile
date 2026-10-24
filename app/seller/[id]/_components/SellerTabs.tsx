@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, ChipTabs, EmptyState, SectionCard, Text, theme, Icon } from '@/ui';
+import { Avatar, Button, ChipTabs, EmptyState, SectionCard, Text, theme, Icon, gridCellStyle, useGridColumns } from '@/ui';
 
 import { ProductCard } from '@/components/product';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
@@ -36,6 +36,7 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
   const rating = sellerRatingSummary(f);
   // Kendi profilinde ilanların hepsi kullanıcının: kalp hiç çizilmez (DTO'da satıcı olmasa da).
   const favoriteProps = useProductCardFavorites();
+  const columns = useGridColumns();
   const [listingsShown, moreListings] = useVisibleCount(LISTINGS_PAGE);
   const [reviewsShown, moreReviews] = useVisibleCount(REVIEWS_PAGE);
   const [collectionsShown, moreCollections] = useVisibleCount(COLLECTIONS_PAGE);
@@ -60,8 +61,8 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
           <EmptyState placement="inline" testID="seller-empty-listings" icon="magnifying-glass" title={t('seller.noActiveListings')} subtitle={t('home.noProductsYetHint')} />
         ) : (
           <View style={styles.grid}>
-            {products.slice(0, listingsShown).map((product: any) => (
-              <View key={product.id} style={styles.cell}>
+            {products.slice(0, listingsShown).map((product: any, index: number) => (
+              <View key={product.id} style={gridCellStyle(index, columns)}>
                 <ProductCard product={product} {...(f.isOwnProfile ? null : favoriteProps(product))} />
               </View>
             ))}
@@ -134,8 +135,8 @@ export function SellerTabs({ f }: { f: SellerProfileController }) {
           <EmptyState placement="inline" testID="seller-empty-collections" icon="rectangle-stack" title={t('seller.noCollections')} subtitle={t('emptyState.collectionsHint')} />
         ) : (
           <View style={styles.grid}>
-            {collections.slice(0, collectionsShown).map((collection: any) => (
-              <View key={collection.id} style={styles.cell}>
+            {collections.slice(0, collectionsShown).map((collection: any, index: number) => (
+              <View key={collection.id} style={gridCellStyle(index, columns)}>
                 <CollectionCard item={collection} />
               </View>
             ))}

@@ -2,8 +2,8 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/common/PageShell';
 import { ProductGrid, ProductSortModal } from '@/components/product';
-import { useTabBarPageScroll } from '@/components/shell/TabBarCollapse';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
+import { usePageScrollHandler } from '@/ui';
 import { withStackTabBar } from '@/components/shell/StackTabBar';
 import { useCategory } from './_hooks/useCategory';
 import { CategoryFilters } from './_components/CategoryFilters';
@@ -11,13 +11,13 @@ import { CategoryFilters } from './_components/CategoryFilters';
 /**
  * Kategori — PageShell + tek ürün ızgarası (`ProductGrid`): ortak `ProductListToolbar` (arama, sıralama,
  * ızgara/liste, ölçek çipleri, sonuç sayısı) liste başlığında. Kontrolcü `useCategory`; ekran yalnız kompozisyon.
- * Yüzen alt menü (`withStackTabBar`) ekranın üstünde; aşağı kaydırınca Ana Sayfa gibi daralır (yalnız "+" kalır).
+ * Sabit alt menü (`withStackTabBar`) ekranın üstünde; kaydırınca daralmaz.
  */
 function CategoryScreen() {
   const { t } = useTranslation();
   const f = useCategory();
-  // Tek handler: alt menü daralması + üst barın kaydırma kenarı.
-  const page = useTabBarPageScroll();
+  // The list feeds the top bar scroll edge.
+  const page = usePageScrollHandler();
   const tabInset = useTabBarInset();
 
   return (
@@ -53,7 +53,7 @@ function CategoryScreen() {
           f.setSearchQuery('');
           f.setSelectedScale('');
         }}
-        ListHeaderComponent={<CategoryFilters f={f} count={f.products ? f.products.length : undefined} />}
+        ListHeaderComponent={<CategoryFilters f={f} />}
       />
     </PageShell>
   );

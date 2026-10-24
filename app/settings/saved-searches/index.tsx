@@ -1,7 +1,8 @@
+import React from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Alert, EmptyState, PageHeader, TopBarLabel } from '@/ui';
+import { Alert, EmptyState, TopBarLabel, useRowGrid, type GridColumnSpec } from '@/ui';
 import { useSavedSearches } from './_hooks/useSavedSearches';
 import { AuthGatePage } from '@/components/common/AuthGatePage';
 import { PageShell } from '@/components/common/PageShell';
@@ -9,13 +10,18 @@ import { RowListSkeleton } from '@/components/common/RowListSkeleton';
 import { SavedSearchCard } from './_components/SavedSearchCard';
 import { styles } from './_lib/styles';
 
+/** Saved search cards per row: one on phones, two side by side on every tablet width. */
+const SAVED_SEARCH_COLUMNS: GridColumnSpec = { compact: 1, medium: 2, expanded: 2, large: 2 };
+
 /**
  * Saved searches (web `profile/saved-searches`): the server list with the tier limit, Run and Delete.
  * The limit alert is neutral, no upgrade button (digital sales are off on the stores, ADR 0003).
+ * Tablets: the cards stand in two columns (`SAVED_SEARCH_COLUMNS`).
  */
 export default function SavedSearchesScreen() {
   const { t } = useTranslation();
   const f = useSavedSearches();
+  const grid = useRowGrid(SAVED_SEARCH_COLUMNS);
 
   if (!f.isAuthenticated) {
     return (
@@ -44,8 +50,6 @@ export default function SavedSearchesScreen() {
       refreshing={f.refreshing}
       onRefresh={f.onRefresh}
     >
-      <PageHeader description={t('search.savedDescription')} />
-
       {f.searches.length === 0 ? (
         <EmptyState
           icon="magnifying-glass"
@@ -55,17 +59,22 @@ export default function SavedSearchesScreen() {
           onAction={() => router.push('/search')}
         />
       ) : (
-        <View style={styles.list}>
-          {f.searches.map((search) => (
-            <SavedSearchCard
-              key={search.id}
-              search={search}
-              names={{ colors: f.colors }}
-              deleting={f.pendingId === search.id}
-              onDelete={f.handleDelete}
-              onRun={f.runSearch}
-            />
-          ))}
+        <View style={grid.numColumns > 1 ? styles.grid : styles.list} testID="saved-search-list">
+          {f.searches.map((search, index) =>
+            React.cloneElement(
+              grid.cell(
+                index,
+                <SavedSearchCard
+                  search={search}
+                  names={{ colors: f.colors }}
+                  deleting={f.pendingId === search.id}
+                  onDelete={f.handleDelete}
+                  onRun={f.runSearch}
+                />,
+              ),
+              { key: search.id },
+            ),
+          )}
         </View>
       )}
 

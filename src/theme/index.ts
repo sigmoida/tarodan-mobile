@@ -6,6 +6,7 @@ export * from "./typography";
 export * from "./motion";
 export * from "./z-index";
 export * from "./containers";
+export * from "./breakpoints";
 export * from "./roles";
 
 import { colors } from "./colors";
@@ -16,6 +17,7 @@ import { typography } from "./typography";
 import { motion } from "./motion";
 import { zIndex } from "./z-index";
 import { containers } from "./containers";
+import { breakpoints, contentWidths } from "./breakpoints";
 import { roles } from "./roles";
 
 export const tokens = {
@@ -27,6 +29,8 @@ export const tokens = {
   motion,
   zIndex,
   containers,
+  breakpoints,
+  contentWidths,
   roles,
 } as const;
 

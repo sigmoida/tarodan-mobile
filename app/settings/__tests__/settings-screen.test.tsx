@@ -104,3 +104,57 @@ describe('Ayarlar — misafir', () => {
     expect(screen.queryByTestId('profile-logout-button')).toBeNull();
   });
 });
+
+describe('Settings on large screens', () => {
+  const { Dimensions } = jest.requireActual('react-native');
+  const setWindow = (width: number, height: number) =>
+    Dimensions.set({
+      window: { width, height, scale: 2, fontScale: 2 },
+      screen: { width, height, scale: 2, fontScale: 2 },
+    });
+  afterEach(() => {
+    screen.unmount();
+    setWindow(375, 667);
+  });
+  const groupIds = (column: string) =>
+    screen
+      .getByTestId(column)
+      .findAll((n: { props: { testID?: string } }) => /^menu-group-[a-z]/.test(n.props.testID ?? '') && !/column/.test(n.props.testID ?? ''))
+      .map((n: { props: { testID?: string } }) => n.props.testID)
+      .filter((id: string | undefined, i: number, all: Array<string | undefined>) => all.indexOf(id) === i);
+
+  it('1032 pt: the section cards stand in two balanced columns, every group once, at the tablet gutter', () => {
+    member();
+    setWindow(1032, 1376);
+    renderWithProviders(<SettingsScreen />);
+    const left = groupIds('menu-group-column-0');
+    const right = groupIds('menu-group-column-1');
+    expect(left.length).toBeGreaterThan(0);
+    expect(right.length).toBeGreaterThan(0);
+    for (const title of ['Hesap', 'Ödeme ve Banka', 'Tercihler', 'Yardım & Destek', 'Bilgi ve Yasal']) {
+      expect(screen.getAllByText(title)).toHaveLength(1);
+    }
+    expect(new Set([...left, ...right]).size).toBe(left.length + right.length);
+    const columns = StyleSheet.flatten(screen.getByTestId('menu-group-columns').props.style);
+    expect(columns.flexDirection).toBe('row');
+  });
+
+  it('1032 pt: Info & Legal spans both columns, below them', () => {
+    member();
+    setWindow(1032, 1376);
+    renderWithProviders(<SettingsScreen />);
+    expect([...groupIds('menu-group-column-0'), ...groupIds('menu-group-column-1')]).not.toContain('menu-group-info');
+    expect(screen.getByTestId('menu-group-info')).toBeOnTheScreen();
+  });
+
+  it.each([
+    [390, 844],
+    [820, 1180],
+  ])('%d pt: one column (no column split)', (w, h) => {
+    member();
+    setWindow(w, h);
+    renderWithProviders(<SettingsScreen />);
+    expect(screen.queryByTestId('menu-group-columns')).toBeNull();
+    expect(screen.getByText('Hesap')).toBeTruthy();
+  });
+});

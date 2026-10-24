@@ -1,9 +1,9 @@
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, RefreshControl } from 'react-native';
-import Animated, { useComposedEventHandler } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
-import { ErrorState, FAB, Spinner, theme, useDelayedLoading } from '@/ui';
+import { ErrorState, Spinner, theme, useDelayedLoading, usePageGutter } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { ListFooterRetry } from '@/components/common/ListFooterRetry';
 import {
@@ -11,16 +11,16 @@ import {
   ProductGridSkeleton,
   ProductListEmpty,
   ProductSortModal,
+  useProductGridColumns,
 } from '@/components/product';
 import ProductFilterSheet from '@/components/ProductFilterSheet';
 import { withStackTabBar } from '@/components/shell/StackTabBar';
-import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
-import { styles } from './_lib/searchStyles';
-import { SEARCH_DRAW_DISTANCE, SEARCH_NUM_COLUMNS } from './_lib/searchConstants';
+import { CELL_HALF_GAP, styles } from './_lib/searchStyles';
+import { SEARCH_DRAW_DISTANCE } from './_lib/searchConstants';
 import { useTransitionReady } from '@/hooks/useTransitionReady';
 import { useSearch } from './_hooks/useSearch';
-import { useSearchBottomChrome } from './_hooks/useSearchBottomChrome';
 import { useSaveSearch } from './_hooks/useSaveSearch';
 import { SaveSearchModal } from './_modals/SaveSearchModal';
 import { SearchBars } from './_components/SearchBars';
@@ -56,7 +56,9 @@ function SearchScreen() {
 
   // Stable renderItem (#75) — memoized ProductCard bails out on unchanged rows.
   const isList = f.layout === 'list';
-  const columns = isList ? 1 : SEARCH_NUM_COLUMNS;
+  // Same column rule as every listing grid (2 on phones, more on tablets); the list key follows it.
+  const gridColumns = useProductGridColumns();
+  const columns = isList ? 1 : gridColumns;
   const favoriteProps = useProductCardFavorites();
   const renderResult = useCallback(
     ({ item }: ListRenderItemInfo<any>) => (
@@ -74,16 +76,17 @@ function SearchScreen() {
     [isList, favoriteProps],
   );
 
-  // One scroll handler for the list: the search bars collapse / scroll-to-top flag (`useSearch`) and the
-  // floating tab bar collapse run side by side (composed, never two `onScroll` props).
-  const tabScroll = useTabBarScrollHandler();
-  const onResultsScroll = useComposedEventHandler([f.handleResultsScroll, tabScroll.onScroll]);
-  // The last result row stays clear of the scroll-to-top FAB, which floats above the tab bar.
-  const { listBottomInset, scrollTopFabStyle } = useSearchBottomChrome();
+  // The last result row clears the fixed tab bar (the same bottom padding as every bar screen).
+  const listBottomInset = useTabBarInset();
   // Liste prop'ları kararlı kalsın: ekran render olsa da liste boş yere uzlaştırılmasın.
+  // Large screens: the page gutter (the cells add their half gap on each side, see `styles.listContent`).
+  const gutter = usePageGutter();
   const contentContainerStyle = useMemo(
-    () => [styles.listContent, { paddingTop: f.headerHeight, paddingBottom: listBottomInset }],
-    [f.headerHeight, listBottomInset],
+    () => [
+      styles.listContent,
+      { paddingTop: f.headerHeight, paddingBottom: listBottomInset, paddingHorizontal: gutter - CELL_HALF_GAP },
+    ],
+    [f.headerHeight, listBottomInset, gutter],
   );
   const refreshControl = useMemo(
     () => (
@@ -173,11 +176,8 @@ function SearchScreen() {
             onLayoutChange={f.setLayout}
             onSave={saveSearch.start}
             saveDisabled={saveSearch.draft.isEmpty}
-            isLoading={f.isLoading}
-            total={f.total}
             chips={f.activeChips}
             onClearFilters={f.clearAllFilters}
-            contextLabel={f.contextLabel}
           />
 
           {/* Öneri / son aramalar: üst barın hemen altında, çubukların ve sonuçların üstünde. */}
@@ -190,7 +190,6 @@ function SearchScreen() {
           <View testID="search-results-wrap" style={f.barsMeasured ? styles.listWrap : styles.listWrapHidden}>
             <AnimatedFlashList
             testID="search-results-list"
-            ref={f.listRef}
             // Kartlar geçiş bitince çizilir (o ana dek boş-durum yuvasında iskelet).
             data={ready ? f.products : NO_ITEMS}
             key={`search-${columns}`}
@@ -201,9 +200,8 @@ function SearchScreen() {
             // Hücre geri dönüşümü (FlashList v2): pencere = drawDistance; getItemLayout/estimatedItemSize gerekmez.
             drawDistance={SEARCH_DRAW_DISTANCE}
             showsVerticalScrollIndicator={false}
-            onScroll={onResultsScroll}
-            onLayout={tabScroll.onLayout}
-            onContentSizeChange={tabScroll.onContentSizeChange}
+            // The search bars collapse (`useSearch`); the tab bar is fixed.
+            onScroll={f.handleResultsScroll}
             scrollEventThrottle={16}
             keyboardDismissMode="on-drag"
             refreshControl={refreshControl}
@@ -214,18 +212,6 @@ function SearchScreen() {
           />
           </View>
         </View>
-
-        {/* En üste dön butonu — liste yeterince aşağı inince görünür */}
-        {f.showScrollTop && (
-          <FAB
-            icon="chevron-up"
-            size="sm"
-            placement="bottomRight"
-            style={scrollTopFabStyle}
-            onPress={f.scrollToTop}
-            accessibilityLabel={t('search.scrollToTop')}
-          />
-        )}
 
         {/* Filter Modal (web SidebarFilters paritesi) */}
         <ProductFilterSheet

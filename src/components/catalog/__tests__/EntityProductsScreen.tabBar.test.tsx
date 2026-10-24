@@ -72,12 +72,11 @@ describe.each([
     expect(StyleSheet.flatten(grid().props.contentContainerStyle).paddingBottom).toBe(barInset);
   });
 
-  it('wires the tab bar scroll handler into the grid', async () => {
+  it('wires the page scroll handler (top bar edge) into the grid; the fixed bar needs no measurements', async () => {
     getAll.mockResolvedValue({ data: { data: [] } });
     renderWithProviders(<EntityProductsScreen kind={kind} />);
     await waitFor(() => expect(screen.getByTestId('app-tab-bar')).toBeOnTheScreen());
     expect(grid().props.onScroll).toBeTruthy();
-    expect(typeof grid().props.onContentSizeChange).toBe('function');
   });
 
   it('a tab tap pops back to the tabs (dismissTo)', async () => {

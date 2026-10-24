@@ -12,8 +12,20 @@ import type { MessagesTabController } from '../_hooks/useMessagesTab';
 /**
  * Tek sohbet satırı — ortak `InboxRow` iskeleti (Bildirimler ile aynı): avatar, ad/zaman,
  * ürün bağlamı, son mesaj, okunmamış adet. Okunmamış bilgi zemin tonu + adet rozetinde.
+ * `onOpen` (master–detail on wide windows) opens the thread in the right-hand pane instead of
+ * pushing it; `selected` marks the open thread.
  */
-export const ThreadRow = memo(function ThreadRow({ thread, f }: { thread: MessageThread; f: MessagesTabController }) {
+export const ThreadRow = memo(function ThreadRow({
+  thread,
+  f,
+  selected = false,
+  onOpen,
+}: {
+  thread: MessageThread;
+  f: MessagesTabController;
+  selected?: boolean;
+  onOpen?: (threadId: string) => void;
+}) {
   const { t } = useTranslation();
   const other = f.safeGetOther(thread);
 
@@ -48,7 +60,9 @@ export const ThreadRow = memo(function ThreadRow({ thread, f }: { thread: Messag
       }
       unread={thread.unreadCount > 0}
       unreadCount={thread.unreadCount}
-      onPress={() => router.push(`/messages/${thread.id}`)}
+      onPress={() => (onOpen ? onOpen(thread.id) : router.push(`/messages/${thread.id}`))}
+      style={selected ? styles.threadRowSelected : undefined}
+      testID={`thread-row-${thread.id}`}
     />
   );
 });

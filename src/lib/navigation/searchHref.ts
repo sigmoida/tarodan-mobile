@@ -8,7 +8,6 @@
  * `manufacturerId`…) — eski bağlantılar sorgusu değişmeden `/search`'e taşınır (`listingsToSearchHref`).
  */
 
-import type { MessageKey } from '@/i18n/lib';
 import { filtersFromSearchParams, type ProductFilters } from '@/utils/productFilters';
 
 /** Sabit vitrin girişleri ve uyguladıkları filtre/sıralama (web ana sayfa `viewAllHref` + menü). */
@@ -26,41 +25,6 @@ export const SEARCH_ENTRIES = {
 } as const satisfies Record<string, Record<string, string>>;
 
 export type SearchEntry = keyof typeof SEARCH_ENTRIES;
-
-/** Vitrin girişinin arama ekranındaki bağlam başlığı (web `/listings` başlığıyla aynı anahtarlar). */
-const CURATED_ENTRY_LABELS: Partial<Record<SearchEntry, MessageKey>> = {
-  popular: 'home.popularListings',
-  newArrivals: 'nav.newArrivals',
-  onSale: 'product.onSale',
-  tradeShowcase: 'nav.tradeShowcase',
-};
-
-/** Field-by-field comparison (key order does not matter); empty custom attribute groups are ignored. */
-const nonEmptyAttrs = (f: ProductFilters) =>
-  JSON.stringify(
-    Object.entries(f.customAttributes ?? {})
-      .filter(([, v]) => v?.length)
-      .sort(([x], [y]) => x.localeCompare(y)),
-  );
-const sameFilters = (a: ProductFilters, b: ProductFilters) =>
-  (Object.keys(b) as (keyof ProductFilters)[]).every((k) => {
-    if (k === 'customAttributes') return nonEmptyAttrs(a) === nonEmptyAttrs(b);
-    // Colours are a list: compare by value, order included (a different pick is a different search).
-    if (k === 'colors') return a.colors.join(',') === b.colors.join(',');
-    return (a[k] ?? '') === (b[k] ?? '');
-  }) && a.search.trim() === '';
-
-/**
- * Canlı filtreler bir vitrin girişinin ön ayarıyla BİREBİR aynıysa (arama metni yok, başka filtre
- * yok, sıralama değişmemiş) o girişin başlık anahtarı; aksi halde null. Kullanıcı filtre/sıralamayı
- * değiştirince başlık kendiliğinden kaybolur.
- */
-export function curatedEntryLabelKey(filters: ProductFilters): MessageKey | null {
-  for (const [entry, key] of Object.entries(CURATED_ENTRY_LABELS) as [SearchEntry, MessageKey][]) {
-    if (sameFilters(filters, filtersFromSearchParams(SEARCH_ENTRIES[entry]))) return key;
-  }
-  return null;
-}
 
 type ParamValue = string | number | boolean | null | undefined | readonly string[];
 
