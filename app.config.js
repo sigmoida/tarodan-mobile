@@ -32,6 +32,16 @@ const path = require('path');
 // Yalnız iOS bundle id eki; Android staging paketi paths.json'dan gelir.
 const STAGING_SUFFIX = '.staging';
 
+// Staging icon: the production mark inverted (orange arrows on white), so testers
+// tell the staging app from the production one on the home screen at a glance.
+// Both files derive from `assets/icon.png` / `assets/adaptive-icon.png`; keep them
+// in step when the production icon changes.
+const STAGING_ICON = './assets/icon-staging.png';
+const STAGING_ADAPTIVE_ICON = {
+  foregroundImage: './assets/adaptive-icon-staging.png',
+  backgroundColor: '#FFFFFF',
+};
+
 // Staging Android'in Firebase yapılandırması. Gradle google-services eklentisi,
 // dosyada derlenen paketin istemcisi yoksa build'i durdurur; production dosyası
 // (`./google-services.json`, yalnız com.tarodan.app) staging paketine UYMAZ, bu
@@ -400,6 +410,7 @@ module.exports = ({ config: baseConfig }) => {
     ...config,
     // Short home-screen name ("Tarodan (Staging)" was cut to "Tarodan(St…" on iPhone).
     name: 'Staging',
+    icon: STAGING_ICON,
     ios: {
       ...stagingIos,
       bundleIdentifier: `${config.ios.bundleIdentifier}${STAGING_SUFFIX}`,
@@ -410,6 +421,7 @@ module.exports = ({ config: baseConfig }) => {
     android: {
       ...config.android,
       package: stagingAndroidPackage,
+      adaptiveIcon: { ...config.android?.adaptiveIcon, ...STAGING_ADAPTIVE_ICON },
       googleServicesFile: resolveStagingGoogleServicesFile({ packageName: stagingAndroidPackage }),
       intentFilters: withStagingHosts(config.android?.intentFilters),
     },

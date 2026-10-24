@@ -133,7 +133,8 @@ branch does not touch `app.json`, `app.config.js`, the manifest or Info.plist.
   `requireFullScreen`, allow all orientations on iPad only
   (`UISupportedInterfaceOrientations~ipad`), keep phones portrait. This branch
   already reacts to runtime size changes, so the remaining work is a landscape
-  eye-test pass.
+  eye-test pass. Done on the follow-up branch `build/app-ipad-multitasking`
+  (store build only; iPhone stays portrait).
 - **Android:** with targetSdk 36, Android 16 ignores `screenOrientation` and
   `resizeableActivity` on displays with smallest width >= 600 dp. Tablets and
   unfolded foldables rotate and resize. The temporary opt-out is the manifest

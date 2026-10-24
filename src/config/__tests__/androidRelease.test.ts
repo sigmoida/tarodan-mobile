@@ -80,8 +80,9 @@ describe('Android paket adı — staging .staging alır, production almaz', () =
   it('versionCode ve diğer Android alanları staging\'de korunur', () => {
     const prod = withEnv('production').android;
     const stg = withEnv('preview').android;
-    const { package: _p, intentFilters: _i, googleServicesFile: _g, ...prodRest } = prod;
-    const { package: _p2, intentFilters: _i2, googleServicesFile: _g2, ...stgRest } = stg;
+    // The staging icon is pinned in __tests__/app.config.test.ts.
+    const { package: _p, intentFilters: _i, googleServicesFile: _g, adaptiveIcon: _a, ...prodRest } = prod;
+    const { package: _p2, intentFilters: _i2, googleServicesFile: _g2, adaptiveIcon: _a2, ...stgRest } = stg;
     expect(stgRest).toEqual(prodRest);
   });
 });

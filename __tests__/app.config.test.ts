@@ -48,14 +48,30 @@ describe('app.config — preview (staging) variant', () => {
     expect(result.android.package).toBe(`${baseConfig.android.package}.staging`);
   });
 
-  it('passes every Android field except package, google-services and intent filters through unchanged', () => {
+  it('passes every Android field except package, adaptive icon, google-services and intent filters through unchanged', () => {
     // No field (permissions, adaptiveIcon, ...) may get lost in the spread. The
     // staging-only differences (package, staging google-services, staging host) are
     // covered in src/config/__tests__/androidRelease.test.ts.
     const result = evaluate('preview');
-    const omit = ({ package: _p, googleServicesFile: _g, intentFilters: _i, ...rest }: any) => rest;
+    const omit = ({ package: _p, adaptiveIcon: _a, googleServicesFile: _g, intentFilters: _i, ...rest }: any) =>
+      rest;
     expect(omit(result.android)).toEqual(omit(baseConfig.android));
     expect(result.android.googleServicesFile).toBe('./google-services.staging.json');
+  });
+
+  it('uses the inverted staging icon on both platforms', () => {
+    const result = evaluate('preview');
+    expect(result.icon).toBe('./assets/icon-staging.png');
+    expect(result.icon).not.toBe(baseConfig.icon);
+    const { foregroundImage, backgroundColor } = result.android.adaptiveIcon;
+    expect(foregroundImage).toBe('./assets/adaptive-icon-staging.png');
+    // A light background behind the orange mark, unlike production's orange one.
+    expect(backgroundColor).not.toBe(baseConfig.android.adaptiveIcon.backgroundColor);
+    const fs = jest.requireActual('fs');
+    const path = jest.requireActual('path');
+    for (const file of [result.icon, result.android.adaptiveIcon.foregroundImage]) {
+      expect(fs.existsSync(path.join(__dirname, '..', file))).toBe(true);
+    }
   });
 
   it('uses the short home-screen name "Staging"', () => {
