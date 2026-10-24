@@ -1,3 +1,5 @@
+import { IS_MAESTRO } from "@/config/maestro";
+
 /**
  * The Sentry `environment` of this build, set explicitly (tarodan-ops
  * `docs/observability.md`: `production` or `staging`, never derived from
@@ -32,4 +34,17 @@ export function sentryEnvironment(
     default:
       return "development";
   }
+}
+
+/**
+ * The environment of the running bundle: the one call of `sentryEnvironment` with
+ * this build's inputs. Sentry init and the Settings build label both read it, so
+ * the screen never shows an environment other than the one errors report under.
+ * The `process.env.EXPO_PUBLIC_*` access stays direct: Metro inlines it at build time.
+ */
+export function buildEnvironment(): SentryEnvironment {
+  return sentryEnvironment(process.env.EXPO_PUBLIC_ENVIRONMENT, {
+    isDev: __DEV__,
+    isE2E: IS_MAESTRO,
+  });
 }

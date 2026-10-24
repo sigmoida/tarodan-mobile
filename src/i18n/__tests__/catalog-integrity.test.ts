@@ -177,6 +177,14 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'status.listingRemoval.platform.sahibinden',
     // Yalnız "{title}: {reason}" şablonu; çevrilecek sözcük yok.
     'profile.expiredListings.failedItem',
+    // Settings build label: only arguments and separators ("{version} ({build})",
+    // "{version} · {update} ({environment})"); the environment names are the EAS /
+    // Sentry environment names testers know, kept in English in both languages.
+    'mobile.appBuildVersion',
+    'mobile.appBuildLabel',
+    'mobile.appBuildLabelWithEnvironment',
+    'mobile.appEnvironmentStaging',
+    'mobile.appEnvironmentDevelopment',
   ]);
 
   /**
