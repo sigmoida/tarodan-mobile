@@ -104,6 +104,20 @@ Components:
 - Tab-root shells (`AppShell`: profile, cart, favourites) keep full width.
 - Any native config change (see below).
 
+## Known limitations (accepted for this branch)
+
+- A list whose column count changes (rotation or fold/unfold across a class
+  boundary) is re-keyed, so it re-mounts at the top: `FlatList` cannot change
+  `numColumns` in place. Within a class nothing re-mounts.
+- Grid columns follow the window width, not the grid's measured width; a grid in
+  a narrower container (the categories pane, a readable-width page) must pass a
+  spec or the page must use `contentWidth="full"`.
+- The floating tab bar row is centred while FABs keep the window's right gutter,
+  so on tablets they no longer share a right edge. To judge in the eye-test.
+- Collection cells now have a fixed width: an odd last card on a phone is half
+  wide (it stretched across the row before). Every other phone layout is
+  unchanged.
+
 ## Native side (decision for the user, not in this branch)
 
 Changing native config changes the fingerprint and needs a store build, so this
