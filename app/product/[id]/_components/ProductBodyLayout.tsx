@@ -53,7 +53,10 @@ export function ProductBodyLayout({
     <>
       <View style={styles.splitRow} testID="product-split-layout">
         <View
-          style={{ width: layout.gallerySide + gutter.paddingHorizontal, paddingLeft: gutter.paddingHorizontal, paddingTop: barInset }}
+          style={[
+            styles.galleryColumn,
+            { width: layout.gallerySide + gutter.paddingHorizontal, paddingLeft: gutter.paddingHorizontal, paddingTop: barInset },
+          ]}
           testID="product-gallery-column"
         >
           {gallery}
@@ -75,6 +78,8 @@ export function ProductBodyLayout({
 const styles = StyleSheet.create({
   body: { padding: spacing[4], gap: spacing[4] },
   splitRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  // The same gap below the gallery (and its thumbnails) as between the page sections.
+  galleryColumn: { paddingBottom: spacing[4] },
   splitInfo: { flex: 1, minWidth: 0 },
   splitBelow: { paddingTop: 0 },
 });

@@ -77,14 +77,16 @@ export function ProductSpecs({ product }: { product: Product }) {
   }
   technicalRows.forEach((r) => technical.push(r));
 
+  // Side by side (tablets) the shorter card stretches to the taller one's height, like web.
+  const cardStyle = split ? styles.fill : undefined;
   const details = (
-    <SectionCard title={t('product.detailsSection')} testID="product-specs">
+    <SectionCard title={t('product.detailsSection')} testID="product-specs" style={cardStyle}>
       <DetailRows rows={info} />
     </SectionCard>
   );
   const technicalCard =
     technical.length > 0 ? (
-      <SectionCard title={t('product.technicalDetails')} testID="product-technical">
+      <SectionCard title={t('product.technicalDetails')} testID="product-technical" style={cardStyle}>
         <DetailRows rows={technical} />
       </SectionCard>
     ) : null;
@@ -110,6 +112,7 @@ const styles = StyleSheet.create({
   divided: { borderTopWidth: 1, borderTopColor: colors.border.DEFAULT },
   label: { flexShrink: 0 },
   value: { flex: 1 },
-  pair: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing[4] },
+  pair: { flexDirection: 'row', alignItems: 'stretch', gap: spacing[4] },
   pairCell: { flex: 1, minWidth: 0 },
+  fill: { flex: 1 },
 });

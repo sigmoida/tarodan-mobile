@@ -8,7 +8,7 @@ import { GlassSurface, Text, theme } from '@/ui';
 import type { ProductImage } from '../_lib/types';
 import { useThumbPager } from '../_hooks/useThumbPager';
 import { ImageThumbStrip } from './ImageThumbStrip';
-import { useGallerySize } from '../_lib/layout';
+import { useGallerySize, useProductDetailLayout } from '../_lib/layout';
 
 const { spacing } = theme;
 
@@ -53,6 +53,8 @@ export function ProductGallery({
 }) {
   const { t } = useTranslation();
   const width = useGallerySize();
+  // Tablet split: the square is inset by the gutter, so the thumbnails line up with its edges.
+  const { split } = useProductDetailLayout();
   const total = images.length;
   const pager = useThumbPager({ width, total, current: currentImage, onPageChange });
 
@@ -134,6 +136,7 @@ export function ProductGallery({
             selectedIndex={currentImage}
             onSelect={pager.scrollToPage}
             viewportWidth={width}
+            edgePadding={split ? 0 : undefined}
             testID="product-gallery"
           />
         </View>

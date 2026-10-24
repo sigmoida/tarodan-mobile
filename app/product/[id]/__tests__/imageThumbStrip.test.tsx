@@ -89,6 +89,10 @@ describe('ImageThumbStrip', () => {
     it('does not scroll when every thumbnail fits', () => {
       expect(centredThumbOffset(2, 3, 390)).toBe(0);
     });
+
+    it('with no edge padding (tablet split) the content starts at the strip edge', () => {
+      expect(centredThumbOffset(14, 15, 390, 0)).toBe(1044 - 32 - 390);
+    });
   });
 
   it('falls back to the detail URL when an image has no card variant', () => {

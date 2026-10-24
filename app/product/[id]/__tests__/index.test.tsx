@@ -646,8 +646,9 @@ describe('Product detail on large screens', () => {
     expect(within(priceRow).getByTestId('product-price')).toBeOnTheScreen();
     expect(within(priceRow).getByTestId('product-counters')).toBeOnTheScreen();
     const specsRow = await screen.findByTestId('product-specs-row');
-    expect(StyleSheet.flatten(specsRow.props.style).flexDirection).toBe('row');
-    expect(within(specsRow).getByTestId('product-specs')).toBeOnTheScreen();
+    expect(StyleSheet.flatten(specsRow.props.style)).toMatchObject({ flexDirection: 'row', alignItems: 'stretch' });
+    // The shorter card stretches to the taller one (like web).
+    expect(StyleSheet.flatten(within(specsRow).getByTestId('product-specs').props.style).flex).toBe(1);
   });
 
   it('phone (390 pt): no price row, the specs cards stacked', async () => {
