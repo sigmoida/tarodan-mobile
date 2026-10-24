@@ -1,10 +1,11 @@
 /**
- * Cart on large screens: the body and the floating checkout bar share the page gutter
- * (src/ui/CLAUDE.md › Large screens); phones keep the 16 pt gutter.
+ * Cart on large screens (`cartLayout`, layout only): phones and medium windows keep one column with
+ * the floating checkout bar at the page gutter; expanded and wider windows put the summary and the
+ * checkout action in a right-hand panel. Amounts and gates are untouched.
  */
 import React from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
-import { screen, waitFor } from '@testing-library/react-native';
+import { screen, waitFor, within } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 import { PAGE_GUTTER, theme } from '@/ui';
 
@@ -50,7 +51,7 @@ const item = {
   addedAt: Date.now(),
 };
 
-describe('cart width', () => {
+describe('cart layout by width (layout only)', () => {
   beforeEach(() => useCartStore.setState({ items: [item], lastUpdated: Date.now(), isLoading: false }));
   afterEach(() => {
     screen.unmount();
@@ -58,17 +59,50 @@ describe('cart width', () => {
     useCartStore.setState({ items: [] });
   });
 
+  const sideOf = (testID: string) => {
+    const flat = StyleSheet.flatten(screen.getByTestId(testID).props.contentContainerStyle);
+    return flat.paddingLeft ?? flat.paddingHorizontal ?? flat.padding;
+  };
+  const checkoutButtonStyle = () => StyleSheet.flatten(screen.getByTestId('cart-checkout-button').props.style);
+
   it.each([
-    [390, PAGE_GUTTER],
-    [820, theme.spacing[6]],
-    [1032, theme.spacing[8]],
-  ])('%d pt: body and checkout bar side %d', async (width, side) => {
-    setWindow(width, 1200);
+    [390, PAGE_GUTTER, false],
+    [820, theme.spacing[6], true],
+  ])('%d pt: one column, floating checkout bar at the page gutter', async (width, side, wide) => {
+    setWindow(width, 1180);
     renderWithProviders(<CartScreen />);
     await waitFor(() => expect(screen.getByTestId('cart-scroll')).toBeTruthy());
-    const body = StyleSheet.flatten(screen.getByTestId('cart-scroll').props.contentContainerStyle);
-    expect(body.paddingLeft ?? body.paddingHorizontal ?? body.padding).toBe(side);
+    expect(screen.queryByTestId('cart-two-column')).toBeNull();
+    expect(screen.queryByTestId('cart-summary-panel')).toBeNull();
+    expect(sideOf('cart-scroll')).toBe(side);
     const bar = StyleSheet.flatten(screen.getByTestId('cart-checkout-bar').props.style);
     expect([bar.left, bar.right]).toEqual([side, side]);
+    // Phones: the button fills the bar; medium: natural width at the right (no stretched button).
+    expect(checkoutButtonStyle().flex).toBe(wide ? undefined : 1);
+    // The summary card sits in the one scroll body.
+    expect(within(screen.getByTestId('cart-scroll')).getByTestId('cart-summary')).toBeTruthy();
+  });
+
+  it.each([1032, 1180])('%d pt: items left, summary + checkout in the right panel, no floating bar', async (width) => {
+    setWindow(width, 1000);
+    renderWithProviders(<CartScreen />);
+    await waitFor(() => expect(screen.getByTestId('cart-two-column')).toBeTruthy());
+    expect(screen.queryByTestId('cart-checkout-bar')).toBeNull();
+    const items = within(screen.getByTestId('cart-scroll'));
+    const panel = within(screen.getByTestId('cart-summary-panel'));
+    expect(items.getByText('Hot Wheels Mustang')).toBeTruthy();
+    expect(items.queryByTestId('cart-summary')).toBeNull();
+    expect(panel.getByTestId('cart-summary')).toBeTruthy();
+    expect(panel.getByTestId('cart-checkout-button')).toBeTruthy();
+    expect(panel.getByTestId('cart-checkout-total')).toBeTruthy();
+    // One checkout action, with the same gate (the quote is pending: no total yet -> disabled).
+    expect(screen.getAllByTestId('cart-checkout-button')).toHaveLength(1);
+    expect(screen.getByTestId('cart-checkout-button')).toBeDisabled();
+    // Items take ~62% of the row; both columns sit at the expanded gutter.
+    const itemsFlex = StyleSheet.flatten(screen.getByTestId('cart-scroll').props.style).flex;
+    const panelFlex = StyleSheet.flatten(screen.getByTestId('cart-summary-panel').props.style).flex;
+    expect(itemsFlex / (itemsFlex + panelFlex)).toBeCloseTo(0.62);
+    expect(sideOf('cart-scroll')).toBe(theme.spacing[8]);
+    expect(sideOf('cart-summary-panel')).toBe(theme.spacing[8]);
   });
 });
