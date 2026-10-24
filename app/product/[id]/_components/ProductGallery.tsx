@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
-import { FlatList, Pressable, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
 import { AppImage } from '@/components/AppImage';
@@ -8,6 +8,7 @@ import { GlassSurface, Text, theme } from '@/ui';
 import type { ProductImage } from '../_lib/types';
 import { useThumbPager } from '../_hooks/useThumbPager';
 import { ImageThumbStrip } from './ImageThumbStrip';
+import { useGallerySize } from '../_lib/layout';
 
 const { spacing } = theme;
 
@@ -26,7 +27,8 @@ function neighborImageUrls(images: ProductImage[], current: number): string[] {
 }
 
 /**
- * Paged horizontal image gallery: an edge-to-edge SQUARE (window width) that runs up under the status
+ * Paged horizontal image gallery: an edge-to-edge SQUARE (window width on phones; capped and centred,
+ * or beside the info column, on tablets: `useGallerySize`) that runs up under the status
  * bar (no shell or top bar above it; the floating islands sit over the photo so Liquid Glass has a
  * photo to show), followed by the thumbnail strip. `cover` fills the square like the web gallery,
  * with no side gaps; the full photo is in the viewer opened by tapping the image. The page counter is
@@ -50,7 +52,7 @@ export function ProductGallery({
   onOpenViewer: (index: number) => void;
 }) {
   const { t } = useTranslation();
-  const { width } = useWindowDimensions();
+  const width = useGallerySize();
   const total = images.length;
   const pager = useThumbPager({ width, total, current: currentImage, onPageChange });
 
@@ -93,7 +95,7 @@ export function ProductGallery({
   );
 
   return (
-    <View>
+    <View style={[styles.root, { width }]}>
       <View style={{ width, aspectRatio: 1 }}>
         <FlatList
           data={images}
@@ -140,6 +142,8 @@ export function ProductGallery({
 }
 
 const styles = StyleSheet.create({
+  // Centred when the square is narrower than the screen (medium windows).
+  root: { alignSelf: 'center' },
   indicatorsWrap: {
     position: 'absolute',
     left: 0,

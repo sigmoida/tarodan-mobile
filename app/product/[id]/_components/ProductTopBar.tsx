@@ -2,9 +2,9 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { SCROLL_EDGE_FULL_AT, ScrollEdge, theme, useHeaderTopInset } from '@/ui';
+import { ScrollEdge, theme, useHeaderTopInset } from '@/ui';
 import { FloatingIconButton } from './FloatingIconButton';
-import { useGallerySize } from '../_lib/layout';
+import { topBarEdgeShift, useProductDetailLayout } from '../_lib/layout';
 
 const { spacing, headerHeight, headerBottomPad } = theme;
 
@@ -28,10 +28,10 @@ export function ProductTopBar({
   const { t } = useTranslation();
   const topInset = useHeaderTopInset();
   const barHeight = topInset + headerHeight + headerBottomPad;
-  const gallerySize = useGallerySize();
-  // Kenar, galerinin altı barın altına ulaştığında TAM opak: kaydırma ofsetini o noktaya kaydır.
-  const fullAt = gallerySize - barHeight;
-  const edgeY = useDerivedValue(() => scrollY.value - (fullAt - SCROLL_EDGE_FULL_AT));
+  // Galeri üstteyse kenar, galerinin altı barın altına ulaştığında TAM opak; galeri yandaysa (tablet)
+  // bilgi sütunu bar altından başlar ve kenar 0'dan izler (`topBarEdgeShift`).
+  const shift = topBarEdgeShift(useProductDetailLayout(), barHeight);
+  const edgeY = useDerivedValue(() => scrollY.value - shift);
 
   return (
     <View style={[styles.root, { paddingTop: topInset }]} pointerEvents="box-none">

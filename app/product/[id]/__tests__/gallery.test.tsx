@@ -74,6 +74,24 @@ describe('ProductGallery', () => {
     expect(onOpenViewer).toHaveBeenCalledWith(0);
   });
 
+  describe('on a tablet (iPad Air 11" portrait, 820 pt)', () => {
+    const setWindow = (width: number, height: number) =>
+      Dimensions.set({
+        window: { width, height, scale: 2, fontScale: 2 },
+        screen: { width, height, scale: 2, fontScale: 2 },
+      });
+    afterEach(() => setWindow(375, 667));
+
+    it('pages by the capped square (480 pt), not the window width', () => {
+      setWindow(820, 1180);
+      const { onPageChange } = setup({ currentImage: 0 });
+      fireEvent.scroll(screen.UNSAFE_getAllByType(FlatList)[0]!, {
+        nativeEvent: { contentOffset: { x: 480 * 2, y: 0 } },
+      });
+      expect(onPageChange).toHaveBeenCalledWith(2);
+    });
+  });
+
   describe('thumbnail strip', () => {
     it('shows a thumbnail per image under the main image, the current one selected', () => {
       setup({ currentImage: 0 });
