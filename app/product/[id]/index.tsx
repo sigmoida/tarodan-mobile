@@ -226,50 +226,50 @@ function ProductDetail({ productId }: { productId: string }) {
                 onOpenViewer={openViewer}
               />
             }
-            primary={
-              <>
-                <ProductTitleBlock
-                  product={product}
-                  price={price}
-                  favoriteCount={favorite.favoriteCount}
-                  tradeBadge={availability.tradeBadge}
-                />
-                {ready ? (
-                  <>
-                    <ProductDescription product={product} />
-                    <ProductSecondaryActions
-                      product={product}
-                      isOwner={isOwner}
-                      inCart={actions.inCart}
-                      quantity={actions.quantity}
-                      onQuantity={actions.setQuantity}
-                      onAddToCollection={actions.handleAddToCollection}
-                    />
-                    <SellerCard
-                      seller={product.seller}
-                      isOwner={isOwner}
-                      onPressSeller={() => router.push(`/seller/${product.seller?.id}`)}
-                      onMessage={actions.handleMessage}
-                    />
-                  </>
-                ) : (
-                  <ProductSectionsSkeleton testID="product-sections-skeleton" />
-                )}
-              </>
+            head={
+              <ProductTitleBlock
+                product={product}
+                price={price}
+                favoriteCount={favorite.favoriteCount}
+                tradeBadge={availability.tradeBadge}
+              />
             }
-            details={
-              ready && sectionsReady ? (
+            description={ready ? <ProductDescription product={product} /> : null}
+            rest={
+              ready ? (
                 <>
-                  <ProductSpecs product={product} />
-                  <ProductReviewsPreview reviews={reviews} onSeeAll={openReviews} />
+                  <ProductSecondaryActions
+                    product={product}
+                    isOwner={isOwner}
+                    inCart={actions.inCart}
+                    quantity={actions.quantity}
+                    onQuantity={actions.setQuantity}
+                    onAddToCollection={actions.handleAddToCollection}
+                  />
+                  <SellerCard
+                    seller={product.seller}
+                    isOwner={isOwner}
+                    onPressSeller={() => router.push(`/seller/${product.seller?.id}`)}
+                    onMessage={actions.handleMessage}
+                  />
                 </>
+              ) : (
+                <ProductSectionsSkeleton testID="product-sections-skeleton" />
+              )
+            }
+            specs={
+              ready && sectionsReady ? (
+                <ProductSpecs product={product} />
               ) : ready ? (
                 <ProductSectionsSkeleton count={1} testID="product-deferred-skeleton" />
               ) : null
             }
             below={
               ready && sectionsReady ? (
-                <SimilarProductsCard title={t('product.similarProducts')} items={similar} />
+                <>
+                  <ProductReviewsPreview reviews={reviews} onSeeAll={openReviews} />
+                  <SimilarProductsCard title={t('product.similarProducts')} items={similar} />
+                </>
               ) : null
             }
           />

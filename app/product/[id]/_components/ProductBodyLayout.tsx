@@ -8,21 +8,25 @@ const { spacing } = theme;
 /**
  * Arranges the product detail body by window width (`useProductDetailLayout`):
  *
- * - gallery above (phones): gallery, then one padded column with `primary`
- *   (title, price, description, actions, seller), `details` (specs, reviews) and `below` (similar
- *   listings); the same order as before the large-screen layout.
- * - split (medium and wider windows): two balanced columns. Left: the gallery with `details` under
- *   it; right: `primary` (starts under the floating top bar). Then `below` across the full width.
+ * - gallery above (phones): gallery, then one padded column: `head` (title, price), `description`,
+ *   `rest` (actions, seller), `specs`, `below` (reviews, similar listings); the phone order.
+ * - split (medium and wider windows): the gallery (starting under the floating top bar) beside a
+ *   column with `head` and `rest`; under them `description` and `specs` side by side; then `below`
+ *   across the full width.
  */
 export function ProductBodyLayout({
   gallery,
-  primary,
-  details,
+  head,
+  description,
+  rest,
+  specs,
   below,
 }: {
   gallery: React.ReactNode;
-  primary: React.ReactNode;
-  details?: React.ReactNode;
+  head: React.ReactNode;
+  description?: React.ReactNode;
+  rest?: React.ReactNode;
+  specs?: React.ReactNode;
   below?: React.ReactNode;
 }) {
   const layout = useProductDetailLayout();
@@ -35,8 +39,10 @@ export function ProductBodyLayout({
       <>
         {gallery}
         <View style={[styles.body, gutter]}>
-          {primary}
-          {details}
+          {head}
+          {description}
+          {rest}
+          {specs}
           {below}
         </View>
       </>
@@ -46,15 +52,23 @@ export function ProductBodyLayout({
   return (
     <>
       <View style={styles.splitRow} testID="product-split-layout">
-        <View style={{ width: layout.gallerySide }} testID="product-gallery-column">
+        <View style={{ width: layout.gallerySide, paddingTop: barInset }} testID="product-gallery-column">
           {gallery}
-          {details ? <View style={[styles.body, gutter]}>{details}</View> : null}
         </View>
         <View style={[styles.body, gutter, styles.splitInfo, { paddingTop: barInset }]} testID="product-info-column">
-          {primary}
+          {head}
+          {rest}
         </View>
       </View>
-      {below ? <View style={[styles.body, gutter, styles.splitBelow]}>{below}</View> : null}
+      <View style={[styles.body, gutter, styles.splitBelow]} testID="product-below">
+        {description || specs ? (
+          <View style={styles.pairRow} testID="product-description-specs-row">
+            {description ? <View style={styles.pairCell}>{description}</View> : null}
+            {specs ? <View style={styles.pairCell}>{specs}</View> : null}
+          </View>
+        ) : null}
+        {below}
+      </View>
     </>
   );
 }
@@ -64,4 +78,6 @@ const styles = StyleSheet.create({
   splitRow: { flexDirection: 'row', alignItems: 'flex-start' },
   splitInfo: { flex: 1, minWidth: 0 },
   splitBelow: { paddingTop: 0 },
+  pairRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing[4] },
+  pairCell: { flex: 1, minWidth: 0 },
 });

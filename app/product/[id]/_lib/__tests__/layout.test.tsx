@@ -58,52 +58,51 @@ describe('ProductBodyLayout', () => {
     while (node && StyleSheet.flatten(node.props.style)?.padding === undefined) node = node.parent;
     return node;
   };
+  const inside = (text: string, testID: string) => {
+    const target = screen.getByTestId(testID);
+    let node = screen.getByText(text).parent;
+    while (node && node !== target) node = node.parent;
+    return node === target;
+  };
   const tree = (
     <ProductBodyLayout
       gallery={<Text>gallery</Text>}
-      primary={<Text>primary</Text>}
-      details={<Text>details</Text>}
+      head={<Text>head</Text>}
+      description={<Text>description</Text>}
+      rest={<Text>rest</Text>}
+      specs={<Text>specs</Text>}
       below={<Text>below</Text>}
     />
   );
 
-  it('phone (390 pt): gallery, then one column with primary, details and below in that order', () => {
+  it('phone (390 pt): gallery, then one column in the phone order', () => {
     setWindow(390, 844);
     render(tree);
     expect(screen.queryByTestId('product-split-layout')).toBeNull();
-    expect(columnOf('primary')).toBe(columnOf('details'));
-    expect(columnOf('primary')).toBe(columnOf('below'));
-  });
-
-  it('iPad 13": gallery + details on the left, primary on the right under the top bar; below full width', () => {
-    setWindow(1032, 1376);
-    render(tree);
-    const row = screen.getByTestId('product-split-layout');
-    expect(StyleSheet.flatten(row.props.style).flexDirection).toBe('row');
-    const info = screen.getByTestId('product-info-column');
-    expect(StyleSheet.flatten(info.props.style).paddingTop).toBeGreaterThan(0);
-    expect(columnOf('primary')).toBe(info);
-    const galleryCol = screen.getByTestId('product-gallery-column');
-    expect(screen.getByText('details')).toBeOnTheScreen();
-    // details sit in the gallery column (left), not in the info column, nor below the row
-    let n = screen.getByText('details').parent;
-    while (n && n !== galleryCol && n !== info) n = n.parent;
-    expect(n).toBe(galleryCol);
-    expect(columnOf('below')).not.toBe(info);
-    const galleryColumn = StyleSheet.flatten(row.children[0]!.props.style);
-    expect(galleryColumn.width).toBe(464);
+    const column = columnOf('head');
+    for (const block of ['description', 'rest', 'specs', 'below']) expect(columnOf(block)).toBe(column);
   });
 
   it.each([
     [820, 369, 24],
     [1180, 531, 32],
-  ])('iPad %d pt: split, gallery %d pt wide, text columns at the %d pt gutter', (w, side, gutter) => {
+  ])('iPad %d pt: gallery under the top bar beside head + rest; description and specs side by side; below full width', (w, side, gutter) => {
     setWindow(w, 1000);
     render(tree);
-    const row = screen.getByTestId('product-split-layout');
-    expect(StyleSheet.flatten(row.children[0]!.props.style).width).toBe(side);
-    expect(StyleSheet.flatten(screen.getByTestId('product-info-column').props.style).paddingHorizontal).toBe(gutter);
-    expect(StyleSheet.flatten(columnOf('details')!.props.style).paddingHorizontal).toBe(gutter);
-    expect(StyleSheet.flatten(columnOf('below')!.props.style).paddingHorizontal).toBe(gutter);
+    const galleryColumn = StyleSheet.flatten(screen.getByTestId('product-gallery-column').props.style);
+    expect(galleryColumn.width).toBe(side);
+    expect(galleryColumn.paddingTop).toBeGreaterThan(0);
+    const info = screen.getByTestId('product-info-column');
+    expect(StyleSheet.flatten(info.props.style).paddingTop).toBe(galleryColumn.paddingTop);
+    expect(StyleSheet.flatten(info.props.style).paddingHorizontal).toBe(gutter);
+    expect(inside('head', 'product-info-column')).toBe(true);
+    expect(inside('rest', 'product-info-column')).toBe(true);
+    const pair = screen.getByTestId('product-description-specs-row');
+    expect(StyleSheet.flatten(pair.props.style).flexDirection).toBe('row');
+    expect(inside('description', 'product-description-specs-row')).toBe(true);
+    expect(inside('specs', 'product-description-specs-row')).toBe(true);
+    expect(inside('below', 'product-description-specs-row')).toBe(false);
+    expect(inside('below', 'product-below')).toBe(true);
+    expect(StyleSheet.flatten(screen.getByTestId('product-below').props.style).paddingHorizontal).toBe(gutter);
   });
 });

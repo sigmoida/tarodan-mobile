@@ -19,7 +19,9 @@ export function ProductSkeleton() {
   const gutter = { paddingHorizontal: usePageGutter() };
   return (
     <View testID="product-skeleton" style={layout.split ? styles.splitRow : undefined}>
-      <Skeleton width={layout.gallerySide} style={styles.square} borderRadius={0} />
+      <View style={layout.split ? { paddingTop: barInset } : undefined}>
+        <Skeleton width={layout.gallerySide} style={styles.square} borderRadius={0} />
+      </View>
       <View style={layout.split ? [styles.body, gutter, styles.splitInfo, { paddingTop: barInset }] : [styles.body, gutter]}>
         <Skeleton height={spacing[8]} width="75%" />
         <Skeleton height={spacing[6]} width="50%" />
