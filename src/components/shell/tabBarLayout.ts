@@ -23,6 +23,18 @@ export const TAB_PILL_HEIGHT = TAB_SELL_SIZE;
 export const TAB_SELL_GAP = spacing[3];
 /** Hap ile ekranın yan kenarları arasındaki boşluk: sağ alt FAB'ın sağ kenar boşluğuyla aynı (@/ui). */
 export const TAB_PILL_SIDE_GAP = FLOATING_SIDE_GAP;
+/**
+ * Widest the floating row (pill + "+") gets (pt). On tablets and unfolded foldables the row is
+ * centred at this width instead of stretching four tabs across the window; every phone is narrower
+ * (row = window - 2 x side gap), so phones are unchanged.
+ */
+export const TAB_BAR_MAX_WIDTH = 480;
+
+/** Width of the floating row (pill + gap + "+") in a `windowWidth`-wide window. */
+export function tabBarRowWidth(windowWidth: number): number {
+  return Math.max(0, Math.min(windowWidth - 2 * TAB_PILL_SIDE_GAP, TAB_BAR_MAX_WIDTH));
+}
+
 /** İçeriğin hapın üstünde bırakacağı nefes payı. */
 const CONTENT_GAP = spacing[4];
 

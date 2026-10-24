@@ -1,10 +1,10 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { AppTabBar } from '../AppTabBar';
 import { TabBarCollapseProvider, useTabBarCollapsed } from '../TabBarCollapse';
 import { theme } from '@/ui';
-import { tabPillBottomOffset, TAB_PILL_HEIGHT } from '../tabBarLayout';
+import { tabBarRowWidth, tabPillBottomOffset, TAB_BAR_MAX_WIDTH, TAB_PILL_HEIGHT, TAB_PILL_SIDE_GAP } from '../tabBarLayout';
 
 jest.mock('../useShellCounts', () => ({
   useShellCounts: () => ({ cartCount: 4, notificationCount: 5, messageCount: 3 }),
@@ -275,5 +275,33 @@ describe('AppTabBar — yüzen hap', () => {
     expect(tabPillBottomOffset(24, 'android')).toBe(16);
     expect(tabPillBottomOffset(0, 'android')).toBe(12);
     expect(TAB_PILL_HEIGHT).toBe(64);
+  });
+});
+
+describe('AppTabBar on large screens', () => {
+  const setWindow = (width: number, height: number) =>
+    Dimensions.set({
+      window: { width, height, scale: 2, fontScale: 2 },
+      screen: { width, height, scale: 2, fontScale: 2 },
+    });
+  afterEach(() => setWindow(375, 667));
+
+  it('tabBarRowWidth: window minus the side gaps on phones, capped on wide windows', () => {
+    for (const w of [320, 375, 390, 430, 466]) expect(tabBarRowWidth(w)).toBe(w - 2 * TAB_PILL_SIDE_GAP);
+    expect(tabBarRowWidth(626)).toBe(TAB_BAR_MAX_WIDTH);
+    expect(tabBarRowWidth(1032)).toBe(TAB_BAR_MAX_WIDTH);
+    expect(tabBarRowWidth(0)).toBe(0);
+  });
+
+  it.each([
+    [390, TAB_PILL_SIDE_GAP],
+    [820, (820 - TAB_BAR_MAX_WIDTH) / 2],
+    [1032, (1032 - TAB_BAR_MAX_WIDTH) / 2],
+  ])('window %d pt: the row is inset %d pt on both sides', (width, inset) => {
+    setWindow(width, 1000);
+    render(tree(0, jest.fn()));
+    const style = StyleSheet.flatten(screen.getByTestId('app-tab-bar').props.style);
+    expect(style.left).toBe(inset);
+    expect(style.right).toBe(inset);
   });
 });
