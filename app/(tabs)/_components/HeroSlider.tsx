@@ -1,5 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, ScrollView, type LayoutChangeEvent, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native';
+import {
+  View,
+  ScrollView,
+  useWindowDimensions,
+  type LayoutChangeEvent,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
+} from 'react-native';
 import { Image } from 'expo-image';
 import { Button, Text } from '@/ui';
 import { heroApi, type HeroSlide } from '@/lib/api';
@@ -8,6 +15,7 @@ import { useAdImpression } from '@/lib/ads/useAdImpression';
 import { useScreenActive } from '@/lib/ads/useScreenActive';
 import { heroImageUrl, pickLocalized, resolveHeroCta } from '@/lib/hero/heroView';
 import { heroStyles as s } from '../_lib/heroStyles';
+import { heroImageSize, isHeroSplit } from '../_lib/heroLayout';
 
 const AUTOPLAY_MS = 10_000;
 
@@ -19,10 +27,13 @@ const HeroSlideItem = React.memo(function HeroSlideItem({
   width,
   isCurrent,
   visible,
+  split,
 }: {
   slide: HeroSlide;
   locale: string;
   width: number;
+  /** Tablet: image beside the text (web `md`); phone: image on top. */
+  split: boolean;
   isCurrent: boolean;
   /** Hero görünür alanda mı (sayfa kaydırılıp uzaklaşınca gösterim sayılmaz). */
   visible: boolean;
@@ -42,19 +53,26 @@ const HeroSlideItem = React.memo(function HeroSlideItem({
     { index: 2 as const, cta: resolveHeroCta(slide.cta2, locale) },
   ];
 
+  // Telefonda görsel her zaman üstte, metin altta; tablette (web `md`) yan yana, taraf `imageSide`.
+  const image = (
+    <Image
+      source={{ uri: heroImageUrl(slide, { wide: split }) }}
+      style={split ? [s.splitImage, { width: heroImageSize(width, true).width }] : s.image}
+      contentFit="cover"
+      transition={200}
+      accessibilityLabel={alt}
+      testID={`hero-image-${slide.id}`}
+      onLoad={() => setLoaded(true)}
+    />
+  );
+
   return (
-    <View style={{ width }} testID={`hero-slide-${slide.id}`}>
-      {/* Telefonda görsel her zaman üstte, metin altta (`imageSide` yalnız tablet yatay için). */}
-      <Image
-        source={{ uri: heroImageUrl(slide) }}
-        style={s.image}
-        contentFit="cover"
-        transition={200}
-        accessibilityLabel={alt}
-        testID={`hero-image-${slide.id}`}
-        onLoad={() => setLoaded(true)}
-      />
-      <View style={s.body}>
+    <View
+      style={[{ width }, split && s.splitRow, split && slide.imageSide === 'right' && s.splitRowImageRight]}
+      testID={`hero-slide-${slide.id}`}
+    >
+      {image}
+      <View style={split ? [s.body, s.splitBody] : s.body}>
         <Text variant="h2" tone="heading" accessibilityRole="header" style={s.title}>
           {title}
         </Text>
@@ -99,6 +117,8 @@ export function HeroSlider({
 }) {
   // Sekme odakta değilken ya da uygulama arka plandayken de ilerleme durur.
   const screenActive = useScreenActive();
+  // Window class decides the slide layout (same rule as the reserved height, `heroReservedHeight`).
+  const split = isHeroSplit(useWindowDimensions().width);
   const autoplay = screenActive && visible;
   const [width, setWidth] = useState(0);
   const [current, setCurrent] = useState(0);
@@ -171,6 +191,7 @@ export function HeroSlider({
               width={width}
               isCurrent={i === index}
               visible={visible}
+              split={split}
             />
           ))}
       </ScrollView>

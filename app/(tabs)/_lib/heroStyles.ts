@@ -1,6 +1,13 @@
 import { StyleSheet } from 'react-native';
 import { theme } from '@/ui';
-import { HERO_BODY_MIN_HEIGHT, HERO_BORDER_WIDTH, HERO_DOTS_HEIGHT, HERO_IMAGE_RATIO, HERO_MARGIN_X } from './heroLayout';
+import {
+  HERO_BODY_MIN_HEIGHT,
+  HERO_BORDER_WIDTH,
+  HERO_DOTS_HEIGHT,
+  HERO_IMAGE_RATIO,
+  HERO_MARGIN_X,
+  HERO_SPLIT_IMAGE_RATIO,
+} from './heroLayout';
 import { HOME_SECTION_GAP } from './homeLayout';
 
 /** Hero kabuğunun dış boşluğu: üst bardan ve yanlardan bölümlerle aynı; alttaki boşluğu bölümler verir. */
@@ -26,6 +33,11 @@ export const heroStyles = StyleSheet.create({
   },
   image: { width: '100%', aspectRatio: HERO_IMAGE_RATIO, backgroundColor: colors.surface.alt },
   body: { padding: spacing[4], gap: spacing[2], minHeight: HERO_BODY_MIN_HEIGHT },
+  // Tablet: image beside the text (`imageSide`), text centred vertically next to it.
+  splitRow: { flexDirection: 'row', alignItems: 'center' },
+  splitRowImageRight: { flexDirection: 'row-reverse' },
+  splitImage: { aspectRatio: HERO_SPLIT_IMAGE_RATIO, backgroundColor: colors.surface.alt },
+  splitBody: { flex: 1, justifyContent: 'center' },
   title: { textAlign: 'left' },
   buttons: { gap: spacing[2], marginTop: spacing[2] },
   dots: {

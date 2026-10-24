@@ -5,7 +5,12 @@ import {
   HERO_DOTS_HEIGHT,
   HERO_IMAGE_RATIO,
   HERO_MARGIN_X,
+  HERO_SPLIT_IMAGE_MAX_WIDTH,
+  HERO_SPLIT_IMAGE_RATIO,
+  heroImageSize,
+  heroInnerWidth,
   heroReservedHeight,
+  isHeroSplit,
 } from '../heroLayout';
 import { heroStyles } from '../heroStyles';
 import { homeStyles } from '../homeStyles';
@@ -27,6 +32,42 @@ describe('heroReservedHeight', () => {
 
   it('negatif/çok dar genişlikte taşmaz', () => {
     expect(heroReservedHeight(0)).toBeGreaterThan(0);
+  });
+});
+
+describe('hero on large screens', () => {
+  it('phones (and the foldable outer display) keep the stacked layout', () => {
+    for (const w of [320, 390, 430, 466, 599]) expect(isHeroSplit(w)).toBe(false);
+  });
+
+  it('medium and wider windows put the image beside the text', () => {
+    for (const w of [600, 626, 820, 1032, 1280]) expect(isHeroSplit(w)).toBe(true);
+  });
+
+  it.each([
+    [626, 890],
+    [820, 1180],
+    [1032, 1376],
+  ])('%d pt: half-width 4:3 image (capped), height well under half the window (%d)', (width, height) => {
+    const inner = heroInnerWidth(width);
+    const image = heroImageSize(inner, true);
+    expect(image.width).toBe(Math.min(inner / 2, HERO_SPLIT_IMAGE_MAX_WIDTH));
+    expect(image.height).toBeCloseTo(image.width / HERO_SPLIT_IMAGE_RATIO, 5);
+    const reserved = heroReservedHeight(width);
+    expect(reserved).toBeCloseTo(
+      2 * HERO_BORDER_WIDTH + Math.max(image.height, HERO_BODY_MIN_HEIGHT) + HERO_DOTS_HEIGHT,
+      5,
+    );
+    expect(reserved / height).toBeLessThan(0.33);
+  });
+
+  it('the split image never exceeds the cap (iPad 13", landscape tablets)', () => {
+    expect(heroImageSize(heroInnerWidth(1032), true).width).toBe(HERO_SPLIT_IMAGE_MAX_WIDTH);
+    expect(heroImageSize(heroInnerWidth(1280), true).height).toBe(HERO_SPLIT_IMAGE_MAX_WIDTH / HERO_SPLIT_IMAGE_RATIO);
+  });
+
+  it('stacked size = the phone formula', () => {
+    expect(heroImageSize(358, false)).toEqual({ width: 358, height: 358 / HERO_IMAGE_RATIO });
   });
 });
 
