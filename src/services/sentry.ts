@@ -1,12 +1,13 @@
 /**
- * Sentry sarmalayıcısı (mobil) — gerçek @sentry/react-native.
- * Expo Go'da native module yüklenemez; runtime guard ile no-op kalır.
- * DSN yoksa da no-op.
+ * Sentry wrapper (mobile) around the real @sentry/react-native.
+ * The native module cannot load in Expo Go, so a runtime guard keeps it a no-op there.
+ * It is also a no-op without a DSN.
  */
 import Constants from "expo-constants";
 import * as Sentry from "@sentry/react-native";
 import { IS_MAESTRO } from "@/config/maestro";
 import { sentryEnvironment } from "./sentryEnvironment";
+import { tracesSampleRate } from "./sentrySampling";
 import { scrubBreadcrumb, scrubEvent, sentryUser } from "./sentryScrub";
 
 export type SeverityLevel = "fatal" | "error" | "warning" | "info" | "debug";
@@ -31,31 +32,33 @@ const enabled = !isExpoGo && Boolean(dsn);
 let initialized = false;
 
 /**
- * Uygulama açılışında bir kere çağrılır (app/_layout.tsx içinden).
- * Expo Go'da veya DSN yoksa no-op.
+ * Called once at app start (from app/_layout.tsx).
+ * No-op in Expo Go or without a DSN.
  */
 export function initSentry(): void {
   if (!enabled || initialized) return;
   initialized = true;
+  // `preview` (every staging build and OTA) reports as `staging`; `__DEV__` and Maestro
+  // E2E bundles as `development`; see ./sentryEnvironment.
+  // The `process.env.EXPO_PUBLIC_*` access stays direct: Metro inlines it at build time.
+  const environment = sentryEnvironment(process.env.EXPO_PUBLIC_ENVIRONMENT, {
+    isDev: __DEV__,
+    isE2E: IS_MAESTRO,
+  });
   Sentry.init({
     dsn,
-    // `preview` (every staging build and OTA) reports as `staging`; `__DEV__` and Maestro
-    // E2E bundles as `development`; see ./sentryEnvironment.
-    // The `process.env.EXPO_PUBLIC_*` access stays direct: Metro inlines it at build time.
-    environment: sentryEnvironment(process.env.EXPO_PUBLIC_ENVIRONMENT, {
-      isDev: __DEV__,
-      isE2E: IS_MAESTRO,
-    }),
-    tracesSampleRate: 0.1,
+    environment,
+    // Traces are sampled per environment (production 0.1, staging 0.02, development 0).
+    tracesSampleRate: tracesSampleRate(environment),
     enableNative: true,
-    // IP / çerez / istek gövdesi gibi varsayılan kişisel veriler SDK tarafından eklenmez.
+    // The SDK adds no default personal data such as IP, cookies or request bodies.
     sendDefaultPii: false,
-    // Kişisel veri ve sırlar kayıt sunucusuna GİTMEZ. Axios hataları `config.data`
-    // alanında serileştirilmiş istek gövdesini taşıyor (telefon, adres, IBAN,
-    // şifre); SDK bunları olaya kopyalıyordu. Ayrıca: oturum / ödeme belirteçleri,
-    // OTP ve 2FA sırları, adres sorgusundaki belirteçler (http + navigasyon
-    // breadcrumb'ları, işlem span'ları) ve kullanıcının e-postası (yalnız id gider).
-    // Teşhis alanları (requestId, status, url, i18nKey) korunur — bkz. `./sentryScrub`.
+    // Personal data and secrets never reach Sentry. Axios errors carry the serialized
+    // request body in `config.data` (phone, address, IBAN, password) and the SDK copied
+    // it into the event. Also scrubbed: session / payment tokens, OTP and 2FA secrets,
+    // tokens in address queries (http + navigation breadcrumbs, transaction spans) and
+    // the user's email (only the id is sent). Diagnostic fields (requestId, status, url,
+    // i18nKey) are kept; see `./sentryScrub`.
     beforeSend: (event) => scrubEvent(event),
     beforeSendTransaction: (event) => scrubEvent(event),
     beforeBreadcrumb: (breadcrumb) => scrubBreadcrumb(breadcrumb),
