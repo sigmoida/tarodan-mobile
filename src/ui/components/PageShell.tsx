@@ -54,8 +54,8 @@ export interface PageShellProps
    * Body width on large screens (no-op on phones). `readable` (default in `scroll` mode: forms,
    * settings, detail pages) centres the body at `theme.contentWidths.readable` (672 pt); `full`
    * (default in `list` / `static`, whose child brings its own list) spans the window. A `scroll`
-   * page whose body is a card grid passes `full`. The `footer` bar is always centred at the
-   * readable width.
+   * page whose body is a card grid passes `full`. In `list` mode the child owns its width, so
+   * `readable` has no effect there. The `footer` bar is always centred at the readable width.
    */
   contentWidth?: PageShellContentWidth;
   children?: React.ReactNode;
@@ -154,7 +154,11 @@ export const PageShell: React.FC<PageShellProps> = ({
   const pad = padding === false ? 0 : spacing[padding];
   const { width: windowWidth } = useWindowDimensions();
   // Large screens: side padding that centres the body at the readable width (phones: `pad` itself).
-  const sidePad = contentWidth === 'readable' && mode !== 'list' ? readableGutter(windowWidth, pad) : pad;
+  const readable = contentWidth === 'readable' && mode !== 'list';
+  const sidePad = readable ? readableGutter(windowWidth, pad) : pad;
+  // The default skeleton takes the same width as the body it stands for (no jump when data arrives).
+  const skeletonPad = pad || PAGE_GUTTER;
+  const skeletonSidePad = readable ? readableGutter(windowWidth, skeletonPad) : skeletonPad;
   const keyboard = useKeyboardAvoid(keyboardAware);
 
   // Özel `header` akışta çizilir (ör. sohbet: opak, floating={false}); `false` = bar yok; aksi halde YÜZEN bar.
@@ -208,7 +212,7 @@ export const PageShell: React.FC<PageShellProps> = ({
       (loadingVariant === 'spinner' ? (
         <ScreenLoader />
       ) : (
-        <View style={[styles.skeleton, { padding: pad || PAGE_GUTTER }]} testID="page-shell-skeleton">
+        <View style={[styles.skeleton, { padding: skeletonPad, paddingHorizontal: skeletonSidePad }]} testID="page-shell-skeleton">
           <SkeletonText lines={2} />
           <SkeletonText lines={3} />
           <SkeletonText lines={3} />

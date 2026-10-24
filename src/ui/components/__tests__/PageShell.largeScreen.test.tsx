@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { Dimensions, ScrollView, StyleSheet } from 'react-native';
-import { render, screen } from '@testing-library/react-native';
+import { act, render, screen } from '@testing-library/react-native';
 import { PageShell, RawText, theme } from '@/ui';
 
 const setWindow = (width: number, height: number) =>
@@ -84,6 +84,20 @@ describe('PageShell content width', () => {
       </PageShell>,
     );
     expect(staticBody().paddingHorizontal).toBe((1032 - theme.contentWidths.readable) / 2);
+  });
+
+  it('tablet: the default loading skeleton takes the readable width too (no jump)', () => {
+    jest.useFakeTimers();
+    setWindow(1032, 1376);
+    render(
+      <PageShell title="Form" loading>
+        <RawText>body</RawText>
+      </PageShell>,
+    );
+    act(() => void jest.advanceTimersByTime(theme.loading.delayMs + 10));
+    const style = StyleSheet.flatten(screen.getByTestId('page-shell-skeleton').props.style);
+    expect(style.paddingHorizontal).toBe((1032 - theme.contentWidths.readable) / 2);
+    jest.useRealTimers();
   });
 
   it('the footer content is capped at the readable width and centred', () => {
