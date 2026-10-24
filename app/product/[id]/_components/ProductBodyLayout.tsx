@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { theme, useHeaderBarInset, usePageGutter } from '@/ui';
-import { useProductDetailLayout } from '../_lib/layout';
+import { SPLIT_COLUMN_GAP, useProductDetailLayout } from '../_lib/layout';
 
 const { spacing } = theme;
 
@@ -10,9 +10,10 @@ const { spacing } = theme;
  *
  * - gallery above (phones): gallery, then one padded column: `head` (title, price), `description`,
  *   `rest` (actions, seller), `specs`, `below` (reviews, similar listings); the phone order.
- * - split (medium and wider windows): the gallery (under the floating top bar, inset by the page
- *   gutter) beside a column with `head`, `description` and `rest`; then `specs` (its cards side by
- *   side, see `ProductSpecs`) and `below` across the full width.
+ * - split (medium and wider windows): two equal columns `SPLIT_COLUMN_GAP` apart, the gallery
+ *   (under the floating top bar, inset by the page gutter) beside a column with `head`,
+ *   `description` and `rest`; then `specs` (its cards side by side in the same two columns, see
+ *   `ProductSpecs`) and `below` across the full width.
  */
 export function ProductBodyLayout({
   gallery,
@@ -61,7 +62,10 @@ export function ProductBodyLayout({
         >
           {gallery}
         </View>
-        <View style={[styles.body, gutter, styles.splitInfo, { paddingTop: barInset }]} testID="product-info-column">
+        <View
+          style={[styles.body, gutter, styles.splitInfo, { paddingTop: barInset }]}
+          testID="product-info-column"
+        >
           {head}
           {description}
           {rest}
@@ -80,6 +84,7 @@ const styles = StyleSheet.create({
   splitRow: { flexDirection: 'row', alignItems: 'flex-start' },
   // The same gap below the gallery (and its thumbnails) as between the page sections.
   galleryColumn: { paddingBottom: spacing[4] },
-  splitInfo: { flex: 1, minWidth: 0 },
+  // The column gap on the left (the gallery column already carries the left gutter).
+  splitInfo: { flex: 1, minWidth: 0, paddingLeft: SPLIT_COLUMN_GAP },
   splitBelow: { paddingTop: 0 },
 });

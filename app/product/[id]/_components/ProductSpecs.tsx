@@ -5,7 +5,7 @@ import { SectionCard, Text, theme } from '@/ui';
 import { asLabel, formatCondition } from '@/utils/format';
 import { colorValue, materialValue, scaleValue, technicalAttributeRows } from '../_lib/attributes';
 import type { Product } from '../_lib/types';
-import { useProductDetailLayout } from '../_lib/layout';
+import { SPLIT_COLUMN_GAP, useProductDetailLayout } from '../_lib/layout';
 
 const { colors, spacing } = theme;
 
@@ -112,7 +112,8 @@ const styles = StyleSheet.create({
   divided: { borderTopWidth: 1, borderTopColor: colors.border.DEFAULT },
   label: { flexShrink: 0 },
   value: { flex: 1 },
-  pair: { flexDirection: 'row', alignItems: 'stretch', gap: spacing[4] },
+  // The split columns' gap: the cards line up with the gallery and the info column above.
+  pair: { flexDirection: 'row', alignItems: 'stretch', gap: SPLIT_COLUMN_GAP },
   pairCell: { flex: 1, minWidth: 0 },
   fill: { flex: 1 },
 });

@@ -7,7 +7,7 @@ import { Dimensions, StyleSheet, Text } from 'react-native';
 import { render, screen } from '@testing-library/react-native';
 import { SCROLL_EDGE_FULL_AT } from '@/ui';
 import { pageGutter } from '@/ui';
-import { GALLERY_SPLIT_FRACTION, productDetailLayout, topBarEdgeShift } from '../layout';
+import { SPLIT_COLUMN_GAP, productDetailLayout, topBarEdgeShift } from '../layout';
 import { ProductBodyLayout } from '../../_components/ProductBodyLayout';
 
 const setWindow = (width: number, height: number) =>
@@ -24,14 +24,14 @@ describe('productDetailLayout', () => {
   });
 
   it.each([
-    [626, 257, 'inline'],
-    [820, 345, 'inline'], // iPad Air 11" portrait: one-row bar
-    [1032, 432, 'inline'],
-    [1180, 499, 'inline'], // iPad Air 11" landscape: everything in one row
-    [1366, 582, 'inline'],
-  ] as const)('%d pt: gallery column at 45%%, square %d pt inside the gutter, wide bar, offer / trade %s', (w, side, offerTrade) => {
+    [626, 'inline'],
+    [820, 'inline'], // iPad Air 11" portrait: one-row bar
+    [1032, 'inline'],
+    [1180, 'inline'], // iPad Air 11" landscape: everything in one row
+    [1366, 'inline'],
+  ] as const)('%d pt: the gallery square is the left of two equal columns inside the gutters, wide bar, offer / trade %s', (w, offerTrade) => {
+    const side = Math.floor((w - 2 * pageGutter(w) - SPLIT_COLUMN_GAP) / 2);
     expect(productDetailLayout(w)).toEqual({ split: true, gallerySide: side, wideBar: true, offerTrade });
-    expect(side).toBe(Math.floor(w * GALLERY_SPLIT_FRACTION) - pageGutter(w));
   });
 
   it('the landscape gallery fits the window height (1180 x 820)', () => {
@@ -85,8 +85,8 @@ describe('ProductBodyLayout', () => {
   });
 
   it.each([
-    [820, 345, 24],
-    [1180, 499, 32],
+    [820, 378, 24],
+    [1180, 550, 32],
   ])('iPad %d pt: gallery %d pt inset by the %d pt gutter under the top bar; head, description, rest beside it; specs and below full width', (w, side, gutter) => {
     setWindow(w, 1000);
     render(tree);
@@ -96,7 +96,9 @@ describe('ProductBodyLayout', () => {
     expect(galleryColumn.paddingTop).toBeGreaterThan(0);
     const info = screen.getByTestId('product-info-column');
     expect(StyleSheet.flatten(info.props.style).paddingTop).toBe(galleryColumn.paddingTop);
-    expect(StyleSheet.flatten(info.props.style).paddingHorizontal).toBe(gutter);
+    expect(StyleSheet.flatten(info.props.style).paddingRight ?? StyleSheet.flatten(info.props.style).paddingHorizontal).toBe(gutter);
+    // The info column starts one column gap after the gallery: the same columns as the specs cards.
+    expect(StyleSheet.flatten(info.props.style).paddingLeft).toBe(SPLIT_COLUMN_GAP);
     for (const block of ['head', 'description', 'rest']) expect([block, inside(block, 'product-info-column')]).toEqual([block, true]);
     for (const block of ['specs', 'below']) {
       expect([block, inside(block, 'product-info-column')]).toEqual([block, false]);

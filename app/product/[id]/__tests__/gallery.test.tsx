@@ -82,11 +82,11 @@ describe('ProductGallery', () => {
       });
     afterEach(() => setWindow(375, 667));
 
-    it('pages by the split gallery square (45% = 369 pt), not the window width', () => {
+    it('pages by the split gallery square (half the content width = 378 pt), not the window width', () => {
       setWindow(820, 1180);
       const { onPageChange } = setup({ currentImage: 0 });
       fireEvent.scroll(screen.UNSAFE_getAllByType(FlatList)[0]!, {
-        nativeEvent: { contentOffset: { x: 369 * 2, y: 0 } },
+        nativeEvent: { contentOffset: { x: 378 * 2, y: 0 } },
       });
       expect(onPageChange).toHaveBeenCalledWith(2);
     });

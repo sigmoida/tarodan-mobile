@@ -60,7 +60,7 @@ rule is a no-op below 600 pt: phones stay as they are.
   column.
 - **Panes:** a screen whose content has a natural second column splits on wider classes
   with its own `_lib/layout.ts` helper (one source per screen): product detail
-  (gallery 45% beside the info from medium), cart (items + summary panel from expanded),
+  (gallery and info as two equal columns from medium), cart (items + summary panel from expanded),
   messages (master–detail from expanded), settings / profile menu cards (two columns
   from expanded, `MenuGroupList`).
 - Floating controls may keep a cap: `Modal`, `AlertDialog` and `Toast` cap themselves, and the tab bar pill is centred at

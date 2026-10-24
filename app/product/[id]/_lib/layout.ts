@@ -1,5 +1,5 @@
 import { useWindowDimensions } from 'react-native';
-import { SCROLL_EDGE_FULL_AT, pageGutter, windowClassOf } from '@/ui';
+import { SCROLL_EDGE_FULL_AT, pageGutter, theme, windowClassOf } from '@/ui';
 
 /**
  * Product detail layout by window width — ONE source for the gallery square, the screen layout, the
@@ -9,15 +9,15 @@ import { SCROLL_EDGE_FULL_AT, pageGutter, windowClassOf } from '@/ui';
  * - `compact` (phones): the gallery is an edge-to-edge square of the window width (unchanged), the
  *   buy bar stacks the offer / trade row above price + buttons.
  * - `medium` and up (foldable iPhone inner, iPad portrait and landscape, tablets): `split`: the
- *   gallery column takes `GALLERY_SPLIT_FRACTION` of the window on the left (the square inset by
- *   the page gutter, never touching the window edge), the title / price / description / seller
- *   column the rest; the specs cards (side by side), reviews and similar listings run full width
- *   below. The buy bar is one row: the price on the left, the offer / trade buttons and the
+ *   content width (window minus the page gutters) splits into two equal columns `SPLIT_COLUMN_GAP`
+ *   apart: the gallery square on the left, the title / price / description / seller column on the
+ *   right; the specs cards below (side by side, the same gap) line up with these two columns, then
+ *   reviews and similar listings run full width. The buy bar is one row: the price on the left, the offer / trade buttons and the
  *   buy buttons on the right at their natural width (`wideBar`, `offerTrade: 'inline'`).
  */
 
-/** Share of the window the gallery square takes beside the info column (`medium` and wider). */
-export const GALLERY_SPLIT_FRACTION = 0.45;
+/** Gap between the two split columns; the same gap as the specs cards below them (`ProductSpecs`). */
+export const SPLIT_COLUMN_GAP = theme.spacing[4];
 
 export interface ProductDetailLayout {
   /** Gallery beside the info column (true) or above it. */
@@ -40,8 +40,8 @@ export function productDetailLayout(windowWidth: number): ProductDetailLayout {
   if (cls === 'compact') return { split: false, gallerySide: windowWidth, wideBar: false, offerTrade: 'stacked' };
   return {
     split: true,
-    // The column is GALLERY_SPLIT_FRACTION of the window; the square sits inside its left gutter.
-    gallerySide: Math.floor(windowWidth * GALLERY_SPLIT_FRACTION) - pageGutter(windowWidth),
+    // Half of the content width: the square is the left column, aligned with the cards below.
+    gallerySide: Math.floor((windowWidth - 2 * pageGutter(windowWidth) - SPLIT_COLUMN_GAP) / 2),
     wideBar: true,
     offerTrade: 'inline',
   };
