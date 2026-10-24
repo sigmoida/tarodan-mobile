@@ -133,6 +133,7 @@ export function ProductGallery({
             images={images}
             selectedIndex={currentImage}
             onSelect={pager.scrollToPage}
+            viewportWidth={width}
             testID="product-gallery"
           />
         </View>

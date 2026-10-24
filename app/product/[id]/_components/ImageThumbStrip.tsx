@@ -38,6 +38,8 @@ type StripProps = {
   selectedIndex: number;
   onSelect: (index: number) => void;
   testID: string;
+  /** Expected strip width (pt) for the first frame; defaults to the window width (the viewer). */
+  viewportWidth?: number;
 };
 
 /**
@@ -54,15 +56,16 @@ export function ImageThumbStrip(props: StripProps) {
   return <ThumbList {...props} />;
 }
 
-function ThumbList({ images, selectedIndex, onSelect, testID }: StripProps) {
+function ThumbList({ images, selectedIndex, onSelect, testID, viewportWidth }: StripProps) {
   const { t } = useTranslation();
   const listRef = useRef<FlatList<ProductImage>>(null);
   const total = images.length;
   const selected = Math.min(Math.max(selectedIndex, 0), total - 1);
-  // Both callers span the window, so its width places the first frame; the measured width of the
-  // list then corrects it in place on the first layout.
+  // The expected width (the gallery square, or the window for the viewer) places the first frame;
+  // the measured width of the list then corrects it in place on the first layout.
   const { width: windowWidth } = useWindowDimensions();
-  const [initialOffset] = useState(() => ({ x: centredThumbOffset(selected, total, windowWidth), y: 0 }));
+  const firstViewport = viewportWidth ?? windowWidth;
+  const [initialOffset] = useState(() => ({ x: centredThumbOffset(selected, total, firstViewport), y: 0 }));
   const [viewport, setViewport] = useState(0);
   const centred = useRef(false);
 
