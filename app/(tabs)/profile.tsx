@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
-import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
-import { pageListContentStyle, theme, usePageScrollValue } from '@/ui';
+import { pageListContentStyle, theme, usePageScrollValue, usePageOffsetHandler, usePageContentStyle } from '@/ui';
 
 import { useProfile } from './_hooks/useProfile';
 import { ProfileGuestView } from './_components/ProfileGuestView';
@@ -26,19 +25,21 @@ function ProfileScreen() {
   // Hook sırası sabit kalsın diye erken return'den ÖNCE çağrılır (app/CLAUDE.md › Thin screens).
   const tabInset = useTabBarInset();
   const page = usePageScrollValue();
-  // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
-  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle([pageListContentStyle, { paddingBottom: tabInset }]);
+  // The list feeds the top bar scroll edge (the tab bar is fixed: no collapse).
+  const onPageScroll = usePageOffsetHandler(page.scrollY);
 
   if (!f.isAuthenticated) return <ProfileGuestView f={f} />;
 
   return (
     <AppShell variant="title" title={t('profile.profile')} scroll={page} leading="none" actions="settings">
       <Animated.ScrollView
-        {...tabScroll}
+        onScroll={onPageScroll}
         {...page.scrollProps}
         scrollEventThrottle={16}
         // Sayfa kenarı + kartlar arası boşluk (kimlik kartı + grup kartları).
-        contentContainerStyle={page.contentStyle([pageListContentStyle, { paddingBottom: tabInset }])}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

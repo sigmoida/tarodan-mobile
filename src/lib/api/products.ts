@@ -1,5 +1,6 @@
 import { api } from './client';
 import { apiPath } from './path';
+import type { BoostOptionsResponse } from '@/types';
 
 /**
  * İlan kaldırma nedeni — silme (`DELETE` gövdesi) ve pasife alma (`PATCH`)
@@ -29,6 +30,8 @@ export const productsApi = {
       scales: string[];
       manufacturers: Array<{ id: string; name: string; slug: string }>;
       materials: Array<{ slug: string; label: string }>;
+      /** Global "color" attribute group; `color` is the hex swatch. */
+      colors?: Array<{ slug: string; label: string; color: string | null }>;
       // Genel gruplar (manufacturerSlug null) her zaman; üreticiye bağlılar (örn Hot Wheels)
       // yalnız `manufacturer` verilince eklenir.
       customAttributes?: Array<{
@@ -73,30 +76,15 @@ export const productsApi = {
   /** Aynı kategoriden benzer ürünler — backend: GET /products/:id/similar */
   getSimilar: (id: string, limit = 12) =>
     api.get(apiPath`/products/${id}/similar`, { params: { limit } }),
-  // ---- Boost / Öne Çıkarma ----
-  /** Boost süre/fiyat paketleri. Backend: GET /products/boost/pricing */
-  getBoostPricing: () =>
-    api.get<{
-      enabled?: boolean;
-      options?: Array<{ durationDays: number; price: number; label: string }>;
-    }>('/products/boost/pricing'),
-  /** İlan için paket + süre + fiyat seçenekleri (web BoostModal ile aynı kaynak).
-   *  Backend: GET /products/:id/boost/options — yeni paket modeli; boost/pricing eski düz-fiyat. */
+  // ---- Boost ----
+  /** Packages, durations and prices for one listing (same source as the web BoostModal).
+   *  Backend: GET /products/:id/boost/options. */
   getBoostOptions: (productId: string) =>
-    api.get<{
-      packages?: Array<{
-        id: string;
-        name: string;
-        durations: Array<{ durationDays: number; price: number }>;
-      }>;
-      options?: Array<{ durationDays: number; price: number; label: string }>;
-    }>(apiPath`/products/${productId}/boost/options`),
-  /** Kullanıcının boost'ları (en yeni önce). Backend: GET /products/boost/my */
-  getMyBoosts: () => api.get('/products/boost/my'),
-  /** İlanı öne çıkar — ödeme başlat (paymentId döner). Backend: POST /products/:id/boost/initiate */
+    api.get<BoostOptionsResponse>(apiPath`/products/${productId}/boost/options`),
+  /** Start the boost payment (returns paymentId). Backend: POST /products/:id/boost/initiate */
   initiateBoost: (
     productId: string,
-    data: { durationDays: number; packageId?: string; autoRenew?: boolean; provider?: 'paytr' },
+    data: { durationDays: number; packageId: string; autoRenew?: boolean; provider?: 'paytr' },
   ) => api.post(apiPath`/products/${productId}/boost/initiate`, data),
 };
 

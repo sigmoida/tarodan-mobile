@@ -31,6 +31,23 @@ jest.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (k: string) => k }),
 }));
 
+const mockLogout = jest.fn((_opts?: unknown) => Promise.resolve());
+let mockSession: { isAuthenticated: boolean; token: string | null } = {
+  isAuthenticated: true,
+  token: "access-token",
+};
+jest.mock("@/stores/authStore", () => {
+  const state = () => ({ ...mockSession, logout: mockLogout });
+  const useAuthStore = (sel?: (s: unknown) => unknown) => (sel ? sel(state()) : state());
+  useAuthStore.getState = state;
+  return { useAuthStore };
+});
+
+const mockCapture = jest.fn();
+jest.mock("@/services/logger", () => ({
+  logger: { captureException: (...a: unknown[]) => mockCapture(...a) },
+}));
+
 jest.mock("@/lib/api", () => ({
   authApi: { resetPassword: jest.fn() },
 }));
@@ -47,6 +64,9 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
     mockReset.mockReset();
     mockReplace.mockClear();
     mockBack.mockClear();
+    mockLogout.mockClear();
+    mockCapture.mockClear();
+    mockSession = { isAuthenticated: true, token: "access-token" };
     mockParams = { token: "valid-token" };
   });
 
@@ -136,5 +156,77 @@ describe("J46 · şifre sıfırlama (zayıf şifre)", () => {
     await waitFor(() =>
       expect(screen.getByText("Token süresi doldu")).toBeOnTheScreen(),
     );
+  });
+
+  it("J46.8 signed-in success → local session ends (no server revoke) before the success view", async () => {
+    mockReset.mockResolvedValue({});
+    renderWithProviders(<ResetPasswordScreen />);
+    setPasswords(STRONG, STRONG);
+    fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
+
+    await waitFor(() =>
+      expect(screen.getByText("auth.resetSuccessTitle")).toBeOnTheScreen(),
+    );
+    expect(mockLogout).toHaveBeenCalledTimes(1);
+    expect(mockLogout).toHaveBeenCalledWith({ skipServer: true });
+
+    fireEvent.press(screen.getByText("auth.loginTitle"));
+    expect(mockReplace).toHaveBeenCalledWith("/(auth)/login");
+  });
+
+  it("J46.9 success view waits for the logout to finish", async () => {
+    let finish!: () => void;
+    mockLogout.mockImplementationOnce(() => new Promise<void>((r) => (finish = r)));
+    mockReset.mockResolvedValue({});
+    renderWithProviders(<ResetPasswordScreen />);
+    setPasswords(STRONG, STRONG);
+    fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
+
+    await waitFor(() => expect(mockLogout).toHaveBeenCalled());
+    expect(screen.queryByText("auth.resetSuccessTitle")).toBeNull();
+    finish();
+    await waitFor(() =>
+      expect(screen.getByText("auth.resetSuccessTitle")).toBeOnTheScreen(),
+    );
+  });
+
+  it("J46.10 a failing logout never shows as a failed reset and is reported", async () => {
+    mockLogout.mockRejectedValueOnce(new Error("storage blocked"));
+    mockReset.mockResolvedValue({});
+    renderWithProviders(<ResetPasswordScreen />);
+    setPasswords(STRONG, STRONG);
+    fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
+
+    await waitFor(() =>
+      expect(screen.getByText("auth.resetSuccessTitle")).toBeOnTheScreen(),
+    );
+    expect(screen.queryByText("auth.resetFailed")).toBeNull();
+    expect(mockCapture).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({ tags: { flow: "auth.resetPassword.logout" } }),
+    );
+  });
+
+  it("J46.12 guest success → no logout, so the guest cart and local data stay", async () => {
+    mockSession = { isAuthenticated: false, token: null };
+    mockReset.mockResolvedValue({});
+    renderWithProviders(<ResetPasswordScreen />);
+    setPasswords(STRONG, STRONG);
+    fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
+
+    await waitFor(() =>
+      expect(screen.getByText("auth.resetSuccessTitle")).toBeOnTheScreen(),
+    );
+    expect(mockLogout).not.toHaveBeenCalled();
+  });
+
+  it("J46.11 failed reset → no logout, form error stays", async () => {
+    mockReset.mockRejectedValue({ response: { data: { message: "Token expired" } } });
+    renderWithProviders(<ResetPasswordScreen />);
+    setPasswords(STRONG, STRONG);
+    fireEvent.press(screen.getByText("mobile.resetPasswordButton"));
+
+    await waitFor(() => expect(screen.getByText("Token expired")).toBeOnTheScreen());
+    expect(mockLogout).not.toHaveBeenCalled();
   });
 });

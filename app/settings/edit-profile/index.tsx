@@ -11,14 +11,13 @@ import {
 } from "./_components/EditProfileSections";
 import { AccountSection } from "./_components/AccountSection";
 import { LegalIdentityCard } from "./_components/LegalIdentityCard";
-import { TrustVisibilityCard } from "./_components/TrustVisibilityCard";
 
 /**
- * Profili düzenle — iOS Ayarlar düzeni (PageShell): fotoğraf (seçilince anında yüklenir) →
- * Hesap satırları (kullanıcı adı / e-posta salt okunur; değişiklik kendi ekranında) →
- * Güven skoru görünürlüğü (Switch; yalnız premium profilde) →
- * Kişisel (+ işletme) bilgiler formu → Kimlik bilgileri (salt okunur). Alt çubuk "Değişiklikleri
- * Kaydet" YALNIZ form kirliyken etkin; kirliyken çıkış onay ister (`useEditProfile`).
+ * Edit profile - iOS Settings layout (PageShell): photo (uploads as soon as it is picked) →
+ * Account rows (username / e-mail read-only; changes happen on their own screens) →
+ * Personal (+ business) info form → Identity info (read-only). The footer "Save changes"
+ * button is enabled ONLY while the form is dirty; leaving while dirty asks for confirmation
+ * (`useEditProfile`).
  */
 export default function EditProfileScreen() {
   const { t } = useTranslation();
@@ -66,7 +65,6 @@ export default function EditProfileScreen() {
     >
       <AvatarSection avatar={avatar} />
       <AccountSection />
-      <TrustVisibilityCard />
       <PersonalInfoCard f={f} />
       <BusinessInfoCard f={f} />
       <LegalIdentityCard />

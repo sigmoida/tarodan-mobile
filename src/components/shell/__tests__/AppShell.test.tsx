@@ -1,10 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react-native';
-import { GLASS_ICON_BUTTON_SIZE, ScreenHeader, theme, usePageScrollValue } from '@/ui';
+import { fireEvent, render, renderHook, screen, within } from '@testing-library/react-native';
+import { GLASS_ICON_BUTTON_SIZE, ScreenHeader, theme, usePageOffsetHandler, usePageScrollValue } from '@/ui';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 import { AppShell, APP_SHELL_BAR_HEIGHT } from '../AppShell';
-import { TabBarCollapseProvider, useTabBarCollapsed, useTabBarScrollHandler } from '../TabBarCollapse';
 
 jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
 jest.mock('expo-status-bar', () => ({
@@ -147,63 +146,17 @@ describe('AppShell — tek satır beyaz bar', () => {
   });
 });
 
-let collapsedRef: { value: boolean } | null = null;
-function Capture() {
-  collapsedRef = useTabBarCollapsed();
-  return null;
-}
-
-describe('AppShell - yuzen bar: kaydirinca arama gizlenir, cam butonlar kalir', () => {
-  beforeEach(() => jest.useFakeTimers());
-  afterEach(() => jest.useRealTimers());
-
-  function setup() {
-    render(
-      <TabBarCollapseProvider>
-        <Capture />
-        <AppShell />
-      </TabBarCollapseProvider>,
-    );
-  }
-  const wrap = () => screen.getByTestId('home-search-wrap', { includeHiddenElements: true });
-
-  it('liste basinda arama alani gorunur ve dokunulabilir', () => {
-    setup();
-    expect(wrap().props.pointerEvents).toBe('auto');
-    expect(wrap().props.accessibilityElementsHidden).toBe(false);
+describe('AppShell - yuzen bar: arama alani sabit (alt menuyle birlikte daralmaz)', () => {
+  it('arama alani her zaman gorunur ve dokunulabilir; menu, mesajlar ve bildirimler yerinde', () => {
+    render(<AppShell />);
+    const wrap = screen.getByTestId('home-search-wrap');
+    expect(wrap.props.pointerEvents).toBeUndefined();
+    expect(wrap.props.accessibilityElementsHidden).toBeUndefined();
     fireEvent.press(screen.getByTestId('home-search-input'));
     expect(pushMock).toHaveBeenCalledWith('/search?focus=1');
-  });
-
-  it('daralinca arama alani dokunmaya + ekran okuyucuya kapanir; menu, mesajlar ve bildirimler yerinde ve calisir', async () => {
-    setup();
-    act(() => {
-      collapsedRef!.value = true;
-      jest.advanceTimersByTime(300);
-    });
-    await waitFor(() => expect(wrap().props.pointerEvents).toBe('none'));
-    expect(wrap().props.accessibilityElementsHidden).toBe(true);
-    expect(wrap().props.importantForAccessibility).toBe('no-hide-descendants');
-    fireEvent.press(screen.getByTestId('home-search-input', { includeHiddenElements: true }));
-    expect(pushMock).not.toHaveBeenCalledWith('/search?focus=1');
     fireEvent.press(screen.getByTestId('app-shell-notifications'));
     expect(pushMock).toHaveBeenCalledWith('/notifications');
-    expect(screen.getByTestId('app-shell-messages')).toBeTruthy();
     expect(screen.getByTestId('home-categories-button')).toBeTruthy();
-  });
-
-  it('yukari kaydirinca / liste basina gelince arama geri gelir', async () => {
-    setup();
-    act(() => {
-      collapsedRef!.value = true;
-      jest.advanceTimersByTime(300);
-    });
-    await waitFor(() => expect(wrap().props.pointerEvents).toBe('none'));
-    act(() => {
-      collapsedRef!.value = false;
-      jest.advanceTimersByTime(300);
-    });
-    await waitFor(() => expect(wrap().props.pointerEvents).toBe('auto'));
   });
 });
 
@@ -321,12 +274,12 @@ describe('AppShell variant="title" — yüzen ortalı bar + kaydırma kenarı', 
     expect(mounts).toHaveBeenCalledTimes(1);
   });
 
-  it('tek handler: useTabBarScrollHandler(…, scrollY) hem alt menü hem üst bar sinyali için tek onScroll döner', () => {
+  it('tek handler: usePageOffsetHandler(scrollY) üst bar sinyali için tek onScroll döner', () => {
     const { result } = renderHook(() => {
       const page = usePageScrollValue();
-      return { page, tab: useTabBarScrollHandler(undefined, page.scrollY) };
+      return { page, onScroll: usePageOffsetHandler(page.scrollY) };
     });
-    expect(result.current.tab.onScroll).toBeDefined();
+    expect(result.current.onScroll).toBeDefined();
     expect(result.current.page.scrollY.value).toBe(0);
   });
 });

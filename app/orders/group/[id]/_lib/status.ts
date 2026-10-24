@@ -1,8 +1,8 @@
 import i18n from '@/i18n/config';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
-import { isAwaitingDropoff } from '@/lib/shipping/shipmentStatus';
-import type { BadgeVariant } from '@/ui';
-import type { GroupOrder } from './types';
+import { isAwaitingDropoff, isPastHandover } from '@/lib/shipping/shipmentStatus';
+import { isDigitalOrder } from '@/types';
+import type { GroupDetail, GroupOrder } from './types';
 
 // Durum haritası TEK kaynakta (`@/lib/shared/orderStatus`); burada yeniden
 // tanımlamak üç rotanın sessizce ayrışmasına yol açıyordu.
@@ -31,8 +31,44 @@ export const formatDate = (dateString: string) =>
     minute: '2-digit',
   });
 
-/** Bir ürün satırının türetilmiş görünüm bayrakları (kargo/iptal/iade gösterimi). */
+/**
+ * UI statuses before the carrier handover (`apiStatusToUi` folds the server's `paid` and
+ * `preparing` into `processing`, so the rule is written in UI names): `pending` (awaiting
+ * payment) and `processing`.
+ */
+const CANCELLABLE_UI_STATUSES: ReadonlyArray<GroupOrder['status']> = ['pending', 'processing'];
+
+/**
+ * Whether the whole group can be cancelled (web `isGroupCancellable`). Only the buyer's view
+ * (`viewerRole === 'buyer'`) offers it: the same screen also opens a seller's package view, and an
+ * unknown role offers nothing. The server refuses once a single line has been
+ * handed to the carrier, so offering the button would walk the user into that error. A line that
+ * is cancelled, already with the carrier (`isPastHandover`: `shippedAt` or a status past the
+ * label stage), has an active refund request or is a digital order (membership, boost: never
+ * cancelled from here) closes it.
+ */
+export function isGroupCancellable(group: Pick<GroupDetail, 'viewerRole' | 'orders'>): boolean {
+  const { orders } = group;
+  return (
+    group.viewerRole === 'buyer' &&
+    orders.length > 0 &&
+    orders.every(
+      (o) =>
+        !isDigitalOrder(o) &&
+        o.cancellationType !== 'iptal' &&
+        !o.activeRefundRequest &&
+        CANCELLABLE_UI_STATUSES.includes(o.status) &&
+        !isPastHandover(o.shipment),
+    )
+  );
+}
+
+/**
+ * Derived view flags of one line (shipping, cancel, refund). A digital order (membership, boost)
+ * ships nothing and has no cancel or refund action, so its line shows neither.
+ */
 export function deriveOrderRow(order: GroupOrder) {
+  const digital = isDigitalOrder(order);
   // ALICI EKRANI: `trackingNumber` (`PKG-…`) Tarodan iç referansı — satıcının
   // şubede vereceği numara, Sürat onu TANIMAZ. Alıcının takip edebileceği tek
   // numara `cargoCode`; yoksa numara YERİNE bekleme metni gösterilir.
@@ -47,6 +83,7 @@ export function deriveOrderRow(order: GroupOrder) {
   const isClosed = isCancelled || order.status === 'refunded';
   const isDelivered = ['delivered', 'awaiting_confirmation', 'completed'].includes(order.status);
   const showTracking =
+    !digital &&
     !isCancelled &&
     order.status !== 'refunded' &&
     ['shipped', 'delivered', 'awaiting_confirmation', 'completed'].includes(order.status);
@@ -63,7 +100,7 @@ export function deriveOrderRow(order: GroupOrder) {
     : awaitingDropoff
       ? i18n.t('order.shipmentPreparingBuyer')
       : statusLabel;
-  const actionLabel = isClosed
+  const actionLabel = isClosed || digital
     ? null
     : isPreShipment
       ? i18n.t('order.cancellationActions')

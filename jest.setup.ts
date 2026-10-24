@@ -10,6 +10,7 @@
 // kurunca testler kullanıcının GÖRDÜĞÜ metni doğrulamaya devam ediyor.
 // (Anahtar kullanımını kanıtlamak isteyen testler `react-i18next`'i kendi
 // dosyasında mock'lamaya devam edebilir — o mock bunu ezer.)
+import { Dimensions } from 'react-native';
 import i18n, { ensureLocaleLoaded } from '@/i18n/config';
 
 // Cihaz dili jest ortamında `en-US` çözülüyor; testler Türkçe metne bakıyor.
@@ -28,6 +29,20 @@ jest.mock('expo-secure-store', () => ({
   setItemAsync: jest.fn(() => Promise.resolve()),
   deleteItemAsync: jest.fn(() => Promise.resolve()),
 }));
+
+// AsyncStorage: no native module in jest; the package's in-memory mock. Every listing card reads
+// the persisted cart store (its cart action), so any screen with a card needs it. A test file may
+// still mock it itself.
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
+// Window: the react-native jest mock reports 750x1334, the device pixels of an iPhone 8 read as
+// points. That is a `medium` (tablet) width, which would move every render test onto the
+// large-screen layout. Default to the same phone in points; a test that needs another width calls
+// `Dimensions.set` itself (and restores this one).
+const PHONE_WINDOW = { width: 375, height: 667, scale: 2, fontScale: 2 };
+Dimensions.set({ window: PHONE_WINDOW, screen: PHONE_WINDOW });
 
 // react-native-safe-area-context: testte SafeAreaProvider yok → sabit inset mock.
 jest.mock('react-native-safe-area-context', () => {

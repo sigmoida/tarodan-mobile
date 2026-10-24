@@ -17,7 +17,6 @@ const DEADLINE = '2026-10-10T09:00:00.000Z';
 
 const order = (overrides: Partial<PreparingDeadlineOrder> = {}): PreparingDeadlineOrder => ({
   status: 'preparing',
-  orderNumber: 'ORD-1',
   isBuyer: true,
   isSeller: false,
   preparingDeadline: DEADLINE,
@@ -85,9 +84,18 @@ describe('preparingDeadlineNoticeOf', () => {
     expect(preparingDeadlineNoticeOf(order({ preparingDeadline: 'garbage' }), NOW)).toBeNull();
   });
 
-  it('üyelik siparişinde yok (alan ya da MEM- öneki)', () => {
-    expect(preparingDeadlineNoticeOf(order({ isMembership: true }), NOW)).toBeNull();
-    expect(preparingDeadlineNoticeOf(order({ orderNumber: 'MEM-1' }), NOW)).toBeNull();
+  it.each([
+    ['kind boost', { kind: 'boost' }],
+    ['kind membership', { kind: 'membership' }],
+    ['no kind, origin platform_service', { origin: 'platform_service' }],
+    ['no kind, deprecated isMembership only', { isMembership: true }],
+  ])('a digital order has none (%s)', (_label, signals) => {
+    expect(preparingDeadlineNoticeOf(order(signals), NOW)).toBeNull();
+  });
+
+  it('a listing order keeps it, even with the deprecated flag set (kind decides)', () => {
+    expect(preparingDeadlineNoticeOf(order({ kind: 'listing', isMembership: true }), NOW)).not.toBeNull();
+    expect(preparingDeadlineNoticeOf(order({ origin: 'direct_sale' }), NOW)).not.toBeNull();
   });
 });
 

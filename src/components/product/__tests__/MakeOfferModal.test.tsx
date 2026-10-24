@@ -5,10 +5,10 @@
  */
 import React from 'react';
 import { appAlert, toast } from '@/ui';
-import {  } from 'react-native';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import MakeOfferModal from '../MakeOfferModal';
 import { renderWithProviders } from '../../../test-utils';
+import trCatalog from '@/i18n/lib/catalog/tr.json';
 
 // API'yi mock'la — ağ yok, deterministik.
 jest.mock('@/lib/api', () => ({
@@ -48,7 +48,7 @@ function renderModal(props: Partial<React.ComponentProps<typeof MakeOfferModal>>
 describe('MakeOfferModal', () => {
   beforeEach(() => {
     createMock.mockClear();
-    (appAlert as jest.Mock).mockImplementation(() => {});
+    (appAlert as jest.Mock).mockImplementation(() => undefined);
   });
 
   it('tutar klavyesi: normalde numeric, IS_MAESTRO açıkken default (return tuşu için)', () => {
@@ -183,6 +183,66 @@ describe('MakeOfferModal', () => {
     fireEvent.press(screen.getByTestId('offer-submit-button'));
     expect(onDismiss).not.toHaveBeenCalled();
     expect(createMock).not.toHaveBeenCalled();
+  });
+
+  describe('amount text (shared TL amount parser, web parity)', () => {
+    it('"1.000" is Turkish grouping: refused in the modal, no request, never 1 TL', async () => {
+      const { onDismiss } = renderModal({ listPrice: 1500 });
+      fireEvent.changeText(screen.getByTestId('offer-amount-input'), '1.000');
+      // Refused text keeps the button on, so pressing it says why.
+      expect(screen.getByTestId('offer-submit-button')).toBeEnabled();
+      fireEvent.press(screen.getByTestId('offer-submit-button'));
+
+      await waitFor(() => expect(screen.getByText(trCatalog.validation.amountFormatRefused)).toBeOnTheScreen());
+      expect(onDismiss).not.toHaveBeenCalled();
+      expect(createMock).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['1000', 1000],
+      ['1250,50', 1250.5],
+    ])('%p is sent exactly as %p', async (text, amount) => {
+      renderModal({ listPrice: 1500 });
+      fireEvent.changeText(screen.getByTestId('offer-amount-input'), text);
+      // The field keeps the decimal comma as typed.
+      expect(screen.getByTestId('offer-amount-input').props.value).toBe(text);
+      fireEvent.press(screen.getByTestId('offer-submit-button'));
+
+      await waitFor(() =>
+        expect(createMock).toHaveBeenCalledWith({ productId: 'prod-1', amount, message: undefined }),
+      );
+    });
+  });
+
+  describe("the API's ceiling of an agreed amount", () => {
+    it('sends the ceiling itself', async () => {
+      renderModal({ listPrice: 12_000_000 });
+      fireEvent.changeText(screen.getByTestId('offer-amount-input'), '9999999');
+      fireEvent.press(screen.getByTestId('offer-submit-button'));
+      await waitFor(() =>
+        expect(createMock).toHaveBeenCalledWith({ productId: 'prod-1', amount: 9_999_999, message: undefined }),
+      );
+    });
+
+    it.each(['10000000', '9999999,01'])('refuses %p above the ceiling (no API call)', async (text) => {
+      renderModal({ listPrice: 12_000_000 });
+      fireEvent.changeText(screen.getByTestId('offer-amount-input'), text);
+      fireEvent.press(screen.getByTestId('offer-submit-button'));
+      await waitFor(() => expect(screen.getByText("Tutar 9.999.999 TL'yi aşamaz.")).toBeOnTheScreen());
+      expect(createMock).not.toHaveBeenCalled();
+    });
+
+    // The listing bound would refuse 10,000,000 too: the ceiling is said first (web parity).
+    it.each([
+      ['below the 50% minimum', 30_000_000],
+      ['at or above the list price', 5_000_000],
+    ])('refuses the ceiling before a listing bound (%s)', async (_case, listPrice) => {
+      renderModal({ listPrice });
+      fireEvent.changeText(screen.getByTestId('offer-amount-input'), '10000000');
+      fireEvent.press(screen.getByTestId('offer-submit-button'));
+      await waitFor(() => expect(screen.getByText("Tutar 9.999.999 TL'yi aşamaz.")).toBeOnTheScreen());
+      expect(createMock).not.toHaveBeenCalled();
+    });
   });
 
   it('çok düşük fiyatta liste fiyatına yuvarlanan çip çizilmez', () => {

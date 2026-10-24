@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { theme, toast } from '@/ui';
+import { useCallback, useMemo, useState } from 'react';
+import { toast } from '@/ui';
 import { useLocalSearchParams, router } from 'expo-router';
 import { PageShell } from '@/components/common/PageShell';
 import { useTransitionReady } from '@/hooks/useTransitionReady';
@@ -20,16 +19,19 @@ import { useProductFavorite } from './_hooks/useProductFavorite';
 import { useGuestPrompt } from './_hooks/useGuestPrompt';
 import { useProductActions } from './_hooks/useProductActions';
 import { useProductScroll } from './_hooks/useProductScroll';
+import { useProductDetailLayout } from './_lib/layout';
 import { useSimilarProducts } from '@/hooks/useSimilarProducts';
-import { SimilarProductsCard } from '@/components/product';
+import { ProductNotFound, productNotFoundState, SimilarProductsCard } from '@/components/product';
 import { ProductTopActions } from './_components/ProductTopActions';
 import { ProductTopBar } from './_components/ProductTopBar';
 import { ProductScrollView } from './_components/ProductScrollView';
 import { ProductGallery } from './_components/ProductGallery';
+import { ProductBodyLayout } from './_components/ProductBodyLayout';
 import { ProductTitleBlock } from './_components/ProductTitleBlock';
 import { ProductDescription } from './_components/ProductDescription';
 import { ProductBuyBar, ProductOfferTradeRow, ProductSecondaryActions } from './_components/ProductActions';
 import { getOfferTradeAvailability } from './_lib/engagement';
+import { listingIdFromParam } from '@/lib/product/listingParam';
 import { usePriceLimits } from '@/hooks/usePriceLimits';
 import { SellerCard } from './_components/SellerCard';
 import { ProductSpecs } from './_components/ProductSpecs';
@@ -38,7 +40,6 @@ import { ProductSectionsSkeleton, ProductSkeleton } from './_components/ProductS
 import { ImageViewerModal } from './_modals/ImageViewerModal';
 import { useUserActionsSheet } from '@/components/UserActionsSheet';
 
-const { spacing } = theme;
 
 /**
  * Ürün detayı — web `ListingDetailClient` blokları ve sırası: galeri, başlık, fiyat bloğu, rozet satırı
@@ -51,10 +52,8 @@ const { spacing } = theme;
  * ürünler (sorgularıyla) itiş animasyonu bitince bağlanır (`useTransitionReady`). Ağ/5xx hatası
  * "bulunamadı" değil, hata + Tekrar Dene.
  */
-export default function ProductDetailScreen() {
+function ProductDetail({ productId }: { productId: string }) {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams();
-  const productId = String(id);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
 
@@ -64,7 +63,7 @@ export default function ProductDetailScreen() {
   const full = !!product && !productQuery.isPlaceholderData;
   const fullProduct = full ? product : null;
   const sectionsReady = useTransitionReady();
-  const { data: reviews } = useProductReviews(productId, !!id && sectionsReady);
+  const { data: reviews } = useProductReviews(productId, sectionsReady);
   const { data: similar } = useSimilarProducts(productId, full && sectionsReady);
   // Çekip-yenile yok: ekrana dönüşte detay + yorumlar bayatsa ya da 30 sn'den eskiyse sessizce tazelenir.
   useRefetchStaleOnFocus([qk.products.detail(productId), qk.products.reviews(productId)], true, {
@@ -76,7 +75,10 @@ export default function ProductDetailScreen() {
   const [currentImage, setCurrentImage] = useState(0);
   const [viewer, setViewer] = useState({ open: false, index: 0 });
 
-  const images = product ? resolveProductImages(product) : [];
+  // One array per product object: the pager, the thumbnail strip and the viewer receive stable items,
+  // so their memoised images skip unrelated screen re-renders (page changes, favourite, cart).
+  const images = useMemo(() => (product ? resolveProductImages(product) : []), [product]);
+  const openViewer = useCallback((index: number) => setViewer({ open: true, index }), []);
   const isOutOfStock = product ? isProductOutOfStock(product) : false;
 
   const { minPrice } = usePriceLimits();
@@ -113,6 +115,17 @@ export default function ProductDetailScreen() {
   const ready = visible && full;
   // Hata sonrası "Tekrar Dene" sürerken iskelet (hata kartı basılı kalmasın).
   const retrying = !product && isError && productQuery.isFetching;
+  // Phones: the offer / trade row above the buy bar; tablets: inside the buy bar row
+  // (`productDetailLayout`).
+  const { wideBar, offerTrade } = useProductDetailLayout();
+  const offerTradeRow = (
+    <ProductOfferTradeRow
+      availability={availability}
+      onTrade={actions.handleTrade}
+      onMakeOffer={actions.handleMakeOffer}
+      placement={offerTrade}
+    />
+  );
   return (
     <PageShell
       header={false}
@@ -123,21 +136,11 @@ export default function ProductDetailScreen() {
       error={!product && isError && !retrying ? productQuery.error : undefined}
       onRetry={refetchProduct}
       empty={!isLoading && !isError && !product}
-      emptyState={{
-        icon: 'cube',
-        title: t('product.productNotFoundTitle'),
-        subtitle: t('emptyState.notFoundHint'),
-        actionLabel: t('common.goBack'),
-        onAction: goBack,
-      }}
+      emptyState={productNotFoundState(t, goBack)}
       footer={
         ready ? (
           <>
-            <ProductOfferTradeRow
-              availability={availability}
-              onTrade={actions.handleTrade}
-              onMakeOffer={actions.handleMakeOffer}
-            />
+            {offerTrade === 'inline' ? null : offerTradeRow}
             <ProductBuyBar
               product={product}
               isOwner={isOwner}
@@ -147,6 +150,8 @@ export default function ProductDetailScreen() {
               onBuyNow={actions.handleBuyNow}
               onGoToCart={actions.handleGoToCart}
               onEdit={() => router.push(`/listing/${product.id}/edit` as any)}
+              wide={wideBar}
+              extraActions={offerTrade === 'inline' ? offerTradeRow : null}
             />
           </>
         ) : undefined
@@ -212,57 +217,75 @@ export default function ProductDetailScreen() {
     >
       {visible ? (
         <ProductScrollView onScroll={scroll.onScroll}>
-          <ProductGallery
-            images={images}
-            currentImage={currentImage}
-            onPageChange={setCurrentImage}
-            onOpenViewer={(index) => setViewer({ open: true, index })}
-          />
-
-          <View style={styles.body}>
-            <ProductTitleBlock
-              product={product}
-              price={price}
-              favoriteCount={favorite.favoriteCount}
-              tradeBadge={availability.tradeBadge}
-            />
-            {ready ? (
-              <>
-                <ProductDescription product={product} />
-                <ProductSecondaryActions
-                  product={product}
-                  isOwner={isOwner}
-                  inCart={actions.inCart}
-                  quantity={actions.quantity}
-                  onQuantity={actions.setQuantity}
-                  onAddToCollection={actions.handleAddToCollection}
-                />
-                <SellerCard
-                  seller={product.seller}
-                  isOwner={isOwner}
-                  onPressSeller={() => router.push(`/seller/${product.seller?.id}`)}
-                  onMessage={actions.handleMessage}
-                />
-              </>
-            ) : (
-              <ProductSectionsSkeleton testID="product-sections-skeleton" />
-            )}
-            {ready && sectionsReady ? (
-              <>
+          <ProductBodyLayout
+            gallery={
+              <ProductGallery
+                images={images}
+                currentImage={currentImage}
+                onPageChange={setCurrentImage}
+                onOpenViewer={openViewer}
+              />
+            }
+            head={
+              <ProductTitleBlock
+                product={product}
+                price={price}
+                favoriteCount={favorite.favoriteCount}
+                tradeBadge={availability.tradeBadge}
+              />
+            }
+            description={ready ? <ProductDescription product={product} /> : null}
+            rest={
+              ready ? (
+                <>
+                  <ProductSecondaryActions
+                    product={product}
+                    isOwner={isOwner}
+                    inCart={actions.inCart}
+                    quantity={actions.quantity}
+                    onQuantity={actions.setQuantity}
+                    onAddToCollection={actions.handleAddToCollection}
+                  />
+                  <SellerCard
+                    seller={product.seller}
+                    isOwner={isOwner}
+                    onPressSeller={() => router.push(`/seller/${product.seller?.id}`)}
+                    onMessage={actions.handleMessage}
+                  />
+                </>
+              ) : (
+                <ProductSectionsSkeleton testID="product-sections-skeleton" />
+              )
+            }
+            specs={
+              ready && sectionsReady ? (
                 <ProductSpecs product={product} />
-                <ProductReviewsPreview reviews={reviews} onSeeAll={openReviews} />
-                <SimilarProductsCard title={t('product.similarProducts')} items={similar} />
-              </>
-            ) : ready ? (
-              <ProductSectionsSkeleton count={1} testID="product-deferred-skeleton" />
-            ) : null}
-          </View>
+              ) : ready ? (
+                <ProductSectionsSkeleton count={1} testID="product-deferred-skeleton" />
+              ) : null
+            }
+            below={
+              ready && sectionsReady ? (
+                <>
+                  <ProductReviewsPreview reviews={reviews} onSeeAll={openReviews} />
+                  <SimilarProductsCard title={t('product.similarProducts')} items={similar} />
+                </>
+              ) : null
+            }
+          />
         </ProductScrollView>
       ) : null}
     </PageShell>
   );
 }
 
-const styles = StyleSheet.create({
-  body: { padding: spacing[4], gap: spacing[4] },
-});
+/**
+ * Route entry. The `[id]` param is a listing URL segment (`<slug>-<uuid>` from a universal link, or a
+ * bare uuid from the app's own links): the uuid is taken out here, before any query or action, so the
+ * API, the cache keys and the cart only ever see the uuid. No uuid -> "not found" without a request.
+ */
+export default function ProductDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const productId = listingIdFromParam(id);
+  return productId ? <ProductDetail productId={productId} /> : <ProductNotFound />;
+}

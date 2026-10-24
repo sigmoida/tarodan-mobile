@@ -7,6 +7,7 @@ import { useTwoFactorFlow } from './_hooks/useTwoFactorFlow';
 import {
   BackupCodesCard,
   EnabledOptions,
+  NeedsPasswordCard,
   SetupFlow,
   TwoFactorFooter,
 } from './_components/TwoFactorSections';
@@ -15,10 +16,11 @@ import { DisableTwoFactorModal } from './_modals/DisableTwoFactorModal';
 import { RegenerateBackupCodesModal } from './_modals/RegenerateBackupCodesModal';
 
 /**
- * İki adımlı doğrulama — sade tek ekran. 2FA kapalıyken açılışta kurulum kendiliğinden başlar:
- * QR + gizli anahtar + 6 haneli kod, "Doğrula ve Etkinleştir" alt çubukta (başlatma hatası →
- * ErrorState + tekrar dene). Başarıda yedek kodlar; 2FA açıkken yönetim (yenile / kapat
- * diyalogları). Görünüm `useTwoFactorFlow`'da; diyaloglar her zaman bağlı `overlay`'de.
+ * Two-factor authentication, one plain screen. While 2FA is off the setup starts by itself:
+ * QR + secret + 6-digit code, "Verify and enable" in the bottom bar (a start failure shows
+ * ErrorState + retry). An account without a password sees the "set a password first" hint
+ * instead. After success the backup codes; while 2FA is on, management (regenerate / disable
+ * dialogs). The view lives in `useTwoFactorFlow`; the dialogs sit in the always-mounted `overlay`.
  */
 export default function TwoFactorScreen() {
   const { t } = useTranslation();
@@ -36,7 +38,7 @@ export default function TwoFactorScreen() {
       error={f.startError}
       errorMessage={f.startError ?? undefined}
       onRetry={f.retrySetup}
-      footer={f.view === 'enabled' ? undefined : <TwoFactorFooter f={f} />}
+      footer={f.view === 'enabled' || f.view === 'needsPassword' ? undefined : <TwoFactorFooter f={f} />}
       overlay={
         <>
           <DisableTwoFactorModal
@@ -55,6 +57,7 @@ export default function TwoFactorScreen() {
       {f.view === 'setup' ? <SetupFlow f={f} /> : null}
       {f.view === 'codes' ? <BackupCodesCard f={f} /> : null}
       {f.view === 'enabled' ? <EnabledOptions f={f} /> : null}
+      <NeedsPasswordCard f={f} />
     </PageShell>
   );
 }

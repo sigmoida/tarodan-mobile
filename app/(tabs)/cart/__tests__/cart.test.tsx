@@ -52,10 +52,12 @@ describe('J22 · boş sepet', () => {
     expect(screen.getByText('Sepetiniz Boş')).toBeOnTheScreen();
   });
 
-  it('boş sepette ilanlara götüren buton ana sayfaya replace eder', () => {
+  it('the empty cart action opens the listings search, like Favorites (web: /listings)', () => {
     renderWithProviders(<CartScreen />);
+    expect(screen.getByText('İlanları inceleyin ve beğendiğiniz ürünleri sepetinize ekleyin')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('İlanları İncele'));
-    expect(replaceMock).toHaveBeenCalledWith('/');
+    expect(pushMock).toHaveBeenCalledWith('/search');
+    expect(replaceMock).not.toHaveBeenCalled();
   });
 });
 

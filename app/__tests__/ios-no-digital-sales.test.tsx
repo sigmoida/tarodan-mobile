@@ -59,18 +59,18 @@ jest.mock('@/lib/api', () => ({
   paymentsApi: {
     getMyPayments: jest.fn(),
   },
+  savedSearchesApi: { list: jest.fn(), remove: jest.fn() },
 }));
-import { api, membershipApi } from '@/lib/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api, membershipApi, savedSearchesApi } from '@/lib/api';
 
 import MembershipScreen from '../membership/index';
 import SavedSearchesScreen from '../settings/saved-searches/index';
 import CollectionsScreen from '../settings/collections';
-import { STORAGE_KEY } from '../settings/saved-searches/_lib/types';
 
 const mockGetMembership = membershipApi.getCurrentMembership as jest.Mock;
 const mockGetTiers = membershipApi.getTiers as jest.Mock;
 const mockApiGet = api.get as jest.Mock;
+const mockListSavedSearches = savedSearchesApi.list as jest.Mock;
 
 describe('iOS: dijital satış çağrısı yok — üyelik ekranı', () => {
   beforeEach(() => {
@@ -103,24 +103,24 @@ describe('iOS: dijital satış çağrısı yok — kayıtlı aramalar (limit dol
   const savedSearch = {
     id: 's1',
     name: 'BMW 1/18',
-    query: 'bmw',
-    filters: {},
-    notifyEnabled: false,
+    query: { search: 'bmw' },
+    labels: {},
     createdAt: new Date().toISOString(),
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     resetRouterMocks();
     mockAuthState = { isAuthenticated: true, limits: { maxSavedSearches: 1 } };
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([savedSearch]));
+    mockListSavedSearches.mockResolvedValue({ data: { data: [savedSearch], meta: { total: 1, page: 1, limit: 100, totalPages: 1 } } });
   });
 
   it('kendi sayaç durumu (1/1) görünür; yükseltme bağlantısı yok', async () => {
     renderWithProviders(<SavedSearchesScreen />);
-    // Limit dolu bandı — kullanıcının KENDİ durumu, kalmalı.
-    expect(await screen.findByText('savedSearch.limitReached')).toBeTruthy();
-    // Bant içindeki "Premium" bağlantısı UpgradeCta ile sarılı — iOS'ta render edilmemeli.
+    // The limit-reached band (server limit) is the user's OWN state and stays.
+    expect(await screen.findByText('search.savedLimitReached')).toBeTruthy();
+    // No upgrade call for the saved-search limit on any platform (tarodan-ops ADR 0003).
     expect(screen.queryByText('membership.premium')).toBeNull();
+    expect(screen.queryByText('search.premiumMoreSearches')).toBeNull();
   });
 });
 

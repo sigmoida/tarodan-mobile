@@ -16,6 +16,10 @@ export const CONSENT_DOCUMENT_KEYS = [
   'distance_sales',
   'cookies',
   'marketing',
+  // Platform services (listing boost): accepted per order on the web; never
+  // account-required, so `GET /consents/me/pending` never returns them.
+  'platform_service_sales',
+  'withdrawal_waiver',
 ] as const;
 
 export type ConsentDocumentKey = (typeof CONSENT_DOCUMENT_KEYS)[number];
@@ -48,6 +52,8 @@ export const CONSENT_DOCUMENT_I18N_KEYS = {
   distance_sales: 'legal.distanceSalesTitle',
   cookies: 'legal.cookiesTitle',
   marketing: 'legal.marketingConsentTitle',
+  platform_service_sales: 'legal.platformServiceSales.title',
+  withdrawal_waiver: 'legal.withdrawalWaiverTitle',
 } as const satisfies Record<ConsentDocumentKey, string>;
 
 /**

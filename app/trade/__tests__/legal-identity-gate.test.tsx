@@ -12,7 +12,11 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { makeTestQueryClient } from '@/test-utils';
 import { MISSING_LEGAL_IDENTITY, settleGateAndWait } from '@/test-utils/legalIdentity';
 
-jest.mock('expo-router', () => require('@/test-utils/router-mock').routerMock);
+let mockParams: Record<string, string> = {};
+jest.mock('expo-router', () => ({
+  ...require('@/test-utils/router-mock').routerMock,
+  useLocalSearchParams: () => mockParams,
+}));
 
 jest.mock('@/hooks/useFeatureAccess', () => ({
   useFeatureAccess: () => ({ canTrade: true }),
@@ -35,7 +39,7 @@ jest.mock('@/lib/api', () => ({
   },
 }));
 
-import { legalIdentityApi, paymentsApi, tradesApi } from '@/lib/api';
+import { legalIdentityApi, paymentsApi, productsApi, tradesApi } from '@/lib/api';
 import { appAlert } from '@/ui'; // jest.setup'ta global jest.fn
 import { useAuthStore } from '@/stores/authStore';
 import {
@@ -56,6 +60,14 @@ beforeEach(() => {
   jest.clearAllMocks();
   (legalIdentityApi.getStatus as jest.Mock).mockResolvedValue({ data: MISSING_LEGAL_IDENTITY });
   useAuthStore.setState({ isAuthenticated: true, isLoading: false, user: { id: 'u1' } as any });
+  // The wizard lists a seller's trade listings and my own; the picks come from those lists.
+  mockParams = { targetSellerId: 'seller-1' };
+  (productsApi.getMyListings as jest.Mock).mockResolvedValue({
+    data: { data: [{ id: 'mine-1', title: 'Mine', price: 100, status: 'active' }] },
+  });
+  (productsApi.getAll as jest.Mock).mockResolvedValue({
+    data: { data: [{ id: 'theirs-1', title: 'Theirs', price: 120, status: 'active' }] },
+  });
 });
 
 afterEach(() => {
@@ -64,18 +76,20 @@ afterEach(() => {
 });
 
 describe('Takas başlatma · yasal kimlik kapısı', () => {
-  function readyToSubmit() {
+  async function readyToSubmit() {
     const hook = renderHook(() => useNewTrade(), { wrapper });
+    await waitFor(() => expect(hook.result.current.myProducts).toHaveLength(1));
+    await waitFor(() => expect(hook.result.current.theirProducts).toHaveLength(1));
     act(() => {
-      hook.result.current.toggleMyItem({ id: 'mine-1', price: 100 } as any);
-      hook.result.current.toggleTheirItem({ id: 'theirs-1', price: 120 } as any);
+      hook.result.current.toggleMyItem(hook.result.current.myProducts[0]!);
+      hook.result.current.toggleTheirItem(hook.result.current.theirProducts[0]!);
       hook.result.current.setTradeAddressId('addr-1');
     });
     return hook;
   }
 
   it('kimlik eksik → kapı açılır, teklif gitmez; kaydedilince takas oluşturulur', async () => {
-    const { result } = readyToSubmit();
+    const { result } = await readyToSubmit();
     act(() => {
       void result.current.handleSubmit();
     });
@@ -98,7 +112,7 @@ describe('Takas başlatma · yasal kimlik kapısı', () => {
   });
 
   it('Vazgeç → takas oluşturulmaz', async () => {
-    const { result } = readyToSubmit();
+    const { result } = await readyToSubmit();
     act(() => {
       void result.current.handleSubmit();
     });
@@ -111,9 +125,11 @@ describe('Takas başlatma · yasal kimlik kapısı', () => {
 
   it('form eksikse (adres yok) kimlik sorulmaz', async () => {
     const { result } = renderHook(() => useNewTrade(), { wrapper });
+    await waitFor(() => expect(result.current.myProducts).toHaveLength(1));
+    await waitFor(() => expect(result.current.theirProducts).toHaveLength(1));
     act(() => {
-      result.current.toggleMyItem({ id: 'mine-1', price: 100 } as any);
-      result.current.toggleTheirItem({ id: 'theirs-1', price: 120 } as any);
+      result.current.toggleMyItem(result.current.myProducts[0]!);
+      result.current.toggleTheirItem(result.current.theirProducts[0]!);
     });
     await act(async () => {
       await result.current.handleSubmit();

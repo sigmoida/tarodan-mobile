@@ -15,7 +15,16 @@ const { colors, iconSize } = theme;
  * Sohbet üst bölümü (web ChatHeader: beyaz bar, geri + avatar + ad/ürün + menü), menü
  * ActionSheet'i, şikayet modalı, ürün bağlantı satırı ve uyarılar. PageShell'in `header` slotuna konur.
  */
-export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
+export function MessageThreadHeader({
+  f,
+  showBack = true,
+  onBack,
+}: {
+  f: MessageThreadController;
+  showBack?: boolean;
+  /** Back action; the router default (`goBackOrHome`) when omitted. */
+  onBack?: () => void;
+}) {
   const { t } = useTranslation();
   const { other, currentThread } = f;
   return (
@@ -25,6 +34,9 @@ export function MessageThreadHeader({ f }: { f: MessageThreadController }) {
       <ScreenHeader
         // Akışta (opak beyaz): bu `header` slotu bar + ürün bandı + uyarıları birlikte taşır.
         floating={false}
+        // The master–detail pane has no back arrow: the inbox sits beside it.
+        showBack={showBack}
+        onBack={onBack}
         title={other?.displayName || t('common.loading')}
         titleSlot={
           <Pressable

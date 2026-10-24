@@ -1,3 +1,4 @@
+import type { OrderKind } from '@/types';
 import type { UiOrderStatus } from '@/utils/orderStatus';
 
 export interface GroupOrder {
@@ -12,6 +13,15 @@ export interface GroupOrder {
     imageUrl?: string;
   };
   seller: { id: string; displayName: string };
+  /**
+   * What the order sells (`listing` | `membership` | `boost`). Read through
+   * `isDigitalOrder` (`@/types`), never directly: an older API sends no `kind`.
+   */
+  kind?: OrderKind | null;
+  /** `platform_service` on a digital order: the fallback when `kind` is absent. */
+  origin?: string | null;
+  /** @deprecated True on every digital order; the last fallback of `isDigitalOrder`. */
+  isMembership?: boolean | null;
   /** Tarodan iç referansı (`PKG-…`) — satıcı şubede verir, ALICIYA GÖSTERİLMEZ. */
   trackingNumber?: string | null;
   /** Gerçek Sürat kodu (= `providerTrackingId`); takip bununla yapılır. */
@@ -25,6 +35,8 @@ export interface GroupOrder {
     trackingNumber?: string | null;
     cargoCode?: string | null;
     status?: string;
+    /** First physical handover stamp; set means the parcel is with the carrier. */
+    shippedAt?: string | null;
   } | null;
 }
 
@@ -44,6 +56,11 @@ export interface GroupPackage {
     displayName: string;
   } | null;
   shippingCost: number;
+  /**
+   * Every order of the package is digital (membership, boost; web `isDigitalPackage`): it ships
+   * nothing, so it has no package number, shipping cost or cargo to show.
+   */
+  isDigital: boolean;
   cargo: {
     trackingNumber: string | null;
     /** Gerçek Sürat kodu — `deriveShipmentView`'e fallback olarak verilir. */
@@ -57,6 +74,11 @@ export interface GroupPackage {
 
 export interface GroupDetail {
   id: string;
+  /**
+   * Who is looking: `GET /orders/groups/:id` also serves a seller's package view
+   * (`viewerRole: "seller"`, e.g. opened from a seller notification). Only the buyer may cancel.
+   */
+  viewerRole: 'buyer' | 'seller' | null;
   groupNumber: string;
   totalAmount: number;
   status: string;

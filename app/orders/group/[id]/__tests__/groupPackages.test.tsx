@@ -25,6 +25,7 @@ const pkg = (extra: Partial<GroupPackage> = {}): GroupPackage => ({
   sellerId: 's1',
   seller: { id: 's1', publicName: 'Tarodan Platform Ticaret A.Ş.', displayName: 'Tarodan Platform Ticaret A.Ş.' },
   shippingCost: 50,
+  isDigital: false,
   cargo: null,
   ...extra,
 });

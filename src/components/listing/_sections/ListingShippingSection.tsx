@@ -180,6 +180,7 @@ export function ListingShippingView({
 }: SectionProps & { d: Pick<ListingPricing, 'commissionPreview' | 'commissionLoading' | 'commissionEnabled'> }) {
   const { t } = useTranslation();
   const { width, fontScale } = useWindowDimensions();
+  // The form spans the window (`ListingForm`): decide from the window width.
   const stacked = tierColumns(width, fontScale, f.packageTiers.length || 3) === 1;
   const onSelect = useStableCallback(f.setShippingPackageTier);
   const amountByTier = new Map(

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
-import { theme, Text, Pill } from '@/ui';
+import { theme, Text, Pill, Icon } from '@/ui';
 import { adsApi, type ActiveAd } from '@/lib/api';
 import { hasAdImage } from '@/lib/ads/creative';
 import { adAspectRatio, fitBox, naturalRatioOf } from '@/lib/ads/adAspect';
@@ -191,8 +191,9 @@ function AdTextBody({ ad }: { ad: ActiveAd }) {
               size="md"
               background={theme.colors.danger[50]}
               color={theme.colors.danger[700]}
+              icon={<Icon name="clock" size={theme.iconSize.sm} color={theme.colors.danger[700]} />}
             >
-              {`⚡ ${left}`}
+              {left}
             </Pill>
           ) : null}
           {code ? (

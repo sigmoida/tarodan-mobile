@@ -5,6 +5,7 @@ import { useState, useCallback } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
   EmptyState,
+  ErrorState,
   SectionCard,
   Spinner,
   Text,
@@ -13,10 +14,13 @@ import {
   Icon,
   useDelayedLoading,
   usePageScrollHandler,
+  usePageContentStyle,
 } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
+import { ProductNotFound } from '@/components/product';
 import { listWindowing } from '@/lib/list/windowing';
 import { ListFooterRetry } from '@/components/common/ListFooterRetry';
+import { listingIdFromParam } from '@/lib/product/listingParam';
 import { useAllProductReviews } from './_hooks/useAllProductReviews';
 import { ReviewRow } from './_components/ReviewRow';
 import { ReviewListSkeleton } from './_components/ReviewListSkeleton';
@@ -27,13 +31,13 @@ const { colors, spacing, iconSize } = theme;
  * Ürün değerlendirmeleri — PageShell + puan özeti (SectionCard) ve sayfalı liste. Veri
  * `useAllProductReviews`; satır `ReviewRow` (detaydaki önizlemeyle ortak).
  */
-export default function ProductReviewsScreen() {
+function ProductReviews({ productId }: { productId: string }) {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams();
-  const productId = String(id);
-  const f = useAllProductReviews(productId, !!id);
+  const f = useAllProductReviews(productId, true);
   const [refreshing, setRefreshing] = useState(false);
   const page = usePageScrollHandler();
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle(styles.content);
   // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
   const showSkeleton = useDelayedLoading(f.isLoading);
 
@@ -56,9 +60,10 @@ export default function ProductReviewsScreen() {
         data={f.isLoading ? [] : f.reviews}
         keyExtractor={(item, index) => item.id ?? String(index)}
         renderItem={({ item, index }) => <ReviewRow review={item} divided={index > 0} />}
-        contentContainerStyle={page.contentStyle(styles.content)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         ListHeaderComponent={
-          f.average != null || f.total > 0 ? (
+          // No summary while the list failed to load: its count would read "0 reviews".
+          !f.loadFailed && (f.average != null || f.total > 0) ? (
             <SectionCard style={styles.summary}>
               <View style={styles.summaryRow}>
                 <Icon name="star" variant="solid" size={iconSize.md} color={colors.warning[400]!} />
@@ -73,8 +78,10 @@ export default function ProductReviewsScreen() {
         ListEmptyComponent={
           f.isLoading || showSkeleton ? (
             showSkeleton ? <ReviewListSkeleton /> : null
+          ) : f.loadFailed ? (
+            <ErrorState placement="list" onRetry={() => void f.refetch()} />
           ) : (
-            <EmptyState icon="star" title={t('review.noReviews')} subtitle={t('emptyState.reviewsHint')} />
+            <EmptyState placement="list" icon="star" title={t('review.noReviews')} subtitle={t('emptyState.reviewsHint')} />
           )
         }
         onEndReached={() => {
@@ -103,6 +110,13 @@ export default function ProductReviewsScreen() {
       />
     </PageShell>
   );
+}
+
+/** `[id]` may be a `<slug>-<uuid>` segment: the reviews request gets the uuid, and none is made without one. */
+export default function ProductReviewsScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const productId = listingIdFromParam(id);
+  return productId ? <ProductReviews productId={productId} /> : <ProductNotFound />;
 }
 
 const styles = StyleSheet.create({

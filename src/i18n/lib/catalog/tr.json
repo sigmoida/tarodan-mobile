@@ -10,6 +10,7 @@
     "edit": "Düzenle",
     "search": "Ara",
     "searchPlaceholder": "Ara...",
+    "loadMore": "Daha fazla göster",
     "loading": "Yükleniyor",
     "error": "Hata",
     "success": "Başarılı",
@@ -280,9 +281,15 @@
     "googleSignInFailed": "Google girişi başarısız.",
     "emailNotRegistered": "Bu e-posta adresi kayıtlı değil.",
     "useDifferentEmail": "Farklı e-posta kullan",
-    "googleOnlyAccount": "Bu hesap Google ile oluşturulmuş. Google ile giriş yapın ya da bir şifre belirleyin.",
+    "noPasswordAccount": "Bu hesabın şifresi yok. Hesabınıza bağlı yöntemle giriş yapın ya da bir şifre belirleyin.",
     "setPassword": "Şifre belirle",
     "setPasswordEmailSent": "Şifre belirleme bağlantısı e-postanıza gönderildi.",
+    "reauth": {
+      "title": "Güvenlik doğrulaması",
+      "body": "Bu işlemi yapmadan önce hesabınızın size ait olduğunu doğrulamamız gerekiyor.",
+      "withPassword": "Şifrenizle doğrulayın",
+      "withProvider": "{provider} ile doğrula"
+    },
     "or": "veya",
     "emailNotVerifiedBanner": "E-postanız henüz doğrulanmadı. Gelen kutunuzu veya spam klasörünüzü kontrol edin.",
     "goToVerificationPage": "Doğrulama sayfasına git",
@@ -343,7 +350,7 @@
     "loginFailed": "Giriş başarısız.",
     "signingIn": "Giriş yapılıyor…",
     "continueWithApple": "Apple ile devam et",
-    "loginTermsNotice": "Giriş yaparak ya da Apple veya Google ile devam ederek Kullanım Koşulları'nı ve Gizlilik Politikası'nı kabul etmiş olursunuz.",
+    "loginTermsNotice": "Giriş yaparak ya da devam ederek Kullanım Koşulları'nı ve Gizlilik Politikası'nı kabul etmiş olursunuz.",
     "continueAsGuest": "Misafir Olarak Devam Et",
     "corporateUpgradeTitle": "Kurumsal Üyelik",
     "corporateUpgradeBody": "İşletme bilgilerinizi tamamlamışsınız. Kurumsal üyeliğe geçerek avantajlardan yararlanabilirsiniz.",
@@ -359,7 +366,7 @@
     "appleSignInFailedTitle": "Apple ile giriş başarısız",
     "appleIdentityTokenMissing": "Apple identityToken alınamadı",
     "socialTwoFactorTitle": "Şifrenizle giriş yapın",
-    "socialTwoFactorBody": "Bu hesapta iki adımlı doğrulama açık. Lütfen e-posta adresiniz ve şifrenizle giriş yapın; ardından doğrulama kodunuz istenecek.",
+    "socialTwoFactorBody": "Bu hesapta iki faktörlü doğrulama açık. Lütfen e-posta adresiniz ve şifrenizle giriş yapın; ardından doğrulama kodunuz istenecek.",
     "emailInvalidShort": "Geçerli e-posta girin",
     "passwordRequired": "Şifre boş olamaz",
     "backToHome": "Ana sayfaya dön",
@@ -471,7 +478,8 @@
     "pwHintMinLength": "En az {min} karakter olmalı",
     "pwHintUppercase": "En az 1 büyük harf ekleyin",
     "pwHintLowercase": "En az 1 küçük harf ekleyin",
-    "pwHintNumber": "En az 1 rakam ekleyin"
+    "pwHintNumber": "En az 1 rakam ekleyin",
+    "appleSignInFailed": "Apple ile giriş başarısız"
   },
   "brands": {
     "title": "Markalar",
@@ -698,6 +706,7 @@
     "sortHighestRating": "En Yüksek Puan",
     "sortLowestRating": "En Düşük Puan",
     "searchTypes": "Tür ara",
+    "searchModels": "Model ara",
     "searchScale": "Ölçek ara",
     "searchMaterial": "Malzeme ara",
     "searchManufacturers": "Üretici ara",
@@ -753,7 +762,7 @@
     "selectYear": "Yıl seçin",
     "releaseYearHelper": "Modelin çıkış yılı (isteğe bağlı)",
     "tradeEnabled": "Takas Aktif",
-    "upgradeArrow": "Premium''a Geç →",
+    "upgradeArrow": "Premium''a Geç",
     "preorder": "Ön Sipariş",
     "preorderHelper": "Ürün henüz stokta değil; çıkınca gönderilecek",
     "setBundle": "Set / Paket",
@@ -852,7 +861,13 @@
     "commissionRuleUnavailable": "Kategori, fiyat ve üyelik tipinize uygun aktif komisyon kuralı bulunamadığı için bu ilan oluşturulamaz.",
     "packageFeeLabel": "Paket ücreti",
     "sampleDimensionsLabel": "Örnek ölçü (en × boy × yükseklik)",
-    "packageFeeNeedsPriceAndCategory": "Paket ücretinizi görmek için fiyat ve kategori girin."
+    "packageFeeNeedsPriceAndCategory": "Paket ücretinizi görmek için fiyat ve kategori girin.",
+    "boostedBadge": "Öne Çıkan",
+    "boostedBadgeHint": "Satıcı bu ilanı ücretli olarak öne çıkardı",
+    "cardAction": {
+      "addToCartAria": "{title} ürününü sepete ekle",
+      "removeFromCartAria": "{title} ürününü sepetten çıkar"
+    }
   },
   "cart": {
     "addToCartFailed": "Sepete eklenemedi",
@@ -906,12 +921,11 @@
     "loadingText": "Favoriler yükleniyor...",
     "loadFailedTitle": "Yüklenemedi",
     "loadErrorDesc": "Favorileriniz yüklenirken bir hata oluştu.",
-    "emptyStateDesc": "Beğendiğiniz ürünleri favorilere ekleyerek kolayca takip edin",
     "recommendationsTitle": "Beğenebileceğiniz",
     "exploreMoreProducts": "Daha Fazla Ürün Keşfet"
   },
   "checkout": {
-    "addAnotherAddressForBilling": "Farklı fatura adresi için profil → Adreslerimden ikinci bir adres ekleyin veya yukarıda \"teslimat adresiyle aynı\" seçin.",
+    "addAnotherAddressForBilling": "Farklı fatura adresi için profil > Adreslerimden ikinci bir adres ekleyin veya yukarıda \"teslimat adresiyle aynı\" seçin.",
     "addFirstAddress": "İlk adresinizi ekleyin",
     "addNewAddress": "Yeni Adres Ekle",
     "address": "Adres",
@@ -946,9 +960,9 @@
     "emailNotificationTitle": "E-posta Bildirimi",
     "getSupport": "Destek alın",
     "saveCardForRenewal": "Kartımı otomatik yenileme için sakla",
-    "saveCardForRenewalHint": "Kartınız PayTR güvencesinde saklanır ve üyeliğiniz dönem sonunda otomatik yenilenir. Otomatik yenilemeyi dilediğiniz zaman kapatabilirsiniz.",
+    "saveCardForRenewalHint": "Kartınız güvenli ödeme altyapısında saklanır ve üyeliğiniz dönem sonunda otomatik yenilenir. Otomatik yenilemeyi dilediğiniz zaman kapatabilirsiniz.",
     "saveCardForRenewalOffHint": "Kartınızı saklamazsanız otomatik yenileme kapalı kalır; dönem sonunda üyeliğinizi yeniden satın almanız gerekir.",
-    "saveCardPaytr": "Kartımı sonraki ödemeler için PayTR'da sakla",
+    "saveCardPaytr": "Kartımı sonraki ödemeler için güvenle sakla",
     "startShopping": "Alışverişe Başla",
     "successDescription": "Siparişiniz başarıyla oluşturuldu. Satıcı onayladıktan sonra kargoya verilecektir.",
     "supportQuestion": "Bir sorun mu var?",
@@ -1024,14 +1038,11 @@
     "orderNumberLabel": "Sipariş Numarası",
     "orderSuccess": "Siparişiniz alındı! Fatura e-posta adresinize gönderilecek.",
     "orderSummary": "Sipariş Özeti",
-    "payWithPaytr": "PayTR ile Öde",
-    "paymentDetail": "Ödeme Detayı",
     "paymentInfo": "Ödeme Bilgileri",
     "paymentInitFailedRetry": "Ödeme başlatılamadı. Lütfen tekrar deneyin.",
     "paymentMethod": "Ödeme Yöntemi",
     "paymentStartFailedBody": "Ödeme başlatılamadı. Siparişinizi daha sonra siparişlerim üzerinden tamamlayabilirsiniz.",
     "paymentStartFailedTitle": "Ödeme Başlatılamadı",
-    "paytrRedirectNotice": "“Devam Et” butonuna bastığınızda, kart bilgilerinizi güvenli PayTR ödeme sayfasında gireceksiniz.",
     "phone": "Telefon",
     "phoneInvalidTitle": "Telefon Numarası Geçersiz",
     "phoneRequired": "Lütfen telefon numaranızı girin",
@@ -1072,7 +1083,7 @@
     "shippingMethod": "Kargo Yöntemi",
     "shippingSelection": "Kargo Seçimi",
     "shippingWithCarrier": "Kargo (Sürat)",
-    "signInPrompt": "Üye misiniz? Giriş yapın →",
+    "signInPrompt": "Üye misiniz? Giriş yapın",
     "step1": "Adres",
     "step2": "Ödeme",
     "step3": "Onay",
@@ -1101,7 +1112,6 @@
     "serviceFee": "Hizmet Bedeli",
     "payNow": "Ödeme Yap",
     "buyNowNotice": "Yalnız seçtiğiniz ürün ödenecek; sepetinizdeki diğer ürünler yerinde kalır.",
-    "paytrNotice": "Ödemeniz PayTR güvenli altyapısı üzerinden alınır. Kart bilgileriniz Tarodan'a kaydedilmez; \"Ödeme Yap\"a bastığınızda kart bilgilerinizi gireceğiniz güvenli ödeme ekranı açılır.",
     "distanceSalesRequired": "Devam etmek için mesafeli satış sözleşmesini onaylayın"
   },
   "order": {
@@ -1247,7 +1257,7 @@
     "shipmentRecordExistsTitle": "Kargo Kaydı Hazır",
     "shipmentRecordExists": "Bu sipariş için kargo kaydı zaten oluşturulmuş. Şimdi paketi Sürat Kargo şubesine teslim etmeniz bekleniyor; sipariş, şube kabulünden sonra otomatik olarak \"Kargoda\" durumuna geçer.",
     "offerAcceptedCompletePayment": "Teklifiniz kabul edildi. Satın alma işlemini tamamlamak için ödeme yapın.",
-    "securePaymentNotice": "Kart bilgilerinizi güvenli ödeme sayfamızda gireceksiniz (3D Secure). Kart bilgileriniz sunucularımızda saklanmaz; PayTR altyapısıyla 256-bit SSL üzerinden işlenir.",
+    "securePaymentNotice": "Kart bilgilerinizi güvenli ödeme sayfamızda gireceksiniz (3D Secure). Kart bilgileriniz sunucularımızda saklanmaz; güvenli ödeme altyapısıyla 256-bit SSL üzerinden işlenir.",
     "expiredReactivate": "Bu sipariş ödeme yapılmadan süre aşımına uğradı. Ödemeyi tamamlamak için siparişi yeniden aktive edebilirsiniz.",
     "paymentRefunded": "Ödemeniz iade edilmiştir.",
     "refundToOriginalMethod": "Ödeme yapıldıysa, iadeniz ödemeyi yaptığınız yönteme aktarılacaktır.",
@@ -1473,7 +1483,7 @@
       "subtitle": "Sistem her iki tarafa Sürat Kargo takip numarası tahsis etti. Aşağıdaki numara ile en yakın Sürat şubesine giderek ürününüzü teslim edin.",
       "yourShipment": "Sizin gönderiniz",
       "handIn": "Bu numarayla Sürat Kargo şubesine gidip ürününüzü teslim edin.",
-      "counterpartyDelivered": "✓ Karşı tarafın gönderisi de depoya ulaştı.",
+      "counterpartyDelivered": "Karşı tarafın gönderisi de depoya ulaştı.",
       "counterpartyInTransit": "Karşı tarafın gönderisi yolda.",
       "counterpartyCancelled": "Karşı tarafın gönderisi iptal edildi; yetkili ekibimiz devreye girecek.",
       "counterpartyFailed": "Karşı tarafın gönderisinde bir aksaklık oluştu; yetkili ekibimiz inceliyor.",
@@ -1589,7 +1599,7 @@
     "timeExpired": "Süre Doldu!",
     "dayShort": "g",
     "rejectTradeTitle": "Takası Reddet",
-    "profileAddressesLink": "Profil → Adresler",
+    "profileAddressesLink": "Profil > Adresler",
     "myTradesDesc": "Aktif ve geçmiş takas tekliflerini yönet.",
     "targetNotFoundDesc": "Takas etmek istediğiniz ürün bulunamadı veya artık mevcut değil.",
     "sendFailed": "Takas teklifi gönderilemedi",
@@ -1622,7 +1632,7 @@
     "cancelLockedTooltip": "Ürünlerden biri Tarodan deposuna ulaştı; iptal edilemez. Sorun varsa itiraz açın.",
     "itemReachedWarehouse": "Ürünlerden biri depoya ulaştı.",
     "shipInfoDesc": "Gönderim yapacağınız adresi ve kargo firmasını seçin.",
-    "noSavedAddresses": "Kayıtlı adres yok. <link>Profil → Adresler</link> bölümünden ekleyebilirsiniz.",
+    "noSavedAddresses": "Kayıtlı adres yok. <link>Profil > Adresler</link> bölümünden ekleyebilirsiniz.",
     "submitShipInfo": "Kargo Bilgisini Gönder",
     "warehouseBannerTitle": "Ürünleriniz Tarodan Deposunda",
     "warehouseBannerDesc": "Ekibimiz ürünleri inceliyor. İnceleme tamamlandığında bilgilendirileceksiniz.",
@@ -1638,6 +1648,7 @@
     "counterTheirItemsTitle": "İsteyeceğim Ürünler",
     "counterTheirItemsSubtitle": "{name} adlı satıcıdan istediğim ürünleri seçin.",
     "amountLabelTL": "Tutar (TL)",
+    "cashHelper": "Kuruş için virgül kullanın, örn. 1250,50",
     "messageOptionalLabel": "Mesaj (opsiyonel)",
     "counterMessagePlaceholderLong": "Karşı tarafa not bırakın...",
     "summaryTitle": "Özet",
@@ -1843,7 +1854,7 @@
     "blockedContent": "Mesajınız uygunsuz içerik nedeniyle engellendi",
     "selectConversation": "Mesajlaşmak için bir konuşma seçin",
     "searchConversations": "Konuşmalarda ara",
-    "photoLabel": "📷 Fotoğraf",
+    "photoLabel": "Fotoğraf",
     "youPrefix": "Sen: ",
     "selectConversationTitle": "Bir sohbet seçin",
     "chooseThread": "Listeden bir sohbet seçin",
@@ -1967,8 +1978,6 @@
     "memberLabelBasic": "Temel Üye",
     "memberLabelPremium": "Premium Üye",
     "memberLabelDefault": "Üye",
-    "savedSearchLimitTitle": "Kayıtlı Arama Limiti",
-    "savedSearchLimitMessage": "Sınırsız arama kaydetmek için Premium üyeliğe geçin.",
     "valueLimitTitle": "Fiyat Limiti",
     "valueLimitMessage": "Daha yüksek değerli ilanlar vermek için Premium üyeliğe geçin.",
     "premiumFeatureTitle": "Premium Özellik",
@@ -2011,7 +2020,7 @@
     "checkoutTitle": "Üyelik Satın Al",
     "checkoutPayButton": "{price} Öde",
     "checkoutMoreFeatures": "+{count} daha fazla",
-    "checkoutPaymentInfo": "Ödemeniz PayTR güvenli altyapısı üzerinden alınır. Kart bilgileriniz Tarodan''a kaydedilmez; bir sonraki adımda PayTR''nin 3D Secure ödeme sayfası açılır.",
+    "checkoutPaymentInfo": "Ödemeniz güvenli ödeme altyapısı üzerinden alınır. Kart bilgileriniz Tarodan'a kaydedilmez; bir sonraki adımda 3D Secure ödeme sayfası açılır.",
     "checkoutSummaryLine": "{tierName} Üyelik ({period})",
     "checkoutVatNote": "KDV dahildir",
     "checkoutTermsPrefix": "Ödemeyi tamamlayarak",
@@ -2156,7 +2165,7 @@
     "collectionsCount": "{count} koleksiyon",
     "startBuildingToday": "Koleksiyonunuzu bugün oluşturmaya başlayın",
     "browsePlaceholder": "Koleksiyon ara...",
-    "browseSectionTitle": "📚 Koleksiyonlar",
+    "browseSectionTitle": "Koleksiyonlar",
     "browseEmptyTitle": "Koleksiyon Bulunamadı",
     "statModel": "Model",
     "statViews": "Görüntülenme",
@@ -2290,7 +2299,7 @@
       "reasonMessage": "Mesajınıza yanıt geldiğinde hemen haberiniz olsun.",
       "reasonOffer": "Teklifiniz kabul edildiğinde ya da karşı teklif geldiğinde hemen haberiniz olsun.",
       "reasonOrder": "Siparişiniz kargoya verildiğinde ve teslim edildiğinde haberiniz olsun.",
-      "detail": "Bildirim türlerini istediğiniz zaman Ayarlar → Bildirimler'den değiştirebilirsiniz.",
+      "detail": "Bildirim türlerini istediğiniz zaman Ayarlar > Bildirimler'den değiştirebilirsiniz.",
       "allow": "Bildirimleri Aç",
       "later": "Şimdi Değil"
     }
@@ -2482,16 +2491,39 @@
       "phoneVerifyPrompt": "Telefonunuzu SMS ile doğrulayın",
       "phoneCodeSentTo": "<b>{phone}</b> numarasına gönderilen 6 haneli kodu girin.",
       "phoneNumber": "Telefon numarası",
-      "twoFactor": "İki Adımlı Doğrulama (2FA)",
+      "twoFactor": "İki Faktörlü Doğrulama (2FA)",
       "twoFactorOn": "Hesabınız TOTP ile korunuyor",
       "twoFactorOff": "Uygulama tabanlı ek güvenlik katmanı ekleyin",
       "manage": "Yönet",
       "setUp": "Ayarla",
-      "passwordDesc": "Hesabınızın şifresini düzenli olarak değiştirin"
+      "passwordDesc": "Hesabınızın şifresini düzenli olarak değiştirin",
+      "setPasswordTitle": "Şifre Belirle",
+      "setPasswordIntro": "Hesabınıza şu an yalnızca Google veya Apple ile giriş yapabiliyorsunuz. Bir şifre belirleyerek e-posta adresinizle de giriş yapabilirsiniz.",
+      "setPasswordAction": "Şifreyi Belirle",
+      "setPasswordSuccess": "Şifreniz belirlendi.",
+      "passwordFirstFor2fa": "İki faktörlü doğrulamayı açmak için önce bir şifre belirlemelisiniz."
     },
     "emailChangeLeaveTitle": "E-posta doğrulanmadı",
     "emailChangeLeaveBody": "Kodu girmeden çıkarsanız e-posta adresiniz değişmez ve yeniden kod istemeniz gerekir.",
-    "emailChangeLeaveConfirm": "Yine de Çık"
+    "emailChangeLeaveConfirm": "Yine de Çık",
+    "boost": {
+      "pricingLoadError": "Fiyatlar yüklenemedi"
+    },
+    "connectedAccounts": {
+      "title": "Bağlı Hesaplar",
+      "description": "Tarodan hesabınıza hangi hesaplarla giriş yapabileceğinizi yönetin.",
+      "connected": "Bağlı",
+      "notConnected": "Bağlı değil",
+      "connectedAs": "{email} olarak bağlı",
+      "connect": "Bağla",
+      "disconnect": "Bağlantıyı Kaldır",
+      "disconnectTitle": "{provider} bağlantısı kaldırılsın mı?",
+      "disconnectConfirm": "Bu hesapla artık {provider} üzerinden giriş yapamazsınız.",
+      "relinkNote": "Daha sonra aynı doğrulanmış e-posta adresiyle \"{provider} ile devam et\" seçeneğini kullanırsanız bu giriş yöntemi hesabınıza otomatik olarak yeniden bağlanır ve size bir bilgilendirme e-postası gönderilir.",
+      "lastMethodHint": "Hesabınızda bir şifre ya da bağlı bir Google hesabı kalmalı. Önce bir şifre belirleyin.",
+      "connectSuccess": "{provider} hesabı bağlandı.",
+      "disconnectSuccess": "{provider} bağlantısı kaldırıldı."
+    }
   },
   "review": {
     "reviews": "Değerlendirmeler",
@@ -2625,7 +2657,7 @@
       "imageAlt": "Diecast model araç koleksiyonu"
     },
     "seeAll": "Tümünü gör",
-    "viewGarage": "Garajını incele →",
+    "viewGarage": "Garajını incele",
     "sponsoredProducts": "Sponsorlu Ürünler",
     "loadingProducts": "Ürünler yükleniyor...",
     "noProductsYet": "Henüz ürün yok",
@@ -2634,13 +2666,12 @@
     "companyCollections": "Koleksiyonları",
     "featuredCollectionCount": "{count} araçlık koleksiyon",
     "checkApiConnection": "API bağlantısını kontrol edin",
-    "businessBadge": "👑 Business",
+    "businessBadge": "Business",
     "reviewCountSuffix": "({count} yorum)",
     "noProductsYetHint": "Yeni ilanlar eklendikçe burada görünecek."
   },
   "search": {
     "search": "Ara",
-    "scrollToTop": "En üste dön",
     "searchResults": "Arama Sonuçları",
     "searchFor": "için sonuçlar",
     "noResults": "Sonuç bulunamadı",
@@ -2659,8 +2690,16 @@
     "relatedResults": "İlgili Sonuçlar",
     "placeholderLong": "Model, marka veya anahtar kelime...",
     "searching": "Aranıyor...",
-    "clearFilters": "Temizle ✕",
-    "sellers": "Satıcılar"
+    "clearFilters": "Temizle",
+    "sellers": "Satıcılar",
+    "savedTitle": "Kayıtlı Aramalarım",
+    "savedDescription": "Kayıtlı aramalarınızı buradan yeniden çalıştırabilir veya silebilirsiniz.",
+    "savedEmptyTitle": "Kayıtlı Arama Yok",
+    "savedEmptyDescription": "İlanları ararken sonuç sayfasındaki \"Bu aramayı kaydet\" düğmesiyle aramanızı kaydedin, sonra buradan yeniden çalıştırın.",
+    "countOfLimit": "{count} / {limit} arama",
+    "savedLimitReached": "Kayıtlı arama limitinize ulaştınız ({limit} arama).",
+    "searchListings": "İlan Ara",
+    "runThisSearch": "Bu Aramayı Çalıştır"
   },
   "error": {
     "pageNotFound": "Sayfa Bulunamadı",
@@ -2699,6 +2738,8 @@
     "minAge18": "Kayıt olmak için 18 yaşından büyük olmalısınız.",
     "enterAmount": "Bir tutar girin",
     "enterValidAmount": "Geçerli bir tutar girin",
+    "amountFormatRefused": "Tutar kabul edilmedi. Binlik ayracı kullanmayın; kuruş için virgül kullanın, örn. 1250,50",
+    "amountAboveMax": "Tutar {max, number} TL'yi aşamaz.",
     "max500Chars": "En fazla 500 karakter",
     "enterOrderNumber": "Sipariş numarası girin",
     "offerBelowPrice": "Teklif fiyattan düşük olmalı",
@@ -2958,7 +2999,7 @@
     "cardNumberPlaceholder": "Kart numarası",
     "cardPurposeCheckout": "Sepet",
     "cardPurposeMembership": "Üyelik",
-    "cardSecureNotice": "Kart bilgileriniz saklanmaz; PayTR ile 256-bit SSL üzerinden işlenir.",
+    "cardSecureNotice": "Kart bilgileriniz saklanmaz; güvenli ödeme altyapısıyla 256-bit SSL üzerinden işlenir.",
     "connectionIssueTitle": "Bağlantı sorunu",
     "cvvInvalid": "CVV geçersiz",
     "cvvRequiredBody": "Bu kart için CVV girin",
@@ -2999,7 +3040,6 @@
     "autoRenewEligibleBadge": "Oto-yenilemeye uygun",
     "cardTypeCredit": "Kredi kartı",
     "cardTypeDebit": "Banka kartı",
-    "cardsVaultNotice": "Kartların PayTR güvenli kasasında saklanır; numara/CVV bizde tutulmaz.",
     "cvvRequiredBadge": "CVV gerektirir",
     "deleteCardBody": "{brand} •••• {last4} kartını silmek istediğine emin misin? Bu kartla otomatik yenileme yapılamaz hale gelir.",
     "deleteCardFailed": "Kart silinemedi.",
@@ -3015,11 +3055,6 @@
     "noPaymentsTitle": "Henüz ödeme yok",
     "orderNumberFallback": "Sipariş #{id}",
     "statusFailed": "Başarısız",
-    "detailAmountLine": "Tutar: {value}",
-    "detailDateLine": "Tarih: {value}",
-    "detailDescriptionLine": "Açıklama: {value}",
-    "detailMethodLine": "Yöntem: {value}",
-    "detailStatusLine": "Durum: {value}",
     "commissionIncluded": "komisyon dahil",
     "completeYourPayment": "Ödemenizi Tamamlayın",
     "completedDesc": "Ödemeniz alındı ve siparişiniz hazırlanmaya başlandı.",
@@ -3054,7 +3089,6 @@
     "paymentRetried": "Ödeme tekrarlandı",
     "paymentSuccess": "Ödeme başarılı!",
     "preparingInvoice": "Fatura Hazırlanıyor...",
-    "provider": "Sağlayıcı",
     "reason3dSecureFailed": "3D Secure doğrulaması başarısız",
     "reasonBankRejected": "Banka tarafından işlem reddedildi",
     "reasonCardError": "Kart bilgilerinde hata",
@@ -3086,7 +3120,6 @@
     "deleteCardBodyNeutral": "{brand} •••• {last4} kartını silmek istediğine emin misin?"
   },
   "seller": {
-    "premiumBadge": "Premium",
     "sellerProfile": "Satıcı Profili",
     "allListings": "Tüm İlanlar",
     "activeListings": "Aktif İlanlar",
@@ -3104,7 +3137,6 @@
     "report": "Raporla",
     "noActiveListings": "Bu satıcının henüz aktif ilanı yok.",
     "viewProfile": "Profili Gör",
-    "trust": "Güven",
     "noReviewsDesc": "Bu satıcının henüz değerlendirmesi yok.",
     "totalReviews": "değerlendirme",
     "noCollections": "Henüz koleksiyon yok",
@@ -3129,21 +3161,38 @@
     "benefitBadgeAndStats": "Kurumsal rozet ve istatistik paneli",
     "businessAccountSeparateNote": "İşletme hesabı, bireysel hesabınızdan ayrı bir hesaptır. Mevcut hesabınız işletmeye dönüştürülmez; vergi ve şirket bilgilerinizle ayrı bir kurumsal hesap açmanız gerekir.",
     "cancel": "Vazgeç",
-    "badgeFastShipper": "Hızlı Kargo",
-    "badgeTrustedSeller": "Güvenilir",
-    "badgeResponsive": "Hızlı Yanıt",
-    "badgeEliteCollector": "Elit Koleksiyoner",
-    "badgeHallOfFame": "Onur Listesi",
     "listingsCount": "İlanlar ({count})",
     "reviewsCount": "Değerlendirmeler ({count})",
     "collectionsCount": "Koleksiyonlar ({count})",
     "memberSincePrefix": "Üye: {date}",
-    "trustScoreLabel": "Güven Skoru {score}/100",
-    "trustScoreLevelSuffix": " · {level}",
     "sendMessage": "Mesaj Gönder",
     "loginToMessage": "Mesaj göndermek için üye girişi yapın",
     "itemsListing": "İlan",
-    "salesLabel": "Satış"
+    "salesLabel": "Satış",
+    "trustScore": {
+      "badge": "{rating}",
+      "badgeNew": "Yeni satıcı",
+      "a11yLabel": "Güven skoru {rating}/5, {level}",
+      "a11yLabelNew": "Güven skoru: Yeni satıcı",
+      "levels": {
+        "excellent": "Çok güvenilir",
+        "trusted": "Güvenilir",
+        "fair": "Orta",
+        "developing": "Gelişmekte",
+        "new": "Yeni satıcı"
+      },
+      "info": {
+        "title": "Güven skoru nasıl hesaplanır?",
+        "intro": "Güven skoru, satıcının Tarodan'daki gerçek işlemlerinden 0 ile 5 arasında hesaplanır:",
+        "ratings": "Alıcı ve takas değerlendirmeleri (her kişinin oyu bir kez sayılır)",
+        "reliability": "Siparişleri iptal etmeden ve satıcı kaynaklı iade olmadan tamamlama",
+        "onTime": "Siparişleri süresi içinde kargoya verme",
+        "volume": "Tamamlanan satış ve takas sayısı",
+        "tenure": "Tarodan'daki hesap yaşı",
+        "newSeller": "En az {count} tamamlanmış işlemi ve {counterparties} farklı alıcısı olmayan satıcılar \"Yeni satıcı\" olarak görünür.",
+        "updated": "Skor her gün güncellenir."
+      }
+    }
   },
   "sellerDashboard": {
     "title": "Satıcı Panosu",
@@ -3401,7 +3450,11 @@
       "acceptSuffix": " — okudum ve kabul ediyorum.",
       "submit": "Onayla ve devam et",
       "submitFailed": "Onayınız kaydedilemedi. Lütfen tekrar deneyin."
-    }
+    },
+    "platformServiceSales": {
+      "title": "Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi"
+    },
+    "withdrawalWaiverTitle": "Cayma Hakkı Onayı"
   },
   "information": {
     "contactInfo": {
@@ -3513,8 +3566,9 @@
     }
   },
   "mobile": {
-    "tabBarSell": "İlan ver",
-    "tabBarExpandHint": "Alt menüyü gösterir",
+    "googleDeveloperError": "Google ile giriş şu anda uygulamanın bu sürümünde kullanılamıyor. Lütfen e-posta adresinizle giriş yapın veya daha sonra tekrar deneyin.",
+    "noPasswordAccountNoProvider": "Bu hesabın şifresi yok. Burada giriş yapmak için bir şifre belirleyin.",
+    "tabBarSellLabel": "İlan Ver",
     "addressTitlePlaceholder": "Örn. Ev, İş",
     "bioPlaceholder": "Kendinizden bahsedin",
     "cancel": "İptal",
@@ -3558,7 +3612,7 @@
     "tipChangePassword": "Şifreni düzenli olarak değiştir",
     "tipReportSuspicious": "Şüpheli durumları bize bildir",
     "tipStrongPassword": "En az 8 karakter, büyük/küçük harf ve rakam kullan",
-    "tipTwoFactor": "İki adımlı doğrulamayı etkinleştir",
+    "tipTwoFactor": "İki faktörlü doğrulamayı etkinleştir",
     "tokenInvalid": "Geçersiz veya süresi dolmuş bağlantı",
     "verify": "Doğrula",
     "verifyEmailFailed": "E-posta doğrulanamadı",
@@ -3579,9 +3633,14 @@
     "settingsSupportTickets": "Destek Taleplerim",
     "settingsFollowing": "Takip Ettiklerim",
     "settingsNewsletter": "Haber Bülteni",
+    "appBuildVersion": "{version} ({build})",
+    "appBuildLabel": "{version} · {update}",
+    "appBuildLabelWithEnvironment": "{version} · {update} ({environment})",
+    "appBuildEmbedded": "yerleşik",
+    "appEnvironmentStaging": "Staging",
+    "appEnvironmentDevelopment": "Development",
+    "appBuildAccessibilityLabel": "Uygulama sürümü {label}",
     "profileQuickAccess": "Hızlı Erişim",
-    "profileTrustPublic": "Herkese açık",
-    "profileTrustHidden": "Gizli",
     "guestBrowseListings": "İlanlara Göz At",
     "guestOrderTrack": "Sipariş Takip",
     "guestGoPremium": "Premium Ol",
@@ -3606,14 +3665,15 @@
     "maintenanceDescription": "Şu an bakım çalışması yapılıyor. Kısa süre sonra tekrar hizmetinizdeyiz.",
     "splashTagline": "İkinci elin güvenli adresi",
     "menuInfoLegal": "Bilgi ve Yasal",
-    "trustScoreVisibilityTitle": "Güven Skoru",
-    "trustScoreVisibilityLabel": "Güven skorumu herkese göster",
-    "trustScoreVisibilityHint": "Kapalıyken skorunuz profilinizde başkalarına görünmez.",
     "webPageLoadFailedTitle": "Sayfa yüklenemedi",
     "webPageLoadFailedDescription": "İnternet bağlantınızı kontrol edip tekrar deneyin ya da sayfayı tarayıcıda açın.",
     "openInBrowser": "Tarayıcıda aç",
     "settingsGroupPayment": "Ödeme ve Banka",
-    "settingsGroupPreferences": "Tercihler"
+    "settingsGroupPreferences": "Tercihler",
+    "connectedAccounts": {
+      "appleIosOnly": "Apple ile giriş yalnızca iPhone ve iPad'de bağlanabilir. Apple hesabınızı Tarodan web sitesinden de bağlayabilirsiniz.",
+      "googleUnavailableAndroid": "Google ile giriş şu anda Android'de kapalı. Google hesabınızı Tarodan web sitesinden bağlayabilirsiniz."
+    }
   },
   "refund": {
     "cancel": {
@@ -4116,7 +4176,7 @@
         "adjustRecordAfter": "alanı değişecek:",
         "oldValue": "Eski",
         "newValue": "Yeni",
-        "prodDataWarning": "⚠ PROD — gerçek veri değişecek.",
+        "prodDataWarning": "PROD — gerçek veri değişecek.",
         "record": "Kayıt",
         "dates": "Tarihler",
         "action": "Aksiyon",
@@ -4504,7 +4564,7 @@
         "unlimited": "Sınırsız",
         "startDate": "Başlangıç Tarihi",
         "endDate": "Bitiş Tarihi",
-        "flashSale": "⚡ Flash Sale (Flaş İndirim)",
+        "flashSale": "Flash Sale (Flaş İndirim)",
         "stackable": "Diğer indirimlerle kombine edilebilir",
         "free": "Bedava",
         "percentDiscount": "%{value} İndirim",
@@ -4825,7 +4885,7 @@
         "orderAmount": "Sipariş Tutarı",
         "uploadedAt": "Yüklenme",
         "replaced": "Değiştirildi",
-        "returnReference": "İade → {reference}",
+        "returnReference": "İade: {reference}",
         "filters": {
           "allTypes": "Tüm Türler",
           "allStatuses": "Tüm Durumlar",
@@ -5148,7 +5208,7 @@
         "cash": "Nakit",
         "paidBy": "Ödeyen",
         "disputed": "İtirazlı",
-        "disputedBadge": "⚠️ İtirazlı",
+        "disputedBadge": "İtirazlı",
         "resolveDispute": "İtirazı Çöz",
         "filterReviewQueue": "İnceleme kuyruğunu filtrele",
         "reviewQueueCount": "<value>{count}</value> takas inceleme bekliyor",
@@ -5475,8 +5535,8 @@
           "createAndTrack": "Gönderi Oluştur + Takip",
           "reference": "Referans",
           "step1": "1) Gönderi oluştur:",
-          "ok": "✓ başarılı",
-          "fail": "✗ hata",
+          "ok": "başarılı",
+          "fail": "hata",
           "step2": "2) Takip sorgula:",
           "singleEndpointHint": "Bir referans (OzelKargoTakipNo) ile tekil endpoint testi:",
           "refPlaceholder": "Referans (OzelKargoTakipNo)",
@@ -5938,7 +5998,7 @@
         "viewAllTrades": "Tüm takasları görüntüle",
         "noTrades": "Henüz takas yok",
         "counterpartyLabel": "Karşı taraf:",
-        "tradeOfferSummary": "{a} ürün ↔ {b} ürün",
+        "tradeOfferSummary": "{a} ürün karşılığında {b} ürün",
         "receivedRatingsTitle": "Alınan Değerlendirmeler",
         "noReceivedRatings": "Henüz değerlendirme yok",
         "givenRatingsTitle": "Verilen Değerlendirmeler",
@@ -6556,7 +6616,7 @@
         "title": "Şifremi Unuttum",
         "instructions": "Hesabının e-posta adresini gir; sana şifre sıfırlama bağlantısı gönderelim.",
         "submit": "Sıfırlama bağlantısı gönder",
-        "backToLogin": "← Girişe dön",
+        "backToLogin": "Girişe dön",
         "sentMessage": "Eğer <strong>{email}</strong> sistemde kayıtlıysa, şifre sıfırlama bağlantısı e-posta adresine gönderildi. Gelen kutunu (ve spam klasörünü) kontrol et.",
         "pageDescription": "Hesap şifrenizi sıfırlayın"
       },
@@ -6648,7 +6708,7 @@
         "message": "{productTitle} ürününüz için {amount} TL teklif aldınız."
       },
       "offerAccepted": {
-        "title": "Teklifiniz Kabul Edildi! 🎉",
+        "title": "Teklifiniz Kabul Edildi!",
         "message": "{productTitle} için teklifiniz kabul edildi. Hemen ödeyin!"
       },
       "offerRejected": {
@@ -6672,7 +6732,7 @@
         "message": "{productTitle} adlı ürün için verdiğiniz teklif, ürün satıldığı için iptal edildi."
       },
       "productApproved": {
-        "title": "İlanınız Yayında! 🎉",
+        "title": "İlanınız Yayında!",
         "message": "{productTitle} ilanınız onaylandı ve yayına alındı."
       },
       "productRejected": {
@@ -6680,7 +6740,7 @@
         "message": "{productTitle} ilanınız onaylanmadı. Neden: {reason}"
       },
       "productSold": {
-        "title": "Ürününüz Satıldı! 🎉",
+        "title": "Ürününüz Satıldı!",
         "message": "{productTitle} ürününüz {amount} TL'ye satıldı."
       },
       "paymentReceived": {
@@ -6696,7 +6756,7 @@
         "message": "Ürünleriniz için bir takas teklifi aldınız."
       },
       "tradeAccepted": {
-        "title": "Takas Kabul Edildi! 🎉",
+        "title": "Takas Kabul Edildi!",
         "message": "Takas teklifiniz kabul edildi. Lütfen kargoya verin."
       },
       "tradeRejected": {
@@ -6712,7 +6772,7 @@
         "message": "Takas paketiniz kargoya verildi. Takip no: {trackingNumber}"
       },
       "tradeCompleted": {
-        "title": "Takas Tamamlandı! 🎉",
+        "title": "Takas Tamamlandı!",
         "message": "Takas işlemi başarıyla tamamlandı!"
       },
       "newMessage": {
@@ -6720,11 +6780,11 @@
         "message": "{senderName}: {messagePreview}"
       },
       "priceDrop": {
-        "title": "Fiyat Düştü! 🔥",
+        "title": "Fiyat Düştü!",
         "message": "{productTitle} ürününün fiyatı {oldPrice} TL'den {newPrice} TL'ye düştü!"
       },
       "wishlistItemSold": {
-        "title": "Kaçırdınız! 😢",
+        "title": "Kaçırdınız!",
         "message": "Favorilerinize eklediğiniz {productTitle} satıldı."
       },
       "backInStock": {
@@ -6744,11 +6804,11 @@
         "message": "{userName} koleksiyonunuzu beğendi."
       },
       "productLiked": {
-        "title": "Ürününüz Beğenildi ❤️",
+        "title": "Ürününüz Beğenildi",
         "message": "{userName} {productTitle} ürününüzü favorilere ekledi."
       },
       "wishlistSold": {
-        "title": "Favori Ürününüz Satıldı 😢",
+        "title": "Favori Ürününüz Satıldı",
         "message": "Favorilerinize eklediğiniz {productTitle} satıldı."
       },
       "reviewReceived": {
@@ -6764,7 +6824,7 @@
         "message": "{tierName} üyeliğiniz sona erdi. Yenileyin ve avantajlardan yararlanın!"
       },
       "membershipUpgraded": {
-        "title": "Üyeliğiniz Yükseltildi! 🎉",
+        "title": "Üyeliğiniz Yükseltildi!",
         "message": "{tierName} üyeliğine hoş geldiniz! Yeni avantajlarınız aktif."
       },
       "listingExpiring": {
@@ -6776,19 +6836,19 @@
         "message": "{productTitle} ilanınız sona erdi. Yeniden yayınlayın."
       },
       "listingViewsMilestone": {
-        "title": "Tebrikler! 🎉",
+        "title": "Tebrikler!",
         "message": "{productTitle} ilanınız {viewCount} görüntülemeye ulaştı!"
       },
       "promotion": {
-        "title": "🎁 Özel Kampanya",
+        "title": "Özel Kampanya",
         "message": "{promotionTitle}"
       },
       "specialOffer": {
-        "title": "💎 Özel Teklif",
+        "title": "Özel Teklif",
         "message": "{offerDescription}"
       },
       "welcome": {
-        "title": "Tarodan'a Hoş Geldiniz! 🎉",
+        "title": "Tarodan'a Hoş Geldiniz!",
         "message": "Diecast model araba koleksiyoncuları platformuna hoş geldiniz."
       },
       "passwordReset": {
@@ -6800,11 +6860,11 @@
         "message": "E-postanızı doğrulamak için linke tıklayın."
       },
       "systemAnnouncement": {
-        "title": "📢 Duyuru",
+        "title": "Duyuru",
         "message": "{announcement}"
       },
       "boostExpired": {
-        "title": "🚀 Öne çıkarma süresi doldu",
+        "title": "Öne çıkarma süresi doldu",
         "message": "\"{productTitle}\" ilanının öne çıkarması bitti. Otomatik yenileme açıktı — tek tıkla yeniden öne çıkar."
       },
       "tradeAutoCancelled": {
@@ -6880,7 +6940,7 @@
         "message": "{refundNumber} numaralı iade talebine 48 saat içinde yanıt verilmediği için otomatik onaylandı."
       },
       "sellerApplicationApproved": {
-        "title": "Kurumsal Başvurunuz Onaylandı! 🎉",
+        "title": "Kurumsal Başvurunuz Onaylandı!",
         "message": "Kurumsal hesap başvurunuz onaylandı. Artık satıcı olarak ürün listeleyebilirsiniz."
       },
       "sellerApplicationRejected": {
@@ -7004,7 +7064,7 @@
       "membershipExpiredForAccept": "Üyeliğinizin süresi dolmuş görünüyor. Trade kabul etmek için Temel veya üstü üyeliğinizi yenileyin.",
       "membershipRequiredForCounter": "Karşı teklif göndermek için Temel veya üstü üyelik gereklidir. Üyeliğinizi yenileyin.",
       "noShipmentToConfirm": "Onaylanacak gönderim bulunamadı",
-      "noShippingAddress": "Takas için bir teslimat adresi ekleyin. Profil → Adreslerim üzerinden adres ekleyebilirsiniz.",
+      "noShippingAddress": "Takas için bir teslimat adresi ekleyin. Profil > Adreslerim üzerinden adres ekleyebilirsiniz.",
       "notAuthorizedForAction": "Bu takas işlemi için yetkiniz yok",
       "notAuthorizedToCancel": "Bu takası iptal etme yetkiniz yok",
       "notAuthorizedToView": "Bu takası görüntüleme yetkiniz yok",
@@ -7102,21 +7162,21 @@
       "cartPaymentDescriptionCount": "Sepet ödemesi ({count} ürün)",
       "cashPaymentRecordNotFound": "Nakit ödeme kaydı bulunamadı",
       "completedPaymentNotFound": "Tamamlanmış ödeme bulunamadı",
-      "connectionError": "PayTR bağlantı hatası, lütfen tekrar deneyin.",
+      "connectionError": "Ödeme altyapısına bağlanılamadı, lütfen tekrar deneyin.",
       "cvvRequiredForCard": "Bu kart için CVV gereklidir",
-      "directApiNotAuthorized": "PayTR kart ödemesi bu mağaza için doğrulanamadı (Direkt API yetkisi gerekli olabilir).",
+      "directApiNotAuthorized": "Kart ödemesi bu mağaza için doğrulanamadı.",
       "groupOrderItemNotAwaitingPayment": "Gruptaki \"{item}\" siparişi ödeme beklemiyor. Lütfen sepeti yeniden oluşturun.",
       "groupOrderNotAwaitingPayment": "Gruptaki bir sipariş ödeme beklemiyor. Lütfen sepeti yeniden oluşturun.",
       "holdNotReleasable": "Serbest bırakılabilir ödeme bulunamadı (açık iade nedeniyle dondurulmuş olabilir)",
       "installmentInfoFetchFailed": "Taksit bilgisi alınamadı",
       "installmentInfoUnavailable": "Taksit bilgileri alınamadı",
-      "installmentResponseInvalid": "PayTR taksit yanıtı geçersiz/boş",
+      "installmentResponseInvalid": "Taksit bilgisi alınamadı",
       "loginRequired": "Oturum açmanız gerekiyor",
       "loginRequiredForOrder": "Bu sipariş için giriş yapmanız gerekiyor",
       "loginRequiredForPayment": "Bu ödeme için giriş yapmanız gerekiyor",
       "loginRequiredForSavedCard": "Kayıtlı kartla ödeme için giriş yapmanız gerekiyor",
-      "noResponse": "PayTR yanıt vermedi (HTTP {httpStatus}).",
-      "notConfigured": "PayTR yapılandırılmamış (merchant bilgileri eksik)",
+      "noResponse": "Ödeme altyapısı yanıt vermedi (HTTP {httpStatus}).",
+      "notConfigured": "Ödeme altyapısı yapılandırılmamış",
       "onlyDesignatedPayerCanInitiate": "Bu ödemeyi sadece belirlenmiş ödeyen taraf başlatabilir",
       "onlyFailedPaymentsRetryable": "Sadece başarısız ödemeler tekrar denenebilir",
       "onlyPendingPaymentsCancelable": "Sadece bekleyen ödemeler iptal edilebilir",
@@ -7134,18 +7194,18 @@
       "paymentBelongsToGroupRestart": "Bu ödeme bir sipariş grubuna ait. Lütfen ödemeyi sipariş grubuyla yeniden başlatın.",
       "paymentCurrentlyProcessing": "Bu ödeme şu anda işleniyor. Lütfen birkaç saniye bekleyip tekrar deneyin.",
       "paymentNotFound": "Ödeme bulunamadı",
-      "paymentNotYetSynced": "Ödeme yeni tamamlandı, PayTR henüz işlemi tam senkronize etmedi. Lütfen 1-2 dakika sonra tekrar deneyin.",
-      "paymentRejected": "PayTR ödemeyi reddetti",
+      "paymentNotYetSynced": "Ödeme yeni tamamlandı, işlem henüz tam senkronize olmadı. Lütfen 1-2 dakika sonra tekrar deneyin.",
+      "paymentRejected": "Ödeme reddedildi",
       "paymentTargetRequired": "orderId, checkoutGroupId veya tradeId zorunludur.",
       "paymentWindowExpired": "Ödeme süresi doldu. Lütfen yeni bir sipariş oluşturun.",
-      "paytrRefundFailed": "PayTR iade işlemi başarısız",
+      "paytrRefundFailed": "İade işlemi başarısız",
       "productFallbackTitle": "Ürün",
       "productNoLongerAvailable": "Ürün artık satışta değil veya başka alıcıya satıldı. Lütfen ilanlar sayfasından tekrar sipariş oluşturun.",
       "refundAmountExceedsLimit": "İade tutarı ({amountToRefund} TL) izin verilen üst sınırı ({refundCap} TL) aşıyor",
-      "refundError": "PayTR iade hatası",
-      "refundFailed": "PayTR iade başarısız",
+      "refundError": "İade hatası",
+      "refundFailed": "İade başarısız",
       "refundInitiationFailed": "İade başlatılamadı (geçici hata). Lütfen tekrar deneyin.",
-      "refundResponseInvalid": "PayTR iade yanıtı geçersiz/boş",
+      "refundResponseInvalid": "İade yanıtı geçersiz/boş",
       "retryForbidden": "Bu ödemeyi tekrar deneme yetkiniz yok",
       "savedCardNotFound": "Kayıtlı kart bulunamadı",
       "savedCardPaymentUnavailable": "Kayıtlı kartla ödeme şu an kullanılamıyor. Lütfen kart bilgilerinizi girin.",
@@ -7156,7 +7216,7 @@
       "tradeNotAcceptedOrInvalidStatus": "Takas henüz kabul edilmedi veya uygun durumda değil",
       "tradeNotFound": "Takas bulunamadı",
       "transferAlreadyStarted": "Transfer zaten başlatılmış, iade yapılamaz",
-      "unexpectedResponse": "PayTR beklenmeyen yanıt döndü; kart bilgilerinizi kontrol edin.",
+      "unexpectedResponse": "Ödeme altyapısı beklenmeyen bir yanıt döndü; kart bilgilerinizi kontrol edin.",
       "unknownProvider": "Bilinmeyen ödeme sağlayıcı: {provider}",
       "viewPaymentForbidden": "Bu ödemeyi görüntüleme yetkiniz yok",
       "viewStatusForbidden": "Bu ödeme durumunu görüntüleme yetkiniz yok"
@@ -7271,6 +7331,12 @@
       "tierNotActive": "Bu üyelik tipi aktif değil",
       "tierNotFound": "Üyelik tipi bulunamadı: {type}",
       "userIdNotFound": "Kullanıcı kimliği bulunamadı"
+    },
+    "savedSearch": {
+      "limitReached": "Kayıtlı arama limitinize ulaştınız ({limit} arama).",
+      "alreadySaved": "Bu arama zaten kayıtlı.",
+      "emptyQuery": "Kaydetmek için bir arama yapın veya filtre seçin.",
+      "notFound": "Kayıtlı arama bulunamadı."
     }
   },
   "status": {
@@ -7398,7 +7464,7 @@
   },
   "security": {
     "passwordChangeFailed": "Şifre değiştirilemedi",
-    "twoFactorQrAlt": "İki adımlı doğrulama QR kodu",
+    "twoFactorQrAlt": "İki faktörlü doğrulama QR kodu",
     "twoFactorEnabled": "İki faktörlü doğrulama aktifleştirildi",
     "twoFactorDisabled": "İki faktörlü doğrulama kapatıldı",
     "logoutAllTitle": "Tüm Cihazlardan Çıkış",
@@ -7704,8 +7770,6 @@
   "filter": {
     "searchSectionTitle": "Arama",
     "clearSearchLabel": "Aramayı temizle",
-    "discountOnlyLabel": "Sadece İndirimli",
-    "tradeOnlyChip": "Takaslı",
     "resultsLoading": "Sonuçlar yükleniyor…",
     "showResultsCount": "{count} Sonuç Göster",
     "showAllOptions": "Tümünü göster ({count})",
@@ -7834,21 +7898,21 @@
     "loadFailed": "Takip listesi yüklenemedi"
   },
   "savedSearch": {
-    "title": "Kayıtlı Aramalar",
-    "loginSubtitle": "Aramalarınızı kaydetmek için giriş yapın",
-    "limitReached": "Arama limitine ulaştınız",
-    "remainingSearches": "{count} arama hakkı kaldı",
-    "emptyTitle": "Kayıtlı arama yok",
-    "emptySubtitle": "Arama sayfasında arama yapıp \"Aramayı Kaydet\" butonuna tıklayın",
-    "goToSearch": "Aramaya Git",
-    "deletedMsg": "Arama silindi",
-    "deleteFailedMsg": "Arama silinemedi",
-    "deleteTitle": "Aramayı Sil",
+    "save": "Bu aramayı kaydet",
+    "saveTitle": "Aramayı kaydet",
+    "nameLabel": "Arama adı",
+    "saved": "Arama kaydedildi",
+    "saveFailed": "Arama kaydedilemedi",
+    "nothingToSave": "Kaydetmek için bir arama yapın veya filtre seçin",
+    "signInToSave": "Aramanızı kaydetmek için giriş yapın",
+    "untitled": "Kayıtlı arama",
+    "savedOn": "Kaydedildi: {date}",
+    "limitTitle": "Kayıtlı arama limiti",
+    "deleteTitle": "Aramayı sil",
     "deleteConfirm": "\"{name}\" aramasını silmek istediğinize emin misiniz?",
-    "resultCountSuffix": "{count} sonuç",
-    "createdLabel": "Oluşturulma: {date}",
-    "run": "Çalıştır",
-    "notifyToggleLabel": "Yeni ürünlerde bildir"
+    "deleted": "Arama silindi",
+    "deleteFailed": "Arama silinemedi",
+    "loadFailed": "Kayıtlı aramalar yüklenemedi"
   },
   "sale": {
     "statusPendingPayment": "Ödeme Bekliyor",

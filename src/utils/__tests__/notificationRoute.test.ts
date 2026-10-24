@@ -3,6 +3,9 @@
  * fonksiyonu kullanır (DRY) — bu yüzden e-posta/davet/takip yolları da burada.
  */
 import { notificationRoute, toMobileRoute } from '../notificationRoute';
+import { LISTING_SLUG_MAX_LENGTH, listingPath } from '@/types';
+
+const LISTING_ID = '0b1e5c1a-7d2f-4e3a-9c4b-5d6e7f8a9b0c';
 
 /**
  * Yol enjeksiyonu (HIGH) — çözülmüş kimlik expo-router parametresi olarak API yoluna
@@ -25,9 +28,8 @@ describe('kimlik biçimi doğrulaması', () => {
   });
 
   it('slug segmentleri (nokta, @, :, yüzde kodlu Türkçe harf) düşmez', () => {
-    expect(toMobileRoute('/listings/vintage-araba.v2')).toBe('/product/vintage-araba.v2');
-    expect(toMobileRoute('/listings/ak%C4%B1ll%C4%B1-%C3%A7ocuk-oyuncağ%C4%B1')).toBe(
-      '/product/ak%C4%B1ll%C4%B1-%C3%A7ocuk-oyuncağ%C4%B1',
+    expect(toMobileRoute('/collections/ak%C4%B1ll%C4%B1-%C3%A7ocuk-oyuncağ%C4%B1')).toBe(
+      '/collections/ak%C4%B1ll%C4%B1-%C3%A7ocuk-oyuncağ%C4%B1',
     );
     expect(toMobileRoute('/collections/ali@koleksiyon')).toBe('/collections/ali@koleksiyon');
     expect(toMobileRoute('/seller/magaza:tr')).toBe('/seller/magaza:tr');
@@ -66,12 +68,12 @@ describe('kimlik biçimi doğrulaması', () => {
     ]) {
       expect(toMobileRoute(bad)).toBeNull();
     }
-    expect(toMobileRoute(`/listings/${'a'.repeat(128)}`)).toBe(`/product/${'a'.repeat(128)}`);
+    expect(toMobileRoute(`/collections/${'a'.repeat(128)}`)).toBe(`/collections/${'a'.repeat(128)}`);
   });
 
-  it('bildirim linki: slug\'lı ürün yolu çözülür', () => {
-    expect(notificationRoute({ type: 'x', link: '/listings/vintage-araba.v2', data: {} })).toBe(
-      '/product/vintage-araba.v2',
+  it('notification link: a slug-uuid listing path resolves to the bare uuid', () => {
+    expect(notificationRoute({ type: 'x', link: `/listings/vintage-araba-${LISTING_ID}`, data: {} })).toBe(
+      `/product/${LISTING_ID}`,
     );
   });
 
@@ -88,7 +90,6 @@ describe('toMobileRoute — derin bağlantı yolları', () => {
     expect(toMobileRoute('/tr/listings?discountOnly=true&sortBy=price_asc')).toBe(
       '/search?discountOnly=true&sortBy=price_asc',
     );
-    expect(toMobileRoute('/listings/42')).toBe('/product/42');
   });
 
   it('e-posta doğrulama token\'ını korur', () => {
@@ -131,9 +132,7 @@ describe('toMobileRoute — derin bağlantı yolları', () => {
     expect(toMobileRoute('/profile/refund-requests/rr-1')).toBe('/refund-requests/rr-1');
   });
 
-  it('ilan düzenleme bağlantısını mobil ilan düzenlemeye eşler', () => {
-    expect(toMobileRoute('/listings/p-1/edit')).toBe('/listing/p-1/edit');
-  });
+
 
   it('ödeme dönüş URL\'lerini eşlemez (WebView içinde yakalanır)', () => {
     expect(toMobileRoute('/payment/success?paymentId=p1')).toBeNull();
@@ -143,11 +142,12 @@ describe('toMobileRoute — derin bağlantı yolları', () => {
 
 describe('toMobileRoute — locale oneki', () => {
   it('en onekli urun linkini cozer', () => {
-    expect(toMobileRoute('/en/listings/123')).toBe('/product/123');
+    expect(toMobileRoute(`/en/listings/${LISTING_ID}`)).toBe(`/product/${LISTING_ID}`);
+    expect(toMobileRoute(`/en/listings/ferrari-f40-${LISTING_ID}`)).toBe(`/product/${LISTING_ID}`);
   });
 
   it('tr onekli urun linkini cozer', () => {
-    expect(toMobileRoute('/tr/listings/123')).toBe('/product/123');
+    expect(toMobileRoute(`/tr/listings/${LISTING_ID}`)).toBe(`/product/${LISTING_ID}`);
   });
 
   it('onekli sorgu parametresini korur', () => {
@@ -250,8 +250,8 @@ it('offer_counter gönderilen teklifler sekmesine gider', () => {
 it('stok bitmiş ürün bildirimi "artık satışta değil" ekranına gider', () => {
   // Ürün detayı yerine bu ekran doğru hedef; bilgi YALNIZ tipte var.
   for (const type of ['order_cancelled_out_of_stock', 'offer_cancelled_out_of_stock', 'back_in_stock']) {
-    expect(notificationRoute({ type, link: '/listings/p1', data: { productId: 'p1' } })).toBe(
-      '/products/unavailable/p1',
+    expect(notificationRoute({ type, link: `/listings/${LISTING_ID}`, data: { productId: LISTING_ID } })).toBe(
+      `/products/unavailable/${LISTING_ID}`,
     );
   }
 });
@@ -364,5 +364,200 @@ describe('notificationRoute — C-1.5', () => {
         '/orders/o1',
       );
     }
+  });
+});
+
+/**
+ * Listing boost notifications (contract delta 2026-10-22, ADR 0015): all six `boost_*` types link
+ * to web "My boosts" (`/profile/boosts`), which has no mobile screen. Each carries
+ * `data.productId`, which is routed before any link, so a tap opens the listing; without it the
+ * link falls back to the profile tab, never an empty screen.
+ */
+describe('boost notifications', () => {
+  const BOOST_TYPES = [
+    'boost_activated',
+    'boost_expired',
+    'boost_ending_soon',
+    'boost_granted',
+    'boost_cancelled',
+    'boost_refunded',
+  ];
+
+  it.each(BOOST_TYPES)('%s with data.productId opens /product/:id', (type) => {
+    expect(
+      notificationRoute({
+        type,
+        link: '/profile/boosts',
+        data: { productId: 'p-1', productTitle: 'Model', link: '/profile/boosts' },
+      }),
+    ).toBe('/product/p-1');
+  });
+
+  it.each(BOOST_TYPES)('%s as a push payload (data only, type inside) opens /product/:id', (type) => {
+    expect(notificationRoute({ data: { type, productId: 'p-1' } })).toBe('/product/p-1');
+  });
+
+  it.each(BOOST_TYPES)('%s without a productId falls back to the profile tab', (type) => {
+    expect(notificationRoute({ type, link: '/profile/boosts', data: {} })).toBe('/(tabs)/profile');
+  });
+
+  it('/profile/boosts has no mobile list screen: the profile tab', () => {
+    expect(toMobileRoute('/profile/boosts')).toBe('/(tabs)/profile');
+  });
+});
+
+/**
+ * Listing URLs (ADR 0017): `/listings/<slug>-<uuid>`. The uuid is the key and the slug is decoration,
+ * so every shape of the same listing maps to the same mobile route.
+ */
+describe('toMobileRoute: listing URL segment', () => {
+  const PRODUCT = `/product/${LISTING_ID}`;
+  const EDIT = `/listing/${LISTING_ID}/edit`;
+  const SLUG = 'ferrari-f40-1-18-bburago-kirmizi';
+
+  it.each([
+    ['a bare uuid', LISTING_ID],
+    ['the canonical slug-uuid', `${SLUG}-${LISTING_ID}`],
+    ['an upper-case uuid', LISTING_ID.toUpperCase()],
+    ['a slug with an upper-case uuid', `${SLUG}-${LISTING_ID.toUpperCase()}`],
+    ['a stale slug (title edited since)', `old-title-${LISTING_ID}`],
+    ['a percent-encoded Turkish slug', `k%C4%B1rm%C4%B1z-%C3%A7ocuk-${LISTING_ID}`],
+  ])('%s -> the product screen with the lower-case uuid', (_label, segment) => {
+    expect(toMobileRoute(`/listings/${segment}`)).toBe(PRODUCT);
+  });
+
+  it.each([
+    ['/en/listings/<slug>-<uuid>', `/en/listings/${SLUG}-${LISTING_ID}`],
+    ['/tr/listings/<uuid>', `/tr/listings/${LISTING_ID}`],
+    ['a trailing slash', `/listings/${SLUG}-${LISTING_ID}/`],
+    ['a query string', `/listings/${SLUG}-${LISTING_ID}?ref=share`],
+  ])('keeps working under %s', (_label, link) => {
+    expect(toMobileRoute(link)).toBe(PRODUCT);
+  });
+
+  it('maps the edit link of every segment shape to the edit screen with the uuid', () => {
+    expect(toMobileRoute(`/listings/${LISTING_ID}/edit`)).toBe(EDIT);
+    expect(toMobileRoute(`/listings/${SLUG}-${LISTING_ID}/edit`)).toBe(EDIT);
+    expect(toMobileRoute(`/en/listings/${LISTING_ID.toUpperCase()}/edit`)).toBe(EDIT);
+  });
+
+  it.each([
+    ['garbage', 'garbage'],
+    ['a numeric id', '42'],
+    ['a literal "new"', 'new'],
+    ['a truncated uuid', LISTING_ID.slice(0, -1)],
+    ['a uuid with a character glued on', `${LISTING_ID}x`],
+    ['a uuid with no separator before it', `slug${LISTING_ID}`],
+    ['a leading hyphen only', `-${LISTING_ID}`],
+  ])('%s maps to nothing (the app shows its not-found screen)', (_label, segment) => {
+    expect(toMobileRoute(`/listings/${segment}`)).toBeNull();
+    expect(toMobileRoute(`/listings/${segment}/edit`)).toBeNull();
+    expect(toMobileRoute(`/product/${segment}`)).toBeNull();
+  });
+
+  it('canonicalises the product screen path too, keeping a sub-route', () => {
+    expect(toMobileRoute(`/product/${LISTING_ID}`)).toBe(PRODUCT);
+    expect(toMobileRoute(`/product/${SLUG}-${LISTING_ID}`)).toBe(PRODUCT);
+    expect(toMobileRoute(`/product/${SLUG}-${LISTING_ID.toUpperCase()}/reviews`)).toBe(`${PRODUCT}/reviews`);
+  });
+
+  it('takes the listing uuid out of the unavailable listing path', () => {
+    expect(toMobileRoute(`/products/unavailable/${LISTING_ID}`)).toBe(`/products/unavailable/${LISTING_ID}`);
+    expect(toMobileRoute(`/products/unavailable/${SLUG}-${LISTING_ID.toUpperCase()}`)).toBe(
+      `/products/unavailable/${LISTING_ID}`,
+    );
+    expect(toMobileRoute('/products/unavailable/garbage')).toBeNull();
+    expect(toMobileRoute('/products/unavailable')).toBeNull();
+    expect(toMobileRoute('/products')).toBeNull();
+    expect(toMobileRoute(`/products/other/${LISTING_ID}`)).toBeNull();
+  });
+
+  it('an out-of-stock notification opens the unavailable screen with the lower-case uuid only', () => {
+    const type = 'back_in_stock';
+    expect(notificationRoute({ type, data: { productId: LISTING_ID.toUpperCase() } })).toBe(
+      `/products/unavailable/${LISTING_ID}`,
+    );
+    // No uuid: not the unavailable screen; the generic resolution (here the product screen) decides.
+    expect(notificationRoute({ type, data: { productId: 'garbage' } })).toBe('/product/garbage');
+  });
+
+  it('a notification link with a slug-uuid path opens the product screen', () => {
+    expect(notificationRoute({ type: 'x', link: `/listings/${SLUG}-${LISTING_ID}`, data: {} })).toBe(PRODUCT);
+    expect(notificationRoute({ type: 'x', link: `https://tarodan.com.tr/listings/${SLUG}-${LISTING_ID}`, data: {} })).toBe(
+      PRODUCT,
+    );
+    expect(notificationRoute({ type: 'x', link: '/listings/garbage', data: {} })).toBeNull();
+  });
+});
+
+/**
+ * The in-app notification row as `GET /notifications` returns it: `link` is the API template
+ * (`notification-link.ts`: LISTING `/listings/{{productId}}`, UNAVAILABLE
+ * `/products/unavailable/{{productId}}`) and `data` keeps `productId`. The list, the push tap (flat
+ * payload, no link) and a link-only row must open the same screen for the same listing.
+ */
+describe('notificationRoute: listing rows built from the API templates', () => {
+  const PRODUCT = `/product/${LISTING_ID}`;
+  const UNAVAILABLE = `/products/unavailable/${LISTING_ID}`;
+
+  it.each([
+    'price_drop',
+    'seller_new_listing',
+    'product_liked',
+    'wishlist_sold',
+    'listing_expiring',
+    'listing_views_milestone',
+    'product_approved',
+  ])('%s: in-app row, push payload and link-only row agree', (type) => {
+    const link = `/listings/${LISTING_ID}`;
+    expect(notificationRoute({ type, link, data: { productId: LISTING_ID } })).toBe(PRODUCT);
+    expect(notificationRoute({ type, data: { productId: LISTING_ID, type } })).toBe(PRODUCT);
+    expect(notificationRoute({ type, link, data: {} })).toBe(PRODUCT);
+  });
+
+  it.each(['order_cancelled_out_of_stock', 'offer_cancelled_out_of_stock'])(
+    '%s: in-app row, push payload and link-only row open the unavailable screen',
+    (type) => {
+      const link = `/products/unavailable/${LISTING_ID}`;
+      expect(notificationRoute({ type, link, data: { productId: LISTING_ID } })).toBe(UNAVAILABLE);
+      expect(notificationRoute({ type, data: { productId: LISTING_ID, type } })).toBe(UNAVAILABLE);
+      expect(notificationRoute({ type, link, data: {} })).toBe(UNAVAILABLE);
+    },
+  );
+
+  it('back_in_stock (API template LISTING) opens the unavailable screen from every shape', () => {
+    const type = 'back_in_stock';
+    expect(notificationRoute({ type, link: `/listings/${LISTING_ID}`, data: { productId: LISTING_ID } })).toBe(
+      UNAVAILABLE,
+    );
+    expect(notificationRoute({ type, data: { productId: LISTING_ID } })).toBe(UNAVAILABLE);
+  });
+
+  it('a percent-encoded productId in the template link still maps (the API encodes the token)', () => {
+    expect(notificationRoute({ type: 'price_drop', link: `/listings/${encodeURIComponent(LISTING_ID)}`, data: {} })).toBe(
+      PRODUCT,
+    );
+  });
+});
+
+/**
+ * `toMobileRoute` refuses a path segment longer than 128 characters. The canonical segment is at
+ * most `LISTING_SLUG_MAX_LENGTH` + `-` + a 36-character uuid, so a longer slug limit in the shared
+ * helper would silently break the longest canonical links on mobile.
+ */
+describe('toMobileRoute: the longest canonical listing link', () => {
+  it('fits the segment cap', () => {
+    expect(LISTING_SLUG_MAX_LENGTH + 1 + LISTING_ID.length).toBeLessThanOrEqual(128);
+  });
+
+  it.each([
+    ['many short words', 'kelime '.repeat(60)],
+    ['one word longer than the limit', 'a'.repeat(200)],
+    ['Turkish letters that expand nowhere', 'Çok Güzel Şık Öğrenci Işıklı Üretim '.repeat(6)],
+  ])('%s resolves to the product screen', (_label, title) => {
+    const path = listingPath({ id: LISTING_ID, title });
+    expect(path.length).toBeGreaterThan(`/listings/${LISTING_ID}`.length + LISTING_SLUG_MAX_LENGTH - 10);
+    expect(toMobileRoute(path)).toBe(`/product/${LISTING_ID}`);
+    expect(toMobileRoute(`/en${path}/edit`)).toBe(`/listing/${LISTING_ID}/edit`);
   });
 });

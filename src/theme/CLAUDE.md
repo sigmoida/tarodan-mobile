@@ -7,7 +7,8 @@ and has no `theme` export.
 ## Token source and sync
 
 - **The source of truth is tarodan-app `packages/design-tokens/src/`** (`colors`,
-  `spacing`, `radius`, `typography`, `shadows`, `motion`, `z-index`). The matching
+  `spacing`, `radius`, `typography`, `shadows`, `motion`, `z-index`, `containers`).
+  The matching
   files here are a **synced copy**, not an independent source.
 - Never add a colour, size, shadow or duration here ad hoc. A new token goes into
   tarodan-app `packages/design-tokens` first and is then synced (`token-sync`
@@ -17,10 +18,17 @@ and has no `theme` export.
 - Mobile-only files that the sync leaves alone: `roles.ts` (role tokens derived from
   the shared tokens), `catalog.ts` (data constants only: scales, brands, conditions;
   the old `TarodanColors` palette is gone), `index.ts`.
-- **Current drift (2026-10-17):** `spacing.ts`, `radius.ts`, `z-index.ts` are
-  identical to design-tokens; `colors.ts`, `motion.ts`, `shadows.ts`,
+- **Current drift (2026-10-17):** `spacing.ts`, `radius.ts`, `z-index.ts` and
+  `containers.ts` (added 2026-10-22) are identical to design-tokens; `colors.ts`, `motion.ts`, `shadows.ts`,
   `typography.ts` differ. Part of it is legitimate platform transformation.
   Reconciling it is a tarodan-ops backlog item; don't "fix" it as a side effect.
+- `containers` (`theme.containers.cardWide`) are component widths, compared with
+  the width a component measures (`onLayout`), never with the screen width.
+- `breakpoints` (window classes `medium` 600 / `expanded` 840 / `large` 1200, Material)
+  are window widths (`theme.breakpoints`; classify with `windowClassOf` from `@/ui`).
+  Page content never centres at a capped width (src/ui/CLAUDE.md › Large screens).
+  `breakpoints.ts` is a copy of tarodan-app `packages/design-tokens/src/breakpoints.ts`
+  (10e8aa94b, 2026-10-24); change it there first.
 - Light theme only; there is no dark mode on any platform.
 
 ## Using tokens

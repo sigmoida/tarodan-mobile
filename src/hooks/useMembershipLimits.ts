@@ -4,30 +4,31 @@ import { membershipApi } from '@/lib/api';
 import { qk } from '@/lib/query';
 import { useAuthStore, type ServerLimitsOverride } from '@/stores/authStore';
 
-// NOT: `ServerLimitsOverride` store'da tanımlıdır. Bu hook zaten store'u
-// import ettiği için tipi burada tanımlayıp store'a import ettirmek
-// döngüsel bağımlılık yaratırdı.
+// NOTE: `ServerLimitsOverride` is defined in the store. This hook already imports
+// the store, so defining the type here and importing it into the store would
+// create an import cycle.
 
 /**
- * Sunucudan gelen ham hak zarfı (GET /membership/me/limits).
+ * The raw entitlement envelope from the server (GET /membership/me/limits).
  *
- * **Ölçüldü (staging, 2026-08-03, kimlikli):** uç 13 alan döndürüyor —
+ * **Measured (staging, 2026-08-03, signed in):** the route returns 13 fields:
  * `canCreateListing`, `canUseFreeSlot`, `canTrade`, `canCreateCollection`,
  * `isAdFree`, `maxImages`, `maxFreeListings`, `maxTotalListings`,
  * `remainingFreeListings`, `remainingTotalListings`, `remainingFeaturedSlots`,
  * `tierName`, `tierType`.
  *
- * Bunların istemcideki `MembershipLimits` karşılığı olan **beşinin beşi de**
- * aşağıda eşleniyor. Kalan alanlar ya türetilmiş sayaç (`remaining*`) ya da
- * istemcide zaten hesaplanan bilgi. `MembershipLimits`'in diğer 10 alanı
- * (`maxAddresses`, `maxSavedSearches`, `maxMessagesPerDay`, `listingExpireDays`,
+ * **All five** of them that have a client `MembershipLimits` counterpart are
+ * mapped below. The rest are derived counters (`remaining*`) or information the
+ * client already computes. The later `maxSavedSearches` (saved-searches delta,
+ * 2026-10-21) is mapped too. The other 9 fields of `MembershipLimits`
+ * (`maxAddresses`, `maxMessagesPerDay`, `listingExpireDays`,
  * `maxReviewChars`, `maxValuePerListing`, `canFeatureListings`, `canBulkUpload`,
- * `canScheduleListings`, `priorityInSearch`) sunucu tarafından **hiç
- * yayınlanmıyor** — public ayar ucu da boş (`{}`).
+ * `canScheduleListings`, `priorityInSearch`) are **not served** by the server
+ * at all; the public settings route is empty (`{}`) as well.
  *
- * Yani "sunucudan gelen alanları genişlet" diye bir iş YOK: gelen her şey
- * zaten okunuyor. Kalan 10 alanın istemci sabiti olması bilinçli bir durum;
- * değişmesi için önce backend'in bunları yayınlaması gerekir.
+ * So there is NO "map more server fields" task: everything served is already
+ * read. The remaining 9 fields being client constants is deliberate; changing
+ * that needs the backend to serve them first.
  */
 export type ServerLimitsDto = {
   maxTotalListings?: number;
@@ -36,6 +37,8 @@ export type ServerLimitsDto = {
   canTrade?: boolean;
   /** Sunucu belirlerse (admin kutusu) bool; belirlemezse `null`/yok. */
   isAdFree?: boolean | null;
+  /** Effective tier's saved-search limit (0 to 1000). 0 is valid; there is no "unlimited" (-1). */
+  maxSavedSearches?: number;
 };
 
 export function mapServerLimits(dto: ServerLimitsDto | null): ServerLimitsOverride | null {
@@ -50,6 +53,8 @@ export function mapServerLimits(dto: ServerLimitsDto | null): ServerLimitsOverri
   // aynı). authStore'daki sabit tier tablosuna DÜŞÜLMEZ — aksi halde ücretli
   // üye sunucu hiçbir şey demediği halde sessizce reklamsız kalırdı.
   out.isAdFree = dto.isAdFree === true;
+  // Saved-search limit: the server value only (no client table); a missing field stays missing.
+  if (typeof dto.maxSavedSearches === 'number') out.maxSavedSearches = dto.maxSavedSearches;
   return out;
 }
 

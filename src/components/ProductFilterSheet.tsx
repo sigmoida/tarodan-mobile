@@ -1,12 +1,13 @@
 /**
- * Web `apps/web/src/components/SidebarFilters.tsx` paritesi — mobil filtre paneli.
- * Bölümler: Araç Türü, Marka, Ölçek, Malzeme, Üretici,
- * Durum, Fiyat, Seçenekler (takas/indirim).
+ * Web `SidebarFilters` parity: the mobile filter panel.
+ * Sections (web order): Vehicle type, Brand, Model (narrowed by the brand), Scale, Material,
+ * Colour (multi-select), Manufacturer, manufacturer attributes, Condition, Price, Options
+ * (trade, pre-order, limited, set, discount).
  *
- * Alttan açılan `BottomSheet` (`size="large"`): [Temizle] [N Sonuç Göster] gövdenin DIŞINDA
- * sabit footer'da — güvenli alan (home indicator / gezinti çubuğu) kadar alt boşluklu, klavye
- * açılınca klavyenin üstünde; `ButtonRow` ile etiket asla sarmaz (sığmazsa alt alta).
- * İçerik yalnız panel açıkken bağlanır (`FilterSheetBody`).
+ * A bottom `BottomSheet` (`size="large"`): [Clear] [N Show results] sit OUTSIDE the body in the
+ * fixed footer, padded by the safe area (home indicator / nav bar), above the keyboard when it
+ * opens; `ButtonRow` never wraps a label (stacks when it does not fit). The body mounts only
+ * while the panel is open (`FilterSheetBody`).
  */
 import { useMemo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
@@ -18,17 +19,28 @@ import {
   Checkbox,
   Chip,
   Divider,
+  FieldMessage,
   Input,
   Text,
   theme,
   Icon,
 } from '@/ui';
 import { FilterOptionList, type FilterOption } from '@/components/filters/FilterOptionList';
-import type { ProductFilters } from '../utils/productFilters';
-import { buildConditionOptions, keepGeneralAttributeSelections } from '../utils/productFilters';
-import type { ProductFilterOptions } from '../hooks/useProductFilterOptions';
+import {
+  buildConditionOptions,
+  keepGeneralAttributeSelections,
+  priceFilterIssue,
+  priceFilterIssueMessage,
+  priceFilterParam,
+  priceRangeIssues,
+  type ProductFilters,
+} from '@/utils/productFilters';
+import type { ProductFilterOptions } from '@/hooks/useProductFilterOptions';
 
 const { colors, spacing } = theme;
+
+/** Stable empty selection for a group nothing is picked in (keeps the list's memo intact). */
+const NO_SELECTION: readonly string[] = [];
 
 type Props = {
   visible: boolean;
@@ -41,12 +53,16 @@ type Props = {
   countLoading?: boolean;
 };
 
-const PRICE_PRESETS: { label: string; min: string; max: string }[] = [
+const PRICE_PRESETS = [
   { label: '0 - 100 TL', min: '0', max: '100' },
   { label: '100 - 500 TL', min: '100', max: '500' },
   { label: '500 - 1.000 TL', min: '500', max: '1000' },
   { label: '1.000+ TL', min: '1000', max: '' },
-];
+].map((p) => ({
+  ...p,
+  // The bounds the range sets, compared with the fields' bounds.
+  bounds: `${priceFilterParam(p.min)}-${priceFilterParam(p.max)}`,
+}));
 
 function SectionTitle({ children }: { children: string }) {
   return (
@@ -118,10 +134,29 @@ function FilterSheetBody({
 
   const selectBrand = (o: FilterOption) => {
     const isSel = filters.brandId === o.id;
+    // A new brand resets the model (web `handleBrandChange`): models belong to a brand.
     onChange(
-      isSel ? { ...filters, brandId: '', brand: '' } : { ...filters, brandId: o.id, brand: o.label },
+      isSel
+        ? { ...filters, brandId: '', brand: '', carModelId: '', carModel: '' }
+        : { ...filters, brandId: o.id, brand: o.label, carModelId: '', carModel: '' },
     );
   };
+
+  const selectCarModel = (o: FilterOption) =>
+    onChange(
+      filters.carModelId === o.id
+        ? { ...filters, carModelId: '', carModel: '' }
+        : { ...filters, carModelId: o.id, carModel: o.label },
+    );
+
+  // Colours are multi-select (OR within the group), kept as a slug list like web `toggleColor`.
+  const toggleColor = (o: FilterOption) =>
+    onChange({
+      ...filters,
+      colors: filters.colors.includes(o.id)
+        ? filters.colors.filter((slug) => slug !== o.id)
+        : [...filters.colors, o.id],
+    });
 
   const selectManufacturer = (o: FilterOption) =>
     // Üretici değişince YALNIZ üreticiye-özel attribute seçimlerini sıfırla (web ile
@@ -142,14 +177,19 @@ function FilterSheetBody({
           },
     );
 
+  // Custom attribute groups are multi-select (OR within a group), as web `toggleCustomAttribute`:
+  // a tap adds or removes one value, the group key goes away with its last value. A URL or saved
+  // search can carry several values per group (`attr.rarity=common,rare`); all of them stay.
   const toggleCustomAttribute = (groupSlug: string, attrSlug: string) => {
-    // Her custom attribute grubu tekli seçim: aynı değere tekrar basınca kaldır,
-    // farklı değere basınca önceki seçimi değiştir. (web ile parite)
     const current = filters.customAttributes?.[groupSlug] ?? [];
-    const isSelected = current.includes(attrSlug);
+    const remaining = current.filter((slug) => slug !== attrSlug);
     const nextMap = { ...(filters.customAttributes ?? {}) };
-    if (isSelected) delete nextMap[groupSlug];
-    else nextMap[groupSlug] = [attrSlug];
+    if (remaining.length < current.length) {
+      if (remaining.length > 0) nextMap[groupSlug] = remaining;
+      else delete nextMap[groupSlug];
+    } else {
+      nextMap[groupSlug] = [...current, attrSlug];
+    }
     onChange({ ...filters, customAttributes: nextMap });
   };
 
@@ -169,6 +209,18 @@ function FilterSheetBody({
   const brandOptions = useMemo(
     () => options.brands.map((b) => ({ id: b.id, label: b.name })),
     [options.brands],
+  );
+  // Models narrow to the selected brand; all of them without one (web `modelsForBrand`).
+  const carModelOptions = useMemo(
+    () =>
+      options.carModels
+        .filter((m) => !filters.brandId || m.brandId === filters.brandId)
+        .map((m) => ({ id: m.id, label: m.name })),
+    [options.carModels, filters.brandId],
+  );
+  const colorOptions = useMemo(
+    () => options.colors.map((c) => ({ id: c.slug, label: c.label, swatch: c.color })),
+    [options.colors],
   );
   const manufacturerOptions = useMemo(
     () => options.manufacturers.map((m) => ({ id: m.id, label: m.name })),
@@ -234,6 +286,25 @@ function FilterSheetBody({
         />
       </View>
 
+      {/* Model (narrowed by the brand) */}
+      {options.carModels.length > 0 && (
+        <>
+          <Divider style={styles.divider} />
+          <View style={styles.section}>
+            <SectionTitle>{t('product.model')}</SectionTitle>
+            <FilterOptionList
+              // Brand change resets the list's search and expanded state.
+              key={filters.brandId || 'all'}
+              options={carModelOptions}
+              selectedId={filters.carModelId}
+              onSelect={selectCarModel}
+              searchPlaceholder={t('product.searchModels')}
+              testID="filter-model"
+            />
+          </View>
+        </>
+      )}
+
       <Divider style={styles.divider} />
 
       {/* Ölçek */}
@@ -263,6 +334,23 @@ function FilterSheetBody({
         </View>
       </View>
 
+      {/* Colour (multi-select) */}
+      {colorOptions.length > 0 && (
+        <>
+          <Divider style={styles.divider} />
+          <View style={styles.section}>
+            <SectionTitle>{t('product.color')}</SectionTitle>
+            <FilterOptionList
+              options={colorOptions}
+              selectedIds={filters.colors}
+              onSelect={toggleColor}
+              searchPlaceholder={t('product.color')}
+              testID="filter-color"
+            />
+          </View>
+        </>
+      )}
+
       <Divider style={styles.divider} />
 
       {/* Üretici */}
@@ -285,9 +373,10 @@ function FilterSheetBody({
           <View style={styles.section}>
             <SectionTitle>{group.name}</SectionTitle>
             <FilterOptionList
-              options={group.attributes.map((a) => ({ id: a.slug, label: a.label }))}
-              selectedId={filters.customAttributes?.[group.slug]?.[0]}
+              options={group.attributes.map((a) => ({ id: a.slug, label: a.label, swatch: a.color }))}
+              selectedIds={filters.customAttributes?.[group.slug] ?? NO_SELECTION}
               onSelect={(o) => toggleCustomAttribute(group.slug, o.id)}
+              testID={`filter-attr-${group.slug}`}
             />
           </View>
         </View>
@@ -303,52 +392,8 @@ function FilterSheetBody({
 
       <Divider style={styles.divider} />
 
-      {/* Fiyat */}
-      <View style={styles.section}>
-        <SectionTitle>{t('product.priceRange')}</SectionTitle>
-        <View style={styles.chipGrid}>
-          {PRICE_PRESETS.map((p) => {
-            const active = filters.minPrice === p.min && filters.maxPrice === p.max;
-            return (
-              <Chip
-                key={p.label}
-                label={p.label}
-                selected={active}
-                onPress={() =>
-                  onChange(
-                    active
-                      ? { ...filters, minPrice: '', maxPrice: '' }
-                      : { ...filters, minPrice: p.min, maxPrice: p.max },
-                  )
-                }
-              />
-            );
-          })}
-        </View>
-        <View style={styles.priceRow}>
-          <View style={styles.flex}>
-            <Input
-              label={t('product.minPrice')}
-              placeholder="0"
-              keyboardType="numeric"
-              value={filters.minPrice}
-              onChangeText={(v) => onChange({ ...filters, minPrice: v.replace(/[^0-9]/g, '') })}
-            />
-          </View>
-          <Text variant="body" tone="muted" style={styles.priceDash}>
-            -
-          </Text>
-          <View style={styles.flex}>
-            <Input
-              label={t('product.maxPrice')}
-              placeholder="∞"
-              keyboardType="numeric"
-              value={filters.maxPrice}
-              onChangeText={(v) => onChange({ ...filters, maxPrice: v.replace(/[^0-9]/g, '') })}
-            />
-          </View>
-        </View>
-      </View>
+      {/* Price */}
+      <PriceRange filters={filters} onChange={onChange} />
 
       <Divider style={styles.divider} />
 
@@ -364,13 +409,113 @@ function FilterSheetBody({
         </View>
         <View style={styles.optionRow}>
           <Checkbox
+            checked={filters.preOrder}
+            onChange={(v) => onChange({ ...filters, preOrder: v })}
+            label={t('product.preOrder')}
+            testID="filter-pre-order"
+          />
+        </View>
+        <View style={styles.optionRow}>
+          <Checkbox
+            checked={filters.limited}
+            onChange={(v) => onChange({ ...filters, limited: v })}
+            label={t('product.limitedEdition')}
+            testID="filter-limited"
+          />
+        </View>
+        <View style={styles.optionRow}>
+          <Checkbox
+            checked={filters.set}
+            onChange={(v) => onChange({ ...filters, set: v })}
+            label={t('product.sets')}
+            testID="filter-set"
+          />
+        </View>
+        <View style={styles.optionRow}>
+          <Checkbox
             checked={filters.discountOnly}
             onChange={(v) => onChange({ ...filters, discountOnly: v })}
-            label={t('filter.discountOnlyLabel')}
+            label={t('product.onSale')}
+            testID="filter-discount-only"
           />
         </View>
       </View>
     </>
+  );
+}
+
+/**
+ * Min/max price fields and the quick ranges (web `SidebarFilters` `PriceRange`). The fields keep the
+ * typed text in `filters` (see `priceFilterBound`): the request, the chip and a saved search read only
+ * the parsed bound, so refused text ("1.000") or a bound above the search maximum filters nothing and
+ * shows its message (`priceFilterIssueMessage`, one per issue) instead of searching for 1 TL or
+ * failing the search.
+ */
+function PriceRange({ filters, onChange }: Pick<Props, 'filters' | 'onChange'>) {
+  const { t } = useTranslation();
+  const minInvalid = priceFilterIssue(filters.minPrice) !== undefined;
+  const maxInvalid = priceFilterIssue(filters.maxPrice) !== undefined;
+  const issues = priceRangeIssues(filters);
+  // No range is active while a field has an issue: its "" would match an open range bound ("1.000"
+  // next to max 100 is not "0 - 100").
+  const bounds = issues.length
+    ? null
+    : `${priceFilterParam(filters.minPrice)}-${priceFilterParam(filters.maxPrice)}`;
+  return (
+    <View style={styles.section}>
+      <SectionTitle>{t('product.priceRange')}</SectionTitle>
+      <View style={styles.chipGrid}>
+        {PRICE_PRESETS.map((p) => {
+          // Compared as bounds, so "100,00" typed by hand selects "100".
+          const active = bounds === p.bounds;
+          return (
+            <Chip
+              key={p.label}
+              label={p.label}
+              selected={active}
+              onPress={() =>
+                onChange(
+                  active
+                    ? { ...filters, minPrice: '', maxPrice: '' }
+                    : { ...filters, minPrice: p.min, maxPrice: p.max },
+                )
+              }
+            />
+          );
+        })}
+      </View>
+      <View style={styles.priceRow}>
+        <View style={styles.flex}>
+          <Input
+            label={t('product.minPrice')}
+            placeholder="0"
+            keyboardType="decimal-pad"
+            value={filters.minPrice}
+            onChangeText={(v) => onChange({ ...filters, minPrice: v })}
+            invalid={minInvalid}
+            testID="filter-min-price"
+          />
+        </View>
+        <Text variant="body" tone="muted" style={styles.priceDash}>
+          -
+        </Text>
+        <View style={styles.flex}>
+          <Input
+            label={t('product.maxPrice')}
+            placeholder="∞"
+            keyboardType="decimal-pad"
+            value={filters.maxPrice}
+            onChangeText={(v) => onChange({ ...filters, maxPrice: v })}
+            invalid={maxInvalid}
+            testID="filter-max-price"
+          />
+        </View>
+      </View>
+      {/* The messages go under the row (web), one per issue, so the two fields stay aligned. */}
+      {issues.map((issue) => (
+        <FieldMessage key={issue} error={priceFilterIssueMessage(issue, t)} />
+      ))}
+    </View>
   );
 }
 

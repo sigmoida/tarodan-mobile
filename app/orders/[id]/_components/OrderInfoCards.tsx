@@ -29,10 +29,10 @@ const ESCROW_STATUSES: readonly string[] = ['delivered', 'awaiting_confirmation'
 export function OrderEscrowCard({ order, view }: { order: OrderDetail; view: OrderView }) {
   const { t } = useTranslation();
   const timingValues = view.timing;
-  // Web `EscrowInfoCard` ile birebir: yalnız alıcıya, yalnız teslim edilmiş
-  // (`delivered` / `awaiting_buyer_confirmation` → UI `awaiting_confirmation`)
-  // ve üyelik olmayan siparişte. Kargodaki ya da tamamlanmış siparişte yok.
-  if (!order.isBuyer || !ESCROW_STATUSES.includes(order.status) || view.isMembershipOrder) return null;
+  // Same as web `EscrowInfoCard`: only for the buyer, only on a delivered order
+  // (`delivered` / `awaiting_buyer_confirmation` -> UI `awaiting_confirmation`) and never on a
+  // digital order. None while in transit or once completed.
+  if (!order.isBuyer || !ESCROW_STATUSES.includes(order.status) || view.isDigitalOrder) return null;
   return (
     <SectionCard
       title={t('order.paymentProtection')}
@@ -96,7 +96,12 @@ export function OrderCancelledInfo({
   );
 }
 
-/** Ödeme bekliyor kartı — "Ödeme Yap" butonu. */
+/**
+ * Awaiting payment card with the "Pay" button. Never on a digital order (web `PaymentSection`): its
+ * detail is read-only, the payment belongs to the membership or boost checkout, and paying it here
+ * would be a digital purchase through PayTR inside the app (tarodan-ops ADR 0003), even once
+ * `CAN_BUY_DIGITAL` turns on for store billing.
+ */
 export function OrderPayPendingCard({
   order,
   view,
@@ -109,6 +114,7 @@ export function OrderPayPendingCard({
   payPending: boolean;
 }) {
   const { t } = useTranslation();
+  if (view.isDigitalOrder) return null;
   if (!(order.status === 'pending' && !view.isPaid && order.isBuyer !== false)) return null;
   return (
     <SectionCard title={t('order.statusPendingPayment')} bodyStyle={styles.stack}>
@@ -143,7 +149,8 @@ export function OrderTrackingCard({
 }) {
   const { t } = useTranslation();
   const s = deriveShipmentView(shipment, order.shipment?.cargoCode);
-  // Kargo kaydı hiç yoksa çizecek bir şey yok.
+  // A digital order ships nothing; without a shipment record there is nothing to draw.
+  if (view.isDigitalOrder) return null;
   if (!shipment && !s.cargoCode) return null;
 
   // Başlıktaki durum ile gövdedeki metin AYNI kaynaktan okunur; ayrılırlarsa

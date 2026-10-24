@@ -11,36 +11,68 @@ import type { OrderDetail } from '../_lib/types';
 
 const { colors, radius, spacing } = theme;
 
-/** Ürün kartı: görsel · başlık · durum · fiyat (web `ProductInfoCard`). */
-export function OrderProductCard({ order }: { order: OrderDetail }) {
+/**
+ * Product card: image, title, condition, price (web `ProductInfoCard`). A digital order sells a
+ * platform service on a virtual product that has no listing page, so its card is static content
+ * (no press target, no link role) and has no condition row.
+ */
+export function OrderProductCard({ order, isDigitalOrder }: { order: OrderDetail; isDigitalOrder: boolean }) {
   const { t, i18n } = useTranslation();
-  return (
-    <SectionCard>
-      <Pressable onPress={() => router.push(`/product/${order.product.id}`)} style={styles.productCard}>
-        <AppImage source={getOrderProductImageUri(order.product, 'card')} style={styles.productImage} />
-        <View style={styles.productInfo}>
-          <Text variant="body" weight="medium" tone="heading" numberOfLines={2}>{order.product.title}</Text>
+  const content = (
+    <>
+      <AppImage source={getOrderProductImageUri(order.product, 'card')} style={styles.productImage} />
+      <View style={styles.productInfo}>
+        <Text variant="body" weight="medium" tone="heading" numberOfLines={2}>{order.product.title}</Text>
+        {isDigitalOrder ? null : (
           <Text variant="bodySm" tone="muted">
             {t('product.condition')}: {formatCondition(order.product?.condition, i18n.language)}
           </Text>
-          <Text variant="body" weight="semibold" style={{ color: theme.priceColor.detail }}>
-            {formatPrice(order.product.price)}
-          </Text>
-        </View>
-      </Pressable>
+        )}
+        <Text variant="body" weight="semibold" style={{ color: theme.priceColor.detail }}>
+          {formatPrice(order.product.price)}
+        </Text>
+      </View>
+    </>
+  );
+  return (
+    <SectionCard>
+      {isDigitalOrder ? (
+        <View testID="order-product-static" style={styles.productCard}>{content}</View>
+      ) : (
+        <Pressable
+          testID="order-product-link"
+          onPress={() => router.push(`/product/${order.product.id}`)}
+          accessibilityRole="link"
+          style={styles.productCard}
+        >
+          {content}
+        </Pressable>
+      )}
     </SectionCard>
   );
 }
 
-/** Satıcı satırı: ad + "satıcı profilini gör" bağlantısı (web `PartyCard`). */
-export function OrderSellerCard({ order }: { order: OrderDetail }) {
+/**
+ * Seller row: name and a "view seller profile" link (web `PartyCard`). The seller of a digital
+ * order is the platform account, so the row is the plain name, with no link.
+ */
+export function OrderSellerCard({ order, isDigitalOrder }: { order: OrderDetail; isDigitalOrder: boolean }) {
   const { t } = useTranslation();
+  const name = <Text variant="body" weight="medium" tone="heading">{order.seller.displayName}</Text>;
   return (
     <SectionCard>
-      <Pressable onPress={() => router.push(`/seller/${order.seller.id}`)} accessibilityRole="link">
-        <Text variant="body" weight="medium" tone="heading">{order.seller.displayName}</Text>
-        <Text variant="bodySm" tone="primary">{t('order.viewSellerProfile')}</Text>
-      </Pressable>
+      {isDigitalOrder ? (
+        <View testID="order-seller-static">{name}</View>
+      ) : (
+        <Pressable
+          testID="order-seller-link"
+          onPress={() => router.push(`/seller/${order.seller.id}`)}
+          accessibilityRole="link"
+        >
+          {name}
+          <Text variant="bodySm" tone="primary">{t('order.viewSellerProfile')}</Text>
+        </Pressable>
+      )}
     </SectionCard>
   );
 }

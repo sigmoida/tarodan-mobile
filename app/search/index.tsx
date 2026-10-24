@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { View, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
-import { ErrorState, FAB, FAB_SIZE_SM, Spinner, theme, useDelayedLoading, useFabContentInset } from '@/ui';
+import { ErrorState, Spinner, theme, useDelayedLoading, usePageGutter } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { ListFooterRetry } from '@/components/common/ListFooterRetry';
 import {
@@ -11,13 +11,18 @@ import {
   ProductGridSkeleton,
   ProductListEmpty,
   ProductSortModal,
+  useProductGridColumns,
 } from '@/components/product';
 import ProductFilterSheet from '@/components/ProductFilterSheet';
+import { withStackTabBar } from '@/components/shell/StackTabBar';
+import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
-import { styles } from './_lib/searchStyles';
-import { SEARCH_DRAW_DISTANCE, SEARCH_NUM_COLUMNS } from './_lib/searchConstants';
+import { CELL_HALF_GAP, styles } from './_lib/searchStyles';
+import { SEARCH_DRAW_DISTANCE } from './_lib/searchConstants';
 import { useTransitionReady } from '@/hooks/useTransitionReady';
 import { useSearch } from './_hooks/useSearch';
+import { useSaveSearch } from './_hooks/useSaveSearch';
+import { SaveSearchModal } from './_modals/SaveSearchModal';
 import { SearchBars } from './_components/SearchBars';
 import { SearchHeaderField, SearchSuggestionsLayer } from './_components/SearchHeader';
 
@@ -43,14 +48,17 @@ const NO_ITEMS: any[] = [];
  * İkisi de `useTransitionReady`'ye bağlı: odak ve sonuç kartları geçiş bitince (o ana dek iskelet;
  * sorgu arka planda zaten koşar).
  */
-export default function SearchScreen() {
+function SearchScreen() {
   const { t } = useTranslation();
   const f = useSearch();
+  const saveSearch = useSaveSearch(f.filters, f.options);
   const ready = useTransitionReady();
 
   // Stable renderItem (#75) — memoized ProductCard bails out on unchanged rows.
   const isList = f.layout === 'list';
-  const columns = isList ? 1 : SEARCH_NUM_COLUMNS;
+  // Same column rule as every listing grid (2 on phones, more on tablets); the list key follows it.
+  const gridColumns = useProductGridColumns();
+  const columns = isList ? 1 : gridColumns;
   const favoriteProps = useProductCardFavorites();
   const renderResult = useCallback(
     ({ item }: ListRenderItemInfo<any>) => (
@@ -68,12 +76,17 @@ export default function SearchScreen() {
     [isList, favoriteProps],
   );
 
-  // Son sonuç satırı yukarı-çık FAB'ının ve gezinme çubuğunun altında kalmasın.
-  const fabInset = useFabContentInset(FAB_SIZE_SM);
+  // The last result row clears the fixed tab bar (the same bottom padding as every bar screen).
+  const listBottomInset = useTabBarInset();
   // Liste prop'ları kararlı kalsın: ekran render olsa da liste boş yere uzlaştırılmasın.
+  // Large screens: the page gutter (the cells add their half gap on each side, see `styles.listContent`).
+  const gutter = usePageGutter();
   const contentContainerStyle = useMemo(
-    () => [styles.listContent, { paddingTop: f.headerHeight, paddingBottom: fabInset }],
-    [f.headerHeight, fabInset],
+    () => [
+      styles.listContent,
+      { paddingTop: f.headerHeight, paddingBottom: listBottomInset, paddingHorizontal: gutter - CELL_HALF_GAP },
+    ],
+    [f.headerHeight, listBottomInset, gutter],
   );
   const refreshControl = useMemo(
     () => (
@@ -161,11 +174,10 @@ export default function SearchScreen() {
             filterCount={f.activeFiltersCount}
             layout={f.layout}
             onLayoutChange={f.setLayout}
-            isLoading={f.isLoading}
-            total={f.total}
+            onSave={saveSearch.start}
+            saveDisabled={saveSearch.draft.isEmpty}
             chips={f.activeChips}
             onClearFilters={f.clearAllFilters}
-            contextLabel={f.contextLabel}
           />
 
           {/* Öneri / son aramalar: üst barın hemen altında, çubukların ve sonuçların üstünde. */}
@@ -178,7 +190,6 @@ export default function SearchScreen() {
           <View testID="search-results-wrap" style={f.barsMeasured ? styles.listWrap : styles.listWrapHidden}>
             <AnimatedFlashList
             testID="search-results-list"
-            ref={f.listRef}
             // Kartlar geçiş bitince çizilir (o ana dek boş-durum yuvasında iskelet).
             data={ready ? f.products : NO_ITEMS}
             key={`search-${columns}`}
@@ -189,6 +200,7 @@ export default function SearchScreen() {
             // Hücre geri dönüşümü (FlashList v2): pencere = drawDistance; getItemLayout/estimatedItemSize gerekmez.
             drawDistance={SEARCH_DRAW_DISTANCE}
             showsVerticalScrollIndicator={false}
+            // The search bars collapse (`useSearch`); the tab bar is fixed.
             onScroll={f.handleResultsScroll}
             scrollEventThrottle={16}
             keyboardDismissMode="on-drag"
@@ -200,18 +212,6 @@ export default function SearchScreen() {
           />
           </View>
         </View>
-
-        {/* En üste dön butonu — liste yeterince aşağı inince görünür */}
-        {f.showScrollTop && (
-          <FAB
-            icon="chevron-up"
-            size="sm"
-            placement="bottomRight"
-            style={styles.scrollTopFab}
-            onPress={f.scrollToTop}
-            accessibilityLabel={t('search.scrollToTop')}
-          />
-        )}
 
         {/* Filter Modal (web SidebarFilters paritesi) */}
         <ProductFilterSheet
@@ -225,6 +225,8 @@ export default function SearchScreen() {
           countLoading={f.isFetching && !f.isFetchingNextPage}
         />
 
+        <SaveSearchModal draft={saveSearch.draft} isOpen={saveSearch.open} onClose={saveSearch.close} />
+
         {/* Sort Modal */}
         <ProductSortModal
           visible={f.sortModalVisible}
@@ -236,3 +238,5 @@ export default function SearchScreen() {
     </PageShell>
   );
 }
+
+export default withStackTabBar(SearchScreen);

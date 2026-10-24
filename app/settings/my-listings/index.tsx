@@ -9,6 +9,7 @@ import {
   pageListContentStyle,
   useFabContentInset,
   usePageScrollHandler,
+  usePageContentStyle, useRowGrid,
 } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
@@ -41,20 +42,26 @@ export default function MyListingsScreen() {
   const f = useMyListings();
   const fabInset = useFabContentInset();
   const page = usePageScrollHandler();
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle([pageListContentStyle, { paddingBottom: fabInset }]);
+  // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
+  const grid = useRowGrid();
   const { openActionMenu, isExpiredTab, selection } = f;
   const selected = selection.selected;
   // Kararlı renderItem (satır başına closure yok → memo'lu MyListingCard yeniden çizilmez).
   const renderListing = useCallback(
-    ({ item }: { item: Listing }) => (
-      <MyListingCard
-        listing={item}
-        onMenu={openActionMenu}
-        selectable={isExpiredTab}
-        checked={isExpiredTab && selected.has(item.id)}
-        onToggleSelect={selection.toggle}
-      />
-    ),
-    [openActionMenu, isExpiredTab, selected, selection.toggle],
+    ({ item, index }: { item: Listing; index: number }) =>
+      grid.cell(
+        index,
+        <MyListingCard
+          listing={item}
+          onMenu={openActionMenu}
+          selectable={isExpiredTab}
+          checked={isExpiredTab && selected.has(item.id)}
+          onToggleSelect={selection.toggle}
+        />,
+      ),
+    [openActionMenu, isExpiredTab, selected, selection.toggle, grid],
   );
 
   return (
@@ -103,13 +110,15 @@ export default function MyListingsScreen() {
       }
     >
       <Animated.FlatList
+        key={grid.listKey}
+        numColumns={grid.numColumns}
         {...page.listProps}
         testID="my-listings-list"
         data={f.filteredListings}
         keyExtractor={listingKey}
         renderItem={renderListing}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle([pageListContentStyle, { paddingBottom: fabInset }])}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         refreshing={f.refreshing}
         onRefresh={f.onRefresh}
         onEndReached={f.loadMore}

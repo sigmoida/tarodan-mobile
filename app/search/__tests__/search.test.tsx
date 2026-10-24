@@ -77,7 +77,7 @@ describe('catalog-search · arama ekranı (J52/J53)', () => {
     expect(within(header).queryByText('Ara')).toBeNull();
   });
 
-  it('J52 · sonuçlar gelince ürün kartları ve sonuç sayısı görünür', async () => {
+  it('J52 · sonuçlar gelince ürün kartları görünür; sonuç sayısı yazısı yok', async () => {
     mockGetAll.mockResolvedValue(
       mockListResponse([makeProduct('p1', 'Ferrari F40'), makeProduct('p2', 'Lamborghini')]),
     );
@@ -87,7 +87,7 @@ describe('catalog-search · arama ekranı (J52/J53)', () => {
       expect(screen.getAllByTestId('search-result-card').length).toBe(2),
     );
     expect(screen.getByText('Ferrari F40')).toBeOnTheScreen();
-    expect(screen.getByText('2 sonuç bulundu')).toBeOnTheScreen();
+    expect(screen.queryByText(/sonuç bulundu/)).toBeNull();
   });
 
   it('J52 · yinelenen id tek karta indirilir (keyExtractor yalnız id)', async () => {
@@ -118,7 +118,6 @@ describe('catalog-search · arama ekranı (J52/J53)', () => {
     await waitFor(() =>
       expect(screen.getByText('Henüz ilan yok')).toBeOnTheScreen(),
     );
-    expect(screen.getByText('0 sonuç bulundu')).toBeOnTheScreen();
   });
 
   it('sıralama (fiyat artan/azalan) seçilince ürün sayısı sabit kalır, yalnız sortBy değişir', async () => {
@@ -141,7 +140,6 @@ describe('catalog-search · arama ekranı (J52/J53)', () => {
         expect(mockGetAll).toHaveBeenCalledWith({ limit: 24, page: 1, sortBy }),
       );
       await waitFor(() => expect(screen.getAllByTestId('search-result-card').length).toBe(3));
-      expect(screen.getByText('3 sonuç bulundu')).toBeOnTheScreen();
     }
   });
 

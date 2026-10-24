@@ -7,10 +7,10 @@ import type { OrderDetail } from '../_lib/types';
 
 const { colors, spacing } = theme;
 
-/** Teslimat adresi — üyelik/dijital siparişte gizli (web `ShippingAddressCard`). */
-export function OrderAddressCard({ order, isMembershipOrder }: { order: OrderDetail; isMembershipOrder: boolean }) {
+/** Shipping address; hidden on a digital order (web `ShippingAddressCard`). */
+export function OrderAddressCard({ order, isDigitalOrder }: { order: OrderDetail; isDigitalOrder: boolean }) {
   const { t } = useTranslation();
-  if (isMembershipOrder) return null;
+  if (isDigitalOrder) return null;
   const a = order.shippingAddress;
   return (
     <SectionCard title={t('checkout.shippingAddress')} bodyStyle={styles.address}>
@@ -35,14 +35,14 @@ export function OrderAddressCard({ order, isMembershipOrder }: { order: OrderDet
   );
 }
 
-/** Ödeme özeti (web `OrderSummaryCard`): kalemler + toplam. */
-export function OrderPriceSummary({ order, isMembershipOrder }: { order: OrderDetail; isMembershipOrder: boolean }) {
+/** Payment summary (web `OrderSummaryCard`): lines and total; no shipping row on a digital order. */
+export function OrderPriceSummary({ order, isDigitalOrder }: { order: OrderDetail; isDigitalOrder: boolean }) {
   const { t } = useTranslation();
   const p = order.pricing;
   return (
     <SectionCard title={t('order.paymentSummary')} bodyStyle={styles.rows}>
       <Row label={t('order.productAmount')} value={formatPrice(p?.subtotal ?? order.product.price)} />
-      {!isMembershipOrder && <Row label={t('product.shipping')} value={formatPrice(order.shippingCost)} />}
+      {!isDigitalOrder && <Row label={t('product.shipping')} value={formatPrice(order.shippingCost)} />}
       {(p?.buyerFeeAmount ?? order.buyerFeeAmount ?? 0) > 0 && (
         <Row label={t('order.platformFee')} value={formatPrice(p?.buyerFeeAmount ?? order.buyerFeeAmount ?? 0)} />
       )}

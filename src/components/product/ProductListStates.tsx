@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, PAGE_GUTTER, theme } from '@/ui';
+import { Button, EmptyState, gridCellWidth, pageGutter, theme, useGridColumns, type EmptyStatePlacement } from '@/ui';
 import type { ProductCardLayout } from './ProductCard';
 import { SkeletonProductCard } from './SkeletonProductCard';
 
@@ -10,19 +10,33 @@ const { spacing } = theme;
 /** Kart ızgarasının aralığı (web `gap-3`). */
 export const PRODUCT_GRID_GAP = spacing[3];
 
-/** İki sütunlu ızgarada bir kartın genişliği (sayfa kenar boşluğu ve aralık düşülmüş). */
+/**
+ * Column count of the listing grids (`ProductGrid`, search): 2 on phones, more on tablets
+ * (`CARD_GRID_COLUMNS`, from the window width). The list's `key` must include it.
+ */
+export function useProductGridColumns(): number {
+  return useGridColumns();
+}
+
+/** A card's width in the listing grid (page gutters (`pageGutter`) and the gaps between `columns` deducted). */
+export function productCellWidth(windowWidth: number, columns: number): number {
+  return gridCellWidth(windowWidth - pageGutter(windowWidth) * 2, columns, PRODUCT_GRID_GAP);
+}
+
+/** A card's width in the listing grid of the current window. */
 export function useProductCellWidth(): number {
   const { width } = useWindowDimensions();
-  return (width - PAGE_GUTTER * 2 - PRODUCT_GRID_GAP) / 2;
+  return productCellWidth(width, useProductGridColumns());
 }
 
 /**
- * Yükleniyor — gerçek ızgarayla AYNI yerleşim: hücre genişliği `useProductCellWidth`, aralık
- * `PRODUCT_GRID_GAP`, her hücre `SkeletonProductCard` (kartın kendi geometrisi). Izgara 2 sütun,
- * liste tek sütun. Liste/kart ekranlarında tam ekran spinner yerine bu kullanılır.
+ * Loading: the SAME layout as the real grid: cell width `useProductCellWidth`, gap
+ * `PRODUCT_GRID_GAP`, each cell a `SkeletonProductCard` (the card's own geometry). The grid has
+ * `useProductGridColumns` columns (three rows by default), the list one column. List and card
+ * screens use this instead of a full-screen spinner.
  */
 export function ProductGridSkeleton({
-  count = 6,
+  count,
   layout = 'grid',
   showMeta = true,
 }: {
@@ -31,7 +45,9 @@ export function ProductGridSkeleton({
   showMeta?: boolean;
 }) {
   const cellWidth = useProductCellWidth();
-  const items = Array.from({ length: layout === 'list' ? Math.min(count, 4) : count });
+  const columns = useProductGridColumns();
+  const cells = count ?? columns * 3;
+  const items = Array.from({ length: layout === 'list' ? Math.min(cells, 4) : cells });
   return (
     <View style={layout === 'list' ? styles.list : styles.grid} testID="product-grid-skeleton">
       {items.map((_, i) => (
@@ -47,19 +63,23 @@ export function ProductGridSkeleton({
 }
 
 /**
- * Ürün listelerinin TEK boş durumu (web `ListingsGrid` boş hali): "Henüz ilan yok" + filtre varsa
- * "Filtrelerinizi değiştirmeyi deneyin" ve temizle düğmesi; filtre yoksa ilk ilanı vermeye davet.
+ * The ONE empty state of product lists (web `ListingsGrid` empty): "No listings yet" plus, when
+ * filtered, "Try adjusting your filters" and a clear button; otherwise an invitation to list the
+ * first item. `placement` follows the host list (`list` in `ProductGrid` on the page gutter).
  */
 export function ProductListEmpty({
   filtered = false,
   onClearFilters,
+  placement,
 }: {
   filtered?: boolean;
   onClearFilters?: () => void;
+  placement?: EmptyStatePlacement;
 }) {
   const { t } = useTranslation();
   return (
     <EmptyState
+      placement={placement}
       icon="magnifying-glass"
       title={t('product.noListings')}
       subtitle={filtered ? t('product.tryAdjustingFilters') : t('home.beTheFirst')}

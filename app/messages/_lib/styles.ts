@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { PAGE_GUTTER, PAGE_SECTION_GAP, theme } from '@/ui';
+import { MASTER_PANE_FRACTION } from './layout';
 
 const { colors, spacing } = theme;
 
@@ -28,6 +29,19 @@ export const styles = StyleSheet.create({
   skeletonText: {
     flex: 1,
   },
+  // --- Master–detail (expanded and wider windows) ---
+  masterDetail: { flex: 1, flexDirection: 'row', backgroundColor: colors.surface.DEFAULT },
+  masterPane: { flex: MASTER_PANE_FRACTION },
+  detailPane: {
+    flex: 1 - MASTER_PANE_FRACTION,
+    borderLeftWidth: 1,
+    borderLeftColor: colors.border.DEFAULT,
+  },
+  // Narrowed below expanded with a thread open: the inbox pane stays mounted but hidden.
+  paneHidden: { display: 'none' },
+  fill: { flex: 1 },
+  // The open thread's row in the inbox (pressed-state tone, kept while it is open).
+  threadRowSelected: { backgroundColor: colors.surface.alt },
   productRefText: {
     marginTop: spacing[0.5],
     color: colors.primary[600],

@@ -1,15 +1,16 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, SectionCard, theme } from '@/ui';
+import { EmptyState, SectionCard, gridCellStyle, theme, useGridColumns } from '@/ui';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import { ProductCard, type ProductCardProduct } from './ProductCard';
 
 const { spacing } = theme;
 
 /**
- * "Benzer Ürünler" kartı (web `ProductRelated`): SectionCard içinde 2 sütun ürün kartı. `emptyText`
- * verilmezse liste boşken kart hiç çizilmez (ürün detayı); verilirse bu metinle çizilir (stok-yok ekranı).
+ * "Similar listings" card (web `ProductRelated`): a listing card grid in a SectionCard (2 columns
+ * on phones, more on tablets). Without `emptyText` an empty list draws nothing (product detail);
+ * with it, the card shows that text (stock-out screen).
  */
 export function SimilarProductsCard({
   title,
@@ -25,6 +26,7 @@ export function SimilarProductsCard({
   const { t } = useTranslation();
   const list = items ?? [];
   const favoriteProps = useProductCardFavorites();
+  const columns = useGridColumns();
   if (list.length === 0 && !emptyText) return null;
   return (
     <SectionCard title={title} testID={testID}>
@@ -32,8 +34,8 @@ export function SimilarProductsCard({
         <EmptyState placement="inline" icon="cube" title={emptyText ?? ''} subtitle={t('home.noProductsYetHint')} />
       ) : (
         <View style={styles.grid}>
-          {list.map((product) => (
-            <View key={product.id} style={styles.cell}>
+          {list.map((product, index) => (
+            <View key={product.id} style={gridCellStyle(index, columns)}>
               <ProductCard product={product} showMeta={false} {...favoriteProps(product)} />
             </View>
           ))}
@@ -44,6 +46,6 @@ export function SimilarProductsCard({
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing[3] },
-  cell: { width: '48%' },
+  // Cells sized by `gridCellStyle` (columns from the window width; 48% / 4% on phones).
+  grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing[3] },
 });

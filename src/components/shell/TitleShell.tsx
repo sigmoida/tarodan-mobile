@@ -19,7 +19,7 @@ export interface TitleShellProps {
   subtitle?: string;
   /**
    * Ekranın kendi listesinin kaydırma sinyali (`usePageScrollValue()`; sekme kökleri
-   * `useTabBarScrollHandler(undefined, page.scrollY)` ile tek handler'dan besler). Verilirse içerik
+   * `usePageOffsetHandler(page.scrollY)` ile tek handler'dan besler). Verilirse içerik
    * bar ALTINDAN kayar: liste `page.scrollProps` + `page.contentStyle` ile üst boşluğu kendisi açar.
    * Verilmezse gövde bar altında başlar ve kenar efekti SABİT şerittir.
    */
@@ -39,6 +39,10 @@ export interface TitleShellProps {
  * (kategoriler; Profil: boş), sağda `ShellHeaderActions` (Mesajlar + Bildirimler; Profil: tek ⚙️
  * Ayarlar) — Ana Sayfa'nın yüzen barıyla aynı düzen. Başka ekrana özel üst bar aksiyonu yok. İçerik
  * tam yükseklikte; bar üstünde yüzer.
+ *
+ * Width: the bar and the content box span the window, so the child's list scrolls on the side
+ * margins too. A tab root (profile, cart, favourites) wraps its list's `contentContainerStyle` in
+ * `usePageContentStyle` for the tablet gutter (src/ui/CLAUDE.md › Large screens).
  */
 export const TitleShell: React.FC<TitleShellProps> = ({
   title,

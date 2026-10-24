@@ -26,6 +26,8 @@ export const qk = {
     usernameAvailability: (username: string) => ['auth', 'username-availability', username] as const,
     /** Ban ekranı: hesap banlı mı + sunucudaki ban nedeni (URL'den OKUNMAZ). */
     banStatus: ['auth', 'ban-status'] as const,
+    /** GET /auth/sign-in-methods: password flag + linked providers (never persisted). */
+    signInMethods: ['auth', 'sign-in-methods'] as const,
   },
 
   consents: {
@@ -207,20 +209,27 @@ export const qk = {
     /** Profil menüsü rozeti: yanıt bekleyen takas sayısı. */
     pendingCount: ["trades", "pending-count"] as const,
     targetListing: (id: string) => ["trade-target-listing", id] as const,
-    /** Prefix root — kullanıcının takasa uygun ürünlerinin her varyantı. */
+    /**
+     * Prefix root: every variant of the user's tradeable listings (the paged pickers, which
+     * are infinite queries under it). A listing change invalidates the whole prefix.
+     */
     myTradeableAll: ["my-tradeable-products"] as const,
-    /** Yeni takas: takasa uygun ürünlerim (hedef ilan hariç — filtre anahtarda). */
+    /** New trade, my side: the target listing is excluded, so it is part of the key. */
     myTradeable: (userId: string | undefined, excludeListingId?: string) =>
       ["my-tradeable-products", userId, "new", excludeListingId ?? null] as const,
-    /** Karşı teklif: takasa uygun ürünlerim (farklı uç: `products.getAll`). */
+    /** Counter offer, my side (a different endpoint filter, so its own leaf). */
     myTradeableForCounter: (userId: string | undefined) =>
       ["my-tradeable-products", userId, "counter"] as const,
     sellerTradeableAll: ["seller-tradeable-products"] as const,
-    sellerTradeable: (sellerId: string) =>
-      ["seller-tradeable-products", sellerId] as const,
-    /** Karşı teklif: karşı tarafın takasa uygun ürünleri (farklı uç → ayrı yaprak). */
-    sellerTradeableForCounter: (sellerId: string | undefined) =>
-      ["seller-tradeable-products", sellerId, "counter"] as const,
+    /**
+     * New trade, their side. The public list depends on the viewer (blocked sellers are
+     * hidden), so the key carries the user id like every other picker key.
+     */
+    sellerTradeable: (userId: string | undefined, sellerId: string) =>
+      ["seller-tradeable-products", userId, sellerId, "new"] as const,
+    /** Counter offer, their side (its own leaf, same reason as `sellerTradeable`). */
+    sellerTradeableForCounter: (userId: string | undefined, sellerId: string | undefined) =>
+      ["seller-tradeable-products", userId, sellerId, "counter"] as const,
   },
 
   offers: {
@@ -282,9 +291,6 @@ export const qk = {
     statsAll: ["user-stats"] as const,
     /** Kendi özet istatistikleri — GET /users/me/stats. */
     summaryStats: ["user-stats", "me", "summary"] as const,
-    trust: ["me-trust"] as const,
-    /** Sahibin kendi /users/me yanıtı — güven skoru + `showTrustScore` görünürlüğü. */
-    meTrust: (userId?: string) => ["me-trust", userId] as const,
     /**
      * Tam profil doğrulaması (`useFullProfile` — `refreshUserData`'yı tetikler; veri store'da).
      * `user` önekinin DIŞINDA: `qk.user.all` geçersizlemesi her hesap değişiminde yeniden çekmesin.

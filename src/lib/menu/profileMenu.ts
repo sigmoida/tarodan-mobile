@@ -37,6 +37,8 @@ export interface ProfileMenuGroup {
   surface: ProfileMenuSurface;
   /** Misafire de gösterilir (Ayarlar'da: dil, yardım, bilgi/yasal). */
   guest?: boolean;
+  /** Wide windows (two menu columns): the card spans both columns, below them. */
+  fullWidth?: boolean;
   items: ProfileMenuItem[];
 }
 
@@ -340,6 +342,7 @@ export function buildProfileMenuGroups(
     },
     {
       key: 'info',
+      fullWidth: true,
       title: t('mobile.menuInfoLegal'),
       surface: 'settings',
       guest: true,

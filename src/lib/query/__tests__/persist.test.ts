@@ -60,6 +60,8 @@ const PRIVATE_KEYS: QueryKey[] = [
   qk.user.addresses,
   qk.user.bankAccount,
   qk.user.twoFactorStatus,
+  // Sign-in methods: the password flag and the linked provider e-mails of this account.
+  qk.auth.signInMethods,
   qk.offers.pendingCount,
   qk.trades.pendingCount,
   qk.checkout.quote('sig'),

@@ -4,7 +4,7 @@
  * geri; katalog yenilenince yol sıfırlanır); iskelet / grup bazında hata + tekrar dene / çekip yenile.
  */
 import React from 'react';
-import { RefreshControl } from 'react-native';
+import { Dimensions, FlatList, RefreshControl } from 'react-native';
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { pushMock, resetRouterMocks } from '@/test-utils/router-mock';
 import { theme } from '@/ui';
@@ -59,6 +59,7 @@ const selectGroup = (key: string) => fireEvent.press(screen.getByTestId(`categor
 /** Çift dokunuş kilidini (800ms) bırak: aynı testte art arda itmeler için. */
 const unlock = () => act(() => void jest.advanceTimersByTime(900));
 const tab = (key: string) => screen.getByTestId(`categories-rail-${key}`);
+const tileGrid = () => screen.UNSAFE_getAllByType(FlatList).find((l) => l.props.testID === 'categories-grid')!;
 
 describe('Kategoriler ekranı — düzen', () => {
   it('PageShell başlığı "Kategoriler"; rayda 4 grup, ilk dolu grup (Keşfet) seçili', () => {
@@ -75,7 +76,8 @@ describe('Kategoriler ekranı — düzen', () => {
     expect(tab('scales').props.accessibilityState).toEqual({ selected: false });
     // Sağ alanda başlık bandı yok (seçili grup rayda vurgulu).
     expect(screen.queryByTestId('categories-header')).toBeNull();
-    expect(CATEGORY_GRID_COLUMNS).toBe(2);
+    expect(CATEGORY_GRID_COLUMNS.compact).toBe(2);
+    expect(tileGrid().props.numColumns).toBe(2);
   });
 
   it('verisi olmayan (hazır) grup rayda gizlenir', () => {
@@ -243,5 +245,26 @@ describe('Kategoriler ekranı — durumlar', () => {
       screen.UNSAFE_getByType(RefreshControl).props.onRefresh();
     });
     expect(retryAll).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Kategoriler on large screens', () => {
+  const setWindow = (width: number, height: number) =>
+    Dimensions.set({
+      window: { width, height, scale: 2, fontScale: 2 },
+      screen: { width, height, scale: 2, fontScale: 2 },
+    });
+  afterEach(() => setWindow(375, 667));
+
+  it.each([
+    [626, 890, 3],
+    [820, 1180, 3],
+    [1032, 1376, 4],
+  ])('%d x %d pt window -> %d tile columns, short rows padded with spacers', (width, height, columns) => {
+    setWindow(width, height);
+    render(<CategoriesScreen />);
+    const grid = tileGrid();
+    expect(grid.props.numColumns).toBe(columns);
+    expect(grid.props.data.length % columns).toBe(0);
   });
 });

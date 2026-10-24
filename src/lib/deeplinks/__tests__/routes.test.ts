@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { toMobileRoute } from '@/utils/notificationRoute';
 import { shippablePaths } from '../index';
+import { routeSample } from './fixtures/routeSamples';
 
 const APP_DIR = path.join(__dirname, '../../../../app');
 
@@ -59,7 +60,7 @@ describe('cozulen rota app/ agacinda var', () => {
 
   const included = shippablePaths().filter((p) => p.include);
 
-  it.each(included.map((p) => [p.pattern, p.sample]))(
+  it.each(included.map((p) => [p.pattern, routeSample(p)]))(
     '%s ornegi (%s) var olan bir rotaya cozulur',
     (_pattern, sample) => {
       const route = toMobileRoute(sample);

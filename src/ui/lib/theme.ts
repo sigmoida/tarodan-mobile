@@ -1,5 +1,7 @@
 import {
+  breakpoints,
   colors as baseColors,
+  containers,
   controlHeight,
   counterBadgeColor,
   duration,
@@ -77,6 +79,10 @@ export const theme = {
   counterBadgeColor,
   inactiveIconColor,
   tabBarLabel,
+  /** Component widths at which a component changes presentation (measured with `onLayout`). */
+  containers,
+  /** Window width classes (pt), compared with a measured width; classify with `windowClassOf`. */
+  breakpoints,
   /** Yükleme sistemi (gösterge, iskelet animasyonu, gecikme) — bkz. `src/ui/loading/`. */
   loading,
 } as const;

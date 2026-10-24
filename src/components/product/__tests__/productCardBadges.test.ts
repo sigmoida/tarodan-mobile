@@ -11,7 +11,7 @@ describe('selectProductCardBadges', () => {
   });
 
   it('tek rozeti olduğu gibi döner', () => {
-    expect(kinds({ ...base, isBoosted: true })).toEqual(['sponsored']);
+    expect(kinds({ ...base, isBoosted: true })).toEqual(['boosted']);
     expect(kinds({ ...base, tradeAvailable: true } as never)).toEqual(['trade']);
     expect(kinds({ ...base, feeCampaigns: ['Komisyonsuz'] })).toEqual(['campaign']);
   });
@@ -57,25 +57,25 @@ describe('selectProductCardBadges', () => {
     expect(selectProductCardBadges({ ...base, isOnSale: true })).toEqual([]);
   });
 
-  it('sıra: indirim -> sponsorlu -> takas -> kampanya; ilk 2 ile sınırlı', () => {
+  it('order: discount -> boosted -> trade -> campaign; first 2 only', () => {
     const all = { ...base, ...sale, isBoosted: true, tradeAvailable: true, feeCampaigns: ['Komisyonsuz'] };
-    expect(kinds(all as never)).toEqual(['sale', 'sponsored']);
+    expect(kinds(all as never)).toEqual(['sale', 'boosted']);
     expect(kinds({ ...all, isBoosted: false } as never)).toEqual(['sale', 'trade']);
     expect(kinds({ ...all, isBoosted: false, tradeAvailable: false } as never)).toEqual(['sale', 'campaign']);
-    expect(kinds({ ...all, oldPrice: null } as never)).toEqual(['sponsored', 'trade']);
+    expect(kinds({ ...all, oldPrice: null } as never)).toEqual(['boosted', 'trade']);
     expect(kinds({ ...all, oldPrice: null, isBoosted: false } as never)).toEqual(['trade', 'campaign']);
   });
 
   it('max parametresi sınırı değiştirir', () => {
     const all = { ...base, ...sale, isBoosted: true, tradeAvailable: true, feeCampaigns: ['K'] };
-    expect(selectProductCardBadges(all as never, 4).map((b) => b.kind)).toEqual(['sale', 'sponsored', 'trade', 'campaign']);
+    expect(selectProductCardBadges(all as never, 4).map((b) => b.kind)).toEqual(['sale', 'boosted', 'trade', 'campaign']);
   });
 
   it('yalnız ilk kampanya adı alınır, boş adlar atlanır', () => {
     expect(selectProductCardBadges({ ...base, feeCampaigns: ['', 'A', 'B'] })).toEqual([{ kind: 'campaign', label: 'A' }]);
   });
 
-  it('sponsorlu yalnız isBoosted === true (boostedUntil bakılmaz)', () => {
+  it('boosted only when isBoosted === true (boostedUntil is not read)', () => {
     expect(kinds({ ...base, boostedUntil: '2099-01-01' } as never)).toEqual([]);
   });
 

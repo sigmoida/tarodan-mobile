@@ -28,3 +28,10 @@ describe('offerPresets (hızlı teklif)', () => {
     expect(offerPresets(NaN)).toEqual([]);
   });
 });
+
+describe("offerPresets and the API's ceiling of an agreed amount", () => {
+  it('drops a chip above the ceiling', () => {
+    // 11,000,000: -5% is 10,450,000 (above, dropped); -10% 9,900,000 and -15% 9,350,000 stay.
+    expect(offerPresets(11_000_000).map((p) => p.amount)).toEqual([9_900_000, 9_350_000]);
+  });
+});

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
-import { heroReservedHeight } from '../_lib/heroLayout';
+import { heroMarginX, heroReservedHeight } from '../_lib/heroLayout';
 import { heroStyles as s } from '../_lib/heroStyles';
 
 /**
@@ -9,5 +9,5 @@ import { heroStyles as s } from '../_lib/heroStyles';
  */
 export function HeroReserved() {
   const { width } = useWindowDimensions();
-  return <View style={[s.reserved, { height: heroReservedHeight(width) }]} testID="hero-reserved" />;
+  return <View style={[s.reserved, { height: heroReservedHeight(width), marginHorizontal: heroMarginX(width) }]} testID="hero-reserved" />;
 }

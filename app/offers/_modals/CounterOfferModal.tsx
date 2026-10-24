@@ -48,7 +48,7 @@ export function CounterOfferModal({
     // Modalı ÖNCE kapat: mutation'ın appAlert'ı (başarı/hata) bir ui-native Modal
     // açıkken çağrılırsa iOS donar. [[mobile-modal-freeze-and-modalmessage-primitive]]
     onClose();
-    counter.mutate({ id: offer.id, amount: Number(amount) });
+    counter.mutate({ id: offer.id, amount });
   });
 
   return (

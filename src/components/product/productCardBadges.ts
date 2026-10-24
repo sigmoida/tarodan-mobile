@@ -8,15 +8,16 @@ import {
 import { isProductTradeOpen } from '@/utils/isProductTradeOpen';
 
 /**
- * Grid kartının görsel sol-üst rozet yığınının TEK seçim kuralı (web `productCardBadges.ts` ile
- * birebir). Sıra sabit: %İndirim -> Sponsorlu -> Takas -> Kampanya adı; uygun olanların ilk `max`
- * tanesi gösterilir.
+ * The one selection rule for the badge stack at the top left of a grid card's image (the same as
+ * web `productCardBadges.ts`). The order is fixed: discount, boosted ("Öne Çıkan"), trade, campaign
+ * name; the first `max` that apply are shown. "Sponsorlu" (`product.sponsored`) is the ads' text and
+ * never a listing badge.
  */
 export const MAX_CARD_BADGES = 2;
 
 export type ProductCardBadge =
   | { kind: 'sale'; percent: number }
-  | { kind: 'sponsored' }
+  | { kind: 'boosted' }
   | { kind: 'trade' }
   | { kind: 'campaign'; label: string };
 
@@ -69,8 +70,8 @@ export function selectProductCardBadges(p: ProductCardBadgeSource, max: number =
   const badges: ProductCardBadge[] = [];
   const percent = getProductSalePercent(p);
   if (percent >= 1) badges.push({ kind: 'sale', percent });
-  // Backend `isBoosted`'ı hesaplar (süresi dolmuş boost false); `boostedUntil`'e bakılmaz.
-  if (p.isBoosted === true) badges.push({ kind: 'sponsored' });
+  // The API derives `isBoosted` (an ended boost is false); `boostedUntil` is not read here.
+  if (p.isBoosted === true) badges.push({ kind: 'boosted' });
   if (isProductTradeBadgeVisible(p)) badges.push({ kind: 'trade' });
   // Bedel kampanyaları fiyatı değiştirmez; vitrinde yalnız rozetle görünür, kartta yalnız ilki.
   const campaign = (p.feeCampaigns ?? []).find((c) => typeof c === 'string' && c.trim() !== '');

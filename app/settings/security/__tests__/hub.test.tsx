@@ -38,25 +38,50 @@ jest.mock('@/stores/authStore', () => ({
 }));
 
 let mockEnabled = false;
+const mockGetSignInMethods = jest.fn();
+const mockForgotPassword = jest.fn((_email: string) => Promise.resolve({ data: {} }));
+let mockGoogleConfigured = false;
+let mockAppleAvailable = false;
+jest.mock('@/services/googleSignin', () => ({ isGoogleConfigured: () => mockGoogleConfigured }));
+jest.mock('@/services/appleSignin', () => ({ isAppleAvailable: () => Promise.resolve(mockAppleAvailable) }));
 const mockLogoutAll = jest.fn(() => Promise.resolve({ data: {} }));
 const mockSendPhoneCode = jest.fn();
 jest.mock('@/lib/api', () => ({
   authApi: {
     getTwoFactorStatus: () => Promise.resolve({ data: { isEnabled: mockEnabled } }),
+    getSignInMethods: () => mockGetSignInMethods(),
+    forgotPassword: (email: string) => mockForgotPassword(email),
     logoutAll: () => mockLogoutAll(),
     sendPhoneCode: () => mockSendPhoneCode(),
   },
 }));
+
+/** The password card waits for the sign-in methods (disabled while they load). */
+async function passwordButton() {
+  const button = await screen.findByTestId('security-password-button');
+  await waitFor(() => expect(button).toBeEnabled());
+  return button;
+}
 
 import SecuritySettingsScreen from '../index';
 
 const alertMock = appAlert as jest.Mock;
 const errorMock = toast.error as jest.Mock;
 
+const linked = (provider: 'google' | 'apple') => ({
+  data: { hasPassword: false, providers: [{ provider, email: null, linkedAt: '2026-10-01T00:00:00.000Z' }] },
+});
+
 beforeEach(() => {
   mockParams = {};
   mockEnabled = false;
-  mockUser = { phone: '+905551112233', isPhoneVerified: false };
+  mockGoogleConfigured = false;
+  mockAppleAvailable = false;
+  mockGetSignInMethods.mockReset();
+  mockGetSignInMethods.mockResolvedValue({ data: { hasPassword: true, providers: [] } });
+  mockForgotPassword.mockClear();
+  (toast.success as jest.Mock).mockClear();
+  mockUser = { email: 'user@ornek.com', phone: '+905551112233', isPhoneVerified: false };
   mockLogout.mockClear();
   mockLogoutAll.mockReset();
   mockLogoutAll.mockResolvedValue({ data: {} });
@@ -78,7 +103,7 @@ async function confirmLogoutAll() {
 describe('settings/security hub', () => {
   it('formlar diyalog değil, ayrı ekranlar', async () => {
     renderWithProviders(<SecuritySettingsScreen />);
-    fireEvent.press(await screen.findByTestId('security-password-button'));
+    fireEvent.press(await passwordButton());
     expect(pushMock).toHaveBeenLastCalledWith('/settings/security/password');
     fireEvent.press(screen.getByTestId('two-factor-manage-button'));
     expect(pushMock).toHaveBeenLastCalledWith('/settings/security/two-factor');
@@ -87,9 +112,22 @@ describe('settings/security hub', () => {
     expect(screen.queryByTestId('modal-root')).toBeNull();
   });
 
+  it('connected accounts: an entry card right after the password card opens its own screen', async () => {
+    renderWithProviders(<SecuritySettingsScreen />);
+    await passwordButton();
+    expect(screen.getByText(i18n.t('profile.connectedAccounts.title'))).toBeTruthy();
+    expect(screen.getByText(i18n.t('profile.connectedAccounts.description'))).toBeTruthy();
+    const ids = screen
+      .getAllByTestId(/^(security-password-button|security-connected-accounts-button|two-factor-manage-button)$/)
+      .map((node) => node.props.testID);
+    expect(ids).toEqual(['security-password-button', 'security-connected-accounts-button', 'two-factor-manage-button']);
+    fireEvent.press(screen.getByTestId('security-connected-accounts-button'));
+    expect(pushMock).toHaveBeenLastCalledWith('/settings/security/connected-accounts');
+  });
+
   it('tek kart kalıbı: her eylem aynı tip düğme (outline sm); tüm cihazlardan çıkış danger; ipuçları kartı yok', async () => {
     renderWithProviders(<SecuritySettingsScreen />);
-    await screen.findByTestId('security-password-button');
+    await passwordButton();
     const style = (id: string) => {
       const s = screen.getByTestId(id).props.style;
       return StyleSheet.flatten(typeof s === 'function' ? s({ pressed: false }) : s);
@@ -128,11 +166,12 @@ describe('settings/security hub', () => {
     expect(alertMock).not.toHaveBeenCalled();
   });
 
-  it('2FA açıkken "Yönet" + Aktif rozeti; kapalıyken "Ayarla"', async () => {
+  it('2FA on: the 2FA card says "Manage" with the Active badge', async () => {
     mockEnabled = true;
     renderWithProviders(<SecuritySettingsScreen />);
-    expect(await screen.findByText(i18n.t('profile.security.manage'))).toBeTruthy();
-    expect(screen.getByText(i18n.t('common.active'))).toBeTruthy();
+    // "Manage" alone also labels the connected accounts card: wait on the 2FA badge.
+    expect(await screen.findByText(i18n.t('common.active'))).toBeTruthy();
+    expect(screen.getByTestId('two-factor-manage-button')).toHaveTextContent(i18n.t('profile.security.manage'));
   });
 
   it('telefon doğrulanmışsa rozet, doğrula düğmesi yok', async () => {
@@ -170,5 +209,57 @@ describe('settings/security hub', () => {
     );
     expect(pushMock).toHaveBeenCalledTimes(1);
     expect(mockSendPhoneCode).not.toHaveBeenCalled();
+  });
+});
+
+describe('settings/security hub: password card mode (sign-in methods)', () => {
+  it('with a password: "Change password", nothing else', async () => {
+    renderWithProviders(<SecuritySettingsScreen />);
+    await passwordButton();
+    expect(screen.getByText(i18n.t('profile.security.passwordDesc'))).toBeTruthy();
+    expect(screen.queryByTestId('security-set-password-button')).toBeNull();
+  });
+
+  it('without a password (Google linked, Google shown here): "Set a Password" opens the set-password screen', async () => {
+    mockGoogleConfigured = true;
+    mockGetSignInMethods.mockResolvedValue(linked('google'));
+    renderWithProviders(<SecuritySettingsScreen />);
+    const button = await screen.findByTestId('security-set-password-button');
+    expect(screen.getByText(i18n.t('profile.security.setPasswordTitle'))).toBeTruthy();
+    expect(screen.getByText(i18n.t('profile.security.setPasswordIntro'))).toBeTruthy();
+    expect(screen.queryByTestId('security-password-button')).toBeNull();
+    fireEvent.press(button);
+    await waitFor(() => expect(pushMock).toHaveBeenLastCalledWith('/settings/security/set-password'));
+    expect(mockForgotPassword).not.toHaveBeenCalled();
+  });
+
+  it('Apple linked on iOS: the set-password screen (Apple can confirm here)', async () => {
+    mockAppleAvailable = true;
+    mockGetSignInMethods.mockResolvedValue(linked('apple'));
+    renderWithProviders(<SecuritySettingsScreen />);
+    const button = await screen.findByTestId('security-set-password-button');
+    // Tapped at once: the Apple check runs at tap time, not from a first render's "no Apple".
+    fireEvent.press(button);
+    await waitFor(() => expect(pushMock).toHaveBeenLastCalledWith('/settings/security/set-password'));
+    expect(mockForgotPassword).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['an Apple-only account on Android', linked('apple')],
+    ['a Google-only account while Google is off on Android', linked('google')],
+  ])('%s: "Set a password" sends the mail (ADR 0012), no screen', async (_l, methods) => {
+    mockGetSignInMethods.mockResolvedValue(methods);
+    renderWithProviders(<SecuritySettingsScreen />);
+    fireEvent.press(await screen.findByTestId('security-set-password-button'));
+    await waitFor(() => expect(mockForgotPassword).toHaveBeenCalledWith('user@ornek.com'));
+    expect(toast.success).toHaveBeenCalledWith(i18n.t('auth.setPasswordEmailSent'));
+    expect(pushMock).not.toHaveBeenCalledWith('/settings/security/set-password');
+  });
+
+  it('the sign-in methods cannot be read: falls back to "Change password"', async () => {
+    mockGetSignInMethods.mockRejectedValue({ isAxiosError: true, response: { status: 404, data: {} } });
+    renderWithProviders(<SecuritySettingsScreen />);
+    fireEvent.press(await passwordButton());
+    expect(pushMock).toHaveBeenLastCalledWith('/settings/security/password');
   });
 });

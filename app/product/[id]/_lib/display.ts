@@ -6,7 +6,7 @@ import {
   isProductOnSaleDisplay,
 } from '@/utils/productPrice';
 import { getProductSalePercent } from '@/components/product/productCardBadges';
-import type { Product } from './types';
+import type { Product, ProductImage } from './types';
 
 export interface PriceInfo {
   effectivePrice: number;
@@ -29,11 +29,15 @@ export function getProductPriceInfo(product: Product): PriceInfo {
   };
 }
 
-/** Görsel URL'lerini çöz (cardUrl/detailUrl/url) — yoksa placeholder. */
-export function resolveProductImages(product: Product): any[] {
+/**
+ * Resolve the gallery images: `url` becomes the detail-size URL (the pager and the viewer's zoom
+ * pages read it), while `cardUrl` and `detailUrl` survive the spread so the thumbnail strip can
+ * pick the card size (`AppImage variant="card"` on the image object). Placeholder when empty.
+ */
+export function resolveProductImages(product: Product): ProductImage[] {
   return product?.images && product.images.length > 0
-    ? product.images.map((img: any) => {
-        const uri = transformImageUrl(img, 'detail'); // galeri: tam çözünürlük (varsayılan card)
+    ? product.images.map((img: ProductImage): ProductImage => {
+        const uri = transformImageUrl(img, 'detail'); // gallery: full resolution (default is card)
         return typeof img === 'string' ? uri : { ...img, url: uri };
       })
     : [PLACEHOLDER];

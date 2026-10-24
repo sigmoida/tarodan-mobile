@@ -4,24 +4,24 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Button, Text, theme } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
-import { SimilarProductsCard } from '@/components/product';
+import { ProductNotFound, SimilarProductsCard } from '@/components/product';
 import { searchCategoryHref } from '@/lib/navigation/searchHref';
+import { listingIdFromParam } from '@/lib/product/listingParam';
 import { useUnavailableProduct } from './_hooks/useUnavailableProduct';
 
 const { colors, spacing, radiusRole } = theme;
 
 /**
- * Satışta olmayan ürün: sade durum bandı (tekrar stokta ya da artık yok) + kategori/ürün aksiyonu ve
- * benzer ürünler. Kutlama ikonu/emoji yok; durum yalnız metin.
+ * Listing no longer for sale: a plain status band (back in stock, or gone) with a category or product
+ * action and similar listings. No celebration icon or emoji; the state is text only.
  */
-export default function ProductUnavailableScreen() {
+function ProductUnavailable({ id }: { id: string }) {
   const { t } = useTranslation();
-  const { productId } = useLocalSearchParams<{ productId: string }>();
-  const id = String(productId ?? '');
   const { product, similar, loading, isBackInStock } = useUnavailableProduct(id);
 
   return (
     <PageShell
+      // Similar listings grid: full width on tablets (its columns follow the window).
       title={t('stockout.page.screenTitle')}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/' as any))}
       loading={loading}
@@ -60,6 +60,16 @@ export default function ProductUnavailableScreen() {
       />
     </PageShell>
   );
+}
+
+/**
+ * Route entry. `[productId]` comes from a push payload, a checkout stock-out or a deep link, so it is read
+ * like a listing URL segment: the uuid is taken out before any request, and no uuid means "not found".
+ */
+export default function ProductUnavailableScreen() {
+  const { productId } = useLocalSearchParams<{ productId: string }>();
+  const id = listingIdFromParam(productId);
+  return id ? <ProductUnavailable id={id} /> : <ProductNotFound />;
 }
 
 const styles = StyleSheet.create({

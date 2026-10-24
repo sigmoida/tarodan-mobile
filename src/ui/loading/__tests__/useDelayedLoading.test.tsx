@@ -78,6 +78,46 @@ describe('useDelayedLoading', () => {
     expect(result.current).toBe(true);
   });
 
+  /**
+   * On a busy JS thread a due timer can run after React committed a new `isLoading` but before
+   * the passive effect that clears the timer. Keeping `clearTimeout` from cancelling it during
+   * the rerender puts the timer in exactly that gap.
+   */
+  const rerenderLeavingTimersDue = (rerender: (props: { loading: boolean }) => void, loading: boolean) => {
+    const clear = jest.spyOn(global, 'clearTimeout').mockImplementation(() => undefined);
+    try {
+      rerender({ loading });
+    } finally {
+      clear.mockRestore();
+    }
+  };
+
+  it('a show timer that fires after the load ended never brings the indicator back', () => {
+    const { result, rerender } = setup(true, { delay: 100, minDuration: 300 });
+    act(() => {
+      jest.advanceTimersByTime(99);
+    });
+    rerenderLeavingTimersDue(rerender, false);
+    act(() => {
+      jest.advanceTimersByTime(1);
+    });
+    expect(result.current).toBe(false);
+  });
+
+  it('a hide timer that fires after a new load started keeps the indicator', () => {
+    const { result, rerender } = setup(true, { delay: 100, minDuration: 300 });
+    act(() => {
+      jest.advanceTimersByTime(100);
+    });
+    rerender({ loading: false });
+    expect(result.current).toBe(true);
+    rerenderLeavingTimersDue(rerender, true);
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(result.current).toBe(true);
+  });
+
   it('delay: 0 → ilk render’da gösterir (testler / bilinçli anlık iskelet)', () => {
     const { result } = setup(true, { delay: 0 });
     expect(result.current).toBe(true);

@@ -27,14 +27,19 @@ full section; read it before deviating. Web at phone width is the reference.
 - **Product tiles:** always `ProductCard`; lists use `ProductGrid`; favourites via
   `useProductCardFavorites()`. See `src/components/CLAUDE.md` › Product card.
 - **Empty and error:** `EmptyState` (icon + title + subtitle required) and
-  `ErrorState` with retry; `placement="inline"` inside cards, modals and sections.
-  See `src/ui/CLAUDE.md` › Empty and error states.
+  `ErrorState` with retry; `placement="list"` in the `ListEmptyComponent` of a
+  `pageListContentStyle` list, `placement="inline"` inside cards, modals and
+  sections. See `src/ui/CLAUDE.md` › Empty and error states.
 - **Loading:** skeletons for lists and cards, `ScreenLoader` only for first load or
   layout-less flows, one `LoadingIndicator`, `useDelayedLoading`. See
   `src/ui/CLAUDE.md` › Loading.
 - **Sheets:** everything that slides up is `BottomSheet` / `SelectSheet` /
   `ActionSheet`; a multi-field form is a screen, not a sheet. See `src/ui/CLAUDE.md`
   › Bottom sheets.
+- **Large screens:** edge to edge on every width, no centred narrow column; the gutter
+  is `pageGutter` (`usePageContentStyle` on a list's content), row lists use
+  `useRowGrid`, card grids `useGridColumns`, wider classes re-proportion into panes. See
+  `src/ui/CLAUDE.md` › Large screens.
 - **Shells and data:** `PageShell` / `AppShell` (see `app/CLAUDE.md` › Shells); data
   through query/mutation hooks with `qk` keys (see `src/lib/query/CLAUDE.md`); copy
   through `t()` with keys in tr + en (see `src/i18n/CLAUDE.md`).

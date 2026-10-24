@@ -44,6 +44,18 @@ describe('heroImageUrl', () => {
     expect(heroImageUrl(slide({ mobileImageUrl: 'https://cdn.example/m.jpg' }))).toBe('https://cdn.example/m.jpg');
     expect(heroImageUrl(slide())).toBe('https://cdn.example/a.jpg');
   });
+
+  it('wide (tablet, image beside the text): the desktop image, like web from `md`', () => {
+    expect(heroImageUrl(slide({ mobileImageUrl: 'https://cdn.example/m.jpg' }), { wide: true })).toBe(
+      'https://cdn.example/a.jpg',
+    );
+  });
+
+  it('wide falls back to the mobile image when a slide has no desktop image (never blank)', () => {
+    expect(heroImageUrl(slide({ imageUrl: ' ', mobileImageUrl: 'https://cdn.example/m.jpg' }), { wide: true })).toBe(
+      'https://cdn.example/m.jpg',
+    );
+  });
 });
 
 describe('visibleSlides', () => {

@@ -4,7 +4,7 @@ import { Avatar, Badge, Button, SectionCard, Text, ButtonRow } from '@/ui';
 import { useTranslation } from 'react-i18next';
 
 import { styles } from '../_lib/styles';
-import { BADGE_LABEL } from '../_lib/constants';
+import { SellerTrustBadge } from './SellerTrustBadge';
 import type { SellerProfileController } from '../_hooks/useSellerProfile';
 
 function Metric({ label, value }: { label: string; value: React.ReactNode }) {
@@ -19,17 +19,20 @@ function Metric({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 /**
- * Satıcı başlık kartı (web `SellerHeader`): avatar, ad + rozetler (Premium / Doğrulanmış / Güven),
- * üyelik tarihi, Mesaj + Takip düğmeleri ve 2×2 sayaç ızgarası (İlanlar, Satışlar, Takas,
- * Takipçi). Ortalama puan değerlendirmeler kartının başlığında. Şikayet/engelle üst bardaki menüde.
+ * Seller header card (web `SellerHeader`): avatar, name + badges (Verified / trust score),
+ * member-since date, Message + Follow buttons and the 2x2 counter grid (Listings, Sales, Trades,
+ * Followers). The average rating sits in the reviews card title. Report/block live in the top bar
+ * menu. The trust badge reads `trust` only (never the legacy `trustScore`).
  */
 export function SellerProfileCard({ f }: { f: SellerProfileController }) {
   const { t } = useTranslation();
   const { seller, products } = f;
-  // Avatar yanında yalnız üyelik tarihi; puan değerlendirmeler kartında, takipçi sayaç ızgarasında.
+  // The screen renders the card only once the profile loaded; the guard narrows the type.
+  if (!seller) return null;
+  // Only the member-since date next to the avatar; the rating is in the reviews card, followers in the grid.
   const memberSince = seller.createdAt
     ? t('seller.memberSincePrefix', {
-        date: new Date(seller.createdAt).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }),
+        date: new Date(seller.createdAt).toLocaleDateString(t('common.dateLocale'), { month: 'long', year: 'numeric' }),
       })
     : null;
 
@@ -52,12 +55,7 @@ export function SellerProfileCard({ f }: { f: SellerProfileController }) {
                   {t('seller.verified')}
                 </Badge>
               ) : null}
-              {seller.isPremium && typeof seller.trustScore === 'number' ? (
-                <Badge variant="warning" size="sm">
-                  {t('seller.trustScoreLabel', { score: seller.trustScore })}
-                  {seller.trustLevel ? t('seller.trustScoreLevelSuffix', { level: seller.trustLevel }) : ''}
-                </Badge>
-              ) : null}
+              <SellerTrustBadge trust={seller.trust} />
             </View>
             {seller.location ? (
               <Text variant="caption" tone="subtle">
@@ -71,18 +69,6 @@ export function SellerProfileCard({ f }: { f: SellerProfileController }) {
             ) : null}
           </View>
         </View>
-
-        {seller.badges && seller.badges.length > 0 ? (
-          <View style={styles.nameRow}>
-            {seller.badges.map((badge: string) =>
-              BADGE_LABEL[badge] ? (
-                <Badge key={badge} variant="outline" size="sm">
-                  {t(BADGE_LABEL[badge]!)}
-                </Badge>
-              ) : null,
-            )}
-          </View>
-        ) : null}
 
         {seller.bio ? (
           <Text variant="bodySm" tone="muted">

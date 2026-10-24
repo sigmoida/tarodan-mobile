@@ -1,13 +1,17 @@
-import { useCallback } from 'react';
-import { View, RefreshControl } from 'react-native';
+import { useCallback, useMemo } from 'react';
+import { View, RefreshControl, useWindowDimensions } from 'react-native';
 import Animated from 'react-native-reanimated';
 import {
   theme,
   EmptyState,
   ErrorState,
+  gridCellWidth,
+  pageGutter,
   pageListContentStyle,
   Spinner,
   useDelayedLoading,
+  useGridColumns,
+  usePageContentStyle,
   usePageScrollHandler,
 } from '@/ui';
 import { router } from 'expo-router';
@@ -16,7 +20,7 @@ import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
 import { ListFooterRetry } from '@/components/common/ListFooterRetry';
 import { useCollectionsBrowse } from './_hooks/useCollectionsBrowse';
-import { styles } from './_lib/browseStyles';
+import { COLLECTION_GRID_GAP, styles } from './_lib/browseStyles';
 import { CollectionCard } from '@/components/collection/CollectionCard';
 import { SkeletonCollectionCard } from '@/components/collection/SkeletonCollectionCard';
 import { CollectionsInfoCard } from './_components/CollectionsInfoCard';
@@ -26,23 +30,34 @@ import { CollectionsSheets } from './_components/CollectionsSheets';
 const { colors } = theme;
 
 const collectionKey = (item: { id: string | number }) => String(item.id);
+const SKELETON_ROWS = [0, 1];
 
 /**
- * Koleksiyonlar (web `/collections`): PageShell + "Herkese açık / Benim" sekmeleri (Benim yalnız
- * girişli), sunucu araması, kategori filtresi ve sıralama (SelectSheet) ile 2 sütun koleksiyon
- * kartları; herkese açık liste sonsuz kaydırılır. Yüklenirken iskelet, boşken EmptyState.
+ * Collections (web `/collections`): PageShell + "Public / Mine" tabs (Mine only when signed in),
+ * server search, category filter and sort (SelectSheet), collection cards (2 columns on phones,
+ * more on tablets: `useGridColumns`); the public list scrolls infinitely. Skeleton while loading,
+ * EmptyState when empty.
  */
 export default function CollectionsScreen() {
   const { t } = useTranslation();
   const f = useCollectionsBrowse();
   const page = usePageScrollHandler();
+  const columns = useGridColumns();
+  // Fixed cell width: a short last row keeps the card size instead of stretching across the row.
+  const { width: windowWidth } = useWindowDimensions();
+  const cellStyle = useMemo(
+    () => ({ width: gridCellWidth(windowWidth - 2 * pageGutter(windowWidth), columns, COLLECTION_GRID_GAP) }),
+    [windowWidth, columns],
+  );
+  // Large screens: the tablet gutter (the cell width deducts the same one).
+  const listContentStyle = usePageContentStyle([pageListContentStyle, styles.footer]);
   const renderCollection = useCallback(
     ({ item }: { item: any }) => (
-      <View style={styles.cell}>
+      <View style={cellStyle}>
         <CollectionCard item={item} />
       </View>
     ),
-    [],
+    [cellStyle],
   );
   const mineEmpty = f.activeTab === 'mine' && !f.hasSearch;
   // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
@@ -58,14 +73,16 @@ export default function CollectionsScreen() {
     >
       <Animated.FlatList
         {...page.listProps}
+        // `numColumns` cannot change in place (rotation, fold/unfold): re-mount on a new count.
+        key={`columns-${columns}`}
         testID="collections-list"
         data={f.isLoading ? [] : f.collections}
         renderItem={renderCollection}
         keyExtractor={collectionKey}
         {...listWindowing}
-        numColumns={2}
+        numColumns={columns}
         columnWrapperStyle={styles.row}
-        contentContainerStyle={page.contentStyle([pageListContentStyle, styles.footer])}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         onEndReached={f.loadMore}
@@ -84,22 +101,22 @@ export default function CollectionsScreen() {
           f.isLoading || showSkeleton ? (
             showSkeleton ? (
               <View style={styles.skeletonRows} testID="collections-skeleton">
-                {[0, 1].map((row) => (
+                {SKELETON_ROWS.map((row) => (
                   <View key={row} style={styles.skeletons}>
-                    <View style={styles.cell}>
-                      <SkeletonCollectionCard />
-                    </View>
-                    <View style={styles.cell}>
-                      <SkeletonCollectionCard />
-                    </View>
+                    {Array.from({ length: columns }, (_, c) => (
+                      <View key={c} style={cellStyle}>
+                        <SkeletonCollectionCard />
+                      </View>
+                    ))}
                   </View>
                 ))}
               </View>
             ) : null
           ) : f.isError ? (
-            <ErrorState onRetry={() => void f.refetch()} />
+            <ErrorState placement="list" onRetry={() => void f.refetch()} />
           ) : (
             <EmptyState
+              placement="list"
               testID="collections-empty"
               icon="rectangle-stack"
               title={mineEmpty ? t('collection.noCollections') : t('collection.browseEmptyTitle')}

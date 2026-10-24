@@ -207,15 +207,16 @@ export function parseMessageContent(content: string): ParsedMessage {
 }
 
 /**
- * Liste önizlemesi için [IMG:url] işaretini "📷 Fotoğraf" etiketine çevirir.
- * Ör: "[IMG:https://...]" → "📷 Fotoğraf", "bak [IMG:...]" → "bak 📷 Fotoğraf"
+ * Converts the [IMG:url] marker into the "Photo" label for list previews (same as web
+ * `getThreadPreview`): the label comes first, a caption follows after a colon.
+ * E.g. "[IMG:https://...]" -> "Fotoğraf", "bak [IMG:...]" -> "Fotoğraf: bak"
  */
 export function formatMessagePreview(content: string): string {
   if (!content) return '';
   const { text, images } = parseMessageContent(content);
   if (images.length === 0) return text;
   const photoLabel = i18n.t('message.photoLabel'); // reuse — ThreadRow'un kendi etiketiyle aynı
-  return text ? `${text} ${photoLabel}` : photoLabel;
+  return text ? `${photoLabel}: ${text}` : photoLabel;
 }
 
 /**

@@ -1,7 +1,7 @@
 /**
  * Envanter testi: `app/**` altındaki HER rota ekranı bir kabuk içerir — üst bar/güvenli alan elle
  * çizilmez. Kabuklar: PageShell (+ ContentPage/EntityProductsScreen/
- * ListingForm / AddressForm / DiscountForm gibi onu saran sayfa bileşenleri), AppShell (sekme kökü), AuthShell, GateScreen /
+ * ListingForm / AddressForm / DiscountForm / MessageThreadView gibi onu saran sayfa bileşenleri), AppShell (sekme kökü), AuthShell, GateScreen /
  * FullScreenGate (bilinçli çubuksuz kapı ekranları), OwnSiteWebView (+ onu saran LegalWebPage), Redirect (ekran değil).
  *
  * Ayrıca: `PageShell header={…}` ile özel üst bar yalnız izinli listede; native `headerShown: true`
@@ -14,10 +14,13 @@ const ROOT = path.resolve(__dirname, '../../../..');
 const APP = path.join(ROOT, 'app');
 
 const SHELL =
-  /<(PageShell|ContentPage|EntityProductsScreen|ListingForm|AddressForm|DiscountForm|AppShell|AuthShell|AuthGatePage|GateScreen|FullScreenGate|OwnSiteWebView|LegalWebPage|Redirect)\b/;
+  /<(PageShell|ContentPage|EntityProductsScreen|ListingForm|AddressForm|DiscountForm|MessageThreadView|AppShell|AuthShell|AuthGatePage|GateScreen|FullScreenGate|OwnSiteWebView|LegalWebPage|Redirect)\b/;
 
-/** `header={<Özel />}` ile üst barı kendisi veren ekranlar (ScreenHeader'ı `titleSlot` ile sarar). */
-const CUSTOM_HEADER_ALLOWED = ['app/messages/[threadId]/index.tsx'];
+/**
+ * `header={<Özel />}` ile üst barı kendisi veren rota ekranları. The chat thread's custom header
+ * lives in `MessageThreadView` (shared by the route and the master–detail pane), not a route file.
+ */
+const CUSTOM_HEADER_ALLOWED: string[] = [];
 
 /** Rota dosyaları: `_` önekli klasörler (hooks/components/…), `__tests__`, `_layout`, `+` dosyaları hariç. */
 function routeFiles(dir: string, out: string[] = []): string[] {

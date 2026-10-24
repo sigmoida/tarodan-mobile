@@ -14,21 +14,24 @@ import eas from '../eas.json';
 const withVariant = require('../app.config');
 const { expo: baseConfig } = require('../app.json');
 
-const evaluate = (environment: string | undefined) => {
-  const previous = process.env.EXPO_PUBLIC_ENVIRONMENT;
-  if (environment === undefined) {
-    delete process.env.EXPO_PUBLIC_ENVIRONMENT;
-  } else {
-    process.env.EXPO_PUBLIC_ENVIRONMENT = environment;
-  }
+/**
+ * Evaluates app.config.js with EXPO_PUBLIC_ENVIRONMENT (and `env`) set, restoring every
+ * touched key afterwards. EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID is unset unless `env` sets
+ * it, so a developer's shell or .env never leaks into the result.
+ */
+const evaluate = (environment: string | undefined, env: Record<string, string> = {}) => {
+  const vars: Record<string, string | undefined> = {
+    EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: undefined,
+    ...env,
+    EXPO_PUBLIC_ENVIRONMENT: environment,
+  };
+  const saved = Object.keys(vars).map((k) => [k, process.env[k]] as const);
+  const set = (k: string, v: string | undefined) => (v === undefined ? delete process.env[k] : (process.env[k] = v));
+  Object.entries(vars).forEach(([k, v]) => set(k, v));
   try {
     return withVariant({ config: baseConfig });
   } finally {
-    if (previous === undefined) {
-      delete process.env.EXPO_PUBLIC_ENVIRONMENT;
-    } else {
-      process.env.EXPO_PUBLIC_ENVIRONMENT = previous;
-    }
+    saved.forEach(([k, v]) => set(k, v));
   }
 };
 
@@ -45,14 +48,30 @@ describe('app.config — preview (staging) variant', () => {
     expect(result.android.package).toBe(`${baseConfig.android.package}.staging`);
   });
 
-  it('passes every Android field except package, google-services and intent filters through unchanged', () => {
+  it('passes every Android field except package, adaptive icon, google-services and intent filters through unchanged', () => {
     // No field (permissions, adaptiveIcon, ...) may get lost in the spread. The
     // staging-only differences (package, staging google-services, staging host) are
     // covered in src/config/__tests__/androidRelease.test.ts.
     const result = evaluate('preview');
-    const omit = ({ package: _p, googleServicesFile: _g, intentFilters: _i, ...rest }: any) => rest;
+    const omit = ({ package: _p, adaptiveIcon: _a, googleServicesFile: _g, intentFilters: _i, ...rest }: any) =>
+      rest;
     expect(omit(result.android)).toEqual(omit(baseConfig.android));
     expect(result.android.googleServicesFile).toBe('./google-services.staging.json');
+  });
+
+  it('uses the inverted staging icon on both platforms', () => {
+    const result = evaluate('preview');
+    expect(result.icon).toBe('./assets/icon-staging.png');
+    expect(result.icon).not.toBe(baseConfig.icon);
+    const { foregroundImage, backgroundColor } = result.android.adaptiveIcon;
+    expect(foregroundImage).toBe('./assets/adaptive-icon-staging.png');
+    // A light background behind the orange mark, unlike production's orange one.
+    expect(backgroundColor).not.toBe(baseConfig.android.adaptiveIcon.backgroundColor);
+    const fs = jest.requireActual('fs');
+    const path = jest.requireActual('path');
+    for (const file of [result.icon, result.android.adaptiveIcon.foregroundImage]) {
+      expect(fs.existsSync(path.join(__dirname, '..', file))).toBe(true);
+    }
   });
 
   it('uses the short home-screen name "Staging"', () => {
@@ -62,11 +81,89 @@ describe('app.config — preview (staging) variant', () => {
 });
 
 describe('app.config — other environments', () => {
+  const iosClientId = eas.build.production.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+
   it.each(['production', 'development', undefined])(
-    'returns the config unchanged for %s',
+    'changes nothing but the google-signin plugin options for %s',
     (environment) => {
-      const result = evaluate(environment);
-      expect(result).toBe(baseConfig);
+      const { plugins, ...rest } = evaluate(environment, { EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: iosClientId });
+      const { plugins: basePlugins, ...baseRest } = baseConfig;
+      expect(rest).toEqual(baseRest);
+      expect(plugins).toEqual(withVariant.withGoogleSignInScheme(basePlugins, iosClientId));
+    },
+  );
+});
+
+describe('app.config — Google sign-in iOS URL scheme', () => {
+  const PLUGIN = '@react-native-google-signin/google-signin';
+  const { googleIosUrlScheme, withGoogleSignInScheme } = withVariant;
+  const builds: Record<string, { extends?: string; env?: Record<string, string> }> = eas.build;
+  /** The profile env with its `extends` chain merged, as EAS resolves it. */
+  const resolvedEnv = (name: string): Record<string, string> => {
+    const profile = builds[name]!;
+    return { ...(profile.extends ? resolvedEnv(profile.extends) : {}), ...(profile.env ?? {}) };
+  };
+  const pluginOptions = (plugins: unknown[]) => {
+    const entry = plugins.find((p) => Array.isArray(p) && p[0] === PLUGIN) as [string, unknown] | undefined;
+    return entry?.[1];
+  };
+
+  it('reverses an iOS client id into its URL scheme', () => {
+    expect(googleIosUrlScheme('123-abc9.apps.googleusercontent.com')).toBe('com.googleusercontent.apps.123-abc9');
+  });
+
+  it.each([undefined, ''])('has no scheme without an id (%p)', (id) => {
+    expect(googleIosUrlScheme(id)).toBeNull();
+  });
+
+  it.each([
+    'com.googleusercontent.apps.123-abc9',
+    '123-abc9',
+    'abc9.apps.googleusercontent.com',
+    '123-abc9.apps.googleusercontent.com.evil',
+    // Padded: googleSignin.ts would pass the padded id to configure, so it must not
+    // be normalised into a clean scheme here.
+    ' 123-abc9.apps.googleusercontent.com',
+    '123-abc9.apps.googleusercontent.com\n',
+    '   ',
+  ])('stops the config read on a malformed id (%p)', (id) => {
+    expect(() => googleIosUrlScheme(id)).toThrow(/EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID/);
+  });
+
+  it('app.json lists the plugin with empty options: the scheme is never typed there', () => {
+    expect(pluginOptions(baseConfig.plugins)).toEqual({});
+  });
+
+  it('fills in the scheme in place and leaves every other plugin as it is, without mutating the input', () => {
+    const before = JSON.stringify(baseConfig.plugins);
+    const plugins = withGoogleSignInScheme(baseConfig.plugins, '123-abc9.apps.googleusercontent.com');
+    expect(JSON.stringify(baseConfig.plugins)).toBe(before);
+    expect(plugins).toHaveLength(baseConfig.plugins.length);
+    plugins.forEach((entry: unknown, i: number) => {
+      if (Array.isArray(entry) && entry[0] === PLUGIN) {
+        expect(entry).toEqual([PLUGIN, { iosUrlScheme: 'com.googleusercontent.apps.123-abc9' }]);
+      } else {
+        expect(entry).toBe(baseConfig.plugins[i]);
+      }
+    });
+  });
+
+  it('drops the plugin without an id, never falling back to its Firebase mode', () => {
+    const plugins = withGoogleSignInScheme(baseConfig.plugins, undefined);
+    expect(plugins).toHaveLength(baseConfig.plugins.length - 1);
+    expect(plugins.some((p: unknown) => (Array.isArray(p) ? p[0] : p) === PLUGIN)).toBe(false);
+  });
+
+  // Each profile that ships Google sign-in registers the scheme of its own iOS client,
+  // so a staging binary never carries the production scheme (or the other way round).
+  it.each(['production', 'development', 'staging', 'preview', 'maestro'])(
+    '%s registers the scheme of its own EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID',
+    (profile) => {
+      const env = resolvedEnv(profile);
+      const iosClientId = env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!;
+      expect(iosClientId).toBeTruthy();
+      const result = evaluate(env.EXPO_PUBLIC_ENVIRONMENT, env);
+      expect(pluginOptions(result.plugins)).toEqual({ iosUrlScheme: googleIosUrlScheme(iosClientId) });
     },
   );
 });

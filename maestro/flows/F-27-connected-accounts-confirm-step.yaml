@@ -1,0 +1,92 @@
+# F-27: Connected accounts (sign-in methods delta 2026-10-21, ADR 0012). The screen opens from
+# Settings > Security with one row per provider. On iOS, Connect asks "Confirm it's you" first
+# (zeynep has a password: the password field) and no provider sheet opens under it; Cancel
+# returns to the rows with Connect enabled and the user still signed in. On Android, Apple never
+# offers Connect: its row shows the iOS-only hint (or Disconnect when it is linked).
+#
+# The provider sheets, the link and the unlink need real Google and Apple accounts on the device
+# and are on the device checklist; the request order and bodies are covered by jest
+# (`app/settings/security/__tests__/connected-accounts.test.tsx`).
+#
+# Tag `manual`: needs an API with `POST /auth/social/*/link` and `/unlink` (not on staging yet).
+# No proof is sent, so a run costs nothing on zeynep's step-up lockout.
+appId: ${APP_ID}
+tags:
+  - manual
+---
+- runFlow: ../subflows/open-tarodan.yaml
+- tapOn:
+    id: "tab-profile"
+- runFlow:
+    when:
+      visible:
+        id: "profile-edit-button"
+    file: ../subflows/logout.yaml
+- runFlow: ../subflows/login-as.yaml
+- runFlow: ../subflows/open-settings.yaml
+- scrollUntilVisible:
+    element:
+      id: "menu-item-security"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "menu-item-security"
+- scrollUntilVisible:
+    element:
+      id: "security-connected-accounts-button"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "security-connected-accounts-button"
+# The rows wait for the device provider check: Apple has a row on both platforms.
+- extendedWaitUntil:
+    visible:
+      id: "connected-apple-row"
+    timeout: 20000
+- assertVisible:
+    id: "connected-apple-status"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - assertNotVisible:
+          id: "connected-apple-connect"
+      - runFlow:
+          when:
+            notVisible:
+              id: "connected-apple-disconnect"
+          commands:
+            - assertVisible:
+                id: "connected-apple-hint"
+- runFlow:
+    when:
+      platform: iOS
+      visible:
+        id: "connected-apple-connect"
+    commands:
+      - tapOn:
+          id: "connected-apple-connect"
+      # The confirm step comes first (the Apple sheet opens only after it).
+      - extendedWaitUntil:
+          visible:
+            id: "reauth-password-input"
+          timeout: 15000
+      - tapOn:
+          id: "reauth-cancel"
+      - extendedWaitUntil:
+          notVisible:
+            id: "reauth-password-input"
+          timeout: 10000
+      - assertVisible:
+          id: "connected-apple-row"
+      - assertVisible:
+          id: "connected-apple-connect"
+- tapOn:
+    id: "screen-header-back"
+- extendedWaitUntil:
+    visible:
+      id: "security-connected-accounts-button"
+    timeout: 10000
+- assertNotVisible:
+    id: "login-email-input"
+- assertNotVisible: ".*Network Error.*"

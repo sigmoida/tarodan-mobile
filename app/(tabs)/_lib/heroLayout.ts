@@ -1,31 +1,59 @@
-import { theme } from '@/ui';
-import { HOME_GUTTER } from './homeLayout';
+import { pageGutter, theme, windowClassOf } from '@/ui';
 
 const { spacing } = theme;
 
 /**
- * Hero yerleşimi — ayrılan yükseklik ile gerçek slider AYNI sabitlerden çıkar.
- * Yer yalnız son açılışta hero görünmüşse ve cevap henüz gelmemişse tutulur
- * (`useLastHadSlides`); hero'su kapalıysa hiçbir şey ayrılmaz.
+ * Hero layout: the reserved height and the real slider come from the SAME constants. Space is only
+ * reserved when the hero was shown on the last launch and the answer has not arrived yet
+ * (`useLastHadSlides`); with the hero off nothing is reserved.
  *
- * Gerçek yükseklik = kenarlık + görsel (genişlik / oran) + gövde (en az
- * `HERO_BODY_MIN_HEIGHT`) + nokta şeridi. Gövdeye taban yükseklik verildiği için
- * tipik slaytlar rezerve alanla birebir tutar; daha uzun metin yalnız gövdeyi büyütür.
+ * Phones (`compact`): border + image (width / 16:10) + body (at least `HERO_BODY_MIN_HEIGHT`) +
+ * dots strip. The body has a minimum height, so typical slides match the reserved space exactly;
+ * longer text only grows the body.
+ *
+ * Tablets / unfolded foldables (`medium` and up, like web `md`): the image (4:3, at most
+ * `HERO_SPLIT_IMAGE_MAX_WIDTH`) sits beside the text (`imageSide`); height = border +
+ * max(image, body minimum) + dots strip, so the hero no longer fills half the screen.
  */
 
-/** Hero görsel oranı — web mobil görünümüyle aynı (16/10). */
+/** Hero image ratio, same as web on phones (16/10). */
 export const HERO_IMAGE_RATIO = 16 / 10;
-/** Kabuk kenarlığı (her kenar). */
+/** Side-by-side (tablet) image ratio, web `md:aspect-[4/3]`. */
+export const HERO_SPLIT_IMAGE_RATIO = 4 / 3;
+/** Widest side-by-side image (pt; below web's 560px `sizes`, 360 pt tall). */
+export const HERO_SPLIT_IMAGE_MAX_WIDTH = 480;
+/** Shell border (each side). */
 export const HERO_BORDER_WIDTH = 1;
-/** Kabuğun yatay dış boşluğu (her kenar; ana sayfa bölümleriyle aynı kenar) — ekran genişliğinden düşülür. */
-export const HERO_MARGIN_X = HOME_GUTTER;
-/** Gövde taban yüksekliği: dolgu + başlık + alt başlık + bir/iki buton için tipik alan. */
+/** Shell side margin for a window (each side): the page gutter, the same edge as the home sections. */
+export function heroMarginX(screenWidth: number): number {
+  return pageGutter(screenWidth);
+}
+/** Body minimum height: padding + title + subtitle + room for one or two buttons. */
 export const HERO_BODY_MIN_HEIGHT = 168;
-/** Nokta şeridi: nokta (8) + alt dolgu. Tek slaytta da ayrılır (kayma olmasın). */
+/** Dots strip: dot (8) + bottom padding. Reserved for a single slide too (no shift). */
 export const HERO_DOTS_HEIGHT = 8 + spacing[3];
 
-/** Ekran genişliğinden kabuğun toplam yüksekliği (rezerve alan için). */
+/** Is the image beside the text (window `medium` and up)? On phones it is on top. */
+export function isHeroSplit(windowWidth: number): boolean {
+  return windowClassOf(windowWidth) !== 'compact';
+}
+
+/** Inner (slide page) width of the shell: screen - side margins - borders. */
+export function heroInnerWidth(screenWidth: number): number {
+  return Math.max(0, screenWidth - 2 * heroMarginX(screenWidth) - 2 * HERO_BORDER_WIDTH);
+}
+
+/** Image box: the full page width on phones (16:10); half the page side by side (4:3, capped). */
+export function heroImageSize(innerWidth: number, split: boolean): { width: number; height: number } {
+  if (!split) return { width: innerWidth, height: innerWidth / HERO_IMAGE_RATIO };
+  const width = Math.min(innerWidth / 2, HERO_SPLIT_IMAGE_MAX_WIDTH);
+  return { width, height: width / HERO_SPLIT_IMAGE_RATIO };
+}
+
+/** Total shell height for a screen width (the reserved space). */
 export function heroReservedHeight(screenWidth: number): number {
-  const inner = Math.max(0, screenWidth - 2 * HERO_MARGIN_X - 2 * HERO_BORDER_WIDTH);
-  return 2 * HERO_BORDER_WIDTH + inner / HERO_IMAGE_RATIO + HERO_BODY_MIN_HEIGHT + HERO_DOTS_HEIGHT;
+  const split = isHeroSplit(screenWidth);
+  const image = heroImageSize(heroInnerWidth(screenWidth), split);
+  const content = split ? Math.max(image.height, HERO_BODY_MIN_HEIGHT) : image.height + HERO_BODY_MIN_HEIGHT;
+  return 2 * HERO_BORDER_WIDTH + content + HERO_DOTS_HEIGHT;
 }

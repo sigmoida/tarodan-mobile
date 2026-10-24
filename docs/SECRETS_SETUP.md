@@ -84,13 +84,16 @@ iOS prod + staging'i yan yana tutabilir.
   (file tipi) aynı içerikte isteğe bağlı yedek. İkisi de yoksa Android build'i açık
   hatayla durur (production dosyasına düşmez). Repodaki `google-services.json`
   yalnız `com.tarodan.app` içindir.
-- **Android / Google Sign-In:** iki paket için ayrı Android OAuth istemcileri
-  (upload + Play App Signing SHA-1) web client ID'nin GCP projesinde (`243308404313`)
-  oluşturulur. Bayrak `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` bu iş bitene kadar
-  `"false"` kalır. Ayrıntı: `docs/ANDROID_RELEASE.md` §9.
-- **iOS / Google Sign-In (opsiyonel):** `com.tarodan.app.staging` bundle id'si
-  için ayrı iOS OAuth client gerekir; iOS Google girişi staging için de birlikte
-  ele alınır.
+- **Android / Google Sign-In:** separate Android OAuth clients for both packages
+  (upload + Play App Signing SHA-1), created in the Google Cloud project `tarodan-app`
+  (`1048836099670`); both sets exist since 2026-10-23. The flag
+  `EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` is `"true"` on `preview`/`staging` and stays
+  `"false"` on production until the real-device check. Details:
+  `docs/ANDROID_RELEASE.md` §9.
+- **iOS / Google Sign-In:** `com.tarodan.app.staging` has its own iOS OAuth client
+  in the same project; `eas.json` sets it on `preview`/`staging` and the production
+  client on `production`, and `app.config.js` derives each URL scheme from it. See
+  `docs/RELEASE.md`, "Google sign-in clients".
 
 `EXPO_PUBLIC_API_URL` staging değeri hem `eas.json` `preview.env` bloğunda hem de
 (EAS env kullanıyorsanız) yukarıdaki §3 komutuyla set edilir.
@@ -114,6 +117,14 @@ The `preview` value covers the `preview` profile's internal-distribution builds
 sets no `environment`, so EAS builds it with the `production` variables. The
 `maestro` profile uses its own `maestro` environment and stays without a DSN
 unless one is added there.
+
+The Sentry `environment` tag comes from `EXPO_PUBLIC_ENVIRONMENT` through
+`src/services/sentryEnvironment.ts`: `production` stays `production`, `preview`
+(every staging build and OTA) reports as `staging`, anything else as
+`development`, and so do `__DEV__` bundles (Metro, a local dev client) and
+Maestro E2E builds (`EXPO_PUBLIC_MAESTRO=1`, although the `maestro` profile
+extends `preview`). `EXPO_PUBLIC_ENVIRONMENT` itself stays
+`preview` (it selects the `.staging` app id).
 
 Source map and dSYM upload is on for the `production` profile only and needs the
 EAS secret `SENTRY_AUTH_TOKEN`. Setup steps (Sentry project, DSN, token, OTA):

@@ -1,19 +1,20 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Skeleton, theme } from '@/ui';
-import { CATEGORY_GRID_COLUMNS, CATEGORY_RAIL_WIDTH } from '../_lib/layout';
+import { CATEGORY_RAIL_WIDTH, useCategoryGridColumns } from '../_lib/layout';
 
 const { colors, spacing } = theme;
 const RAIL_ITEMS = [0, 1, 2, 3];
 const GRID_ROWS = [0, 1, 2, 3];
 
-/** Izgara iskeleti: 2 sütunlu kutu yer tutucuları (grup yüklenirken sağ alanda da kullanılır). */
+/** Grid skeleton: tile placeholders in the real grid's column count (also shown while a group loads). */
 export function GridSkeleton() {
+  const columns = useCategoryGridColumns();
   return (
     <View style={styles.rows} testID="categories-grid-skeleton">
       {GRID_ROWS.map((r) => (
         <View key={r} style={styles.row}>
-          {Array.from({ length: CATEGORY_GRID_COLUMNS }, (_, c) => (
+          {Array.from({ length: columns }, (_, c) => (
             <View key={c} style={styles.cell}>
               <Skeleton height={spacing[12]} width={spacing[12]} borderRadius={theme.radiusRole.card} />
               <Skeleton height={spacing[3]} width="80%" />

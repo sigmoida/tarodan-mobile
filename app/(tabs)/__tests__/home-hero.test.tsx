@@ -39,9 +39,6 @@ jest.mock('@/components/shell/floatingBar', () => ({
   floatingBarScrollProps: () => ({}),
   useFloatingBarInset: () => 0,
 }));
-jest.mock('@/components/shell/TabBarCollapse', () => ({
-  useTabBarScrollHandler: () => ({ onScroll: jest.fn(), onContentSizeChange: jest.fn(), onLayout: jest.fn() }),
-}));
 jest.mock('@/components/ads/AdBanner', () => ({ AdBanner: () => null }));
 jest.mock('@/components/ads/PopupAd', () => ({ PopupAd: () => null }));
 jest.mock('@/lib/ads/useAdSession', () => ({ useAdSession: () => ({}) }));

@@ -63,3 +63,53 @@ describe('B-2.7b · Google butonu görünürlüğü', () => {
     expect(example).toContain('DEVELOPER_ERROR');
   });
 });
+
+describe('signInWithGoogle: step-up freshness and cancel (sign-in methods delta 2026-10-21)', () => {
+  const env = process.env;
+  afterEach(() => {
+    process.env = env;
+  });
+
+  /** Loads the service on iOS with a client id, against the global SDK mock (jest.setup). */
+  function load() {
+    process.env = { ...env, EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: 'ios' };
+    let service: typeof import('../googleSignin') | undefined;
+    jest.isolateModules(() => {
+      /* eslint-disable @typescript-eslint/no-var-requires */
+      require('react-native').Platform.OS = 'ios';
+      service = require('../googleSignin');
+      /* eslint-enable @typescript-eslint/no-var-requires */
+    });
+    // The service requires the SDK lazily at call time, from the outer module registry.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const sdk: { signIn: jest.Mock; signOut: jest.Mock } = require('@react-native-google-signin/google-signin').GoogleSignin;
+    sdk.signIn.mockClear();
+    sdk.signOut.mockClear();
+    return { service: service!, sdk };
+  }
+
+  it('fresh: signs the SDK out BEFORE signing in, so the chooser shows and the idToken is new', async () => {
+    const { service, sdk } = load();
+    sdk.signIn.mockResolvedValueOnce({ type: 'success', data: { idToken: 'fresh-id' } });
+    await expect(service.signInWithGoogle({ fresh: true })).resolves.toBe('fresh-id');
+    expect(sdk.signOut).toHaveBeenCalledTimes(1);
+    expect(sdk.signOut.mock.invocationCallOrder[0]).toBeLessThan(sdk.signIn.mock.invocationCallOrder[0]!);
+  });
+
+  it('login keeps the SDK session (no sign-out)', async () => {
+    const { service, sdk } = load();
+    sdk.signIn.mockResolvedValueOnce({ type: 'success', data: { idToken: 'id' } });
+    await service.signInWithGoogle();
+    expect(sdk.signOut).not.toHaveBeenCalled();
+  });
+
+  it("the SDK's `{ type: 'cancelled' }` answer becomes the silent cancel code", async () => {
+    const { service, sdk } = load();
+    sdk.signIn.mockResolvedValueOnce({ type: 'cancelled', data: null });
+    await expect(service.signInWithGoogle({ fresh: true })).rejects.toMatchObject({ code: 'SIGN_IN_CANCELLED' });
+    const { isGoogleCancel } = jest.requireActual('../googleSigninErrors');
+    expect(isGoogleCancel({ code: 'SIGN_IN_CANCELLED' })).toBe(true);
+    expect(isGoogleCancel({ code: '-5' })).toBe(true);
+    expect(isGoogleCancel({ code: '10' })).toBe(false);
+  });
+});

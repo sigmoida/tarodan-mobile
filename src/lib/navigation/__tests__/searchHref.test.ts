@@ -5,7 +5,6 @@
  */
 import {
   SEARCH_ENTRIES,
-  curatedEntryLabelKey,
   listingsToSearchHref,
   searchCategoryHref,
   searchEntryHref,
@@ -117,6 +116,12 @@ describe('filtersFromSearchParams — web /listings parametre adları', () => {
         categoryId: 'c1',
         manufacturer: 'Hot Wheels',
         manufacturerId: 'm1',
+        carModelId: 'cm1',
+        carModel: 'F40',
+        color: 'red,black',
+        preOrder: 'true',
+        limited: 'true',
+        set: 'true',
         'attr.hw-rarity': 'th, sth',
       }),
     ).toEqual({
@@ -135,6 +140,12 @@ describe('filtersFromSearchParams — web /listings parametre adları', () => {
       categoryId: 'c1',
       manufacturer: 'Hot Wheels',
       manufacturerId: 'm1',
+      carModelId: 'cm1',
+      carModel: 'F40',
+      colors: ['red', 'black'],
+      preOrder: true,
+      limited: true,
+      set: true,
       customAttributes: { 'hw-rarity': ['th', 'sth'] },
     });
     expect(filtersFromSearchParams({ q: 'mini', search: 'x' }).search).toBe('mini');
@@ -149,26 +160,6 @@ describe('filtersFromSearchParams — web /listings parametre adları', () => {
     for (const { value } of buildSortOptions(t)) {
       expect(filtersFromSearchParams({ sortBy: value }).sortBy).toBe(value);
     }
-  });
-});
-
-describe('curatedEntryLabelKey — vitrin bağlam başlığı', () => {
-  it.each([
-    ['popular', 'home.popularListings'],
-    ['newArrivals', 'nav.newArrivals'],
-    ['onSale', 'product.onSale'],
-    ['tradeShowcase', 'nav.tradeShowcase'],
-  ] as const)('%s ön ayarı aynen etkinken → %s', (entry, key) => {
-    expect(curatedEntryLabelKey(filtersFromSearchParams(paramsOf(searchEntryHref(entry))))).toBe(key);
-  });
-
-  it('kullanıcı filtre/sıralama/metin değiştirince başlık kaybolur; filtresiz arama başlıksız', () => {
-    const trade = filtersFromSearchParams(paramsOf(searchEntryHref('tradeShowcase')));
-    expect(curatedEntryLabelKey(EMPTY_FILTERS)).toBeNull();
-    expect(curatedEntryLabelKey({ ...trade, sortBy: 'price_asc' })).toBeNull();
-    expect(curatedEntryLabelKey({ ...trade, scale: '1:64' })).toBeNull();
-    expect(curatedEntryLabelKey({ ...trade, search: 'ferrari' })).toBeNull();
-    expect(curatedEntryLabelKey({ ...trade, customAttributes: { rarity: [] } })).toBe('nav.tradeShowcase');
   });
 });
 

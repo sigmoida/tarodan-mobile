@@ -3,7 +3,7 @@
  * ProductListControls (filtre sayısı + ızgara/liste), ActiveFilterChips, SimilarProductsCard.
  */
 import React from 'react';
-import { View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 // Kartlardaki favori kalbi (`useProductCardFavorites`) React Query ister: provider'lı render.
 import { renderWithProviders as render } from '@/test-utils';
@@ -157,7 +157,7 @@ describe('ActiveFilterChips', () => {
 describe('ProductListToolbar', () => {
   const chip = { key: 'brand', label: 'Hot Wheels', onRemove: jest.fn() };
 
-  it('sıra: arama → denetimler → sonuç sayısı → çipler + Temizle', () => {
+  it('sıra: arama → denetimler → çipler + Temizle; sonuç sayısı yazısı yok', () => {
     const onClear = jest.fn();
     render(
       <ProductListToolbar
@@ -168,27 +168,25 @@ describe('ProductListToolbar', () => {
         filterCount={1}
         layout="grid"
         onLayoutChange={() => undefined}
-        resultLabel="61 ürün bulundu"
         chips={[chip]}
         onClearFilters={onClear}
       />,
     );
-    const order = ['tb-search', 'product-list-controls', 'result-count', 'active-filter-chips'].map((id) =>
+    const order = ['tb-search', 'product-list-controls', 'active-filter-chips'].map((id) =>
       JSON.stringify(screen.toJSON()).indexOf(`"testID":"${id}"`),
     );
     expect(order.every((i) => i >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     expect(screen.getByTestId('filter-button')).toBeTruthy();
     expect(screen.getByTestId('sort-button')).toBeTruthy();
-    expect(screen.getByText('61 ürün bulundu')).toBeTruthy();
+    expect(screen.queryByText(/bulundu|found/)).toBeNull();
     fireEvent.press(screen.getByTestId('clear-filters'));
     expect(onClear).toHaveBeenCalled();
   });
 
-  it('sonuç sayısı ve çip yoksa yalnız denetim satırı', () => {
+  it('çip yoksa yalnız denetim satırı', () => {
     render(<ProductListToolbar sortLabel="En Yeni" onSort={() => undefined} />);
     expect(screen.getByTestId('product-list-controls')).toBeTruthy();
-    expect(screen.queryByTestId('result-count')).toBeNull();
     expect(screen.queryByTestId('active-filter-chips')).toBeNull();
   });
 });
@@ -204,5 +202,34 @@ describe('SimilarProductsCard', () => {
   it('dolu: kartlar', () => {
     render(<SimilarProductsCard title="Benzer Ürünler" items={items} />);
     expect(screen.getByText('Ürün B')).toBeTruthy();
+  });
+
+  describe('grid cells by window width', () => {
+    const setWindow = (width: number, height: number) =>
+      Dimensions.set({
+        window: { width, height, scale: 2, fontScale: 2 },
+        screen: { width, height, scale: 2, fontScale: 2 },
+      });
+    afterEach(() => setWindow(375, 667));
+    // The cell is the nearest ancestor of the card title with a percentage width.
+    const cellOf = (title: string) => {
+      let node = screen.getByText(title).parent;
+      while (node && typeof StyleSheet.flatten(node.props.style)?.width !== 'string') node = node.parent;
+      return StyleSheet.flatten(node!.props.style);
+    };
+
+    it('phone: 48% cells, 4% gap on the second column, the third card starts a row', () => {
+      render(<SimilarProductsCard title="Benzer Ürünler" items={items} />);
+      expect(cellOf('Ürün A')).toMatchObject({ width: '48%', marginLeft: 0 });
+      expect(cellOf('Ürün B')).toMatchObject({ width: '48%', marginLeft: '4%' });
+      expect(cellOf('Ürün C')).toMatchObject({ width: '48%', marginLeft: 0 });
+    });
+
+    it('iPad 13" (1032 pt): four columns, the three cards share one row from the left', () => {
+      setWindow(1032, 1376);
+      render(<SimilarProductsCard title="Benzer Ürünler" items={items} />);
+      expect(cellOf('Ürün A')).toMatchObject({ width: '22%', marginLeft: 0 });
+      expect(cellOf('Ürün C')).toMatchObject({ width: '22%', marginLeft: '4%' });
+    });
   });
 });

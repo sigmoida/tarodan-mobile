@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
 
-// Arama ekranı yığın rotası (`/search`): her `push` taze bir ekran kurar ve filtreler URL
-// parametrelerinden başlatılır — eski kalıcı sekmenin `navToken` hilesi gerekmez.
+// The search screen is a stack route (`/search`): every `push` builds a fresh screen and the
+// filters start from the URL params. Free text is written as `search`, the web name (the screen
+// still reads the legacy `q` too).
 export const goSearch = (query: string) => {
-  if (query.trim()) router.push(`/search?q=${encodeURIComponent(query)}`);
+  if (query.trim()) router.push(`/search?search=${encodeURIComponent(query)}`);
 };
 
 // Anasayfa "Markalar" şeridi aslında üreticiler — web menüsüyle aynı: id (API süzgeci, ad

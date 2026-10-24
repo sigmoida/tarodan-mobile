@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, ErrorState, Spinner, TopBarAction, usePageScrollHandler } from '@/ui';
+import { EmptyState, ErrorState, Spinner, TopBarAction, usePageScrollHandler, usePageContentStyle } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
@@ -21,6 +21,8 @@ export default function NotificationsScreen() {
   const { t } = useTranslation();
   const f = useNotifications();
   const page = usePageScrollHandler();
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle(styles.listContent);
   const title = t('notification.notifications');
 
   const renderItem = useCallback(
@@ -74,14 +76,15 @@ export default function NotificationsScreen() {
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           {...listWindowing}
-          contentContainerStyle={page.contentStyle(styles.listContent)}
+          contentContainerStyle={page.contentStyle(listContentStyle)}
           refreshing={f.refreshing}
           onRefresh={f.handleRefresh}
           ListEmptyComponent={
             f.loadFailed ? (
-              <ErrorState onRetry={f.retry} />
+              <ErrorState placement="screen" onRetry={f.retry} />
             ) : (
               <EmptyState
+                placement="screen"
                 icon="bell"
                 title={t('notification.noneYet')}
                 subtitle={t('notification.emptyListDesc')}

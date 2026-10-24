@@ -1,0 +1,85 @@
+# F-26: E-mail change asks "Confirm it's you" first (sign-in methods step-up, contract delta
+# 2026-10-21). A wrong password stays inside the confirm step with the server's message, no
+# code is requested, and the user stays signed in (a step-up answer is never a 401). Cancel
+# returns to the e-mail step. The correct-password path sends a real code and is covered by
+# jest (`edit-profile/__tests__/email-reauth.test.tsx`).
+#
+# Tag `manual`: needs an API with `POST /auth/reauth` (not on staging yet), and each run adds
+# one wrong proof to zeynep's step-up lockout (5 per 15 minutes; login is not affected).
+appId: ${APP_ID}
+tags:
+  - manual
+---
+- runFlow: ../subflows/open-tarodan.yaml
+- tapOn:
+    id: "tab-profile"
+- runFlow:
+    when:
+      visible:
+        id: "profile-edit-button"
+    file: ../subflows/logout.yaml
+- runFlow: ../subflows/login-as.yaml
+- tapOn:
+    id: "tab-profile"
+- tapOn:
+    id: "profile-edit-button"
+- extendedWaitUntil:
+    visible:
+      id: "edit-profile-save"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-email-row"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "edit-profile-email-row"
+- extendedWaitUntil:
+    visible:
+      id: "email-change-input"
+    timeout: 10000
+- tapOn:
+    id: "email-change-input"
+- inputText: "f26-reauth@demo.com"
+- hideKeyboard
+- tapOn:
+    id: "email-change-request"
+# The confirm step opens before any request (zeynep has a password: the password field).
+- extendedWaitUntil:
+    visible:
+      id: "reauth-password-input"
+    timeout: 15000
+- tapOn:
+    id: "reauth-password-input"
+- inputText: "not-the-password-1"
+- tapOn:
+    id: "reauth-confirm"
+# The step reopens (after the close animation) with the server message inside it.
+- extendedWaitUntil:
+    visible:
+      id: "modal-message"
+    timeout: 15000
+- assertVisible:
+    id: "reauth-password-input"
+- assertNotVisible:
+    id: "email-change-code"
+- tapOn:
+    id: "reauth-cancel"
+- extendedWaitUntil:
+    notVisible:
+      id: "reauth-password-input"
+    timeout: 10000
+# Still on the e-mail step and still signed in.
+- assertVisible:
+    id: "email-change-input"
+- assertNotVisible:
+    id: "email-change-code"
+- tapOn:
+    id: "screen-header-back"
+- extendedWaitUntil:
+    visible:
+      id: "edit-profile-email-row"
+    timeout: 10000
+- assertNotVisible:
+    id: "login-email-input"
+- assertNotVisible: ".*Network Error.*"

@@ -4,6 +4,7 @@ import {
   formatLongDate,
   formatPrice,
   formatPriceNumber,
+  formatRating,
   formatRelativeDate,
   formatServerPrice,
   serverAmount,
@@ -232,5 +233,14 @@ describe('formatLongDate', () => {
 
   it('geçersiz yerel etiket çökmez, varsayılan yerele düşer', () => {
     expect(formatLongDate('2026-10-12T09:30:00.000Z', 'not a locale!!')).toEqual(expect.any(String));
+  });
+});
+
+describe('formatRating', () => {
+  it("has exactly one decimal with the UI locale's separator (web formatRating)", () => {
+    expect(formatRating(4.25, 'tr')).toBe('4,3');
+    expect(formatRating(4.25, 'en')).toBe('4.3');
+    expect(formatRating(4, 'tr')).toBe('4,0');
+    expect(formatRating(3.74, 'en')).toBe('3.7');
   });
 });

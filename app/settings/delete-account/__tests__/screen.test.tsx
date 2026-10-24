@@ -28,8 +28,11 @@ jest.mock('@/stores/authStore', () => ({
   },
 }));
 
+// No sign-in methods route here (404: an API before the step-up), so the confirm step is
+// skipped and the deletion goes without a token, as before. The step-up: `reauth.test.tsx`.
 jest.mock('@/lib/api', () => ({
   userApi: { deleteAccount: jest.fn() },
+  authApi: { getSignInMethods: () => Promise.reject({ isAxiosError: true, response: { status: 404, data: {} } }) },
   errorText: jest.requireActual('@/lib/api/errorText').errorText,
 }));
 import { userApi } from '@/lib/api';
@@ -128,7 +131,8 @@ describe('başarı', () => {
     await press();
     await press();
     expect(mockDelete).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId('delete-account-confirm-input').props.editable).toBe(false);
+    // The confirm-step check runs first, so the pending state lands a tick later.
+    await waitFor(() => expect(screen.getByTestId('delete-account-confirm-input').props.editable).toBe(false));
     expect(isDisabled()).toBe(true);
 
     await act(async () => resolve({ data: {} }));

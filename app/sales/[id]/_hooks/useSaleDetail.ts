@@ -9,10 +9,12 @@ import { useRefresh } from '@/hooks/useRefresh';
 import { deriveShipmentView } from '@/lib/shipping/tracking';
 import { orderCancelMessage } from '@/lib/shared/orderCancelMessage';
 import { preparingDeadlineNoticeOf } from '@/lib/shared/preparingDeadline';
+import { noteOrderKindFallback } from '@/lib/shared/orderKindFallback';
 import { useTimingValues } from '@/hooks/useTimingPolicy';
 import { useDeadlineNow } from '@/hooks/useDeadlineNow';
 import { useOrderElogoInvoices } from '@/hooks/useOrderElogoInvoices';
 import { toast } from '@/ui';
+import { isDigitalOrder } from '@/types';
 import type { Order } from '../_lib/types';
 import { statusColor } from '../_lib/status';
 
@@ -30,7 +32,9 @@ export function useSaleDetail() {
     queryFn: async () => {
       if (!id) return null;
       const response = await ordersApi.getOne(id);
-      return response.data?.data ?? response.data ?? null;
+      const sale: Order | null = response.data?.data ?? response.data ?? null;
+      if (sale) noteOrderKindFallback({ orderId: String(sale.id ?? id) }, [sale]);
+      return sale;
     },
     enabled: !!id,
   });
@@ -55,6 +59,10 @@ export function useSaleDetail() {
   // Kargoya verme son tarihi (uzatıldıysa "son süre") — okuyucu siparişin
   // `isSeller`/`isBuyer` bayraklarından (web); ikisi de yoksa not yok.
   const preparingNotice = order ? preparingDeadlineNoticeOf(order, now) : null;
+  // A digital sale (membership, boost; the platform account is its seller) ships nothing: no
+  // address, shipment or shipping line, and its virtual product has no listing page. Defensive:
+  // a regular seller never sees one.
+  const isDigital = isDigitalOrder(order);
   const shipmentSummary = order?.shipment;
   const shipmentProvider = shipmentSummary?.provider ?? shipmentSummary?.carrier;
   const isSurat = (shipmentProvider ?? '').toLowerCase() === 'surat';
@@ -90,6 +98,7 @@ export function useSaleDetail() {
     sc,
     cancelMessage,
     preparingNotice,
+    isDigital,
     elogo,
     shipmentView,
     shipmentProvider,

@@ -149,6 +149,29 @@ export function EnabledOptions({ f }: { f: TwoFactorFlow }) {
   );
 }
 
+/**
+ * An account without a password cannot turn 2FA on (web `/profile/security` hint): the reason
+ * and "Set a password" (the set-password screen, or the mail where this device cannot confirm).
+ */
+export function NeedsPasswordCard({ f }: { f: TwoFactorFlow }) {
+  const { t } = useTranslation();
+  if (f.view !== 'needsPassword') return null;
+  return (
+    <SectionCard title={t('profile.security.twoFactor')} bodyStyle={styles.stack} testID="two-factor-needs-password">
+      <Text variant="bodySm" tone="muted">{t('profile.security.passwordFirstFor2fa')}</Text>
+      <Button
+        variant="outline"
+        fullWidth
+        title={t('auth.setPassword')}
+        onPress={f.openSetPassword}
+        isLoading={f.sendingSetPasswordMail}
+        disabled={f.sendingSetPasswordMail}
+        testID="two-factor-set-password"
+      />
+    </SectionCard>
+  );
+}
+
 /** Alt çubuk: görünüme göre tek ana aksiyon (klavyenin üstünde kalır). */
 export function TwoFactorFooter({ f }: { f: TwoFactorFlow }) {
   const { t } = useTranslation();

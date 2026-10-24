@@ -10,7 +10,7 @@ import type { CategoryController } from '../_hooks/useCategory';
  * Liste başlığı: ortak `ProductListToolbar` (arama → sıralama + ızgara/liste → ölçek çipleri →
  * sonuç sayısı). Kategori ekranında filtre paneli yok; ölçek çipleri araç çubuğunun `extra` satırı.
  */
-export function CategoryFilters({ f, count }: { f: CategoryController; count?: number }) {
+export function CategoryFilters({ f }: { f: CategoryController }) {
   const { t } = useTranslation();
   return (
     <ProductListToolbar
@@ -46,7 +46,6 @@ export function CategoryFilters({ f, count }: { f: CategoryController; count?: n
           ))}
         </ScrollView>
       }
-      resultLabel={count != null ? t('product.productsFoundCount', { count }) : undefined}
     />
   );
 }

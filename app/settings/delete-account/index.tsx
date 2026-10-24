@@ -2,15 +2,16 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Alert, Button, Input } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
+import { ReauthModal } from '@/components/auth/ReauthModal';
 import { useAuthStore } from '@/stores/authStore';
 import { useDeleteAccount } from './_hooks/useDeleteAccount';
 import { DeleteAccountBlockers } from './_components/DeleteAccountBlockers';
 
 /**
- * Hesabı sil — web `DangerZoneSection` onay penceresinin mobil karşılığı (ayrı ekran):
- * uyarı + "Onaylamak için SİL yazın" alanı; alt çubuktaki "Evet, Sil" yalnız anahtar
- * kelime yazılınca açılır. Engel varsa liste ve yollar ekranda kalır; başarıda yerel
- * çıkış + ana sayfa (`useDeleteAccount`).
+ * Delete account, the native twin of the web `DangerZoneSection` dialog (its own screen): a
+ * warning and the "type DELETE to confirm" field; "Yes, delete" in the bottom bar enables only
+ * once the keyword is typed, then the confirm step ("Confirm it's you") runs. Blockers stay on
+ * screen with their paths; success signs out locally and goes home (`useDeleteAccount`).
  */
 export default function DeleteAccountScreen() {
   const { t } = useTranslation();
@@ -37,6 +38,7 @@ export default function DeleteAccountScreen() {
   return (
     <PageShell
       title={t('settings.deleteAccount')}
+      overlay={<ReauthModal {...f.reauthModal} />}
       footer={
         <Button
           variant="danger"

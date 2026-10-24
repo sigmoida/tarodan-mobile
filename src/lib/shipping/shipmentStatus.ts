@@ -20,6 +20,28 @@ export function shipmentStatusLabel(
   return t(`order.shipmentStatus.${key}` as any);
 }
 
+/**
+ * Shipment statuses that do not count as a carrier handover: the label may be printed but the
+ * parcel is still with the seller, and the server still allows a cancel (web
+ * `PRE_HANDOVER_SHIPMENT_STATUSES`, API `shipment-handover.ts`).
+ */
+const PRE_HANDOVER_SHIPMENT_STATUSES: ReadonlySet<string> = new Set([
+  'pending', 'label_created', 'cancelled', 'failed',
+]);
+
+/**
+ * Whether a cancel must treat the parcel as handed over (web `hasShipped`, the server's cancel
+ * rule): the handover stamp `shippedAt`, or any status outside the pre-handover list. An unknown
+ * status counts as handed over, so the app never offers a cancel the server refuses.
+ */
+export function isPastHandover(
+  shipment: { status?: string | null; shippedAt?: string | null } | null | undefined,
+): boolean {
+  if (!shipment) return false;
+  if (shipment.shippedAt) return true;
+  return !!shipment.status && !PRE_HANDOVER_SHIPMENT_STATUSES.has(shipment.status);
+}
+
 /** Paket hâlâ satıcıda: şube henüz fiziksel kabul etmedi. */
 const AWAITING_DROPOFF = new Set(['label_created', 'pending']);
 

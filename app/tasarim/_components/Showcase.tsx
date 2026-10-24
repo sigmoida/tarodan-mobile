@@ -31,11 +31,11 @@ import {
 
 const { spacing } = theme;
 
-const BUTTON_VARIANTS = ['primary', 'secondary', 'outline', 'ghost', 'danger', 'success', 'warning', 'link'] as const;
+const BUTTON_VARIANTS = ['primary', 'secondary', 'outline', 'outline-primary', 'ghost', 'danger', 'success', 'warning', 'link'] as const;
 const BUTTON_SIZES = ['sm', 'md', 'lg', 'xl'] as const;
-const ICON_VARIANTS = ['primary', 'secondary', 'outline', 'ghost', 'danger', 'success'] as const;
+const ICON_VARIANTS = ['primary', 'secondary', 'outline', 'outline-primary', 'ghost', 'danger', 'success'] as const;
 const BADGE_VARIANTS = ['default', 'success', 'warning', 'danger', 'outline', 'info', 'secondary'] as const;
-const PRODUCT_BADGES = ['sale', 'new', 'trade', 'rare', 'preorder', 'limited', 'sponsored', 'default'] as const;
+const PRODUCT_BADGES = ['sale', 'new', 'trade', 'rare', 'preorder', 'limited', 'boosted', 'default'] as const;
 const ALERT_VARIANTS = ['info', 'success', 'warning', 'danger'] as const;
 
 /**

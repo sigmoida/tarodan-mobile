@@ -1,50 +1,65 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
-import { Badge, Card, IconButton, Text, theme } from '@/ui';
+import { Card, IconButton, Text, theme } from '@/ui';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { AppImage } from '@/components/AppImage';
-import { ProductPrice } from '@/components/product';
-import { useCartStore } from '@/stores/cartStore';
+import { OutOfStockOverlay, ProductPrice } from '@/components/product';
+import { useProductCardAction } from '@/components/product/ProductCardAction';
+import { ProductCardCartButton } from '@/components/product/ProductCardCartButton';
+import { isProductOutOfStock } from '@/utils/productPrice';
 import type { WishlistItem } from '@/hooks/useFavorites';
 import { styles } from '../_lib/styles';
 
 const { colors } = theme;
 
 /**
- * Tek favori satırı:
+ * One favorites row:
  *
- *   [görsel ]  **Satıcı adı**
- *   [boydan ]  Ürün adı (soluk, en çok 2 satır)
- *   [boya   ]  1.234,50 TL                [♥] [🛒]
+ *   [image ]  **Seller name**
+ *   [full  ]  Product title (muted, up to 2 lines)
+ *   [height]  1.234,50 TL                [heart] [cart]
  *
- * Görsel kartın solunu boydan boya kaplar. Kalp favoriden çıkarır; sepet düğmesi ürün sepette değilse
- * ekler, sepetteyse sepete gider (dolu ikon). Satışta olmayan üründe sepet yerine durum rozeti. Kalp ve
- * sepet navigasyon Pressable'ının DIŞINDA (kardeş) — iç içe dokunulabilirde ebeveyn dokunuşu yutabiliyor.
+ * The image fills the card's left edge; an out-of-stock listing (sold, reserved, inactive or no
+ * stock left) dims it under the shared "sold out" overlay, like web's card. The heart removes the
+ * favorite. The cart button follows the shared card rule (`productCardAction`, same as web): only
+ * for another seller's active, in-stock listing, and it is the shared listing-card toggle
+ * (`ProductCardCartButton`: add, or remove when already in the cart), with web's Favorites colours
+ * (`placement="favorites"`: primary, then danger; the listing card uses the outline). Otherwise the
+ * slot is empty, like web. The heart and cart are SIBLINGS of the navigation Pressable, not nested
+ * in it (a nested pressable can swallow the parent's touch).
  */
 export const FavoriteCard = React.memo(function FavoriteCard({
   item,
   onRemove,
-  onCartAction,
 }: {
   item: WishlistItem;
-  /** Referans-kararlı olmalı (`useStableCallback`): kart `React.memo`, satırlar boşa çizilmesin. */
+  /** Must be referentially stable (`useStableCallback`): the card is `React.memo`. */
   onRemove: (productId: string) => void;
-  onCartAction: (item: WishlistItem) => void;
 }) {
   const { t } = useTranslation();
   const { product } = item;
   const open = () => router.push(`/product/${item.productId}`);
-  const isActive = product.status === 'active';
-  // Kart başına selector: yalnız bu ürünün sepet durumu değişince bu kart yeniden render olur.
-  const inCart = useCartStore((s) => s.items.some((i) => i.productId === item.productId));
-  const cartLabel = inCart ? t('product.goToCart') : t('product.addToCart');
+  // The shared card rule (web parity): the cart toggle only for another seller's active, in-stock listing.
+  const showCart = useProductCardAction(product).kind === 'add_to_cart';
+  const outOfStock = isProductOutOfStock(product);
 
   return (
     <Card variant="bordered" padding={0} style={styles.card} testID={`favorite-card-${item.productId}`}>
       <View style={styles.cardContent}>
-        <Pressable onPress={open} accessibilityRole="link" style={styles.imageWrap}>
-          <AppImage source={product.images} variant="card" style={styles.productImage} />
+        <Pressable
+          onPress={open}
+          accessibilityRole="link"
+          // Name the link (the overlay text alone would read as "STOKTA YOK, link").
+          accessibilityLabel={outOfStock ? `${product.title}, ${t('product.soldOut')}` : product.title}
+          style={styles.imageWrap}
+        >
+          <AppImage
+            source={product.images}
+            variant="card"
+            style={[styles.productImage, outOfStock && styles.dimmed]}
+          />
+          {outOfStock ? <OutOfStockOverlay label={t('product.soldOut').toUpperCase()} /> : null}
         </Pressable>
 
         <View style={styles.productInfo}>
@@ -75,21 +90,7 @@ export const FavoriteCard = React.memo(function FavoriteCard({
               testID={`favorite-remove-${item.productId}`}
               onPress={() => onRemove(item.productId)}
             />
-            {isActive ? (
-              <IconButton
-                icon="shopping-cart"
-                iconVariant={inCart ? 'solid' : 'outline'}
-                accessibilityLabel={cartLabel}
-                size="sm"
-                color={colors.primary[600]!}
-                testID={`favorite-cart-${item.productId}`}
-                onPress={() => onCartAction(item)}
-              />
-            ) : (
-              <Badge variant="warning" size="xs" style={styles.statusBadge}>
-                {product.status === 'sold' ? t('product.statusSold') : t('product.statusInactive')}
-              </Badge>
-            )}
+            {showCart ? <ProductCardCartButton listing={product} presentation="icon" placement="favorites" /> : null}
           </View>
         </View>
       </View>

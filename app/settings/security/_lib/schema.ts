@@ -1,11 +1,11 @@
-// Güvenlik akışlarının zod şemaları (colocated, src/ui/CLAUDE.md › Forms). Mesajlar şema kurulurken
-// çözüldüğü için hepsi `t` alan fabrika — ekranlar `useMemo(() => …, [t])` ile kurar.
+// Zod schemas of the security flows (colocated, src/ui/CLAUDE.md › Forms). Messages resolve when
+// the schema is built, so each one is a factory taking `t`; screens build it with `useMemo`.
 import type { TFunction } from 'i18next';
 import { z } from 'zod';
 import { passwordSchema, refinePasswordMatch } from '@/utils/passwordPolicy';
 import { DEFAULT_COUNTRY_CODE, getPhoneInvalidMessage, parsePhoneForPayload } from '@/utils/phone';
 
-/** Şifre değiştir (web `changePasswordSchema`; şifre kuralı tek kaynak `passwordSchema`). */
+/** Change the password (web `changePasswordSchema`; the policy's one source is `passwordSchema`). */
 export const changePasswordSchema = (t: TFunction) =>
   z
     .object({
@@ -16,6 +16,17 @@ export const changePasswordSchema = (t: TFunction) =>
     .superRefine(refinePasswordMatch(t, 'newPassword', 'confirmPassword'));
 
 export type ChangePasswordValues = z.input<ReturnType<typeof changePasswordSchema>>;
+
+/** Set a first password (web `setPasswordSchema`): the shared policy plus the repeat field. */
+export const setPasswordSchema = (t: TFunction) =>
+  z
+    .object({
+      newPassword: passwordSchema(t),
+      confirmPassword: z.string().min(1, t('validation.repeatNewPassword')),
+    })
+    .superRefine(refinePasswordMatch(t, 'newPassword', 'confirmPassword'));
+
+export type SetPasswordValues = z.input<ReturnType<typeof setPasswordSchema>>;
 
 /** TOTP / SMS kodu: tam 6 rakam (web `enterSixDigits`). */
 export const sixDigitCodeSchema = (t: TFunction) =>

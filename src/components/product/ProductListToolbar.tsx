@@ -1,35 +1,37 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { Text, theme } from '@/ui';
+import { theme } from '@/ui';
 import { ProductListControls } from './ProductListControls';
 import { ActiveFilterChips, type ActiveFilterChip } from './ActiveFilterChips';
 
 const { spacing } = theme;
 
 export interface ProductListToolbarProps {
-  /** Arama kutusu (varsa) — en üstte. */
+  /** The search box (if any), at the top. */
   search?: React.ReactNode;
   sortLabel: string;
   onSort: () => void;
-  /** Verilmezse "Filtreler" düğmesi çizilmez (filtre paneli olmayan liste). */
+  /** Without it there is no "Filters" button (a list without a filter sheet). */
   onFilter?: () => void;
   filterCount?: number;
   layout?: 'grid' | 'list';
   onLayoutChange?: (layout: 'grid' | 'list') => void;
-  /** Küçük muted sonuç sayısı metni ("61 ilan"); verilmezse çizilmez. */
-  resultLabel?: string;
+  /** When given, the control row draws the "Save this search" button (search screen). */
+  onSave?: () => void;
+  /** Nothing to save: the button is disabled. */
+  saveDisabled?: boolean;
   chips?: ActiveFilterChip[];
   onClearFilters?: () => void;
-  /** Ekrana özgü ek satır (ör. kategori ölçek çipleri) — denetim satırının altında. */
+  /** A screen-specific extra row (e.g. the category scale chips), below the control row. */
   extra?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
 
 /**
- * Ürün listelerinin TEK araç çubuğu (listings, arama, kategori…). Sıra her ekranda aynı:
- * arama kutusu (varsa) → [Filtreler (sayaç)] [Sıralama] … [ızgara/liste] → ekrana özgü ek satır →
- * küçük muted sonuç sayısı → kaldırılabilir aktif filtre çipleri + "Temizle". Ekranlar kendi
- * araç çubuğunu dizmez; yalnız veri/geri çağrıları geçer.
+ * The ONE toolbar of the product lists (listings, search, category...). The order is the same on
+ * every screen: search box (if any) -> [Filters (count)] [Sort] ... [grid/list] -> screen-specific
+ * extra row -> removable active filter chips + "Clear". No result count text (on any device). Screens never
+ * lay out their own toolbar; they only pass data and callbacks.
  */
 export function ProductListToolbar({
   search,
@@ -39,7 +41,8 @@ export function ProductListToolbar({
   filterCount,
   layout,
   onLayoutChange,
-  resultLabel,
+  onSave,
+  saveDisabled,
   chips = [],
   onClearFilters,
   extra,
@@ -55,13 +58,10 @@ export function ProductListToolbar({
         filterCount={filterCount}
         layout={layout}
         onLayoutChange={onLayoutChange}
+        onSave={onSave}
+        saveDisabled={saveDisabled}
       />
       {extra}
-      {resultLabel ? (
-        <Text variant="caption" tone="muted" testID="result-count">
-          {resultLabel}
-        </Text>
-      ) : null}
       {chips.length > 0 && onClearFilters ? <ActiveFilterChips chips={chips} onClear={onClearFilters} /> : null}
     </View>
   );

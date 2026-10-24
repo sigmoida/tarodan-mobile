@@ -5,6 +5,11 @@ import type { ProductReview } from '../_lib/types';
 
 const PAGE_SIZE = 20;
 
+/** `GET /ratings/products/:id` page: a bare list or an envelope (field name varies by API version). */
+type RatingsPayload =
+  | ProductReview[]
+  | { ratings?: ProductReview[]; items?: ProductReview[]; data?: ProductReview[]; total?: number };
+
 /** Değerlendirmeler ekranı: sayfalı liste (GET /ratings/products/:id) + puan özeti (…/stats). */
 export function useAllProductReviews(productId: string, enabled: boolean) {
   const stats = useQuery({
@@ -26,9 +31,9 @@ export function useAllProductReviews(productId: string, enabled: boolean) {
     enabled,
     queryFn: async ({ pageParam }) => {
       const res = await ratingsApi.getProductRatings(productId, { page: pageParam, pageSize: PAGE_SIZE });
-      const d: any = res.data;
-      const items: ProductReview[] = d?.ratings ?? d?.items ?? d?.data ?? (Array.isArray(d) ? d : []);
-      const total: number = d?.total ?? items.length;
+      const d = res.data as RatingsPayload | undefined;
+      const items: ProductReview[] = Array.isArray(d) ? d : (d?.ratings ?? d?.items ?? d?.data ?? []);
+      const total: number = (Array.isArray(d) ? undefined : d?.total) ?? items.length;
       return { items, total, page: Number(pageParam) };
     },
     getNextPageParam: (lastPage, allPages) => {
@@ -49,6 +54,8 @@ export function useAllProductReviews(productId: string, enabled: boolean) {
     total,
     average,
     isLoading: list.isLoading,
+    /** The list never loaded: the screen shows ErrorState with a retry, not "no reviews". */
+    loadFailed: list.isError && list.data === undefined,
     hasNextPage: list.hasNextPage,
     isFetchingNextPage: list.isFetchingNextPage,
     /** Sonraki sayfa yüklenemedi → liste altında "Tekrar dene" satırı. */

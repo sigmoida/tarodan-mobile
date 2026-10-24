@@ -9,7 +9,8 @@ parity table is in tarodan-ops `docs/design-system.md`. Tokens: `src/theme/CLAUD
 - Never rebuild a primitive that exists: `Input`, `Textarea`, `Checkbox`, `Switch`,
   `Radio`, `Select`/`SelectSheet`, `Card`, `SectionCard`, `Badge`, `StatusBadge`,
   `Chip`, `Pill`, `Alert`, `Modal`, `BottomSheet`, `Spinner`, `Avatar`,
-  `Stack`/`VStack`/`HStack`, `Divider`, `ProgressBar`, `EmptyState`, `ErrorState`, ...
+  `Stack`/`VStack`/`HStack`, `Divider`, `ProgressBar`, `EmptyState`, `ErrorState`,
+  `Accordion`, ...
   Never hand-draw a pill/badge with `View + Text`.
 - Need a variant or state that doesn't exist? Add it here (shared), never fork a local
   copy. A new variant is designed on the web side (`@tarodan/ui`) first, or the same
@@ -26,6 +27,45 @@ parity table is in tarodan-ops `docs/design-system.md`. Tokens: `src/theme/CLAUD
   code.
 - No off-scale numeric `fontSize` / `fontWeight` / `borderRadius` / `lineHeight` in a
   `StyleSheet` (`tarodan/no-raw-style-values`): use `theme.typography` / `radiusRole`.
+
+## Large screens
+
+iPad, the foldable iPhone and Android tablets use the same screens; the shared layer
+adapts them. Decide by a **measured width** (`useWindowDimensions` / `onLayout`), never
+by device model, so Split View, folding, rotation and resizable windows re-lay out. Every
+rule is a no-op below 600 pt: phones stay as they are.
+
+- **Edge to edge, re-proportioned.** Every screen spans the window; there is no centred
+  narrow column anywhere. A wide window gets a wider gutter and a layout designed for
+  the width (more columns, side-by-side panes), never a stretched phone layout and never
+  a capped, centred body. Reference: the Amazon iPad app.
+- Width class: `windowClassOf(width)` / `useWindowClass()` (`src/ui/lib/windowClass.ts`,
+  tokens in `theme.breakpoints`: `medium` >= 600, `expanded` >= 840, `large` >= 1200);
+  `isAtLeast(cls, 'expanded')` is the one ordered comparison. Never a local `width > 700`
+  check or a hand-written list of classes.
+- **Gutter:** `pageGutter(width)` / `usePageGutter()` is THE side padding (16 on phones,
+  `spacing[6]` on medium, `spacing[8]` on expanded and large). `tabletSidePadding`
+  widens an existing side padding to it (0 stays full bleed); a list or
+  ScrollView wraps its `contentContainerStyle` in `usePageContentStyle(base)`. `PageShell`
+  applies it to its body, skeleton and footer bar; `ScreenHeader`, the home search bar,
+  `InboxRow`, the FAB, the home sections and hero and the search toolbar read it too. A shell cannot pad a child's list, so every
+  `mode="list"` screen pads its own (`listGutters.test.ts` checks it).
+- **Card grids:** columns from `useGridColumns()` / `gridColumns(width, spec)`
+  (`CARD_GRID_COLUMNS` 2 / 3 / 4 / 5). A `FlatList` / `FlashList` puts the count in its
+  `key`. Fixed cells use `gridCellWidth` (deduct `2 * pageGutter`); percentage `flexWrap`
+  grids use `gridCellStyle(index, columns)` (never `width: '48%'` + `space-between`).
+- **Row lists** (orders, sales, offers, my listings, favourites, ...) become card grids:
+  `useRowGrid()` (`ROW_CARD_COLUMNS` 1 / 2 / 3 / 4) gives `listKey`, `numColumns` and
+  `cell(index, card)`. Divider rows (inbox, notifications, reviews) stay one full-width
+  column.
+- **Panes:** a screen whose content has a natural second column splits on wider classes
+  with its own `_lib/layout.ts` helper (one source per screen): product detail
+  (gallery and info as two equal columns from medium), cart (items + summary panel from expanded),
+  messages (master–detail from expanded), settings / profile menu cards (two columns
+  from expanded, `MenuGroupList`).
+- Floating controls may keep a cap: `Modal`, `AlertDialog` and `Toast` cap themselves, and the tab bar pill is centred at
+  `TAB_BAR_MAX_WIDTH` (480). `BottomSheet` spans the window like page content. Page content
+  never caps.
 
 ## Typography
 
@@ -117,14 +157,38 @@ first load or layout-less flows (payment, gates). Never hand-roll a loader.
 - Every empty screen, list or section uses `EmptyState`: `icon`, `title` and
   `subtitle` are **required**, the action is optional. Errors use `ErrorState` (+
   "Tekrar Dene" retry); a failed query never leaves the user without a retry.
-- Placement is built in: `placement="screen"` (default) sits at
-  `EMPTY_STATE_TOP_OFFSET` from the top of the content, centred horizontally, so
-  `PageShell` `empty` and a main `ListEmptyComponent` match. Inside a card, modal or
-  section (and vertically-centred gate screens) pass `placement="inline"` (24 pt top,
-  8 pt bottom, 48 pt circle). `ErrorState` takes the same prop.
+- Placement is built in: a screen-level state sits `EMPTY_STATE_TOP_OFFSET` (64 pt)
+  below the top of the content area (under the bar), 16 pt from the screen edges,
+  centred.
+  - `placement="screen"` (default): `PageShell` `empty`, an `AppShell` child, or the
+    `ListEmptyComponent` of a list **without** a gutter (messages, notifications).
+  - `placement="list"`: the `ListEmptyComponent` of a list on `pageListContentStyle`.
+    The list's gutter is part of the offset, so as the list's first item it lands
+    exactly where `screen` does (pinned in `components/__tests__/EmptyState.test.tsx`).
+    Under a `ListHeaderComponent` it sits the list gap + 48 pt below the header
+    (64 pt with the default `PAGE_SECTION_GAP`). A shared empty wrapper
+    used only in such a list (`OffersEmpty`, `MyListingsEmpty`) sets it inside;
+    `ProductListEmpty` takes it as a prop.
+  - `placement="inline"`: inside a card, modal or section (and vertically-centred
+    gate screens); 24 pt top, 8 pt bottom, 48 pt circle.
+  - `ErrorState` takes the same prop. A list skeleton keeps the list gutter (no
+    placement), like the `PageShell` skeleton.
 - Give each a unique `testID` when several can render on one screen (defaults
   `empty-state` / `error-state`). Never wrap it in extra padding/margin or hand-draw
-  View + icon + Text (`tarodan/empty-state-standard`).
+  View + icon + Text. `tarodan/empty-state-standard` enforces this, and in a
+  `ListEmptyComponent` it requires an explicit `placement` (`list` when the list's
+  `contentContainerStyle` uses `pageListContentStyle`).
+
+## Accordion
+
+- Collapsible sections are `Accordion > AccordionItem > AccordionTrigger + AccordionContent`
+  (web `@tarodan/ui` Accordion names and props: `type` single | multiple, `collapsible`,
+  `value` / `defaultValue` / `onValueChange`). Never hand-roll a show/hide row.
+- The root draws no box, so it can wrap a `FlatList` whose rows are items (payment history).
+  `AccordionItem` draws no border either: put it in a `ListRowCard` / `SectionCard`.
+- The trigger is a 44 pt `button` with `accessibilityState.expanded` and a rotating chevron;
+  height and opacity animate over `theme.duration.normal`, instantly under reduce motion. The
+  content mounts only while open (and during the close animation).
 
 ## Feedback
 

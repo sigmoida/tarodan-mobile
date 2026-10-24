@@ -6,8 +6,10 @@ import { useSecurityHub } from './_hooks/useSecurityHub';
 import { SecuritySections } from './_components/SecuritySections';
 
 /**
- * Güvenlik ayarları — THIN hub. Şifre değiştirme, 2FA ve telefon doğrulama web'deki gibi ayrı
- * akışlar (`password` / `two-factor` / `phone` ekranları); burada yalnız durumlar ve girişler.
+ * Security settings, a THIN hub. Changing or setting a password, connected accounts, 2FA and phone
+ * verification are separate flows as on web (the `password`, `set-password`, `connected-accounts`,
+ * `two-factor` and `phone` screens);
+ * the hub shows only their states and entries.
  */
 export default function SecuritySettingsScreen() {
   const { t } = useTranslation();

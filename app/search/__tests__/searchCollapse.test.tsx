@@ -33,7 +33,7 @@ jest.mock('@/hooks/useProductFilterOptions', () => ({
 jest.mock('@/components/ProductFilterSheet', () => () => null);
 
 import { useSearch } from '../_hooks/useSearch';
-import { nextBarsHidden, shouldShowScrollTop } from '../_lib/barsCollapse';
+import { nextBarsHidden } from '../_lib/barsCollapse';
 import SearchScreen from '..';
 
 const mockGetAll = productsApi.getAll as jest.Mock;
@@ -121,11 +121,6 @@ describe('B6 · arama üst çubukları — ölçüm ve collapse', () => {
       expect(nextBarsHidden(0, 400, true, true, 200)).toBe(false);
       expect(nextBarsHidden(4, 400, true, true, 200)).toBe(false);
     });
-
-    it('"en üste dön" eşiği 600pt', () => {
-      expect(shouldShowScrollTop(600)).toBe(false);
-      expect(shouldShowScrollTop(601)).toBe(true);
-    });
   });
 
   it('gerçek scroll handler: aşağı kaydırınca çubuklar gizlenir, yukarı kaydırınca geri gelir', () => {
@@ -164,18 +159,13 @@ describe('B6 · arama üst çubukları — ölçüm ve collapse', () => {
     expect(result.current.autocompleteOpen).toBe(false);
   });
 
-  it('gerçek scroll handler: 600pt eşiğinde "en üste dön" JS state\'ine yansır', async () => {
+  it('no scroll-to-top button: scrolling far down shows none and the controller has no such state', async () => {
     const { result } = renderHook(() => useSearch(), {
       wrapper: hookWrapper(makeTestQueryClient()),
     });
-    expect(result.current.showScrollTop).toBe(false);
-
-    // scheduleOnRN JS thread'ine asenkron döner → bekle.
-    await act(async () => fireScroll(result.current, 700));
-    await waitFor(() => expect(result.current.showScrollTop).toBe(true));
-
-    await act(async () => fireScroll(result.current, 10));
-    await waitFor(() => expect(result.current.showScrollTop).toBe(false));
+    await act(async () => fireScroll(result.current, 1500));
+    expect('showScrollTop' in result.current).toBe(false);
+    expect('scrollToTop' in result.current).toBe(false);
   });
 
   it('liste yükleme sırasında sökülmez; iskelet boş-durum yuvasında gösterilir', async () => {

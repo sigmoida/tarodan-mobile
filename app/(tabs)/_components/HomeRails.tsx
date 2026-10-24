@@ -11,6 +11,8 @@ import { homeStyles as styles } from '../_lib/homeStyles';
 type RailProps = {
   items: ProductCardProduct[];
   isLoading?: boolean;
+  /** The rail never loaded (first load failed): hide it rather than show its empty state. */
+  failed?: boolean;
   onProductPress: (id: string) => void;
 };
 
@@ -18,15 +20,17 @@ const SKELETON_COUNT = 3;
 const RAIL_LIMIT = 12;
 
 /**
- * Anasayfa ürün rayı (web `HomeSection` + `ProductRail`): SectionCard (vurgu çubuklu başlık +
- * "Tümünü gör ›") içinde yatay kayan 160pt kartlar. Mobilde yatay ray platform kalıbıdır; kart
- * web `HomeProductCard` gibi meta satırsız. Yüklenirken iskelet; `emptyState` yoksa boş ray çizilmez.
+ * Home product rail (web `HomeSection` + `ProductRail`): horizontally scrolling 160pt cards in a
+ * SectionCard (accent-bar title + "See all"). A horizontal rail is the mobile platform pattern;
+ * the card has no meta row, like web `HomeProductCard`. Skeleton while loading. An empty rail is
+ * not drawn without an `emptyState`, nor when it `failed` (never loaded).
  */
 function ProductRail({
   title,
   onSeeAll,
   items,
   isLoading,
+  failed,
   onProductPress,
   emptyState,
   testID,
@@ -37,7 +41,7 @@ function ProductRail({
   testID: string;
 }) {
   const favoriteProps = useProductCardFavorites();
-  if (!isLoading && items.length === 0 && !emptyState) return null;
+  if (!isLoading && items.length === 0 && (!emptyState || failed)) return null;
   return (
     <SectionCard title={title} action={<SectionCardAction onPress={onSeeAll} />} testID={testID}>
       {isLoading ? (

@@ -47,7 +47,7 @@ describe('AdBanner — geri sayım gün birimi', () => {
   it('tr: "2g 01:00"', () => {
     setAd({ id: 'c', name: 'K', code: null, target: 'all', isFlashSale: true, endsAt: inDays(2) });
     const { getByText } = render(<AdBanner />);
-    expect(getByText(/⚡ 2g 0[01]:\d\d/)).toBeTruthy();
+    expect(getByText(/^2g 0[01]:\d\d$/)).toBeTruthy();
   });
 
   it('en: "2d 01:00"', async () => {
@@ -56,6 +56,6 @@ describe('AdBanner — geri sayım gün birimi', () => {
     });
     setAd({ id: 'c', name: 'K', code: null, target: 'all', isFlashSale: true, endsAt: inDays(2) });
     const { getByText } = render(<AdBanner />);
-    expect(getByText(/⚡ 2d 0[01]:\d\d/)).toBeTruthy();
+    expect(getByText(/^2d 0[01]:\d\d$/)).toBeTruthy();
   });
 });

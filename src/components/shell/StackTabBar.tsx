@@ -1,11 +1,9 @@
-import React, { useEffect, type ComponentType } from 'react';
+import React, { type ComponentType } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { router, type Href } from 'expo-router';
-import { useScreenFocused } from '@/ui/lib/screenFocus';
 import { TabBarView, type TabBarRoute } from './AppTabBar';
-import { TabBarCollapseProvider, useTabBarCollapsed } from './TabBarCollapse';
 
-/** Sekme rotası -> kök yığındaki `(tabs)` grubunun o sekmesi. */
+/** Tab route -> that tab of the `(tabs)` group in the root stack. */
 export const TAB_BAR_HREF: Record<TabBarRoute, Href> = {
   index: '/(tabs)',
   sell: '/(tabs)/sell',
@@ -15,37 +13,29 @@ export const TAB_BAR_HREF: Record<TabBarRoute, Href> = {
 };
 
 /**
- * Sekme dışı bir yığın ekranının alt menüsü (rota tabanlı; `Tabs` bağlamı yok). Görünüm `AppTabBar` ile
- * aynı (`TabBarView`); odakta sekme olmadığından vurgu yok ve daralınca Ana Sayfa gibi yalnız "+" kalır.
- * Dokunuş `router.dismissTo`: kök yığında alttaki `(tabs)`'a GERİ döner ve o sekmeye geçer (yeni bir
- * `(tabs)` örneği itilmez; `navigate` aynı adlı rotaya geri dönmez, üstüne iterdi). `(tabs)` yığında
- * yoksa (derin bağlantı) mevcut ekranın yerine açar. Ekran yeniden odaklanınca (detaydan geri dönüş)
- * menü açılır.
+ * Bottom bar of a non-tab stack screen (route based; no `Tabs` context). Same look as `AppTabBar`
+ * (`TabBarView`), but no tab is highlighted while a stack screen is focused. A tap calls `router.dismissTo`: it pops back to the `(tabs)` group underneath in
+ * the root stack and switches to that tab (no second `(tabs)` instance is pushed; `navigate` would
+ * not pop to a route of the same name, it would push on top). If `(tabs)` is not in the stack (deep
+ * link) it replaces the current screen. The keyboard hides the bar inside `TabBarView`.
  */
 export function StackTabBar() {
-  const collapsed = useTabBarCollapsed();
-  const focused = useScreenFocused();
-  useEffect(() => {
-    if (focused) collapsed.value = false;
-  }, [focused, collapsed]);
   return <TabBarView onNavigate={(name) => router.dismissTo(TAB_BAR_HREF[name])} />;
 }
 
 /**
- * Bir yığın ekranını yüzen alt menüyle sarar (İlanlar, Kategori): ekrana özel daralma sinyali
- * (`TabBarCollapseProvider`) + ekranın üstünde menü. Menü ekranın PARÇASI olduğundan yığın geçişinde
- * (itme, geri, iOS kaydırarak geri) ekranla birlikte kayar; başka yığın ekranlarında görünmez.
- * Ekran listesini `useTabBarPageScroll()` ile bağlar ve alt dolgusuna `useTabBarInset()` ekler.
+ * Wraps a stack screen with the fixed bottom bar (category, search, manufacturer / brand / model
+ * product screens), drawn above the screen. The bar is PART of the screen, so it slides with it on
+ * stack transitions (push, back, iOS swipe back) and never shows on other stack screens. The screen
+ * adds `useTabBarInset()` to its bottom padding.
  */
 export function withStackTabBar<P extends object>(Screen: ComponentType<P>): ComponentType<P> {
   function ScreenWithTabBar(props: P) {
     return (
-      <TabBarCollapseProvider>
-        <View style={styles.fill}>
-          <Screen {...props} />
-          <StackTabBar />
-        </View>
-      </TabBarCollapseProvider>
+      <View style={styles.fill}>
+        <Screen {...props} />
+        <StackTabBar />
+      </View>
     );
   }
   ScreenWithTabBar.displayName = `withStackTabBar(${Screen.displayName ?? Screen.name ?? 'Screen'})`;

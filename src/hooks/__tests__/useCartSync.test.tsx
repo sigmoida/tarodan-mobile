@@ -85,6 +85,21 @@ describe('useCartSync · sunucu eklemeyi reddederse', () => {
     },
   );
 
+  it('a synchronous throw from the request (an interceptor) is a transient failure, not an escape', async () => {
+    (cartApi.addItem as jest.Mock).mockImplementationOnce(() => {
+      throw new Error('interceptor');
+    });
+    const { result } = renderHook(() => useCartSync(), { wrapper });
+    const onSettled = jest.fn();
+
+    expect(() => act(() => result.current.add(ITEM, 1, onSettled))).not.toThrow();
+
+    await waitFor(() => expect(onSettled).toHaveBeenCalledWith('applied'));
+    expect(useCartStore.getState().items).toHaveLength(1);
+    expect(useCartStore.getState().mergePendingFor).toBe('u1');
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
   it('4xx: iyimser satır GERİ ALINIR', async () => {
     rejectWith(409, 'Bu satıcı şu an satış yapamıyor');
     const { result } = renderHook(() => useCartSync(), { wrapper });

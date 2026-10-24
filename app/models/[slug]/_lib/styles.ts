@@ -21,6 +21,6 @@ export const styles = StyleSheet.create({
     borderRadius: radiusRole.avatar,
     backgroundColor: colors.surface.alt,
   },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing[3] },
-  cell: { width: '48%' },
+  // Card grid: cells sized by `gridCellStyle` (columns from the window width; 48% / 4% on phones).
+  grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing[3] },
 });

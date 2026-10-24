@@ -108,7 +108,7 @@ export function ListingPricingView({ f, d }: ViewProps) {
         required
         value={d.price}
         onChangeText={f.setPrice}
-        placeholder="0.00"
+        placeholder="0,00"
         keyboardType="decimal-pad"
         onBlur={f.onPriceBlur}
         error={d.priceError}

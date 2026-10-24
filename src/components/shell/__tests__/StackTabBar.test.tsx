@@ -1,46 +1,60 @@
 /**
- * Menülü yığın ekranları (İlanlar, Kategori): `withStackTabBar` ekranı yüzen alt menüyle sarar.
- * Rota tabanlı: sekme vurgusu yok, daralınca Ana Sayfa gibi yalnız "+" kalır, dokunuş `router.dismissTo`
- * ile alttaki `(tabs)`'a döner. Menü yalnız bu iki ekranda (arama / ürün detayı / diğer yığın ekranları yok).
+ * Stack screens with the bar (category, search, manufacturer / brand / model products): `withStackTabBar`
+ * wraps the screen with the fixed bottom bar. Route based: no tab highlight, a tap pops back to the
+ * `(tabs)` underneath with `router.dismissTo`, scrolling never changes the bar. The bar is limited to
+ * those screens (product detail and other stack screens do not get it).
  */
 import fs from 'fs';
 import path from 'path';
 import React from 'react';
-import { Text } from 'react-native';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet, Text } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
+import { usePageScrollHandler } from '@/ui';
 import { withStackTabBar } from '../StackTabBar';
-import { useTabBarCollapsed } from '../TabBarCollapse';
 
 jest.mock('../useShellCounts', () => ({
   useShellCounts: () => ({ cartCount: 0, notificationCount: 0, messageCount: 2 }),
 }));
 jest.mock('@/hooks/useKeyboardHeight', () => ({ useKeyboardHeight: () => 0 }));
 jest.mock('expo-router', () => ({ router: { dismissTo: jest.fn() } }));
-let mockFocused = true;
-jest.mock('@/ui/lib/screenFocus', () => ({ useScreenFocused: () => mockFocused }));
 
 const dismissTo = router.dismissTo as jest.Mock;
 
-const collapsedRefs: Record<string, { value: boolean }> = {};
 function makeScreen(id: string) {
   return function FakeScreen() {
-    // Ekranın listesi (`useTabBarPageScroll`) aynı sağlayıcıya yazar: burada değeri doğrudan yakalarız.
-    collapsedRefs[id] = useTabBarCollapsed();
-    return <Text testID={`screen-${id}`}>{id}</Text>;
+    // A real list bound like the bar screens bind theirs (`usePageScrollHandler`).
+    const page = usePageScrollHandler();
+    return (
+      <Animated.FlatList
+        testID={`screen-${id}`}
+        data={Array.from({ length: 40 }, (_, i) => String(i))}
+        renderItem={({ item }) => <Text>{item}</Text>}
+        {...page.listProps}
+      />
+    );
   };
 }
 const Listings = withStackTabBar(makeScreen('listings'));
 
-const pill = () => screen.getByTestId('app-tab-pill', { includeHiddenElements: true });
+/** Everything about the bar that a collapse used to change. */
+const barSnapshot = () => {
+  const bar = screen.getByTestId('app-tab-bar');
+  const pill = screen.getByTestId('app-tab-pill');
+  return {
+    bar: StyleSheet.flatten(bar.props.style),
+    pill: StyleSheet.flatten(pill.props.style),
+    pointerEvents: pill.props.pointerEvents,
+    hidden: pill.props.accessibilityElementsHidden,
+    items: ['tab-home', 'tab-favorites', 'tab-sell', 'tab-cart', 'tab-profile'].map((id) => !!screen.queryByTestId(id)),
+  };
+};
 
-describe('withStackTabBar — yığın ekranında yüzen alt menü', () => {
+describe('withStackTabBar — yığın ekranında sabit alt menü', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
     dismissTo.mockClear();
-    mockFocused = true;
   });
-  afterEach(() => jest.useRealTimers());
 
   it('ekran + menü birlikte çizilir; hiçbir sekme seçili değil, "+" görünür', () => {
     render(<Listings />);
@@ -52,17 +66,22 @@ describe('withStackTabBar — yığın ekranında yüzen alt menü', () => {
     expect(screen.getByTestId('tab-sell').props.accessibilityState).toEqual({ selected: false });
   });
 
-  it('aşağı kaydırınca (daralma) hap gizlenir, yalnız "+" kalır — sekme dairesi YOK', async () => {
+  it('scrolling the list (down, far down, back up) never changes the bar', () => {
     render(<Listings />);
-    act(() => {
-      collapsedRefs.listings!.value = true;
-      jest.advanceTimersByTime(300);
-    });
-    await waitFor(() => expect(pill().props.pointerEvents).toBe('none'));
-    expect(pill().props.accessibilityElementsHidden).toBe(true);
-    expect(screen.queryByTestId('tab-collapsed', { includeHiddenElements: true })).toBeNull();
-    expect(screen.getByTestId('tab-sell-wrap').props.pointerEvents).toBe('auto');
-    expect(screen.getByTestId('tab-sell')).toBeTruthy();
+    const before = barSnapshot();
+    expect(before.items).toEqual([true, true, true, true, true]);
+    const list = screen.getByTestId('screen-listings');
+    for (const y of [40, 400, 1200, 300, 0]) {
+      fireEvent.scroll(list, {
+        nativeEvent: {
+          contentOffset: { x: 0, y },
+          contentSize: { width: 390, height: 3000 },
+          layoutMeasurement: { width: 390, height: 800 },
+          contentInset: { top: 0, bottom: 0, left: 0, right: 0 },
+        },
+      });
+      expect(barSnapshot()).toEqual(before);
+    }
   });
 
   it.each([
@@ -77,34 +96,9 @@ describe('withStackTabBar — yığın ekranında yüzen alt menü', () => {
     expect(dismissTo).toHaveBeenCalledTimes(1);
     expect(dismissTo).toHaveBeenCalledWith(href);
   });
-
-  it('ekran yeniden odaklanınca (detaydan geri dönüş) menü açılır', () => {
-    mockFocused = false;
-    const view = render(<Listings />);
-    act(() => {
-      collapsedRefs.listings!.value = true;
-    });
-    mockFocused = true;
-    view.rerender(<Listings />);
-    expect(collapsedRefs.listings!.value).toBe(false);
-  });
-
-  it('her ekranın daralma sinyali kendine ait (sekme köklerini ve diğer menülü ekranı etkilemez)', () => {
-    const Category = withStackTabBar(makeScreen('category'));
-    render(
-      <>
-        <Listings />
-        <Category />
-      </>,
-    );
-    act(() => {
-      collapsedRefs.listings!.value = true;
-    });
-    expect(collapsedRefs.category!.value).toBe(false);
-  });
 });
 
-describe('menü yalnız İlanlar ve Kategori yığın ekranlarında', () => {
+describe('the bar is limited to the product result stack screens', () => {
   const appDir = path.resolve(__dirname, '../../../../app');
   const files: string[] = [];
   const walk = (dir: string) => {
@@ -118,13 +112,37 @@ describe('menü yalnız İlanlar ve Kategori yığın ekranlarında', () => {
   walk(appDir);
   const rel = (f: string) => path.relative(appDir, f).split(path.sep).join('/');
 
-  it('withStackTabBar kullananlar: yalnız category/[slug] (eski /listings artık aramaya yönlendirme; arama, ürün detayı vb. YOK)', () => {
+  it('withStackTabBar users: category, search, model detail (product detail etc. have none)', () => {
     const users = files.filter((f) => fs.readFileSync(f, 'utf8').includes('withStackTabBar(')).map(rel).sort();
-    expect(users).toEqual(['category/[slug]/index.tsx']);
+    expect(users).toEqual(['category/[slug]/index.tsx', 'models/[slug]/index.tsx', 'search/index.tsx']);
+  });
+
+  it('manufacturer / brand routes get the bar through the shared EntityProductsScreen', () => {
+    const shared = fs.readFileSync(path.resolve(__dirname, '../../catalog/EntityProductsScreen.tsx'), 'utf8');
+    expect(shared).toContain('withStackTabBar(');
+    for (const route of ['ureticiler/[slug].tsx', 'brands/[slug].tsx']) {
+      expect([route, fs.readFileSync(path.join(appDir, route), 'utf8').includes('<EntityProductsScreen')]).toEqual([route, true]);
+    }
   });
 
   it('AppTabBar yalnız sekme layout\'unda bağlı', () => {
     const users = files.filter((f) => /<AppTabBar\b/.test(fs.readFileSync(f, 'utf8'))).map(rel);
     expect(users).toEqual(['(tabs)/_layout.tsx']);
   });
+});
+
+describe('nothing floats over the fixed bar', () => {
+  const appDir = path.resolve(__dirname, '../../../../app');
+  const barScreens = [
+    path.join(appDir, 'category/[slug]/index.tsx'),
+    path.join(appDir, 'models/[slug]/index.tsx'),
+    path.join(appDir, 'search/index.tsx'),
+    path.resolve(__dirname, '../../catalog/EntityProductsScreen.tsx'),
+  ];
+  it.each(barScreens.map((f) => [path.basename(path.dirname(f)) + '/' + path.basename(f), f]))(
+    '%s mounts no bottom-right FAB',
+    (_name, file) => {
+      expect(/placement="bottomRight"/.test(fs.readFileSync(file, 'utf8'))).toBe(false);
+    },
+  );
 });

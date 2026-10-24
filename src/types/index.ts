@@ -13,6 +13,10 @@ export * from './offer';
 // Trade types
 export * from './trade';
 
+// The ceiling of an agreed amount: offer, counter-offer, trade cash (vendored from tarodan-app
+// `packages/types`)
+export * from './negotiated-amount';
+
 // Message types
 export * from './message';
 
@@ -33,6 +37,27 @@ export * from './support';
 
 // Admin types
 export * from './admin';
+
+// Seller trust score types
+export * from './seller-trust';
+
+// Product search: the GET /products price filter bound (vendored from tarodan-app `packages/types`)
+export * from './product-search';
+
+// Saved searches (vendored from tarodan-app `packages/types`)
+export * from './saved-search';
+
+// Listing boost shapes and the listing card action rule (vendored from tarodan-app `packages/types`)
+export * from './boost';
+export * from './product-card-action';
+
+// Virtual (digital) orders: order kinds and the one digital-order gating rule (vendored from
+// tarodan-app `packages/types`)
+export * from './virtual-order';
+
+// Listing URL slugs: `/listings/<slug>-<uuid>` builder and parser (vendored from tarodan-app
+// `packages/types`)
+export * from './slug';
 
 // Common types
 export interface PaginationMeta {

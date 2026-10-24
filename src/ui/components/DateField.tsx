@@ -35,6 +35,41 @@ export interface DateFieldProps {
 /** iOS `UIDatePicker` spinner'ının doğal yüksekliği (pt). */
 const IOS_SPINNER_HEIGHT = 216;
 
+/** How many years back the picker reaches when the caller gives no `minimumDate` (web parity). */
+const DEFAULT_MIN_DATE_YEARS_BACK = 100;
+
+/**
+ * Default earliest selectable date: 1 January of `min(today, maximumDate).year - 100`,
+ * local start of day. Same window as the web `DatePicker` year list
+ * (`Math.min(today.y, maxY) - 100`), so a birth-date field capped 18 years back
+ * reaches as far as on web.
+ *
+ * Do NOT drop this default. On Android, `@react-native-community/datetimepicker`
+ * (RNDatePickerDialogFragment) clamps a picked date to `minDate` whenever a
+ * `maximumDate` is set but no `minimumDate` is; the unset minimum is treated as the
+ * epoch, so every date before 1970-01-01 snaps back to 1970. Always sending a
+ * minimum avoids that clamp (iOS has none).
+ */
+export function defaultMinimumDate(maximumDate?: Date, now: Date = new Date()): Date {
+  const latestYear = Math.min(now.getFullYear(), maximumDate?.getFullYear() ?? Infinity);
+  return new Date(latestYear - DEFAULT_MIN_DATE_YEARS_BACK, 0, 1);
+}
+
+/**
+ * The floor actually sent to the native picker: the caller's `minimumDate` as is, else
+ * the default window widened to an already stored earlier value (web keeps such a year
+ * in its list too), so opening the picker never silently moves a stored date.
+ */
+function resolveMinimumDate(
+  minimumDate: Date | undefined,
+  maximumDate: Date | undefined,
+  selectedDate: Date | null,
+): Date {
+  if (minimumDate) return minimumDate;
+  const fallback = defaultMinimumDate(maximumDate);
+  return selectedDate && selectedDate < fallback ? selectedDate : fallback;
+}
+
 /** i18n dili -> `Intl`/native picker locale etiketi (bkz. `@/utils/format`). */
 function activeDateLocale(language: string): string {
   return language === 'en' ? 'en-US' : 'tr-TR';
@@ -99,6 +134,7 @@ export const DateField: React.FC<DateFieldProps> = ({
   const dateLocale = activeDateLocale(i18nInstance.language);
   const resolvedPlaceholder = placeholder ?? t('auth.birthDatePlaceholder');
   const selectedDate = parseLocalDate(value);
+  const resolvedMinimumDate = resolveMinimumDate(minimumDate, maximumDate, selectedDate);
   const fallbackDate = selectedDate ?? maximumDate ?? new Date();
 
   const [show, setShow] = useState(false);
@@ -142,7 +178,7 @@ export const DateField: React.FC<DateFieldProps> = ({
           value={fallbackDate}
           mode="date"
           display="default"
-          minimumDate={minimumDate}
+          minimumDate={resolvedMinimumDate}
           maximumDate={maximumDate}
           onChange={onAndroidChange}
         />
@@ -182,7 +218,7 @@ export const DateField: React.FC<DateFieldProps> = ({
             display="spinner"
             locale={dateLocale}
             themeVariant="light"
-            minimumDate={minimumDate}
+            minimumDate={resolvedMinimumDate}
             maximumDate={maximumDate}
             onChange={onIOSChange}
             style={styles.iosPicker}

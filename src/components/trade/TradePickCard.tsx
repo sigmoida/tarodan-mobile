@@ -8,6 +8,7 @@ const { colors, iconSize, spacing } = theme;
  * Takas ürün seçimi kartı — yeni takas teklifi ve karşı teklif aynı kartı kullanır: tek
  * `ProductCard` (liste düzeni, meta yok), seçim durumu kartın çerçeve/zemini + sağ üstte işaret
  * (seçili ✓, seçili değil boş radyo). Dokunuş seçimi değiştirir, ürünü açmaz; tıklama kaydı yok.
+ * A picker, not a listing to buy: no card action (`showAction={false}`).
  */
 export function TradePickCard({
   product,
@@ -27,6 +28,7 @@ export function TradePickCard({
       showMeta={false}
       selected={selected}
       trackClick={false}
+      showAction={false}
       onPress={onToggle}
       style={{ marginBottom: spacing[3] }}
       testID={testID}

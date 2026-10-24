@@ -25,6 +25,11 @@ export interface InputProps extends TextInputProps {
   /** Etiketin sonuna kırmızı `*` (web `Label required`). */
   required?: boolean;
   error?: string;
+  /**
+   * The danger frame without a message under the field, for a group of fields that shows one
+   * message below them (web `@tarodan/ui` Input: `bare` with `error`). `error` implies it.
+   */
+  invalid?: boolean;
   helperText?: string;
   /** Pass a custom node. Takes precedence over `leftIconName`. */
   leftIcon?: React.ReactNode;
@@ -50,6 +55,7 @@ export const Input: React.FC<InputProps> = ({
   label,
   required,
   error,
+  invalid,
   helperText,
   leftIcon,
   rightIcon,
@@ -108,7 +114,7 @@ export const Input: React.FC<InputProps> = ({
       {label ? <Label required={required}>{label}</Label> : null}
       <View
         style={[
-          fieldBoxStyle({ size: inputSize, focused, error, disabled }),
+          fieldBoxStyle({ size: inputSize, focused, error: error || invalid, disabled }),
           multiline ? styles.fieldMultiline : null,
           fieldStyle,
         ]}

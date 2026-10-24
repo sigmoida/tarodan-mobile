@@ -8,18 +8,18 @@ import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, ErrorState, pageListContentStyle, useDelayedLoading, usePageScrollValue } from '@/ui';
+import { Button, EmptyState, ErrorState, pageListContentStyle, useDelayedLoading, usePageScrollValue, usePageOffsetHandler, usePageContentStyle, useRowGrid } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
+import { searchEntryHref } from '@/lib/navigation/searchHref';
 import { useStableCallback } from '@/hooks/useStableCallback';
-import type { WishlistItem } from '@/hooks/useFavorites';
+import { isOptimisticFavorite, type WishlistItem } from '@/hooks/useFavorites';
 import { tabDiag } from '@/components/_tabDiag';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
-import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { useFavoritesScreen } from './_hooks/useFavoritesScreen';
 import { styles } from './_lib/styles';
 import { FavoriteCard } from './_components/FavoriteCard';
-import { FavoritesSkeleton } from './_components/FavoriteCardSkeleton';
+import { FavoriteCardSkeleton, FavoritesSkeleton } from './_components/FavoriteCardSkeleton';
 
 const favoriteKey = (item: WishlistItem) => item.id;
 
@@ -32,17 +32,28 @@ function FavoritesScreen() {
   // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
   const showSkeleton = useDelayedLoading(initialLoading);
   const page = usePageScrollValue();
-  // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
-  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle([pageListContentStyle, { paddingBottom: tabInset }]);
+  // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
+  const grid = useRowGrid();
+  // The list feeds the top bar scroll edge (the tab bar is fixed: no collapse).
+  const onPageScroll = usePageOffsetHandler(page.scrollY);
   // Kararlı renderItem + memo'lu kart: işleyiciler referans-kararlı (en güncel `f`'i çağırır), sepet
   // durumu kartın kendi seçicisinde — ekran render olsa da satırlar yeniden çizilmez.
   const onRemove = useStableCallback(f.handleRemove);
-  const onCartAction = useStableCallback(f.handleCartAction);
+  // An optimistic row (add still in flight) is a loading card, like web's pending tile: it has no
+  // real price, stock, cap or seller, so it must not offer the cart action.
   const renderFavorite = useCallback(
-    ({ item }: { item: WishlistItem }) => (
-      <FavoriteCard item={item} onRemove={onRemove} onCartAction={onCartAction} />
-    ),
-    [onRemove, onCartAction],
+    ({ item, index }: { item: WishlistItem; index: number }) =>
+      grid.cell(
+        index,
+        isOptimisticFavorite(item) ? (
+          <FavoriteCardSkeleton testID={`favorite-pending-${item.productId}`} />
+        ) : (
+          <FavoriteCard item={item} onRemove={onRemove} />
+        ),
+      ),
+    [onRemove, grid],
   );
 
   if (!f.isAuthenticated) {
@@ -68,14 +79,16 @@ function FavoritesScreen() {
       scroll={page}
     >
       <Animated.FlatList
-        {...tabScroll}
+        key={grid.listKey}
+        numColumns={grid.numColumns}
+        onScroll={onPageScroll}
         {...page.scrollProps}
         scrollEventThrottle={16}
         testID="favorites-list"
         data={initialLoading || loadFailed ? [] : f.items}
         keyExtractor={favoriteKey}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle([pageListContentStyle, { paddingBottom: tabInset }])}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         progressViewOffset={page.topInset}
         refreshing={f.refreshing}
         onRefresh={f.onRefresh}
@@ -84,17 +97,19 @@ function FavoritesScreen() {
             showSkeleton ? <FavoritesSkeleton /> : null
           ) : loadFailed ? (
             <ErrorState
+              placement="list"
               title={t('favorites.loadFailedTitle')}
               message={t('favorites.loadErrorDesc')}
               onRetry={() => f.fetchFavorites()}
             />
           ) : (
             <EmptyState
+              placement="list"
               icon="heart"
               title={t('favorites.empty')}
-              subtitle={t('favorites.emptyStateDesc')}
-              actionLabel={t('order.exploreProducts')}
-              onAction={() => router.push('/search')}
+              subtitle={t('favorites.emptyDesc')}
+              actionLabel={t('favorites.browseProducts')}
+              onAction={() => router.push(searchEntryHref('all'))}
             />
           )
         }
@@ -104,7 +119,7 @@ function FavoritesScreen() {
               variant="outline"
               title={t('favorites.exploreMoreProducts')}
               style={styles.moreButton}
-              onPress={() => router.push('/search')}
+              onPress={() => router.push(searchEntryHref('all'))}
             />
           ) : null
         }

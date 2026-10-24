@@ -14,6 +14,7 @@ import {
   pathFromUrl,
   isNeverNavigatePath,
 } from '../index';
+import { overriddenSamplePatterns, routeSample } from './fixtures/routeSamples';
 
 const shipped = shippablePaths();
 const included = shipped.filter((p) => p.include);
@@ -24,7 +25,7 @@ describe('paths.json — cozucu senkronu', () => {
     expect(included.length).toBeGreaterThan(0);
   });
 
-  it.each(included.map((p) => [p.pattern, p.sample]))(
+  it.each(included.map((p) => [p.pattern, routeSample(p)]))(
     'teyitli %s ornegi (%s) bir mobil rotaya cozulur',
     (_pattern, sample) => {
       expect(toMobileRoute(sample)).not.toBeNull();
@@ -38,13 +39,22 @@ describe('paths.json — cozucu senkronu', () => {
     },
   );
 
+  it.each(overriddenSamplePatterns())(
+    'the %s sample override is still needed (drop it once paths.json carries a resolving sample)',
+    (pattern) => {
+      const row = deepLinkConfig.paths.find((p) => p.pattern === pattern);
+      expect(row).toBeDefined();
+      expect(toMobileRoute(row!.sample)).toBeNull();
+    },
+  );
+
   it('teyit bekleyen satirlar tabloda durur (sessizce silinmez)', () => {
     expect(pendingConfirmation().length).toBeGreaterThan(0);
   });
 
   it.each(
     included.flatMap((p) =>
-      deepLinkConfig.locales.map((l) => [l, p.pattern, `/${l}${p.sample}`] as const),
+      deepLinkConfig.locales.map((l) => [l, p.pattern, `/${l}${routeSample(p)}`] as const),
     ),
   )('%s onekli %s ornegi (%s) de cozulur', (_locale, _pattern, sample) => {
     expect(toMobileRoute(sample)).not.toBeNull();

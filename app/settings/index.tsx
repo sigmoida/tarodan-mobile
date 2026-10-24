@@ -3,13 +3,15 @@ import { SectionCard } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { MenuGroupList } from '@/components/menu/MenuGroupList';
 import { ProfileRow } from '@/components/menu/ProfileRow';
+import { AppBuildLabel } from './_components/AppBuildLabel';
 import { useSettingsScreen } from './_hooks/useSettingsScreen';
 
 /**
- * Ayarlar (`/settings`) — Profil sekmesinin üst barındaki ⚙️'den açılan yığın ekranı. Profil
- * kullanıcının işlemlerini, Ayarlar hesabı ve uygulamayı yönetir: Hesap (profili düzenle, adresler,
- * güvenlik, engellenenler) · Ödeme ve Banka · Üyelik · Tercihler · Yardım & Destek · Bilgi & Yasal;
- * en altta çıkış (yalnız üye). Her grup beyaz `SectionCard` (`MenuGroupList`, Profil ile aynı).
+ * Settings (`/settings`), the stack screen opened from the gear in the Profile tab's top bar.
+ * Profile holds the user's activity; Settings manages the account and the app: Account (edit
+ * profile, addresses, security, blocked users) · Payments and Bank · Membership · Preferences ·
+ * Help & Support · Info & Legal; then logout (members only) and, last, the build label
+ * (`AppBuildLabel`). Each group is a white `SectionCard` (`MenuGroupList`, as on Profile).
  */
 export default function SettingsScreen() {
   const { t } = useTranslation();
@@ -31,6 +33,7 @@ export default function SettingsScreen() {
           />
         </SectionCard>
       ) : null}
+      <AppBuildLabel />
     </PageShell>
   );
 }

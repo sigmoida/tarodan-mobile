@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/ui';
-// listingsApi → productsApi (parite migrasyonu); userApi.getMyProducts → productsApi.getMyListings
+// listingsApi -> productsApi (parity migration); userApi.getMyProducts -> productsApi.getMyListings
 import { productsApi as listingsApi, tradesApi, productsApi, type TradePaymentQuoteSide } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { qk, retryUnlessClientError, useAppMutation } from '@/lib/query';
@@ -11,13 +11,21 @@ import { unwrapEnvelope } from '@/utils/apiEnvelope';
 import { useAuthStore } from '@/stores/authStore';
 import { getProductEffectivePrice } from '@/utils/productPrice';
 import { firstQueryParam, type Product } from '../_lib/types';
+import { isPreselectableTarget, targetSellerOf, type TargetListing } from '../_lib/target';
+import { isFetchedThisOpen, TRADE_PICKER_PAGE_SIZE, TRADE_PICKER_QUERY_OPTIONS } from '../../_lib/picker';
+import { usePagedPicker } from '../../_hooks/usePagedPicker';
+import { usePagedPicks } from '../../_hooks/usePagedPicks';
+import { negotiatedAmountIssueText } from '@/utils/negotiatedAmount';
+import { useCashAmount } from '../../_hooks/useCashAmount';
+import { parseCashAmount, signedCashAmount, type CashDirection } from '../../_lib/cash';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useRequireLegalIdentity } from '@/hooks/useLegalIdentity';
+import { useRefetchStaleOnFocus } from '@/hooks/useRefetchStaleOnFocus';
 
 /**
- * New-trade wizard controller — owns the 3-step state, the target/my/their
- * product queries, the create-trade mutation, item toggles, totals, and submit
- * validation. Lifted verbatim from the monolithic NewTradeScreen.
+ * New-trade wizard controller: owns the 3-step state, the target query, the paged my/their
+ * product pickers and their selections, the create-trade mutation, totals, and submit
+ * validation. Lifted from the monolithic NewTradeScreen.
  */
 export function useNewTrade() {
   const { t } = useTranslation();
@@ -28,7 +36,7 @@ export function useNewTrade() {
     targetProductId?: string | string[];
     targetSellerId?: string | string[];
   }>();
-  /** Web: `?listing=` — mobil ürün sayfası `listing` + `productId` gönderir */
+  /** Web: `?listing=`. The mobile product page sends `listing` + `productId`. */
   const listingId =
     firstQueryParam(params.listing) ||
     firstQueryParam(params.productId) ||
@@ -41,70 +49,112 @@ export function useNewTrade() {
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1); // 1: Select my items, 2: Select their items, 3: Review
-  const [selectedMyItems, setSelectedMyItems] = useState<Product[]>([]);
-  const [selectedTheirItems, setSelectedTheirItems] = useState<Product[]>([]);
-  const [cashAmount, setCashAmount] = useState('');
-  const [cashDirection, setCashDirection] = useState<'offer' | 'request'>('offer'); // offer = I pay, request = they pay
+  const { cashAmount, cashIssue, changeCashText } = useCashAmount();
+  const [cashDirection, setCashDirection] = useState<CashDirection>('offer');
   const [message, setMessage] = useState('');
   const [tradeAddressId, setTradeAddressId] = useState<string | null>(null);
 
-  /** Web trades/new ile aynı kural — tek kaynak `useFeatureAccess`. */
+  /** Same rule as web trades/new; the single source is `useFeatureAccess`. */
   const { canTrade } = useFeatureAccess();
 
-  const { data: targetProduct } = useQuery({
+  // The target listing. Also fetched when the seller id is a param (the product page sends
+  // both): their side is paged, so the target may sit on a page that is not loaded yet, and is
+  // then preselected from this row. Fresh on every open, like the pickers (web `useTradeTarget`).
+  const targetQuery = useQuery<TargetListing | null>({
     queryKey: qk.trades.targetListing(listingId ?? ''),
     queryFn: async () => {
       const res = await listingsApi.getOne(listingId!);
-      return res.data?.product || res.data?.data || res.data;
+      return res.data?.product || res.data?.data || res.data || null;
     },
-    enabled: !!listingId && !targetSellerIdParam && canTrade,
+    enabled: !!listingId && canTrade,
+    ...TRADE_PICKER_QUERY_OPTIONS,
   });
+  const targetProduct = targetQuery.data;
+  // The row of this open (not an older open's cached copy): only it may preselect the target.
+  const targetRowFresh = isFetchedThisOpen(targetQuery);
 
-  const targetSellerId =
-    targetSellerIdParam || targetProduct?.seller?.id || targetProduct?.sellerId || '';
+  const targetSellerId = targetSellerIdParam || targetSellerOf(targetProduct) || '';
 
-  const { data: myProducts, isLoading: loadingMyProducts } = useQuery({
+  // My side: the server filters (`tradeOnly`, `tradeEligible`: not in an active trade, with free
+  // stock), so every page is full and `meta.totalPages` counts only eligible listings. The only
+  // client filter is the target listing (at most one row); without one, every listing shows.
+  const myList = usePagedPicker<Product>({
     queryKey: qk.trades.myTradeable(user?.id, listingId),
-    queryFn: async () => {
-      // tradeEligible: aktif takasta olan veya müsait stoğu olmayan ürünler backend'de elenir
-      const response = await productsApi.getMyListings({ status: 'active', tradeEligible: true });
-      const raw = response.data?.data || response.data?.products || response.data || [];
-      const list = Array.isArray(raw) ? raw : [];
-      return list.filter(
-        (p: Product) =>
-          p.status === 'active' &&
-          p.isTradeEnabled !== false &&
-          listingId &&
-          p.id !== listingId,
-      );
-    },
+    fetchPage: (page) =>
+      productsApi.getMyListings({
+        status: 'active',
+        tradeEligible: true,
+        tradeOnly: true,
+        page,
+        limit: TRADE_PICKER_PAGE_SIZE,
+      }),
     enabled: isAuthenticated && canTrade && !!user?.id,
   });
+  const myLoaded = useMemo(
+    () => myList.rows.filter((p) => p.id !== listingId),
+    [myList.rows, listingId],
+  );
+  const myPicks = usePagedPicks({
+    loaded: myLoaded,
+    complete: !myList.hasMore,
+    ready: !myList.isLoading,
+  });
+  const selectedMyItems = myPicks.picked;
 
-  const { data: theirProducts, isLoading: loadingTheirProducts } = useQuery({
-    queryKey: qk.trades.sellerTradeable(targetSellerId),
-    queryFn: async () => {
-      const response = await listingsApi.getAll({
+  // Their side: the seller's public listings open to trade. Newest first is a stable order
+  // (the default relevance order moves with view counts between page fetches and can skip a
+  // listing at a page boundary).
+  const theirList = usePagedPicker<Product>({
+    queryKey: qk.trades.sellerTradeable(user?.id, targetSellerId),
+    fetchPage: (page) =>
+      listingsApi.getAll({
         sellerId: targetSellerId,
         tradeOnly: true,
         status: 'active',
-      });
-      const raw = response.data?.data || response.data?.products || response.data || [];
-      const list = Array.isArray(raw) ? raw : [];
-      return list.filter(
-        (p: Product) => p.status === 'active' && p.isTradeEnabled !== false,
-      );
-    },
+        sortBy: 'created_desc',
+        page,
+        limit: TRADE_PICKER_PAGE_SIZE,
+      }),
     enabled: !!targetSellerId && canTrade,
   });
+  const theirPicks = usePagedPicks({
+    loaded: theirList.rows,
+    complete: !theirList.hasMore,
+    ready: !theirList.isLoading,
+  });
+  const selectedTheirItems = theirPicks.picked;
 
+  // Back on the screen (e.g. from the "listing approved" notification): refetch both pickers.
+  useRefetchStaleOnFocus([
+    qk.trades.myTradeable(user?.id, listingId),
+    qk.trades.sellerTradeable(user?.id, targetSellerId),
+  ]);
+
+  // Preselect the target listing once per target, when it first shows up, and ADD it to what
+  // the user already picked. The list refetches on open, focus and foreground: the guard keeps
+  // a later refetch from re-adding a target the user removed, and adding (not replacing) keeps
+  // a pick made while the target was still missing from a cached list. A target on a page that
+  // is not loaded (the settled list has more pages) comes from its own row: the pick is pinned at
+  // the top until its page loads, refreshed from the list row once it does, and pruned if every
+  // page loads without it (`usePagedPicks`). A settled, complete list without it gets no pick,
+  // and neither does a cached row or list from an earlier open (the listing may be sold since):
+  // both sources wait for their first successful fetch of this open.
+  const preselectedFor = useRef<string | null>(null);
+  const addTheirPick = theirPicks.add;
+  const theirListFresh = theirList.fetchedThisOpen;
+  const theirMayHoldTarget = !theirList.isLoading && theirList.hasMore && targetRowFresh;
   useEffect(() => {
-    if (!listingId || !theirProducts?.length) return;
-    const target = theirProducts.find((p: Product) => p.id === listingId);
+    if (!listingId || preselectedFor.current === listingId || !theirListFresh) return;
+    const target =
+      theirList.rows.find((p) => p.id === listingId) ??
+      (theirMayHoldTarget && isPreselectableTarget(targetProduct, listingId, targetSellerId)
+        ? targetProduct
+        : undefined);
     if (target) {
-      setSelectedTheirItems((prev) => (prev.some((p) => p.id === listingId) ? prev : [target]));
+      preselectedFor.current = listingId;
+      addTheirPick(target);
     }
-  }, [listingId, theirProducts]);
+  }, [listingId, theirListFresh, theirList.rows, theirMayHoldTarget, targetProduct, targetSellerId, addTheirPick]);
 
   const invalidateTradeRelatedQueries = () => {
     queryClient.invalidateQueries({ queryKey: qk.trades.all });
@@ -118,16 +168,11 @@ export function useNewTrade() {
 
   const createTradeMutation = useAppMutation(
     async () => {
-      const cashVal = parseFloat(cashAmount.replace(',', '.')) || 0;
-      let finalCash: number | undefined;
-      if (cashVal > 0) {
-        finalCash = cashDirection === 'offer' ? cashVal : -cashVal;
-      }
       return tradesApi.create({
         receiverId: targetSellerId,
         initiatorItems: selectedMyItems.map((p) => ({ productId: p.id, quantity: 1 })),
         receiverItems: selectedTheirItems.map((p) => ({ productId: p.id, quantity: 1 })),
-        cashAmount: finalCash,
+        cashAmount: signedCashAmount(cashAmount, cashDirection),
         message: message.trim() || undefined,
         shippingAddressId: tradeAddressId || undefined,
       });
@@ -136,11 +181,12 @@ export function useNewTrade() {
       error: t('trade.sendFailed'),
       onSuccess: () => {
         invalidateTradeRelatedQueries();
-        // Önce ekran değişir, sonra toast — bekleme yok.
+        // The screen changes first, then the toast: no waiting.
         router.replace('/trades');
         toast.success(t('trade.tradeSent'));
       },
-      // Toast `useAppMutation`dan; burada yalnız "üyelikte takas yok" ise yetkileri tazele.
+      // The toast comes from `useAppMutation`; here only refresh the permissions when the
+      // membership has no trade feature.
       onError: async (error) => {
         const msg = apiErrorMessage(error, t('trade.sendFailed'));
         if (
@@ -156,13 +202,13 @@ export function useNewTrade() {
 
   const myTotal = selectedMyItems.reduce((sum, p) => sum + getProductEffectivePrice(p), 0);
   const theirTotal = selectedTheirItems.reduce((sum, p) => sum + getProductEffectivePrice(p), 0);
-  const cashValue = parseFloat(cashAmount.replace(',', '.')) || 0;
+  const cashValue = parseCashAmount(cashAmount) ?? 0;
   const cashPayer: 'initiator' | 'receiver' = cashDirection === 'offer' ? 'initiator' : 'receiver';
 
   /**
-   * Kaydedilmemiş teklifin canlı maliyeti. Ürün seçimi veya nakit fark her
-   * değiştiğinde yeniden fiyatlanır; tutarlar TAHMİNİDİR, kabul anında kilitlenir.
-   * Bilinmeyen/silinmiş productId sunucuda sessizce atlanır — istemci elemez.
+   * Live cost of the unsaved offer. It is priced again whenever the item selection or the
+   * cash difference changes; the amounts are ESTIMATES and lock at acceptance. The server
+   * silently skips an unknown or deleted productId; the client does not filter.
    */
   const previewQuery = useQuery({
     queryKey: qk.trades.previewQuote(
@@ -185,25 +231,30 @@ export function useNewTrade() {
   });
   const costPreview = previewQuery.data ?? null;
 
-  const toggleMyItem = (product: Product) => {
-    if (selectedMyItems.find((p) => p.id === product.id)) {
-      setSelectedMyItems(selectedMyItems.filter((p) => p.id !== product.id));
-    } else {
-      setSelectedMyItems([...selectedMyItems, product]);
-    }
+  const toggleMyItem = (product: Product) => myPicks.toggle(product.id);
+  const toggleTheirItem = (product: Product) => theirPicks.toggle(product.id);
+
+  /**
+   * Web refuses to send while the cash field holds a refused amount. Here the field keeps the
+   * last sendable text instead ("1.000" stops at "1.00"), so the refusal itself blocks: otherwise
+   * 1 TL would go out for one thousand. Cleared by the next accepted change. An amount above the
+   * API's ceiling blocks too, until it is lowered (`cashIssue`).
+   */
+  const blockRefusedCash = () => {
+    if (!cashIssue) return false;
+    toast.error(negotiatedAmountIssueText(cashIssue, t));
+    return true;
   };
 
-  const toggleTheirItem = (product: Product) => {
-    if (selectedTheirItems.find((p) => p.id === product.id)) {
-      setSelectedTheirItems(selectedTheirItems.filter((p) => p.id !== product.id));
-    } else {
-      setSelectedTheirItems([...selectedTheirItems, product]);
-    }
+  /** Step 2 -> 3 (review): not while the cash amount is refused or above the ceiling. */
+  const goToReview = () => {
+    if (blockRefusedCash()) return;
+    setStep(3);
   };
 
   const handleSubmit = async () => {
-    const cashVal = parseFloat(cashAmount.replace(',', '.')) || 0;
-    if (selectedMyItems.length === 0 && cashVal <= 0) {
+    if (blockRefusedCash()) return;
+    if (selectedMyItems.length === 0 && cashValue <= 0) {
       toast.error(t('trade.selectAtLeastOne'));
       return;
     }
@@ -215,7 +266,7 @@ export function useNewTrade() {
       toast.error(t('trade.selectDeliveryAddress'));
       return;
     }
-    // B-2.4: takas başlamadan yasal kimlik; vazgeçerse teklif gönderilmez.
+    // B-2.4: legal identity before the trade starts; if the user gives up, no offer is sent.
     if (!(await requireIdentity())) return;
     createTradeMutation.mutate();
   };
@@ -228,18 +279,26 @@ export function useNewTrade() {
     selectedMyItems,
     selectedTheirItems,
     cashAmount,
-    setCashAmount,
+    cashIssue,
+    changeCashText,
     cashDirection,
     setCashDirection,
     message,
     setMessage,
     setTradeAddressId,
-    myProducts,
-    loadingMyProducts,
-    theirProducts,
-    loadingTheirProducts,
+    /** My pickable listings: the loaded pages, picks that left them (more pages exist) pinned first. */
+    myProducts: myPicks.rows,
+    loadingMyProducts: myList.isLoading,
+    myHasMore: myList.hasMore,
+    myLoadingMore: myList.isLoadingMore,
+    loadMoreMine: myList.loadMore,
+    theirProducts: theirPicks.rows,
+    loadingTheirProducts: theirList.isLoading,
+    theirHasMore: theirList.hasMore,
+    theirLoadingMore: theirList.isLoadingMore,
+    loadMoreTheirs: theirList.loadMore,
     createTradeMutation,
-    /** Gönderim sürüyor: kimlik kontrolü ya da takas isteği. */
+    /** Submitting: the identity check or the trade request. */
     submitPending: checkingIdentity || createTradeMutation.isPending,
     myTotal,
     theirTotal,
@@ -247,6 +306,7 @@ export function useNewTrade() {
     costPreview,
     toggleMyItem,
     toggleTheirItem,
+    goToReview,
     handleSubmit,
   };
 }

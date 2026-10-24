@@ -3,7 +3,7 @@ import { View, Pressable } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Alert, Avatar, Button, EmptyState, GlassIconButton, SectionCard, Text, theme, Icon } from '@/ui';
+import { Alert, Avatar, Button, EmptyState, GlassIconButton, SectionCard, Text, theme, Icon, gridCellStyle, useGridColumns } from '@/ui';
 import { ProductCard } from '@/components/product';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import UpgradeCta from '@/components/UpgradeCta';
@@ -88,6 +88,7 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
   const { collection, items, id } = f;
   // Kalp yalnız pazaryeri ürünü olan kalemde ve koleksiyon sahibi olmayana (sahibin kalemleri kendi ilanı).
   const favoriteProps = useProductCardFavorites();
+  const columns = useGridColumns();
   const cover = collection.coverImageUrl ?? collection.coverImage;
 
   return (
@@ -151,14 +152,16 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
           />
         ) : (
           <View style={styles.itemsGrid}>
-            {items.map((item: any) => {
+            {items.map((item: any, index: number) => {
               const product = toCardProduct(item, t('product.productFallback'));
               return (
-                <View key={item.id} style={styles.itemCell}>
+                <View key={item.id} style={gridCellStyle(index, columns)}>
                   <ProductCard
                     product={product}
                     showMeta={false}
                     trackClick={!!item.productId}
+                    // Web shows no card action on collection items (its card shape has no status).
+                    showAction={false}
                     onPress={() => item.productId && router.push(`/product/${item.productId}`)}
                     {...(item.productId && !f.isOwner ? favoriteProps(product) : null)}
                   />

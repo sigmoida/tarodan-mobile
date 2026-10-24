@@ -537,6 +537,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlay.black50 },
   sheet: {
+    // Spans the window on every width (tablets included), like the rest of the edge-to-edge layout.
+    width: '100%',
     backgroundColor: colors.surface.elevated,
     borderTopLeftRadius: radiusRole.sheet,
     borderTopRightRadius: radiusRole.sheet,

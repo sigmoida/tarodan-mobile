@@ -4,14 +4,13 @@ import { theme } from '@/ui';
 const { colors, spacing, radiusRole } = theme;
 
 export const styles = StyleSheet.create({
+  // Cells are sized by `gridCellStyle` (columns from the window width; 48% / 4% on phones).
   collectionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
     rowGap: spacing[3],
   },
   collectionCard: {
-    width: '48%',
     backgroundColor: colors.surface.elevated,
     borderRadius: radiusRole.card,
     borderWidth: 1,

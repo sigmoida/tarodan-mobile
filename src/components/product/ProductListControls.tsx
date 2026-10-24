@@ -6,11 +6,12 @@ import { Button, IconButton, theme } from '@/ui';
 const { spacing } = theme;
 
 /**
- * Liste araç çubuğunun TEK denetim satırı (web `ListingsControls`): solda "Filtreler" (etkin filtre
- * sayısı rozetiyle) ve geçerli sıralamayı gösteren sıralama düğmesi, sağda ızgara/liste anahtarı.
- * Üç denetim de aynı yükseklikte (controlHeight.sm) ve outline stilinde. `onFilter` verilmezse
- * filtre düğmesi çizilmez; `layout` verilmezse anahtar çizilmez. Ekranlar bunu doğrudan değil
- * `ProductListToolbar` üzerinden kullanır.
+ * The ONE control row of the list toolbar (web `ListingsControls`): on the left "Filters" (with the
+ * active filter count badge) and the sort button showing the current sort, on the right the
+ * grid/list toggle. Every control has the same height (controlHeight.sm) and the outline style.
+ * Without `onFilter` there is no filter button; without `layout` there is no toggle. With `onSave`
+ * a "Save this search" button shows on the right (web `ListingsToolbar`; icon only at phone width).
+ * Screens use it through `ProductListToolbar`, never directly.
  */
 export function ProductListControls({
   sortLabel,
@@ -19,14 +20,20 @@ export function ProductListControls({
   filterCount = 0,
   layout,
   onLayoutChange,
+  onSave,
+  saveDisabled = false,
 }: {
   sortLabel: string;
   onSort: () => void;
   onFilter?: () => void;
   filterCount?: number;
-  /** Verilirse ızgara/liste anahtarı çizilir (web `ProductLayoutSelector`). */
+  /** When given, the grid/list toggle is drawn (web `ProductLayoutSelector`). */
   layout?: 'grid' | 'list';
   onLayoutChange?: (layout: 'grid' | 'list') => void;
+  /** When given, the "Save this search" icon button is drawn. */
+  onSave?: () => void;
+  /** Nothing to save (an empty search): the button is disabled and its accessibility hint says why. */
+  saveDisabled?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -56,15 +63,31 @@ export function ProductListControls({
           style={styles.sort}
         />
       </View>
-      {layout && onLayoutChange ? (
-        <IconButton
-          testID="layout-toggle"
-          icon={layout === 'grid' ? 'list-bullet' : 'squares-2x2'}
-          size="sm"
-          variant="outline"
-          accessibilityLabel={layout === 'grid' ? t('product.layoutList') : t('product.layoutGrid')}
-          onPress={() => onLayoutChange(layout === 'grid' ? 'list' : 'grid')}
-        />
+      {onSave || (layout && onLayoutChange) ? (
+        <View style={styles.end}>
+          {onSave ? (
+            <IconButton
+              testID="save-search-button"
+              icon="bookmark"
+              size="sm"
+              variant="outline"
+              disabled={saveDisabled}
+              accessibilityLabel={t('savedSearch.save')}
+              accessibilityHint={saveDisabled ? t('savedSearch.nothingToSave') : undefined}
+              onPress={onSave}
+            />
+          ) : null}
+          {layout && onLayoutChange ? (
+            <IconButton
+              testID="layout-toggle"
+              icon={layout === 'grid' ? 'list-bullet' : 'squares-2x2'}
+              size="sm"
+              variant="outline"
+              accessibilityLabel={layout === 'grid' ? t('product.layoutList') : t('product.layoutGrid')}
+              onPress={() => onLayoutChange(layout === 'grid' ? 'list' : 'grid')}
+            />
+          ) : null}
+        </View>
       ) : null}
     </View>
   );
@@ -74,4 +97,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing[2] },
   start: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing[2], minWidth: 0 },
   sort: { flexShrink: 1 },
+  end: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
 });

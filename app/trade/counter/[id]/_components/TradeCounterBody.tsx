@@ -1,11 +1,12 @@
 import React from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, ButtonRow, Chip, Input, SectionCard, Text, Textarea, theme, Icon } from '@/ui';
+import { Alert, Button, ButtonRow, Chip, SectionCard, Text, Textarea, theme, Icon } from '@/ui';
 
 import { formatPrice } from '@/utils/format';
 import { styles } from '../_lib/styles';
 import { TradeProductPicker } from './TradeProductPicker';
+import { CashAmountInput } from '../../../_components/CashAmountInput';
 import type { TradeCounterController } from '../_hooks/useTradeCounter';
 
 const { colors } = theme;
@@ -24,8 +25,13 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
         title={t('trade.counterMyItemsTitle')}
         subtitle={t('trade.counterMyItemsSubtitle')}
         products={f.myProducts}
+        isLoading={f.loadingMyProducts}
         selected={f.selectedMine}
         toggle={f.toggleMine}
+        hasMore={f.myHasMore}
+        isLoadingMore={f.myLoadingMore}
+        onLoadMore={f.loadMoreMine}
+        showMoreTestID="counter-my-show-more"
       />
 
       <View style={styles.swapWrap}>
@@ -36,8 +42,13 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
         title={t('trade.counterTheirItemsTitle')}
         subtitle={t('trade.counterTheirItemsSubtitle', { name: f.amIInitiator ? trade.receiverName : trade.initiatorName })}
         products={f.theirProducts}
+        isLoading={f.loadingTheirProducts}
         selected={f.selectedTheirs}
         toggle={f.toggleTheirs}
+        hasMore={f.theirHasMore}
+        isLoadingMore={f.theirLoadingMore}
+        onLoadMore={f.loadMoreTheirs}
+        showMoreTestID="counter-their-show-more"
       />
 
       <SectionCard title={t('trade.cashDifferenceLine')}>
@@ -57,12 +68,11 @@ export function TradeCounterBody({ f }: { f: TradeCounterController }) {
             style={styles.chip}
           />
         </View>
-        <Input
+        <CashAmountInput
           label={t('trade.amountLabelTL')}
           value={f.cashAmount}
-          onChangeText={(v: string) => f.setCashAmount(v.replace(/[^\d.]/g, ''))}
-          keyboardType="numeric"
-          containerStyle={styles.cashInput}
+          issue={f.cashIssue}
+          onChangeText={f.changeCashText}
         />
       </SectionCard>
 

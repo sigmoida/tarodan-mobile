@@ -3,6 +3,7 @@ import { ownWebHosts } from '@/lib/web';
 import { parseStrictUrl } from '@/lib/security/url';
 import { inAppWebHref, resolveRemovedPage } from '@/lib/navigation/removedPages';
 import { listingsToSearchHref } from '@/lib/navigation/searchHref';
+import { listingIdFromParam } from '@/lib/product/listingParam';
 
 /**
  * Backend `link` alanları WEB rotaları için interpole ediliyor (ör.
@@ -136,13 +137,15 @@ export function toMobileRoute(link: string): string | null {
 
   switch (head) {
     case 'listings': {
-      // web: ürün detayı /listings/:id → mobil /product/:id; /listings/:id/edit →
-      // mobil ilan düzenleme; liste → ön filtreli arama ekranı (filtre/sıralama sorgusu AYNEN
-      // korunur: /listings?discountOnly=true → /search?discountOnly=true; web parametre adları)
+      // Web listing detail `/listings/<slug>-<uuid>` -> mobile `/product/<uuid>`; `/listings/<segment>/edit`
+      // -> the mobile edit screen; the bare list -> the search screen with its filter / sort query kept
+      // as is (`/listings?discountOnly=true` -> `/search?discountOnly=true`; same names as web).
       if (!id) return listingsToSearchHref(rawQuery);
-      // Düzenleme ekranı kimlikle çalışır; detay slug de olabilir.
-      if (seg[2] === 'edit') return isIdSegment(id) ? `/listing/${id}/edit` : null;
-      return `/product/${id}`;
+      // The uuid is the key and the slug is decoration (ADR 0017): a bare uuid, an upper-case uuid and
+      // a stale slug all map to the same route. A segment without a uuid maps to nothing.
+      const listingId = listingIdFromParam(id);
+      if (!listingId) return null;
+      return seg[2] === 'edit' ? `/listing/${listingId}/edit` : `/product/${listingId}`;
     }
     case 'trades':
       // web çoğul → mobil tekil; liste → tab
@@ -172,9 +175,21 @@ export function toMobileRoute(link: string): string | null {
     // Sipariş: ödeme / iade / teslim uçlarına giden kimlik — kimlik biçimi şart.
     case 'orders':
       return seg.slice(1).every(isIdSegment) ? path : null;
-    // Mobil rotalarla birebir uyumlu — olduğu gibi geçir (salt okunur; slug olabilir)
-    case 'product':
-    case 'products': // /products/unavailable/:id
+    // The product screen: `/product/<segment>[/reviews]` is canonicalised to the bare uuid like
+    // `/listings/<segment>` (the screen accepts the segment too, but the route stays one shape).
+    case 'product': {
+      if (!id) return path;
+      const listingId = listingIdFromParam(id);
+      return listingId ? ['', 'product', listingId, ...seg.slice(2)].join('/') : null;
+    }
+    // `/products/unavailable/<segment>`: the listing uuid is taken out like `/listings/<segment>`.
+    case 'products': {
+      // The only mobile `/products` route is `products/unavailable/[productId]`: anything else maps to nothing.
+      if (seg[1] !== 'unavailable' || !seg[2]) return null;
+      const listingId = listingIdFromParam(seg[2]);
+      return listingId ? `/products/unavailable/${listingId}` : null;
+    }
+    // Same name as the mobile route: passed through as is (read-only; the id may be a slug).
     case 'collections':
     case 'favorites':
     case 'pricing':
@@ -330,7 +345,8 @@ export function notificationRoute(n: NotificationLike | null | undefined): strin
   // Stok kalmayan ürün: `/product/:id` yerine "artık satışta değil" ekranı.
   // Kimlik aynı, hedefi ayıran tek sinyal tip — bu yüzden kimliklerden önce.
   if (n?.type && OUT_OF_STOCK_TYPES.has(n.type)) {
-    const pid = safeId(d.productId ?? d.product_id);
+    // Same rule as the `/products/unavailable/<segment>` link: the listing uuid, or no target here.
+    const pid = listingIdFromParam(safeId(d.productId ?? d.product_id));
     if (pid) return `/products/unavailable/${pid}`;
   }
 

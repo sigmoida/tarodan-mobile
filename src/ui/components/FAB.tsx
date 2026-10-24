@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, type PressableProps, type ViewStyle } from 'react-native';
 import { theme } from '../lib/theme';
 import {
   FAB_SIZE_SM,
@@ -9,6 +9,7 @@ import {
   useFloatingBottomOffset,
 } from '../lib/floating';
 import { RawText } from './Text';
+import { tabletSidePadding } from '../lib/windowClass';
 import { RefIcon, type IconRef, type IconVariant } from '../icons';
 
 export type FABVariant = 'primary' | 'secondary';
@@ -23,11 +24,11 @@ export interface FABProps extends Omit<PressableProps, 'style'> {
   style?: ViewStyle;
   accessibilityLabel: string;
   /**
-   * `bottomRight`: ekranın sağ altında yüzer — alt menünün "+" düğmesiyle AYNI çap, sağ kenar ve alt
-   * uzaklık (`FLOATING_ACTION_SIZE` / `FLOATING_SIDE_GAP` / `floatingBottomOffset`: iOS/hareket
+   * `bottomRight`: ekranın sağ altında yüzer — alt menü hapının yüksekliğinde, aynı sağ kenar ve alt
+   * uzaklıkta (`FLOATING_ACTION_SIZE` / `FLOATING_SIDE_GAP` / `floatingBottomOffset`: iOS/hareket
    * gezinmesinde tutamaç şeridine biner, Android 3 düğmeli çubuğun üstünde). `size` verilmezse
-   * çap da "+" ile aynıdır (birincil "oluştur" FAB'ı); ikincil yardımcı FAB (ör. yukarı çık) `size`
-   * vererek küçük kalır, konumu yine aynıdır. Ekranın kaydırma içeriği `useFabContentInset()` kadar alt boşluk bırakır.
+   * çap `FLOATING_ACTION_SIZE` (birincil "oluştur" FAB'ı); ikincil FAB `size` vererek küçük kalır,
+   * konumu yine aynıdır. Ekranın kaydırma içeriği `useFabContentInset()` kadar alt boşluk bırakır.
    */
   placement?: 'bottomRight';
 }
@@ -40,7 +41,7 @@ const sizeMap: Record<FABSize, { box: number; icon: number }> = {
   lg: { box: 64, icon: 28 },
 };
 
-/** Sağ alt yerleşimin ölçüsü: alt menünün "+" düğmesiyle aynı (tek kaynak `lib/floating`). */
+/** Sağ alt yerleşimin ölçüsü (tek kaynak `lib/floating`). */
 const FLOATING_SIZE = { box: FLOATING_ACTION_SIZE, icon: FLOATING_ACTION_ICON_SIZE };
 
 const variantStyle: Record<FABVariant, { bg: string; fg: string }> = {
@@ -61,8 +62,10 @@ export const FAB: React.FC<FABProps> = ({
   ...rest
 }) => {
   const floatingBottom = useFloatingBottomOffset();
+  // Large screens: the right edge follows the tablet page gutter (phones: the side gap).
+  const sideGap = tabletSidePadding(FLOATING_SIDE_GAP, useWindowDimensions().width);
   const floating = placement === 'bottomRight';
-  // Sağ altta boyut verilmezse "+" ile aynı çap; verilirse (ikincil FAB) o boyut.
+  // Sağ altta boyut verilmezse `FLOATING_ACTION_SIZE`; verilirse (ikincil FAB) o boyut.
   const ss = size ? sizeMap[size] : floating ? FLOATING_SIZE : sizeMap.md;
   const vs = variantStyle[variant];
   const extended = !!label;
@@ -73,7 +76,7 @@ export const FAB: React.FC<FABProps> = ({
         styles.base,
         floating && {
           position: 'absolute',
-          right: FLOATING_SIDE_GAP,
+          right: sideGap,
           bottom: floatingBottom,
         },
         {

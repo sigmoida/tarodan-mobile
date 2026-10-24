@@ -111,3 +111,14 @@ describe('registerSchema — telefon opsiyonel (web parite), E.164 olarak normal
     expect(result.success).toBe(true);
   });
 });
+
+describe('registerSchema — pre-1970 birth dates', () => {
+  it('accepts a 1950 birth date', () => {
+    const result = registerSchema.safeParse({
+      ...validRest,
+      birthDate: '1950-03-07',
+      username: 'gorkem',
+    });
+    expect(result.success).toBe(true);
+  });
+});

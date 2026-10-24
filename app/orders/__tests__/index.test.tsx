@@ -7,7 +7,9 @@
  * Backend onay/iade/escrow aktarımı backend-only.
  */
 import React from 'react';
+import { Dimensions, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { theme } from '@/ui';
 import { renderWithProviders } from '@/test-utils';
 
 jest.mock('expo-router', () => ({
@@ -242,5 +244,56 @@ describe('Siparişlerim · sayfalama', () => {
     expect(await screen.findByText(/ORD-PAGE-2/)).toBeOnTheScreen();
     expect(getGroupsMock).toHaveBeenCalledWith(expect.objectContaining({ page: 2 }));
     expect(screen.getByText(/ORD-PAGE-1/)).toBeOnTheScreen();
+  });
+});
+
+describe('Siparişlerim · large screens', () => {
+  const setWindow = (width: number, height: number) =>
+    Dimensions.set({
+      window: { width, height, scale: 2, fontScale: 2 },
+      screen: { width, height, scale: 2, fontScale: 2 },
+    });
+  beforeEach(() => {
+    getGroupsMock.mockReset();
+    mockAuth = { isAuthenticated: true };
+  });
+  afterEach(() => {
+    screen.unmount();
+    setWindow(375, 667);
+  });
+
+  it.each([
+    [390, theme.spacing[4]],
+    [820, theme.spacing[6]],
+    [1032, theme.spacing[8]],
+  ])('%d pt: the row list content side padding is %d (page gutter)', async (width, side) => {
+    setWindow(width, 1200);
+    getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture()] } });
+    renderWithProviders(<OrdersScreen />);
+    await waitFor(() => expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen());
+    const flat = StyleSheet.flatten(screen.getByTestId('orders-list').props.contentContainerStyle);
+    expect(flat.paddingLeft ?? flat.paddingHorizontal ?? flat.padding).toBe(side);
+  });
+
+  it.each([
+    [390, 844, 1],
+    [820, 1180, 2],
+    [1032, 1376, 3],
+    [1366, 1024, 4],
+  ])('%d x %d pt: the order cards form a %d-column grid', async (width, height, columns) => {
+    setWindow(width, height);
+    getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture()] } });
+    renderWithProviders(<OrdersScreen />);
+    await waitFor(() => expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen());
+    const list = screen.UNSAFE_root.findAll(
+      (n: { props: { testID?: string; numColumns?: number } }) => n.props.testID === 'orders-list' && n.props.numColumns != null,
+    )[0]!;
+    expect(list.props.numColumns).toBe(columns);
+    // Tablets wrap each card in a percentage grid cell; phones render the card as before.
+    const cellWidths = screen.UNSAFE_root.findAll(
+      (n: { type: unknown; props: { style?: StyleProp<ViewStyle> } }) =>
+        n.type === 'View' && typeof StyleSheet.flatten(n.props.style)?.width === 'string',
+    );
+    expect(cellWidths.length > 0).toBe(columns > 1);
   });
 });

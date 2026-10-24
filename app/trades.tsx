@@ -12,6 +12,7 @@ import {
   theme,
   useDelayedLoading,
   usePageScrollHandler,
+  usePageContentStyle, useRowGrid,
 } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { tradesApi } from '@/lib/api';
@@ -59,6 +60,10 @@ export default function TradesScreen() {
   const [filter, setFilter] = useState<TradesTabFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
   const page = usePageScrollHandler();
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle(pageListContentStyle);
+  // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
+  const grid = useRowGrid();
 
   const { data: tradesPayload, isLoading, isError, refetch } = useQuery({
     queryKey: qk.trades.list({ filter }),
@@ -133,10 +138,9 @@ export default function TradesScreen() {
 
   // Stable renderItem (#75) — memoized TradeCard bails out unless the row changes.
   const renderTrade = useCallback(
-    ({ item }: { item: (typeof tradesList)[number] }) => (
-      <TradeCard trade={item} currentUserId={user?.id} />
-    ),
-    [user?.id],
+    ({ item, index }: { item: (typeof tradesList)[number]; index: number }) =>
+      grid.cell(index, <TradeCard trade={item} currentUserId={user?.id} />),
+    [user?.id, grid],
   );
 
   if (!isAuthenticated) {
@@ -159,9 +163,11 @@ export default function TradesScreen() {
   return (
     <PageShell title={t('trade.myTrades')} onBack={handleBack} mode="list" scroll={page}>
       <Animated.FlatList
+        key={grid.listKey}
+        numColumns={grid.numColumns}
         {...page.listProps}
         data={isError || isLoading ? [] : tradesList}
-        contentContainerStyle={page.contentStyle(pageListContentStyle)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         refreshing={refreshing}
         onRefresh={onRefresh}
         keyExtractor={tradeKey}
@@ -182,7 +188,7 @@ export default function TradesScreen() {
         }
         ListEmptyComponent={
           isError ? (
-            <ErrorState message={t('trade.listLoadFailedHint')} onRetry={() => refetch()} />
+            <ErrorState placement="list" message={t('trade.listLoadFailedHint')} onRetry={() => refetch()} />
           ) : isLoading || showSkeleton ? (
             showSkeleton ? (
               <View style={styles.skeletons} testID="trades-skeleton">
@@ -192,6 +198,7 @@ export default function TradesScreen() {
             ) : null
           ) : (
             <EmptyState
+              placement="list"
               icon="arrows-right-left"
               title={t('trade.noTrades')}
               subtitle={filter === 'all' ? t('trade.noTradesHint') : t('trade.noTradesFilteredHint')}

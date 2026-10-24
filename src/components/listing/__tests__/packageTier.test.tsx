@@ -153,7 +153,7 @@ describe('paket boyutu seçimi', () => {
     await screen.findByText('İlan Oluştur');
 
     fireEvent.changeText(screen.getByPlaceholderText("Örn: Hot Wheels '69 Camaro Z28"), 'Geçerli başlık');
-    fireEvent.changeText(screen.getByPlaceholderText('0.00'), '500');
+    fireEvent.changeText(screen.getByPlaceholderText('0,00'), '500');
     fireEvent.press(screen.getByText('İlan Oluştur'));
 
     await waitFor(() => expect(productsApi.create).not.toHaveBeenCalled());

@@ -6,12 +6,9 @@ export const PAGE_SIZE = 24;
 // gizli tutulur (bkz. useSearch → barsMeasured). Tahmin + düzeltme turu listeyi
 // ilk boyamada yeniden yerleştiriyordu.
 
-// Sonuç ızgarasının listesi `numColumns` kullanıyor — tek kaynaktan gitsin
-// diye burada sabitliyoruz (search.tsx içindeki FlatList prop'u bunu import
-// ediyor). NOT: `getItemLayout` buradan kaldırıldı (bkz. task-3-report.md
-// düzeltme notu) — kart yüksekliği koşullu puan satırı + tek/iki satırlık
-// başlık nedeniyle 272.8–315.8pt arasında değişiyor, sabit değil.
-export const SEARCH_NUM_COLUMNS = 2;
+// The result grid's column count is the shared listing-grid rule (`useProductGridColumns`,
+// `@/components/product`): 2 on phones, more on tablets. There is no `getItemLayout`: the card
+// height varies (optional rating row, one- or two-line title).
 
 /**
  * FlashList v2 geri dönüşüm penceresi (px): görünür alanın alt/üstünde bu kadar içerik önceden çizilir.

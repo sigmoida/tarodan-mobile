@@ -1,7 +1,7 @@
 import { View, RefreshControl } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { useState, useCallback, useEffect } from 'react';
-import { theme, usePageScrollValue } from '@/ui';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { theme, usePageGutter, usePageOffsetHandler, usePageScrollValue } from '@/ui';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useGuestStore } from '@/stores/guestStore';
@@ -9,7 +9,6 @@ import { SignupPrompt } from '@/components/SignupPrompt';
 import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { floatingBarScrollProps, useFloatingBarInset } from '@/components/shell/floatingBar';
-import { useTabBarScrollHandler } from '@/components/shell/TabBarCollapse';
 import { homeStyles as styles } from './_lib/homeStyles';
 import { useHomeData } from './_hooks/useHomeData';
 import { useHomeGuestPrompt } from './_hooks/useHomeGuestPrompt';
@@ -48,14 +47,16 @@ export default function HomeScreen() {
   useEffect(() => {
     if (!showHero) resetHero();
   }, [showHero, resetHero]);
-  // Tab bar daralma sinyali + hero görünürlüğü (ofset UI thread'inden seyrek köprülenir) + üst barın
-  // kaydırma kenarı (`page.scrollY`) — TEK handler.
+  // Hero görünürlüğü (ofset UI thread'inden seyrek köprülenir) + üst barın kaydırma kenarı
+  // (`page.scrollY`) — TEK handler.
   const page = usePageScrollValue();
-  const tabScroll = useTabBarScrollHandler(heroView.onScrollOffset, page.scrollY);
-  const { onLayout: onTabScrollLayout } = tabScroll;
+  const onPageScroll = usePageOffsetHandler(page.scrollY, heroView.onScrollOffset);
   const guest = useHomeGuestPrompt(isAuthenticated);
   // Yuvalar (topbar/header/footer) aynı tohumu ve gösterim kümesini paylaşır.
   const adSession = useAdSession();
+  // Large screens: the sections and ad slots take the tablet gutter, like the hero and the top bar.
+  const gutter = usePageGutter();
+  const sideGutter = useMemo(() => ({ paddingHorizontal: gutter }), [gutter]);
 
   const [refreshing, setRefreshing] = useState(false);
   const tabInset = useTabBarInset();
@@ -92,16 +93,12 @@ export default function HomeScreen() {
           />
         }
         showsVerticalScrollIndicator={false}
-        onScroll={tabScroll.onScroll}
-        onContentSizeChange={tabScroll.onContentSizeChange}
-        onLayout={(e) => {
-          onTabScrollLayout(e);
-          heroView.onViewportLayout(e);
-        }}
+        onScroll={onPageScroll}
+        onLayout={heroView.onViewportLayout}
         scrollEventThrottle={16}
       >
         <AdBanner position="topbar" session={adSession} />
-        <AdBanner position="header" session={adSession} style={styles.adHeader} />
+        <AdBanner position="header" session={adSession} style={[styles.adHeader, sideGutter]} />
         {/* Hero yokken (boş liste) sarmalayıcı da yok: ilk bölüm üstteki reklam/üst barın altından
             tek `HOME_SECTION_GAP` ile (sections dolgusu) başlar. Yükleniyorsa yalnız son açılışta
             hero vardıysa yer tutulur (`reserveSpace`). */}
@@ -113,12 +110,12 @@ export default function HomeScreen() {
           <HeroReserved />
         ) : null}
 
-        <View style={styles.sections}>
+        <View style={[styles.sections, sideGutter]}>
           <BrandsStrip items={data.manufacturers} isLoading={data.loadingManufacturers} />
           <FeaturedRail items={data.featured} isLoading={data.loadingFeatured} onProductPress={handleProductPress} />
           <OnSaleRail items={data.onSale} isLoading={data.loadingOnSale} onProductPress={handleProductPress} />
           <TradeRail items={data.trade} isLoading={!lowerReady || data.loadingTrade} onProductPress={handleProductPress} />
-          <PopularRail items={data.popular} isLoading={!lowerReady || data.loadingPopular} onProductPress={handleProductPress} />
+          <PopularRail items={data.popular} isLoading={!lowerReady || data.loadingPopular} failed={data.failedPopular} onProductPress={handleProductPress} />
           <TopCollections items={data.topCollections} isLoading={!lowerReady || data.loadingTopCollections} />
           <Spotlights
             collector={data.featuredCollector}
@@ -127,7 +124,7 @@ export default function HomeScreen() {
           />
         </View>
 
-        <AdBanner position="footer" session={adSession} style={styles.adFooter} />
+        <AdBanner position="footer" session={adSession} style={[styles.adFooter, sideGutter]} />
         <View style={{ height: tabInset }} />
       </Animated.ScrollView>
 

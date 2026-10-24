@@ -15,6 +15,7 @@ import {
   ListRowCard,
   useDelayedLoading,
   usePageScrollHandler,
+  usePageContentStyle, useRowGrid,
 } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
 import { PageShell } from '@/components/common/PageShell';
@@ -25,7 +26,6 @@ import { useManufacturers, type Manufacturer } from './_hooks/useManufacturers';
 const { colors, radiusRole, spacing } = theme;
 const SKELETON_ROWS = [0, 1, 2, 3, 4, 5];
 
-const renderManufacturer = ({ item }: { item: Manufacturer }) => <ManufacturerRow item={item} />;
 const manufacturerKey = (item: Manufacturer) => item.id;
 
 const ManufacturerRow = React.memo(function ManufacturerRow({ item }: { item: Manufacturer }) {
@@ -54,18 +54,28 @@ export default function ManufacturersScreen() {
   const { t } = useTranslation();
   const f = useManufacturers();
   const page = usePageScrollHandler();
+  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
+  const listContentStyle = usePageContentStyle(styles.content);
+  // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
+  const grid = useRowGrid();
+  const renderManufacturer = React.useCallback(
+    ({ item, index }: { item: Manufacturer; index: number }) => grid.cell(index, <ManufacturerRow item={item} />),
+    [grid],
+  );
   // İlk yükleme iskeleti gecikmeli: <150 ms süren yüklemede hiç çizilmez (göz kırpma yok).
   const showSkeleton = useDelayedLoading(f.isLoading);
 
   return (
     <PageShell title={t('nav.manufacturers')} mode="list" scroll={page}>
       <Animated.FlatList
+        key={grid.listKey}
+        numColumns={grid.numColumns}
         {...page.listProps}
         data={f.isLoading || f.error ? [] : f.items}
         keyExtractor={manufacturerKey}
         renderItem={renderManufacturer}
         {...listWindowing}
-        contentContainerStyle={page.contentStyle(styles.content)}
+        contentContainerStyle={page.contentStyle(listContentStyle)}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -101,9 +111,10 @@ export default function ManufacturersScreen() {
               </View>
             ) : null
           ) : f.error ? (
-            <ErrorState onRetry={() => f.refetch()} />
+            <ErrorState placement="list" onRetry={() => f.refetch()} />
           ) : (
             <EmptyState
+              placement="list"
               icon="magnifying-glass"
               title={f.hasAny ? t('common.noResults') : t('product.noManufacturersYet')}
               subtitle={f.hasAny ? t('search.tryDifferent') : t('emptyState.manufacturersHint')}

@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import i18n from '@/i18n/config';
+import { GOOGLE_SIGN_IN_CANCELLED } from './googleSigninErrors';
 
 // [GEÇİCİ — refactor runtime doğrulaması için] Native RNGoogleSignin bu dev-client
 // build'inde bridgeless TurboModule olarak register olmuyor (iOS Google Sign-In
@@ -28,14 +29,12 @@ function ensureConfigured() {
 }
 
 /**
- * Android'de Google girişi AÇIK mı — build başına bayrak. BİLİNÇLİ karar:
- * Android henüz Play'de değil; bayrak `'true'` olana kadar buton Android'de
- * gizli (belgesi `.env.example`, profiller `eas.json`'da `"false"`). Google Cloud'da
- * Android OAuth istemcisine imza SHA-1'i (Play App Signing + upload) kayıtlı
- * değilken giriş `DEVELOPER_ERROR` ile düşüyor (docs/RELEASE.md). Bayrak
- * yalnız SHA-1 kaydı doğrulanmış build profilinde `'true'` yapılır; yoksa
- * buton hiç görünmez. Doğrudan `process.env.EXPO_PUBLIC_*` erişimi: Expo
- * değeri derleme anında inline'lar.
+ * Is Google sign-in ON for Android? A per-build flag, on purpose: without an Android OAuth
+ * client (package name + signing SHA-1) in Google Cloud, sign-in dies with `DEVELOPER_ERROR`
+ * (docs/ANDROID_RELEASE.md, section 9). The flag is `'true'` only in the `eas.json` profiles
+ * whose clients exist and whose real-device check passed (`easProfiles.test.ts` pins them);
+ * elsewhere the button stays hidden.
+ * Read `process.env.EXPO_PUBLIC_*` directly: Expo inlines the value at build time.
  */
 const ANDROID_ENABLED = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED === 'true';
 
@@ -50,8 +49,18 @@ export function isGoogleConfigured(): boolean {
   return !!WEB_CLIENT_ID && ANDROID_ENABLED;
 }
 
+export interface GoogleSignInOptions {
+  /**
+   * Step-up (`POST /auth/reauth`) needs an `idToken` minted now: the API refuses one whose
+   * `iat` is more than 300 s old, and the SDK may hand back the account it already holds.
+   * `fresh` signs that account out of the SDK first, so the chooser shows and Google issues
+   * a new token. It never touches the Tarodan session.
+   */
+  fresh?: boolean;
+}
+
 /** Google ile giriş; backend'e gönderilecek idToken döner. */
-export async function signInWithGoogle(): Promise<string> {
+export async function signInWithGoogle({ fresh = false }: GoogleSignInOptions = {}): Promise<string> {
   if (!isGoogleConfigured()) {
     // React DIŞI modül — `useTranslation` çağıramaz; bu hata `useLogin`'in
     // catch bloğunda `e.message` olarak doğrudan kullanıcıya gösterilir
@@ -62,7 +71,19 @@ export async function signInWithGoogle(): Promise<string> {
   ensureConfigured();
   const GoogleSignin = getGoogleSignin();
   await GoogleSignin.hasPlayServices();
+  if (fresh) {
+    try {
+      await GoogleSignin.signOut();
+    } catch {
+      /* nothing cached to clear: the sign-in below still runs */
+    }
+  }
   const result: any = await GoogleSignin.signIn();
+  // Since v13 the SDK resolves `{ type: 'cancelled' }` instead of throwing: surface it as the
+  // cancel code, so callers stay silent instead of reporting a missing token.
+  if (result?.type === 'cancelled') {
+    throw Object.assign(new Error('Google sign-in cancelled'), { code: GOOGLE_SIGN_IN_CANCELLED });
+  }
   const idToken = result?.idToken ?? result?.data?.idToken;
   if (!idToken) throw new Error(i18n.t('auth.googleIdTokenMissing'));
   return idToken;

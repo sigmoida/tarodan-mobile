@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { theme } from '../lib/theme';
 
 export interface DelayedLoadingOptions {
@@ -25,6 +25,15 @@ export function useDelayedLoading(isLoading: boolean, options: DelayedLoadingOpt
   const minDuration = options.minDuration ?? theme.loading.minVisibleMs;
   const [shown, setShown] = useState(() => isLoading && delay <= 0);
   const shownAt = useRef<number | null>(shown ? Date.now() : null);
+  // The loading state of the last commit. Layout effects run inside the commit, so a timer can
+  // never see an older value; the passive effect below clears its timers only after the commit.
+  // On a busy JS thread a due timer can fire in that gap: the show timer would bring the
+  // indicator back over content that has just rendered (for `minDuration`), the hide timer
+  // would drop it while a new load runs. Each timer checks this first.
+  const loadingNow = useRef(isLoading);
+  useLayoutEffect(() => {
+    loadingNow.current = isLoading;
+  }, [isLoading]);
 
   // `delay: 0`: yükleme başladığı render'da göster (efekt beklenmez — boş kare yok).
   if (isLoading && delay <= 0 && !shown) {
@@ -36,6 +45,7 @@ export function useDelayedLoading(isLoading: boolean, options: DelayedLoadingOpt
     if (isLoading) {
       if (shown) return undefined;
       const timer = setTimeout(() => {
+        if (!loadingNow.current) return;
         shownAt.current = Date.now();
         setShown(true);
       }, delay);
@@ -49,6 +59,7 @@ export function useDelayedLoading(isLoading: boolean, options: DelayedLoadingOpt
       return undefined;
     }
     const timer = setTimeout(() => {
+      if (loadingNow.current) return;
       shownAt.current = null;
       setShown(false);
     }, left);

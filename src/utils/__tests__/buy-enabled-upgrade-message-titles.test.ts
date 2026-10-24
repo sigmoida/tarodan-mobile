@@ -24,7 +24,6 @@ describe('Android · getUpgradeMessage her promptType için kendi başlığı ve
     ['collectionFeature', 'membership.featureDigitalGarage', 'upgradePrompt.collectionFeatureMessage'],
     ['featureListing', 'upgradePrompt.featureListingTitle', 'upgradePrompt.featureListingMessage'],
     ['messageLimit', 'upgradePrompt.messageLimitTitle', 'upgradePrompt.messageLimitMessage'],
-    ['savedSearchLimit', 'membership.savedSearchLimitTitle', 'membership.savedSearchLimitMessage'],
     ['imageLimit', 'upgradePrompt.imageLimitTitle', 'upgradePrompt.imageLimitMessage'],
     ['valueLimit', 'membership.valueLimitTitle', 'membership.valueLimitMessage'],
   ];

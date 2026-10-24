@@ -1,6 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { GlassSurface, Text, theme, Icon, GLASS_ICON_BUTTON_SIZE, getGlassView } from '@/ui';
 
@@ -10,8 +9,6 @@ export interface SearchFieldProps {
   onPress: () => void;
   /** Boşken gösterilen metin; verilmezse web'in telefon başlığındaki kısa metin `nav.searchPlaceholderMobile` (dar alanda kesilmez). */
   placeholder?: string;
-  /** İçeriğin (ikon + metin) ek stili — camda gizlenirken içerik yüzeyin İÇİNDE solar (animasyonlu). */
-  contentStyle?: StyleProp<ViewStyle>;
   testID?: string;
 }
 
@@ -22,7 +19,7 @@ export interface SearchFieldProps {
  * iOS < 26 yarı saydam beyaz, Android beyaz), yükseklik = cam düğme çapı. Arama ekranının vurgulu
  * (primary çerçeveli) kutusundan bilinçli olarak farklı; üst barda sakin durur.
  */
-export const SearchField: React.FC<SearchFieldProps> = ({ onPress, placeholder, contentStyle, testID }) => {
+export const SearchField: React.FC<SearchFieldProps> = ({ onPress, placeholder, testID }) => {
   const { t } = useTranslation();
   const label = placeholder ?? t('nav.searchPlaceholderMobile');
   const glass = getGlassView() !== null;
@@ -43,7 +40,7 @@ export const SearchField: React.FC<SearchFieldProps> = ({ onPress, placeholder, 
         style={styles.surface}
         testID={testID ? `${testID}-surface` : undefined}
       >
-        <Animated.View style={[styles.content, contentStyle]}>
+        <View style={styles.content}>
           {/* Yanındaki cam düğmelerle aynı renk (GlassIconButton `heading`): ikon + metin; arama
               ekranının üst bardaki kutusuyla da aynı. */}
           <Icon name="magnifying-glass" size={iconSize.md} color={colors.text.heading} />
@@ -56,7 +53,7 @@ export const SearchField: React.FC<SearchFieldProps> = ({ onPress, placeholder, 
           >
             {label}
           </Text>
-        </Animated.View>
+        </View>
       </GlassSurface>
     </Pressable>
   );

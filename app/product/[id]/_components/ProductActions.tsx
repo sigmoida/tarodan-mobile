@@ -7,6 +7,7 @@ import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { cartQuantityLimit } from '../_lib/quantity';
 import { isPurchasable, type OfferTradeAvailability } from '../_lib/engagement';
 import type { Product } from '../_lib/types';
+import type { OfferTradePlacement } from '../_lib/layout';
 
 const { spacing, iconSize, priceColor, typography } = theme;
 
@@ -31,6 +32,11 @@ function unavailableLabel(product: Product, t: (k: any) => string): string {
  * Satılamayan ilanda kare düğme yok, birincil düğme pasif ve web'in durum etiketini taşır.
  * Sahipte fiyat + "Düzenle". Etiketler tek satır (Button sığmazsa küçültür); fiyat küçülür.
  * Web kartta/detayda ilan bazlı kargo bilgisi göstermediği için kargo satırı yok.
+ *
+ * `wide` (tablets, `productDetailLayout().wideBar`): one row laid out for the width: the price on
+ * the left, `extraActions` (the offer / trade buttons) and the buy buttons on the right, all at their
+ * natural width and the same height; "Hemen Al" is a regular icon + label button there, not the
+ * phone's square.
  */
 export function ProductBuyBar({
   product,
@@ -41,6 +47,8 @@ export function ProductBuyBar({
   onBuyNow,
   onGoToCart,
   onEdit,
+  wide = false,
+  extraActions,
 }: {
   product: Product;
   isOwner: boolean;
@@ -50,10 +58,13 @@ export function ProductBuyBar({
   onBuyNow: () => void;
   onGoToCart: () => void;
   onEdit: () => void;
+  wide?: boolean;
+  extraActions?: React.ReactNode;
 }) {
   const { t } = useTranslation();
+  const primaryStyle = wide ? styles.primaryWide : styles.primary;
   const price = (
-    <View style={styles.price}>
+    <View style={wide ? styles.priceWide : styles.price}>
       <ProductPrice
         product={{ ...product, price: product.price ?? 0 }}
         variant="h3"
@@ -67,14 +78,14 @@ export function ProductBuyBar({
 
   if (isOwner) {
     return (
-      <View style={styles.row}>
+      <View style={styles.row} testID="product-buy-bar">
         {price}
         <Button
           testID="product-detail-edit-button"
           size="lg"
           title={t('common.edit')}
           onPress={onEdit}
-          style={styles.primary}
+          style={primaryStyle}
         />
       </View>
     );
@@ -82,9 +93,19 @@ export function ProductBuyBar({
 
   const purchasable = isPurchasable(product, isOutOfStock);
   return (
-    <View style={styles.row}>
+    <View style={styles.row} testID="product-buy-bar">
       {price}
-      {purchasable ? (
+      {extraActions}
+      {purchasable && wide ? (
+        <Button
+          testID="product-detail-buy-now-button"
+          variant="outline"
+          size="lg"
+          title={t('product.buyNow')}
+          onPress={onBuyNow}
+          style={styles.inlineWide}
+        />
+      ) : purchasable ? (
         <Button
           testID="product-detail-buy-now-button"
           variant="outline"
@@ -115,7 +136,7 @@ export function ProductBuyBar({
           size="lg"
           title={t('product.goToCart')}
           onPress={onGoToCart}
-          style={styles.primary}
+          style={primaryStyle}
         />
       ) : (
         <Button
@@ -124,7 +145,7 @@ export function ProductBuyBar({
           title={purchasable ? t('product.addToCart') : unavailableLabel(product, t as any)}
           onPress={onAddToCart}
           disabled={!purchasable}
-          style={styles.primary}
+          style={primaryStyle}
         />
       )}
     </View>
@@ -136,36 +157,45 @@ export function ProductBuyBar({
  * Bu iki eylemin TEK birincil girişi (fiyatın yanındaki çipler yalnız kısayol). Görünürlük
  * `getOfferTradeAvailability`'den: sahipte ve satılamayan ilanda hiç çizilmez. İkisi de geçerliyse
  * eşit genişlikte yan yana, biri geçerliyse tam genişlik. Kompakt (`md`), etiket tek satır.
+ * `placement` (`productDetailLayout().offerTrade`): `stacked` (phones, equal halves) or `inline`
+ * (tablets: inside the buy bar row, natural width, the bar's button height).
  */
 export function ProductOfferTradeRow({
   availability,
   onTrade,
   onMakeOffer,
+  placement = 'stacked',
 }: {
   availability: OfferTradeAvailability;
   onTrade: () => void;
   onMakeOffer: () => void;
+  placement?: OfferTradePlacement;
 }) {
   const { t } = useTranslation();
   if (!availability.offer && !availability.trade) return null;
+  const inline = placement === 'inline';
+  const cell = inline ? styles.inlineWide : styles.cell;
+  const size = inline ? 'lg' : undefined;
   return (
     <View style={styles.pair} testID="product-offer-trade-row">
       {availability.trade ? (
         <Button
           testID="product-detail-trade-button"
           variant="outline"
+          size={size}
           title={t('product.trade')}
           onPress={onTrade}
-          style={styles.cell}
+          style={cell}
         />
       ) : null}
       {availability.offer ? (
         <Button
           testID="product-detail-offer-button"
           variant="outline"
+          size={size}
           title={t('product.makeOffer')}
           onPress={onMakeOffer}
-          style={styles.cell}
+          style={cell}
         />
       ) : null}
     </View>
@@ -230,7 +260,12 @@ const styles = StyleSheet.create({
   square: { flexShrink: 0, paddingHorizontal: spacing[2] },
   squareInner: { alignItems: 'center' },
   primary: { flexGrow: 1, flexShrink: 0, paddingHorizontal: spacing[4] },
+  // Tablets: the price takes the free space, buttons keep their natural width.
+  priceWide: { flexGrow: 1, flexShrink: 1, minWidth: 0, marginRight: spacing[1] },
+  primaryWide: { flexShrink: 0, paddingHorizontal: spacing[8] },
   stepper: { alignSelf: 'flex-start' },
   pair: { flexDirection: 'row', gap: spacing[2] },
   cell: { flex: 1, paddingHorizontal: spacing[2] },
+  // Tablet bar buttons next to the price: natural width, never squeezed.
+  inlineWide: { flexShrink: 0, paddingHorizontal: spacing[4] },
 });

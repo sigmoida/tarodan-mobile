@@ -7,6 +7,7 @@ export const styles = StyleSheet.create({
   pickerSubtitle: {
     marginBottom: theme.spacing[3],
   },
+  spinner: { marginVertical: theme.spacing[6] },
   swapWrap: { alignItems: 'center' },
   summary: { gap: theme.spacing[1] },
   chipsRow: {
@@ -16,9 +17,6 @@ export const styles = StyleSheet.create({
   },
   chip: {
     flex: 1,
-  },
-  cashInput: {
-    marginTop: theme.spacing[3],
   },
   summaryRow: {
     flexDirection: 'row',

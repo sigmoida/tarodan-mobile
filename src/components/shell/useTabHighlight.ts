@@ -9,7 +9,7 @@ import {
 } from 'react-native-reanimated';
 import { theme } from '@/ui';
 
-/** Vurgu kayma süresi: theme.duration.normal (250ms), web `premium` eğrisi (daralma animasyonuyla aynı). */
+/** Vurgu kayma süresi: theme.duration.normal (250ms), web `premium` eğrisi. */
 export const TAB_HIGHLIGHT_MS = theme.duration.normal;
 const EASING = Easing.bezier(0.4, 0, 0.2, 1);
 const TIMING = { duration: TAB_HIGHLIGHT_MS, easing: EASING } as const;
@@ -22,7 +22,7 @@ interface ItemLayout {
 /**
  * Alt menü aktif-sekme vurgusu: sekmeler `onItemLayout(key)` ile ölçülür; vurgu (`style`) aktif
  * sekmenin x / genişliğine `withTiming` ile KAYAR (translateX + width). İlk yerleşim animasyonsuz
- * oturur; aktif sekme yoksa ("+" sayfası gibi) vurgu solar. "Reduce motion" açıkken anında geçer.
+ * oturur; aktif sekme yoksa (menülü yığın ekranı) vurgu solar. "Reduce motion" açıkken anında geçer.
  */
 export function useTabHighlight(activeKey: string | undefined) {
   const reduceMotion = useReducedMotion();
@@ -66,6 +66,5 @@ export function useTabHighlight(activeKey: string | undefined) {
     transform: [{ translateX: x.value }],
   }));
 
-  // `layouts`: ölçülen sekme konumları (daralmış sekme öğesi açılırken bu konumdan kayar).
-  return { style, onItemLayout, layouts };
+  return { style, onItemLayout };
 }

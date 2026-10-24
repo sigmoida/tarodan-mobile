@@ -9,17 +9,19 @@ import { CAN_BUY_DIGITAL, limitAlert } from '@/lib/purchases';
 import { authApi } from '@/lib/api';
 import { useAppMutation } from '@/lib/query';
 import { useSocialSignIn } from '@/hooks/useSocialSignIn';
+import { useSendSetPasswordMail } from '@/hooks/useSendSetPasswordMail';
 import { useAuthStore } from '@/stores/authStore';
 import { usePendingAuthEmailStore } from '@/stores/pendingAuthEmailStore';
 import { buildLoginSchema, TWO_FACTOR_CODE_PATTERN, type LoginForm } from '../_lib/schema';
 import { IS_MAESTRO } from '@/config/maestro';
 
 /**
- * Web `useLoginFlow` ile aynı adımlar: `email` (e-posta + sosyal giriş) → `password`
- * (kayıtlı + şifreli hesap) ya da `googleOnly` (kayıtlı ama şifresiz, Google ile açılmış).
- * Geçiş sunucudaki `POST /auth/check-email` yanıtına göre yapılır (istemci tarafı tahmin yok).
+ * The same steps as web `useLoginFlow`: `email` (e-mail + social sign-in), then `password`
+ * (registered account with a password) or `noPassword` (registered, no password: it signs in
+ * with a linked provider, or sets a password by e-mail). The step follows the server's
+ * `POST /auth/check-email` answer (no client-side guess).
  */
-export type LoginStep = 'email' | 'password' | 'googleOnly';
+export type LoginStep = 'email' | 'password' | 'noPassword';
 
 /**
  * Login controller — owns the RHF form (zod), the two-step identify flow, the login +
@@ -170,7 +172,7 @@ export function useLogin() {
         setNotRegistered(true);
         return;
       }
-      setStep(res.data.hasPassword ? 'password' : 'googleOnly');
+      setStep(res.data.hasPassword ? 'password' : 'noPassword');
     } catch {
       toast.error(t('error.somethingWrongDesc'));
     }
@@ -189,12 +191,8 @@ export function useLogin() {
     clearErrors(['password', 'twoFactorCode']);
   };
 
-  // Google ile açılmış (şifresiz) hesap için şifre belirleme bağlantısı (web `sendSetPassword`).
-  const setPasswordMutation = useMutation({
-    mutationFn: (email: string) => authApi.forgotPassword(email),
-    onSuccess: () => toast.success(t('auth.setPasswordEmailSent')),
-    onError: () => toast.error(t('auth.couldNotSendEmail')),
-  });
+  // Set-password link for an account without a password (web `sendSetPassword`).
+  const setPasswordMutation = useSendSetPasswordMail();
 
   const onSubmit = (data: LoginForm) => {
     setErrorMessage(null);

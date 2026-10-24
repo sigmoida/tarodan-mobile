@@ -34,6 +34,6 @@ export const styles = StyleSheet.create({
   },
   counters: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing[4] },
   counter: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
-  itemsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing[3] },
-  itemCell: { width: '48%' },
+  // Card grid: cells sized by `gridCellStyle` (columns from the window width; 48% / 4% on phones).
+  itemsGrid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing[3] },
 });

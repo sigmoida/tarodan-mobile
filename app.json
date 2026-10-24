@@ -2,7 +2,7 @@
   "expo": {
     "name": "Tarodan",
     "slug": "tarodan",
-    "version": "1.1.1",
+    "version": "1.2.0",
     "runtimeVersion": {
       "policy": "fingerprint"
     },
@@ -23,7 +23,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "requireFullScreen": true,
+      "requireFullScreen": false,
       "bundleIdentifier": "com.tarodan.app",
       "usesAppleSignIn": true,
       "associatedDomains": [
@@ -34,7 +34,9 @@
         "NSPhotoLibraryUsageDescription": "Tarodan; ilanınıza ürün fotoğrafı eklemeniz, mesajlara ve iade taleplerine görsel eklemeniz ve profil ya da koleksiyon görseli seçmeniz için fotoğraf galerinize erişir.",
         "UISupportedInterfaceOrientations~ipad": [
           "UIInterfaceOrientationPortrait",
-          "UIInterfaceOrientationPortraitUpsideDown"
+          "UIInterfaceOrientationPortraitUpsideDown",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
         ],
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -360,9 +362,7 @@
       "expo-apple-authentication",
       [
         "@react-native-google-signin/google-signin",
-        {
-          "iosUrlScheme": "com.googleusercontent.apps.243308404313-92c5475nff3874maoqes02ajakn81hvh"
-        }
+        {}
       ],
       "./plugins/withGoogleSigninPods.js",
       [

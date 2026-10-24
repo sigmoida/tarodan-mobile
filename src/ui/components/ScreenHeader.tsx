@@ -9,6 +9,7 @@ import { ScrollEdge } from './ScrollEdge';
 import { getGlassView } from '../lib/glass';
 import { theme } from '../lib/theme';
 import { useHeaderTopInset } from '../lib/header';
+import { tabletSidePadding } from '../lib/windowClass';
 
 import type { IconRef, IconVariant } from '../icons';
 /**
@@ -122,7 +123,8 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
         styles.container,
         isFloating && styles.floating,
         !isFloating && !transparent && styles.solid,
-        { paddingTop: topPad },
+        // Tablets: the bar's side padding follows the page gutter (phones: 12, unchanged).
+        { paddingTop: topPad, paddingHorizontal: tabletSidePadding(spacing[3], windowWidth) },
         style,
       ]}
     >
@@ -259,7 +261,7 @@ const TopBarPill: React.FC<{ children: React.ReactNode; disabled?: boolean }> = 
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: spacing[3],
+    // paddingHorizontal: spacing 3, widened to the page gutter on tablets (set inline).
     // Satırın altında `headerBottomPad`: durum çubuğu ↔ düğme boşluğuyla dengeli alt boşluk.
     paddingBottom: headerBottomPad,
   },

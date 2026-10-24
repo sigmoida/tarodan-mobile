@@ -2,6 +2,7 @@ import { api } from "./client";
 import { apiPath } from "./path";
 import { DOCUMENT_UPLOAD_TIMEOUT_MS } from "./media";
 import { appendRNFile } from "./formData";
+import { REAUTH_TOKEN_HEADER } from "@/types/sign-in-methods";
 
 // User API - Web ile aynı endpoint'ler
 export const userApi = {
@@ -19,7 +20,6 @@ export const userApi = {
           taxId?: string;
           taxOffice?: string;
           isCorporateSeller?: boolean;
-          showTrustScore?: boolean;
         }
       | FormData,
   ) =>
@@ -30,8 +30,17 @@ export const userApi = {
         ? { headers: { "Content-Type": "multipart/form-data" } }
         : undefined,
     ),
-  /** Hesabı sil (kullanıcının kendi). Backend: DELETE /users/me */
-  deleteAccount: () => api.delete("/users/me"),
+  /**
+   * Delete the signed-in user's own account (`DELETE /users/me`). The step-up token goes in
+   * the `X-Reauth-Token` header (`REAUTH_TOKEN_HEADER`): a DELETE body is dropped by some
+   * clients and proxies. Without a token the request passes only while the API setting
+   * `auth_require_reauth_for_sensitive_actions` is off (sign-in methods delta, 2026-10-21).
+   */
+  deleteAccount: (reauthToken?: string) =>
+    api.delete(
+      "/users/me",
+      reauthToken ? { headers: { [REAUTH_TOKEN_HEADER]: reauthToken } } : undefined,
+    ),
   /** Değiştirilemez kullanıcı adını bir kez belirle — PATCH /users/me/username. */
   claimUsername: (username: string) =>
     api.patch<{ username: string; usernameClaimed: boolean }>("/users/me/username", { username }),

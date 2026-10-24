@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Alert, Button, Text, theme, type IconName } from '@/ui';
+import { Alert, Button, Text, theme, usePageContentStyle, type IconName } from '@/ui';
 import { FullScreenGate, FullScreenGateIcon } from '@/components/common/FullScreenGate';
 
 const { colors, spacing } = theme;
@@ -69,10 +69,13 @@ export function RequiredStepShell({
   testID,
 }: RequiredStepShellProps) {
   const visible = useRequiredStepVisible();
+  // Large screens: the form and its action bar take the tablet gutter.
+  const contentStyle = usePageContentStyle(styles.content);
+  const footerStyle = usePageContentStyle(styles.footer);
   if (!visible) return null;
   return (
     <FullScreenGate layer="requiredSteps" onBackPress={onBackPress} testID={testID}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={contentStyle} keyboardShouldPersistTaps="handled">
         <FullScreenGateIcon name={icon} />
         <Text variant="h2" align="center" style={styles.title} accessibilityRole="header">
           {title}
@@ -87,7 +90,7 @@ export function RequiredStepShell({
           </Alert>
         ) : null}
       </ScrollView>
-      <View style={styles.footer}>
+      <View style={footerStyle}>
         <Button
           variant="primary"
           size="lg"

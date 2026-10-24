@@ -462,6 +462,7 @@ ulaşamaz; production OTA onayı atlanamaz.
 | `SENTRY_AUTH_TOKEN`                                        | EAS env, `production`, **secret** visibility           | Production EAS build: source map + dSYM upload (see "Sentry source maps and debug symbols")     |
 | `EXPO_PUBLIC_SENTRY_DSN`                                   | EAS env, `production`, plaintext                       | Production build and production OTA (`publish-ota` loads the EAS env); without it Sentry is off |
 | `SENTRY_AUTH_TOKEN`                                        | GitHub Environment `production` secret                 | Production OTA source map upload                                                                |
+| `SENTRY_AUTH_TOKEN`                                        | GitHub Environment `staging` secret                    | Staging OTA source map upload (optional: without it the OTA ships with a warning, no maps)      |
 | "Allow GitHub Actions to create and approve pull requests" | Repo ayarı (Settings → Actions → General)              | Hotfix back-merge PR'ı                                                                          |
 
 > ⚠️ Workflow'da adı geçen bir environment yoksa GitHub onu **korumasız**
@@ -591,7 +592,19 @@ readable. `publish_ota` in `scripts/ci/release.sh` therefore passes
 every published source map carries a debugId, and uploads `dist/` with
 `npx sentry-expo-upload-sourcemaps dist` using the `SENTRY_AUTH_TOKEN` secret of
 the GitHub Environment `production`. A production OTA without that token is
-refused before anything is published. Details: `scripts/ci/CLAUDE.md` (publish-ota).
+refused before anything is published. Staging OTAs do the same with the
+`SENTRY_AUTH_TOKEN` secret of the GitHub Environment `staging`; without it they
+publish and only warn. With the token, a staging OTA follows the same checks as
+production: a Sentry upload target that cannot be resolved stops it before
+publishing, and a missing map, a map without a debugId or a failed upload turns the
+job red after publishing (do not re-run it; fix the cause, the next push ships a new
+OTA). Keep `SENTRY_AUTH_TOKEN` an **Environment** secret only (`staging` and
+`production`): a repository secret of the same name would silently fill in for an
+environment that lacks one. Staging **store builds** still upload nothing
+(`SENTRY_DISABLE_AUTO_UPLOAD=true` in the `staging` and `preview` profiles), so
+errors from a staging binary's embedded bundle stay minified until an OTA replaces
+it; turning that on is an `eas.json` (fingerprint) change. Details:
+`scripts/ci/CLAUDE.md` (publish-ota).
 
 ## Kopya kağıdı
 
@@ -611,32 +624,65 @@ Aynı sürümün yeni build'i        gh workflow run mobile-production.yml --ref
 
 ---
 
-## Bilinen açıklar (Android / Google)
+## Known gaps (Android / Google)
 
-**Deep links (staging).** `assetlinks.json` staging domaini için yayında değil;
-`https://staging.tarodan.com.tr/...` linkleri uygulama yerine tarayıcıda açılır
-(`tarodan://` linkleri çalışır). E-posta doğrulama / şifre sıfırlama akışı bu
-yüzden uygulama içinde uçtan uca test edilemez. Kapatmak için imza anahtarının
-SHA-256'sı (`eas credentials -p android`) web tarafında `assetlinks.json`'a
-eklenmeli — rebuild gerekmez. Bkz. [`deep-links.md`](./deep-links.md).
+**Deep links (staging).** `assetlinks.json` is not published for the staging
+domain, so `https://staging.tarodan.com.tr/...` links open in the browser instead of
+the app (`tarodan://` links work). The e-mail verification and password reset flows
+therefore cannot be tested end to end in the app. To close it, the SHA-256 of the
+signing key (`eas credentials -p android`) must be added to `assetlinks.json` on the
+web side; no rebuild is needed. See [`deep-links.md`](./deep-links.md).
 
-**Google sign-in (Android).** Projeden henüz Android release'i çıkmadı; imza
-anahtarının SHA-1'i hiçbir yerde kayıtlı değil. Buton görünür ama dokununca
-`DEVELOPER_ERROR` (kod 10) verir: `@react-native-google-signin`, paket adı **ve**
-SHA-1 ile eşleşen bir Android OAuth client ister. Her paket (`com.tarodan.app`,
-`com.tarodan.app.staging`) için ayrı client kaydı gerekir; aynı komutun SHA-256
-çıktısı deep-links açığını da kapatır.
+**Google sign-in (Android).** The Android OAuth clients of both packages exist in the
+Google Cloud project `tarodan-app` (`1048836099670`) since 2026-10-23.
+`EXPO_PUBLIC_GOOGLE_ANDROID_ENABLED` is `"true"` on `preview`/`staging` and `"false"`
+on `production` until a Play-installed staging build passed sign-in on a real device.
+`@react-native-google-signin` on Android needs a client that matches the package name
+**and** the signing SHA-1; a missing one fails with `DEVELOPER_ERROR` (code 10). The
+SHA-256 from the same source also closes the deep-links gap. Steps and state:
+[`ANDROID_RELEASE.md`](./ANDROID_RELEASE.md) section 9.
 
-**Sunucu tarafı — Google sign-in audience.** API, gelen `idToken`'ı
-`GOOGLE_CLIENT_ID_WEB`, `GOOGLE_CLIENT_ID_IOS`, `GOOGLE_CLIENT_ID_ANDROID`'den
-kurulan bir audience listesine karşı doğrular (tanımsız olanlar sessizce düşer).
-Uygulama `webClientId`'yi native SDK'ya `serverClientID` olarak verdiği için
-token'ın `aud`'u **web** client ID'sidir (`243308404313-kdc77bd36…`). Bu ID
-2026-09-07'de API ortamına eklendi (`GOOGLE_CLIENT_ID_ANDROID` slotu). Belirti
-yanıltıcıdır: Google akışı başarılı olur, sonra `POST /auth/google` 401 döner
-("kod: `ERR_BAD_REQUEST`"); API logu
-`Wrong recipient, payload audience != requiredAudience` der. Ortam değişikliği
-için konteyner **yeniden deploy** edilmeli (restart yetmez). Three Google Cloud
-projects are in use (web `1048836099670`, mobile `243308404313`, production
-`google-services.json` Firebase `tarodan-prod` `431066159968`); merging them is
-safe (account matching is keyed on the Google `sub`).
+**Google sign-in clients (project `tarodan-app`, `1048836099670`).** Since
+2026-10-23 every new build uses the OAuth clients of this project; the old project
+`243308404313` is no longer accessible to the team. The ids are public and live in
+`eas.json` (pinned by `src/config/__tests__/easProfiles.test.ts`):
+
+| eas.json variable                  | Profiles                                                   | Client                                  |
+| ---------------------------------- | ---------------------------------------------------------- | --------------------------------------- |
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | every profile (`maestro` via `extends`)                    | `tarodan-web` (web application)         |
+| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | `production`, `development` (both build `com.tarodan.app`) | iOS client of `com.tarodan.app`         |
+| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | `preview`, `staging` (`maestro` via `extends`)             | iOS client of `com.tarodan.app.staging` |
+
+The iOS URL scheme (`iosUrlScheme` of the google-signin config plugin) is **derived**
+in `app.config.js` from `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
+(`<n>-<id>.apps.googleusercontent.com` -> `com.googleusercontent.apps.<n>-<id>`), so
+each bundle registers the scheme of its own client; never type it in `app.json`.
+A dev client from the `development` profile therefore carries the production scheme:
+a local `.env` must set the production iOS id or none, or the button shows in a
+binary without the matching scheme and the tap crashes.
+Changing an id changes the runtime fingerprint (eas.json and the plugin options):
+a new store build, never an OTA. The EAS environments must **not** define
+`EXPO_PUBLIC_GOOGLE_*` (nor any other key of the profile's `eas.json` env):
+`eas update --environment` would use the EAS value while `eas build` keeps the
+`eas.json` one, so `release.sh` stops the OTA when it finds such a variable, whatever
+its value.
+
+**Server side: Google sign-in audience.** The API checks the incoming `idToken`
+against an audience list built from `GOOGLE_CLIENT_ID_WEB`, `GOOGLE_CLIENT_ID_IOS`
+and `GOOGLE_CLIENT_ID_ANDROID` (unset ones are dropped silently). The app passes
+`webClientId` to the native SDK as `serverClientID`, so the token's `aud` is the
+**web** client id. Two audiences must be accepted while old binaries are live:
+
+- `tarodan-web` (`1048836099670-5kdeenimv…`): builds made from 2026-10-23 on.
+- the old mobile web client (`243308404313-kdc77bd36…`, in the
+  `GOOGLE_CLIENT_ID_ANDROID` slot since 2026-09-07): app versions already in the
+  stores. Keep it until `min_supported_app_version_ios/android` passes the first
+  version built with the new ids; only then may the slot hold the new Android client.
+
+The symptom of a missing audience is misleading: the Google flow succeeds, then
+`POST /auth/google` returns 401 ("code: `ERR_BAD_REQUEST`") and the API log says
+`Wrong recipient, payload audience != requiredAudience`. After an env change the
+container must be **redeployed** (a restart is not enough). The production
+`google-services.json` comes from a separate Firebase project (`tarodan-prod`,
+`431066159968`); OAuth clients of different projects can coexist safely (account
+matching is keyed on the Google `sub`).

@@ -5,15 +5,28 @@ import { copySensitiveToClipboard, SENSITIVE_CLIPBOARD_TTL_MS } from '@/lib/clip
 import { useZodForm } from '@/ui/form';
 import { goBackOrHome } from '@/components/common/goBackOrHome';
 import { apiErrorMessage } from '@/lib/api/errorText';
+import { useSignInMethods } from '@/hooks/useSignInMethods';
 import { sixDigitCodeSchema } from '../_lib/schema';
 import type { ShownBackupCodes, TwoFactorSetup } from '../_lib/types';
 import { useTwoFactorStatus } from './useTwoFactorStatus';
 import { useDoStartTwoFactor } from './useDoStartTwoFactor';
 import { useDoVerifyTwoFactor } from './useDoVerifyTwoFactor';
 import { useBackupCodesLeaveGuard } from './useBackupCodesLeaveGuard';
+import { useOpenSetPassword } from './useOpenSetPassword';
 
-/** Ekranın o anki görünümü — gövde ve alt çubuk buna göre seçilir. */
-export type TwoFactorView = 'setup' | 'codes' | 'enabled';
+/**
+ * The screen's current view; the body and the bottom bar follow it. `needsPassword`: 2FA needs
+ * an account password (`enable2FA` refuses with `server.security.passwordRequiredFor2fa`), so an
+ * account without one sees the "set a password first" hint instead of the raw error.
+ */
+export type TwoFactorView = 'setup' | 'codes' | 'enabled' | 'needsPassword';
+
+const PASSWORD_REQUIRED_FOR_2FA = 'server.security.passwordRequiredFor2fa';
+
+function isPasswordRequiredFor2fa(error: unknown): boolean {
+  const data = (error as { response?: { data?: { i18nKey?: unknown } } } | null)?.response?.data;
+  return data?.i18nKey === PASSWORD_REQUIRED_FOR_2FA;
+}
 
 export type TwoFactorDialog = 'disable' | 'regenerate' | null;
 
@@ -32,6 +45,8 @@ export type TwoFactorDialog = 'disable' | 'regenerate' | null;
 export function useTwoFactorFlow() {
   const { t } = useTranslation();
   const status = useTwoFactorStatus();
+  const signIn = useSignInMethods();
+  const setPassword = useOpenSetPassword();
   const start = useDoStartTwoFactor();
   const verify = useDoVerifyTwoFactor();
   const [setup, setSetup] = useState<TwoFactorSetup | null>(null);
@@ -42,11 +57,21 @@ export function useTwoFactorFlow() {
     { defaultValues: { code: '' } },
   );
 
+  // Known from the sign-in methods; the server's refusal is the fallback when they could not be read.
+  const hasPassword = signIn.methods?.hasPassword;
+  const needsPassword =
+    !status.isEnabled &&
+    (hasPassword === false || (hasPassword !== true && isPasswordRequiredFor2fa(start.error)));
+
   const view: TwoFactorView = shownCodes
     ? 'codes'
-    : setup || !status.isEnabled
+    : setup
       ? 'setup'
-      : 'enabled';
+      : needsPassword
+        ? 'needsPassword'
+        : !status.isEnabled
+          ? 'setup'
+          : 'enabled';
 
   // Tek seferlik kodlar ekrandayken geri/kaydırma çıkışı onaya bağlı.
   const leaveGuard = useBackupCodesLeaveGuard(view === 'codes');
@@ -74,12 +99,16 @@ export function useTwoFactorFlow() {
   // Durum ALINAMADIYSA (`isError`, "kapalı" yalnız varsayım) otomatik `enable` yok: 2FA aslında
   // açıksa kurulum çağrısı gizli anahtarı yeniden üretebilirdi. Hata ekranı + yeniden dene durumu
   // tekrar sorar; durum gelince bu effect kurulumu (gerekirse) başlatır.
+  // An account without a password gets the hint, not an `enable` call that is bound to fail;
+  // the effect waits for the sign-in methods, and starts once a password is set on this screen.
   const autoStarted = useRef(false);
+  const methodsPending = !status.isEnabled && signIn.isLoading;
   useEffect(() => {
-    if (autoStarted.current || status.isLoading || status.isError) return;
+    if (autoStarted.current || status.isLoading || status.isError || methodsPending) return;
+    if (!status.isEnabled && hasPassword === false) return;
     autoStarted.current = true;
     if (!status.isEnabled) startSetup();
-  }, [status.isLoading, status.isError, status.isEnabled, startSetup]);
+  }, [status.isLoading, status.isError, status.isEnabled, methodsPending, hasPassword, startSetup]);
 
   const waitingForSetup = view === 'setup' && !setup;
   const statusFailed = waitingForSetup && status.isError;
@@ -113,6 +142,9 @@ export function useTwoFactorFlow() {
         : apiErrorMessage(start.error, t('profile.twoFactor.setupFailed'))
       : null,
     retrySetup,
+    /** "Set a password" under the hint: the set-password screen, or the mail where needed. */
+    openSetPassword: setPassword.open,
+    sendingSetPasswordMail: setPassword.sending,
     isVerifying: verify.isPending,
     submitVerify: codeForm.handleSubmit(({ code: value }) => {
       if (verify.isPending) return;

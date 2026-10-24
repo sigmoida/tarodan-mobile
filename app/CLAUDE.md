@@ -122,9 +122,18 @@ Shells are mandatory; the `screenShells` jest scan checks every `app/**` screen.
   Settings button instead (`actions="settings"` -> `/settings`).
 - There is no side menu. Profile lists the user's activity, `/settings` the account
   and app settings; one menu model (see `src/components/CLAUDE.md` › Menu).
-- The bottom menu is the floating pill `AppTabBar` (Home, Favorites, Cart, Profile +
-  the separate "+" sell button). Tab-root lists add `useTabBarInset()` as bottom
-  padding. Messages, Notifications and Search are stack routes.
+- The bottom menu is the fixed pill `AppTabBar`: five items, Home, Favorites, "+"
+  (İlan Ver / Sell, in the centre), Cart, Profile. It never collapses or shrinks on
+  scroll. Tab-root lists add `useTabBarInset()` as bottom padding. Phones: the window
+  minus the side gaps; tablets: a centred floating pill capped at `TAB_BAR_MAX_WIDTH`.
+  Messages and Notifications are stack routes without the bar.
+- **Stack screens with the bar** wrap their default export in `withStackTabBar`
+  (`@/components/shell/StackTabBar`): category, search, manufacturer / brand products
+  (`EntityProductsScreen`) and model detail. The list binds `usePageScrollHandler()`
+  like any list page (`PageShell scroll={page}`) and adds `useTabBarInset()` as bottom
+  padding. A floating button on such a screen sits above the bar (`useTabBarTop()`),
+  never over it. The bar hides while the keyboard is open (`TabBarView`). A tap uses
+  `router.dismissTo` back to the tabs underneath.
 - **Stack screens use `PageShell`** (`@/components/common/PageShell`): floating glass
   top bar, back arrow, centred title, optional right action, optional fixed bottom
   bar, keyboard + safe area, `loading` / `empty` / `error` + `onRetry`. `loading` and
@@ -167,12 +176,12 @@ Shells are mandatory; the `screenShells` jest scan checks every `app/**` screen.
   `<Animated.FlatList {...page.listProps} contentContainerStyle={page.contentStyle(base)} />`
   (iOS gets `contentInset`, Android `paddingTop`; `page.topInset` for `RefreshControl`
   `progressViewOffset`).
-- Tab roots use ONE handler (never two `onScroll`s):
+- Tab roots feed the shell's value with ONE handler (never two `onScroll`s):
 
   ```tsx
   const page = usePageScrollValue();
-  const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
-  // <AppShell variant="title" scroll={page}>
+  const onPageScroll = usePageOffsetHandler(page.scrollY); // home: + its hero offset bridge
+  // <AppShell variant="title" scroll={page}> + <Animated.ScrollView onScroll={onPageScroll} />
   ```
 
 - Home binds the same edge (`<AppShell scroll={page}>`); product detail uses the same

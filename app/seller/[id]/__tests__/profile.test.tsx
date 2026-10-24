@@ -32,7 +32,6 @@ const base = () => ({
     isVerified: true,
     followersCount: 3,
     stats: { totalListings: 2, totalSales: 5, totalTrades: 1, averageRating: 4.5, totalRatings: 2 },
-    badges: ['fast_shipper'],
   },
   products: [
     { id: 'p1', title: 'Ferrari F40', price: 100, images: [] },
@@ -62,8 +61,52 @@ describe('satıcı profili', () => {
     expect(screen.getByText('Satış')).toBeTruthy();
     expect(screen.getByText('Takas')).toBeTruthy();
     expect(screen.getByText('Takipçi')).toBeTruthy();
-    expect(screen.queryByText('4.5')).toBeNull(); // ortalama puan başlıkta değil, değerlendirmeler kartında
+    expect(screen.queryByText(/4[.,]5/)).toBeNull(); // the average is not in the header but in the reviews card
     expect(screen.getByText('3')).toBeTruthy(); // takipçi sayacı ızgarada
+  });
+
+  it('trust score: reads `trust` only, shows just the number with two decimals: "3,74"', () => {
+    const f = base();
+    mockProfile.mockReturnValue({
+      ...f,
+      seller: { ...f.seller, trust: { rating: 3.74, level: 'fair', formulaVersion: 1 } },
+    });
+    render(<SellerProfileScreen />);
+    expect(screen.getByText('3,74')).toBeTruthy();
+  });
+
+  it('never shows the seller package badge, even for a premium seller (web SellerHeader)', () => {
+    const f = base();
+    mockProfile.mockReturnValue({ ...f, seller: { ...f.seller, isPremium: true, isVerified: true } });
+    render(<SellerProfileScreen />);
+    expect(screen.queryByText('Premium')).toBeNull();
+    expect(screen.getByText('Doğrulanmış')).toBeTruthy();
+  });
+
+  it('new seller: only "Yeni satıcı"', () => {
+    const f = base();
+    mockProfile.mockReturnValue({
+      ...f,
+      seller: { ...f.seller, trust: { rating: null, level: 'new', formulaVersion: 1 } },
+    });
+    render(<SellerProfileScreen />);
+    expect(screen.getByText('Yeni satıcı')).toBeTruthy();
+  });
+
+  it('`trust` null or absent: no badge; the legacy trustScore/trustLevel never draw as /100', () => {
+    const f = base();
+    mockProfile.mockReturnValue({
+      ...f,
+      seller: { ...f.seller, isPremium: true, trust: null, trustScore: 75, trustLevel: 'Orta' },
+    });
+    const { unmount } = render(<SellerProfileScreen />);
+    expect(screen.queryByTestId('seller-trust-badge')).toBeNull();
+    expect(screen.queryByText(/\/100/)).toBeNull();
+    unmount();
+    mockProfile.mockReturnValue({ ...f, seller: { ...f.seller, isPremium: true, trustScore: 75, trustLevel: 'Orta' } });
+    render(<SellerProfileScreen />);
+    expect(screen.queryByTestId('seller-trust-badge')).toBeNull();
+    expect(screen.queryByText(/\/100/)).toBeNull();
   });
 
   it('ilanlar sekmesi ProductCard ızgarası; sekme sayıları etikette', () => {
@@ -88,6 +131,8 @@ describe('satıcı profili', () => {
     mockProfile.mockReturnValue({ ...base(), activeTab: 'reviews' });
     const { unmount } = render(<SellerProfileScreen />);
     expect(screen.getByText('Harika satıcı')).toBeTruthy();
+    // Review average in the UI locale (web SellerHeader `formatRating`): "4,5", never "4.5".
+    expect(screen.getByTestId('seller-reviews-average')).toHaveTextContent('4,5 (2)');
     unmount();
     mockProfile.mockReturnValue({ ...base(), activeTab: 'collections' });
     render(<SellerProfileScreen />);
