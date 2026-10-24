@@ -115,8 +115,9 @@ Phones change visibly here by the user's request.
   its row taller; the neighbour keeps its height with empty space below.
 - The messages pane selection is local state: closing the messages screen and
   opening it again shows the placeholder (a push from the pane and back keeps it).
-  When the window narrows below expanded with a conversation open, that
-  conversation is pushed as its own screen; an unsent draft in the pane is lost.
+  When the window narrows below expanded with a conversation open, the same tree
+  stays mounted: the inbox pane hides and the conversation takes the window with a
+  back arrow (and Android back) that closes it; the draft survives.
 - Row list skeletons stay one column, so a grid list jumps once when the data
   arrives on tablets.
 
