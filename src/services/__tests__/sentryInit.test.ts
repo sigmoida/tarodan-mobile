@@ -51,11 +51,18 @@ function loadSentry(env: {
 }
 
 const DSN = "https://public@example.invalid/1";
-const initOptions = (): { environment: string; tracesSampleRate: number } =>
-  mockInit.mock.calls[0][0] as {
-    environment: string;
-    tracesSampleRate: number;
-  };
+type InitOptions = {
+  environment: string;
+  tracesSampleRate: number;
+  sampleRate?: number;
+  sendDefaultPii?: boolean;
+  beforeSend: (event: Record<string, unknown>) => Record<string, unknown>;
+  beforeSendTransaction: (
+    event: Record<string, unknown>,
+  ) => Record<string, unknown>;
+  beforeBreadcrumb: (crumb: Record<string, unknown>) => Record<string, unknown>;
+};
+const initOptions = (): InitOptions => mockInit.mock.calls[0][0] as InitOptions;
 
 describe("initSentry", () => {
   const savedEnv = { ...process.env };
@@ -102,6 +109,19 @@ describe("initSentry", () => {
 
     expect(initOptions().environment).toBe("development");
     expect(initOptions().tracesSampleRate).toBe(0);
+  });
+
+  it("sends every error and keeps the PII scrubbing", () => {
+    loadSentry({ appEnvironment: "production", dsn: DSN }).initSentry();
+    const options = initOptions();
+
+    // Errors are never sampled: `sampleRate` stays at the SDK default of 1.0.
+    expect(options).not.toHaveProperty("sampleRate");
+    expect(options.sendDefaultPii).toBe(false);
+    const user = { id: "42", email: "buyer@example.invalid" };
+    expect(options.beforeSend({ user }).user).toEqual({ id: "42" });
+    expect(options.beforeSendTransaction({ user }).user).toEqual({ id: "42" });
+    expect(typeof options.beforeBreadcrumb).toBe("function");
   });
 
   it("initializes only once", () => {
