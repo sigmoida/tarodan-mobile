@@ -15,7 +15,7 @@ import { useAdImpression } from '@/lib/ads/useAdImpression';
 import { useScreenActive } from '@/lib/ads/useScreenActive';
 import { heroImageUrl, pickLocalized, resolveHeroCta } from '@/lib/hero/heroView';
 import { heroStyles as s } from '../_lib/heroStyles';
-import { heroImageSize, isHeroSplit } from '../_lib/heroLayout';
+import { heroImageSize, heroMarginX, isHeroSplit } from '../_lib/heroLayout';
 
 const AUTOPLAY_MS = 10_000;
 
@@ -118,7 +118,8 @@ export function HeroSlider({
   // Sekme odakta değilken ya da uygulama arka plandayken de ilerleme durur.
   const screenActive = useScreenActive();
   // Window class decides the slide layout (same rule as the reserved height, `heroReservedHeight`).
-  const split = isHeroSplit(useWindowDimensions().width);
+  const { width: windowWidth } = useWindowDimensions();
+  const split = isHeroSplit(windowWidth);
   const autoplay = screenActive && visible;
   const [width, setWidth] = useState(0);
   const [current, setCurrent] = useState(0);
@@ -168,7 +169,7 @@ export function HeroSlider({
   };
 
   return (
-    <View style={s.shell} testID="hero-slider">
+    <View style={[s.shell, { marginHorizontal: heroMarginX(windowWidth) }]} testID="hero-slider">
       {/* ScrollView her zaman bağlı: genişlik ancak kendi yerleşiminden öğrenilir. */}
       <ScrollView
         ref={scroller}

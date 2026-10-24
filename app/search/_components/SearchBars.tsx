@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
-import { Text } from '@/ui';
+import { Text, usePageGutter } from '@/ui';
 import { ProductListToolbar } from '@/components/product';
 import { buildSortOptions } from '@/utils/productFilters';
 import { styles } from '../_lib/searchStyles';
@@ -55,6 +55,8 @@ function SearchBarsBase({
   const sortOptions = useMemo(() => buildSortOptions(t), [t]);
   const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
   const barsStyle = useMemo(() => [styles.collapsibleBars, slideStyle], [slideStyle]);
+  // The title and the toolbar sit at the page gutter, like the results below (wider on tablets).
+  const gutter = usePageGutter();
   return (
     <Animated.View testID="search-collapsible-bars" style={barsStyle} onLayout={onBarsLayout}>
       {/* Web `/listings` sayfa başlığının karşılığı — yalnız vitrin ön ayarı aynen etkinken. */}
@@ -64,14 +66,14 @@ function SearchBarsBase({
           weight="bold"
           numberOfLines={1}
           accessibilityRole="header"
-          style={styles.contextTitle}
+          style={[styles.contextTitle, { paddingHorizontal: gutter }]}
           testID="search-context-title"
         >
           {contextLabel}
         </Text>
       ) : null}
       <ProductListToolbar
-        style={styles.toolbar}
+        style={[styles.toolbar, { paddingHorizontal: gutter }]}
         sortLabel={sortOptions.find((s) => s.value === sortBy)?.label || t('common.sort')}
         onSort={onSort}
         onFilter={onFilter}

@@ -9,6 +9,7 @@ import {
   HERO_SPLIT_IMAGE_RATIO,
   heroImageSize,
   heroInnerWidth,
+  heroMarginX,
   heroReservedHeight,
   isHeroSplit,
 } from '../heroLayout';
@@ -97,5 +98,15 @@ describe('ana sayfa bölüm hizası (tek kaynak homeLayout)', () => {
     expect(s.paddingHorizontal).toBe(HOME_GUTTER);
     expect(s.paddingVertical).toBe(HOME_SECTION_GAP);
     expect(s.gap).toBe(HOME_SECTION_GAP);
+  });
+});
+
+describe('hero on tablets follows the page gutter', () => {
+  it('phones keep HERO_MARGIN_X; tablets the page gutter, and the inner width deducts it', () => {
+    expect(heroMarginX(390)).toBe(HERO_MARGIN_X);
+    expect(heroMarginX(820)).toBe(24);
+    expect(heroMarginX(1032)).toBe(32);
+    expect(heroInnerWidth(1032)).toBe(1032 - 2 * 32 - 2 * HERO_BORDER_WIDTH);
+    expect(heroInnerWidth(390)).toBe(390 - 2 * HERO_MARGIN_X - 2 * HERO_BORDER_WIDTH);
   });
 });

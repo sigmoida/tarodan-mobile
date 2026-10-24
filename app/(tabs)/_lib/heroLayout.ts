@@ -1,4 +1,4 @@
-import { theme, windowClassOf } from '@/ui';
+import { tabletSidePadding, theme, windowClassOf } from '@/ui';
 import { HOME_GUTTER } from './homeLayout';
 
 const { spacing } = theme;
@@ -25,8 +25,13 @@ export const HERO_SPLIT_IMAGE_RATIO = 4 / 3;
 export const HERO_SPLIT_IMAGE_MAX_WIDTH = 480;
 /** Shell border (each side). */
 export const HERO_BORDER_WIDTH = 1;
-/** Shell side margin (each side; the same edge as the home sections), deducted from the screen width. */
+/** Shell side margin on phones (each side; the same edge as the home sections). */
 export const HERO_MARGIN_X = HOME_GUTTER;
+
+/** Shell side margin for a window: `HERO_MARGIN_X` widened to the tablet page gutter. */
+export function heroMarginX(screenWidth: number): number {
+  return tabletSidePadding(HERO_MARGIN_X, screenWidth) as number;
+}
 /** Body minimum height: padding + title + subtitle + room for one or two buttons. */
 export const HERO_BODY_MIN_HEIGHT = 168;
 /** Dots strip: dot (8) + bottom padding. Reserved for a single slide too (no shift). */
@@ -39,7 +44,7 @@ export function isHeroSplit(windowWidth: number): boolean {
 
 /** Inner (slide page) width of the shell: screen - side margins - borders. */
 export function heroInnerWidth(screenWidth: number): number {
-  return Math.max(0, screenWidth - 2 * HERO_MARGIN_X - 2 * HERO_BORDER_WIDTH);
+  return Math.max(0, screenWidth - 2 * heroMarginX(screenWidth) - 2 * HERO_BORDER_WIDTH);
 }
 
 /** Image box: the full page width on phones (16:10); half the page side by side (4:3, capped). */

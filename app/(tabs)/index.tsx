@@ -1,7 +1,7 @@
-import { View, RefreshControl } from 'react-native';
+import { View, RefreshControl, useWindowDimensions } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useState, useCallback, useEffect } from 'react';
-import { theme, usePageOffsetHandler, usePageScrollValue } from '@/ui';
+import { tabletSidePadding, theme, usePageOffsetHandler, usePageScrollValue } from '@/ui';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useGuestStore } from '@/stores/guestStore';
@@ -10,6 +10,7 @@ import { AppShell } from '@/components/shell/AppShell';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 import { floatingBarScrollProps, useFloatingBarInset } from '@/components/shell/floatingBar';
 import { homeStyles as styles } from './_lib/homeStyles';
+import { HOME_GUTTER } from './_lib/homeLayout';
 import { useHomeData } from './_hooks/useHomeData';
 import { useHomeGuestPrompt } from './_hooks/useHomeGuestPrompt';
 import { useAfterFirstFrame } from './_hooks/useAfterFirstFrame';
@@ -54,6 +55,9 @@ export default function HomeScreen() {
   const guest = useHomeGuestPrompt(isAuthenticated);
   // Yuvalar (topbar/header/footer) aynı tohumu ve gösterim kümesini paylaşır.
   const adSession = useAdSession();
+  // Large screens: the sections and ad slots take the tablet gutter, like the hero and the top bar.
+  const { width: windowWidth } = useWindowDimensions();
+  const sideGutter = { paddingHorizontal: tabletSidePadding(HOME_GUTTER, windowWidth) };
 
   const [refreshing, setRefreshing] = useState(false);
   const tabInset = useTabBarInset();
@@ -95,7 +99,7 @@ export default function HomeScreen() {
         scrollEventThrottle={16}
       >
         <AdBanner position="topbar" session={adSession} />
-        <AdBanner position="header" session={adSession} style={styles.adHeader} />
+        <AdBanner position="header" session={adSession} style={[styles.adHeader, sideGutter]} />
         {/* Hero yokken (boş liste) sarmalayıcı da yok: ilk bölüm üstteki reklam/üst barın altından
             tek `HOME_SECTION_GAP` ile (sections dolgusu) başlar. Yükleniyorsa yalnız son açılışta
             hero vardıysa yer tutulur (`reserveSpace`). */}
@@ -107,7 +111,7 @@ export default function HomeScreen() {
           <HeroReserved />
         ) : null}
 
-        <View style={styles.sections}>
+        <View style={[styles.sections, sideGutter]}>
           <BrandsStrip items={data.manufacturers} isLoading={data.loadingManufacturers} />
           <FeaturedRail items={data.featured} isLoading={data.loadingFeatured} onProductPress={handleProductPress} />
           <OnSaleRail items={data.onSale} isLoading={data.loadingOnSale} onProductPress={handleProductPress} />
@@ -121,7 +125,7 @@ export default function HomeScreen() {
           />
         </View>
 
-        <AdBanner position="footer" session={adSession} style={styles.adFooter} />
+        <AdBanner position="footer" session={adSession} style={[styles.adFooter, sideGutter]} />
         <View style={{ height: tabInset }} />
       </Animated.ScrollView>
 

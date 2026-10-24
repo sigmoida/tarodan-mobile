@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Text, theme, Icon } from '@/ui';
+import { PAGE_GUTTER, Text, theme, Icon, usePageGutter } from '@/ui';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
 import { useTabBarInset } from '@/components/shell/tabBarLayout';
 
@@ -62,10 +62,12 @@ function SearchSuggestionsBase({
   // the bar is back, so the last rows clear the bar instead of the keyboard.
   const tabBarInset = useTabBarInset();
   const bottomInset = keyboardHeight > 0 ? keyboardHeight + spacing[4] : tabBarInset;
+  // The rows bring the phone gutter themselves; tablets add the difference to the page gutter.
+  const extraGutter = usePageGutter() - PAGE_GUTTER;
   return (
     <ScrollView
       style={styles.suggestionsScroll}
-      contentContainerStyle={{ paddingBottom: bottomInset }}
+      contentContainerStyle={{ paddingBottom: bottomInset, paddingHorizontal: extraGutter }}
       keyboardShouldPersistTaps="handled"
       // Scrolling does NOT dismiss the keyboard: dismissing blurs the input, and the blur closes the
       // panel 200 ms later, so the page would vanish mid-scroll (bottom rows unreachable).
