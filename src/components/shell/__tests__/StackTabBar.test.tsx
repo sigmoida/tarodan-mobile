@@ -130,3 +130,19 @@ describe('the bar is limited to the product result stack screens', () => {
     expect(users).toEqual(['(tabs)/_layout.tsx']);
   });
 });
+
+describe('nothing floats over the fixed bar', () => {
+  const appDir = path.resolve(__dirname, '../../../../app');
+  const barScreens = [
+    path.join(appDir, 'category/[slug]/index.tsx'),
+    path.join(appDir, 'models/[slug]/index.tsx'),
+    path.join(appDir, 'search/index.tsx'),
+    path.resolve(__dirname, '../../catalog/EntityProductsScreen.tsx'),
+  ];
+  it.each(barScreens.map((f) => [path.basename(path.dirname(f)) + '/' + path.basename(f), f]))(
+    '%s mounts no bottom-right FAB',
+    (_name, file) => {
+      expect(/placement="bottomRight"/.test(fs.readFileSync(file, 'utf8'))).toBe(false);
+    },
+  );
+});

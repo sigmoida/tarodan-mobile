@@ -8,8 +8,6 @@
 export const BARS_TOP_EPSILON = 4;
 /** Yön algısı için gereken en az kaydırma farkı (pt). */
 export const BARS_SCROLL_DELTA = 6;
-/** Bu offset'in altına inince "en üste dön" düğmesi görünür. */
-export const SCROLL_TOP_THRESHOLD = 600;
 /** Gizle/göster animasyonu süresi (ms). */
 export const BARS_ANIM_MS = 220;
 
@@ -27,7 +25,3 @@ export function nextBarsHidden(
   return hidden;
 }
 
-export function shouldShowScrollTop(y: number): boolean {
-  'worklet';
-  return y > SCROLL_TOP_THRESHOLD;
-}
