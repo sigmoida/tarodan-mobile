@@ -25,7 +25,8 @@ export function splitMenuColumns<T extends { items: readonly unknown[] }>(groups
  * `SectionCard`'ı (başlık + vurgu çubuğu), içinde satırlar (`ProfileRow variant="card"`: ikon,
  * etiket, sayaç, chevron). Gruplar hep açık. Kartlar arası boşluk kabın `gap`'inden (fragment döner).
  * Expanded and wider windows: the cards stand in two independent columns (`splitMenuColumns`)
- * instead of one stretched column; phones and medium windows keep one column.
+ * instead of one stretched column, and `fullWidth` groups (Info & Legal) span both columns below
+ * them; phones and medium windows keep one column.
  */
 export function MenuGroupList({
   groups,
@@ -55,16 +56,19 @@ export function MenuGroupList({
   );
 
   if (!isAtLeast(windowClass, 'expanded')) return <>{groups.map(card)}</>;
-  const [left, right] = splitMenuColumns(groups);
+  const [left, right] = splitMenuColumns(groups.filter((g) => !g.fullWidth));
   return (
-    <View style={styles.columns} testID="menu-group-columns">
-      <View style={styles.column} testID="menu-group-column-0">
-        {left.map(card)}
+    <>
+      <View style={styles.columns} testID="menu-group-columns">
+        <View style={styles.column} testID="menu-group-column-0">
+          {left.map(card)}
+        </View>
+        <View style={styles.column} testID="menu-group-column-1">
+          {right.map(card)}
+        </View>
       </View>
-      <View style={styles.column} testID="menu-group-column-1">
-        {right.map(card)}
-      </View>
-    </View>
+      {groups.filter((g) => g.fullWidth).map(card)}
+    </>
   );
 }
 

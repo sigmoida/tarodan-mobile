@@ -139,6 +139,14 @@ describe('Settings on large screens', () => {
     expect(columns.flexDirection).toBe('row');
   });
 
+  it('1032 pt: Info & Legal spans both columns, below them', () => {
+    member();
+    setWindow(1032, 1376);
+    renderWithProviders(<SettingsScreen />);
+    expect([...groupIds('menu-group-column-0'), ...groupIds('menu-group-column-1')]).not.toContain('menu-group-info');
+    expect(screen.getByTestId('menu-group-info')).toBeOnTheScreen();
+  });
+
   it.each([
     [390, 844],
     [820, 1180],
