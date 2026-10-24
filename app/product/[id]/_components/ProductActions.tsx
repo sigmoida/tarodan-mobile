@@ -31,6 +31,10 @@ function unavailableLabel(product: Product, t: (k: any) => string): string {
  * Satılamayan ilanda kare düğme yok, birincil düğme pasif ve web'in durum etiketini taşır.
  * Sahipte fiyat + "Düzenle". Etiketler tek satır (Button sığmazsa küçültür); fiyat küçülür.
  * Web kartta/detayda ilan bazlı kargo bilgisi göstermediği için kargo satırı yok.
+ *
+ * `wide` (tablets, `productDetailLayout().wideBar`): one full-width row laid out for the width: the
+ * price on the left, `extraActions` (the inline offer / trade buttons) and the buy buttons on the
+ * right at their natural width; no button stretches across the bar.
  */
 export function ProductBuyBar({
   product,
@@ -41,6 +45,8 @@ export function ProductBuyBar({
   onBuyNow,
   onGoToCart,
   onEdit,
+  wide = false,
+  extraActions,
 }: {
   product: Product;
   isOwner: boolean;
@@ -50,10 +56,13 @@ export function ProductBuyBar({
   onBuyNow: () => void;
   onGoToCart: () => void;
   onEdit: () => void;
+  wide?: boolean;
+  extraActions?: React.ReactNode;
 }) {
   const { t } = useTranslation();
+  const primaryStyle = wide ? styles.primaryWide : styles.primary;
   const price = (
-    <View style={styles.price}>
+    <View style={wide ? styles.priceWide : styles.price}>
       <ProductPrice
         product={{ ...product, price: product.price ?? 0 }}
         variant="h3"
@@ -67,14 +76,14 @@ export function ProductBuyBar({
 
   if (isOwner) {
     return (
-      <View style={styles.row}>
+      <View style={styles.row} testID="product-buy-bar">
         {price}
         <Button
           testID="product-detail-edit-button"
           size="lg"
           title={t('common.edit')}
           onPress={onEdit}
-          style={styles.primary}
+          style={primaryStyle}
         />
       </View>
     );
@@ -82,8 +91,9 @@ export function ProductBuyBar({
 
   const purchasable = isPurchasable(product, isOutOfStock);
   return (
-    <View style={styles.row}>
+    <View style={styles.row} testID="product-buy-bar">
       {price}
+      {extraActions}
       {purchasable ? (
         <Button
           testID="product-detail-buy-now-button"
@@ -115,7 +125,7 @@ export function ProductBuyBar({
           size="lg"
           title={t('product.goToCart')}
           onPress={onGoToCart}
-          style={styles.primary}
+          style={primaryStyle}
         />
       ) : (
         <Button
@@ -124,7 +134,7 @@ export function ProductBuyBar({
           title={purchasable ? t('product.addToCart') : unavailableLabel(product, t as any)}
           onPress={onAddToCart}
           disabled={!purchasable}
-          style={styles.primary}
+          style={primaryStyle}
         />
       )}
     </View>
@@ -136,18 +146,22 @@ export function ProductBuyBar({
  * Bu iki eylemin TEK birincil girişi (fiyatın yanındaki çipler yalnız kısayol). Görünürlük
  * `getOfferTradeAvailability`'den: sahipte ve satılamayan ilanda hiç çizilmez. İkisi de geçerliyse
  * eşit genişlikte yan yana, biri geçerliyse tam genişlik. Kompakt (`md`), etiket tek satır.
+ * `inline` (tablets): the buttons sit inside the buy bar row at their natural width.
  */
 export function ProductOfferTradeRow({
   availability,
   onTrade,
   onMakeOffer,
+  inline = false,
 }: {
   availability: OfferTradeAvailability;
   onTrade: () => void;
   onMakeOffer: () => void;
+  inline?: boolean;
 }) {
   const { t } = useTranslation();
   if (!availability.offer && !availability.trade) return null;
+  const cell = inline ? styles.cellInline : styles.cell;
   return (
     <View style={styles.pair} testID="product-offer-trade-row">
       {availability.trade ? (
@@ -156,7 +170,7 @@ export function ProductOfferTradeRow({
           variant="outline"
           title={t('product.trade')}
           onPress={onTrade}
-          style={styles.cell}
+          style={cell}
         />
       ) : null}
       {availability.offer ? (
@@ -165,7 +179,7 @@ export function ProductOfferTradeRow({
           variant="outline"
           title={t('product.makeOffer')}
           onPress={onMakeOffer}
-          style={styles.cell}
+          style={cell}
         />
       ) : null}
     </View>
@@ -230,7 +244,11 @@ const styles = StyleSheet.create({
   square: { flexShrink: 0, paddingHorizontal: spacing[2] },
   squareInner: { alignItems: 'center' },
   primary: { flexGrow: 1, flexShrink: 0, paddingHorizontal: spacing[4] },
+  // Tablets: the price takes the free space, buttons keep their natural width.
+  priceWide: { flexGrow: 1, flexShrink: 1, minWidth: 0, marginRight: spacing[1] },
+  primaryWide: { flexShrink: 0, paddingHorizontal: spacing[8] },
   stepper: { alignSelf: 'flex-start' },
   pair: { flexDirection: 'row', gap: spacing[2] },
   cell: { flex: 1, paddingHorizontal: spacing[2] },
+  cellInline: { flexShrink: 0, paddingHorizontal: spacing[4] },
 });

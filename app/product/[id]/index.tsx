@@ -19,6 +19,7 @@ import { useProductFavorite } from './_hooks/useProductFavorite';
 import { useGuestPrompt } from './_hooks/useGuestPrompt';
 import { useProductActions } from './_hooks/useProductActions';
 import { useProductScroll } from './_hooks/useProductScroll';
+import { useProductDetailLayout } from './_lib/layout';
 import { useSimilarProducts } from '@/hooks/useSimilarProducts';
 import { ProductNotFound, productNotFoundState, SimilarProductsCard } from '@/components/product';
 import { ProductTopActions } from './_components/ProductTopActions';
@@ -114,6 +115,16 @@ function ProductDetail({ productId }: { productId: string }) {
   const ready = visible && full;
   // Hata sonrası "Tekrar Dene" sürerken iskelet (hata kartı basılı kalmasın).
   const retrying = !product && isError && productQuery.isFetching;
+  // Phones: the offer / trade row above the buy bar; tablets: inline in the one-row buy bar.
+  const { wideBar } = useProductDetailLayout();
+  const offerTradeRow = (
+    <ProductOfferTradeRow
+      availability={availability}
+      onTrade={actions.handleTrade}
+      onMakeOffer={actions.handleMakeOffer}
+      inline={wideBar}
+    />
+  );
   return (
     <PageShell
       header={false}
@@ -128,11 +139,7 @@ function ProductDetail({ productId }: { productId: string }) {
       footer={
         ready ? (
           <>
-            <ProductOfferTradeRow
-              availability={availability}
-              onTrade={actions.handleTrade}
-              onMakeOffer={actions.handleMakeOffer}
-            />
+            {wideBar ? null : offerTradeRow}
             <ProductBuyBar
               product={product}
               isOwner={isOwner}
@@ -142,6 +149,8 @@ function ProductDetail({ productId }: { productId: string }) {
               onBuyNow={actions.handleBuyNow}
               onGoToCart={actions.handleGoToCart}
               onEdit={() => router.push(`/listing/${product.id}/edit` as any)}
+              wide={wideBar}
+              extraActions={wideBar ? offerTradeRow : null}
             />
           </>
         ) : undefined

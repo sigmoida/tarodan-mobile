@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
-import { Share } from 'react-native';
+import { Dimensions, Share, StyleSheet } from 'react-native';
 import { renderWithProviders } from '@/test-utils';
 
 // The `[id]` route param is a listing URL segment (`<slug>-<uuid>` or a bare uuid), see `listingIdFromParam`.
@@ -577,5 +577,52 @@ describe('Ürün detay ekranı', () => {
       expect(incrementViewMock).not.toHaveBeenCalled();
       expect(ratingsMock).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('Product detail on large screens', () => {
+  const setWindow = (width: number, height: number) =>
+    Dimensions.set({
+      window: { width, height, scale: 2, fontScale: 2 },
+      screen: { width, height, scale: 2, fontScale: 2 },
+    });
+  beforeEach(() => {
+    getOneMock.mockReset();
+    mockTransitionReady = true;
+    mockAuth = { isAuthenticated: false, user: null };
+    mockRouteId = PRODUCT_ID;
+  });
+  afterEach(() => {
+    screen.unmount();
+    setWindow(375, 667);
+  });
+
+  const inBarRow = (testID: string) => within(screen.getByTestId('product-buy-bar')).queryByTestId(testID) != null;
+
+  it('phone (390 pt): gallery above, offer / trade row above the buy bar, stretched primary button', async () => {
+    setWindow(390, 844);
+    getOneMock.mockResolvedValue({ data: { data: productFixture({ tradeAvailable: true }) } });
+    renderWithProviders(<ProductDetailScreen />);
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    expect(screen.queryByTestId('product-split-layout')).toBeNull();
+    expect(inBarRow('product-detail-offer-button')).toBe(false);
+    expect(StyleSheet.flatten(screen.getByTestId('product-detail-add-to-cart-button').props.style).flexGrow).toBe(1);
+  });
+
+  it.each([
+    [820, 1180],
+    [1180, 820],
+  ])('iPad %d pt: split layout; one-row bar with price left and every action inline, nothing stretched', async (w, h) => {
+    setWindow(w, h);
+    getOneMock.mockResolvedValue({ data: { data: productFixture({ tradeAvailable: true }) } });
+    renderWithProviders(<ProductDetailScreen />);
+    await waitFor(() => expect(screen.getByText('Vintage Model Araba')).toBeOnTheScreen());
+    expect(screen.getByTestId('product-split-layout')).toBeOnTheScreen();
+    for (const id of ['product-detail-trade-button', 'product-detail-offer-button', 'product-detail-buy-now-button']) {
+      expect([id, inBarRow(id)]).toEqual([id, true]);
+    }
+    expect(screen.getAllByTestId('product-detail-offer-button')).toHaveLength(1);
+    expect(StyleSheet.flatten(screen.getByTestId('product-detail-add-to-cart-button').props.style).flexGrow).toBeUndefined();
+    expect(StyleSheet.flatten(screen.getByTestId('product-detail-offer-button').props.style).flex).toBeUndefined();
   });
 });

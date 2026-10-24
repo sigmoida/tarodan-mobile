@@ -8,10 +8,10 @@ const { spacing } = theme;
 /**
  * Arranges the product detail body by window width (`useProductDetailLayout`):
  *
- * - gallery above (phones, medium windows): gallery, then one padded column with `primary`
+ * - gallery above (phones): gallery, then one padded column with `primary`
  *   (title, price, description, actions, seller) followed by `secondary` (specs, reviews, similar);
  *   the same tree as before the large-screen layout.
- * - split (expanded windows): the gallery and the `primary` column side by side (the column starts
+ * - split (medium and wider windows): the gallery and the `primary` column side by side (the column starts
  *   under the floating top bar), then `secondary` across the full width below.
  */
 export function ProductBodyLayout({

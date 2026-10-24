@@ -6,12 +6,7 @@ import React from 'react';
 import { Dimensions, StyleSheet, Text } from 'react-native';
 import { render, screen } from '@testing-library/react-native';
 import { SCROLL_EDGE_FULL_AT } from '@/ui';
-import {
-  GALLERY_MAX_SIDE,
-  GALLERY_SPLIT_MAX_SIDE,
-  productDetailLayout,
-  topBarEdgeShift,
-} from '../layout';
+import { GALLERY_SPLIT_FRACTION, productDetailLayout, topBarEdgeShift } from '../layout';
 import { ProductBodyLayout } from '../../_components/ProductBodyLayout';
 
 const setWindow = (width: number, height: number) =>
@@ -21,35 +16,36 @@ const setWindow = (width: number, height: number) =>
   });
 
 describe('productDetailLayout', () => {
-  it('phones (and the foldable outer display): window-wide square above the info', () => {
-    for (const w of [320, 390, 430, 466]) expect(productDetailLayout(w)).toEqual({ split: false, gallerySide: w });
+  it('phones (and the foldable outer display): window-wide square above the info, stacked bar', () => {
+    for (const w of [320, 390, 430, 466]) {
+      expect(productDetailLayout(w)).toEqual({ split: false, gallerySide: w, wideBar: false });
+    }
   });
 
-  it('medium (foldable inner 626, iPad Air 11" 820): square capped and above the info', () => {
-    expect(productDetailLayout(626)).toEqual({ split: false, gallerySide: GALLERY_MAX_SIDE });
-    expect(productDetailLayout(820)).toEqual({ split: false, gallerySide: GALLERY_MAX_SIDE });
+  it.each([
+    [626, 281],
+    [820, 369], // iPad Air 11" portrait
+    [1032, 464],
+    [1180, 531], // iPad Air 11" landscape
+    [1366, 614],
+  ])('%d pt: gallery beside the info at 45%% (%d pt), one-row bar', (w, side) => {
+    expect(productDetailLayout(w)).toEqual({ split: true, gallerySide: side, wideBar: true });
+    expect(side).toBe(Math.floor(w * GALLERY_SPLIT_FRACTION));
   });
 
-  it('expanded and wider (iPad 13" 1032, landscape 1280): gallery beside the info, half wide, capped', () => {
-    expect(productDetailLayout(1032)).toEqual({ split: true, gallerySide: 516 });
-    expect(productDetailLayout(1280)).toEqual({ split: true, gallerySide: GALLERY_SPLIT_MAX_SIDE });
-  });
-
-  it('the gallery never takes more than half of a tablet window height', () => {
-    expect(productDetailLayout(820).gallerySide / 1180).toBeLessThan(0.5);
-    expect(productDetailLayout(626).gallerySide / 890).toBeLessThan(0.55);
+  it('the landscape gallery fits the window height (1180 x 820)', () => {
+    expect(productDetailLayout(1180).gallerySide).toBeLessThan(820);
   });
 });
 
 describe('topBarEdgeShift', () => {
   const bar = 47 + 52 + 8;
-  it('gallery above: the edge completes when the gallery end reaches the bar (phone value unchanged)', () => {
-    const phone = productDetailLayout(390);
-    expect(topBarEdgeShift(phone, bar)).toBe(390 - bar - SCROLL_EDGE_FULL_AT);
-    expect(topBarEdgeShift(productDetailLayout(820), bar)).toBe(GALLERY_MAX_SIDE - bar - SCROLL_EDGE_FULL_AT);
+  it('gallery above (phones): the edge completes when the gallery end reaches the bar', () => {
+    expect(topBarEdgeShift(productDetailLayout(390), bar)).toBe(390 - bar - SCROLL_EDGE_FULL_AT);
   });
 
-  it('gallery beside the info: the edge follows the scroll from 0 like any page', () => {
+  it('gallery beside the info (tablets): the edge follows the scroll from 0 like any page', () => {
+    expect(topBarEdgeShift(productDetailLayout(820), bar)).toBe(0);
     expect(topBarEdgeShift(productDetailLayout(1032), bar)).toBe(0);
   });
 });
@@ -70,7 +66,8 @@ describe('ProductBodyLayout', () => {
     />
   );
 
-  it('phone: gallery, then one column with primary and secondary', () => {
+  it('phone (390 pt): gallery, then one column with primary and secondary', () => {
+    setWindow(390, 844);
     render(tree);
     expect(screen.queryByTestId('product-split-layout')).toBeNull();
     expect(columnOf('primary')).toBe(columnOf('secondary'));
@@ -86,6 +83,18 @@ describe('ProductBodyLayout', () => {
     expect(columnOf('secondary')).not.toBe(columnOf('primary'));
     expect(columnOf('primary')).toBe(info);
     const galleryColumn = StyleSheet.flatten(row.children[0]!.props.style);
-    expect(galleryColumn.width).toBe(516);
+    expect(galleryColumn.width).toBe(464);
+  });
+
+  it.each([
+    [820, 369, 24],
+    [1180, 531, 32],
+  ])('iPad %d pt: split, gallery %d pt wide, text columns at the %d pt gutter', (w, side, gutter) => {
+    setWindow(w, 1000);
+    render(tree);
+    const row = screen.getByTestId('product-split-layout');
+    expect(StyleSheet.flatten(row.children[0]!.props.style).width).toBe(side);
+    expect(StyleSheet.flatten(screen.getByTestId('product-info-column').props.style).paddingHorizontal).toBe(gutter);
+    expect(StyleSheet.flatten(columnOf('secondary')!.props.style).paddingHorizontal).toBe(gutter);
   });
 });

@@ -2,34 +2,33 @@ import { useWindowDimensions } from 'react-native';
 import { SCROLL_EDGE_FULL_AT, windowClassOf } from '@/ui';
 
 /**
- * Product detail layout by window width — ONE source for the gallery square, the screen layout and
- * the top bar's scroll threshold. A hook (not a module-level `Dimensions.get`): rotation, fold/unfold
- * and split view update the gallery and the threshold together.
+ * Product detail layout by window width — ONE source for the gallery square, the screen layout, the
+ * buy bar arrangement and the top bar's scroll threshold. A hook (not a module-level
+ * `Dimensions.get`): rotation, fold/unfold and split view update them together.
  *
- * - `compact` (phones): the gallery is an edge-to-edge square of the window width (unchanged).
- * - `medium` (foldable iPhone inner, iPad Air 11" portrait): the square is capped at
- *   `GALLERY_MAX_SIDE` and centred, so it no longer fills ~70% of the screen.
- * - `expanded` and up (iPad 13" portrait, landscape tablets): `split`: the gallery (half the window,
- *   at most `GALLERY_SPLIT_MAX_SIDE`) sits beside the title / price / seller column.
+ * - `compact` (phones): the gallery is an edge-to-edge square of the window width (unchanged), the
+ *   buy bar stacks the offer / trade row above price + buttons.
+ * - `medium` and up (foldable iPhone inner, iPad portrait and landscape, tablets): `split`: the
+ *   gallery takes `GALLERY_SPLIT_FRACTION` of the window on the left, the title / price / seller
+ *   column the rest; specs, reviews and similar listings run full width below. The buy bar is one
+ *   row: price on the left, every action on the right at its natural width.
  */
 
-/** Largest gallery square above the info (pt), `medium` windows. */
-export const GALLERY_MAX_SIDE = 480;
-/** Largest gallery square beside the info column (pt), `expanded` and wider windows. */
-export const GALLERY_SPLIT_MAX_SIDE = 560;
+/** Share of the window the gallery square takes beside the info column (`medium` and wider). */
+export const GALLERY_SPLIT_FRACTION = 0.45;
 
 export interface ProductDetailLayout {
   /** Gallery beside the info column (true) or above it. */
   split: boolean;
   /** Side of the gallery square (pt). */
   gallerySide: number;
+  /** Buy bar in one row (price left, actions right) instead of the stacked phone bar. */
+  wideBar: boolean;
 }
 
 export function productDetailLayout(windowWidth: number): ProductDetailLayout {
-  const windowClass = windowClassOf(windowWidth);
-  if (windowClass === 'compact') return { split: false, gallerySide: windowWidth };
-  if (windowClass === 'medium') return { split: false, gallerySide: Math.min(windowWidth, GALLERY_MAX_SIDE) };
-  return { split: true, gallerySide: Math.min(Math.floor(windowWidth / 2), GALLERY_SPLIT_MAX_SIDE) };
+  if (windowClassOf(windowWidth) === 'compact') return { split: false, gallerySide: windowWidth, wideBar: false };
+  return { split: true, gallerySide: Math.floor(windowWidth * GALLERY_SPLIT_FRACTION), wideBar: true };
 }
 
 export function useProductDetailLayout(): ProductDetailLayout {
