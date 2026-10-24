@@ -143,7 +143,7 @@ export function ProductGallery({
 }
 
 const styles = StyleSheet.create({
-  // Centred when the square is narrower than the screen (medium windows).
+  // Centred in its column (the gallery square is the column's width on every window).
   root: { alignSelf: 'center' },
   indicatorsWrap: {
     position: 'absolute',
