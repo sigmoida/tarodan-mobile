@@ -52,11 +52,4 @@ describe('list-mode screen gutters', () => {
     });
     expect(missing).toEqual([]);
   });
-
-  it('nothing centres a page body at the old readable width', () => {
-    const offenders = [...sourceFiles(path.join(ROOT, 'app')), ...sourceFiles(path.join(ROOT, 'src/components')), ...sourceFiles(path.join(ROOT, 'src/ui'))]
-      .map(rel)
-      .filter((f) => /contentWidths\.readable/.test(read(f)));
-    expect(offenders).toEqual([]);
-  });
 });

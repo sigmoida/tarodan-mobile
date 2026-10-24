@@ -2,7 +2,6 @@ import {
   breakpoints,
   colors as baseColors,
   containers,
-  contentWidths,
   controlHeight,
   counterBadgeColor,
   duration,
@@ -84,8 +83,6 @@ export const theme = {
   containers,
   /** Window width classes (pt), compared with a measured width; classify with `windowClassOf`. */
   breakpoints,
-  /** Content widths (pt) large screens centre content at (`readable`: forms, detail pages). */
-  contentWidths,
   /** Yükleme sistemi (gösterge, iskelet animasyonu, gecikme) — bkz. `src/ui/loading/`. */
   loading,
 } as const;
