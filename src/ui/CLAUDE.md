@@ -40,14 +40,15 @@ rule is a no-op below 600 pt: phones stay as they are.
   the width (more columns, side-by-side panes), never a stretched phone layout and never
   a capped, centred body. Reference: the Amazon iPad app.
 - Width class: `windowClassOf(width)` / `useWindowClass()` (`src/ui/lib/windowClass.ts`,
-  tokens in `theme.breakpoints`: `medium` >= 600, `expanded` >= 840, `large` >= 1200).
-  Never a local `width > 700` check.
+  tokens in `theme.breakpoints`: `medium` >= 600, `expanded` >= 840, `large` >= 1200);
+  `isAtLeast(cls, 'expanded')` is the one ordered comparison. Never a local `width > 700`
+  check or a hand-written list of classes.
 - **Gutter:** `pageGutter(width)` / `usePageGutter()` is THE side padding (16 on phones,
   `spacing[6]` on medium, `spacing[8]` on expanded and large). `tabletSidePadding`
   widens an existing side padding to it (0 stays full bleed); a list or
   ScrollView wraps its `contentContainerStyle` in `usePageContentStyle(base)`. `PageShell`
   applies it to its body, skeleton and footer bar; `ScreenHeader`, the home search bar,
-  `InboxRow` and the FAB read it too. A shell cannot pad a child's list, so every
+  `InboxRow`, the FAB, the home sections and hero and the search toolbar read it too. A shell cannot pad a child's list, so every
   `mode="list"` screen pads its own (`listGutters.test.ts` checks it).
 - **Card grids:** columns from `useGridColumns()` / `gridColumns(width, spec)`
   (`CARD_GRID_COLUMNS` 2 / 3 / 4 / 5). A `FlatList` / `FlashList` puts the count in its

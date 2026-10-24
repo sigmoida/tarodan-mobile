@@ -71,18 +71,18 @@ centred cap (a floating control, not page content).
 
 ## Screens
 
-| Screen                                                                          | Phone (< 600)                         | Medium (600 to 839)                                  | Expanded / large (>= 840)                                                    |
-| ------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Product detail                                                                  | gallery square above, stacked buy bar | split: gallery 45% left, info right; one-row buy bar | same split; one-row buy bar (price left, offer / trade / buy actions right)  |
-| Cart                                                                            | one column, floating checkout bar     | one column, full-width bar, button at natural width  | items 62% left, summary + checkout panel right (own scroll), no floating bar |
-| Orders, sales, offers, trades, following, my listings, blocked users            | one column of cards                   | 2-column card grid                                   | 3 columns (expanded), 4 (large)                                              |
-| Payment history, discounts, discount products, favourites, manufacturers        | one column                            | 2-column grid                                        | 3 / 4 columns                                                                |
-| Notifications, product reviews                                                  | full-width divider rows               | same, at the tablet gutter                           | same                                                                         |
-| Messages                                                                        | inbox, thread pushed                  | inbox, thread pushed                                 | master–detail: inbox 35% left, selected thread right (in place)              |
-| Settings, profile menu                                                          | one column of section cards           | one column at the tablet gutter                      | two independent, balanced columns of section cards                           |
-| Forms (edit profile, address, listing form, auth, payment card, required steps) | as before                             | full width at the tablet gutter                      | same (no paired fields: no form row component exists, forms not rebuilt)     |
-| Home, search, category, collections, models, seller, brand / manufacturer       | 2-column grids                        | 3 columns                                            | 4 / 5 columns; rails show more cards; nothing capped                         |
-| Tab bar                                                                         | fixed 5-item pill, window width       | centred floating pill, 480 pt                        | centred floating pill, 480 pt                                                |
+| Screen                                                                          | Phone (< 600)                         | Medium (600 to 839)                                                                                  | Expanded / large (>= 840)                                                    |
+| ------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Product detail                                                                  | gallery square above, stacked buy bar | split: gallery 45% left, info right; buy buttons at natural width, offer / trade right-aligned above | same split; one-row bar (price left, offer / trade / buy actions right)      |
+| Cart                                                                            | one column, floating checkout bar     | one column, full-width bar, button at natural width                                                  | items 62% left, summary + checkout panel right (own scroll), no floating bar |
+| Orders, sales, offers, trades, following, my listings, blocked users            | one column of cards                   | 2-column card grid                                                                                   | 3 columns (expanded), 4 (large)                                              |
+| Payment history, discounts, discount products, favourites, manufacturers        | one column                            | 2-column grid                                                                                        | 3 / 4 columns                                                                |
+| Notifications, product reviews                                                  | full-width divider rows               | same, at the tablet gutter                                                                           | same                                                                         |
+| Messages                                                                        | inbox, thread pushed                  | inbox, thread pushed                                                                                 | master–detail: inbox 35% left, selected thread right (in place)              |
+| Settings, profile menu                                                          | one column of section cards           | one column at the tablet gutter                                                                      | two independent, balanced columns of section cards                           |
+| Forms (edit profile, address, listing form, auth, payment card, required steps) | as before                             | full width at the tablet gutter                                                                      | same (no paired fields: no form row component exists, forms not rebuilt)     |
+| Home, search, category, collections, models, seller, brand / manufacturer       | 2-column grids                        | 3 columns                                                                                            | 4 / 5 columns; rails show more cards; nothing capped                         |
+| Tab bar                                                                         | fixed 5-item pill, window width       | centred floating pill, 480 pt                                                                        | centred floating pill, 480 pt                                                |
 
 ## Tab bar (decided 2026-10-24)
 
@@ -98,7 +98,6 @@ Phones change visibly here by the user's request.
 
 - Paired form fields side by side: there is no shared form row component, and the
   brief excludes rebuilding forms.
-- Row list skeletons stay one column (the grid appears with the data).
 - The product list layout (`layout="list"`) stays one column.
 - Home product rails (fixed 160 pt cards, horizontal) are unchanged: a wider window
   simply shows more cards.
@@ -116,6 +115,10 @@ Phones change visibly here by the user's request.
   its row taller; the neighbour keeps its height with empty space below.
 - The messages pane selection is local state: closing the messages screen and
   opening it again shows the placeholder (a push from the pane and back keeps it).
+  When the window narrows below expanded with a conversation open, that
+  conversation is pushed as its own screen; an unsent draft in the pane is lost.
+- Row list skeletons stay one column, so a grid list jumps once when the data
+  arrives on tablets.
 
 ## Native side (decision for the user, not in this branch)
 
