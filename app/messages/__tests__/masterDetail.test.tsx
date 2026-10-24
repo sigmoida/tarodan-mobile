@@ -45,8 +45,10 @@ const mockStore = {
   getOtherParticipant: (t: { participant2: unknown }) => t.participant2,
   setCurrentThreadId: jest.fn(),
 };
-const useMessagesStoreMock: any = (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore);
-useMessagesStoreMock.getState = () => mockStore;
+const useMessagesStoreMock = Object.assign(
+  (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore),
+  { getState: () => mockStore },
+);
 jest.mock('@/stores/messagesStore', () => ({ useMessagesStore: useMessagesStoreMock }));
 
 const mockThreadQuery = jest.fn();

@@ -3,7 +3,7 @@ import { FlatList } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
-import { appAlert, toast, type ActionSheetAction } from '@/ui';
+import { toast, type ActionSheetAction } from '@/ui';
 import { useMessagesStore } from '@/stores/messagesStore';
 import { useAuthStore } from '@/stores/authStore';
 import {
