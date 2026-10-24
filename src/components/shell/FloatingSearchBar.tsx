@@ -1,7 +1,7 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
-import { GLASS_ICON_BUTTON_SIZE, ScrollEdge, getGlassView, theme, useHeaderTopInset } from '@/ui';
+import { GLASS_ICON_BUTTON_SIZE, ScrollEdge, getGlassView, tabletSidePadding, theme, useHeaderTopInset } from '@/ui';
 import { SearchField } from './SearchField';
 import { ShellHeaderActions, ShellLeadingButton } from './ShellHeaderActions';
 import { useLockedPush } from './useLockedPush';
@@ -23,6 +23,7 @@ const { spacing } = theme;
  */
 export const FloatingSearchBar: React.FC<{ scrollY?: SharedValue<number> }> = ({ scrollY }) => {
   const topInset = useHeaderTopInset();
+  const { width: windowWidth } = useWindowDimensions();
   const openSearch = useLockedPush('/search?focus=1');
   const progress = useTabBarProgress();
   const hidden = useTabBarCollapsedFlag();
@@ -34,7 +35,7 @@ export const FloatingSearchBar: React.FC<{ scrollY?: SharedValue<number> }> = ({
   const searchContentStyle = useAnimatedStyle(() => ({ opacity: searchContentOpacity(glass, progress.value) }));
 
   return (
-    <View pointerEvents="box-none" style={[styles.bar, { paddingTop: topInset }]} testID="app-shell-bar">
+    <View pointerEvents="box-none" style={[styles.bar, { paddingTop: topInset, paddingHorizontal: tabletSidePadding(spacing[3], windowWidth) }]} testID="app-shell-bar">
       <ScrollEdge
         barHeight={topInset + APP_SHELL_BAR_HEIGHT + theme.headerBottomPad}
         scrollY={scrollY}
@@ -64,8 +65,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    // Cam daire (44pt) kenarı 12pt gutter'a oturur.
-    paddingHorizontal: spacing[3],
+    // The 44 pt glass circle sits on a 12 pt gutter (phones); tablets: the page gutter (set inline).
     // Diğer üst barlarla aynı alt pay (`theme.headerBottomPad`).
     paddingBottom: theme.headerBottomPad,
     zIndex: 1,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { Badge, PAGE_GUTTER, Text, theme } from '@/ui';
+import { Badge, Text, theme, usePageGutter } from '@/ui';
 
 const { colors, spacing, typography } = theme;
 
@@ -46,9 +46,11 @@ export function InboxRow({
   testID,
   style,
 }: InboxRowProps) {
+  // Full-width row; its content keeps the page gutter (wider on tablets).
+  const gutter = usePageGutter();
   return (
     <Pressable
-      style={({ pressed }) => [styles.item, unread && styles.itemUnread, pressed && styles.itemPressed, style]}
+      style={({ pressed }) => [styles.item, { paddingHorizontal: gutter }, unread && styles.itemUnread, pressed && styles.itemPressed, style]}
       onPress={onPress}
       accessibilityRole="button"
       testID={testID}
@@ -91,7 +93,7 @@ const styles = StyleSheet.create({
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: PAGE_GUTTER,
+    // paddingHorizontal: the page gutter, set inline.
     paddingVertical: spacing[3],
     borderBottomWidth: 1,
     borderBottomColor: colors.border.DEFAULT,
