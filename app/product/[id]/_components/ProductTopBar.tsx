@@ -28,8 +28,8 @@ export function ProductTopBar({
   const { t } = useTranslation();
   const topInset = useHeaderTopInset();
   const barHeight = topInset + headerHeight + headerBottomPad;
-  // Galeri üstteyse kenar, galerinin altı barın altına ulaştığında TAM opak; galeri yandaysa (tablet)
-  // bilgi sütunu bar altından başlar ve kenar 0'dan izler (`topBarEdgeShift`).
+  // Gallery above: the edge is fully opaque when the gallery's end reaches the bar. Gallery beside
+  // the info (tablets): the info column starts under the bar and the edge follows from 0.
   const shift = topBarEdgeShift(useProductDetailLayout(), barHeight);
   const edgeY = useDerivedValue(() => scrollY.value - shift);
 

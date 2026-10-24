@@ -9,7 +9,7 @@ import { useLikedCollections } from "./_hooks/useLikedCollections";
 import { styles } from "./_lib/styles";
 import { LikedCollectionCard } from "./_components/LikedCollectionCard";
 
-/** Beğenilen koleksiyonlar — PageShell (Skeleton / hata + yeniden dene / boş durum) + kart ızgarası (telefonda 2 sütun). */
+/** Liked collections: PageShell (skeleton / error + retry / empty state) + a card grid (2 columns on phones, more on tablets). */
 export default function LikedCollectionsScreen() {
   const { t } = useTranslation();
   const f = useLikedCollections();

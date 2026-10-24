@@ -7,7 +7,7 @@ const { colors, spacing } = theme;
 const RAIL_ITEMS = [0, 1, 2, 3];
 const GRID_ROWS = [0, 1, 2, 3];
 
-/** Izgara iskeleti: gerçek ızgarayla aynı sütunlu kutu yer tutucuları (grup yüklenirken sağ alanda da kullanılır). */
+/** Grid skeleton: tile placeholders in the real grid's column count (also shown while a group loads). */
 export function GridSkeleton() {
   const columns = useCategoryGridColumns();
   return (

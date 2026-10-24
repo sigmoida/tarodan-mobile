@@ -11,5 +11,5 @@ export function useCategoryGridColumns(): number {
   return useGridColumns(CATEGORY_GRID_COLUMNS);
 }
 
-/** Sol rayın ekran genişliğine oranı (dar dikey grup listesi); iskelet de aynısını kullanır. */
+/** Width of the left rail as a share of the screen (narrow vertical group list); the skeleton uses it too. */
 export const CATEGORY_RAIL_WIDTH = '30%';

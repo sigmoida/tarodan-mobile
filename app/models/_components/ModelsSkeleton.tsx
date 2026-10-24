@@ -32,8 +32,8 @@ function ModelCardSkeleton({ index, columns }: { index: number; columns: number 
 }
 
 /**
- * Modeller iskeleti (`PageShell` `loadingFallback`) — arama kutusu, marka çipleri ve marka başına
- * `SectionCard` içinde model kartı ızgarası (gerçek ekranla aynı sütun sayısı) (gerçek ekranla aynı gruplu liste).
+ * Models skeleton (`PageShell` `loadingFallback`): search field, brand chips and, per brand, a
+ * `SectionCard` with the model card grid (same grouped list and column count as the real screen).
  */
 export function ModelsSkeleton() {
   const columns = useGridColumns();

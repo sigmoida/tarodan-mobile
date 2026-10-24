@@ -8,9 +8,9 @@ import { ProductCard, type ProductCardProduct } from './ProductCard';
 const { spacing } = theme;
 
 /**
- * "Benzer Ürünler" kartı (web `ProductRelated`): SectionCard içinde ürün kartı ızgarası (telefonda 2
- * sütun, tablette daha fazla). `emptyText`
- * verilmezse liste boşken kart hiç çizilmez (ürün detayı); verilirse bu metinle çizilir (stok-yok ekranı).
+ * "Similar listings" card (web `ProductRelated`): a listing card grid in a SectionCard (2 columns
+ * on phones, more on tablets). Without `emptyText` an empty list draws nothing (product detail);
+ * with it, the card shows that text (stock-out screen).
  */
 export function SimilarProductsCard({
   title,

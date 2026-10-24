@@ -138,7 +138,7 @@ export function TabBarView({ activeName, onNavigate }: TabBarViewProps) {
   // Row (pill + "+"): window minus the side gaps, centred and capped on wide windows.
   const rowWidth = tabBarRowWidth(windowWidth);
   const rowInset = (windowWidth - rowWidth) / 2;
-  // "+" sağdaki yerinden satırın sol kenarına: satır genişliği - kendi genişliği.
+  // "+" travels from its place on the right to the row's left edge: row width - its own width.
   const sellTravel = Math.max(rowWidth - TAB_SELL_SIZE, 0);
   // Cam hap: alt kenarın ötesine tam kayar (yükseklik + alt boşluk + gölge payı).
   const glassHideY = TAB_PILL_HEIGHT + tabPillBottomOffset(insets.bottom) + spacing[4];

@@ -53,7 +53,7 @@ const HeroSlideItem = React.memo(function HeroSlideItem({
     { index: 2 as const, cta: resolveHeroCta(slide.cta2, locale) },
   ];
 
-  // Telefonda görsel her zaman üstte, metin altta; tablette (web `md`) yan yana, taraf `imageSide`.
+  // Phones: image on top, text below. Tablets (web `md`): side by side, the side from `imageSide`.
   const image = (
     <Image
       source={{ uri: heroImageUrl(slide, { wide: split }) }}

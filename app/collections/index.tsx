@@ -32,9 +32,10 @@ const collectionKey = (item: { id: string | number }) => String(item.id);
 const SKELETON_ROWS = [0, 1];
 
 /**
- * Koleksiyonlar (web `/collections`): PageShell + "Herkese açık / Benim" sekmeleri (Benim yalnız
- * girişli), sunucu araması, kategori filtresi ve sıralama (SelectSheet) ile koleksiyon kartları
- * (telefonda 2 sütun, tablette daha fazla: `useGridColumns`); herkese açık liste sonsuz kaydırılır. Yüklenirken iskelet, boşken EmptyState.
+ * Collections (web `/collections`): PageShell + "Public / Mine" tabs (Mine only when signed in),
+ * server search, category filter and sort (SelectSheet), collection cards (2 columns on phones,
+ * more on tablets: `useGridColumns`); the public list scrolls infinitely. Skeleton while loading,
+ * EmptyState when empty.
  */
 export default function CollectionsScreen() {
   const { t } = useTranslation();

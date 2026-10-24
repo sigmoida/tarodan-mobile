@@ -101,13 +101,14 @@ const GridCell = React.memo(function GridCell({
 });
 
 /**
- * Ürün listelerinin TEK ızgara/listesi: telefonda 2 sütun (web `grid-cols-2 gap-3`; tablette
- * `useProductGridColumns`) ya da tek sütun liste, sonsuz
- * kaydırma, çekip yenileme; yükleniyor = iskelet, boş = tek boş durum, hata = ErrorState.
- * Kartlar memo'lu `ProductCard`; `renderItem` kararlı (kaydırmada satırlar yeniden çizilmez).
- * Favori kalbi otomatik bağlanır (`useProductCardFavorites`; kendi ilanında yok, misafirde giriş akışı).
- * Bir kabuğun (`PageShell mode="list"` / `AppShell`) altındaysa listeyi kabuğun kaydırma kenarı
- * sinyaline OTOMATİK bağlar (içerik üst barın altından kayar, ekranlar değişmez); kabuk yoksa düz liste.
+ * THE grid / list of listings: 2 columns on phones (web `grid-cols-2 gap-3`; more on tablets,
+ * `useProductGridColumns`) or a one-column list, infinite scroll, pull to refresh; loading =
+ * skeleton, empty = one empty state, error = ErrorState. Cards are memoised `ProductCard`s and
+ * `renderItem` is stable (rows do not re-render while scrolling). The favourite heart is wired
+ * automatically (`useProductCardFavorites`; none on the user's own listing, sign-in flow for
+ * guests). Under a shell (`PageShell mode="list"` / `AppShell`) the list binds to the shell's
+ * scroll-edge signal AUTOMATICALLY (content slides under the top bar, screens stay unchanged);
+ * without a shell it is a plain list.
  */
 export function ProductGrid({
   items,

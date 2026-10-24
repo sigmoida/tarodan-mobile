@@ -46,9 +46,10 @@ interface CategoryGridProps {
 }
 
 /**
- * Sağ alan: telefonda 2 sütunlu (tablette daha fazla, `useCategoryGridColumns`) ızgara (+ altta `SectionCardAction` bağlantısı, ör. "Tüm Üreticiler"); başlık
- * bandı yok (seçili grup rayda vurgulu). Alt kategori düzeyinde ızgaranın başında "‹ Üst kategori"
- * kırıntısı (birlikte kayar). Kaydırılabilir, çekip yenilenir.
+ * Right-hand area: the tile grid (2 columns on phones, more on tablets: `useCategoryGridColumns`),
+ * with a `SectionCardAction` link below (e.g. "All manufacturers"). No title band (the selected
+ * group is highlighted in the rail). On a subcategory level a "< Parent category" crumb leads the
+ * grid (it scrolls along). Scrollable, pull to refresh.
  */
 export function CategoryGrid({
   tiles,

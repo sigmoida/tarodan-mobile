@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import { styles } from '../_lib/styles';
 import type { Brand, CarModel } from '../_lib/types';
 
-/** Bir markanın başlığı (SectionCard) + o markaya ait model kartları (telefonda 2 sütun, tablette daha fazla). */
+/** One brand's title (SectionCard) + its model cards (2 columns on phones, more on tablets). */
 export function ModelsBrandSection({ brand, models }: { brand: Brand; models: CarModel[] }) {
   const { t } = useTranslation();
   const columns = useGridColumns();

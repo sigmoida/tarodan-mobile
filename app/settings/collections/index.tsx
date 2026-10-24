@@ -10,8 +10,8 @@ import { useMyCollections } from "./_hooks/useMyCollections";
 import { styles } from "./_lib/styles";
 
 /**
- * Koleksiyonlarım — PageShell + web gibi kart ızgarası (telefonda 2 sütun, tablette daha fazla). Sorgu ve "yeni" kapısı
- * `useMyCollections`'ta; premium notu iOS'ta kapalı (UpgradeCta).
+ * My collections: PageShell + a card grid like web (2 columns on phones, more on tablets). Query and
+ * the "new" gate live in `useMyCollections`; the premium note is off on iOS (UpgradeCta).
  */
 export default function CollectionsScreen() {
   const f = useMyCollections();

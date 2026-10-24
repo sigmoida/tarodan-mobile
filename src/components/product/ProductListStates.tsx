@@ -30,10 +30,10 @@ export function useProductCellWidth(): number {
 }
 
 /**
- * Yükleniyor — gerçek ızgarayla AYNI yerleşim: hücre genişliği `useProductCellWidth`, aralık
- * `PRODUCT_GRID_GAP`, her hücre `SkeletonProductCard` (kartın kendi geometrisi). Izgara
- * `useProductGridColumns` sütun (varsayılan üç satır), liste tek sütun. Liste/kart ekranlarında
- * tam ekran spinner yerine bu kullanılır.
+ * Loading: the SAME layout as the real grid: cell width `useProductCellWidth`, gap
+ * `PRODUCT_GRID_GAP`, each cell a `SkeletonProductCard` (the card's own geometry). The grid has
+ * `useProductGridColumns` columns (three rows by default), the list one column. List and card
+ * screens use this instead of a full-screen spinner.
  */
 export function ProductGridSkeleton({
   count,

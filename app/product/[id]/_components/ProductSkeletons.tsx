@@ -9,9 +9,9 @@ const { spacing, radiusRole } = theme;
 const SECTION_SKELETON_HEIGHT = spacing[24] + spacing[12];
 
 /**
- * Web ürün detayının yüklenirken iskeleti: kare görsel + başlık/fiyat/açıklama satırları. Galeriyle
- * aynı yerleşim (`useProductDetailLayout`): telefonda tam genişlik kare, tablette sınırlı ve ortalı,
- * geniş pencerede kare solda, satırlar yanında.
+ * Product detail skeleton (web): square image + title / price / description lines, in the same
+ * layout as the gallery (`useProductDetailLayout`): a window-wide square on phones, capped and
+ * centred on medium windows, the square on the left with the lines beside it on wide windows.
  */
 export function ProductSkeleton() {
   const layout = useProductDetailLayout();

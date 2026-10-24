@@ -4,52 +4,52 @@ import { HOME_GUTTER } from './homeLayout';
 const { spacing } = theme;
 
 /**
- * Hero yerleşimi — ayrılan yükseklik ile gerçek slider AYNI sabitlerden çıkar.
- * Yer yalnız son açılışta hero görünmüşse ve cevap henüz gelmemişse tutulur
- * (`useLastHadSlides`); hero'su kapalıysa hiçbir şey ayrılmaz.
+ * Hero layout: the reserved height and the real slider come from the SAME constants. Space is only
+ * reserved when the hero was shown on the last launch and the answer has not arrived yet
+ * (`useLastHadSlides`); with the hero off nothing is reserved.
  *
- * Telefon (`compact`): kenarlık + görsel (genişlik / 16:10) + gövde (en az
- * `HERO_BODY_MIN_HEIGHT`) + nokta şeridi. Gövdeye taban yükseklik verildiği için
- * tipik slaytlar rezerve alanla birebir tutar; daha uzun metin yalnız gövdeyi büyütür.
+ * Phones (`compact`): border + image (width / 16:10) + body (at least `HERO_BODY_MIN_HEIGHT`) +
+ * dots strip. The body has a minimum height, so typical slides match the reserved space exactly;
+ * longer text only grows the body.
  *
- * Tablet / açık katlanabilir (`medium` ve üstü, web `md` gibi): görsel (4:3, en çok
- * `HERO_SPLIT_IMAGE_MAX_WIDTH`) metnin yanında (`imageSide`); yükseklik = kenarlık +
- * max(görsel, gövde tabanı) + nokta şeridi. Böylece hero ekranın yarısını kaplamaz.
+ * Tablets / unfolded foldables (`medium` and up, like web `md`): the image (4:3, at most
+ * `HERO_SPLIT_IMAGE_MAX_WIDTH`) sits beside the text (`imageSide`); height = border +
+ * max(image, body minimum) + dots strip, so the hero no longer fills half the screen.
  */
 
-/** Hero görsel oranı — web mobil görünümüyle aynı (16/10). */
+/** Hero image ratio, same as web on phones (16/10). */
 export const HERO_IMAGE_RATIO = 16 / 10;
-/** Yan yana (tablet) görsel oranı — web `md:aspect-[4/3]`. */
+/** Side-by-side (tablet) image ratio, web `md:aspect-[4/3]`. */
 export const HERO_SPLIT_IMAGE_RATIO = 4 / 3;
-/** Yan yana görselin en geniş hali (pt; web `sizes` 560px'in altında, yükseklik 360). */
+/** Widest side-by-side image (pt; below web's 560px `sizes`, 360 pt tall). */
 export const HERO_SPLIT_IMAGE_MAX_WIDTH = 480;
-/** Kabuk kenarlığı (her kenar). */
+/** Shell border (each side). */
 export const HERO_BORDER_WIDTH = 1;
-/** Kabuğun yatay dış boşluğu (her kenar; ana sayfa bölümleriyle aynı kenar) — ekran genişliğinden düşülür. */
+/** Shell side margin (each side; the same edge as the home sections), deducted from the screen width. */
 export const HERO_MARGIN_X = HOME_GUTTER;
-/** Gövde taban yüksekliği: dolgu + başlık + alt başlık + bir/iki buton için tipik alan. */
+/** Body minimum height: padding + title + subtitle + room for one or two buttons. */
 export const HERO_BODY_MIN_HEIGHT = 168;
-/** Nokta şeridi: nokta (8) + alt dolgu. Tek slaytta da ayrılır (kayma olmasın). */
+/** Dots strip: dot (8) + bottom padding. Reserved for a single slide too (no shift). */
 export const HERO_DOTS_HEIGHT = 8 + spacing[3];
 
-/** Görsel metnin yanında mı (pencere `medium` ve üstü)? Telefonda görsel üstte. */
+/** Is the image beside the text (window `medium` and up)? On phones it is on top. */
 export function isHeroSplit(windowWidth: number): boolean {
   return windowClassOf(windowWidth) !== 'compact';
 }
 
-/** Kabuğun iç (slayt sayfası) genişliği: ekran - yan boşluklar - kenarlıklar. */
+/** Inner (slide page) width of the shell: screen - side margins - borders. */
 export function heroInnerWidth(screenWidth: number): number {
   return Math.max(0, screenWidth - 2 * HERO_MARGIN_X - 2 * HERO_BORDER_WIDTH);
 }
 
-/** Görsel kutusu: telefonda tam sayfa genişliği (16:10), yan yanada sayfanın yarısı (4:3, sınırlı). */
+/** Image box: the full page width on phones (16:10); half the page side by side (4:3, capped). */
 export function heroImageSize(innerWidth: number, split: boolean): { width: number; height: number } {
   if (!split) return { width: innerWidth, height: innerWidth / HERO_IMAGE_RATIO };
   const width = Math.min(innerWidth / 2, HERO_SPLIT_IMAGE_MAX_WIDTH);
   return { width, height: width / HERO_SPLIT_IMAGE_RATIO };
 }
 
-/** Ekran genişliğinden kabuğun toplam yüksekliği (rezerve alan için). */
+/** Total shell height for a screen width (the reserved space). */
 export function heroReservedHeight(screenWidth: number): number {
   const split = isHeroSplit(screenWidth);
   const image = heroImageSize(heroInnerWidth(screenWidth), split);

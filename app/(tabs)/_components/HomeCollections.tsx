@@ -58,7 +58,7 @@ function CollectionCard({ collection }: { collection: any }) {
   );
 }
 
-/** "En İyi Koleksiyonlar" (web `TopCollections`): telefonda 2 sütun (tablette daha fazla), en çok 6 koleksiyon. */
+/** "Top collections" (web `TopCollections`): 2 columns on phones (more on tablets), at most 6 collections. */
 export function TopCollections({ items, isLoading }: { items: any[]; isLoading?: boolean }) {
   const { t } = useTranslation();
   const columns = useGridColumns();
