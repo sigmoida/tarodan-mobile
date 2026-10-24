@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Label, SectionCard, Spinner, Text, androidRipple, rippleClip, showPressedStyle, theme } from '@/ui';
+import { Label, SectionCard, Spinner, Text, androidRipple, rippleClip, showPressedStyle, theme, PAGE_GUTTER } from '@/ui';
 import type { ShippingPackageTier } from '@/lib/api/orders';
 import { useStableCallback } from '@/hooks/useStableCallback';
 import { formatPrice } from '@/utils/format';
@@ -180,7 +180,9 @@ export function ListingShippingView({
 }: SectionProps & { d: Pick<ListingPricing, 'commissionPreview' | 'commissionLoading' | 'commissionEnabled'> }) {
   const { t } = useTranslation();
   const { width, fontScale } = useWindowDimensions();
-  const stacked = tierColumns(width, fontScale, f.packageTiers.length || 3) === 1;
+  // The form is centred at the readable width on tablets (`ListingForm`): decide from that width.
+  const formWidth = Math.min(width, theme.contentWidths.readable + 2 * PAGE_GUTTER);
+  const stacked = tierColumns(formWidth, fontScale, f.packageTiers.length || 3) === 1;
   const onSelect = useStableCallback(f.setShippingPackageTier);
   const amountByTier = new Map(
     (d.commissionPreview?.packageTierShipping ?? []).map((s) => [s.code, s.sellerShippingAmount]),
