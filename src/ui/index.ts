@@ -122,6 +122,18 @@ export {
 	type PageShellMode,
 } from './components/PageShell';
 export { PAGE_GUTTER, PAGE_SECTION_GAP, pageListContentStyle } from './lib/pageLayout';
+export {
+  CARD_GRID_COLUMNS,
+  gridCellStyle,
+  gridColumns,
+  readableGutter,
+  useGridColumns,
+  useReadableGutter,
+  useWindowClass,
+  windowClassOf,
+  type GridColumnSpec,
+  type WindowClass,
+} from './lib/windowClass';
 export { PageHeader, type PageHeaderProps } from './components/PageHeader';
 export { EmptyState, EMPTY_STATE_TOP_OFFSET, type EmptyStateProps, type EmptyStatePlacement } from './components/EmptyState';
 export { ErrorState, type ErrorStateProps } from './components/ErrorState';
