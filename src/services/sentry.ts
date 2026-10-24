@@ -5,8 +5,7 @@
  */
 import Constants from "expo-constants";
 import * as Sentry from "@sentry/react-native";
-import { IS_MAESTRO } from "@/config/maestro";
-import { sentryEnvironment } from "./sentryEnvironment";
+import { buildEnvironment } from "./sentryEnvironment";
 import { tracesSampleRate } from "./sentrySampling";
 import { scrubBreadcrumb, scrubEvent, sentryUser } from "./sentryScrub";
 
@@ -40,11 +39,7 @@ export function initSentry(): void {
   initialized = true;
   // `preview` (every staging build and OTA) reports as `staging`; `__DEV__` and Maestro
   // E2E bundles as `development`; see ./sentryEnvironment.
-  // The `process.env.EXPO_PUBLIC_*` access stays direct: Metro inlines it at build time.
-  const environment = sentryEnvironment(process.env.EXPO_PUBLIC_ENVIRONMENT, {
-    isDev: __DEV__,
-    isE2E: IS_MAESTRO,
-  });
+  const environment = buildEnvironment();
   Sentry.init({
     dsn,
     environment,
