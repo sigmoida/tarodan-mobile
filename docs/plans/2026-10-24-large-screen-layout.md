@@ -45,8 +45,8 @@ and detail pages).
 `packages/design-tokens`. The same `breakpoints` and `contentWidths` tokens have
 to be added there (a new `breakpoints.ts`, exported from the package index; web
 keeps its Tailwind `screens`, which serve CSS media queries) with a note in
-tarodan-ops `docs/design-system.md`. This branch does not edit tarodan-app; the
-orchestrator schedules that change before this branch merges.
+tarodan-ops `docs/design-system.md`. Done 2026-10-24: tarodan-app f96c2d751 adds
+the file and this branch's copy is identical to it.
 
 ## Shared layer (`@/ui`)
 

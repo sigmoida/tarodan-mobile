@@ -27,8 +27,8 @@ and has no `theme` export.
 - `breakpoints` (window classes `medium` 600 / `expanded` 840 / `large` 1200, Material)
   and `contentWidths.readable` (672, web `max-w-2xl`) are window / content widths
   (`theme.breakpoints`, `theme.contentWidths`; classify with `windowClassOf` from `@/ui`).
-  `breakpoints.ts` was added here first (2026-10-24) and is **pending upstream** in
-  `packages/design-tokens` with a tarodan-ops `docs/design-system.md` note.
+  `breakpoints.ts` is a copy of tarodan-app `packages/design-tokens/src/breakpoints.ts`
+  (f96c2d751, 2026-10-24); change it there first.
 - Light theme only; there is no dark mode on any platform.
 
 ## Using tokens
