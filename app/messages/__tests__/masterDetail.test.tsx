@@ -41,15 +41,18 @@ const mockThread = (id: string, name: string) => ({
 });
 const mockThreads = [mockThread('t1', 'Ayşe'), mockThread('t2', 'Mehmet')];
 
-const mockStore = {
-  getOtherParticipant: (t: { participant2: unknown }) => t.participant2,
-  setCurrentThreadId: jest.fn(),
-};
-const useMessagesStoreMock = Object.assign(
-  (sel?: (s: typeof mockStore) => unknown) => (sel ? sel(mockStore) : mockStore),
-  { getState: () => mockStore },
-);
-jest.mock('@/stores/messagesStore', () => ({ useMessagesStore: useMessagesStoreMock }));
+// Built inside the factory: jest hoists it above the module's own declarations.
+jest.mock('@/stores/messagesStore', () => {
+  const state = {
+    getOtherParticipant: (t: { participant2: unknown }) => t.participant2,
+    setCurrentThreadId: jest.fn(),
+  };
+  const useMessagesStore = Object.assign(
+    (sel?: (s: typeof state) => unknown) => (sel ? sel(state) : state),
+    { getState: () => state },
+  );
+  return { useMessagesStore };
+});
 
 const mockThreadQuery = jest.fn();
 jest.mock('@/hooks/messaging', () => ({

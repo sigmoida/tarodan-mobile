@@ -6,7 +6,7 @@ import React from 'react';
 import { Dimensions, FlatList, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { act, screen } from '@testing-library/react-native';
 import { renderWithProviders as render } from '@/test-utils';
-import { PAGE_GUTTER } from '@/ui';
+import { PAGE_GUTTER, theme } from '@/ui';
 import { ProductGrid } from '../ProductGrid';
 import { PRODUCT_GRID_GAP, ProductGridSkeleton, productCellWidth } from '../ProductListStates';
 
@@ -54,7 +54,8 @@ describe('ProductGrid columns by window width', () => {
 
   it('productCellWidth: phone = the old two-column width; tablet deducts every gap', () => {
     expect(productCellWidth(390, 2)).toBe((390 - PAGE_GUTTER * 2 - PRODUCT_GRID_GAP) / 2);
-    expect(productCellWidth(1032, 4)).toBe((1032 - PAGE_GUTTER * 2 - PRODUCT_GRID_GAP * 3) / 4);
+    // Tablets deduct the wider page gutter (`pageGutter`: 32 pt on expanded windows).
+    expect(productCellWidth(1032, 4)).toBe((1032 - theme.spacing[8] * 2 - PRODUCT_GRID_GAP * 3) / 4);
   });
 
   it('skeleton: three rows of the current column count at the real cell width', () => {

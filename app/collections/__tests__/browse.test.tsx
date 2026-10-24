@@ -7,6 +7,7 @@ import React from 'react';
 import { Dimensions, FlatList, StyleSheet } from 'react-native';
 import { screen, fireEvent, waitFor, within } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
+import { pageGutter } from '@/ui';
 
 jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').routerMock);
 
@@ -197,7 +198,8 @@ describe('Koleksiyon tarama on large screens', () => {
     // Cell = (window - 2 x 16 gutter - gaps) / columns, even alone in its row.
     let cell = screen.getByText('Ferrari Koleksiyonu').parent;
     while (cell && StyleSheet.flatten(cell.props.style)?.width === undefined) cell = cell.parent;
-    const expected = (width - 32 - 12 * (columns - 1)) / columns;
+    // The page gutter on each side (`pageGutter`: 24 on medium, 32 on expanded windows).
+    const expected = (width - 2 * pageGutter(width) - 12 * (columns - 1)) / columns;
     expect(StyleSheet.flatten(cell!.props.style).width).toBeCloseTo(expected, 5);
   });
 });
