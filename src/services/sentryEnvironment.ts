@@ -17,7 +17,7 @@
  * locally with `preview` to reach staging), and Maestro E2E builds (`eas.json`
  * `maestro` extends `preview`, but its errors are provoked by the test run).
  */
-type SentryEnvironment = "production" | "staging" | "development";
+export type SentryEnvironment = "production" | "staging" | "development";
 
 export function sentryEnvironment(
   appEnvironment: string | undefined,
