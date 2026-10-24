@@ -111,17 +111,27 @@ describe("initSentry", () => {
     expect(initOptions().tracesSampleRate).toBe(0);
   });
 
-  it("sends every error and keeps the PII scrubbing", () => {
+  it("sends every error and wires the PII scrub hooks", () => {
     loadSentry({ appEnvironment: "production", dsn: DSN }).initSentry();
     const options = initOptions();
 
     // Errors are never sampled: `sampleRate` stays at the SDK default of 1.0.
     expect(options).not.toHaveProperty("sampleRate");
     expect(options.sendDefaultPii).toBe(false);
+    // The rules themselves are pinned in sentryScrub.test.ts; this only proves each
+    // hook runs them (an identity hook would fail here).
     const user = { id: "42", email: "buyer@example.invalid" };
-    expect(options.beforeSend({ user }).user).toEqual({ id: "42" });
+    const body = { config: { data: '{"phone":"5550000000"}' } };
+    const event = options.beforeSend({ user, extra: body });
+    expect(event.user).toEqual({ id: "42" });
+    expect(JSON.stringify(event)).not.toContain("5550000000");
     expect(options.beforeSendTransaction({ user }).user).toEqual({ id: "42" });
-    expect(typeof options.beforeBreadcrumb).toBe("function");
+    const crumb = options.beforeBreadcrumb({
+      category: "console",
+      message: "log",
+      data: { arguments: ["buyer@example.invalid"] },
+    });
+    expect(crumb.data).toBe("[scrubbed]");
   });
 
   it("initializes only once", () => {
