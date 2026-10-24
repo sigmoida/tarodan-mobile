@@ -8,7 +8,7 @@ import { useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, ErrorState, pageListContentStyle, useDelayedLoading, usePageScrollValue, usePageContentStyle } from '@/ui';
+import { Button, EmptyState, ErrorState, pageListContentStyle, useDelayedLoading, usePageScrollValue, usePageContentStyle, useRowGrid } from '@/ui';
 import { listWindowing } from '@/lib/list/windowing';
 import { searchEntryHref } from '@/lib/navigation/searchHref';
 import { useStableCallback } from '@/hooks/useStableCallback';
@@ -35,6 +35,8 @@ function FavoritesScreen() {
   const page = usePageScrollValue();
   // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
   const listContentStyle = usePageContentStyle([pageListContentStyle, { paddingBottom: tabInset }]);
+  // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
+  const grid = useRowGrid();
   // Tek handler hem alt menüyü hem üst barın kaydırma kenarını besler.
   const tabScroll = useTabBarScrollHandler(undefined, page.scrollY);
   // Kararlı renderItem + memo'lu kart: işleyiciler referans-kararlı (en güncel `f`'i çağırır), sepet
@@ -43,13 +45,16 @@ function FavoritesScreen() {
   // An optimistic row (add still in flight) is a loading card, like web's pending tile: it has no
   // real price, stock, cap or seller, so it must not offer the cart action.
   const renderFavorite = useCallback(
-    ({ item }: { item: WishlistItem }) =>
-      isOptimisticFavorite(item) ? (
-        <FavoriteCardSkeleton testID={`favorite-pending-${item.productId}`} />
-      ) : (
-        <FavoriteCard item={item} onRemove={onRemove} />
+    ({ item, index }: { item: WishlistItem; index: number }) =>
+      grid.cell(
+        index,
+        isOptimisticFavorite(item) ? (
+          <FavoriteCardSkeleton testID={`favorite-pending-${item.productId}`} />
+        ) : (
+          <FavoriteCard item={item} onRemove={onRemove} />
+        ),
       ),
-    [onRemove],
+    [onRemove, grid],
   );
 
   if (!f.isAuthenticated) {
@@ -75,6 +80,8 @@ function FavoritesScreen() {
       scroll={page}
     >
       <Animated.FlatList
+        key={grid.listKey}
+        numColumns={grid.numColumns}
         {...tabScroll}
         {...page.scrollProps}
         scrollEventThrottle={16}

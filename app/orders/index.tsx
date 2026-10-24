@@ -9,7 +9,7 @@ import {
   Spinner,
   pageListContentStyle,
   usePageScrollHandler,
-  usePageContentStyle,
+  usePageContentStyle, useRowGrid,
 } from '@/ui';
 import { router } from 'expo-router';
 
@@ -40,24 +40,29 @@ export default function OrdersScreen() {
   const page = usePageScrollHandler();
   // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
   const listContentStyle = usePageContentStyle([pageListContentStyle, styles.list]);
+  // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
+  const grid = useRowGrid();
   const emptyTitle = useOrdersEmptyTitle(f.filter);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
   const { expandedGroups, toggleGroup } = f;
   // Kararlı renderItem (erken return'den ÖNCE — hook sırası sabit).
   const renderEntry = useCallback(
-    ({ item }: { item: OrderListEntry }) =>
-      item.kind === 'order' ? (
-        <OrderCard order={item.order} onRate={onRate} />
-      ) : (
-        <OrderGroupCard
-          group={item.group}
-          isExpanded={expandedGroups.has(item.group.id)}
-          onToggle={toggleGroup}
-          onRate={onRate}
-        />
+    ({ item, index }: { item: OrderListEntry; index: number }) =>
+      grid.cell(
+        index,
+        item.kind === 'order' ? (
+          <OrderCard order={item.order} onRate={onRate} />
+        ) : (
+          <OrderGroupCard
+            group={item.group}
+            isExpanded={expandedGroups.has(item.group.id)}
+            onToggle={toggleGroup}
+            onRate={onRate}
+          />
+        ),
       ),
-    [expandedGroups, toggleGroup],
+    [expandedGroups, toggleGroup, grid],
   );
 
   if (!f.isAuthenticated) {
@@ -83,6 +88,8 @@ export default function OrdersScreen() {
   return (
     <PageShell title={t('order.myOrders')} onBack={back} mode="list" scroll={page}>
       <Animated.FlatList
+        key={grid.listKey}
+        numColumns={grid.numColumns}
         {...page.listProps}
         testID="orders-list"
         data={loading || failed ? [] : f.entries}

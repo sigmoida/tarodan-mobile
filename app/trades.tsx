@@ -12,7 +12,7 @@ import {
   theme,
   useDelayedLoading,
   usePageScrollHandler,
-  usePageContentStyle,
+  usePageContentStyle, useRowGrid,
 } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { tradesApi } from '@/lib/api';
@@ -62,6 +62,8 @@ export default function TradesScreen() {
   const page = usePageScrollHandler();
   // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
   const listContentStyle = usePageContentStyle(pageListContentStyle);
+  // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
+  const grid = useRowGrid();
 
   const { data: tradesPayload, isLoading, isError, refetch } = useQuery({
     queryKey: qk.trades.list({ filter }),
@@ -136,10 +138,9 @@ export default function TradesScreen() {
 
   // Stable renderItem (#75) — memoized TradeCard bails out unless the row changes.
   const renderTrade = useCallback(
-    ({ item }: { item: (typeof tradesList)[number] }) => (
-      <TradeCard trade={item} currentUserId={user?.id} />
-    ),
-    [user?.id],
+    ({ item, index }: { item: (typeof tradesList)[number]; index: number }) =>
+      grid.cell(index, <TradeCard trade={item} currentUserId={user?.id} />),
+    [user?.id, grid],
   );
 
   if (!isAuthenticated) {
@@ -162,6 +163,8 @@ export default function TradesScreen() {
   return (
     <PageShell title={t('trade.myTrades')} onBack={handleBack} mode="list" scroll={page}>
       <Animated.FlatList
+        key={grid.listKey}
+        numColumns={grid.numColumns}
         {...page.listProps}
         data={isError || isLoading ? [] : tradesList}
         contentContainerStyle={page.contentStyle(listContentStyle)}

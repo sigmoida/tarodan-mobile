@@ -7,7 +7,7 @@ import {
   TopBarAction,
   pageListContentStyle,
   usePageScrollHandler,
-  usePageContentStyle,
+  usePageContentStyle, useRowGrid,
 } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { RowListSkeleton } from '@/components/common/RowListSkeleton';
@@ -34,13 +34,14 @@ export default function DiscountsScreen() {
   const page = usePageScrollHandler();
   // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
   const listContentStyle = usePageContentStyle(pageListContentStyle);
+  // Large screens: the rows become a card grid (src/ui/CLAUDE.md › Large screens).
+  const grid = useRowGrid();
   const { toggleActive, openEdit, handleDelete } = f;
   // Kararlı renderItem (erken return'den ÖNCE — hook sırası sabit).
   const renderDiscount = useCallback(
-    ({ item }: { item: Discount }) => (
-      <DiscountCard d={item} onToggle={toggleActive} onEdit={openEdit} onDelete={handleDelete} />
-    ),
-    [toggleActive, openEdit, handleDelete],
+    ({ item, index }: { item: Discount; index: number }) =>
+      grid.cell(index, <DiscountCard d={item} onToggle={toggleActive} onEdit={openEdit} onDelete={handleDelete} />),
+    [toggleActive, openEdit, handleDelete, grid],
   );
 
   const gate = DiscountsGate();
@@ -68,6 +69,8 @@ export default function DiscountsScreen() {
       }
     >
       <Animated.FlatList
+        key={grid.listKey}
+        numColumns={grid.numColumns}
         {...page.listProps}
         testID="discounts-list"
         data={f.filteredDiscounts}

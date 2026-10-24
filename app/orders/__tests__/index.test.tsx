@@ -274,4 +274,26 @@ describe('Siparişlerim · large screens', () => {
     const flat = StyleSheet.flatten(screen.getByTestId('orders-list').props.contentContainerStyle);
     expect(flat.paddingLeft ?? flat.paddingHorizontal ?? flat.padding).toBe(side);
   });
+
+  it.each([
+    [390, 844, 1],
+    [820, 1180, 2],
+    [1032, 1376, 3],
+    [1366, 1024, 4],
+  ])('%d x %d pt: the order cards form a %d-column grid', async (width, height, columns) => {
+    setWindow(width, height);
+    getGroupsMock.mockResolvedValue({ data: { data: [orderGroupFixture()] } });
+    renderWithProviders(<OrdersScreen />);
+    await waitFor(() => expect(screen.getByText('Sipariş #ORD-1001000000')).toBeOnTheScreen());
+    const list = screen.UNSAFE_root.findAll(
+      (n: { props: { testID?: string; numColumns?: number } }) => n.props.testID === 'orders-list' && n.props.numColumns != null,
+    )[0]!;
+    expect(list.props.numColumns).toBe(columns);
+    // Tablets wrap each card in a percentage grid cell; phones render the card as before.
+    const cellWidths = screen.UNSAFE_root.findAll(
+      (n: { type: unknown; props: { style?: unknown } }) =>
+        n.type === 'View' && typeof StyleSheet.flatten(n.props.style as never)?.width === 'string',
+    );
+    expect(cellWidths.length > 0).toBe(columns > 1);
+  });
 });
