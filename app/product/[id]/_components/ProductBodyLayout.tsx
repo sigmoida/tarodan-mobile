@@ -9,19 +9,21 @@ const { spacing } = theme;
  * Arranges the product detail body by window width (`useProductDetailLayout`):
  *
  * - gallery above (phones): gallery, then one padded column with `primary`
- *   (title, price, description, actions, seller) followed by `secondary` (specs, reviews, similar);
- *   the same tree as before the large-screen layout.
- * - split (medium and wider windows): the gallery and the `primary` column side by side (the column starts
- *   under the floating top bar), then `secondary` across the full width below.
+ *   (title, price, description, actions, seller), `details` (specs, reviews) and `below` (similar
+ *   listings); the same order as before the large-screen layout.
+ * - split (medium and wider windows): two balanced columns. Left: the gallery with `details` under
+ *   it; right: `primary` (starts under the floating top bar). Then `below` across the full width.
  */
 export function ProductBodyLayout({
   gallery,
   primary,
-  secondary,
+  details,
+  below,
 }: {
   gallery: React.ReactNode;
   primary: React.ReactNode;
-  secondary?: React.ReactNode;
+  details?: React.ReactNode;
+  below?: React.ReactNode;
 }) {
   const layout = useProductDetailLayout();
   const barInset = useHeaderBarInset();
@@ -34,7 +36,8 @@ export function ProductBodyLayout({
         {gallery}
         <View style={[styles.body, gutter]}>
           {primary}
-          {secondary}
+          {details}
+          {below}
         </View>
       </>
     );
@@ -43,12 +46,15 @@ export function ProductBodyLayout({
   return (
     <>
       <View style={styles.splitRow} testID="product-split-layout">
-        <View style={{ width: layout.gallerySide }}>{gallery}</View>
+        <View style={{ width: layout.gallerySide }} testID="product-gallery-column">
+          {gallery}
+          {details ? <View style={[styles.body, gutter]}>{details}</View> : null}
+        </View>
         <View style={[styles.body, gutter, styles.splitInfo, { paddingTop: barInset }]} testID="product-info-column">
           {primary}
         </View>
       </View>
-      {secondary ? <View style={[styles.body, gutter, styles.splitSecondary]}>{secondary}</View> : null}
+      {below ? <View style={[styles.body, gutter, styles.splitBelow]}>{below}</View> : null}
     </>
   );
 }
@@ -57,5 +63,5 @@ const styles = StyleSheet.create({
   body: { padding: spacing[4], gap: spacing[4] },
   splitRow: { flexDirection: 'row', alignItems: 'flex-start' },
   splitInfo: { flex: 1, minWidth: 0 },
-  splitSecondary: { paddingTop: 0 },
+  splitBelow: { paddingTop: 0 },
 });

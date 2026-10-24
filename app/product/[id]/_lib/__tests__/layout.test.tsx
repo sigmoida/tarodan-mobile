@@ -23,8 +23,8 @@ describe('productDetailLayout', () => {
   });
 
   it.each([
-    [626, 281, 'above'],
-    [820, 369, 'above'], // iPad Air 11" portrait: offer / trade above the bar
+    [626, 281, 'inline'],
+    [820, 369, 'inline'], // iPad Air 11" portrait: one-row bar
     [1032, 464, 'inline'],
     [1180, 531, 'inline'], // iPad Air 11" landscape: everything in one row
     [1366, 614, 'inline'],
@@ -62,26 +62,34 @@ describe('ProductBodyLayout', () => {
     <ProductBodyLayout
       gallery={<Text>gallery</Text>}
       primary={<Text>primary</Text>}
-      secondary={<Text>secondary</Text>}
+      details={<Text>details</Text>}
+      below={<Text>below</Text>}
     />
   );
 
-  it('phone (390 pt): gallery, then one column with primary and secondary', () => {
+  it('phone (390 pt): gallery, then one column with primary, details and below in that order', () => {
     setWindow(390, 844);
     render(tree);
     expect(screen.queryByTestId('product-split-layout')).toBeNull();
-    expect(columnOf('primary')).toBe(columnOf('secondary'));
+    expect(columnOf('primary')).toBe(columnOf('details'));
+    expect(columnOf('primary')).toBe(columnOf('below'));
   });
 
-  it('iPad 13": gallery beside the primary column, which starts under the top bar; secondary below', () => {
+  it('iPad 13": gallery + details on the left, primary on the right under the top bar; below full width', () => {
     setWindow(1032, 1376);
     render(tree);
     const row = screen.getByTestId('product-split-layout');
     expect(StyleSheet.flatten(row.props.style).flexDirection).toBe('row');
     const info = screen.getByTestId('product-info-column');
     expect(StyleSheet.flatten(info.props.style).paddingTop).toBeGreaterThan(0);
-    expect(columnOf('secondary')).not.toBe(columnOf('primary'));
     expect(columnOf('primary')).toBe(info);
+    const galleryCol = screen.getByTestId('product-gallery-column');
+    expect(screen.getByText('details')).toBeOnTheScreen();
+    // details sit in the gallery column (left), not in the info column, nor below the row
+    let n = screen.getByText('details').parent;
+    while (n && n !== galleryCol && n !== info) n = n.parent;
+    expect(n).toBe(galleryCol);
+    expect(columnOf('below')).not.toBe(info);
     const galleryColumn = StyleSheet.flatten(row.children[0]!.props.style);
     expect(galleryColumn.width).toBe(464);
   });
@@ -95,6 +103,7 @@ describe('ProductBodyLayout', () => {
     const row = screen.getByTestId('product-split-layout');
     expect(StyleSheet.flatten(row.children[0]!.props.style).width).toBe(side);
     expect(StyleSheet.flatten(screen.getByTestId('product-info-column').props.style).paddingHorizontal).toBe(gutter);
-    expect(StyleSheet.flatten(columnOf('secondary')!.props.style).paddingHorizontal).toBe(gutter);
+    expect(StyleSheet.flatten(columnOf('details')!.props.style).paddingHorizontal).toBe(gutter);
+    expect(StyleSheet.flatten(columnOf('below')!.props.style).paddingHorizontal).toBe(gutter);
   });
 });

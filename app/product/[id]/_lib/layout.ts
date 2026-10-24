@@ -1,5 +1,5 @@
 import { useWindowDimensions } from 'react-native';
-import { SCROLL_EDGE_FULL_AT, isAtLeast, windowClassOf } from '@/ui';
+import { SCROLL_EDGE_FULL_AT, windowClassOf } from '@/ui';
 
 /**
  * Product detail layout by window width — ONE source for the gallery square, the screen layout, the
@@ -9,11 +9,10 @@ import { SCROLL_EDGE_FULL_AT, isAtLeast, windowClassOf } from '@/ui';
  * - `compact` (phones): the gallery is an edge-to-edge square of the window width (unchanged), the
  *   buy bar stacks the offer / trade row above price + buttons.
  * - `medium` and up (foldable iPhone inner, iPad portrait and landscape, tablets): `split`: the
- *   gallery takes `GALLERY_SPLIT_FRACTION` of the window on the left, the title / price / seller
- *   column the rest; specs, reviews and similar listings run full width below. The buy bar has the
- *   price on the left and the buy buttons on the right at their natural width (`wideBar`); the
- *   offer / trade buttons (`offerTrade`) sit right-aligned above it on medium windows and join the
- *   bar's one row from `expanded` up, where there is room for all of them next to the price.
+ *   gallery takes `GALLERY_SPLIT_FRACTION` of the window on the left with the specs and reviews
+ *   under it, the title / price / description / seller column the rest; similar listings run full
+ *   width below. The buy bar is one row: the price on the left, the offer / trade buttons and the
+ *   buy buttons on the right at their natural width (`wideBar`, `offerTrade: 'inline'`).
  */
 
 /** Share of the window the gallery square takes beside the info column (`medium` and wider). */
@@ -28,13 +27,12 @@ export interface ProductDetailLayout {
   wideBar: boolean;
   /**
    * Where the offer / trade buttons go: `stacked` (phones: their own row above the bar, equal
-   * halves), `above` (medium: their own row, right-aligned at natural width), `inline` (expanded and
-   * up: inside the buy bar row at natural width).
+   * halves) or `inline` (medium and up: inside the buy bar row at natural width).
    */
   offerTrade: OfferTradePlacement;
 }
 
-export type OfferTradePlacement = 'stacked' | 'above' | 'inline';
+export type OfferTradePlacement = 'stacked' | 'inline';
 
 export function productDetailLayout(windowWidth: number): ProductDetailLayout {
   const cls = windowClassOf(windowWidth);
@@ -43,7 +41,7 @@ export function productDetailLayout(windowWidth: number): ProductDetailLayout {
     split: true,
     gallerySide: Math.floor(windowWidth * GALLERY_SPLIT_FRACTION),
     wideBar: true,
-    offerTrade: isAtLeast(cls, 'expanded') ? 'inline' : 'above',
+    offerTrade: 'inline',
   };
 }
 

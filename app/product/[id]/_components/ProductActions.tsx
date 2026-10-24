@@ -33,9 +33,10 @@ function unavailableLabel(product: Product, t: (k: any) => string): string {
  * Sahipte fiyat + "Düzenle". Etiketler tek satır (Button sığmazsa küçültür); fiyat küçülür.
  * Web kartta/detayda ilan bazlı kargo bilgisi göstermediği için kargo satırı yok.
  *
- * `wide` (tablets, `productDetailLayout().wideBar`): the row is laid out for the width: the price on
- * the left, `extraActions` (the offer / trade buttons from `expanded` up) and the buy buttons on the
- * right at their natural width; no button stretches across the bar.
+ * `wide` (tablets, `productDetailLayout().wideBar`): one row laid out for the width: the price on
+ * the left, `extraActions` (the offer / trade buttons) and the buy buttons on the right, all at their
+ * natural width and the same height; "Hemen Al" is a regular icon + label button there, not the
+ * phone's square.
  */
 export function ProductBuyBar({
   product,
@@ -95,7 +96,16 @@ export function ProductBuyBar({
     <View style={styles.row} testID="product-buy-bar">
       {price}
       {extraActions}
-      {purchasable ? (
+      {purchasable && wide ? (
+        <Button
+          testID="product-detail-buy-now-button"
+          variant="outline"
+          size="lg"
+          title={t('product.buyNow')}
+          onPress={onBuyNow}
+          style={styles.inlineWide}
+        />
+      ) : purchasable ? (
         <Button
           testID="product-detail-buy-now-button"
           variant="outline"
@@ -147,8 +157,8 @@ export function ProductBuyBar({
  * Bu iki eylemin TEK birincil girişi (fiyatın yanındaki çipler yalnız kısayol). Görünürlük
  * `getOfferTradeAvailability`'den: sahipte ve satılamayan ilanda hiç çizilmez. İkisi de geçerliyse
  * eşit genişlikte yan yana, biri geçerliyse tam genişlik. Kompakt (`md`), etiket tek satır.
- * `placement` (`productDetailLayout().offerTrade`): `stacked` (phones, equal halves), `above`
- * (medium, right-aligned at natural width) or `inline` (inside the buy bar row, natural width).
+ * `placement` (`productDetailLayout().offerTrade`): `stacked` (phones, equal halves) or `inline`
+ * (tablets: inside the buy bar row, natural width, the bar's button height).
  */
 export function ProductOfferTradeRow({
   availability,
@@ -163,14 +173,16 @@ export function ProductOfferTradeRow({
 }) {
   const { t } = useTranslation();
   if (!availability.offer && !availability.trade) return null;
-  const natural = placement !== 'stacked';
-  const cell = natural ? styles.cellInline : styles.cell;
+  const inline = placement === 'inline';
+  const cell = inline ? styles.inlineWide : styles.cell;
+  const size = inline ? 'lg' : undefined;
   return (
-    <View style={[styles.pair, natural && styles.pairInline]} testID="product-offer-trade-row">
+    <View style={styles.pair} testID="product-offer-trade-row">
       {availability.trade ? (
         <Button
           testID="product-detail-trade-button"
           variant="outline"
+          size={size}
           title={t('product.trade')}
           onPress={onTrade}
           style={cell}
@@ -180,6 +192,7 @@ export function ProductOfferTradeRow({
         <Button
           testID="product-detail-offer-button"
           variant="outline"
+          size={size}
           title={t('product.makeOffer')}
           onPress={onMakeOffer}
           style={cell}
@@ -253,6 +266,6 @@ const styles = StyleSheet.create({
   stepper: { alignSelf: 'flex-start' },
   pair: { flexDirection: 'row', gap: spacing[2] },
   cell: { flex: 1, paddingHorizontal: spacing[2] },
-  cellInline: { flexShrink: 0, paddingHorizontal: spacing[4] },
-  pairInline: { justifyContent: 'flex-end' },
+  // Tablet bar buttons next to the price: natural width, never squeezed.
+  inlineWide: { flexShrink: 0, paddingHorizontal: spacing[4] },
 });

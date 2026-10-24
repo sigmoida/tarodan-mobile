@@ -115,8 +115,8 @@ function ProductDetail({ productId }: { productId: string }) {
   const ready = visible && full;
   // Hata sonrası "Tekrar Dene" sürerken iskelet (hata kartı basılı kalmasın).
   const retrying = !product && isError && productQuery.isFetching;
-  // Phones: the offer / trade row above the buy bar; medium: above it at natural width;
-  // expanded and up: inside the buy bar row (`productDetailLayout`).
+  // Phones: the offer / trade row above the buy bar; tablets: inside the buy bar row
+  // (`productDetailLayout`).
   const { wideBar, offerTrade } = useProductDetailLayout();
   const offerTradeRow = (
     <ProductOfferTradeRow
@@ -257,15 +257,19 @@ function ProductDetail({ productId }: { productId: string }) {
                 )}
               </>
             }
-            secondary={
+            details={
               ready && sectionsReady ? (
                 <>
                   <ProductSpecs product={product} />
                   <ProductReviewsPreview reviews={reviews} onSeeAll={openReviews} />
-                  <SimilarProductsCard title={t('product.similarProducts')} items={similar} />
                 </>
               ) : ready ? (
                 <ProductSectionsSkeleton count={1} testID="product-deferred-skeleton" />
+              ) : null
+            }
+            below={
+              ready && sectionsReady ? (
+                <SimilarProductsCard title={t('product.similarProducts')} items={similar} />
               ) : null
             }
           />
