@@ -23,7 +23,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "requireFullScreen": true,
+      "requireFullScreen": false,
       "bundleIdentifier": "com.tarodan.app",
       "usesAppleSignIn": true,
       "associatedDomains": [
@@ -34,7 +34,9 @@
         "NSPhotoLibraryUsageDescription": "Tarodan; ilanınıza ürün fotoğrafı eklemeniz, mesajlara ve iade taleplerine görsel eklemeniz ve profil ya da koleksiyon görseli seçmeniz için fotoğraf galerinize erişir.",
         "UISupportedInterfaceOrientations~ipad": [
           "UIInterfaceOrientationPortrait",
-          "UIInterfaceOrientationPortraitUpsideDown"
+          "UIInterfaceOrientationPortraitUpsideDown",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
         ],
         "ITSAppUsesNonExemptEncryption": false
       },
