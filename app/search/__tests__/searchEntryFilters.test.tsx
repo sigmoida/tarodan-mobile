@@ -78,13 +78,6 @@ describe('arama · ön filtreli açılış', () => {
     expect(renderSearch({ focus: '1' }).result.current.autoFocusSearch).toBe(true);
   });
 
-  it('vitrin bağlam başlığı: ön ayar aynen etkinken görünür, sıralama değişince kaybolur', () => {
-    const { result } = renderSearch({ sortBy: 'view_count_desc' });
-    expect(result.current.contextLabel).toBe('Popüler İlanlar');
-    act(() => result.current.setSortBy('price_asc'));
-    expect(result.current.contextLabel).toBeNull();
-  });
-
   it('yalnız kimlikle gelen kategori de kaldırılabilir çip olur (genel etiket)', () => {
     const { result } = renderSearch({ categoryId: 'c-unknown' });
     const chip = result.current.activeChips.find((c) => c.key === 'cat')!;

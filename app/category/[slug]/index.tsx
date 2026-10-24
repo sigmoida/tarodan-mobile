@@ -53,7 +53,7 @@ function CategoryScreen() {
           f.setSearchQuery('');
           f.setSelectedScale('');
         }}
-        ListHeaderComponent={<CategoryFilters f={f} count={f.products ? f.products.length : undefined} />}
+        ListHeaderComponent={<CategoryFilters f={f} />}
       />
     </PageShell>
   );

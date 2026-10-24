@@ -176,11 +176,8 @@ function SearchScreen() {
             onLayoutChange={f.setLayout}
             onSave={saveSearch.start}
             saveDisabled={saveSearch.draft.isEmpty}
-            isLoading={f.isLoading}
-            total={f.total}
             chips={f.activeChips}
             onClearFilters={f.clearAllFilters}
-            contextLabel={f.contextLabel}
           />
 
           {/* Öneri / son aramalar: üst barın hemen altında, çubukların ve sonuçların üstünde. */}

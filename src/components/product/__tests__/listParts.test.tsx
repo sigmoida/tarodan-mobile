@@ -157,7 +157,7 @@ describe('ActiveFilterChips', () => {
 describe('ProductListToolbar', () => {
   const chip = { key: 'brand', label: 'Hot Wheels', onRemove: jest.fn() };
 
-  it('sıra: arama → denetimler → sonuç sayısı → çipler + Temizle', () => {
+  it('sıra: arama → denetimler → çipler + Temizle; sonuç sayısı yazısı yok', () => {
     const onClear = jest.fn();
     render(
       <ProductListToolbar
@@ -168,27 +168,25 @@ describe('ProductListToolbar', () => {
         filterCount={1}
         layout="grid"
         onLayoutChange={() => undefined}
-        resultLabel="61 ürün bulundu"
         chips={[chip]}
         onClearFilters={onClear}
       />,
     );
-    const order = ['tb-search', 'product-list-controls', 'result-count', 'active-filter-chips'].map((id) =>
+    const order = ['tb-search', 'product-list-controls', 'active-filter-chips'].map((id) =>
       JSON.stringify(screen.toJSON()).indexOf(`"testID":"${id}"`),
     );
     expect(order.every((i) => i >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     expect(screen.getByTestId('filter-button')).toBeTruthy();
     expect(screen.getByTestId('sort-button')).toBeTruthy();
-    expect(screen.getByText('61 ürün bulundu')).toBeTruthy();
+    expect(screen.queryByText(/bulundu|found/)).toBeNull();
     fireEvent.press(screen.getByTestId('clear-filters'));
     expect(onClear).toHaveBeenCalled();
   });
 
-  it('sonuç sayısı ve çip yoksa yalnız denetim satırı', () => {
+  it('çip yoksa yalnız denetim satırı', () => {
     render(<ProductListToolbar sortLabel="En Yeni" onSort={() => undefined} />);
     expect(screen.getByTestId('product-list-controls')).toBeTruthy();
-    expect(screen.queryByTestId('result-count')).toBeNull();
     expect(screen.queryByTestId('active-filter-chips')).toBeNull();
   });
 });

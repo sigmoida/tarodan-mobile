@@ -29,7 +29,6 @@ import {
   type ProductFilters,
 } from '@/utils/productFilters';
 import { useSearchFilterOptions } from './useSearchFilterOptions';
-import { curatedEntryLabelKey } from '@/lib/navigation/searchHref';
 import { buildActiveChips } from '@/utils/activeFilterChips';
 import { PAGE_SIZE } from '../_lib/searchConstants';
 import {
@@ -302,11 +301,6 @@ export function useSearch() {
       }),
     [filters, customAttributes, categories, brands, manufacturers, carModels, colors, t],
   );
-  // Vitrin girişi bağlamı ("Takas vitrini", "Popüler ilanlar"…): canlı filtrelerden türer, kullanıcı
-  // filtre/sıralamayı değiştirince kaybolur.
-  const contextLabelKey = curatedEntryLabelKey(filters);
-  const contextLabel = contextLabelKey ? t(contextLabelKey) : null;
-
   // Öneri/geçmiş paneli görünür mü? (X kapat tuşu ve input köşe stilinde kullanılır)
   const recentPanelOpen =
     showRecentSearches && recentSearchQueries.length > 0 && inputEmpty;
@@ -386,7 +380,6 @@ export function useSearch() {
     clearAllFilters,
     activeChips,
     /** Vitrin girişi bağlam başlığı ("Takas vitrini"…) ya da null. */
-    contextLabel,
     activeFiltersCount,
     // options for the filter sheet
     options,
