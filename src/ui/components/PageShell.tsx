@@ -6,6 +6,7 @@ import {
   View,
   type StyleProp,
   type ViewStyle,
+  useWindowDimensions,
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,8 +26,12 @@ import { SkeletonText } from '../loading/Skeleton';
 import { useDelayedLoading } from '../loading/useDelayedLoading';
 import { useToastBottomInset } from './Toast';
 import { PAGE_GUTTER, PAGE_SECTION_GAP } from '../lib/pageLayout';
+import { readableGutter } from '../lib/windowClass';
 
 export type PageShellMode = 'scroll' | 'list' | 'static';
+
+/** Body width on large screens: `readable` centres it at `theme.contentWidths.readable`. */
+export type PageShellContentWidth = 'readable' | 'full';
 
 export interface PageShellProps
   extends Pick<
@@ -45,6 +50,14 @@ export interface PageShellProps
    * (a non-scrolling View).
    */
   mode?: PageShellMode;
+  /**
+   * Body width on large screens (no-op on phones). `readable` (default in `scroll` mode: forms,
+   * settings, detail pages) centres the body at `theme.contentWidths.readable` (672 pt); `full`
+   * (default in `list` / `static`, whose child brings its own list) spans the window. A `scroll`
+   * page whose body is a card grid passes `full`. The `footer` bar is always centred at the
+   * readable width.
+   */
+  contentWidth?: PageShellContentWidth;
   children?: React.ReactNode;
   /** Sabit alt bar (ana aksiyon) — üst çizgili, güvenli alan dahil. */
   footer?: React.ReactNode;
@@ -115,6 +128,7 @@ export const PageShell: React.FC<PageShellProps> = ({
   titleFill,
   header,
   mode = 'scroll',
+  contentWidth = mode === 'scroll' ? 'readable' : 'full',
   children,
   footer,
   overlay,
@@ -138,6 +152,9 @@ export const PageShell: React.FC<PageShellProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const pad = padding === false ? 0 : spacing[padding];
+  const { width: windowWidth } = useWindowDimensions();
+  // Large screens: side padding that centres the body at the readable width (phones: `pad` itself).
+  const sidePad = contentWidth === 'readable' && mode !== 'list' ? readableGutter(windowWidth, pad) : pad;
   const keyboard = useKeyboardAvoid(keyboardAware);
 
   // Özel `header` akışta çizilir (ör. sohbet: opak, floating={false}); `false` = bar yok; aksi halde YÜZEN bar.
@@ -205,8 +222,8 @@ export const PageShell: React.FC<PageShellProps> = ({
         style={styles.fill}
         contentContainerStyle={
           hasBar
-            ? own.contentStyle([styles.scrollContent, { padding: pad }, !footer && { paddingBottom: pad + insets.bottom }, contentStyle])
-            : [styles.scrollContent, { padding: pad }, !footer && { paddingBottom: pad + insets.bottom }, contentStyle]
+            ? own.contentStyle([styles.scrollContent, { padding: pad, paddingHorizontal: sidePad }, !footer && { paddingBottom: pad + insets.bottom }, contentStyle])
+            : [styles.scrollContent, { padding: pad, paddingHorizontal: sidePad }, !footer && { paddingBottom: pad + insets.bottom }, contentStyle]
         }
         keyboardShouldPersistTaps="handled"
         onScroll={own.onScroll}
@@ -228,7 +245,7 @@ export const PageShell: React.FC<PageShellProps> = ({
       </Animated.ScrollView>
     );
   } else if (mode === 'static') {
-    body = <View style={[styles.fill, { padding: pad }, contentStyle]}>{children}</View>;
+    body = <View style={[styles.fill, { padding: pad, paddingHorizontal: sidePad }, contentStyle]}>{children}</View>;
   } else {
     body = <View style={[styles.fill, contentStyle]}>{children}</View>;
   }
@@ -250,7 +267,7 @@ export const PageShell: React.FC<PageShellProps> = ({
           onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
           testID="page-shell-footer"
         >
-          {footer}
+          <View style={styles.footerContent}>{footer}</View>
         </View>
       ) : null}
     </>
@@ -306,6 +323,12 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border.DEFAULT,
     paddingHorizontal: PAGE_GUTTER,
     paddingTop: spacing[3],
+  },
+  // Large screens: the action bar keeps the readable width, centred (phones: full width).
+  footerContent: {
+    width: '100%',
+    maxWidth: theme.contentWidths.readable,
+    alignSelf: 'center',
     gap: spacing[2],
   },
 });

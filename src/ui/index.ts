@@ -120,6 +120,7 @@ export {
 	PageShell,
 	type PageShellProps,
 	type PageShellMode,
+	type PageShellContentWidth,
 } from './components/PageShell';
 export { PAGE_GUTTER, PAGE_SECTION_GAP, pageListContentStyle } from './lib/pageLayout';
 export {

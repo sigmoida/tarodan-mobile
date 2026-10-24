@@ -9,6 +9,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react-n
 import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 import { State } from 'react-native-gesture-handler';
 import { BottomSheet, useBottomSheet, theme } from '@/ui';
+import { SHEET_MAX_WIDTH } from '../BottomSheet';
 import { resetToastForTests, toast, TOAST_GAP, ToastHost } from '../Toast';
 import {
   keyboardResizedWindow,
@@ -483,5 +484,18 @@ describe('revealScrollOffset', () => {
     expect(revealScrollOffset(50, 40, 200, 300, 16)).toBe(34);
     // Görünür alandan yüksek alan: üst kenarı hizalanır.
     expect(revealScrollOffset(600, 400, 0, 200, 16)).toBe(584);
+  });
+});
+
+describe('BottomSheet on large screens', () => {
+  it('is centred and capped at SHEET_MAX_WIDTH (phones are narrower, so unchanged)', () => {
+    render(
+      <BottomSheet isOpen onClose={() => undefined} title="Sheet">
+        <RNText>body</RNText>
+      </BottomSheet>,
+    );
+    const style = StyleSheet.flatten(screen.getByTestId('bottom-sheet').props.style);
+    expect(SHEET_MAX_WIDTH).toBe(640);
+    expect(style).toMatchObject({ width: '100%', maxWidth: SHEET_MAX_WIDTH, alignSelf: 'center' });
   });
 });
