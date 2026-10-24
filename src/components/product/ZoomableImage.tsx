@@ -1,4 +1,4 @@
-import { Dimensions, StyleSheet } from 'react-native';
+import { StyleSheet, useWindowDimensions } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -8,14 +8,20 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-const { width, height: windowHeight } = Dimensions.get('window');
-
 const MAX_SCALE = 3;
 const DOUBLE_TAP_SCALE = 2.5;
 
 function clamp(value: number, min: number, max: number) {
   'worklet';
   return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Side (pt) of the square the photo is fitted into: the page width, but never taller than the page
+ * (landscape tablets, unfolded foldables), so the photo is not cropped.
+ */
+export function zoomImageSide(pageWidth: number, areaHeight: number): number {
+  return Math.max(0, Math.min(pageWidth, areaHeight));
 }
 
 /**
@@ -28,7 +34,7 @@ export default function ZoomableImage({
   uri,
   zoomed,
   onZoomChange,
-  areaHeight = windowHeight,
+  areaHeight: areaHeightProp,
 }: {
   uri: string;
   /** Sayfanın gerçek yüksekliği (görüntüleyicide küçük resim şeridi düşülmüş) — çift dokunma merkezi için. */
@@ -36,6 +42,11 @@ export default function ZoomableImage({
   zoomed: boolean;
   onZoomChange: (zoomed: boolean) => void;
 }) {
+  // Window size from the hook (not module-level `Dimensions.get`): rotation, fold/unfold and split
+  // view resize the page.
+  const { width, height: windowHeight } = useWindowDimensions();
+  const areaHeight = areaHeightProp ?? windowHeight;
+  const side = zoomImageSide(width, areaHeight);
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const tx = useSharedValue(0);
@@ -58,8 +69,8 @@ export default function ZoomableImage({
       } else {
         const s = DOUBLE_TAP_SCALE;
         // Dokunulan nokta merkezde kalacak şekilde kaydır; görsel sınırları içinde tut
-        const maxTx = (width * (s - 1)) / 2;
-        const maxTy = (width * (s - 1)) / 2; // görsel width x width boyutunda
+        const maxTx = (side * (s - 1)) / 2;
+        const maxTy = (side * (s - 1)) / 2; // görsel side x side boyutunda
         const nextTx = clamp((width / 2 - e.x) * (s - 1), -maxTx, maxTx);
         const nextTy = clamp((areaHeight / 2 - e.y) * (s - 1), -maxTy, maxTy);
         scale.value = withTiming(s);
@@ -78,8 +89,8 @@ export default function ZoomableImage({
     })
     .onEnd(() => {
       savedScale.value = scale.value;
-      const maxTx = (width * (scale.value - 1)) / 2;
-      const maxTy = (width * (scale.value - 1)) / 2;
+      const maxTx = (side * (scale.value - 1)) / 2;
+      const maxTy = (side * (scale.value - 1)) / 2;
       tx.value = clamp(tx.value, -maxTx, maxTx);
       ty.value = clamp(ty.value, -maxTy, maxTy);
       savedTx.value = tx.value;
@@ -90,8 +101,8 @@ export default function ZoomableImage({
   const pan = Gesture.Pan()
     .enabled(zoomed)
     .onUpdate((e) => {
-      const maxTx = (width * (scale.value - 1)) / 2;
-      const maxTy = (width * (scale.value - 1)) / 2;
+      const maxTx = (side * (scale.value - 1)) / 2;
+      const maxTy = (side * (scale.value - 1)) / 2;
       tx.value = clamp(savedTx.value + e.translationX, -maxTx, maxTx);
       ty.value = clamp(savedTy.value + e.translationY, -maxTy, maxTy);
     })
@@ -112,9 +123,9 @@ export default function ZoomableImage({
 
   return (
     <GestureDetector gesture={gesture}>
-      <Animated.View style={styles.page}>
+      <Animated.View style={[styles.page, { width }]}>
         <Animated.View style={animatedStyle}>
-          <AppImage source={uri} variant="detail" style={styles.image} contentFit="contain" />
+          <AppImage source={uri} variant="detail" style={{ width: side, height: side }} contentFit="contain" />
         </Animated.View>
       </Animated.View>
     </GestureDetector>
@@ -123,14 +134,9 @@ export default function ZoomableImage({
 
 const styles = StyleSheet.create({
   page: {
-    width,
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-  },
-  image: {
-    width,
-    height: width,
   },
 });
