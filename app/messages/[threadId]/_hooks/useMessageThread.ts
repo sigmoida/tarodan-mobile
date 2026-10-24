@@ -27,10 +27,15 @@ import { useAutoScroll } from './useAutoScroll';
  * Message-thread controller — thread/messages artık React Query (#77), send/markRead
  * mutation hook'ları. Aktif thread `setCurrentThreadId` ile store'a yazılır (socket
  * köprüsü açık/kapalı ayrımı için). getOtherParticipant client store; günlük hak sunucudan (useDailyMessageLimit).
+ *
+ * `options.threadId` (the messages master–detail pane on wide windows) replaces the route param;
+ * `options.onExit` replaces "go back" after blocking (the pane closes instead of leaving the inbox).
  */
-export function useMessageThread() {
+export function useMessageThread(options: { threadId?: string; onExit?: () => void } = {}) {
   const { t } = useTranslation();
-  const { threadId } = useLocalSearchParams<{ threadId: string }>();
+  const params = useLocalSearchParams<{ threadId: string }>();
+  const threadId = options.threadId ?? params.threadId;
+  const { onExit } = options;
   const user = useAuthStore((s) => s.user);
   const getOtherParticipant = useMessagesStore((s) => s.getOtherParticipant);
   const setCurrentThreadId = useMessagesStore((s) => s.setCurrentThreadId);
@@ -203,7 +208,7 @@ export function useMessageThread() {
   // yerde (Apple App Review 1.2 — satıcı profili ve ilan detayıyla aynı akış).
   const { isBlocked } = useBlockStatus(other?.id);
   const { requestBlock, requestUnblock } = useBlockUser({
-    onBlocked: () => (router.canGoBack() ? router.back() : router.replace('/(tabs)')),
+    onBlocked: () => (onExit ? onExit() : router.canGoBack() ? router.back() : router.replace('/(tabs)')),
   });
 
   // Başlık menüsü (ActionSheet): her eylem sheet TAMAMEN kapandıktan sonra çalışır, bu yüzden

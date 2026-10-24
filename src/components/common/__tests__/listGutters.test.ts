@@ -12,7 +12,7 @@ const ROOT = path.resolve(__dirname, '../../../..');
 
 /** List-mode files whose list lives in a child component that applies the gutter itself. */
 const LIST_IN_CHILD: Record<string, string> = {
-  'app/messages/[threadId]/index.tsx': 'app/messages/[threadId]/_components/MessageList.tsx',
+  'app/messages/[threadId]/_components/MessageThreadView.tsx': 'app/messages/[threadId]/_components/MessageList.tsx',
   'app/product/[id]/index.tsx': 'app/product/[id]/_components/ProductBodyLayout.tsx',
 };
 /** Files the scan matches that render no list of their own. */

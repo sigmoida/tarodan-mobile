@@ -2,8 +2,10 @@
  * Mesajlar — yığın ekranı (sekme köklerinin üst barındaki Mesajlar düğmesinden ve `/messages` derin
  * bağlantısından açılır): PageShell (geri oklu yüzen bar) + sohbet listesi; yükleniyor = Skeleton,
  * boş/misafir = EmptyState, çekip yenileme. Mantık `_hooks/useMessagesTab`'de; ekran yalnız kompozisyon.
+ * Expanded and wider windows: master–detail (`_lib/layout`): the list on the left, the selected
+ * conversation on the right (`MessageThreadView`), selected in place instead of pushed.
  */
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { RefreshControl, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { router } from "expo-router";
@@ -24,6 +26,8 @@ import {
 import { useMessagesTab } from "./_hooks/useMessagesTab";
 import { styles } from "./_lib/styles";
 import { ThreadRow } from "./_components/ThreadRow";
+import { useMessagesMasterDetail } from "./_lib/layout";
+import { MessageThreadView } from "./[threadId]/_components/MessageThreadView";
 
 const { colors } = theme;
 const SKELETON_ROWS = [0, 1, 2, 3, 4];
@@ -37,10 +41,19 @@ export default function MessagesScreen() {
   // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
   const listContentStyle = usePageContentStyle(styles.listContent);
   const title = t("mobile.messagesTitle");
+  const masterDetail = useMessagesMasterDetail();
+  // Master–detail: the conversation open in the right-hand pane (none until the user picks one).
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const closeSelected = useCallback(() => setSelectedId(null), []);
   // Kararlı renderItem (erken return'den ÖNCE — hook sırası sabit).
   const renderThread = useCallback(
-    ({ item }: { item: MessageThread }) => <ThreadRow thread={item} f={f} />,
-    [f],
+    ({ item }: { item: MessageThread }) =>
+      masterDetail ? (
+        <ThreadRow thread={item} f={f} selected={item.id === selectedId} onOpen={setSelectedId} />
+      ) : (
+        <ThreadRow thread={item} f={f} />
+      ),
+    [f, masterDetail, selectedId],
   );
 
   if (!f.isAuthenticated) {
@@ -72,7 +85,7 @@ export default function MessagesScreen() {
       </View>
     ) : null;
 
-  return (
+  const inbox = (
     <PageShell title={title} mode="list" scroll={page}>
       <Animated.FlatList
         {...page.listProps}
@@ -119,5 +132,24 @@ export default function MessagesScreen() {
         renderItem={renderThread}
       />
     </PageShell>
+  );
+
+  if (!masterDetail) return inbox;
+  return (
+    <View style={styles.masterDetail} testID="messages-master-detail">
+      <View style={styles.masterPane}>{inbox}</View>
+      <View style={styles.detailPane} testID="messages-detail-pane">
+        {selectedId ? (
+          <MessageThreadView key={selectedId} threadId={selectedId} embedded onExit={closeSelected} />
+        ) : (
+          <EmptyState
+            placement="screen"
+            icon="chat-bubble-left-right"
+            title={t("message.selectConversationTitle")}
+            subtitle={t("message.selectConversation")}
+          />
+        )}
+      </View>
+    </View>
   );
 }
