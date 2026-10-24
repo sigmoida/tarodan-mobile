@@ -125,6 +125,7 @@ export {
 export { PAGE_GUTTER, PAGE_SECTION_GAP, pageListContentStyle } from './lib/pageLayout';
 export {
   CARD_GRID_COLUMNS,
+  GRID_GAP_PERCENT,
   gridCellStyle,
   gridCellWidth,
   gridColumns,

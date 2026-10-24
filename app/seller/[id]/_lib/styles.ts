@@ -26,8 +26,8 @@ export const styles = StyleSheet.create({
     borderRadius: radiusRole.card,
     backgroundColor: colors.surface.alt,
   },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing[3] },
-  cell: { width: '48%' },
+  // Card grid: cells sized by `gridCellStyle` (columns from the window width; 48% / 4% on phones).
+  grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing[3] },
   showMore: { marginTop: spacing[3] },
   review: { gap: spacing[1], paddingVertical: spacing[3] },
   reviewDivided: { borderTopWidth: 1, borderTopColor: colors.border.DEFAULT },

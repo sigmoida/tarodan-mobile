@@ -3,7 +3,7 @@
  * ProductListControls (filtre sayısı + ızgara/liste), ActiveFilterChips, SimilarProductsCard.
  */
 import React from 'react';
-import { View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 // Kartlardaki favori kalbi (`useProductCardFavorites`) React Query ister: provider'lı render.
 import { renderWithProviders as render } from '@/test-utils';
@@ -204,5 +204,34 @@ describe('SimilarProductsCard', () => {
   it('dolu: kartlar', () => {
     render(<SimilarProductsCard title="Benzer Ürünler" items={items} />);
     expect(screen.getByText('Ürün B')).toBeTruthy();
+  });
+
+  describe('grid cells by window width', () => {
+    const setWindow = (width: number, height: number) =>
+      Dimensions.set({
+        window: { width, height, scale: 2, fontScale: 2 },
+        screen: { width, height, scale: 2, fontScale: 2 },
+      });
+    afterEach(() => setWindow(375, 667));
+    // The cell is the nearest ancestor of the card title with a percentage width.
+    const cellOf = (title: string) => {
+      let node = screen.getByText(title).parent;
+      while (node && typeof StyleSheet.flatten(node.props.style)?.width !== 'string') node = node.parent;
+      return StyleSheet.flatten(node!.props.style);
+    };
+
+    it('phone: 48% cells, 4% gap on the second column, the third card starts a row', () => {
+      render(<SimilarProductsCard title="Benzer Ürünler" items={items} />);
+      expect(cellOf('Ürün A')).toMatchObject({ width: '48%', marginLeft: 0 });
+      expect(cellOf('Ürün B')).toMatchObject({ width: '48%', marginLeft: '4%' });
+      expect(cellOf('Ürün C')).toMatchObject({ width: '48%', marginLeft: 0 });
+    });
+
+    it('iPad 13" (1032 pt): four columns, the three cards share one row from the left', () => {
+      setWindow(1032, 1376);
+      render(<SimilarProductsCard title="Benzer Ürünler" items={items} />);
+      expect(cellOf('Ürün A')).toMatchObject({ width: '22%', marginLeft: 0 });
+      expect(cellOf('Ürün C')).toMatchObject({ width: '22%', marginLeft: '4%' });
+    });
   });
 });

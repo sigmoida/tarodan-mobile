@@ -59,6 +59,9 @@ export function gridCellWidth(contentWidth: number, columns: number, gap: number
 /** Percentages kept to 4 decimals, so a full row never sums past 100% and wraps early. */
 const toPercent = (value: number): DimensionValue => `${Math.floor(value * 10000) / 10000}%`;
 
+/** Default column gap of percentage grids (% of the row): two columns = the 48% cards. */
+export const GRID_GAP_PERCENT = 4;
+
 /**
  * Cell style of a `flexDirection: 'row', flexWrap: 'wrap'` grid laid out in percentages: each cell
  * is `(100 - gap * (columns - 1)) / columns` % wide, and every cell but the first of its row has a
@@ -68,7 +71,7 @@ const toPercent = (value: number): DimensionValue => `${Math.floor(value * 10000
 export function gridCellStyle(
   index: number,
   columns: number,
-  gapPercent: number,
+  gapPercent: number = GRID_GAP_PERCENT,
 ): { width: DimensionValue; marginLeft: DimensionValue } {
   const cols = Math.max(1, Math.floor(columns));
   return {

@@ -9,9 +9,9 @@ export const styles = StyleSheet.create({
   // flexGrow:0 + alignItems:center → yatay ScrollView çipleri dikeyde germesin.
   chipsScroll: { flexGrow: 0 },
   chips: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing[3] },
+  // Card grid: cells sized by `gridCellStyle` (columns from the window width; 48% / 4% on phones).
+  grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing[3] },
   modelCard: {
-    width: '48%',
     overflow: 'hidden',
     borderRadius: radiusRole.productCard,
     borderWidth: 1,

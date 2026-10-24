@@ -45,8 +45,8 @@ export const homeStyles = StyleSheet.create({
   brandLogo: { width: '100%', height: '100%' },
 
   // En İyi Koleksiyonlar (web: grid-cols-2 gap-4)
-  collectionGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: spacing[4] },
-  collectionCell: { width: '47%' },
+  // Cells sized by `gridCellStyle` in `HomeCollections` (47% / 6% on phones).
+  collectionGrid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing[4] },
   collectionCard: {
     overflow: 'hidden',
     borderRadius: radiusRole.card,

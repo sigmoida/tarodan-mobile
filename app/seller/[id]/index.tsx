@@ -23,6 +23,8 @@ export default function SellerProfileScreen() {
     <PageShell
       title={t('seller.sellerProfile')}
       onBack={goBack}
+      // Listing / collection grids: full width on tablets (more columns), not the readable width.
+      contentWidth="full"
       loading={f.isLoading}
       loadingFallback={<SellerProfileSkeleton />}
       error={f.loadFailed || undefined}

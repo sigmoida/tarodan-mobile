@@ -1,4 +1,4 @@
-import { View, Pressable } from 'react-native';
+import { View, Pressable, type StyleProp, type ViewStyle } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { GlassIconButton, Icon, Text, theme } from '@/ui';
 import { router } from 'expo-router';
@@ -16,16 +16,19 @@ const { colors, iconSize } = theme;
 export function LikedCollectionCard({
   collection,
   f,
+  style,
 }: {
   collection: LikedCollection;
   f: LikedCollectionsController;
+  /** Grid cell size (`gridCellStyle`) from the screen. */
+  style?: StyleProp<ViewStyle>;
 }) {
   const { t } = useTranslation();
   const likeCount = collection.likeCount || 0;
   return (
     <Pressable
       testID={`liked-collection-${collection.id}`}
-      style={styles.collectionCard}
+      style={[styles.collectionCard, style]}
       onPress={() => router.push(`/collections/${collection.id}`)}
     >
       <View>

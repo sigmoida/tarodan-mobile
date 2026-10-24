@@ -1,5 +1,5 @@
 import { View, Pressable } from "react-native";
-import { Alert, Badge, EmptyState, FAB, Text, useFabContentInset } from "@/ui";
+import { Alert, Badge, EmptyState, FAB, Text, gridCellStyle, useFabContentInset, useGridColumns } from "@/ui";
 import { router } from "expo-router";
 import { AppImage } from "@/components/AppImage";
 import { AuthGatePage } from "@/components/common/AuthGatePage";
@@ -10,12 +10,13 @@ import { useMyCollections } from "./_hooks/useMyCollections";
 import { styles } from "./_lib/styles";
 
 /**
- * Koleksiyonlarım — PageShell + web gibi 2 sütun kart ızgarası. Sorgu ve "yeni" kapısı
+ * Koleksiyonlarım — PageShell + web gibi kart ızgarası (telefonda 2 sütun, tablette daha fazla). Sorgu ve "yeni" kapısı
  * `useMyCollections`'ta; premium notu iOS'ta kapalı (UpgradeCta).
  */
 export default function CollectionsScreen() {
   const f = useMyCollections();
   const fabInset = useFabContentInset();
+  const columns = useGridColumns();
   const { t } = f;
   const title = t("mobile.settingsCollections");
 
@@ -25,6 +26,8 @@ export default function CollectionsScreen() {
 
   return (
     <PageShell
+      // Card grid: full width on tablets (more columns), not the readable form width.
+      contentWidth="full"
       contentStyle={{ paddingBottom: fabInset }}
       title={title}
       onBack={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)"))}
@@ -66,10 +69,10 @@ export default function CollectionsScreen() {
         />
       ) : (
         <View style={styles.collectionsGrid}>
-          {f.collections.map((collection: any) => (
+          {f.collections.map((collection: any, index: number) => (
             <Pressable
               key={collection.id}
-              style={styles.collectionCard}
+              style={[styles.collectionCard, gridCellStyle(index, columns)]}
               onPress={() => router.push(`/collections/${collection.id}`)}
             >
               <AppImage
