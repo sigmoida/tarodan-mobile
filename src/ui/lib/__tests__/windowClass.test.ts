@@ -1,13 +1,15 @@
 import { renderHook } from '@testing-library/react-native';
-import { Dimensions } from 'react-native';
+import { Dimensions, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { theme } from '../theme';
 import {
   CARD_GRID_COLUMNS,
   gridCellStyle,
   gridCellWidth,
   gridColumns,
+  readableContentStyle,
   readableGutter,
   useGridColumns,
+  useReadableContentStyle,
   useReadableGutter,
   useWindowClass,
   windowClassOf,
@@ -144,5 +146,46 @@ describe('hooks follow the window', () => {
       expect(renderHook(() => useGridColumns()).result.current).toBe(cols);
       expect(renderHook(() => useReadableGutter(16)).result.current).toBe(gutter);
     }
+  });
+});
+
+describe('readableContentStyle', () => {
+  const base = { padding: 16, gap: 16 };
+  const { readable } = theme.contentWidths;
+  const sides = (style: StyleProp<ViewStyle>) => {
+    const flat = StyleSheet.flatten(style);
+    return [flat.paddingLeft, flat.paddingRight];
+  };
+
+  it('phones and the foldable inner display: the very same style object (pixel-identical)', () => {
+    for (const w of [375, 390, 430, 626]) expect(readableContentStyle(base, w)).toBe(base);
+  });
+
+  it.each([820, 1032])('tablet %d pt: the side padding centres the content at the readable width', (w) => {
+    const style = readableContentStyle(base, w);
+    expect(sides(style)).toEqual([(w - readable) / 2, (w - readable) / 2]);
+    // Vertical padding and the rest of the base stay.
+    expect(StyleSheet.flatten(style)).toMatchObject({ padding: 16, gap: 16 });
+  });
+
+  it('reads paddingLeft / paddingRight, then paddingHorizontal, then padding; a full-bleed list gets 0', () => {
+    expect(sides(readableContentStyle([base, { paddingHorizontal: 24 }], 1032))).toEqual([180, 180]);
+    expect(readableContentStyle([base, { paddingHorizontal: 24 }], 700)).toEqual([base, { paddingHorizontal: 24 }]);
+    // A side wider than the centring gutter is kept.
+    expect(sides(readableContentStyle({ paddingLeft: 16, paddingRight: 200 }, 1032))).toEqual([180, 200]);
+    expect(readableContentStyle({ flexGrow: 1 }, 390)).toEqual({ flexGrow: 1 });
+    expect(sides(readableContentStyle({ flexGrow: 1 }, 820))).toEqual([74, 74]);
+  });
+
+  it('a non-numeric side padding is left alone', () => {
+    const pct = { paddingHorizontal: '5%' as const };
+    expect(readableContentStyle(pct, 1032)).toBe(pct);
+  });
+
+  it('useReadableContentStyle follows the window', () => {
+    setWindow(1032, 1376);
+    expect(sides(renderHook(() => useReadableContentStyle(base)).result.current)).toEqual([180, 180]);
+    setWindow(375, 667);
+    expect(renderHook(() => useReadableContentStyle(base)).result.current).toBe(base);
   });
 });

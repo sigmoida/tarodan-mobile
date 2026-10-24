@@ -26,12 +26,12 @@ import { SkeletonText } from '../loading/Skeleton';
 import { useDelayedLoading } from '../loading/useDelayedLoading';
 import { useToastBottomInset } from './Toast';
 import { PAGE_GUTTER, PAGE_SECTION_GAP } from '../lib/pageLayout';
-import { readableGutter } from '../lib/windowClass';
+import { readableGutter, type ContentWidth } from '../lib/windowClass';
 
 export type PageShellMode = 'scroll' | 'list' | 'static';
 
 /** Body width on large screens: `readable` centres it at `theme.contentWidths.readable`. */
-export type PageShellContentWidth = 'readable' | 'full';
+export type PageShellContentWidth = ContentWidth;
 
 export interface PageShellProps
   extends Pick<
@@ -51,11 +51,13 @@ export interface PageShellProps
    */
   mode?: PageShellMode;
   /**
-   * Body width on large screens (no-op on phones). `readable` (default in `scroll` mode: forms,
-   * settings, detail pages) centres the body at `theme.contentWidths.readable` (672 pt); `full`
-   * (default in `list` / `static`, whose child brings its own list) spans the window. A `scroll`
-   * page whose body is a card grid passes `full`. In `list` mode the child owns its width, so
-   * `readable` has no effect there. The `footer` bar is always centred at the readable width.
+   * Body width on large screens (no-op on phones). `readable` (default in `scroll` and `list`:
+   * forms, settings, detail pages, row lists) centres the body at `theme.contentWidths.readable`
+   * (672 pt); `full` (default in `static`, whose child brings its own layout) spans the window
+   * minus the normal gutter. A page whose body is a card grid or media passes `full`. In `list`
+   * mode the shell cannot pad the child's list: the list wraps its `contentContainerStyle` in
+   * `useReadableContentStyle` (and a `full` grid list does not); this prop then sizes the shell's
+   * own skeleton the same way. The `footer` bar is always centred at the readable width.
    */
   contentWidth?: PageShellContentWidth;
   children?: React.ReactNode;
@@ -128,7 +130,7 @@ export const PageShell: React.FC<PageShellProps> = ({
   titleFill,
   header,
   mode = 'scroll',
-  contentWidth = mode === 'scroll' ? 'readable' : 'full',
+  contentWidth = mode === 'static' ? 'full' : 'readable',
   children,
   footer,
   overlay,
@@ -154,7 +156,7 @@ export const PageShell: React.FC<PageShellProps> = ({
   const pad = padding === false ? 0 : spacing[padding];
   const { width: windowWidth } = useWindowDimensions();
   // Large screens: side padding that centres the body at the readable width (phones: `pad` itself).
-  const readable = contentWidth === 'readable' && mode !== 'list';
+  const readable = contentWidth === 'readable';
   const sidePad = readable ? readableGutter(windowWidth, pad) : pad;
   // The default skeleton takes the same width as the body it stands for (no jump when data arrives).
   const skeletonPad = pad || PAGE_GUTTER;

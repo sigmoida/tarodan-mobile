@@ -36,6 +36,10 @@ full section; read it before deviating. Web at phone width is the reference.
 - **Sheets:** everything that slides up is `BottomSheet` / `SelectSheet` /
   `ActionSheet`; a multi-field form is a screen, not a sheet. See `src/ui/CLAUDE.md`
   › Bottom sheets.
+- **Large screens:** readable body (672) for forms, settings, menus and row lists, full
+  width only for card grids and media; a row list or tab root wraps its
+  `contentContainerStyle` in `useReadableContentStyle`, a grid page passes
+  `contentWidth="full"`. See `src/ui/CLAUDE.md` › Large screens.
 - **Shells and data:** `PageShell` / `AppShell` (see `app/CLAUDE.md` › Shells); data
   through query/mutation hooks with `qk` keys (see `src/lib/query/CLAUDE.md`); copy
   through `t()` with keys in tr + en (see `src/i18n/CLAUDE.md`).

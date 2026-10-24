@@ -1,12 +1,13 @@
 /**
- * PageShell on large screens: `scroll` bodies are centred at the readable width (672 pt), `list`
- * bodies and `contentWidth="full"` span the window, the footer bar content is capped. Phones are
+ * PageShell on large screens: `scroll` and `list` bodies are readable by default (672 pt, centred),
+ * `contentWidth="full"` and `static` span the window minus the gutter, the footer bar content is
+ * capped. A `list` page's own list takes the width through `useReadableContentStyle`. Phones are
  * unchanged (the page gutter only).
  */
 import React from 'react';
-import { Dimensions, ScrollView, StyleSheet } from 'react-native';
+import { Dimensions, FlatList, ScrollView, StyleSheet } from 'react-native';
 import { act, render, screen } from '@testing-library/react-native';
-import { PageShell, RawText, theme } from '@/ui';
+import { PageShell, RawText, pageListContentStyle, theme, useReadableContentStyle, type PageShellContentWidth } from '@/ui';
 
 const setWindow = (width: number, height: number) =>
   Dimensions.set({
@@ -108,5 +109,80 @@ describe('PageShell content width', () => {
       </PageShell>,
     );
     expect(footerContent()).toMatchObject({ maxWidth: theme.contentWidths.readable, alignSelf: 'center', width: '100%' });
+  });
+});
+
+/** A `mode="list"` screen as the row lists write it: the shell's width and the list's padding. */
+function ListScreen({ contentWidth, loading }: { contentWidth?: PageShellContentWidth; loading?: boolean }) {
+  const readableStyle = useReadableContentStyle(pageListContentStyle);
+  return (
+    <PageShell title="List" mode="list" contentWidth={contentWidth} loading={loading}>
+      <FlatList
+        data={['a']}
+        renderItem={({ item }) => <RawText>{item}</RawText>}
+        contentContainerStyle={contentWidth === 'full' ? pageListContentStyle : readableStyle}
+      />
+    </PageShell>
+  );
+}
+
+describe('PageShell list mode width', () => {
+  // Unmount before restoring the window: a resize re-renders a mounted screen outside act().
+  afterEach(() => {
+    screen.unmount();
+    setWindow(375, 667);
+  });
+  const listPad = () => {
+    const flat = StyleSheet.flatten(screen.UNSAFE_getByType(FlatList).props.contentContainerStyle);
+    return flat.paddingLeft ?? flat.paddingHorizontal ?? flat.padding;
+  };
+  const skeletonPad = () => {
+    act(() => void jest.advanceTimersByTime(theme.loading.delayMs + 10));
+    return StyleSheet.flatten(screen.getByTestId('page-shell-skeleton').props.style).paddingHorizontal;
+  };
+
+  it.each([
+    [390, 844, theme.spacing[4]],
+    [820, 1180, (820 - theme.contentWidths.readable) / 2],
+    [1032, 1376, (1032 - theme.contentWidths.readable) / 2],
+  ])('readable row list at %d pt: list padding %d', (width, height, pad) => {
+    setWindow(width, height);
+    render(<ListScreen />);
+    expect(listPad()).toBe(pad);
+  });
+
+  it.each([
+    [390, 844],
+    [820, 1180],
+    [1032, 1376],
+  ])('full grid list at %d pt: the page gutter only', (width, height) => {
+    setWindow(width, height);
+    render(<ListScreen contentWidth="full" />);
+    expect(listPad()).toBe(theme.spacing[4]);
+  });
+
+  it('the list body itself is not narrowed (the side margins scroll)', () => {
+    setWindow(1032, 1376);
+    render(<ListScreen />);
+    let node = screen.UNSAFE_getByType(FlatList).parent;
+    while (node) {
+      const st = StyleSheet.flatten(node.props.style) ?? {};
+      expect(st.paddingHorizontal ?? 0).toBe(0);
+      expect(st.maxWidth).toBeUndefined();
+      node = node.parent;
+    }
+  });
+
+  it.each([
+    [390, undefined, theme.spacing[4]],
+    [820, undefined, (820 - theme.contentWidths.readable) / 2],
+    [1032, undefined, (1032 - theme.contentWidths.readable) / 2],
+    [1032, 'full' as const, theme.spacing[4]],
+  ])('list-mode skeleton at %d pt (contentWidth %s) matches the list width', (width, contentWidth, pad) => {
+    jest.useFakeTimers();
+    setWindow(width, 1200);
+    render(<ListScreen contentWidth={contentWidth} loading />);
+    expect(skeletonPad()).toBe(pad);
+    jest.useRealTimers();
   });
 });

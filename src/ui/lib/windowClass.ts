@@ -1,7 +1,13 @@
-import { useWindowDimensions, type DimensionValue } from 'react-native';
+import { StyleSheet, useWindowDimensions, type DimensionValue, type StyleProp, type ViewStyle } from 'react-native';
 import { theme } from './theme';
 
 const { breakpoints, contentWidths } = theme;
+
+/**
+ * Body width of a screen on large screens: `readable` centres it at `contentWidths.readable`
+ * (forms, settings, row lists), `full` spans the window minus the normal gutter (card grids, media).
+ */
+export type ContentWidth = 'readable' | 'full';
 
 /**
  * Large-screen layout rules: ONE classifier for widths, one column-count rule for card grids and
@@ -91,4 +97,39 @@ export function readableGutter(width: number, gutter: number, maxWidth: number =
 /** `readableGutter` for content that spans the window. */
 export function useReadableGutter(gutter: number, maxWidth: number = contentWidths.readable): number {
   return readableGutter(useWindowDimensions().width, gutter, maxWidth);
+}
+
+/**
+ * `base` (the `contentContainerStyle` of a list or ScrollView) with its side padding widened to the
+ * readable gutter: the content centres at `maxWidth` while the scroll view itself keeps the whole
+ * window, so a drag on the side margins still scrolls. Each side's own padding is `paddingLeft` /
+ * `paddingRight`, else `paddingHorizontal`, else `padding`, else 0 (a full-bleed row list such as
+ * messages); it is kept when it is wider. On phones, or with a non-numeric side padding, `base`
+ * comes back as it is. `paddingStart` / `paddingEnd` are not read (not used in the app).
+ */
+export function readableContentStyle(
+  base: StyleProp<ViewStyle>,
+  width: number,
+  maxWidth: number = contentWidths.readable,
+): StyleProp<ViewStyle> {
+  const flat = StyleSheet.flatten(base) ?? {};
+  const shared = flat.paddingHorizontal ?? flat.padding ?? 0;
+  const left = flat.paddingLeft ?? shared;
+  const right = flat.paddingRight ?? shared;
+  if (typeof left !== 'number' || typeof right !== 'number') return base;
+  const centre = readableGutter(width, 0, maxWidth);
+  if (centre <= left && centre <= right) return base;
+  return [base, { paddingLeft: Math.max(left, centre), paddingRight: Math.max(right, centre) }];
+}
+
+/**
+ * `readableContentStyle` for a list or ScrollView that spans the window: the row lists of
+ * `PageShell mode="list"` and the tab roots (`AppShell`), whose shells cannot pad a child's scroll
+ * content themselves.
+ */
+export function useReadableContentStyle(
+  base: StyleProp<ViewStyle>,
+  maxWidth: number = contentWidths.readable,
+): StyleProp<ViewStyle> {
+  return readableContentStyle(base, useWindowDimensions().width, maxWidth);
 }

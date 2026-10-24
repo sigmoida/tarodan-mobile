@@ -3,7 +3,7 @@
  * uzaklık (tek kaynak `lib/floating`); içerik boşluğu da bu çaptan türer.
  */
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 import { render, renderHook, screen } from '@testing-library/react-native';
 import { FAB } from '../FAB';
 import {
@@ -59,5 +59,28 @@ describe('FAB bottomRight', () => {
     expect(result.current).toBe(floatingBottomOffset(0) + FLOATING_ACTION_SIZE + theme.spacing[2]);
     const sm = renderHook(() => useFabContentInset(FAB_SIZE_SM));
     expect(sm.result.current).toBe(floatingBottomOffset(0) + FAB_SIZE_SM + theme.spacing[2]);
+  });
+});
+
+describe('FAB bottomRight on large screens', () => {
+  const setWindow = (width: number, height: number) =>
+    Dimensions.set({
+      window: { width, height, scale: 2, fontScale: 2 },
+      screen: { width, height, scale: 2, fontScale: 2 },
+    });
+  afterEach(() => {
+    screen.unmount();
+    setWindow(375, 667);
+  });
+
+  it.each([
+    [390, 'full' as const, FLOATING_SIDE_GAP],
+    [390, 'readable' as const, FLOATING_SIDE_GAP],
+    [1032, 'full' as const, FLOATING_SIDE_GAP],
+    [1032, 'readable' as const, (1032 - theme.contentWidths.readable) / 2],
+  ])('%d pt, contentWidth %s: right %d', (width, contentWidth, right) => {
+    setWindow(width, 1200);
+    render(<FAB testID="fab" icon="plus" accessibilityLabel="Yeni" placement="bottomRight" contentWidth={contentWidth} />);
+    expect(fabStyle().right).toBe(right);
   });
 });

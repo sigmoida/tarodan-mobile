@@ -41,9 +41,23 @@ a no-op below 600 pt: phones stay as they are.
   (`CARD_GRID_COLUMNS` 2 / 3 / 4 / 5). A `FlatList` / `FlashList` puts the count in its
   `key`. Fixed cells use `gridCellWidth`; percentage `flexWrap` grids use
   `gridCellStyle(index, columns)` (never `width: '48%'` + `space-between`).
-- Readable width: `PageShell` `scroll` bodies and the footer centre at
-  `theme.contentWidths.readable`; a `scroll` page whose body is a card grid passes
-  `contentWidth="full"`. A screen with its own ScrollView form uses `useReadableGutter`.
+- **Body width rule:** every screen has the same outer frame (the page gutter); inside it
+  the body is **readable** (centred at `theme.contentWidths.readable`, 672) for anything
+  people read or fill in: forms, settings, menus, legal and content pages, auth, payment,
+  chat and **row lists** (orders, messages, notifications, favourites, cart, ...). It is
+  **full** (window minus the gutter) only for card grids and media: search, category,
+  models, collections, seller, product detail, home. Top bars stay full width.
+- `PageShell` `contentWidth` defaults to `readable` in `scroll` and `list` mode (`static`:
+  `full`); a grid or media page passes `contentWidth="full"`. The footer bar is always
+  readable.
+- A shell cannot pad a child's list, so the list does it: a readable `list` page or tab
+  root (`AppShell`) wraps its `contentContainerStyle` in `useReadableContentStyle(base)`
+  (the base side padding becomes the readable gutter; the list itself still spans the
+  window, so the side margins scroll). Its header, empty state and skeleton sit inside
+  that padding; `RowListSkeleton` is readable itself. A floating or fixed element over a
+  readable body uses `useReadableGutter` (cart checkout bar), a FAB passes
+  `contentWidth="readable"`. A screen with its own ScrollView form uses
+  `useReadableContentStyle` or `useReadableGutter` too. Never a second width formula.
 - `BottomSheet` is centred at `SHEET_MAX_WIDTH` (640); `Modal`, `AlertDialog` and
   `Toast` already cap themselves.
 
