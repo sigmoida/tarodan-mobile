@@ -181,6 +181,23 @@ describe('repodaki üretilmiş assetlinks.json', () => {
     expect(links[0].target.package_name).toBe('com.tarodan.app');
   });
 
+  it('matches the generator output for the committed fingerprints.json (no stale copy is published)', () => {
+    // Guards the published output, not only its input: a fingerprint added to
+    // fingerprints.json without re-running `pnpm wellknown:gen` would leave the
+    // copied file without it, and store installs would fail verification again.
+    const fingerprints = JSON.parse(
+      fs.readFileSync(path.join(ROOT, 'docs/wellknown/fingerprints.json'), 'utf8'),
+    ) as Record<string, Entry | string>;
+    const committed = (name: string) => {
+      const f = path.join(ROOT, 'docs/wellknown', name);
+      return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null;
+    };
+    const r = generate(fingerprints, ['--strict']);
+    expect(r.code).toBe(0);
+    expect(committed('assetlinks.json')).toEqual(r.prod);
+    expect(committed('assetlinks.staging.json')).toEqual(r.staging);
+  });
+
   it('boş parmak izi listesiyle staging dosyası yayınlanmaz', () => {
     const f = path.join(ROOT, 'docs/wellknown/assetlinks.staging.json');
     if (!fs.existsSync(f)) return;
