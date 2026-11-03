@@ -277,6 +277,41 @@ describe('edit payload: carModelId (web parity, contract delta 2026-11-03)', () 
     expect(payload.manufacturerId).toBe('man-1');
   });
 
+  it('keeps the model when the seller re-taps the brand that is already selected', async () => {
+    wireApi();
+    renderWithProviders(<ListingForm mode="edit" productId="p1" />);
+    await screen.findByText('Değişiklikleri Kaydet');
+
+    fireEvent.press(screen.getByText('Mini GT'));
+    fireEvent.press(await screen.findByTestId('picker-brand-option-brand-1'));
+    fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
+
+    await waitFor(() => expect(productsApi.update).toHaveBeenCalled());
+    const payload = (productsApi.update as jest.Mock).mock.calls[0][1];
+    expect(payload.brandId).toBe('brand-1');
+    expect(payload.carModelId).toBe('model-eski');
+  });
+
+  it('sends carModelId: null when the brand ends up unchanged but the model was cleared (A, B, A)', async () => {
+    wireApi({ brands: [...BRANDS, { id: 'brand-2', name: 'Majorette', slug: 'majorette' }] });
+    renderWithProviders(<ListingForm mode="edit" productId="p1" />);
+    await screen.findByText('Değişiklikleri Kaydet');
+
+    // The brand field (the first match; the sheet's rows come after it) opens the picker.
+    fireEvent.press(screen.getByText('Mini GT'));
+    fireEvent.press(await screen.findByTestId('picker-brand-option-brand-2'));
+    fireEvent.press(screen.getAllByText('Majorette')[0]);
+    fireEvent.press(await screen.findByTestId('picker-brand-option-brand-1'));
+    fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
+
+    // Brand unchanged on the server: an omitted key would keep the old model (rule 1 only
+    // clears on a brand change), so only an explicit null matches what the form shows.
+    await waitFor(() => expect(productsApi.update).toHaveBeenCalled());
+    const payload = (productsApi.update as jest.Mock).mock.calls[0][1];
+    expect(payload.brandId).toBe('brand-1');
+    expect(payload).toHaveProperty('carModelId', null);
+  });
+
   it('sends carModelId: null when the listing has no model', async () => {
     (productsApi.getMyById as jest.Mock).mockResolvedValue({
       data: { data: { ...EDIT_RESPONSE, edit: { ...EDIT_RESPONSE.edit, carModelId: null, carModelName: null } } },
