@@ -91,6 +91,10 @@ export const ListingPickers = memoSection(function ListingPickers({ f }: { f: Li
         title={t('product.selectBrand')}
         data={f.brands}
         onSelect={(item: Brand) => {
+          // Re-tapping the selected brand is not a change (web's select does not fire
+          // either). Clearing the model here would send `carModelId: null` on edit and
+          // erase the listing's model on the server.
+          if (item.id === f.brandId) return;
           f.setBrandId(item.id);
           f.setCarModelId('');
         }}
