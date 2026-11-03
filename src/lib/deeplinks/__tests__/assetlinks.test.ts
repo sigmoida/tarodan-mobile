@@ -147,14 +147,22 @@ describe('docs/wellknown/fingerprints.json (repodaki)', () => {
     }
   });
 
-  it('staging: upload + Play App Signing dolu (Play birden çok imzalama sertifikası verebilir); production Play henüz boş', () => {
+  it('staging: upload + Play App Signing dolu (Play birden çok imzalama sertifikası verebilir)', () => {
     const staging = entries.filter(([, e]) => e.package === deepLinkConfig.stagingAndroidPackage);
     const keys = staging.map(([k]) => k);
     expect(keys).toContain('staging_eas_upload_keystore');
     expect(keys).toContain('staging_play_app_signing');
     for (const [k] of staging) expect(k).toMatch(/^staging_(eas_upload_keystore|play_app_signing(_\d+)?)$/);
     for (const [, e] of staging) expect(e.sha256).not.toBe('');
-    expect(file.play_app_signing).toMatchObject({ sha256: '' });
+  });
+
+  it('production: upload + Play App Signing dolu (Play store kurulumları Play anahtarıyla imzalı; eksikse doğrulama düşer)', () => {
+    const production = entries.filter(([, e]) => e.package === deepLinkConfig.androidPackage);
+    const keys = production.map(([k]) => k);
+    expect(keys).toContain('eas_upload_keystore');
+    expect(keys).toContain('play_app_signing');
+    for (const [k] of production) expect(k).toMatch(/^(eas_upload_keystore|play_app_signing(_\d+)?)$/);
+    for (const [, e] of production) expect(e.sha256).not.toBe('');
   });
 
   it('production upload parmak izi staging girdisine KOPYALANMAMIŞ (EAS keystore paket başına)', () => {
