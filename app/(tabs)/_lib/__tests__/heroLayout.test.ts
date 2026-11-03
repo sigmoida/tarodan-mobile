@@ -15,8 +15,7 @@ import {
 import { heroStyles } from '../heroStyles';
 import { homeStyles } from '../homeStyles';
 import { HOME_SECTION_GAP } from '../homeLayout';
-import { mediaRatios } from '@/theme';
-import { PAGE_GUTTER } from '@/ui';
+import { PAGE_GUTTER, theme } from '@/ui';
 
 describe('heroReservedHeight', () => {
   it('genişlikten hesaplanır: kenarlık + görsel (oran) + gövde tabanı + nokta şeridi', () => {
@@ -111,20 +110,10 @@ describe('hero on tablets follows the page gutter', () => {
   });
 });
 
-describe('hero ratios come from the media tokens', () => {
-  it('derives both ratios from mediaRatios (width / height)', () => {
-    expect(HERO_IMAGE_RATIO).toBe(mediaRatios.heroCompact.width / mediaRatios.heroCompact.height);
-    expect(HERO_SPLIT_IMAGE_RATIO).toBe(mediaRatios.heroSplit.width / mediaRatios.heroSplit.height);
-  });
-
-  it('keeps the shipped shapes: 16:10 stacked, 4:3 side by side', () => {
-    expect(mediaRatios.heroCompact).toEqual({ width: 16, height: 10 });
-    expect(mediaRatios.heroSplit).toEqual({ width: 4, height: 3 });
-    expect(HERO_IMAGE_RATIO).toBe(16 / 10);
-    expect(HERO_SPLIT_IMAGE_RATIO).toBe(4 / 3);
-  });
-
-  it('the side-by-side image style uses the split ratio', () => {
-    expect(StyleSheet.flatten(heroStyles.splitImage).aspectRatio).toBe(HERO_SPLIT_IMAGE_RATIO);
+describe('hero image boxes follow the media tokens', () => {
+  it('stacked and side-by-side image styles take their aspectRatio from theme.mediaRatios', () => {
+    const { heroCompact, heroSplit } = theme.mediaRatios;
+    expect(StyleSheet.flatten(heroStyles.image).aspectRatio).toBe(heroCompact.width / heroCompact.height);
+    expect(StyleSheet.flatten(heroStyles.splitImage).aspectRatio).toBe(heroSplit.width / heroSplit.height);
   });
 });

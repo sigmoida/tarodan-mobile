@@ -11,16 +11,16 @@ const { spacing, mediaRatios } = theme;
  * dots strip. The body has a minimum height, so typical slides match the reserved space exactly;
  * longer text only grows the body.
  *
- * Tablets / unfolded foldables (`medium` and up, like web `md`): the image (4:3, at most
- * `HERO_SPLIT_IMAGE_MAX_WIDTH`) sits beside the text (`imageSide`); height = border +
+ * Tablets / unfolded foldables (`medium` and up, like web `md`): the image (`HERO_SPLIT_IMAGE_RATIO`, at
+ * most `HERO_SPLIT_IMAGE_MAX_WIDTH`) sits beside the text (`imageSide`); height = border +
  * max(image, body minimum) + dots strip, so the hero no longer fills half the screen.
  */
 
-/** Hero image ratio on phones (`compact`): the `heroCompact` token (16:10), shared with web and admin. */
+/** Hero image ratio on phones (`compact`): the `heroCompact` media token, shared with web and admin. */
 export const HERO_IMAGE_RATIO = mediaRatios.heroCompact.width / mediaRatios.heroCompact.height;
-/** Side-by-side (tablet) image ratio: the `heroSplit` token (4:3), web `md:aspect-hero-split`. */
+/** Side-by-side (tablet) image ratio: the `heroSplit` media token, web `md:aspect-hero-split`. */
 export const HERO_SPLIT_IMAGE_RATIO = mediaRatios.heroSplit.width / mediaRatios.heroSplit.height;
-/** Widest side-by-side image (pt; below web's 560px `sizes`, 360 pt tall). */
+/** Widest side-by-side image (pt; below web's 560px `sizes`). */
 export const HERO_SPLIT_IMAGE_MAX_WIDTH = 480;
 /** Shell border (each side). */
 export const HERO_BORDER_WIDTH = 1;
@@ -43,7 +43,8 @@ export function heroInnerWidth(screenWidth: number): number {
   return Math.max(0, screenWidth - 2 * heroMarginX(screenWidth) - 2 * HERO_BORDER_WIDTH);
 }
 
-/** Image box: the full page width on phones (16:10); half the page side by side (4:3, capped). */
+/** Image box: the full page width on phones (`HERO_IMAGE_RATIO`); half the page side by side
+ * (`HERO_SPLIT_IMAGE_RATIO`, capped). */
 export function heroImageSize(innerWidth: number, split: boolean): { width: number; height: number } {
   if (!split) return { width: innerWidth, height: innerWidth / HERO_IMAGE_RATIO };
   const width = Math.min(innerWidth / 2, HERO_SPLIT_IMAGE_MAX_WIDTH);
