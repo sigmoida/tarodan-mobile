@@ -147,14 +147,22 @@ describe('docs/wellknown/fingerprints.json (repodaki)', () => {
     }
   });
 
-  it('staging: upload + Play App Signing dolu (Play birden çok imzalama sertifikası verebilir); production Play henüz boş', () => {
+  it('staging: upload + Play App Signing dolu (Play birden çok imzalama sertifikası verebilir)', () => {
     const staging = entries.filter(([, e]) => e.package === deepLinkConfig.stagingAndroidPackage);
     const keys = staging.map(([k]) => k);
     expect(keys).toContain('staging_eas_upload_keystore');
     expect(keys).toContain('staging_play_app_signing');
     for (const [k] of staging) expect(k).toMatch(/^staging_(eas_upload_keystore|play_app_signing(_\d+)?)$/);
     for (const [, e] of staging) expect(e.sha256).not.toBe('');
-    expect(file.play_app_signing).toMatchObject({ sha256: '' });
+  });
+
+  it('production: upload + Play App Signing dolu (Play store kurulumları Play anahtarıyla imzalı; eksikse doğrulama düşer)', () => {
+    const production = entries.filter(([, e]) => e.package === deepLinkConfig.androidPackage);
+    const keys = production.map(([k]) => k);
+    expect(keys).toContain('eas_upload_keystore');
+    expect(keys).toContain('play_app_signing');
+    for (const [k] of production) expect(k).toMatch(/^(eas_upload_keystore|play_app_signing(_\d+)?)$/);
+    for (const [, e] of production) expect(e.sha256).not.toBe('');
   });
 
   it('production upload parmak izi staging girdisine KOPYALANMAMIŞ (EAS keystore paket başına)', () => {
@@ -171,6 +179,23 @@ describe('repodaki üretilmiş assetlinks.json', () => {
     const links = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/wellknown/assetlinks.json'), 'utf8'));
     expect(links).toHaveLength(1);
     expect(links[0].target.package_name).toBe('com.tarodan.app');
+  });
+
+  it('matches the generator output for the committed fingerprints.json (no stale copy is published)', () => {
+    // Guards the published output, not only its input: a fingerprint added to
+    // fingerprints.json without re-running `pnpm wellknown:gen` would leave the
+    // copied file without it, and store installs would fail verification again.
+    const fingerprints = JSON.parse(
+      fs.readFileSync(path.join(ROOT, 'docs/wellknown/fingerprints.json'), 'utf8'),
+    ) as Record<string, Entry | string>;
+    const committed = (name: string) => {
+      const f = path.join(ROOT, 'docs/wellknown', name);
+      return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null;
+    };
+    const r = generate(fingerprints, ['--strict']);
+    expect(r.code).toBe(0);
+    expect(committed('assetlinks.json')).toEqual(r.prod);
+    expect(committed('assetlinks.staging.json')).toEqual(r.staging);
   });
 
   it('boş parmak izi listesiyle staging dosyası yayınlanmaz', () => {

@@ -21,13 +21,13 @@ Bu **yanlıştı**: Android'in `autoVerify` doğrulaması da `assetlinks.json`
 dosyasına bağlı, o da 404. Sonuç: iki platformda da `https://` linkleri
 tarayıcıda kalıyor, sadece iOS'un görünür bir hata mesajı yok.
 
-| # | Parça | Sorumlu | Durum |
-|---|---|---|---|
-| 1 | AASA dosyası yayını (iOS) | **web / infra** | ✅ **2026-08-11**: iki alan adında da `200`, `application/json`, içerik üretilenle aynı; Apple'ın kendi CDN'i de görmüş |
-| 2 | `assetlinks.json` yayını (Android) | **web / infra** | ❌ 404 — her iki alan adında |
-| 3 | Apple `Associated Domains` capability | Apple Developer / EAS | ❓ doğrulanmadı |
-| 4 | Android imza parmak izi (`fingerprints.json`) | bu repo + Play Console | 🟡 **upload keystore dolu** (2026-08-12) — değer yayındaki preview APK'nın v2 imza bloğundan çıkarıldı; EAS aynı proje keystore'unu yeniden kullanıyor. **Play App Signing slotu hâlâ boş**: mağazadan kurulanlar Google'ın kendi anahtarıyla imzalanır, o parmak izi eklenmeden Play kurulumlarında doğrulama düşer |
-| 5 | `ios.associatedDomains` (`app.json`) | bu repo | ✅ **2026-08-11 eklendi** — sıra kuralı karşılandı (1 yeşil). Bekçisi: `src/lib/deeplinks/__tests__/appConfig.test.ts`. ⚠️ Entitlement olduğu için **yeni build** gerekir |
+| #   | Parça                                         | Sorumlu                | Durum                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --- | --------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | AASA dosyası yayını (iOS)                     | **web / infra**        | ✅ **2026-08-11**: iki alan adında da `200`, `application/json`, içerik üretilenle aynı; Apple'ın kendi CDN'i de görmüş                                                                                                                                                                                                                                                                                                                                          |
+| 2   | `assetlinks.json` yayını (Android)            | **web / infra**        | ❌ 404 — her iki alan adında                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 3   | Apple `Associated Domains` capability         | Apple Developer / EAS  | ❓ doğrulanmadı                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 4   | Android imza parmak izi (`fingerprints.json`) | bu repo + Play Console | ✅ **2026-11-03**: upload keystore (2026-08-12) + Play App Signing'in **3 sertifikası** (Play Console → App signing → Copy all certificate fingerprints) dolu; production `assetlinks.json` 4 parmak izi taşır. Eksik Play imzası, mağazadan kurulan sürümlerde Play Console'un "Alan kontrollerinden geçemedi" hatasının sebebiydi. Yayın (tarodan-app `apps/web/public/.well-known/assetlinks.json`) ve mevcut kurulumların yeniden doğrulanması (§8) bekliyor |
+| 5   | `ios.associatedDomains` (`app.json`)          | bu repo                | ✅ **2026-08-11 eklendi** — sıra kuralı karşılandı (1 yeşil). Bekçisi: `src/lib/deeplinks/__tests__/appConfig.test.ts`. ⚠️ Entitlement olduğu için **yeni build** gerekir                                                                                                                                                                                                                                                                                        |
 
 **Ölçüm:** `node scripts/check-deeplinks.mjs`, 2026-08-03, exit kodu **1**,
 **2/16 kontrol geçti**:
@@ -88,11 +88,11 @@ Bunun tekrarını dört bekçi testi engelliyor:
 İki dosya yayınlanacak. İçerikleri **elle yazılmaz** — `docs/wellknown/`
 altındaki dosyalar **birebir** (byte-exact) kopyalanır.
 
-| Dosya | Konum | Kaynak |
-|---|---|---|
-| AASA | `https://<host>/.well-known/apple-app-site-association` | `docs/wellknown/apple-app-site-association` |
-| Android (production host) | `https://tarodan.com.tr/.well-known/assetlinks.json` | `docs/wellknown/assetlinks.json` (`com.tarodan.app`; bkz. §4) |
-| Android (staging host) | `https://staging.tarodan.com.tr/.well-known/assetlinks.json` | `docs/wellknown/assetlinks.staging.json` (`com.tarodan.app.staging`; parmak izleri dolunca üretilir, bkz. [`ANDROID_RELEASE.md`](./ANDROID_RELEASE.md) §10) |
+| Dosya                     | Konum                                                        | Kaynak                                                                                                                                                      |
+| ------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AASA                      | `https://<host>/.well-known/apple-app-site-association`      | `docs/wellknown/apple-app-site-association`                                                                                                                 |
+| Android (production host) | `https://tarodan.com.tr/.well-known/assetlinks.json`         | `docs/wellknown/assetlinks.json` (`com.tarodan.app`; bkz. §4)                                                                                               |
+| Android (staging host)    | `https://staging.tarodan.com.tr/.well-known/assetlinks.json` | `docs/wellknown/assetlinks.staging.json` (`com.tarodan.app.staging`; parmak izleri dolunca üretilir, bkz. [`ANDROID_RELEASE.md`](./ANDROID_RELEASE.md) §10) |
 
 **Her iki dosya için kurallar:**
 
@@ -125,11 +125,11 @@ sokar.
 
 > **ÖN KOŞUL — ölçüldü (2026-08-04): Android hiç build almamış.**
 > `eas build:list --platform android` **boş** dizi döndürüyor; `eas credentials
-> -p android` "No credentials set up yet" diyor. Keystore, EAS'te ilk Android
+-p android` "No credentials set up yet" diyor. Keystore, EAS'te ilk Android
 > build'iyle **oluşuyor** — kopyalanmayı bekleyen bir parmak izi yok.
 >
 > Sonucu: bu bölüm bir komut meselesi değil, bir **proje kilometre taşına**
-> bağlı. Ve bugün hiçbir kullanıcı kaybı üretmiyor — `assetlinks.json` *kurulu*
+> bağlı. Ve bugün hiçbir kullanıcı kaybı üretmiyor — `assetlinks.json` _kurulu_
 > bir uygulamayı alan adıyla eşleştiriyor; ortada Android kurulumu yok.
 > (Karşılaştırma: iOS'ta `staging` ve `development` build'leri var, o yüzden
 > iOS zinciri gerçek.)
@@ -158,7 +158,7 @@ Aşağıdaki adımlar **ilk Android build'inden sonra** geçerlidir:
    alanına yaz. **Biçim:** 32 adet iki haneli **BÜYÜK harf** hex, `:` ile
    ayrılmış (`A1:B2:…:FF`, 95 karakter). Küçük harfli ya da `TODO` gibi bir
    değer yazılırsa `gen-wellknown.mjs` **hata verip durur** — çünkü öyle bir
-   değerle yayınlanan dosya Android doğrulamasını *kesin olarak* düşürür, tam
+   değerle yayınlanan dosya Android doğrulamasını _kesin olarak_ düşürür, tam
    da boş-liste bekçisinin engellemek için var olduğu sonuç.
 3. `pnpm wellknown:gen` çalıştır — `docs/wellknown/assetlinks.json` üretilir.
 4. **Sürüm kapısı:** parmak izi girildikten sonra üretim
@@ -280,11 +280,11 @@ Kapı açılmadan önce, **yalnız staging** alan adıyla geçici bir yerel buil
 alınarak zincirin tamamı ölçüldü (`applinks:staging.tarodan.com.tr`;
 production alan adı hiç beyan edilmedi, dolayısıyla zehirlenme riski yok):
 
-| Adım | Sonuç |
-| --- | --- |
+| Adım                                                                            | Sonuç              |
+| ------------------------------------------------------------------------------- | ------------------ |
 | iOS `https://staging.tarodan.com.tr/track-order` linkini uygulamaya teslim etti | ✅ Safari açılmadı |
-| `+native-intent.ts` web `/track-order` → mobil `/order-track` çevirdi | ✅ |
-| Doğru ekran açıldı (Sipariş Takip) | ✅ |
+| `+native-intent.ts` web `/track-order` → mobil `/order-track` çevirdi           | ✅                 |
+| Doğru ekran açıldı (Sipariş Takip)                                              | ✅                 |
 
 `/track-order`, eski elle yazılmış AASA listesinin **yanlış yazdığı altı
 yoldan biri** — yani bu test tam olarak §2'deki hata sınıfını kapatıyor.
@@ -420,7 +420,7 @@ arıyor ve `app/listings/[id]` diye bir rota **yok**. Kanca olmasaydı, doğrula
 dosyaları yayına girdiği anda `/listings/123` önce "sayfa bulunamadı" ekranını
 açar, sonra doğru ekrana atlar (ve not-found geri yığında kalırdı); rota adı
 örtüşen `/collections/9`, `/offers`, `/messages`, `/profile` ise **iki kez**
-açılırdı. Eski `src/services/deepLinks.ts` çevirisi rotalamadan *sonra*
+açılırdı. Eski `src/services/deepLinks.ts` çevirisi rotalamadan _sonra_
 çalıştığı için bu ikilemeyi üretiyordu; kaldırıldı, davranış testleri
 `app/__tests__/native-intent.test.ts`'e taşındı.
 
