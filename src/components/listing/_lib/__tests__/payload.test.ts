@@ -4,7 +4,7 @@
  * oluşturma 400 alıyordu. Web ile aynı sözleşme: katalogdan seçilen renkler
  * `colors` slug listesi, kutu durumu boolean.
  */
-import { buildColorAndBoxPayload, serverErrorMessage } from '../payload';
+import { buildCarModelPayload, buildColorAndBoxPayload, serverErrorMessage } from '../payload';
 
 describe('buildColorAndBoxPayload', () => {
   it('seçilen renkleri `colors` slug listesi olarak gönderir', () => {
@@ -20,6 +20,26 @@ describe('buildColorAndBoxPayload', () => {
 
   it('seçim yoksa alanları hiç koymaz — sunucudaki değer korunur (düzenleme)', () => {
     expect(buildColorAndBoxPayload({ colors: [], isBoxed: '' })).toEqual({});
+  });
+});
+
+describe('buildCarModelPayload', () => {
+  it('edit with a model sends its id', () => {
+    expect(buildCarModelPayload('model-1', true)).toEqual({ carModelId: 'model-1' });
+  });
+
+  it('edit with the model cleared sends null, never an empty string (the API reads omitted as keep)', () => {
+    const body = buildCarModelPayload('', true);
+    expect(body).toEqual({ carModelId: null });
+    expect(body.carModelId).not.toBe('');
+  });
+
+  it('create with a model sends its id', () => {
+    expect(buildCarModelPayload('model-1', false)).toEqual({ carModelId: 'model-1' });
+  });
+
+  it('create without a model omits the key', () => {
+    expect(buildCarModelPayload('', false)).not.toHaveProperty('carModelId');
   });
 });
 

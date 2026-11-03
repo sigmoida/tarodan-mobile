@@ -249,6 +249,49 @@ describe('düzenleme payload — attributes[] yalnız üretici-kapsamlı', () =>
   });
 });
 
+describe('edit payload: carModelId (web parity, contract delta 2026-11-03)', () => {
+  it('keeps sending the listing model id when the seller leaves the model alone', async () => {
+    wireApi();
+    renderWithProviders(<ListingForm mode="edit" productId="p1" />);
+    await screen.findByText('Değişiklikleri Kaydet');
+
+    fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
+
+    await waitFor(() => expect(productsApi.update).toHaveBeenCalled());
+    expect((productsApi.update as jest.Mock).mock.calls[0][1].carModelId).toBe('model-eski');
+  });
+
+  it('sends carModelId: null (not omitted, not "") once a brand change cleared the model', async () => {
+    wireApi({ brands: [...BRANDS, { id: 'brand-2', name: 'Majorette', slug: 'majorette' }] });
+    renderWithProviders(<ListingForm mode="edit" productId="p1" />);
+    await screen.findByText('Değişiklikleri Kaydet');
+
+    fireEvent.press(screen.getByText('Mini GT'));
+    fireEvent.press(await screen.findByText('Majorette'));
+    fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
+
+    await waitFor(() => expect(productsApi.update).toHaveBeenCalled());
+    const payload = (productsApi.update as jest.Mock).mock.calls[0][1];
+    expect(payload).toHaveProperty('carModelId', null);
+    expect(payload.brandId).toBe('brand-2');
+    expect(payload.manufacturerId).toBe('man-1');
+  });
+
+  it('sends carModelId: null when the listing has no model', async () => {
+    (productsApi.getMyById as jest.Mock).mockResolvedValue({
+      data: { data: { ...EDIT_RESPONSE, edit: { ...EDIT_RESPONSE.edit, carModelId: null, carModelName: null } } },
+    });
+    wireApi();
+    renderWithProviders(<ListingForm mode="edit" productId="p1" />);
+    await screen.findByText('Değişiklikleri Kaydet');
+
+    fireEvent.press(screen.getByText('Değişiklikleri Kaydet'));
+
+    await waitFor(() => expect(productsApi.update).toHaveBeenCalled());
+    expect((productsApi.update as jest.Mock).mock.calls[0][1]).toHaveProperty('carModelId', null);
+  });
+});
+
 describe('409 — form TAMAMEN sunucunun taze haline döner', () => {
   it('nitelik seçimi de geri alınır — "en güncel hali yüklendi" mesajı doğruyu söyler', async () => {
     wireApi();

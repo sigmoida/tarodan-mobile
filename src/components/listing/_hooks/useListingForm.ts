@@ -11,7 +11,7 @@ import { useZodForm } from '@/ui/form';
 import { buildListingFormSchema, emptyListingFormValues } from '../_lib/schema';
 import { firstListingValidationError } from '../_lib/validate';
 import { BANK_ACCOUNT_FROM_LISTING_HREF, listingGateView } from '../_lib/gates';
-import { buildColorAndBoxPayload, serverErrorMessage } from '../_lib/payload';
+import { buildCarModelPayload, buildColorAndBoxPayload, serverErrorMessage } from '../_lib/payload';
 import { MAX_COLORS } from '../_lib/schema';
 import { globalCustomGroups, requiredGlobalGroups } from '../_lib/attributeGroups';
 import { toFormValues } from '../_lib/editMapper';
@@ -545,12 +545,12 @@ export function useListingForm({ mode, productId }: ListingFormProps) {
       categoryId,
       condition,
       brandId: brandId || undefined,
-      carModelId: carModelId || undefined,
+      ...buildCarModelPayload(carModelId, isEdit),
       scale: scale || undefined,
       material: material || undefined,
       manufacturerId: manufacturerId || undefined,
-      // `carModelId || undefined` deseninin AKSİNE: boş string burada da
-      // gönderilir — sunucu opsiyonel kabul eder ve boş string alanı temizler.
+      // Unlike `brandId` and `manufacturerId` above, an empty string is sent as is: the
+      // server accepts the field as optional and an empty string clears it.
       modelCode,
       year: year ? Number(year) : undefined,
       isTradeEnabled,

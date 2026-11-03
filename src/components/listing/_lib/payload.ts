@@ -18,6 +18,22 @@ export function buildColorAndBoxPayload(
 }
 
 /**
+ * The car model field of the listing body (web parity).
+ *
+ * `PATCH /products/:id` reads an omitted key as "keep" and an explicit `null` as
+ * "clear", so an edit with an empty model picker must send `null`: omitting it
+ * keeps the old model on the server (contract delta 2026-11-03). Never `""`: the
+ * DTO refuses it (`@IsUUID`). Create has nothing to keep and omits the key.
+ */
+export function buildCarModelPayload(
+  carModelId: string,
+  isEdit: boolean,
+): { carModelId?: string | null } {
+  if (carModelId) return { carModelId };
+  return isEdit ? { carModelId: null } : {};
+}
+
+/**
  * Sunucu hata gövdesinden kullanıcıya gösterilecek metin. NestJS doğrulama
  * hataları `message`'ı LİSTE olarak döndürür; eskiden liste gelince yalnız
  * "İşlem başarısız" gösteriliyor ve asıl sebep kayboluyordu.
