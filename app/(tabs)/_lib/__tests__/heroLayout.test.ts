@@ -15,7 +15,7 @@ import {
 import { heroStyles } from '../heroStyles';
 import { homeStyles } from '../homeStyles';
 import { HOME_SECTION_GAP } from '../homeLayout';
-import { PAGE_GUTTER } from '@/ui';
+import { PAGE_GUTTER, theme } from '@/ui';
 
 describe('heroReservedHeight', () => {
   it('genişlikten hesaplanır: kenarlık + görsel (oran) + gövde tabanı + nokta şeridi', () => {
@@ -107,5 +107,13 @@ describe('hero on tablets follows the page gutter', () => {
     expect(heroMarginX(1032)).toBe(32);
     expect(heroInnerWidth(1032)).toBe(1032 - 2 * 32 - 2 * HERO_BORDER_WIDTH);
     expect(heroInnerWidth(390)).toBe(390 - 2 * PAGE_GUTTER - 2 * HERO_BORDER_WIDTH);
+  });
+});
+
+describe('hero image boxes follow the media tokens', () => {
+  it('stacked and side-by-side image styles take their aspectRatio from theme.mediaRatios', () => {
+    const { heroCompact, heroSplit } = theme.mediaRatios;
+    expect(StyleSheet.flatten(heroStyles.image).aspectRatio).toBe(heroCompact.width / heroCompact.height);
+    expect(StyleSheet.flatten(heroStyles.splitImage).aspectRatio).toBe(heroSplit.width / heroSplit.height);
   });
 });

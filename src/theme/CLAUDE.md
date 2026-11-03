@@ -7,9 +7,9 @@ and has no `theme` export.
 ## Token source and sync
 
 - **The source of truth is tarodan-app `packages/design-tokens/src/`** (`colors`,
-  `spacing`, `radius`, `typography`, `shadows`, `motion`, `z-index`, `containers`).
-  The matching
-  files here are a **synced copy**, not an independent source.
+  `spacing`, `radius`, `typography`, `shadows`, `motion`, `z-index`, `containers`,
+  `breakpoints`, `media`). The matching files here are a **synced copy**, not an
+  independent source.
 - Never add a colour, size, shadow or duration here ad hoc. A new token goes into
   tarodan-app `packages/design-tokens` first and is then synced (`token-sync`
   skill: manual today, a `scripts/token-sync` script with a CI drift check later).
@@ -18,8 +18,8 @@ and has no `theme` export.
 - Mobile-only files that the sync leaves alone: `roles.ts` (role tokens derived from
   the shared tokens), `catalog.ts` (data constants only: scales, brands, conditions;
   the old `TarodanColors` palette is gone), `index.ts`.
-- **Current drift (2026-10-17):** `spacing.ts`, `radius.ts`, `z-index.ts` and
-  `containers.ts` (added 2026-10-22) are identical to design-tokens; `colors.ts`, `motion.ts`, `shadows.ts`,
+- **Current drift (2026-11-03):** `spacing.ts`, `radius.ts`, `z-index.ts`,
+  `containers.ts`, `breakpoints.ts` and `media.ts` are identical to design-tokens; `colors.ts`, `motion.ts`, `shadows.ts`,
   `typography.ts` differ. Part of it is legitimate platform transformation.
   Reconciling it is a tarodan-ops backlog item; don't "fix" it as a side effect.
 - `containers` (`theme.containers.cardWide`) are component widths, compared with
@@ -29,6 +29,12 @@ and has no `theme` export.
   Page content never centres at a capped width (src/ui/CLAUDE.md › Large screens).
   `breakpoints.ts` is a copy of tarodan-app `packages/design-tokens/src/breakpoints.ts`
   (10e8aa94b, 2026-10-24); change it there first.
+- `mediaRatios` (`heroCompact` 16:10, `heroSplit` 4:3) are media box shapes as
+  `{ width, height }` integers (`theme.mediaRatios`); layout code derives the RN
+  `aspectRatio` as `width / height` and the image fills the box with `cover`. The same
+  values drive the web hero and the admin hero upload guidance. `media.ts` is a
+  byte-identical copy of tarodan-app `packages/design-tokens/src/media.ts`
+  (5050ccd2d, 2026-11-03); change it there first.
 - Light theme only; there is no dark mode on any platform.
 
 ## Using tokens

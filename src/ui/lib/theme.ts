@@ -10,6 +10,7 @@ import {
   iconSize,
   inactiveIconColor,
   loading,
+  mediaRatios,
   minTouchTarget,
   nativeShadows,
   priceColor,
@@ -83,7 +84,9 @@ export const theme = {
   containers,
   /** Window width classes (pt), compared with a measured width; classify with `windowClassOf`. */
   breakpoints,
-  /** Yükleme sistemi (gösterge, iskelet animasyonu, gecikme) — bkz. `src/ui/loading/`. */
+  /** Media box ratios (`width / height` gives the RN `aspectRatio`); images fill the box with `cover`. */
+  mediaRatios,
+  /** Loading system (indicator, skeleton animation, delay); see `src/ui/loading/`. */
   loading,
 } as const;
 
