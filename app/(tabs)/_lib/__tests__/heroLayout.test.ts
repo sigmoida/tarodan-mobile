@@ -15,6 +15,7 @@ import {
 import { heroStyles } from '../heroStyles';
 import { homeStyles } from '../homeStyles';
 import { HOME_SECTION_GAP } from '../homeLayout';
+import { mediaRatios } from '@/theme';
 import { PAGE_GUTTER } from '@/ui';
 
 describe('heroReservedHeight', () => {
@@ -107,5 +108,23 @@ describe('hero on tablets follows the page gutter', () => {
     expect(heroMarginX(1032)).toBe(32);
     expect(heroInnerWidth(1032)).toBe(1032 - 2 * 32 - 2 * HERO_BORDER_WIDTH);
     expect(heroInnerWidth(390)).toBe(390 - 2 * PAGE_GUTTER - 2 * HERO_BORDER_WIDTH);
+  });
+});
+
+describe('hero ratios come from the media tokens', () => {
+  it('derives both ratios from mediaRatios (width / height)', () => {
+    expect(HERO_IMAGE_RATIO).toBe(mediaRatios.heroCompact.width / mediaRatios.heroCompact.height);
+    expect(HERO_SPLIT_IMAGE_RATIO).toBe(mediaRatios.heroSplit.width / mediaRatios.heroSplit.height);
+  });
+
+  it('keeps the shipped shapes: 16:10 stacked, 4:3 side by side', () => {
+    expect(mediaRatios.heroCompact).toEqual({ width: 16, height: 10 });
+    expect(mediaRatios.heroSplit).toEqual({ width: 4, height: 3 });
+    expect(HERO_IMAGE_RATIO).toBe(16 / 10);
+    expect(HERO_SPLIT_IMAGE_RATIO).toBe(4 / 3);
+  });
+
+  it('the side-by-side image style uses the split ratio', () => {
+    expect(StyleSheet.flatten(heroStyles.splitImage).aspectRatio).toBe(HERO_SPLIT_IMAGE_RATIO);
   });
 });

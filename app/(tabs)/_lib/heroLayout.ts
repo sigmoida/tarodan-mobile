@@ -1,13 +1,13 @@
 import { pageGutter, theme, windowClassOf } from '@/ui';
 
-const { spacing } = theme;
+const { spacing, mediaRatios } = theme;
 
 /**
  * Hero layout: the reserved height and the real slider come from the SAME constants. Space is only
  * reserved when the hero was shown on the last launch and the answer has not arrived yet
  * (`useLastHadSlides`); with the hero off nothing is reserved.
  *
- * Phones (`compact`): border + image (width / 16:10) + body (at least `HERO_BODY_MIN_HEIGHT`) +
+ * Phones (`compact`): border + image (width / `HERO_IMAGE_RATIO`) + body (at least `HERO_BODY_MIN_HEIGHT`) +
  * dots strip. The body has a minimum height, so typical slides match the reserved space exactly;
  * longer text only grows the body.
  *
@@ -16,10 +16,10 @@ const { spacing } = theme;
  * max(image, body minimum) + dots strip, so the hero no longer fills half the screen.
  */
 
-/** Hero image ratio, same as web on phones (16/10). */
-export const HERO_IMAGE_RATIO = 16 / 10;
-/** Side-by-side (tablet) image ratio, web `md:aspect-[4/3]`. */
-export const HERO_SPLIT_IMAGE_RATIO = 4 / 3;
+/** Hero image ratio on phones (`compact`): the `heroCompact` token (16:10), shared with web and admin. */
+export const HERO_IMAGE_RATIO = mediaRatios.heroCompact.width / mediaRatios.heroCompact.height;
+/** Side-by-side (tablet) image ratio: the `heroSplit` token (4:3), web `md:aspect-hero-split`. */
+export const HERO_SPLIT_IMAGE_RATIO = mediaRatios.heroSplit.width / mediaRatios.heroSplit.height;
 /** Widest side-by-side image (pt; below web's 560px `sizes`, 360 pt tall). */
 export const HERO_SPLIT_IMAGE_MAX_WIDTH = 480;
 /** Shell border (each side). */
