@@ -86,7 +86,7 @@ export const theme = {
   breakpoints,
   /** Media box ratios (`width / height` gives the RN `aspectRatio`); images fill the box with `cover`. */
   mediaRatios,
-  /** Yükleme sistemi (gösterge, iskelet animasyonu, gecikme) — bkz. `src/ui/loading/`. */
+  /** Loading system (indicator, skeleton animation, delay); see `src/ui/loading/`. */
   loading,
 } as const;
 

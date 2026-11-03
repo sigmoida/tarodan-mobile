@@ -19,7 +19,8 @@ hand and keep it small.
   `shadows.ts`, `motion.ts`, `z-index.ts`, `containers.ts`, `breakpoints.ts`,
   `media.ts` (the last three are byte-identical copies; their source commit is
   noted in `src/theme/CLAUDE.md`). Never touch `roles.ts`, `catalog.ts`,
-  `index.ts` in a sync (roles may then be updated deliberately, in the same change).
+  `index.ts` in a sync of an existing file (roles may then be updated deliberately,
+  in the same change). A **new** token file is the exception: see step 4.
 - Platform transforms (rem -> pt, CSS shadow -> RN shadow/elevation, font weight ->
   Noto Sans file) are applied consistently; keep the existing mobile form.
 - Reconciling the existing drift (colors, motion, shadows, typography) is a backlog
@@ -46,6 +47,9 @@ done
    applying the platform transform. Don't reformat or reorder unrelated lines.
 4. If a role should use it, update `roles.ts` and the consumer through
    `theme.*` from `@/ui`; no hex in screens.
+   A **new** token file also needs wiring: `export * from "./<file>"` plus a key in
+   `tokens` in `src/theme/index.ts`, an entry on `theme` in `src/ui/lib/theme.ts`,
+   the file in the lists above and its source commit in `src/theme/CLAUDE.md`.
 5. Verify, one at a time:
 
 ```bash
