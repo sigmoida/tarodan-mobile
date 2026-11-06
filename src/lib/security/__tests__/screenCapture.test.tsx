@@ -153,15 +153,27 @@ describe('platform specifics', () => {
     expect(mockModule.disableAppSwitcherProtectionAsync).not.toHaveBeenCalled();
   });
 
-  it('ios: the blur turns on with the first protection and off with the last', () => {
+  it('ios: the blur turns on with the first protection and off with the last', async () => {
     setOS('ios');
     const a = protectSensitiveScreen();
     const b = protectSensitiveScreen();
     expect(mockModule.enableAppSwitcherProtectionAsync).toHaveBeenCalledTimes(1);
+    expect(mockModule.enableAppSwitcherProtectionAsync).toHaveBeenCalledWith(1);
     a();
+    await flushRelease();
     expect(mockModule.disableAppSwitcherProtectionAsync).not.toHaveBeenCalled();
     b();
+    await flushRelease();
     expect(mockModule.disableAppSwitcherProtectionAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it('ios: a failing lock call does not stop the blur', () => {
+    setOS('ios');
+    mockModule.preventScreenCaptureAsync.mockImplementationOnce(() => {
+      throw new Error('incompatible');
+    });
+    protectSensitiveScreen();
+    expect(mockModule.enableAppSwitcherProtectionAsync).toHaveBeenCalledTimes(1);
   });
 
   it('ios: a rejected blur call does not throw', async () => {
@@ -212,6 +224,46 @@ describe('useScreenCaptureProtection', () => {
     await flushRelease();
     expect(prevents()).toBe(1);
     expect(allows()).toBe(0);
+    // A disable here would remove a blur that is showing while the app is inactive.
+    expect(mockModule.enableAppSwitcherProtectionAsync).toHaveBeenCalledTimes(1);
+    expect(mockModule.disableAppSwitcherProtectionAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('through the real library wrapper', () => {
+  const nativeModule = {
+    preventScreenCapture: jest.fn(() => Promise.resolve()),
+    allowScreenCapture: jest.fn(() => Promise.resolve()),
+    enableAppSwitcherProtection: jest.fn(() => Promise.resolve()),
+    disableAppSwitcherProtection: jest.fn(() => Promise.resolve()),
+  };
+
+  afterEach(() => {
+    jest.doMock('expo-screen-capture', () => mockModule);
+    jest.dontMock('expo-screen-capture/build/ExpoScreenCapture');
+    jest.resetModules();
+  });
+
+  it('the native module sees one prevent for overlapping screens and one allow at the end', async () => {
+    setOS('ios');
+    jest.resetModules();
+    jest.dontMock('expo-screen-capture');
+    jest.doMock('expo-screen-capture/build/ExpoScreenCapture', () => ({
+      __esModule: true,
+      default: nativeModule,
+    }));
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { protectSensitiveScreen: protect } = require('../screenCapture');
+    const bankAccount = protect();
+    const gate = protect();
+    expect(nativeModule.preventScreenCapture).toHaveBeenCalledTimes(1);
+    gate();
+    await flushRelease();
+    expect(nativeModule.allowScreenCapture).not.toHaveBeenCalled();
+    bankAccount();
+    await flushRelease();
+    expect(nativeModule.allowScreenCapture).toHaveBeenCalledTimes(1);
+    expect(nativeModule.preventScreenCapture).toHaveBeenCalledTimes(1);
   });
 });
 

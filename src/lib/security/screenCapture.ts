@@ -8,8 +8,8 @@ import { Platform } from 'react-native';
  * turn this on. Platform behaviour (`expo-screen-capture`):
  *  - Android: `FLAG_SECURE`: screenshots and recordings are black, the recents preview is blank.
  *  - iOS: content is hidden in screenshots and recordings; the app switcher preview is blurred
- *    separately (`enableAppSwitcherProtectionAsync`, global on iOS, so counted here and active
- *    only while a protected screen is open).
+ *    separately (`enableAppSwitcherProtectionAsync`, global on iOS, so it follows the same count
+ *    and is active only while a protected screen is open).
  *
  * ONE NATIVE LOCK. The iOS `preventScreenCapture` is not re-entrant: each call reparents the key
  * window's layer into a new secure UITextField and overwrites the only strong reference to the
@@ -42,26 +42,35 @@ function screenCaptureModule(): ScreenCaptureModule | null {
 /** The only key passed to the library: its tag set never holds more than this one entry. */
 const NATIVE_LOCK_KEY = 'sensitive-screen';
 /** Screens currently protected. */
-let captureHolders = 0;
-/** Whether native prevent is in effect (asked for last). */
+let holders = 0;
+/** Whether the native lock (and the iOS blur) is in effect, as last asked for. */
 let nativeLockHeld = false;
-/** The iOS app switcher blur is global: it goes off when the last protected screen closes. */
-let appSwitcherUsers = 0;
 /** iOS blur intensity (0-1): the highest, so sensitive data can't be read. */
 const APP_SWITCHER_BLUR = 1;
 
 const ignore = () => undefined;
 
-/** Brings the native lock in line with the count; calls native only when that changes it. */
+/** Runs one native call; a missing or incompatible module means no protection, never a throw. */
+function quietly(call: () => Promise<void>): void {
+  try {
+    call().catch(ignore);
+  } catch {
+    /* the screen keeps working */
+  }
+}
+
+/** Brings the native lock and blur in line with the count; calls native only on a change. */
 function syncNativeLock(sc: ScreenCaptureModule): void {
-  const wanted = captureHolders > 0;
+  const wanted = holders > 0;
   if (wanted === nativeLockHeld) return;
   nativeLockHeld = wanted;
-  try {
-    if (wanted) sc.preventScreenCaptureAsync(NATIVE_LOCK_KEY).catch(ignore);
-    else sc.allowScreenCaptureAsync(NATIVE_LOCK_KEY).catch(ignore);
-  } catch {
-    /* native module missing or incompatible: no protection, the screen works */
+  const ios = Platform.OS === 'ios';
+  if (wanted) {
+    quietly(() => sc.preventScreenCaptureAsync(NATIVE_LOCK_KEY));
+    if (ios) quietly(() => sc.enableAppSwitcherProtectionAsync(APP_SWITCHER_BLUR));
+  } else {
+    quietly(() => sc.allowScreenCaptureAsync(NATIVE_LOCK_KEY));
+    if (ios) quietly(() => sc.disableAppSwitcherProtectionAsync());
   }
 }
 
@@ -71,31 +80,20 @@ function syncNativeLock(sc: ScreenCaptureModule): void {
  *
  * Acquiring locks at once. The last release waits for a microtask: React runs a commit's effect
  * cleanups before its new effects, so a protected screen replacing another (or the gate remounting
- * by key) would otherwise drop FLAG_SECURE and the iOS lock for a moment. Within one commit the
- * count returns to 1 first and native is not called at all.
+ * by key) would otherwise drop FLAG_SECURE, the iOS lock and a showing blur for a moment. Within
+ * one commit the count returns to 1 first and native is not called at all.
  */
 export function protectSensitiveScreen(): () => void {
   const sc = screenCaptureModule();
   if (!sc) return ignore;
-  const ios = Platform.OS === 'ios';
-  captureHolders += 1;
+  holders += 1;
   syncNativeLock(sc);
-  try {
-    if (ios && ++appSwitcherUsers === 1) sc.enableAppSwitcherProtectionAsync(APP_SWITCHER_BLUR).catch(ignore);
-  } catch {
-    /* same as above */
-  }
   let released = false;
   return () => {
     if (released) return;
     released = true;
-    captureHolders -= 1;
-    if (captureHolders === 0) queueMicrotask(() => syncNativeLock(sc));
-    try {
-      if (ios && --appSwitcherUsers === 0) sc.disableAppSwitcherProtectionAsync().catch(ignore);
-    } catch {
-      /* same as above */
-    }
+    holders -= 1;
+    if (holders === 0) queueMicrotask(() => syncNativeLock(sc));
   };
 }
 
@@ -107,10 +105,9 @@ export function useScreenCaptureProtection(enabled: boolean = true): void {
   useEffect(() => (enabled ? protectSensitiveScreen() : undefined), [enabled]);
 }
 
-/** Tests only: resets the module cache and the counters. */
+/** Tests only: resets the module cache and the count. */
 export function __resetScreenCaptureProtection(): void {
   cached = undefined;
-  captureHolders = 0;
+  holders = 0;
   nativeLockHeld = false;
-  appSwitcherUsers = 0;
 }
