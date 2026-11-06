@@ -32,6 +32,7 @@ jest.mock('@/lib/api', () => ({
 jest.mock('@/services/sentry', () => ({ captureException: jest.fn() }));
 
 import { collectionsApi, mediaApi, productsApi, carModelsApi } from '@/lib/api';
+import { ImagePrepareError } from '@/lib/media';
 import { captureException } from '@/services/sentry';
 import { backMock, canGoBackMock } from '@/test-utils';
 import AddCollectionItemsScreen from '../add-items';
@@ -258,7 +259,66 @@ describe('custom item form: submit', () => {
   });
 });
 
+describe('custom item form: submit guards', () => {
+  it('a double tap adds one item and uploads once (the button is not disabled yet on the second tap)', async () => {
+    await openCustom();
+    fireEvent.changeText(screen.getByPlaceholderText('Ürün ismi'), 'Model');
+    fireEvent.press(screen.getByTestId('custom-item-image-pick'));
+    await screen.findByTestId('custom-item-image-clear');
+
+    submit();
+    submit();
+
+    await waitFor(() => expect(successSpy).toHaveBeenCalledTimes(1));
+    expect(addItem).toHaveBeenCalledTimes(1);
+    expect(uploadImage).toHaveBeenCalledTimes(1);
+    expect(backMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('a failed add can be submitted again (the guard is released)', async () => {
+    addItem.mockRejectedValueOnce({ isAxiosError: true, response: { status: 400, data: { message: 'Hayır' } } });
+    await openCustom();
+    fireEvent.changeText(screen.getByPlaceholderText('Ürün ismi'), 'Model');
+    submit();
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledWith('Hayır'));
+    submit();
+    await waitFor(() => expect(addItem).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(successSpy).toHaveBeenCalledTimes(1));
+  });
+
+  it('leaving the screen while the item is added: the toast still shows, but no second back', async () => {
+    let finish!: (value: unknown) => void;
+    addItem.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    const { unmount } = await openCustom();
+    fireEvent.changeText(screen.getByPlaceholderText('Ürün ismi'), 'Model');
+    submit();
+    await waitFor(() => expect(addItem).toHaveBeenCalled());
+
+    // The owner went back to the detail screen; the add finishes there.
+    unmount();
+    await act(async () => finish({ data: {} }));
+
+    await waitFor(() => expect(successSpy).toHaveBeenCalledTimes(1));
+    expect(backMock).not.toHaveBeenCalled();
+  });
+});
+
 describe('custom item form: error states', () => {
+  it('a picture that cannot be prepared: localized copy, not the English technical text; reported; nothing added', async () => {
+    uploadImage.mockRejectedValue(new ImagePrepareError('failed'));
+    await openCustom();
+    fireEvent.changeText(screen.getByPlaceholderText('Ürün ismi'), 'Ferrari F40');
+    fireEvent.press(screen.getByTestId('custom-item-image-pick'));
+    await screen.findByTestId('custom-item-image-clear');
+    submit();
+
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledWith('Ürünler eklenemedi'));
+    expect(addItem).not.toHaveBeenCalled();
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect((captureException as jest.Mock).mock.calls[0]![0]).toBeInstanceOf(ImagePrepareError);
+    expect(screen.getByDisplayValue('Ferrari F40')).toBeOnTheScreen();
+  });
+
   it('upload fails: the server message in a toast, the item is not created, the form keeps its values', async () => {
     uploadImage.mockRejectedValue({ isAxiosError: true, response: { status: 422, data: { message: 'Görsel uygunsuz bulundu' } } });
     await openCustom();

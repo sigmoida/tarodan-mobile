@@ -3,7 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { collectionsApi, mediaApi } from '@/lib/api';
 import { isServerOrNetworkFailure } from '@/lib/api/reauthError';
-import { withPreparedImage, type LocalImageFile } from '@/lib/media';
+import { ImagePrepareError, withPreparedImage, type LocalImageFile } from '@/lib/media';
 import { qk, useAppMutation } from '@/lib/query';
 import { captureException } from '@/services/sentry';
 import { goBackOrHome } from '@/components/common/goBackOrHome';
@@ -34,6 +34,8 @@ export function useAddCustomItem() {
   // The URL of an image that is already uploaded: a retry after a failed add (offline, 5xx) must not
   // upload the same picture twice.
   const uploaded = useRef<{ file: LocalImageFile; url: string } | null>(null);
+  // Synchronous double-tap guard: `isPending` only changes on the next render, too late for a second tap.
+  const inFlight = useRef(false);
 
   const add = useAppMutation(
     async ({ values, image: file }: Submission) => {
@@ -43,6 +45,11 @@ export function useAddCustomItem() {
           // `strict`: the picture is public; an unprepared original (EXIF, location) is never uploaded.
           const response = await withPreparedImage(file, (prepared) => mediaApi.uploadCollectionImage(prepared), {
             strict: true,
+          }).catch((error: unknown) => {
+            if (!(error instanceof ImagePrepareError)) throw error;
+            // Its message is English technical text, and the toast would show it as it is.
+            captureException(error, { level: 'error', tags: { flow: 'collection.customItem' }, extra: { collectionId } });
+            throw new Error(t('collection.productsAddFailed'));
           });
           const url = response.data?.url;
           if (typeof url !== 'string' || !url) throw new Error(t('collection.productsAddFailed'));
@@ -58,7 +65,6 @@ export function useAddCustomItem() {
       success: t('product.addedToCollection'),
       // The server's message (moderation rejection, invalid image) when it sends one.
       error: t('collection.productsAddFailed'),
-      onSuccess: goBackOrHome,
       onError: (error) => {
         // The API refused the request (a 4xx): the stored URL may be the reason, so upload again.
         const status = (error as { response?: { status?: number } })?.response?.status;
@@ -77,8 +83,19 @@ export function useAddCustomItem() {
   const clearImage = useCallback(() => setImage(null), []);
 
   const submit = form.handleSubmit((values) => {
-    if (add.isPending) return;
-    add.mutate({ values, image });
+    if (inFlight.current) return;
+    inFlight.current = true;
+    add.mutate(
+      { values, image },
+      {
+        // Here and not on the hook: this one does not run after the screen is gone, so an owner who
+        // already went back is not sent back a second time.
+        onSuccess: goBackOrHome,
+        onSettled: () => {
+          inFlight.current = false;
+        },
+      },
+    );
   });
 
   return { form, image, pickImage, clearImage, submit, isPending: add.isPending };
