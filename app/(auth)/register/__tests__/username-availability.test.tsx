@@ -6,6 +6,7 @@
  * - girdi değişince önceki adın "alınmış" sonucu yeni ada yapışmaz (bayat sonuç).
  */
 import React from 'react';
+import { Platform } from 'react-native';
 import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils/render';
 import { resetRouterMocks } from '@/test-utils/router-mock';
@@ -192,5 +193,43 @@ describe('Kayıt ekranı — Türkçe karakterli girdide biçim uyarısı (N-1)'
       expect(screen.getByText(/küçük harf, rakam, nokta ve alt çizgi/i)).toBeTruthy(),
     );
     expect(screen.queryByText(/^geçersiz biçim:/i)).toBeNull();
+  });
+});
+
+/**
+ * Android IME fix: `toHandle` rewrites the value on every keystroke, which makes the
+ * Android keyboard re-commit its composing buffer ("Ferzane" -> `ffeferferz`).
+ * `keyboardType="visible-password"` turns composition off. jest cannot reproduce the
+ * IME itself; these tests only pin the prop per platform and the lower-casing.
+ */
+describe('Register username field - Android keyboard composition', () => {
+  const originalOS = Platform.OS;
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetRouterMocks();
+  });
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
+  it('uses visible-password on Android and still lower-cases mixed case', async () => {
+    Platform.OS = 'android';
+    renderWithProviders(<RegisterScreen />);
+    const input = screen.getByTestId('register-username-input');
+    expect(input.props.keyboardType).toBe('visible-password');
+    fireEvent.changeText(input, 'Ferzane');
+    expect(screen.getByTestId('register-username-input').props.value).toBe('ferzane');
+    await act(async () => {
+      await Promise.resolve();
+    });
+  });
+
+  it('sets no keyboardType on iOS', async () => {
+    Platform.OS = 'ios';
+    renderWithProviders(<RegisterScreen />);
+    expect(screen.getByTestId('register-username-input').props.keyboardType).toBeUndefined();
+    await act(async () => {
+      await Promise.resolve();
+    });
   });
 });

@@ -6,6 +6,7 @@
  * kullanır ki kurallar tek noktadan değişebilsin ve web ile birebir aynı kalsın.
  */
 
+import { Platform, type TextInputProps } from 'react-native';
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
 import { parseE164TrPhone } from './phone';
@@ -99,6 +100,27 @@ export const USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$/;
  * kararı gerektirir. İleride böyle bir karar verilirse tek yerden uygulanır.
  */
 export const toHandle = (t: string) => t.toLowerCase();
+
+const ANDROID_HANDLE_INPUT_PROPS: Pick<TextInputProps, 'keyboardType'> = {
+  keyboardType: 'visible-password',
+};
+const NO_HANDLE_INPUT_PROPS: Pick<TextInputProps, 'keyboardType'> = {};
+
+/**
+ * Extra `TextInput` props for every field that runs `toHandle` on each keystroke
+ * (register, corporate invite, settings username claim). Spread them on the input.
+ *
+ * Why: `toHandle` changes the controlled value while the Android keyboard is still
+ * composing the word, so the IME re-commits its buffer and "Ferzane" ends up as
+ * `ffeferferz`. `autoCorrect={false}` and `autoCapitalize="none"` do not stop that on
+ * these keyboards; `visible-password` turns composition off. Android only: iOS does not
+ * compose like this and keeps its normal keyboard, so it gets no extra props.
+ *
+ * A function rather than a module constant only so tests can switch `Platform.OS`;
+ * the result never changes at runtime and is a stable object (safe in render).
+ */
+export const getHandleInputProps = (): Pick<TextInputProps, 'keyboardType'> =>
+  Platform.OS === 'android' ? ANDROID_HANDLE_INPUT_PROPS : NO_HANDLE_INPUT_PROPS;
 
 /**
  * Kullanıcı adı — 3-30, `USERNAME_PATTERN`.

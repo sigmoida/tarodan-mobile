@@ -2,6 +2,7 @@
  * Saf validasyon kuralları (B katmanı). Form/UI yok — şema doğrudan test edilir.
  * J42: 18 yaş kuralı (J41 şifre kuralları: `./passwordPolicy.test.ts`).
  */
+import { Platform } from 'react-native';
 import {
   isAdult,
   displayNameSchema as _displayNameSchema,
@@ -9,6 +10,7 @@ import {
   usernameSchema as _usernameSchema,
   USERNAME_PATTERN,
   toHandle,
+  getHandleInputProps,
   requiredTrPhoneSchema as _requiredTrPhoneSchema,
   optionalTrPhoneSchema as _optionalTrPhoneSchema,
 } from '../validation';
@@ -126,6 +128,28 @@ describe('toHandle (üç ekranın ortak alan dönüşümü)', () => {
     // "düzeltilmiyor" (bkz. validation.ts docstring).
     expect(toHandle('İpek')).toBe('İpek'.toLowerCase());
     expect(toHandle('İpek')).not.toBe('ipek');
+  });
+});
+
+describe('getHandleInputProps (Android IME composition fix)', () => {
+  const originalOS = Platform.OS;
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
+  it('disables keyboard composition on Android', () => {
+    Platform.OS = 'android';
+    expect(getHandleInputProps()).toEqual({ keyboardType: 'visible-password' });
+  });
+
+  it('adds nothing on iOS', () => {
+    Platform.OS = 'ios';
+    expect(getHandleInputProps()).toEqual({});
+  });
+
+  it('returns a stable object per platform (safe to spread in render)', () => {
+    Platform.OS = 'android';
+    expect(getHandleInputProps()).toBe(getHandleInputProps());
   });
 });
 

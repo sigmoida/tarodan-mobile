@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Text, Button, Alert, ScreenLoader, theme } from '@/ui';
 import { Form, FormInput } from '@/ui/form';
-import { toHandle } from '@/utils/validation';
+import { getHandleInputProps, toHandle } from '@/utils/validation';
 import { passwordHint } from '@/utils/passwordPolicy';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { useCorporateInvite } from './_hooks/useCorporateInvite';
@@ -70,6 +70,7 @@ export default function CorporateInviteScreen() {
             placeholder="tarodan.kurumsal"
             autoCapitalize="none"
             autoCorrect={false}
+            {...getHandleInputProps()}
             maxLength={30}
             // Girişte küçük harfe çevir — kullanıcı kalıcı handle'ını olduğu
             // gibi görür, şemadaki `.toLowerCase()` emniyet kemeri.

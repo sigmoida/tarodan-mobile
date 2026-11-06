@@ -3,6 +3,7 @@
  * Kullanıcı adı bir kez belirlenir ve değiştirilemez — formda açıkça yazılır.
  */
 import React from 'react';
+import { Platform } from 'react-native';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
 
@@ -139,4 +140,34 @@ it('şifre: boşken kuralın tamamı; yazarken yalnız eksik kural (tek kaynak)'
   fireEvent.changeText(screen.getByTestId('invite-password'), 'Securepass');
   expect(screen.getByText('En az 1 rakam ekleyin')).toBeTruthy();
   expect(screen.queryByText('En az 1 büyük harf ekleyin')).toBeNull();
+});
+
+// Android IME fix: see `getHandleInputProps` in `@/utils/validation`. jest cannot
+// reproduce the keyboard bug; it only pins the prop per platform and the lower-casing.
+describe('Corporate invite username field - Android keyboard composition', () => {
+  const originalOS = Platform.OS;
+  beforeEach(() => {
+    (authApi.getCorporateInvitation as jest.Mock).mockResolvedValue({
+      data: { companyTitle: 'X', companyEmail: 'k@firma.com', expiresAt: '2026-08-10' },
+    });
+  });
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
+  it('uses visible-password on Android and still lower-cases mixed case', async () => {
+    Platform.OS = 'android';
+    renderWithProviders(<CorporateInviteScreen />);
+    await waitFor(() => expect(screen.getByTestId('invite-username')).toBeTruthy());
+    expect(screen.getByTestId('invite-username').props.keyboardType).toBe('visible-password');
+    fireEvent.changeText(screen.getByTestId('invite-username'), 'Ferzane');
+    expect(screen.getByTestId('invite-username').props.value).toBe('ferzane');
+  });
+
+  it('sets no keyboardType on iOS', async () => {
+    Platform.OS = 'ios';
+    renderWithProviders(<CorporateInviteScreen />);
+    await waitFor(() => expect(screen.getByTestId('invite-username')).toBeTruthy());
+    expect(screen.getByTestId('invite-username').props.keyboardType).toBeUndefined();
+  });
 });
