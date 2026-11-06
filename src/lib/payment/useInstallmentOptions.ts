@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { paymentsApi } from '@/lib/api';
 import { isServerOrNetworkFailure } from '@/lib/api/reauthError';
@@ -13,13 +13,16 @@ import {
   type InstallmentOffer,
 } from './installments';
 
-/** The answer without the counts direct-form refused for this card; none left = single payment. */
+/**
+ * The answer without the counts direct-form refused for this card; none left = single payment
+ * with the card note (another card may still offer installments).
+ */
 function withoutRefused(offer: InstallmentOffer, refused: number[]): InstallmentOffer {
   if (offer.kind !== 'options' || refused.length === 0) return offer;
   const options = offer.options.filter((o) => !refused.includes(o.count));
   return options.some((o) => o.count > 1)
     ? { ...offer, options }
-    : { kind: 'single', reason: 'not_offered_for_payment' };
+    : { kind: 'single', reason: 'card_not_eligible' };
 }
 
 /** Selector state: nothing to price yet, waiting for the answer, or the answer read. */
@@ -119,11 +122,15 @@ export function useInstallmentOptions(input: {
     refetchOnReconnect: false,
   });
 
+  // Stable identity while neither the answer nor the refused counts change.
+  const refused = current.refused;
+  const offered = useMemo(() => (query.data ? withoutRefused(query.data, refused) : undefined), [query.data, refused]);
+
   let state: InstallmentOptionsState;
   if (!enabled || !paymentId || !sourceKey) state = { status: 'idle' };
   else if (debouncedKey !== sourceKey || query.isPending || query.isFetching) state = { status: 'loading' };
   else if (query.isError) state = { status: 'done', offer: { kind: 'single', reason: 'unavailable' } };
-  else state = { status: 'done', offer: withoutRefused(query.data, current.refused) };
+  else state = { status: 'done', offer: offered! };
 
   const offer = state.status === 'done' ? state.offer : null;
   // Only an option of the current answer is payable; while it loads (or after a refusal) the

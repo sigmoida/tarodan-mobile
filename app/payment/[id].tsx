@@ -15,7 +15,7 @@ import {
   type PaymentConfig,
   type PaymentPurpose,
 } from '@/lib/payment/capabilities';
-import { installmentSelectorAllowed } from '@/lib/payment/installments';
+import { initiatedPaymentIdOf, installmentSelectorAllowed } from '@/lib/payment/installments';
 import { isServerOrNetworkFailure } from '@/lib/api/reauthError';
 import {
   paymentKindOf,
@@ -293,23 +293,26 @@ export default function PaymentScreen() {
 
   /**
    * direct-form answered 409 `paymentAmountOutOfDate` (A4): the payment's amount no longer
-   * matches its order, cart or trade total, and reading it again cannot fix that. The payment is
-   * initiated anew (the server resets a pending row to the current total, CAS-guarded; nothing
-   * is charged) and the screen reloads, or opens the new payment id the server answered. If that
-   * fails, the buyer goes to the payment's target. Membership starts from its own screen.
+   * matches its order, cart or trade total, and reading it again cannot fix that. Once per
+   * screen the payment is initiated anew (the server resets a pending row to the current total,
+   * CAS-guarded; nothing is charged): the screen shows its loader meanwhile (no second Pay), then
+   * reloads, or opens the new payment id the server answered. A second refusal on this screen,
+   * a failed start, or a membership payment sends the buyer to the payment's target instead of
+   * starting again, so the buyer can never loop here.
    */
+  const outdatedRef = useRef(false);
   const handlePaymentOutdated = async () => {
     const { target, isMembership: membership } = state;
     if (!target) return;
-    const request = membership ? null : reinitiate(target);
+    const request = membership || outdatedRef.current ? null : reinitiate(target);
+    outdatedRef.current = true;
     if (!request) {
       routeToTarget(target, membership);
       return;
     }
+    setState((s) => ({ ...s, loading: true, error: null }));
     try {
-      const res = (await request) as { data?: { data?: { paymentId?: unknown }; paymentId?: unknown } } | undefined;
-      const body = res?.data?.data ?? res?.data;
-      const next = typeof body?.paymentId === 'string' && body.paymentId ? body.paymentId : paymentId;
+      const next = initiatedPaymentIdOf((await request)?.data) ?? paymentId;
       if (next !== paymentId) {
         router.replace({ pathname: '/payment/[id]', params: { ...params, id: next } } as never);
         return;

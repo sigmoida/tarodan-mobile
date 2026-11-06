@@ -4,6 +4,7 @@
  * is offered (D6 exclusions, switch, minimum) and how an options answer is read (fail closed).
  */
 import {
+  initiatedPaymentIdOf,
   installmentBinOf,
   installmentOfferOf,
   installmentSelectionOf,
@@ -162,5 +163,20 @@ describe('installmentSigningErrorOf', () => {
     expect(installmentSigningErrorOf({ response: { status: 400, data: { message: ['bad'] } } })).toBeNull();
     expect(installmentSigningErrorOf(new Error('x'))).toBeNull();
     expect(installmentSigningErrorOf(undefined)).toBeNull();
+  });
+});
+
+describe('initiatedPaymentIdOf (answer of POST /payments/initiate*)', () => {
+  it('reads paymentId, id or payment.id, with or without the data envelope', () => {
+    expect(initiatedPaymentIdOf({ paymentId: 'p-1' })).toBe('p-1');
+    expect(initiatedPaymentIdOf({ id: 'p-2' })).toBe('p-2');
+    expect(initiatedPaymentIdOf({ payment: { id: 'p-3' } })).toBe('p-3');
+    expect(initiatedPaymentIdOf({ data: { paymentId: 'p-4' } })).toBe('p-4');
+  });
+  it('nothing usable: null', () => {
+    expect(initiatedPaymentIdOf(undefined)).toBeNull();
+    expect(initiatedPaymentIdOf({})).toBeNull();
+    expect(initiatedPaymentIdOf({ paymentId: 42 })).toBeNull();
+    expect(initiatedPaymentIdOf({ paymentId: '' })).toBeNull();
   });
 });

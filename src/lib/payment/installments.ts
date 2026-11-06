@@ -144,3 +144,17 @@ export function installmentSigningErrorOf(error: unknown): InstallmentSigningErr
     ?.i18nKey;
   return typeof key === 'string' ? SIGNING_ERRORS[key] ?? null : null;
 }
+
+/**
+ * Payment id of a `POST /payments/initiate*` answer: `{ paymentId }`, `{ id }` or
+ * `{ payment: { id } }`, also inside a `data` envelope (the shapes the start calls accept).
+ */
+export function initiatedPaymentIdOf(body: unknown): string | null {
+  const b = body as { data?: unknown } | null | undefined;
+  const inner = (b && typeof b === 'object' && b.data && typeof b.data === 'object' ? b.data : b) as
+    | { paymentId?: unknown; id?: unknown; payment?: { id?: unknown } | null }
+    | null
+    | undefined;
+  const id = inner?.paymentId ?? inner?.id ?? inner?.payment?.id;
+  return typeof id === 'string' && id ? id : null;
+}

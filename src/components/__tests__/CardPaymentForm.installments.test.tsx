@@ -295,7 +295,7 @@ it('400 installmentNotOffered: single payment, and that count is not offered aga
   expect(payTitle()).toHaveTextContent('1.000,00 TL Öde');
 });
 
-it('the only count refused: the single-payment note', async () => {
+it('the only count refused: the card note (another card may still offer installments)', async () => {
   optionsMock.mockResolvedValue({ data: { ...ANSWER, options: [SINGLE, THREE] } });
   directFormMock.mockRejectedValueOnce({
     response: { status: 400, data: { i18nKey: 'server.payment.installmentNotOffered', message: 'x' } },
@@ -304,7 +304,7 @@ it('the only count refused: the single-payment note', async () => {
   fillNewCard();
   fireEvent.press(await screen.findByTestId('installment-option-3'));
   acceptAndPay();
-  expect(await screen.findByText('Bu ödeme için yalnız tek çekim kullanılabilir.')).toBeOnTheScreen();
+  expect(await screen.findByText('Bu kartla yalnız tek çekim ödeme yapılabilir.')).toBeOnTheScreen();
 });
 
 it('409 paymentAmountOutOfDate: the server message, then the screen reloads the payment', async () => {

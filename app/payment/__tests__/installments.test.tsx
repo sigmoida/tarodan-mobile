@@ -149,7 +149,8 @@ it('paymentAmountOutOfDate: the order payment is initiated anew and reloaded at 
 it('paymentAmountOutOfDate on a guest cart: the guest cart call, then the new payment id opens', async () => {
   mockParams = { id: 'pay-1', guest: '1' };
   getStatusLightGuestMock.mockResolvedValue({ data: { status: 'pending', checkoutGroupId: 'g-1', amount: 800 } });
-  (paymentsApi.initiateGroupGuest as jest.Mock).mockResolvedValue({ data: { paymentId: 'pay-2' } });
+  // Answer shape `{ id }`, as the other start calls accept it.
+  (paymentsApi.initiateGroupGuest as jest.Mock).mockResolvedValue({ data: { id: 'pay-2' } });
   renderWithProviders(<PaymentScreen />);
   await formText();
   await act(async () => {
@@ -170,4 +171,20 @@ it('paymentAmountOutOfDate and the new start fails: the buyer goes to the order'
   await waitFor(() =>
     expect(router.replace).toHaveBeenCalledWith({ pathname: '/orders/[id]', params: { id: 'order-1' } }),
   );
+});
+
+it('paymentAmountOutOfDate twice on one screen: no second start, the buyer goes to the order', async () => {
+  (paymentsApi.initiate as jest.Mock).mockResolvedValue({ data: { paymentId: 'pay-1' } });
+  renderWithProviders(<PaymentScreen />);
+  await formText();
+  await act(async () => {
+    fireEvent.press(screen.getByTestId('outdated'));
+  });
+  await formText();
+  expect(router.replace).not.toHaveBeenCalled();
+  await act(async () => {
+    fireEvent.press(screen.getByTestId('outdated'));
+  });
+  expect(paymentsApi.initiate).toHaveBeenCalledTimes(1);
+  expect(router.replace).toHaveBeenCalledWith({ pathname: '/orders/[id]', params: { id: 'order-1' } });
 });
