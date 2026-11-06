@@ -85,3 +85,8 @@ export interface ApiError {
   error?: string;
   details?: Record<string, any>;
 }
+
+// Installment payments: the options request/response, the direct-form selection and the
+// payment's installment fields (vendored from tarodan-app `packages/types`)
+export * from './platform-setting';
+export * from './installments';
