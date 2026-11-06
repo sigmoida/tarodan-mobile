@@ -20,6 +20,14 @@ export function sortCollectionItems(items: readonly CollectionItemSummary[] | nu
     });
 }
 
+/**
+ * The one not-for-sale rule (web `isNotForSale`): a custom item (`isCustom`, which the API always
+ * sets) is not a listing, has no price and is not for sale.
+ */
+export function isNotForSale(item: CollectionItemSummary): boolean {
+  return item.isCustom;
+}
+
 export interface CollectionItemCard {
   product: ProductCardProduct;
   /** A custom item (not a listing): no price ("Satışta değil"), the "Koleksiyon" badge, not tappable. */
@@ -49,7 +57,7 @@ export function toCollectionItemCard(item: CollectionItemSummary, fallbackTitle:
       sellerId: item.sellerId ?? null,
       isBoosted: Boolean(item.isBoosted) && !isSold,
     },
-    isCustom: item.isCustom,
+    isCustom: isNotForSale(item),
     isListing: !!item.productId,
     isSold,
   };
