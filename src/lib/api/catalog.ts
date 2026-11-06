@@ -13,6 +13,32 @@ export const categoriesApi = {
     api.get(apiPath`/categories/slug/${slug}`),
 };
 
+/** A marketplace listing for a collection. */
+export interface AddCollectionListingBody {
+  productId: string;
+  sortOrder?: number;
+  isFeatured?: boolean;
+}
+
+/**
+ * A custom item: a model the owner enters by hand (`AddCollectionItemDto` limits: title 1..200,
+ * description <= 1000, brand/model/manufacturer <= 100, scale/material <= 50, year 1900..2100).
+ * `customImageUrl` is the URL `mediaApi.uploadCollectionImage` returned.
+ */
+export interface AddCollectionCustomItemBody {
+  customTitle: string;
+  customDescription?: string;
+  customBrand?: string;
+  customModel?: string;
+  customYear?: number;
+  customScale?: string;
+  customManufacturer?: string;
+  customMaterial?: string;
+  customImageUrl?: string;
+}
+
+export type AddCollectionItemBody = AddCollectionListingBody | AddCollectionCustomItemBody;
+
 // Collections API - Web ile aynı endpoint'ler
 export const collectionsApi = {
   browse: (params?: Record<string, any>) =>
@@ -43,7 +69,7 @@ export const collectionsApi = {
   },
   delete: (id: string) =>
     api.delete(apiPath`/collections/${id}`),
-  addItem: (id: string, data: { productId: string; sortOrder?: number; isFeatured?: boolean }) =>
+  addItem: (id: string, data: AddCollectionItemBody) =>
     api.post(apiPath`/collections/${id}/items`, data),
   removeItem: (id: string, itemId: string) =>
     api.delete(apiPath`/collections/${id}/items/${itemId}`),

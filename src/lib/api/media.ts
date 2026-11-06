@@ -36,6 +36,17 @@ export type ProductImageUploadResult = {
   detailUrl?: string;
 };
 
+/** Single-image upload to `POST /media/upload?folder=<folder>` (field `file`); answers `{ url, key? }`. */
+function uploadToFolder(folder: 'messages' | 'reviews' | 'collections', file: RNFile) {
+  const formData = new FormData();
+  appendRNFile(formData, 'file', file);
+  return api.post<{ url: string; key?: string }>('/media/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    params: { folder },
+    timeout: MEDIA_UPLOAD_TIMEOUT_MS,
+  });
+}
+
 export const mediaApi = {
   /**
    * TEK ürün görseli — dosya bazlı ilerleme ve iptal için (web `uploadProductImage`).
@@ -67,33 +78,15 @@ export const mediaApi = {
       timeout: MEDIA_UPLOAD_TIMEOUT_MS,
     });
   },
-  uploadMessageImage: (file: RNFile) => {
-    const formData = new FormData();
-    appendRNFile(formData, 'file', file);
-    return api.post<{ url: string; key?: string }>(
-      '/media/upload',
-      formData,
-      {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        params: { folder: 'messages' },
-        timeout: MEDIA_UPLOAD_TIMEOUT_MS,
-      },
-    );
-  },
+  uploadMessageImage: (file: RNFile) => uploadToFolder('messages', file),
   /** İade talebi kanıt fotoğrafı — web ile parite: POST /media/upload?folder=reviews */
-  uploadRefundEvidence: (file: RNFile) => {
-    const formData = new FormData();
-    appendRNFile(formData, 'file', file);
-    return api.post<{ url: string; key?: string }>(
-      '/media/upload',
-      formData,
-      {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        params: { folder: 'reviews' },
-        timeout: MEDIA_UPLOAD_TIMEOUT_MS,
-      },
-    );
-  },
+  uploadRefundEvidence: (file: RNFile) => uploadToFolder('reviews', file),
+  /**
+   * Custom collection item image (web `uploadCollectionImage`): POST /media/upload?folder=collections.
+   * The answer's `url` is the permanent public URL the item is created with (`customImageUrl`); the
+   * API accepts only the caller's own collections-folder URLs there.
+   */
+  uploadCollectionImage: (file: RNFile) => uploadToFolder('collections', file),
   /**
    * Ürün görselini saat yönünde 90° çevirir (web `rotateProductImage`). Sunucu depodaki detay
    * türevini çevirip YENİ anahtarlar döner; sahiplik: kullanıcının geçici yükleme klasörü ya da
