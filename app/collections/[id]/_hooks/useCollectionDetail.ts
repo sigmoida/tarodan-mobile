@@ -12,6 +12,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { buildShareContent, collectionShareUrl } from '@/utils/share';
 import { copyToClipboard } from '@/lib/clipboard';
 import { toast } from '@/ui';
+import type { CollectionItemSummary } from '@/types';
 
 /**
  * Collection detail controller — owns the collection query, optimistic like,
@@ -46,7 +47,7 @@ export function useCollectionDetail() {
   const { refreshing, onRefresh } = useRefresh(refetch);
 
   const collection = apiCollection;
-  const items = collection?.items || [];
+  const items: CollectionItemSummary[] = collection?.items || [];
   // Koleksiyon sahibi: ürün ekleme/düzenleme kontrollerini sadece sahibe göster.
   const isOwner = isAuthenticated && !!user?.id && user.id === collection?.userId;
 

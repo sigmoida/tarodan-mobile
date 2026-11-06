@@ -29,6 +29,9 @@ export * from './notification';
 // Wishlist & Collection types
 export * from './wishlist';
 
+// Collection item response shape: a listing or a custom item (vendored, see the file header)
+export * from './collection';
+
 // Rating types
 export * from './rating';
 

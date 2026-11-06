@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Pressable } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { router } from 'expo-router';
@@ -8,26 +8,11 @@ import { ProductCard } from '@/components/product';
 import { useProductCardFavorites } from '@/hooks/useFavoriteToggle';
 import UpgradeCta from '@/components/UpgradeCta';
 import { styles } from '../_lib/collectionStyles';
+import { sortCollectionItems, toCollectionItemCard } from '../_lib/collectionItemCard';
 import type { CollectionDetailController } from '../_hooks/useCollectionDetail';
+import { CollectionItemBadges, hasCollectionItemBadges } from './CollectionItemBadges';
 
 const { colors, iconSize } = theme;
-
-/**
- * Koleksiyon öğesi → ürün kartı alanları (API: productId/productTitle/productImage/productPrice/productStatus).
- * Satıcı alanı varsa (`sellerId` / `seller.id`) taşınır: kendi ilanında kart kalp çizmez
- * (`useProductCardFavorites`). API şu an öğe başına satıcı döndürmüyor; döndüğü anda kendiliğinden çalışır.
- */
-function toCardProduct(item: any, fallbackTitle: string) {
-  return {
-    id: String(item.productId ?? item.id),
-    title: item.productTitle ?? item.title ?? fallbackTitle,
-    price: item.productPrice ?? item.price ?? 0,
-    imageUrl: item.productImage ?? item.imageUrl ?? null,
-    status: item.productStatus ?? null,
-    sellerId: item.sellerId ?? null,
-    seller: item.seller ?? null,
-  };
-}
 
 /**
  * Üst barın sağ grubu (PageShell `right`) — ürün detayıyla aynı düzen ve sıra (cam daireler, 44pt):
@@ -90,6 +75,11 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
   const favoriteProps = useProductCardFavorites();
   const columns = useGridColumns();
   const cover = collection.coverImageUrl ?? collection.coverImage;
+  const fallbackTitle = t('product.productFallback');
+  const cards = useMemo(
+    () => sortCollectionItems(items).map((item) => ({ key: item.id, card: toCollectionItemCard(item, fallbackTitle) })),
+    [items, fallbackTitle],
+  );
 
   return (
     <>
@@ -142,7 +132,7 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
       </View>
 
       <SectionCard title={t('collection.contentsTitle')} testID="collection-items">
-        {items.length === 0 ? (
+        {cards.length === 0 ? (
           <EmptyState placement="inline"
             icon="cube"
             title={t('collection.noProductsYet')}
@@ -152,22 +142,22 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
           />
         ) : (
           <View style={styles.itemsGrid}>
-            {items.map((item: any, index: number) => {
-              const product = toCardProduct(item, t('product.productFallback'));
-              return (
-                <View key={item.id} style={gridCellStyle(index, columns)}>
-                  <ProductCard
-                    product={product}
-                    showMeta={false}
-                    trackClick={!!item.productId}
-                    // Web shows no card action on collection items (its card shape has no status).
-                    showAction={false}
-                    onPress={() => item.productId && router.push(`/product/${item.productId}`)}
-                    {...(item.productId && !f.isOwner ? favoriteProps(product) : null)}
-                  />
-                </View>
-              );
-            })}
+            {cards.map(({ key, card }, index) => (
+              <View key={key} style={gridCellStyle(index, columns)}>
+                <ProductCard
+                  product={card.product}
+                  testID={`collection-item-${key}`}
+                  showMeta={false}
+                  // Web shows no card action on collection items (its card shape has no status).
+                  showAction={false}
+                  // A custom item is not a listing: no link, no price (web `href={null}`).
+                  onPress={card.isListing ? undefined : null}
+                  noPriceLabel={card.isCustom ? t('collection.notForSale') : undefined}
+                  overlayStart={hasCollectionItemBadges(card) ? <CollectionItemBadges card={card} /> : undefined}
+                  {...(card.isListing && !f.isOwner ? favoriteProps(card.product) : null)}
+                />
+              </View>
+            ))}
           </View>
         )}
       </SectionCard>

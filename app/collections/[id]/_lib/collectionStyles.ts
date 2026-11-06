@@ -36,4 +36,6 @@ export const styles = StyleSheet.create({
   counter: { flexDirection: 'row', alignItems: 'center', gap: spacing[1] },
   // Card grid: cells sized by `gridCellStyle` (columns from the window width; 48% / 4% on phones).
   itemsGrid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing[3] },
+  // Status badges in the card's top-left slot (web `ItemBadges`: a column, gap-1).
+  itemBadges: { alignItems: 'flex-start', gap: spacing[1] },
 });

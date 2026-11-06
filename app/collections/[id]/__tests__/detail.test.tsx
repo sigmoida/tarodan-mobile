@@ -25,6 +25,7 @@ jest.mock('expo-router', () => ({
 jest.mock('@/lib/api', () => ({
   api: { get: jest.fn() },
   collectionsApi: { like: jest.fn(), unlike: jest.fn() },
+  productsApi: { recordClick: jest.fn(() => Promise.resolve({ data: {} })) },
 }));
 import { api } from '@/lib/api';
 
@@ -148,7 +149,6 @@ describe('J106 · Sahiplik kontrolü (düzenle butonu)', () => {
     mockAuth = { isAuthenticated: true, user: { id: 'stranger-9', membershipTier: 'free' } };
     const items = [
       { id: 'i1', productId: 'p-mine', productTitle: 'Benim', productPrice: 10, sellerId: 'stranger-9' },
-      { id: 'i2', productId: 'p-nested', productTitle: 'İç içe', productPrice: 10, seller: { id: 'stranger-9' } },
       { id: 'i3', productId: 'p-other', productTitle: 'Başkası', productPrice: 10, sellerId: 'someone-else' },
     ];
     getMock.mockImplementation(async (url: string) =>
@@ -159,7 +159,106 @@ describe('J106 · Sahiplik kontrolü (düzenle butonu)', () => {
     renderWithProviders(<CollectionDetailScreen />);
     await waitFor(() => expect(screen.getByTestId('product-card-favorite-p-other')).toBeOnTheScreen());
     expect(screen.queryByTestId('product-card-favorite-p-mine')).toBeNull();
-    expect(screen.queryByTestId('product-card-favorite-p-nested')).toBeNull();
+  });
+});
+
+/**
+ * Custom items (hub plan 2026-11-06-collection-custom-items, web parity): "Satışta değil" in the
+ * price row instead of "0,00 TL", the "Koleksiyon" badge, not tappable, no heart. A sold listing
+ * gets the "Satıldı" badge instead of the out-of-stock overlay.
+ */
+describe('Koleksiyon öğeleri · özel ürün ve satıldı rozeti', () => {
+  const custom = {
+    id: 'c1',
+    productTitle: 'Benim modelim',
+    customTitle: 'Benim modelim',
+    customBrand: 'Ferrari',
+    customImageUrl: 'https://cdn.example.test/collections/c1.jpg',
+    sellerId: null,
+    isCustom: true,
+    isFeatured: false,
+    sortOrder: 1,
+    addedAt: '2026-11-01T00:00:00.000Z',
+  };
+  const listing = {
+    id: 'l1',
+    productId: 'p-live',
+    productTitle: 'Satıştaki ilan',
+    productPrice: 250,
+    productStatus: 'active',
+    sellerId: 'someone-else',
+    isCustom: false,
+    isFeatured: false,
+    sortOrder: 2,
+    addedAt: '2026-11-01T00:00:00.000Z',
+  };
+  const sold = { ...listing, id: 's1', productId: 'p-sold', productTitle: 'Satılmış ilan', productStatus: 'sold', sortOrder: 3 };
+
+  function renderWith(items: unknown[]) {
+    getMock.mockImplementation(async (url: string) =>
+      String(url).includes('favorites')
+        ? { data: { data: [] } }
+        : { data: { data: collectionFixture({ userId: 'owner-1', items }) } },
+    );
+    renderWithProviders(<CollectionDetailScreen />);
+  }
+
+  beforeEach(() => {
+    getMock.mockReset();
+    mockPush.mockClear();
+    mockParams = { id: 'col-1' };
+    mockAuth = { isAuthenticated: true, user: { id: 'viewer-9', membershipTier: 'free' } };
+  });
+
+  it('a custom item shows "Satışta değil" and the "Koleksiyon" badge, never "0,00 TL"', async () => {
+    renderWith([custom]);
+    const card = await screen.findByTestId('collection-item-c1');
+    expect(within(card).getByText('Satışta değil')).toBeOnTheScreen();
+    expect(screen.getByText('Koleksiyon')).toBeOnTheScreen();
+    expect(screen.queryByText(/0,00 TL/)).toBeNull();
+    expect(screen.queryByTestId('product-card-price')).toBeNull();
+  });
+
+  it('a custom item is not a button, a tap does nothing, and it has no heart', async () => {
+    renderWith([custom, listing]);
+    const card = await screen.findByTestId('collection-item-c1');
+    expect(card.props.accessibilityRole).toBeUndefined();
+    expect(card.props.accessibilityLabel).toBe('Benim modelim, Satışta değil');
+    expect(screen.queryByRole('button', { name: /Benim modelim/ })).toBeNull();
+    fireEvent.press(card);
+    expect(mockPush).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByTestId('product-card-favorite-p-live')).toBeOnTheScreen());
+    expect(screen.queryByTestId('product-card-favorite-c1')).toBeNull();
+  });
+
+  it('a listing keeps its price, opens its detail and has no badge', async () => {
+    renderWith([listing]);
+    const card = await screen.findByRole('button', { name: 'Satıştaki ilan' });
+    expect(screen.getByTestId('product-card-price').props.children).toBe('250,00 TL');
+    expect(screen.queryByText('Satışta değil')).toBeNull();
+    expect(screen.queryByText('Koleksiyon')).toBeNull();
+    expect(screen.queryByText('Satıldı')).toBeNull();
+    fireEvent.press(card);
+    expect(mockPush).toHaveBeenCalledWith('/product/p-live');
+  });
+
+  it('a sold listing shows the "Satıldı" badge, not the out-of-stock overlay', async () => {
+    renderWith([sold]);
+    await screen.findByTestId('collection-item-s1');
+    expect(screen.getByText('Satıldı')).toBeOnTheScreen();
+    expect(screen.queryByText('STOKTA YOK')).toBeNull();
+  });
+
+  it('hidden or deleted listings are dropped; featured items come first, then sortOrder (web)', async () => {
+    const hidden = { ...listing, id: 'h1', productId: 'p-hidden', productTitle: 'Gizli ilan', productStatus: 'pending', sortOrder: 0 };
+    const featured = { ...sold, isFeatured: true };
+    renderWith([listing, hidden, custom, featured]);
+    await screen.findByTestId('collection-item-s1');
+    expect(screen.queryByText('Gizli ilan')).toBeNull();
+    const titles = screen
+      .getAllByTestId(/^collection-item-/)
+      .map((node) => node.props.testID);
+    expect(titles).toEqual(['collection-item-s1', 'collection-item-c1', 'collection-item-l1']);
   });
 });
 
