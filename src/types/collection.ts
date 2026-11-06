@@ -24,13 +24,13 @@ export interface CollectionItemSummary {
   addedAt: string;
   /** Always set by the API: true for a custom item, false for a listing. */
   isCustom: boolean;
-  customTitle?: string;
-  customDescription?: string;
-  customBrand?: string;
-  customModel?: string;
-  customYear?: number;
-  customScale?: string;
-  customManufacturer?: string;
-  customMaterial?: string;
-  customImageUrl?: string;
+  customTitle?: string | null;
+  customDescription?: string | null;
+  customBrand?: string | null;
+  customModel?: string | null;
+  customYear?: number | null;
+  customScale?: string | null;
+  customManufacturer?: string | null;
+  customMaterial?: string | null;
+  customImageUrl?: string | null;
 }
