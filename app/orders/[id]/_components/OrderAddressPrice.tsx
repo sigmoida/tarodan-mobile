@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SectionCard, Text, theme } from '@/ui';
+import { installmentSummaryRows } from '@/components/payment/installmentSummary';
 import { formatPrice } from '../_lib/format';
 import type { OrderDetail } from '../_lib/types';
 
@@ -39,6 +40,8 @@ export function OrderAddressCard({ order, isDigitalOrder }: { order: OrderDetail
 export function OrderPriceSummary({ order, isDigitalOrder }: { order: OrderDetail; isDigitalOrder: boolean }) {
   const { t } = useTranslation();
   const p = order.pricing;
+  // The payment's installment lines (buyer only; the API sends them to the buyer alone).
+  const installmentRows = order.isSeller ? [] : installmentSummaryRows(order.payment, t);
   return (
     <SectionCard title={t('order.paymentSummary')} bodyStyle={styles.rows}>
       <Row label={t('order.productAmount')} value={formatPrice(p?.subtotal ?? order.product.price)} />
@@ -60,6 +63,14 @@ export function OrderPriceSummary({ order, isDigitalOrder }: { order: OrderDetai
         <Text variant="h3" tone="heading">{t('common.total')}</Text>
         <Text variant="h3" weight="bold" style={{ color: theme.priceColor.detail }}>{formatPrice(order.totalAmount)}</Text>
       </View>
+      {installmentRows.length > 0 && (
+        <>
+          <View style={styles.rule} />
+          {installmentRows.map((row) => (
+            <Row key={row.key} label={row.label} value={row.value} />
+          ))}
+        </>
+      )}
     </SectionCard>
   );
 }

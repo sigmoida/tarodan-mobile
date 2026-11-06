@@ -26,6 +26,11 @@ function toPayment(p: PaymentHistoryApiItem, t: TFunction): Payment {
       (p.orderNumber ? t('payment.orderNumberFallback', { id: p.orderNumber }) : t('checkout.title')),
     createdAt: p.createdAt,
     imageUrl: p.product?.images?.[0] || undefined,
+    installment: {
+      installmentCount: p.installmentCount,
+      installmentFeeAmount: p.installmentFeeAmount,
+      chargedAmount: p.chargedAmount,
+    },
   };
 }
 

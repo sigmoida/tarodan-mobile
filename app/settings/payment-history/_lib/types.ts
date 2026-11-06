@@ -1,8 +1,10 @@
+import type { PaymentInstallmentFields } from '@/types/installments';
+
 /**
  * One `GET /payments/me` row as this screen reads it (tarodan-app
  * `payment-query.service.ts` `getUserPayments`). `provider` is sent too but never shown.
  */
-export interface PaymentHistoryApiItem {
+export interface PaymentHistoryApiItem extends PaymentInstallmentFields {
   id: string;
   amount: number | string;
   status: string;
@@ -31,4 +33,6 @@ export interface Payment {
   description: string;
   createdAt: string;
   imageUrl?: string;
+  /** Installment details of the payer's own payment (ADR 0019); absent on an older API. */
+  installment?: PaymentInstallmentFields;
 }
