@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { PanResponder, StyleSheet, View } from 'react-native';
+import { Dimensions, PanResponder, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   cancelAnimation,
@@ -253,7 +253,10 @@ const ToastPresenter: React.FC<{ target: ToastItem | null; bottom: number }> = (
       if (exitingRef.current) {
         // Çıkarken aynı toast geri geldi (ör. katman devri): yarıda kalan çıkışı geri sar.
         exitingRef.current = false;
+        drag.value = 0; // a swipe that started this exit left the card off-screen
         progress.value = withTiming(1, { duration: reduceMotion ? 0 : ENTER_MS });
+        // Coming back after a dismiss resets `presented` and the timer, and `shownId` hasn't changed.
+        markToastPresented(target.id);
       }
       return;
     }
@@ -262,7 +265,7 @@ const ToastPresenter: React.FC<{ target: ToastItem | null; bottom: number }> = (
     progress.value = withTiming(0, { duration: EXIT_MS }, (finished) => {
       if (finished) scheduleOnRN(finishExit);
     });
-  }, [target, shown, progress, reduceMotion, finishExit]);
+  }, [target, shown, progress, drag, reduceMotion, finishExit]);
 
   const shownId = shown?.id;
   const shownPresented = shown?.presented ?? false;
@@ -289,7 +292,10 @@ const ToastPresenter: React.FC<{ target: ToastItem | null; bottom: number }> = (
       onPanResponderRelease: (_e, g) => {
         if (id && isSwipeDismiss(g.dy, g.vy * 1000)) {
           const dir = g.dy < 0 ? -1 : 1;
-          drag.value = withTiming(dir * travel, { duration: EXIT_MS }, (finished) => {
+          // Glass can't fade and its exit slide moves back down by `travel`: going up, it must clear the
+          // screen and that slide or it reappears empty.
+          const distance = glass && dir < 0 ? Dimensions.get('window').height + travel : travel;
+          drag.value = withTiming(dir * distance, { duration: EXIT_MS }, (finished) => {
             if (finished) scheduleOnRN(dismissToast, id);
           });
         } else {
@@ -300,16 +306,20 @@ const ToastPresenter: React.FC<{ target: ToastItem | null; bottom: number }> = (
         drag.value = withSpring(0);
       },
     });
-  }, [drag, shownId, travel]);
+  }, [drag, shownId, travel, glass]);
 
-  // Native cam, ata opaklığı < 1 iken efektini kaybeder (GlassSurface notu): camda yüzey yalnız
-  // kayar, içerik soluklaşır. Hareketi azalt: kayma yok, yalnız opaklık.
+  // Native glass loses its effect while an ancestor's opacity is below 1 (see GlassSurface): on glass
+  // the surface only slides and its content fades. Reduced motion: no slide; without glass the surface
+  // fades, on glass only the content does and the surface appears and goes at once.
+  // The glass branches must return `opacity: 1` explicitly. `glass` is false until a toast is shown, so
+  // the first run of this style freezes `opacity: 0` as the view's initial style, and Reanimated sends
+  // only the keys returned here: leaving the key out keeps the toast invisible (issue #45).
   const wrapStyle = useAnimatedStyle(() => {
     const p = progress.value;
     if (reduceMotion) {
-      return glass ? { transform: [{ translateY: drag.value }] } : { opacity: p, transform: [{ translateY: drag.value }] };
+      return { opacity: glass ? 1 : p, transform: [{ translateY: drag.value }] };
     }
-    if (glass) return { transform: [{ translateY: (1 - p) * travel + drag.value }] };
+    if (glass) return { opacity: 1, transform: [{ translateY: (1 - p) * travel + drag.value }] };
     return {
       opacity: p,
       transform: [{ translateY: (1 - p) * SLIDE + drag.value }, { scale: 0.96 + 0.04 * p }],
