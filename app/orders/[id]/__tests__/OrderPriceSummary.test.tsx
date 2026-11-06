@@ -79,7 +79,7 @@ describe('OrderPriceSummary service VAT', () => {
 
 describe('OrderPriceSummary installment lines (ADR 0019)', () => {
   const pricing = { subtotal: 619.92, shippingAmount: 50, buyerFeeAmount: 62, totalAmount: 754.32 };
-  const paid = { status: 'completed', installmentCount: 6, installmentFeeAmount: 0, chargedAmount: 754.32 };
+  const paid = { status: 'completed', amount: 754.32, installmentCount: 6, installmentFeeAmount: 0, chargedAmount: 754.32 };
 
   it('buyer: count, "no installment fee" and the charged total of the payment', () => {
     render(<OrderPriceSummary order={{ ...orderWithPricing(pricing), isBuyer: true, payment: paid }} isDigitalOrder={false} />);
@@ -99,6 +99,14 @@ describe('OrderPriceSummary installment lines (ADR 0019)', () => {
         isDigitalOrder={false}
       />,
     );
+    expect(screen.queryByText('Karttan çekilen tutar')).toBeNull();
+  });
+
+  it('cart of several orders: only the count, not the cart-wide fee and charged total', () => {
+    const cartPayment = { status: 'completed', amount: 1000, installmentCount: 3, installmentFeeAmount: 66.38, chargedAmount: 1066.38 };
+    render(<OrderPriceSummary order={{ ...orderWithPricing(pricing), payment: cartPayment }} isDigitalOrder={false} />);
+    expect(screen.getByText('3 taksit')).toBeTruthy();
+    expect(screen.queryByText('66,38 TL')).toBeNull();
     expect(screen.queryByText('Karttan çekilen tutar')).toBeNull();
   });
 });

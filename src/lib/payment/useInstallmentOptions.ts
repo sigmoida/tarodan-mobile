@@ -30,7 +30,12 @@ export type InstallmentOptionsState =
  *   state is `loading`, so options priced for another card are never shown.
  * - A changed source is a new key: the query of the old card loses its observer and React Query
  *   aborts its request (the `signal` is passed to axios), so a late answer cannot land.
+ * - The key holds the goods total the screen shows, and every new observer re-reads it
+ *   (`staleTime: 0`): after a reload of the payment (409 `paymentAmountOutOfDate`) the
+ *   remounted form never shows prices of the old amount.
  * - A refetch (after a 409) reads as `loading` again, so the old total is not payable meanwhile.
+ * - The buyer's choice belongs to one card: any change of the card (another BIN, another saved
+ *   card, even back to an earlier one) resets it to the single payment (plan 6.2).
  * - Every failure (network, 5xx, 429, 4xx) falls back to the single payment (`unavailable`);
  *   no retry, no refetch on focus or reconnect (the prices must not change under the buyer's
  *   choice; a drift is caught by the 409 and `refetch`).
@@ -41,12 +46,20 @@ export type InstallmentOptionsState =
  */
 export function useInstallmentOptions(input: {
   paymentId: string | undefined;
+  /** Goods total T the screen shows (`GET /payments/:id/status`); part of the key. */
+  amount: number | undefined;
   isGuest: boolean;
   source: InstallmentCardSource | null;
   enabled: boolean;
 }) {
-  const { paymentId, isGuest, source, enabled } = input;
+  const { paymentId, amount, isGuest, source, enabled } = input;
   const sourceKey = installmentSourceKey(source);
+
+  // Choice per card; a card change resets it during render (no stale count for one frame).
+  const [choice, setChoice] = useState<{ key: string | null; count: number }>({ key: sourceKey, count: 1 });
+  if (choice.key !== sourceKey) setChoice({ key: sourceKey, count: 1 });
+  const chosenCount = choice.key === sourceKey ? choice.count : 1;
+
   const [debounced, setDebounced] = useState<{ key: string | null; source: InstallmentCardSource | null }>({
     key: sourceKey,
     source,
@@ -61,7 +74,7 @@ export function useInstallmentOptions(input: {
 
   const active = enabled && !!paymentId && !!debounced.key && debounced.source !== null;
   const query = useQuery({
-    queryKey: qk.payments.installmentOptions(paymentId ?? '', debounced.key ?? ''),
+    queryKey: qk.payments.installmentOptions(paymentId ?? '', String(amount ?? ''), debounced.key ?? ''),
     queryFn: async ({ signal }) => {
       const card = debounced.source!;
       const body: InstallmentOptionsRequest = {
@@ -86,7 +99,7 @@ export function useInstallmentOptions(input: {
     },
     enabled: active,
     retry: false,
-    staleTime: Infinity,
+    staleTime: 0,
     gcTime: 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -98,5 +111,22 @@ export function useInstallmentOptions(input: {
   else if (query.isError) state = { status: 'done', offer: { kind: 'single', reason: 'unavailable' } };
   else state = { status: 'done', offer: query.data };
 
-  return { state, sourceKey, refetch: query.refetch };
+  const offer = state.status === 'done' ? state.offer : null;
+  // Only an option of the current answer is payable; while it loads (or after a refusal) the
+  // payment is single.
+  const chosenOption =
+    offer?.kind === 'options' && chosenCount > 1 ? offer.options.find((o) => o.count === chosenCount) ?? null : null;
+
+  return {
+    state,
+    /** Identity of the card the state belongs to (`installmentSourceKey`). */
+    sourceKey,
+    /** The count above 1 the buyer picked and the current answer offers; `null` = single. */
+    chosen: chosenOption,
+    /** A count above 1 is picked and its price is being read: no payment until it is shown. */
+    pending: chosenCount > 1 && state.status === 'loading',
+    select: (count: number) => setChoice({ key: sourceKey, count }),
+    resetToSingle: () => setChoice({ key: sourceKey, count: 1 }),
+    refetch: query.refetch,
+  };
 }

@@ -150,7 +150,8 @@ it('3 installments: the button and the terms show the charged total; the body ca
 
   expect(payTitle()).toHaveTextContent('1.066,38 TL Öde');
   expect(screen.getByTestId('installment-terms')).toHaveTextContent(
-    '3 taksit: aylık 355,46 TL, vade farkı 66,38 TL, toplam 1.066,38 TL.',
+    '3 taksit: aylık 355,46 TL, vade farkı 66,38 TL, toplam 1.066,38 TL. ' +
+      'Taksitli ödemelerin iadesi, bankanızın uygulamasına göre kartınıza taksitler hâlinde yansıyabilir.',
   );
 
   acceptAndPay();
@@ -280,8 +281,10 @@ it('409 paymentAmountOutOfDate: the server message, then the screen reloads the 
   fillNewCard();
   acceptAndPay();
   await waitFor(() => expect(mockAlert).toHaveBeenCalled());
-  const [title, message, buttons] = (mockAlert as jest.Mock).mock.calls[0];
+  const [title, message, buttons, options] = (mockAlert as jest.Mock).mock.calls[0];
   expect([title, message]).toEqual(['Hata', 'Ödeme tutarı güncel değil.']);
+  // Not dismissible without the reload (Android back / backdrop).
+  expect(options).toEqual({ cancelable: false });
   expect(onPaymentOutdated).not.toHaveBeenCalled();
   buttons[0].onPress();
   expect(onPaymentOutdated).toHaveBeenCalledTimes(1);
@@ -333,4 +336,22 @@ it('guest: options and direct-form go through the guest client (payment capabili
   await waitFor(() => expect(directFormGuestMock).toHaveBeenCalled());
   expect(directFormGuestMock.mock.calls[0][0].installment).toEqual({ count: 3, bin: '45467112', expectedTotal: 1066.38 });
   expect(directFormMock).not.toHaveBeenCalled();
+});
+
+it('back to an earlier card: single payment again, not the count picked before', async () => {
+  listCardsMock.mockResolvedValue({
+    data: [{ id: 'c-1', last4: '4242', brand: 'Visa', purpose: 'checkout', requireCvv: false }],
+  });
+  renderForm({ cardStorageEnabled: true, purpose: 'checkout' });
+  fireEvent.press(await screen.findByTestId('installment-option-3'));
+  expect(payTitle()).toHaveTextContent('1.066,38 TL Öde');
+
+  fireEvent.press(screen.getByText('Yeni kart ile öde'));
+  expect(payTitle()).toHaveTextContent('1.000,00 TL Öde');
+  fireEvent.press(screen.getByText(/4242/));
+  expect(payTitle()).toHaveTextContent('1.000,00 TL Öde');
+  expect((await screen.findByTestId('installment-option-1')).props.accessibilityState).toEqual({ checked: true });
+  acceptAndPay();
+  await waitFor(() => expect(directFormMock).toHaveBeenCalled());
+  expect(directFormMock.mock.calls[0][0]).not.toHaveProperty('installment');
 });

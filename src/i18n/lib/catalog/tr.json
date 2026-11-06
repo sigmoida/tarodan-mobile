@@ -3132,7 +3132,8 @@
       "notOffered": "Bu ödeme için yalnız tek çekim kullanılabilir.",
       "belowMinimum": "Taksit, {amount} ve üzeri ödemelerde kullanılabilir.",
       "unavailable": "Taksit seçenekleri şu an gösterilemiyor. Tek çekim ile ödeyebilirsiniz.",
-      "terms": "{count} taksit: aylık {monthly}, vade farkı {fee}, toplam {total}."
+      "terms": "{count} taksit: aylık {monthly}, vade farkı {fee}, toplam {total}.",
+      "refundNote": "Taksitli ödemelerin iadesi, bankanızın uygulamasına göre kartınıza taksitler hâlinde yansıyabilir."
     },
     "summary": {
       "installments": "Taksit",

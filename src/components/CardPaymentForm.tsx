@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { Button, Input, Checkbox, Text, theme, appAlert, Icon, RadioIndicator, LoadingIndicator, usePageContentStyle } from '@/ui';
 import { paymentsApi } from '@/lib/api';
-import { errorText } from '@/lib/api/errorText';
+import { apiErrorLines, errorText } from '@/lib/api/errorText';
 import type { PaymentPurpose } from '@/lib/payment/capabilities';
 import { buildDirectFormBody, type DirectFormBody, type DirectFormTarget } from '@/lib/payment/directFormBody';
 import { useSavedCards } from '@/lib/payment/useSavedCards';
@@ -261,24 +261,13 @@ export default function CardPaymentForm({
   }, [selected, newCardBin, selectedCard]);
   const installments = useInstallmentOptions({
     paymentId: initialPaymentId,
+    amount,
     isGuest,
     source: installmentSource,
     enabled: installmentsEnabled,
   });
-  const [installmentChoice, setInstallmentChoice] = useState<{ key: string | null; count: number }>({
-    key: null,
-    count: 1,
-  });
-  const chosenCount = installmentChoice.key === installments.sourceKey ? installmentChoice.count : 1;
-  const installmentOffer = installments.state.status === 'done' ? installments.state.offer : null;
-  // Only an option of the current answer is payable; while it loads (or after a refusal) the
-  // choice falls back to the single payment.
-  const chosenOption =
-    installmentOffer?.kind === 'options' ? installmentOffer.options.find((o) => o.count === chosenCount) ?? null : null;
-  const installmentChosen = chosenOption && chosenOption.count > 1 ? chosenOption : null;
-  // The buyer picked a count and its price is being fetched again: no payment until it is shown.
-  const installmentPending = chosenCount > 1 && installments.state.status === 'loading';
-  const resetInstallment = () => setInstallmentChoice({ key: installments.sourceKey, count: 1 });
+  const installmentChosen = installments.chosen;
+  const installmentPending = installments.pending;
   const installmentView: InstallmentOptionsView | null = !installmentsEnabled || !initialPaymentId
     ? null
     : selected === NEW_CARD && !newCardBin
@@ -389,7 +378,7 @@ export default function CardPaymentForm({
       const signingError = installmentSigningErrorOf(e);
       if (signingError) {
         setProcessing(false);
-        handleSigningError(signingError, e?.response?.data?.message);
+        handleSigningError(signingError, apiErrorLines(e).join('\n'));
         return;
       }
       // Server text (a validation answer is a list: its lines), else the generic message.
@@ -398,20 +387,22 @@ export default function CardPaymentForm({
     }
   }
 
-  function handleSigningError(error: NonNullable<ReturnType<typeof installmentSigningErrorOf>>, message: unknown) {
-    const serverText = typeof message === 'string' && message.trim() ? message : null;
+  function handleSigningError(error: NonNullable<ReturnType<typeof installmentSigningErrorOf>>, message: string) {
+    const serverText = message || null;
     if (error === 'amountOutOfDate') {
       const reload = onPaymentOutdatedRef.current;
       appAlert(
         t('common.error'),
         serverText ?? t('server.payment.paymentAmountOutOfDate'),
         reload ? [{ text: t('common.ok'), onPress: () => reload() }] : undefined,
+        // The reload must run: no dismissal by the back button or the backdrop.
+        reload ? PAYMENT_ALERT : undefined,
       );
       return;
     }
     // Total drifted: keep the count, show its new price and let the buyer confirm again.
     // Not offered / unavailable: back to the single payment. Both re-read the options.
-    if (error !== 'pricingChanged') resetInstallment();
+    if (error !== 'pricingChanged') installments.resetToSingle();
     void installments.refetch();
     const fallback = {
       pricingChanged: t('server.payment.installmentPricingChanged'),
@@ -612,7 +603,8 @@ export default function CardPaymentForm({
         <InstallmentOptions
           view={installmentView}
           selectedCount={installmentChosen ? installmentChosen.count : 1}
-          onSelect={(count) => setInstallmentChoice({ key: installments.sourceKey, count })}
+          onSelect={installments.select}
+          cardKey={installments.sourceKey}
         />
       ) : null}
 
@@ -624,7 +616,8 @@ export default function CardPaymentForm({
             monthly: formatPrice(installmentChosen.monthlyAmount),
             fee: formatPrice(installmentChosen.feeAmount),
             total: formatPrice(installmentChosen.totalAmount),
-          })}
+          })}{' '}
+          {t('payment.installments.refundNote')}
         </Text>
       ) : null}
 

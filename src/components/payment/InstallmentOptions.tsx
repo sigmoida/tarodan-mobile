@@ -16,6 +16,8 @@ type Props = {
   view: InstallmentOptionsView;
   selectedCount: number;
   onSelect: (count: number) => void;
+  /** The card the view belongs to: a new card's result is announced even with the same text. */
+  cardKey?: string | null;
 };
 
 /** "world" -> "World": PayTR names families in lower case; the bank name is shown as sent. */
@@ -34,7 +36,7 @@ function cardLine(card: Extract<InstallmentOffer, { kind: 'options' }>['card']):
  * Accessibility: the group has a visible title; every option is a 44 pt `radio` with its checked
  * state and a name holding count, monthly and total; loaded options and notes are announced.
  */
-export function InstallmentOptions({ view, selectedCount, onSelect }: Props) {
+export function InstallmentOptions({ view, selectedCount, onSelect, cardKey = null }: Props) {
   const { t } = useTranslation();
   const showSkeleton = useDelayedLoading(view.status === 'loading');
   const offer = view.status === 'done' ? view.offer : null;
@@ -58,7 +60,7 @@ export function InstallmentOptions({ view, selectedCount, onSelect }: Props) {
   const announcement = offer?.kind === 'options' ? t('payment.installments.title') : view.status === 'done' ? note : null;
   useEffect(() => {
     if (announcement) AccessibilityInfo.announceForAccessibility?.(announcement);
-  }, [announcement]);
+  }, [announcement, cardKey]);
 
   if (offer?.kind === 'hidden') return null;
 

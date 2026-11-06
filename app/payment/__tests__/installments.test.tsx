@@ -30,6 +30,7 @@ jest.mock('@/lib/api', () => ({
   },
 }));
 import { paymentsApi } from '@/lib/api';
+import { router } from 'expo-router';
 
 type MockFormProps = { installmentsEnabled?: boolean; amount?: number; onPaymentOutdated?: () => void };
 jest.mock('@/components/CardPaymentForm', () => {
@@ -126,7 +127,7 @@ it('membership payment: off (D6)', async () => {
   expect(await formText()).toBe('installments:false amount:1000');
 });
 
-it('paymentAmountOutOfDate: the screen reloads the payment and shows the new amount', async () => {
+it('paymentAmountOutOfDate, payment row moved: the screen reloads and shows the new amount', async () => {
   renderWithProviders(<PaymentScreen />);
   expect(await formText()).toBe('installments:true amount:1000');
   getStatusLightMock.mockResolvedValue({ data: { status: 'pending', orderId: 'order-1', amount: 1200 } });
@@ -135,4 +136,15 @@ it('paymentAmountOutOfDate: the screen reloads the payment and shows the new amo
   });
   await waitFor(() => expect(getStatusLightMock).toHaveBeenCalledTimes(2));
   expect(await formText()).toBe('installments:true amount:1200');
+});
+
+it('paymentAmountOutOfDate, same amount after the reload: the buyer pays again from the order', async () => {
+  renderWithProviders(<PaymentScreen />);
+  expect(await formText()).toBe('installments:true amount:1000');
+  await act(async () => {
+    fireEvent.press(screen.getByTestId('outdated'));
+  });
+  await waitFor(() =>
+    expect(router.replace).toHaveBeenCalledWith({ pathname: '/orders/[id]', params: { id: 'order-1' } }),
+  );
 });

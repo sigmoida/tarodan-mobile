@@ -3132,7 +3132,8 @@
       "notOffered": "Only a single payment is available for this payment.",
       "belowMinimum": "Installments are available for payments of {amount} or more.",
       "unavailable": "Installment options cannot be shown right now. You can pay in a single payment.",
-      "terms": "{count} installments: {monthly} per month, installment fee {fee}, total {total}."
+      "terms": "{count} installments: {monthly} per month, installment fee {fee}, total {total}.",
+      "refundNote": "A refund of an installment payment may reach your card in installments, depending on your bank."
     },
     "summary": {
       "installments": "Installments",

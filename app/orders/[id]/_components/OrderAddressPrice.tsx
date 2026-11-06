@@ -40,8 +40,13 @@ export function OrderAddressCard({ order, isDigitalOrder }: { order: OrderDetail
 export function OrderPriceSummary({ order, isDigitalOrder }: { order: OrderDetail; isDigitalOrder: boolean }) {
   const { t } = useTranslation();
   const p = order.pricing;
-  // The payment's installment lines (buyer only; the API sends them to the buyer alone).
-  const installmentRows = order.isSeller ? [] : installmentSummaryRows(order.payment, t);
+  // The payment's installment lines (buyer only; the API sends them to the buyer alone). They
+  // are the payment's: in a cart of several orders the fee and the charged total cover the whole
+  // cart, so under one order's total only the count is shown (no per-order share in the API).
+  const paidAlone = order.payment?.amount != null && Number(order.payment.amount) === Number(order.totalAmount);
+  const installmentRows = order.isSeller
+    ? []
+    : installmentSummaryRows(order.payment, t).filter((row) => paidAlone || row.key === 'count');
   return (
     <SectionCard title={t('order.paymentSummary')} bodyStyle={styles.rows}>
       <Row label={t('order.productAmount')} value={formatPrice(p?.subtotal ?? order.product.price)} />

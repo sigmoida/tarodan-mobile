@@ -275,10 +275,12 @@ export const qk = {
      */
     savedCards: (purpose?: string) => ["saved-cards", purpose ?? "all"] as const,
     /**
-     * Installment options of one payment for one card (`card` = `bin:<first 8 digits>` or
-     * `saved:<savedCardId>`). Memory only: never in the persisted allow list (`persist.ts`).
+     * Installment options of one payment at one goods total for one card (`card` =
+     * `bin:<first 8 digits>` or `saved:<savedCardId>`). Memory only: never in the persisted
+     * allow list (`persist.ts`).
      */
-    installmentOptions: (paymentId: string, card: string) => ["installment-options", paymentId, card] as const,
+    installmentOptions: (paymentId: string, amount: string, card: string) =>
+      ["installment-options", paymentId, amount, card] as const,
   },
 
   user: {

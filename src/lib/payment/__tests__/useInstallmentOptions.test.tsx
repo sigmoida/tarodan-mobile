@@ -30,13 +30,17 @@ const ANSWER = {
   ],
 };
 
-function Probe(props: { source: InstallmentCardSource | null; isGuest?: boolean; enabled?: boolean }) {
-  const { state } = useInstallmentOptions({
+function Probe(props: { source: InstallmentCardSource | null; isGuest?: boolean; enabled?: boolean; amount?: number }) {
+  const { state, chosen, select } = useInstallmentOptions({
     paymentId: 'pay-1',
+    amount: props.amount ?? 1000,
     isGuest: props.isGuest ?? false,
     source: props.source,
     enabled: props.enabled ?? true,
   });
+  // Test hook: the probe picks 3 installments when told to.
+  probeSelect = select;
+  probeChosen = chosen?.count ?? 1;
   const text =
     state.status === 'done'
       ? state.offer.kind === 'options'
@@ -48,6 +52,8 @@ function Probe(props: { source: InstallmentCardSource | null; isGuest?: boolean;
   return <Text testID="state">{text}</Text>;
 }
 
+let probeSelect: (count: number) => void = jest.fn();
+let probeChosen = 1;
 const stateText = () => screen.getByTestId('state').props.children as string;
 const bin = (b: string): InstallmentCardSource => ({ kind: 'bin', bin: b });
 
@@ -132,4 +138,32 @@ it('5xx falls back to the single payment and is reported with the payment id, ne
   expect(options.tags).toEqual({ flow: 'payment.installmentOptions', card_source: 'bin' });
   expect(options.extra).toEqual({ paymentId: 'pay-1', status: 503 });
   expect(JSON.stringify(options)).not.toContain('45467112');
+});
+
+it('a card change resets the choice, also when coming back to the earlier card', async () => {
+  memberMock.mockResolvedValue({ data: ANSWER });
+  const saved = (id: string): InstallmentCardSource => ({ kind: 'saved', savedCardId: id });
+  const { rerender } = renderWithProviders(<Probe source={saved('c-a')} />);
+  await waitFor(() => expect(stateText()).toBe('options:1,3'));
+  act(() => probeSelect(3));
+  expect(probeChosen).toBe(3);
+
+  rerender(<Probe source={saved('c-b')} />);
+  expect(probeChosen).toBe(1);
+  act(() => jest.advanceTimersByTime(INSTALLMENT_OPTIONS_DEBOUNCE_MS));
+  await waitFor(() => expect(stateText()).toBe('options:1,3'));
+
+  rerender(<Probe source={saved('c-a')} />);
+  act(() => jest.advanceTimersByTime(INSTALLMENT_OPTIONS_DEBOUNCE_MS));
+  await waitFor(() => expect(stateText()).toBe('options:1,3'));
+  expect(probeChosen).toBe(1);
+});
+
+it('another goods total is another key: the options are read again, never the old prices', async () => {
+  memberMock.mockResolvedValue({ data: ANSWER });
+  const { rerender } = renderWithProviders(<Probe source={bin('45467112')} amount={1000} />);
+  await waitFor(() => expect(stateText()).toBe('options:1,3'));
+  rerender(<Probe source={bin('45467112')} amount={1200} />);
+  expect(stateText()).toBe('loading');
+  await waitFor(() => expect(memberMock).toHaveBeenCalledTimes(2));
 });

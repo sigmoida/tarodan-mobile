@@ -119,7 +119,8 @@ export default function PaymentScreen() {
     // ödeme durumu yalnızca paymentId değişince yeniden yüklenir
   }, [paymentId]);
 
-  const load = async () => {
+  /** Loads the payment; resolves with the goods total when the card form is shown. */
+  const load = async (): Promise<number | undefined> => {
     // Dijital satış kapalıyken (iOS + Android: `CAN_BUY_DIGITAL`) üyelik ödemesi
     // kabul edilmez (Apple 3.1.1 / Play ödeme politikası). Yalnız JSX'i
     // kilitlemek yetmez: render kilidi devredeyken bu effect zaten tetiklenmiş
@@ -212,6 +213,7 @@ export default function PaymentScreen() {
           target,
         }),
       }));
+      return amount;
     } catch (e: any) {
       captureException(e, {
         level: 'error',
@@ -281,6 +283,18 @@ export default function PaymentScreen() {
     else router.replace('/orders' as never);
   };
 
+  /**
+   * direct-form answered 409 `paymentAmountOutOfDate` (A4): the payment's amount no longer
+   * matches its order or cart. A reload shows the new amount when the payment row moved; when it
+   * still reads the same amount, only paying again from the order or cart (which initiates the
+   * payment anew at the current total) clears it, so the buyer goes there.
+   */
+  const handlePaymentOutdated = async () => {
+    const { amount: before, target, isMembership: membership } = state;
+    const after = await load();
+    if (after !== undefined && after === before && target) routeToTarget(target, membership);
+  };
+
   const routeToFail = (pid: string = paymentId) => {
     router.replace({ pathname: '/payment/fail', params: { paymentId: pid, guest: params.guest } } as any);
   };
@@ -320,7 +334,7 @@ export default function PaymentScreen() {
             isGuest={isGuest}
             paymentId={paymentId}
             installmentsEnabled={state.installmentsEnabled}
-            onPaymentOutdated={load}
+            onPaymentOutdated={handlePaymentOutdated}
             onSuccess={(pid) => routeToSuccess(pid, state.isMembership)}
             onFail={() => routeToFail()}
             onUncertain={() => routeToTarget(state.target!, state.isMembership)}
