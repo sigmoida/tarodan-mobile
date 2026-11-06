@@ -255,6 +255,8 @@ const ToastPresenter: React.FC<{ target: ToastItem | null; bottom: number }> = (
         exitingRef.current = false;
         drag.value = 0; // a swipe that started this exit left the card off-screen
         progress.value = withTiming(1, { duration: reduceMotion ? 0 : ENTER_MS });
+        // Coming back after a dismiss resets `presented` and the timer, and `shownId` hasn't changed.
+        markToastPresented(target.id);
       }
       return;
     }
