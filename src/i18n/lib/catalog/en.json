@@ -7242,7 +7242,7 @@
       "installmentNotOffered": "The selected installment option is not available for this card and amount.",
       "installmentPricingChanged": "The installment amount has changed. Please check the new amount and try again.",
       "installmentUnavailable": "Installments are unavailable right now. You can continue with a single payment.",
-      "paymentAmountOutOfDate": "The payment amount is out of date. Please refresh the page and try again."
+      "paymentAmountOutOfDate": "The payment amount has changed. Please check the current amount and try again."
     },
     "product": {
       "alreadyLiked": "You have already liked this product",

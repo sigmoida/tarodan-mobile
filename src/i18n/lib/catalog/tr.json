@@ -7242,7 +7242,7 @@
       "installmentNotOffered": "Seçtiğiniz taksit bu kart ve tutar için kullanılamıyor.",
       "installmentPricingChanged": "Taksit tutarı güncellendi. Lütfen yeni tutarı kontrol edip tekrar deneyin.",
       "installmentUnavailable": "Taksit şu an kullanılamıyor. Tek çekim ile devam edebilirsiniz.",
-      "paymentAmountOutOfDate": "Ödeme tutarı güncel değil. Lütfen sayfayı yenileyip tekrar deneyin."
+      "paymentAmountOutOfDate": "Ödeme tutarı güncellendi. Lütfen güncel tutarı kontrol edip tekrar deneyin."
     },
     "product": {
       "alreadyLiked": "Bu ürünü zaten beğendiniz",
