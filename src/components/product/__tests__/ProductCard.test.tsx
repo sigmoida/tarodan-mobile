@@ -450,25 +450,26 @@ describe('ProductCard — noPriceLabel', () => {
     expect(screen.queryByText(/^%/)).toBeNull();
   });
 
-  it('grid: without the discount the stack refills with the next badges', () => {
+  it.each(['grid', 'list'] as const)('%s: no listing badges and no stock state (web)', (layout) => {
+    const listingFields = { isBoosted: true, tradeAvailable: true, feeCampaigns: ['Kargo Bedava'], status: 'sold' };
     render(
-      <ProductCard
-        product={{ ...base, price: 70, oldPrice: 100, isBoosted: true, tradeAvailable: true } as never}
-        noPriceLabel="Satışta değil"
-      />,
+      <ProductCard layout={layout} product={{ ...base, ...listingFields } as never} noPriceLabel="Satışta değil" />,
     );
-    expect(screen.getByText('Öne Çıkan')).toBeTruthy();
-    expect(screen.getByText('Takas')).toBeTruthy();
+    expect(screen.queryByText('Öne Çıkan')).toBeNull();
+    expect(screen.queryByText('Takas')).toBeNull();
+    expect(screen.queryByLabelText('Takas')).toBeNull();
+    expect(screen.queryByText('Kargo Bedava')).toBeNull();
+    expect(screen.queryByText('STOKTA YOK')).toBeNull();
   });
 
-  it('no card action and no heart, even for a buyable listing with onToggleFavorite', () => {
+  it('no card action; the heart still follows onPress (web: it follows href)', () => {
     const { rerender } = renderWithProviders(<ProductCard product={buyable} onToggleFavorite={jest.fn()} />);
     // Baseline: the same card with a price draws both.
     expect(screen.getByTestId('product-card-action-spacer')).toBeTruthy();
     expect(screen.getByTestId('product-card-favorite-p1')).toBeTruthy();
     rerender(<ProductCard product={buyable} onToggleFavorite={jest.fn()} noPriceLabel="Satışta değil" />);
     expect(screen.queryByTestId('product-card-action-spacer')).toBeNull();
-    expect(screen.queryByTestId('product-card-favorite-p1')).toBeNull();
+    expect(screen.getByTestId('product-card-favorite-p1')).toBeTruthy();
   });
 
   it('accessibility: the label reads the title, then the no-price text', () => {

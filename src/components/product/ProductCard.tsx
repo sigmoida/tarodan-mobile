@@ -27,13 +27,7 @@ import {
 import { formatPrice } from '@/utils/format';
 import { OutOfStockOverlay } from './OutOfStockOverlay';
 import { PRODUCT_CARD_METRICS } from './productCardMetrics';
-import {
-  MAX_CARD_BADGES,
-  getProductSalePercent,
-  isProductTradeBadgeVisible,
-  selectProductCardBadges,
-  type ProductCardBadge,
-} from './productCardBadges';
+import { getProductSalePercent, isProductTradeBadgeVisible, selectProductCardBadges, type ProductCardBadge } from './productCardBadges';
 import { useProductCardAction } from './ProductCardAction';
 import { ProductCardCartButton } from './ProductCardCartButton';
 
@@ -89,9 +83,10 @@ export interface ProductCardProps {
    */
   onPress?: (() => void) | null;
   /**
-   * Shown in the price row instead of the price (web `noPriceLabel`; a collection's custom item:
-   * "Satışta değil"). It also drops the discount badge, the heart and the card action, since there is
-   * nothing to buy. Screen readers read it after the title and badges.
+   * Not-for-sale variant (web `noPriceLabel`; a collection's custom item: "Satışta değil"): this
+   * text replaces the price row, and the card shows no listing badge (discount, boosted, trade,
+   * campaign), no stock state and no card action. The heart still follows `onPress`. Screen
+   * readers read it after the title.
    */
   noPriceLabel?: string;
   /** Sıralama sinyali (tıklama kaydı). Ürün açmayan kullanımlarda (seçim listesi) `false`. */
@@ -335,12 +330,11 @@ function ProductCardBase({
   // Only the cart toggle is ever drawn: `boost` (own listing, digital sales on) renders nothing on
   // mobile (ADR 0015), like `none`.
   const action = useProductCardAction(product);
-  // A non-navigating card (web `href={null}`) or one without a price stands for nothing to buy:
-  // no action and no heart.
+  // A non-navigating card (web `href={null}`) has no heart and no action; a not-for-sale card
+  // (`noPriceLabel`) has no action, no listing badges and no stock state (web).
   const interactive = onPress !== null;
-  const priced = noPriceLabel === undefined;
-  const buyable = interactive && priced;
-  const withAction = buyable && showAction && !footer && action.kind === 'add_to_cart';
+  const forSale = noPriceLabel === undefined;
+  const withAction = interactive && forSale && showAction && !footer && action.kind === 'add_to_cart';
   // Text or icon-only by the CARD's measured width (web container query `@card-wide`); until the
   // first layout the icon shows, which is what a phone grid keeps. A boolean, so a phone card does
   // not re-render on its first layout.
@@ -362,7 +356,7 @@ function ProductCardBase({
   // Liste: görsel satırda dikey ortalı (web `items-center`; konum gövde yüksekliğine bağlı) — kalp
   // görselin ÖLÇÜLEN çerçevesine yerleşir ve ölçüm gelene dek çizilmez (ilk karede zıplama yok).
   const [listImageFrame, setListImageFrame] = useState<LayoutRectangle | null>(null);
-  const onFavorite = buyable ? onToggleFavorite : undefined;
+  const onFavorite = interactive ? onToggleFavorite : undefined;
   const onListImageLayout = onFavorite
     ? (e: LayoutChangeEvent) => setListImageFrame(e.nativeEvent.layout)
     : undefined;
@@ -370,23 +364,25 @@ function ProductCardBase({
     <FavoriteHeart productId={product.id} title={product.title} isFavorite={isFavorite} onToggle={onFavorite} />
   ) : null;
 
-  const { effective, original, onSale, salePercent, outOfStock, isTrade, badges, listBadges } = useMemo(() => {
-    // Without a price there is no discount: its badge leaves both layouts (the grid stack refills).
-    const shown = (b: ProductCardBadge) => priced || b.kind !== 'sale';
-    return {
+  // Stock and the listing badges describe something for sale; the not-for-sale card shows neither.
+  const { effective, original, onSale, salePercent, outOfStock, isTrade, badges, listBadges } = useMemo(
+    () => ({
       effective: getProductEffectivePrice(product),
       original: getProductOriginalPriceForDisplay(product),
       onSale: isProductOnSaleDisplay(product) && getProductOriginalPriceForDisplay(product) > getProductEffectivePrice(product),
-      salePercent: getProductSalePercent(product),
-      outOfStock: isProductOutOfStock(product),
-      isTrade: isProductTradeBadgeVisible(product),
-      badges: selectProductCardBadges(product, Infinity).filter(shown).slice(0, MAX_CARD_BADGES),
+      salePercent: forSale ? getProductSalePercent(product) : 0,
+      outOfStock: forSale && isProductOutOfStock(product),
+      isTrade: forSale && isProductTradeBadgeVisible(product),
+      badges: forSale ? selectProductCardBadges(product) : [],
       // The list row shows the discount, boosted and trade badges (web: the grid rule, no limit).
-      listBadges: selectProductCardBadges(product, Infinity).filter(
-        (b) => shown(b) && (b.kind === 'sale' || b.kind === 'boosted' || b.kind === 'trade'),
-      ),
-    };
-  }, [product, priced]);
+      listBadges: forSale
+        ? selectProductCardBadges(product, Infinity).filter(
+            (b) => b.kind === 'sale' || b.kind === 'boosted' || b.kind === 'trade',
+          )
+        : [],
+    }),
+    [product, forSale],
+  );
   const listBoosted = listBadges.some((b) => b.kind === 'boosted');
   // Screen readers: the visible badges join the card label (grid: the stack; list: discount, boosted, trade).
   const visibleBadges: ProductCardBadge[] = layout === 'list' ? listBadges : overlayStart ? [] : badges;
@@ -400,7 +396,7 @@ function ProductCardBase({
       />
     </View>
   ) : null;
-  // Then the no-price text, which stands where the price is (web reads it as the row's text).
+  // Then the not-for-sale text, which stands where the price is (web reads it as the row's text).
   const cardLabel = [product.title, ...visibleBadges.map((b) => badgeA11yText(b, t)), noPriceLabel]
     .filter((part) => !!part)
     .join(', ');
@@ -431,9 +427,9 @@ function ProductCardBase({
       ? { onPress: handlePress, onPressIn: pressPrefetch.onPressIn, onPressOut: pressPrefetch.onPressOut }
       : null),
   };
-  // Without a price the row holds the label instead (web: muted body text, same row height).
+  // The not-for-sale row holds the label instead (web `text-sm text-muted`; the row keeps its height).
   const noPrice = (
-    <Text variant="body" tone="muted" numberOfLines={1} testID="product-card-no-price">
+    <Text variant="bodySm" tone="muted" numberOfLines={1} testID="product-card-no-price">
       {noPriceLabel}
     </Text>
   );
@@ -477,7 +473,7 @@ function ProductCardBase({
             ) : null}
           </View>
           <View style={styles.listPrice}>
-            {priced ? (
+            {forSale ? (
               <View style={styles.listPriceLine}>
                 {onSale ? (
                   <Text variant="bodySm" tone="subtle" style={styles.struck} testID="product-card-old-price">
@@ -560,14 +556,14 @@ function ProductCardBase({
             {/* Web price row: the price at the left, the action at the bottom right; the action
                 wraps under the price when both do not fit. One height on every card of a row. */}
             <View style={styles.priceBlock}>
-              {priced ? (
+              {forSale ? (
                 <View style={styles.priceColumn}>
                   {onSale ? (
                     <Text variant="bodySm" tone="subtle" style={styles.struck} testID="product-card-old-price">
                       {formatPrice(original)}
                     </Text>
                   ) : null}
-                  {/* Dar ızgara hücresinde (360pt) uzun fiyat sarmaz; gerekirse hafifçe küçülür. */}
+                  {/* In a narrow grid cell (360pt) a long price does not wrap; it shrinks slightly instead. */}
                   <Text
                     variant="body"
                     weight="bold"

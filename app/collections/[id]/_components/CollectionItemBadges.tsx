@@ -7,12 +7,11 @@ import type { CollectionItemCard } from '../_lib/collectionItemCard';
 
 /**
  * Status badges in a collection card's top-left slot (web `ItemBadges`): "Koleksiyon" on a custom
- * item, "Satıldı" on a sold listing. Self-gates; the caller passes it only when one applies
- * (`hasCollectionItemBadges`), since a filled slot hides the card's own badge stack.
+ * item, "Satıldı" on a sold listing. The caller passes it only when one applies
+ * (`hasCollectionItemBadges`): a filled slot hides the card's own badge stack.
  */
 export function CollectionItemBadges({ card }: { card: CollectionItemCard }) {
   const { t } = useTranslation();
-  if (!hasCollectionItemBadges(card)) return null;
   return (
     <View style={styles.itemBadges} pointerEvents="none">
       {card.isCustom ? (

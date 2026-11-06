@@ -167,7 +167,7 @@ describe('J106 · Sahiplik kontrolü (düzenle butonu)', () => {
  * price row instead of "0,00 TL", the "Koleksiyon" badge, not tappable, no heart. A sold listing
  * gets the "Satıldı" badge instead of the out-of-stock overlay.
  */
-describe('Koleksiyon öğeleri · özel ürün ve satıldı rozeti', () => {
+describe('collection items: custom items and the sold badge', () => {
   const custom = {
     id: 'c1',
     productTitle: 'Benim modelim',
@@ -255,10 +255,8 @@ describe('Koleksiyon öğeleri · özel ürün ve satıldı rozeti', () => {
     renderWith([listing, hidden, custom, featured]);
     await screen.findByTestId('collection-item-s1');
     expect(screen.queryByText('Gizli ilan')).toBeNull();
-    const titles = screen
-      .getAllByTestId(/^collection-item-/)
-      .map((node) => node.props.testID);
-    expect(titles).toEqual(['collection-item-s1', 'collection-item-c1', 'collection-item-l1']);
+    const order = screen.getAllByTestId(/^collection-item-/).map((node) => node.props.testID);
+    expect(order).toEqual(['collection-item-s1', 'collection-item-c1', 'collection-item-l1']);
   });
 });
 
