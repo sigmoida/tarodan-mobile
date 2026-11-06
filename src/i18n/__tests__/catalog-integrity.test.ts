@@ -185,6 +185,8 @@ describe('çeviri tamamlanmamış anahtarlar', () => {
     'mobile.appBuildLabelWithEnvironment',
     'mobile.appEnvironmentStaging',
     'mobile.appEnvironmentDevelopment',
+    // Installment line "{count} x {amount}": only arguments and the "x" sign (web value, plan 6.6).
+    'payment.installments.monthly',
   ]);
 
   /**

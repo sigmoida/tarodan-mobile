@@ -3117,7 +3117,28 @@
     "retryTitle": "Retry Payment",
     "retryStarted": "Retry started",
     "savedCardsIntroNeutral": "Add a new card with \"save my card\" during payment.",
-    "deleteCardBodyNeutral": "Are you sure you want to delete the {brand} •••• {last4} card?"
+    "deleteCardBodyNeutral": "Are you sure you want to delete the {brand} •••• {last4} card?",
+    "installments": {
+      "title": "Installment options",
+      "single": "Single payment",
+      "count": "{count} installments",
+      "monthly": "{count} x {amount}",
+      "total": "Total {amount}",
+      "fee": "Installment fee {amount}",
+      "noFee": "No installment fee",
+      "enterCard": "Enter your card number to see installment options.",
+      "loading": "Loading installment options",
+      "notEligible": "This card can only be used for a single payment.",
+      "notOffered": "Only a single payment is available for this payment.",
+      "belowMinimum": "Installments are available for payments of {amount} or more.",
+      "unavailable": "Installment options cannot be shown right now. You can pay in a single payment.",
+      "terms": "{count} installments: {monthly} per month, installment fee {fee}, total {total}."
+    },
+    "summary": {
+      "installments": "Installments",
+      "installmentFee": "Installment fee",
+      "chargedTotal": "Charged to card"
+    }
   },
   "seller": {
     "sellerProfile": "Seller Profile",
@@ -7168,9 +7189,6 @@
       "groupOrderItemNotAwaitingPayment": "The \"{item}\" order in the group is not awaiting payment. Please recreate the cart.",
       "groupOrderNotAwaitingPayment": "An order in the group is not awaiting payment. Please recreate the cart.",
       "holdNotReleasable": "No releasable payment was found (it may be frozen due to an open refund)",
-      "installmentInfoFetchFailed": "Installment information could not be fetched",
-      "installmentInfoUnavailable": "Installment information could not be retrieved",
-      "installmentResponseInvalid": "The installment response is invalid or empty",
       "loginRequired": "You need to log in",
       "loginRequiredForOrder": "You need to log in for this order",
       "loginRequiredForPayment": "You need to log in for this payment",
@@ -7219,7 +7237,11 @@
       "unexpectedResponse": "The payment provider returned an unexpected response; please check your card details.",
       "unknownProvider": "Unknown payment provider: {provider}",
       "viewPaymentForbidden": "You do not have permission to view this payment",
-      "viewStatusForbidden": "You do not have permission to view this payment status"
+      "viewStatusForbidden": "You do not have permission to view this payment status",
+      "installmentNotOffered": "The selected installment option is not available for this card and amount.",
+      "installmentPricingChanged": "The installment amount has changed. Please check the new amount and try again.",
+      "installmentUnavailable": "Installments are unavailable right now. You can continue with a single payment.",
+      "paymentAmountOutOfDate": "The payment amount is out of date. Please refresh the page and try again."
     },
     "product": {
       "alreadyLiked": "You have already liked this product",
