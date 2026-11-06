@@ -5,6 +5,7 @@
  *   "bir kez belirlenir" uyarısı, appAlert onayı, alt çubuk Kaydet; başarıda geri dönülür.
  */
 import React from 'react';
+import { Platform } from 'react-native';
 import { screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils/render';
 import { appAlert, ToastHost } from '@/ui';
@@ -211,5 +212,33 @@ describe('Kullanıcı adı ekranı', () => {
       expect(mockUpdateUser).not.toHaveBeenCalled();
       expect(backMock).not.toHaveBeenCalled();
     });
+  });
+});
+
+// Android IME fix: see `getHandleInputProps` in `@/utils/validation`. jest cannot
+// reproduce the keyboard bug; it only pins the prop per platform and the lower-casing.
+describe('Username claim field - Android keyboard composition', () => {
+  const originalOS = Platform.OS;
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetRouterMocks();
+    mockUser = { username: 'otomatik.ad', usernameClaimed: false };
+  });
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
+  it('uses visible-password on Android and still lower-cases mixed case', () => {
+    Platform.OS = 'android';
+    renderSection();
+    expect(screen.getByTestId('username-input').props.keyboardType).toBe('visible-password');
+    fireEvent.changeText(screen.getByTestId('username-input'), 'Ferzane');
+    expect(screen.getByTestId('username-input').props.value).toBe('ferzane');
+  });
+
+  it('sets no keyboardType on iOS', () => {
+    Platform.OS = 'ios';
+    renderSection();
+    expect(screen.getByTestId('username-input').props.keyboardType).toBeUndefined();
   });
 });

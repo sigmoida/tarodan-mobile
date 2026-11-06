@@ -2,7 +2,7 @@ import { View } from 'react-native';
 import { Controller } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Alert, Input, SectionCard, Text } from '@/ui';
-import { toHandle } from '@/utils/validation';
+import { getHandleInputProps, toHandle } from '@/utils/validation';
 import type { ClaimUsernameController } from '../_hooks/useClaimUsername';
 import { styles } from '../_lib/styles';
 
@@ -40,6 +40,7 @@ export function UsernameClaimForm({ f }: { f: ClaimUsernameController }) {
               autoCapitalize="none"
               autoCorrect={false}
               spellCheck={false}
+              {...getHandleInputProps()}
               rightIcon={f.status.statusIcon}
               error={f.status.error}
               helperText={f.status.helper}

@@ -6,7 +6,7 @@ import { useUsernameFieldStatus } from '@/hooks/useUsernameFieldStatus';
 import { PhonePrefix } from '@/components/auth/PhonePrefix';
 import { SocialButtons } from '@/components/auth/SocialButtons';
 import { DEFAULT_COUNTRY_CODE, formatTrPhoneField, getPhonePlaceholder } from '@/utils/phone';
-import { toHandle } from '@/utils/validation';
+import { getHandleInputProps, toHandle } from '@/utils/validation';
 import { passwordHint } from '@/utils/passwordPolicy';
 import { IS_MAESTRO } from '@/config/maestro';
 import { styles } from '../_lib/styles';
@@ -69,6 +69,7 @@ export function RegisterForm({ f }: { f: RegisterController }) {
             autoCapitalize="none"
             autoCorrect={false}
             spellCheck={false}
+            {...getHandleInputProps()}
             error={username.error}
             helperText={username.helper}
           />
