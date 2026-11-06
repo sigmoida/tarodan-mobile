@@ -165,7 +165,11 @@ it('paymentAmountOutOfDate on a guest cart: the guest cart call, then the new pa
   });
   expect(paymentsApi.initiateGroupGuest).toHaveBeenCalledWith('g-1');
   expect(paymentsApi.initiateGroup).not.toHaveBeenCalled();
-  expect(router.replace).toHaveBeenCalledWith({ pathname: '/payment/[id]', params: { id: 'pay-2', guest: '1' } });
+  // `restarted` survives the remount of the replaced screen (expo-router 6).
+  expect(router.replace).toHaveBeenCalledWith({
+    pathname: '/payment/[id]',
+    params: { id: 'pay-2', guest: '1', restarted: '1' },
+  });
 });
 
 it('paymentAmountOutOfDate and the new start fails: the buyer goes to the order', async () => {
@@ -248,3 +252,22 @@ it('paymentAmountOutOfDate: the form is gone while the payment starts anew (no s
   expect(await formText()).toBe('installments:on amount:1000');
   expect(paymentsApi.initiate).toHaveBeenCalledTimes(1);
 });
+
+it.each([
+  ['order', { orderId: 'order-1' }, { pathname: '/orders/[id]', params: { id: 'order-1' } }, 'initiate'],
+  ['cart', { checkoutGroupId: 'g-1' }, { pathname: '/orders/group/[id]', params: { id: 'g-1' } }, 'initiateGroup'],
+  ['trade cash', { tradeId: 't-1' }, { pathname: '/trade/[id]', params: { id: 't-1' } }, 'initiateTradeCash'],
+] as const)(
+  'opened by a restart (restarted=1), %s: the next paymentAmountOutOfDate goes to the target, no new start',
+  async (_label, target, route, call) => {
+    mockParams = { id: 'pay-2', restarted: '1' };
+    getStatusLightMock.mockResolvedValue({ data: { status: 'pending', amount: 1000, ...target } });
+    renderWithProviders(<PaymentScreen />);
+    await formText();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('outdated'));
+    });
+    expect(paymentsApi[call]).not.toHaveBeenCalled();
+    expect(router.replace).toHaveBeenCalledWith(route);
+  },
+);

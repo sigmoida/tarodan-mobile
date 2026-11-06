@@ -67,6 +67,11 @@ export default function PaymentScreen() {
     type?: string;
     /** Üyelik kademesi (basic|premium|business) — success ekranına taşınır. */
     tier?: string;
+    /**
+     * '1' when this screen was opened by the stale-amount restart (`handlePaymentOutdated`): the
+     * replace remounts the screen, so the once-only guard must come from the route.
+     */
+    restarted?: string;
     /** Takas nakit farkı ödemesi: başarı → /trade/{tradeId} */
     tradeId?: string;
     tradeCash?: string;
@@ -301,11 +306,12 @@ export default function PaymentScreen() {
    * matches its order, cart or trade total, and reading it again cannot fix that. Once per
    * screen the payment is initiated anew (the server resets a pending row to the current total,
    * CAS-guarded; nothing is charged): the screen shows its loader meanwhile (no second Pay), then
-   * reloads, or opens the new payment id the server answered. A second refusal on this screen,
-   * a failed start, or a membership payment sends the buyer to the payment's target instead of
-   * starting again, so the buyer can never loop here.
+   * reloads, or opens the new payment id the server answered (with `restarted: '1'`, since
+   * expo-router remounts the screen on replace and a ref would reset). A second refusal on this
+   * screen or on the restarted payment, a failed start, or a membership payment sends the buyer
+   * to the payment's target instead of starting again, so the buyer can never loop here.
    */
-  const outdatedRef = useRef(false);
+  const outdatedRef = useRef(params.restarted === '1');
   const handlePaymentOutdated = async () => {
     const { target, isMembership: membership } = state;
     if (!target) return;
@@ -319,7 +325,7 @@ export default function PaymentScreen() {
     try {
       const next = initiatedPaymentIdOf((await request)?.data) ?? paymentId;
       if (next !== paymentId) {
-        router.replace({ pathname: '/payment/[id]', params: { ...params, id: next } } as never);
+        router.replace({ pathname: '/payment/[id]', params: { ...params, id: next, restarted: '1' } } as never);
         return;
       }
     } catch (e) {
