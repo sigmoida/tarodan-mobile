@@ -101,10 +101,13 @@ export const USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9._]*[a-z0-9])?$/;
  */
 export const toHandle = (t: string) => t.toLowerCase();
 
-const ANDROID_HANDLE_INPUT_PROPS: Pick<TextInputProps, 'keyboardType'> = {
+type HandleInputProps = Pick<TextInputProps, 'keyboardType' | 'autoComplete'>;
+
+const ANDROID_HANDLE_INPUT_PROPS: HandleInputProps = {
   keyboardType: 'visible-password',
+  autoComplete: 'off',
 };
-const NO_HANDLE_INPUT_PROPS: Pick<TextInputProps, 'keyboardType'> = {};
+const NO_HANDLE_INPUT_PROPS: HandleInputProps = {};
 
 /**
  * Extra `TextInput` props for every field that runs `toHandle` on each keystroke
@@ -116,10 +119,14 @@ const NO_HANDLE_INPUT_PROPS: Pick<TextInputProps, 'keyboardType'> = {};
  * these keyboards; `visible-password` turns composition off. Android only: iOS does not
  * compose like this and keeps its normal keyboard, so it gets no extra props.
  *
+ * `autoComplete: 'off'` keeps autofill services from reading the password-style input
+ * type as a password field: a saved password must not land in this plain-text field,
+ * which becomes a public handle that cannot be changed.
+ *
  * A function rather than a module constant only so tests can switch `Platform.OS`;
  * the result never changes at runtime and is a stable object (safe in render).
  */
-export const getHandleInputProps = (): Pick<TextInputProps, 'keyboardType'> =>
+export const getHandleInputProps = (): HandleInputProps =>
   Platform.OS === 'android' ? ANDROID_HANDLE_INPUT_PROPS : NO_HANDLE_INPUT_PROPS;
 
 /**

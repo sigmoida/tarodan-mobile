@@ -137,9 +137,12 @@ describe('getHandleInputProps (Android IME composition fix)', () => {
     Platform.OS = originalOS;
   });
 
-  it('disables keyboard composition on Android', () => {
+  it('disables keyboard composition and autofill on Android', () => {
     Platform.OS = 'android';
-    expect(getHandleInputProps()).toEqual({ keyboardType: 'visible-password' });
+    expect(getHandleInputProps()).toEqual({
+      keyboardType: 'visible-password',
+      autoComplete: 'off',
+    });
   });
 
   it('adds nothing on iOS', () => {
