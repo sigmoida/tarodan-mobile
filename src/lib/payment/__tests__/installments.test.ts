@@ -8,7 +8,7 @@ import {
   installmentBinOf,
   installmentOfferOf,
   installmentSelectionOf,
-  installmentSelectorAllowed,
+  installmentSelectorModeOf,
   installmentSigningErrorOf,
   installmentSourceKey,
 } from '../installments';
@@ -46,27 +46,32 @@ describe('installmentSourceKey', () => {
   });
 });
 
-describe('installmentSelectorAllowed (switch, minimum, D6)', () => {
+describe('installmentSelectorModeOf (switch, D6, minimum)', () => {
   const base = { config: ON, amount: 1000, isMembership: false, isBoost: false, target: { orderId: 'o-1' } };
-  it('order and cart group payments above the minimum get the selector', () => {
-    expect(installmentSelectorAllowed(base)).toBe(true);
-    expect(installmentSelectorAllowed({ ...base, target: { checkoutGroupId: 'g-1' } })).toBe(true);
-    expect(installmentSelectorAllowed({ ...base, amount: 500 })).toBe(true);
+  const OFF = { kind: 'off' };
+  it('order and cart group payments at or above the minimum: on', () => {
+    expect(installmentSelectorModeOf(base)).toEqual({ kind: 'on' });
+    expect(installmentSelectorModeOf({ ...base, target: { checkoutGroupId: 'g-1' } })).toEqual({ kind: 'on' });
+    expect(installmentSelectorModeOf({ ...base, amount: 500 })).toEqual({ kind: 'on' });
   });
-  it('switch off or older API: hidden', () => {
-    expect(installmentSelectorAllowed({ ...base, config: { enabled: false, minAmount: 0 } })).toBe(false);
+  it('below the minimum: the note, not hidden (plan 6.2, web parity)', () => {
+    expect(installmentSelectorModeOf({ ...base, amount: 499.99 })).toEqual({ kind: 'belowMinimum', minAmount: 500 });
   });
-  it('below the minimum or unknown amount: hidden', () => {
-    expect(installmentSelectorAllowed({ ...base, amount: 499.99 })).toBe(false);
-    expect(installmentSelectorAllowed({ ...base, amount: undefined })).toBe(false);
-    expect(installmentSelectorAllowed({ ...base, amount: Number.NaN })).toBe(false);
+  it('switch off or older API: off', () => {
+    expect(installmentSelectorModeOf({ ...base, config: { enabled: false, minAmount: 0 } })).toEqual(OFF);
+    expect(installmentSelectorModeOf({ ...base, amount: 100, config: { enabled: false, minAmount: 500 } })).toEqual(OFF);
   });
-  it('membership, boost and trade cash never get it (D6)', () => {
-    expect(installmentSelectorAllowed({ ...base, isMembership: true })).toBe(false);
-    expect(installmentSelectorAllowed({ ...base, isBoost: true })).toBe(false);
-    expect(installmentSelectorAllowed({ ...base, target: { tradeId: 't-1' } })).toBe(false);
-    expect(installmentSelectorAllowed({ ...base, target: { orderId: 'o-1', tradeId: 't-1' } })).toBe(false);
-    expect(installmentSelectorAllowed({ ...base, target: {} })).toBe(false);
+  it('unknown amount: off', () => {
+    expect(installmentSelectorModeOf({ ...base, amount: undefined })).toEqual(OFF);
+    expect(installmentSelectorModeOf({ ...base, amount: Number.NaN })).toEqual(OFF);
+  });
+  it('membership, boost and trade cash: off, also below the minimum (D6)', () => {
+    expect(installmentSelectorModeOf({ ...base, isMembership: true })).toEqual(OFF);
+    expect(installmentSelectorModeOf({ ...base, isBoost: true })).toEqual(OFF);
+    expect(installmentSelectorModeOf({ ...base, target: { tradeId: 't-1' } })).toEqual(OFF);
+    expect(installmentSelectorModeOf({ ...base, amount: 100, target: { tradeId: 't-1' } })).toEqual(OFF);
+    expect(installmentSelectorModeOf({ ...base, target: { orderId: 'o-1', tradeId: 't-1' } })).toEqual(OFF);
+    expect(installmentSelectorModeOf({ ...base, target: {} })).toEqual(OFF);
   });
 });
 

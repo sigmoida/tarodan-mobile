@@ -3,7 +3,8 @@
  * reload after a 409 `paymentAmountOutOfDate` (A4 contract).
  *
  * - On only with `installments.enabled` from `GET /payments/config`, a goods total at or above
- *   `minAmount`, and an order or cart payment (not membership, boost or trade cash).
+ *   `minAmount`, and an order or cart payment (not membership, boost or trade cash); below the
+ *   minimum the form shows the belowMinimum note (plan 6.2).
  * - An older API (no `installments` field) or a failed config call: off.
  */
 import React from 'react';
@@ -37,17 +38,17 @@ jest.mock('@/lib/api', () => ({
 import { paymentsApi } from '@/lib/api';
 import { router } from 'expo-router';
 
-type MockFormProps = { installmentsEnabled?: boolean; amount?: number; onPaymentOutdated?: () => void };
+type MockFormProps = { installments?: { kind: string }; amount?: number; onPaymentOutdated?: () => void };
 jest.mock('@/components/CardPaymentForm', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
     __esModule: true,
-    default: ({ installmentsEnabled, amount, onPaymentOutdated }: MockFormProps) =>
+    default: ({ installments, amount, onPaymentOutdated }: MockFormProps) =>
       React.createElement(
         Pressable,
         { testID: 'outdated', onPress: onPaymentOutdated },
-        React.createElement(Text, { testID: 'card-payment-form' }, `installments:${String(installmentsEnabled)} amount:${amount}`),
+        React.createElement(Text, { testID: 'card-payment-form' }, `installments:${installments?.kind} amount:${amount}`),
       ),
   };
 });
@@ -81,20 +82,26 @@ beforeEach(() => {
 
 it('order payment above the minimum: on', async () => {
   renderWithProviders(<PaymentScreen />);
-  expect(await formText()).toBe('installments:true amount:1000');
+  expect(await formText()).toBe('installments:on amount:1000');
 });
 
 it('guest cart payment: on (guest checkout is in scope, D6)', async () => {
   mockParams = { id: 'pay-1', guest: '1' };
   getStatusLightGuestMock.mockResolvedValue({ data: { status: 'pending', checkoutGroupId: 'g-1', amount: 800 } });
   renderWithProviders(<PaymentScreen />);
-  expect(await formText()).toBe('installments:true amount:800');
+  expect(await formText()).toBe('installments:on amount:800');
 });
 
-it('below the minimum: off (hidden)', async () => {
+it('below the minimum: the note (plan 6.2), not hidden', async () => {
   getStatusLightMock.mockResolvedValue({ data: { status: 'pending', orderId: 'order-1', amount: 499.99 } });
   renderWithProviders(<PaymentScreen />);
-  expect(await formText()).toBe('installments:false amount:499.99');
+  expect(await formText()).toBe('installments:belowMinimum amount:499.99');
+});
+
+it('trade cash below the minimum: still off (D6)', async () => {
+  getStatusLightMock.mockResolvedValue({ data: { status: 'pending', tradeId: 't-1', amount: 100 } });
+  renderWithProviders(<PaymentScreen />);
+  expect(await formText()).toBe('installments:off amount:100');
 });
 
 it.each([
@@ -103,25 +110,25 @@ it.each([
 ])('%s: off', async (_label, cfg) => {
   getConfigMock.mockResolvedValue(cfg);
   renderWithProviders(<PaymentScreen />);
-  expect(await formText()).toBe('installments:false amount:1000');
+  expect(await formText()).toBe('installments:off amount:1000');
 });
 
 it('config call fails: off', async () => {
   getConfigMock.mockRejectedValue(new Error('net'));
   renderWithProviders(<PaymentScreen />);
-  expect(await formText()).toBe('installments:false amount:1000');
+  expect(await formText()).toBe('installments:off amount:1000');
 });
 
 it('trade cash payment: off (D6)', async () => {
   getStatusLightMock.mockResolvedValue({ data: { status: 'pending', tradeId: 't-1', amount: 1000 } });
   renderWithProviders(<PaymentScreen />);
-  expect(await formText()).toBe('installments:false amount:1000');
+  expect(await formText()).toBe('installments:off amount:1000');
 });
 
 it('boost payment: off (D6)', async () => {
   mockParams = { id: 'pay-1', type: 'boost' };
   renderWithProviders(<PaymentScreen />);
-  expect(await formText()).toBe('installments:false amount:1000');
+  expect(await formText()).toBe('installments:off amount:1000');
 });
 
 it('membership payment: off (D6)', async () => {
@@ -129,20 +136,20 @@ it('membership payment: off (D6)', async () => {
     data: { status: 'pending', orderId: 'order-m', amount: 1000, isMembershipOrder: true },
   });
   renderWithProviders(<PaymentScreen />);
-  expect(await formText()).toBe('installments:false amount:1000');
+  expect(await formText()).toBe('installments:off amount:1000');
 });
 
 it('paymentAmountOutOfDate: the order payment is initiated anew and reloaded at the new amount', async () => {
   (paymentsApi.initiate as jest.Mock).mockResolvedValue({ data: { paymentId: 'pay-1', amount: 1200 } });
   renderWithProviders(<PaymentScreen />);
-  expect(await formText()).toBe('installments:true amount:1000');
+  expect(await formText()).toBe('installments:on amount:1000');
   getStatusLightMock.mockResolvedValue({ data: { status: 'pending', orderId: 'order-1', amount: 1200 } });
   await act(async () => {
     fireEvent.press(screen.getByTestId('outdated'));
   });
   expect(paymentsApi.initiate).toHaveBeenCalledWith('order-1');
   await waitFor(() => expect(getStatusLightMock).toHaveBeenCalledTimes(2));
-  expect(await formText()).toBe('installments:true amount:1200');
+  expect(await formText()).toBe('installments:on amount:1200');
   expect(router.replace).not.toHaveBeenCalled();
 });
 

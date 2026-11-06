@@ -15,7 +15,12 @@ import {
   type PaymentConfig,
   type PaymentPurpose,
 } from '@/lib/payment/capabilities';
-import { initiatedPaymentIdOf, installmentSelectorAllowed } from '@/lib/payment/installments';
+import {
+  initiatedPaymentIdOf,
+  installmentSelectorModeOf,
+  INSTALLMENTS_OFF,
+  type InstallmentSelectorMode,
+} from '@/lib/payment/installments';
 import { isServerOrNetworkFailure } from '@/lib/api/reauthError';
 import {
   paymentKindOf,
@@ -88,8 +93,8 @@ export default function PaymentScreen() {
     isMembership: boolean;
     /** Durum yanıtı üyelik dedi ve dijital satış kapalı → ödeme formu yok. */
     digitalBlocked: boolean;
-    /** Installment selector on for this payment (switch, minimum amount, payment kind). */
-    installmentsEnabled: boolean;
+    /** Installment selector for this payment (switch, payment kind, minimum amount). */
+    installments: InstallmentSelectorMode;
   }>({
     loading: true,
     error: null,
@@ -98,7 +103,7 @@ export default function PaymentScreen() {
     cardStorageEnabled: false,
     isMembership,
     digitalBlocked: false,
-    installmentsEnabled: false,
+    installments: INSTALLMENTS_OFF,
   });
 
   const resolvedRef = useRef(false);
@@ -204,7 +209,7 @@ export default function PaymentScreen() {
         isMembership: kind.isMembership,
         // Saved cards only for a signed-in buyer.
         cardStorageEnabled: paymentCapabilities(cfg, kind.purpose).cardStorageEnabled && !isGuest,
-        installmentsEnabled: installmentSelectorAllowed({
+        installments: installmentSelectorModeOf({
           config: installmentsConfigOf(cfg),
           amount,
           isMembership: kind.isMembership,
@@ -365,7 +370,7 @@ export default function PaymentScreen() {
             cardStorageEnabled={state.cardStorageEnabled}
             isGuest={isGuest}
             paymentId={paymentId}
-            installmentsEnabled={state.installmentsEnabled}
+            installments={state.installments}
             onPaymentOutdated={handlePaymentOutdated}
             onSuccess={(pid) => routeToSuccess(pid, state.isMembership)}
             onFail={() => routeToFail()}

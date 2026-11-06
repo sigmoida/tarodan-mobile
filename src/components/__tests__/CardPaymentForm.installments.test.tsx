@@ -64,7 +64,7 @@ function renderForm(over: Partial<React.ComponentProps<typeof CardPaymentForm>> 
       target={{ orderId: 'o-1' }}
       amount={1000}
       paymentId="pay-1"
-      installmentsEnabled
+      installments={{ kind: 'on' }}
       onSuccess={jest.fn()}
       {...over}
     />,
@@ -96,7 +96,7 @@ beforeEach(() => {
 });
 
 it('switch off (or excluded payment): no selector, no options call, no installment field', async () => {
-  renderForm({ installmentsEnabled: false });
+  renderForm({ installments: { kind: 'off' } });
   fillNewCard();
   expect(screen.queryByTestId('installment-options')).toBeNull();
   acceptAndPay();
@@ -386,5 +386,17 @@ it('back to an earlier card: single payment again, not the count picked before',
   expect((await screen.findByTestId('installment-option-1')).props.accessibilityState).toEqual({ checked: true });
   acceptAndPay();
   await waitFor(() => expect(directFormMock).toHaveBeenCalled());
+  expect(directFormMock.mock.calls[0][0]).not.toHaveProperty('installment');
+});
+
+it('below the minimum: only the note, no options call, single payment payable', async () => {
+  renderForm({ amount: 300, installments: { kind: 'belowMinimum', minAmount: 500 } });
+  expect(screen.getByTestId('installment-note')).toHaveTextContent('Taksit, 500,00 TL ve üzeri ödemelerde kullanılabilir.');
+  fillNewCard();
+  expect(screen.getByText('Taksit, 500,00 TL ve üzeri ödemelerde kullanılabilir.')).toBeOnTheScreen();
+  expect(screen.queryByText('Taksit seçeneklerini görmek için kart numaranızı girin.')).toBeNull();
+  acceptAndPay();
+  await waitFor(() => expect(directFormMock).toHaveBeenCalled());
+  expect(optionsMock).not.toHaveBeenCalled();
   expect(directFormMock.mock.calls[0][0]).not.toHaveProperty('installment');
 });

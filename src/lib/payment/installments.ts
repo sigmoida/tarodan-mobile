@@ -38,22 +38,29 @@ export function installmentSourceKey(source: InstallmentCardSource | null): stri
 }
 
 /**
- * Whether the pay screen offers the selector at all. Off when the switch is off (or the API is
- * older), when the goods total is below the minimum (hidden, not a note: the screen already knows
- * the amount), and for the payment kinds D6 excludes: membership, boost and trade cash. The
- * server refuses them too (`not_offered_for_payment`); this only avoids a pointless call.
+ * What the pay screen shows for installments:
+ * - `off`: no selector. The switch is off (or the API is older), the goods total is unknown, or
+ *   the payment kind is excluded (D6: membership, boost, trade cash; the server refuses them too).
+ * - `belowMinimum`: the goods total is below the minimum; the selector shows only the
+ *   `belowMinimum` note (plan 6.2, web parity) and asks the server nothing.
+ * - `on`: options are fetched for the card.
  */
-export function installmentSelectorAllowed(input: {
+export type InstallmentSelectorMode = { kind: 'off' } | { kind: 'belowMinimum'; minAmount: number } | { kind: 'on' };
+
+export const INSTALLMENTS_OFF: InstallmentSelectorMode = { kind: 'off' };
+
+export function installmentSelectorModeOf(input: {
   config: PaymentsInstallmentsConfig;
   amount: number | undefined;
   isMembership: boolean;
   isBoost: boolean;
   target: DirectFormTarget;
-}): boolean {
+}): InstallmentSelectorMode {
   const { config, amount, isMembership, isBoost, target } = input;
-  if (!config.enabled || isMembership || isBoost || target.tradeId) return false;
-  if (!target.orderId && !target.checkoutGroupId) return false;
-  return typeof amount === 'number' && Number.isFinite(amount) && amount >= config.minAmount;
+  if (!config.enabled || isMembership || isBoost || target.tradeId) return INSTALLMENTS_OFF;
+  if (!target.orderId && !target.checkoutGroupId) return INSTALLMENTS_OFF;
+  if (typeof amount !== 'number' || !Number.isFinite(amount)) return INSTALLMENTS_OFF;
+  return amount < config.minAmount ? { kind: 'belowMinimum', minAmount: config.minAmount } : { kind: 'on' };
 }
 
 function isMoney(value: unknown): value is number {

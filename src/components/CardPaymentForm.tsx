@@ -15,7 +15,9 @@ import {
   installmentBinOf,
   installmentSelectionOf,
   installmentSigningErrorOf,
+  INSTALLMENTS_OFF,
   type InstallmentCardSource,
+  type InstallmentSelectorMode,
 } from '@/lib/payment/installments';
 import { useInstallmentOptions } from '@/lib/payment/useInstallmentOptions';
 import {
@@ -80,11 +82,10 @@ interface Props {
    */
   paymentId?: string;
   /**
-   * Installment selector on (ADR 0019): the screen decided that the switch is on, the amount
-   * reaches the minimum and the payment kind takes installments (`installmentSelectorAllowed`).
-   * Needs `paymentId` (the options are priced for that payment).
+   * Installment selector (ADR 0019), decided by the screen (`installmentSelectorModeOf`): off,
+   * only the below-minimum note, or on. `on` needs `paymentId` (options are priced for it).
    */
-  installmentsEnabled?: boolean;
+  installments?: InstallmentSelectorMode;
   /**
    * direct-form answered 409 `paymentAmountOutOfDate` (the order or cart total changed): the
    * screen reloads the payment after the buyer read the alert. Without it the form stays.
@@ -109,7 +110,7 @@ export default function CardPaymentForm({
   cardStorageEnabled = false,
   isGuest = false,
   paymentId: initialPaymentId,
-  installmentsEnabled = false,
+  installments: installmentMode = INSTALLMENTS_OFF,
   onPaymentOutdated,
 }: Props) {
   const { t } = useTranslation();
@@ -264,15 +265,18 @@ export default function CardPaymentForm({
     amount,
     isGuest,
     source: installmentSource,
-    enabled: installmentsEnabled,
+    enabled: installmentMode.kind === 'on' && !!initialPaymentId,
   });
   const installmentChosen = installments.chosen;
   const installmentPending = installments.pending;
-  const installmentView: InstallmentOptionsView | null = !installmentsEnabled || !initialPaymentId
-    ? null
-    : selected === NEW_CARD && !newCardBin
-      ? { status: 'enterCard' }
-      : installments.state;
+  const installmentView: InstallmentOptionsView | null =
+    installmentMode.kind === 'belowMinimum'
+      ? { status: 'done', offer: { kind: 'single', reason: 'below_minimum', minAmount: installmentMode.minAmount } }
+      : installmentMode.kind === 'off' || !initialPaymentId
+        ? null
+        : selected === NEW_CARD && !newCardBin
+          ? { status: 'enterCard' }
+          : installments.state;
   const payAmount = installmentChosen ? installmentChosen.totalAmount : amount;
   // "Oto-yenileme" metni yalnız üyelik ödemesinde — ve dijital satış açıkken
   // (Apple 2.1(b) / Play: satılmayan aboneliğe atıf yok). Sepet: "sonraki ödemeler".
