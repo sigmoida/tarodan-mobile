@@ -140,15 +140,20 @@ describe.each(['ios', 'android'] as const)('protectSensitiveScreen on %s', (os) 
     });
     const release = protectSensitiveScreen();
     expect(release).not.toThrow();
-    await expect(flushRelease()).resolves.toBeUndefined();
+    // The allow throws inside the microtask: uncaught there, jest would fail this test.
+    await flushRelease();
     expect(allows()).toBe(1);
+    protectSensitiveScreen();
+    expect(prevents()).toBe(2);
   });
 });
 
 describe('platform specifics', () => {
-  it('android: no app switcher call, FLAG_SECURE is enough', () => {
+  it('android: no app switcher call, FLAG_SECURE is enough', async () => {
     setOS('android');
     protectSensitiveScreen()();
+    await flushRelease();
+    expect(allows()).toBe(1);
     expect(mockModule.enableAppSwitcherProtectionAsync).not.toHaveBeenCalled();
     expect(mockModule.disableAppSwitcherProtectionAsync).not.toHaveBeenCalled();
   });
@@ -245,7 +250,6 @@ describe('through the real library wrapper', () => {
   });
 
   it('the native module sees one prevent for overlapping screens and one allow at the end', async () => {
-    setOS('ios');
     jest.resetModules();
     jest.dontMock('expo-screen-capture');
     jest.doMock('expo-screen-capture/build/ExpoScreenCapture', () => ({

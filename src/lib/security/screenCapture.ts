@@ -81,7 +81,8 @@ function syncNativeLock(sc: ScreenCaptureModule): void {
  * Acquiring locks at once. The last release waits for a microtask: React runs a commit's effect
  * cleanups before its new effects, so a protected screen replacing another (or the gate remounting
  * by key) would otherwise drop FLAG_SECURE, the iOS lock and a showing blur for a moment. Within
- * one commit the count returns to 1 first and native is not called at all.
+ * one commit the count returns to 1 first and native is not called at all. A handover across
+ * commits does unlock in between; native runs calls in order, so allow then prevent is safe.
  */
 export function protectSensitiveScreen(): () => void {
   const sc = screenCaptureModule();
