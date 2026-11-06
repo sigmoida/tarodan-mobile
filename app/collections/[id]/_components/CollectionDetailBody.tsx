@@ -74,18 +74,34 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
   // Kalp yalnız pazaryeri ürünü olan kalemde ve koleksiyon sahibi olmayana (sahibin kalemleri kendi ilanı).
   const favoriteProps = useProductCardFavorites();
   const columns = useGridColumns();
-  const cover = collection.coverImageUrl ?? collection.coverImage;
   const fallbackTitle = t('product.productFallback');
+  const { isOwner, removingId, requestRemove } = f;
+  const removeLabel = t('collection.removeItem');
   const cards = useMemo(
     () =>
       sortCollectionItems(items).map((item) => {
         const card = toCollectionItemCard(item, fallbackTitle);
         // Built once per item so the memoised card does not re-render on unrelated state.
         const badges = hasCollectionItemBadges(card) ? <CollectionItemBadges card={card} /> : undefined;
-        return { key: item.id, card, badges };
+        // Owner: remove any item (a listing or a custom item) after a confirm dialog (web trash overlay).
+        const remove = isOwner ? (
+          <GlassIconButton
+            testID={`collection-item-remove-${item.id}`}
+            size="sm"
+            icon="trash"
+            accessibilityLabel={`${removeLabel}, ${card.product.title}`}
+            disabled={removingId === item.id}
+            onPress={() => requestRemove(item.id)}
+          />
+        ) : undefined;
+        return { key: item.id, card, badges, remove };
       }),
-    [items, fallbackTitle],
+    [items, fallbackTitle, isOwner, removingId, requestRemove, removeLabel],
   );
+
+  // The screen renders this body only with a collection; the guard narrows the type (after the hooks).
+  if (!collection) return null;
+  const cover = collection.coverImageUrl ?? collection.coverImage;
 
   return (
     <>
@@ -148,7 +164,7 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
           />
         ) : (
           <View style={styles.itemsGrid}>
-            {cards.map(({ key, card, badges }, index) => (
+            {cards.map(({ key, card, badges, remove }, index) => (
               <View key={key} style={gridCellStyle(index, columns)}>
                 <ProductCard
                   product={card.product}
@@ -160,6 +176,7 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
                   onPress={card.isListing ? undefined : null}
                   noPriceLabel={card.isCustom ? t('collection.notForSale') : undefined}
                   overlayStart={badges}
+                  overlay={remove}
                   {...(card.isListing && !f.isOwner ? favoriteProps(card.product) : null)}
                 />
               </View>

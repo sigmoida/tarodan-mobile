@@ -1,13 +1,13 @@
 /**
  * J30 · Koleksiyon düzenle formu — mobil UI dilimi.
- * Form mevcut değerlerle dolar (reset), validasyon (ad min 3), kaydet wiring (api.patch),
+ * Form mevcut değerlerle dolar (reset), validasyon (ad min 3), kaydet wiring (PATCH),
  * sahiplik: yabancıda "düzenleme yetkiniz yok" ekranı.
  * Backend: güncelleme/silme kalıcılığı, kapak multipart, item kaldırma backend-only.
  */
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '@/test-utils';
-import { appAlert } from '@/ui';
+import { appAlert, toast } from '@/ui';
 
 let mockParams: Record<string, string> = { id: 'col-1' };
 jest.mock('expo-router', () => ({
@@ -16,10 +16,19 @@ jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
 }));
 
+// The collections API calls land on three mocks keyed by the URL they stand for, so the tests keep
+// asserting `GET|PATCH|DELETE /collections/:id`.
+const mockGet = jest.fn();
+const mockPatch = jest.fn();
+const mockDelete = jest.fn();
 jest.mock('@/lib/api', () => ({
-  api: { get: jest.fn(), patch: jest.fn(), delete: jest.fn() },
+  collectionsApi: {
+    getOne: (id: string) => mockGet(`/collections/${id}`),
+    update: (id: string, data: unknown) => mockPatch(`/collections/${id}`, data),
+    delete: (id: string) => mockDelete(`/collections/${id}`),
+    removeItem: jest.fn(),
+  },
 }));
-import { api } from '@/lib/api';
 
 let mockAuth: Record<string, unknown> = { user: { id: 'owner-1' } };
 jest.mock('@/stores/authStore', () => ({
@@ -31,8 +40,8 @@ jest.mock('@/stores/authStore', () => ({
 
 import EditCollectionScreen from '../edit';
 
-const getMock = api.get as jest.Mock;
-const patchMock = api.patch as jest.Mock;
+const getMock = mockGet;
+const patchMock = mockPatch;
 
 function collectionFixture(overrides: Record<string, unknown> = {}) {
   return {
@@ -68,7 +77,7 @@ describe('J30 · Koleksiyon düzenle formu (mobil)', () => {
     expect(screen.getByText('Değişiklikleri Kaydet')).toBeOnTheScreen();
   });
 
-  it('J30.6 adı geçersiz (kısa) yapınca validasyon hatası, api.patch çağrılmaz', async () => {
+  it('J30.6 adı geçersiz (kısa) yapınca validasyon hatası, PATCH çağrılmaz', async () => {
     getMock.mockResolvedValue({ data: collectionFixture() });
     renderWithProviders(<EditCollectionScreen />);
     await waitFor(() =>
@@ -82,7 +91,7 @@ describe('J30 · Koleksiyon düzenle formu (mobil)', () => {
     expect(patchMock).not.toHaveBeenCalled();
   });
 
-  it('J30.7 geçerli değişiklik → api.patch /collections/:id çağrılır', async () => {
+  it('J30.7 geçerli değişiklik → PATCH /collections/:id çağrılır', async () => {
     getMock.mockResolvedValue({ data: collectionFixture() });
     patchMock.mockResolvedValue({});
     renderWithProviders(<EditCollectionScreen />);
@@ -121,7 +130,7 @@ describe('J30 · Koleksiyon düzenle formu (mobil)', () => {
       expect.any(String),
       expect.arrayContaining([expect.objectContaining({ style: 'destructive' })]),
     );
-    expect(api.delete).not.toHaveBeenCalled();
+    expect(mockDelete).not.toHaveBeenCalled();
   });
 });
 
@@ -138,8 +147,8 @@ describe('collection edit: item rows', () => {
 
   it('a listing row opens its listing; a custom item row is not a button and does nothing', async () => {
     const items = [
-      { id: 'l1', productId: 'p1', productTitle: 'Listing row' },
-      { id: 'c1', productTitle: 'Custom row' },
+      { id: 'l1', productId: 'p1', productTitle: 'Listing row', isCustom: false, isFeatured: false, sortOrder: 1 },
+      { id: 'c1', productTitle: 'Custom row', isCustom: true, isFeatured: false, sortOrder: 2 },
     ];
     getMock.mockResolvedValue({ data: { data: collectionFixture({ items }) } });
     renderWithProviders(<EditCollectionScreen />);
@@ -149,5 +158,37 @@ describe('collection edit: item rows', () => {
     expect(screen.queryByRole('button', { name: 'Custom row' })).toBeNull();
     fireEvent.press(screen.getByText('Custom row'));
     expect(push).not.toHaveBeenCalled();
+  });
+
+  it('lists the same visible items as the detail screen: a hidden listing is neither shown nor counted', async () => {
+    const items = [
+      { id: 'l1', productId: 'p1', productTitle: 'Listing row', productStatus: 'active', isCustom: false, isFeatured: false, sortOrder: 2 },
+      { id: 'h1', productId: 'p2', productTitle: 'Hidden row', productStatus: 'pending', isCustom: false, isFeatured: false, sortOrder: 1 },
+      { id: 'c1', productTitle: 'Custom row', customTitle: 'Custom title', isCustom: true, isFeatured: false, sortOrder: 0 },
+    ];
+    getMock.mockResolvedValue({ data: { data: collectionFixture({ items }) } });
+    renderWithProviders(<EditCollectionScreen />);
+    expect(await screen.findByText('Custom title')).toBeOnTheScreen();
+    expect(screen.getByText('Listing row')).toBeOnTheScreen();
+    expect(screen.queryByText('Hidden row')).toBeNull();
+    expect(screen.getByText('Koleksiyondaki Ürünler (2)')).toBeOnTheScreen();
+  });
+
+  it('the x button asks first, then removes the item through the shared removal (DELETE, toast)', async () => {
+    const removeItem = jest.requireMock('@/lib/api').collectionsApi.removeItem as jest.Mock;
+    removeItem.mockReset().mockResolvedValue({ data: {} });
+    const successSpy = jest.spyOn(toast, 'success').mockImplementation(() => 'id');
+    const items = [{ id: 'c1', productTitle: 'Custom row', isCustom: true, isFeatured: false, sortOrder: 1 }];
+    getMock.mockResolvedValue({ data: { data: collectionFixture({ items }) } });
+    renderWithProviders(<EditCollectionScreen />);
+
+    fireEvent.press(await screen.findByLabelText('Koleksiyondan kaldır, Custom row'));
+    expect(removeItem).not.toHaveBeenCalled();
+    const buttons = (appAlert as jest.Mock).mock.calls.at(-1)![2] as { text: string; onPress?: () => void }[];
+    buttons.find((b) => b.text === 'Kaldır')!.onPress!();
+
+    await waitFor(() => expect(removeItem).toHaveBeenCalledWith('col-1', 'c1'));
+    await waitFor(() => expect(successSpy).toHaveBeenCalledWith('Ürün koleksiyondan kaldırıldı'));
+    successSpy.mockRestore();
   });
 });

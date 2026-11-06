@@ -13,23 +13,3 @@ export const buildCollectionEditSchema = (t: TFunction) =>
   });
 
 export type CollectionForm = z.infer<ReturnType<typeof buildCollectionEditSchema>>;
-
-export interface Collection {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  coverImageUrl: string | null;
-  isPublic: boolean;
-  viewCount: number;
-  likeCount: number;
-  userId?: string;
-  ownerId?: string;
-  items: Array<{
-    id: string;
-    productId?: string;
-    productTitle: string;
-    productImage?: string;
-  }>;
-  createdAt: string;
-}

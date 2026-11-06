@@ -23,7 +23,9 @@ export default function CollectionDetailScreen() {
       title=""
       onBack={goBack}
       loading={f.isLoading}
-      empty={!f.isLoading && !f.collection}
+      error={f.loadFailed}
+      onRetry={f.retry}
+      empty={!f.isLoading && !f.loadFailed && !f.collection}
       emptyState={{
         icon: 'rectangle-stack',
         title: t('collection.collectionNotFound'),
