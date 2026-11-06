@@ -6,6 +6,7 @@
  */
 import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { renderWithProviders } from '@/test-utils';
 import { appAlert, toast } from '@/ui';
 
@@ -21,12 +22,22 @@ jest.mock('expo-router', () => ({
 const mockGet = jest.fn();
 const mockPatch = jest.fn();
 const mockDelete = jest.fn();
+jest.mock('expo-image-picker', () => ({
+  MediaTypeOptions: { Images: 'Images' },
+  launchImageLibraryAsync: jest.fn(),
+}));
+// Preparation (resize, temp files) is native work; the upload gets the picked file as it is.
+jest.mock('@/lib/media', () => ({
+  ...jest.requireActual('@/lib/media'),
+  withPreparedImage: (file: unknown, upload: (f: unknown) => unknown) => upload(file),
+}));
 jest.mock('@/lib/api', () => ({
   collectionsApi: {
     getOne: (id: string) => mockGet(`/collections/${id}`),
     update: (id: string, data: unknown) => mockPatch(`/collections/${id}`, data),
     delete: (id: string) => mockDelete(`/collections/${id}`),
     removeItem: jest.fn(),
+    updateCover: jest.fn(),
   },
 }));
 
@@ -160,7 +171,7 @@ describe('collection edit: item rows', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it('lists the same visible items as the detail screen: a hidden listing is neither shown nor counted', async () => {
+  it('lists every item, also a listing hidden from the detail, so the owner can still remove it (ordered, counted)', async () => {
     const items = [
       { id: 'l1', productId: 'p1', productTitle: 'Listing row', productStatus: 'active', isCustom: false, isFeatured: false, sortOrder: 2 },
       { id: 'h1', productId: 'p2', productTitle: 'Hidden row', productStatus: 'pending', isCustom: false, isFeatured: false, sortOrder: 1 },
@@ -169,9 +180,10 @@ describe('collection edit: item rows', () => {
     getMock.mockResolvedValue({ data: { data: collectionFixture({ items }) } });
     renderWithProviders(<EditCollectionScreen />);
     expect(await screen.findByText('Custom title')).toBeOnTheScreen();
-    expect(screen.getByText('Listing row')).toBeOnTheScreen();
-    expect(screen.queryByText('Hidden row')).toBeNull();
-    expect(screen.getByText('Koleksiyondaki Ürünler (2)')).toBeOnTheScreen();
+    expect(screen.getByText('Koleksiyondaki Ürünler (3)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Koleksiyondan kaldır, Hidden row')).toBeOnTheScreen();
+    const order = screen.getAllByText(/ row$| title$/).map((node) => node.props.children);
+    expect(order).toEqual(['Custom title', 'Hidden row', 'Listing row']);
   });
 
   it('the x button asks first, then removes the item through the shared removal (DELETE, toast)', async () => {
@@ -190,5 +202,121 @@ describe('collection edit: item rows', () => {
     await waitFor(() => expect(removeItem).toHaveBeenCalledWith('col-1', 'c1'));
     await waitFor(() => expect(successSpy).toHaveBeenCalledWith('Ürün koleksiyondan kaldırıldı'));
     successSpy.mockRestore();
+  });
+});
+
+/** A refetch (an item removed here, or added on the add-items screen) must not touch unsaved edits. */
+describe('collection edit: unsaved edits', () => {
+  const removeItem = jest.requireMock('@/lib/api').collectionsApi.removeItem as jest.Mock;
+  const updateCover = jest.requireMock('@/lib/api').collectionsApi.updateCover as jest.Mock;
+  const pickImage = ImagePicker.launchImageLibraryAsync as jest.Mock;
+  const item = { id: 'c1', productTitle: 'Custom row', isCustom: true, isFeatured: false, sortOrder: 1 };
+  let successSpy: jest.SpyInstance;
+
+  const pickCover = async () => {
+    fireEvent.press(screen.getByLabelText('Kapak fotoğrafı ekle'));
+    await screen.findByLabelText('Değiştir');
+  };
+  const removeTheItem = async () => {
+    fireEvent.press(screen.getByLabelText('Koleksiyondan kaldır, Custom row'));
+    const buttons = (appAlert as jest.Mock).mock.calls.at(-1)![2] as { text: string; onPress?: () => void }[];
+    buttons.find((b) => b.text === 'Kaldır')!.onPress!();
+    await waitFor(() => expect(screen.queryByLabelText('Koleksiyondan kaldır, Custom row')).toBeNull());
+  };
+
+  beforeEach(() => {
+    getMock.mockReset();
+    patchMock.mockReset().mockResolvedValue({});
+    removeItem.mockReset().mockResolvedValue({ data: {} });
+    updateCover.mockReset().mockResolvedValue({ data: {} });
+    pickImage.mockReset().mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: 'file:///tmp/cover.jpg', fileName: 'cover.jpg', mimeType: 'image/jpeg', width: 800, height: 450, fileSize: 1000 }],
+    });
+    mockParams = { id: 'col-1' };
+    mockAuth = { user: { id: 'owner-1' } };
+    successSpy = jest.spyOn(toast, 'success').mockImplementation(() => 'id');
+  });
+  afterEach(() => successSpy.mockRestore());
+
+  it('removing an item keeps the typed name and description and the picked cover; Save sends them', async () => {
+    getMock.mockResolvedValueOnce({ data: collectionFixture({ items: [item] }) });
+    getMock.mockResolvedValue({ data: collectionFixture({ items: [] }) });
+    renderWithProviders(<EditCollectionScreen />);
+
+    fireEvent.changeText(await screen.findByDisplayValue('Vintage Arabalar'), 'Yeni Ad');
+    fireEvent.changeText(screen.getByDisplayValue('Eski güzel günler'), 'Yeni açıklama');
+    await pickCover();
+    await removeTheItem();
+
+    expect(screen.getByDisplayValue('Yeni Ad')).toBeOnTheScreen();
+    expect(screen.getByDisplayValue('Yeni açıklama')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Değiştir')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByTestId('collection-save-button'));
+    await waitFor(() => expect(updateCover).toHaveBeenCalledTimes(1));
+    expect(patchMock).toHaveBeenCalledWith('/collections/col-1', expect.objectContaining({ name: 'Yeni Ad', description: 'Yeni açıklama' }));
+  });
+
+  it('a field the owner did not touch still follows the server', async () => {
+    getMock.mockResolvedValueOnce({ data: collectionFixture({ items: [item] }) });
+    getMock.mockResolvedValue({ data: collectionFixture({ items: [], description: 'Sunucudan' }) });
+    renderWithProviders(<EditCollectionScreen />);
+
+    fireEvent.changeText(await screen.findByDisplayValue('Vintage Arabalar'), 'Yeni Ad');
+    await removeTheItem();
+
+    expect(await screen.findByDisplayValue('Sunucudan')).toBeOnTheScreen();
+    expect(screen.getByDisplayValue('Yeni Ad')).toBeOnTheScreen();
+  });
+
+  it('a saved cover is not uploaded again by the next save: the preview follows the server after the save', async () => {
+    getMock.mockResolvedValueOnce({ data: collectionFixture() });
+    getMock.mockResolvedValue({ data: collectionFixture({ coverImageUrl: 'https://cdn.example.test/cover.webp' }) });
+    renderWithProviders(<EditCollectionScreen />);
+    await screen.findByDisplayValue('Vintage Arabalar');
+    await pickCover();
+
+    fireEvent.press(screen.getByTestId('collection-save-button'));
+    await waitFor(() => expect(successSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByTestId('collection-save-button').props.accessibilityState?.disabled).toBeFalsy());
+
+    fireEvent.press(screen.getByTestId('collection-save-button'));
+    await waitFor(() => expect(successSpy).toHaveBeenCalledTimes(2));
+    expect(updateCover).toHaveBeenCalledTimes(1);
+  });
+});
+
+/** The edit screen reads the collection through the detail screen's query, with the same answers. */
+describe('collection edit: load states', () => {
+  beforeEach(() => {
+    getMock.mockReset();
+    mockParams = { id: 'col-1' };
+    mockAuth = { user: { id: 'owner-1' } };
+  });
+
+  it('a server failure shows the error state with a retry, not "Koleksiyon bulunamadı"', async () => {
+    getMock.mockRejectedValueOnce({ isAxiosError: true, response: { status: 500, data: {} } });
+    getMock.mockResolvedValue({ data: collectionFixture() });
+    renderWithProviders(<EditCollectionScreen />);
+    expect(await screen.findByText('Bir şeyler ters gitti')).toBeOnTheScreen();
+    expect(screen.queryByText('Koleksiyon bulunamadı')).toBeNull();
+
+    fireEvent.press(screen.getByText('Tekrar Dene'));
+    expect(await screen.findByDisplayValue('Vintage Arabalar')).toBeOnTheScreen();
+  });
+
+  it('a 404 is "not found" and a 403 says the collection is private; neither offers a retry', async () => {
+    getMock.mockRejectedValueOnce({ isAxiosError: true, response: { status: 404, data: {} } });
+    const first = renderWithProviders(<EditCollectionScreen />);
+    expect(await screen.findByText('Koleksiyon bulunamadı')).toBeOnTheScreen();
+    expect(screen.queryByText('Tekrar Dene')).toBeNull();
+    first.unmount();
+
+    getMock.mockRejectedValueOnce({ isAxiosError: true, response: { status: 403, data: {} } });
+    renderWithProviders(<EditCollectionScreen />);
+    expect(await screen.findByText('Bu koleksiyon özel')).toBeOnTheScreen();
+    expect(screen.queryByText('Tekrar Dene')).toBeNull();
   });
 });

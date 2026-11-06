@@ -10,14 +10,21 @@ const SHOWN_LISTING_STATUSES = ['active', 'sold', 'reserved', 'inactive'];
  * sale. Featured items come first, then `sortOrder`.
  */
 export function sortCollectionItems(items: readonly CollectionItemSummary[] | null | undefined): CollectionItemSummary[] {
-  if (!items) return [];
-  return items
-    .filter((item) => item.isCustom || !item.productStatus || SHOWN_LISTING_STATUSES.includes(item.productStatus))
-    .sort((a, b) => {
-      if (a.isFeatured && !b.isFeatured) return -1;
-      if (!a.isFeatured && b.isFeatured) return 1;
-      return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
-    });
+  return orderCollectionItems(
+    items?.filter((item) => item.isCustom || !item.productStatus || SHOWN_LISTING_STATUSES.includes(item.productStatus)),
+  );
+}
+
+/**
+ * Every item in display order, hidden and deleted listings too. The owner's edit list uses it: an item
+ * the detail screen hides has to stay removable somewhere.
+ */
+export function orderCollectionItems(items: readonly CollectionItemSummary[] | null | undefined): CollectionItemSummary[] {
+  return [...(items ?? [])].sort((a, b) => {
+    if (a.isFeatured && !b.isFeatured) return -1;
+    if (!a.isFeatured && b.isFeatured) return 1;
+    return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+  });
 }
 
 /**

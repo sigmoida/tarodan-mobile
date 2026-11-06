@@ -427,7 +427,7 @@ describe('collection items: owner removal', () => {
   });
 });
 
-/** The first read of the collection: a failure is an error with a retry, only a 404 is "not found". */
+/** The first read of the collection: a refusal says why (web's texts), any other failure is an error with a retry. */
 describe('collection detail: load states', () => {
   beforeEach(() => {
     getMock.mockReset();
@@ -457,6 +457,24 @@ describe('collection detail: load states', () => {
     renderWithProviders(<CollectionDetailScreen />);
     expect(await screen.findByText('Koleksiyon bulunamadı')).toBeOnTheScreen();
     expect(screen.queryByText('Bir şeyler ters gitti')).toBeNull();
+  });
+
+  it('a 403 (another user\'s private collection) says it is private, with no retry that cannot succeed', async () => {
+    getMock.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 403, data: { statusCode: 403, message: 'Bu koleksiyon gizli', i18nKey: 'server.collection.isPrivate' } },
+    });
+    renderWithProviders(<CollectionDetailScreen />);
+    expect(await screen.findByText('Bu koleksiyon özel')).toBeOnTheScreen();
+    expect(screen.queryByText('Tekrar Dene')).toBeNull();
+    expect(screen.queryByText('Koleksiyon bulunamadı')).toBeNull();
+  });
+
+  it('a 400 (a bad id in a link) is an invalid link', async () => {
+    getMock.mockRejectedValue({ isAxiosError: true, response: { status: 400, data: {} } });
+    renderWithProviders(<CollectionDetailScreen />);
+    expect(await screen.findByText('Geçersiz koleksiyon bağlantısı')).toBeOnTheScreen();
+    expect(screen.queryByText('Tekrar Dene')).toBeNull();
   });
 });
 

@@ -27,10 +27,10 @@ export function useCollectionEdit() {
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
 
-  const { coverImage, setCoverImage, pickCoverImage, uploadCover } = useCollectionCover();
+  const { coverImage, pickCoverImage, uploadCover, showSavedCover, markCoverSaved } = useCollectionCover();
 
   // Fetch collection (the detail screen's query: same key, same body)
-  const { data: collection, isLoading } = useCollectionQuery(id);
+  const { collection, isLoading, refusal, loadFailed, refetch } = useCollectionQuery(id);
   const { requestRemove } = useRemoveCollectionItem(String(id));
 
   const schema = useMemo(() => buildCollectionEditSchema(t), [t]);
@@ -45,17 +45,21 @@ export function useCollectionEdit() {
   });
   const { reset } = form;
 
-  // Update form when collection loads
+  // Fill the form from the collection. It also runs on every refetch (an item removed here or added on
+  // the add-items screen), so what the owner has changed and not saved yet stays.
   useEffect(() => {
     if (collection) {
-      reset({
-        name: collection.name,
-        description: collection.description || '',
-        isPublic: collection.isPublic,
-      });
-      setCoverImage(collection.coverImageUrl ?? null);
+      reset(
+        {
+          name: collection.name,
+          description: collection.description || '',
+          isPublic: collection.isPublic,
+        },
+        { keepDirtyValues: true },
+      );
+      showSavedCover(collection.coverImageUrl ?? null);
     }
-  }, [collection, reset, setCoverImage]);
+  }, [collection, reset, showSavedCover]);
 
   // Update mutation
   const updateMutation = useMutation({
@@ -70,6 +74,7 @@ export function useCollectionEdit() {
       // Kapak değiştiyse ayrı multipart uca yükle (PATCH /collections/:id/cover, alan 'cover')
       if (coverImage && coverImage !== collection?.coverImageUrl) {
         await uploadCover(String(id), coverImage);
+        markCoverSaved();
       }
     },
     onSuccess: () => {
@@ -116,6 +121,9 @@ export function useCollectionEdit() {
     id,
     user,
     isLoading,
+    refusal,
+    loadFailed,
+    retry: () => void refetch(),
     collection,
     form,
     coverImage,

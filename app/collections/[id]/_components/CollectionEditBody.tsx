@@ -8,7 +8,7 @@ import { Button, EmptyState, IconButton, SectionCard, Switch, Text, Input, Texta
 
 import { styles } from '../_lib/collectionEditStyles';
 import type { CollectionEditController } from '../_hooks/useCollectionEdit';
-import { sortCollectionItems, toCollectionItemCard, type CollectionItemCard } from '../_lib/collectionItemCard';
+import { orderCollectionItems, toCollectionItemCard, type CollectionItemCard } from '../_lib/collectionItemCard';
 
 /** One item row's image and title (a listing row is a link, a custom item row is not). */
 function EditItemSummary({ id, card }: { id: string; card: CollectionItemCard }) {
@@ -28,10 +28,10 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
   const { collection, coverImage, id } = f;
   const { control, formState: { errors }, watch } = f.form;
 
-  // The same visible, ordered items as the detail screen (hidden listings are not shown or counted).
+  // Every item, also a listing the detail screen hides: this list is where the owner can still remove it.
   const fallbackTitle = t('product.productFallback');
   const rows = useMemo(
-    () => sortCollectionItems(collection?.items).map((item) => ({ item, card: toCollectionItemCard(item, fallbackTitle) })),
+    () => orderCollectionItems(collection?.items).map((item) => ({ item, card: toCollectionItemCard(item, fallbackTitle) })),
     [collection?.items, fallbackTitle],
   );
 

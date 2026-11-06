@@ -25,5 +25,15 @@ export function useCollectionCover() {
     [],
   );
 
-  return { coverImage, setCoverImage, pickCoverImage, uploadCover };
+  /** Preview the server's cover, unless the user picked one that is not saved yet (a refetch must not drop it). */
+  const showSavedCover = useCallback((url: string | null) => {
+    if (!pickedRef.current) setCoverImage(url);
+  }, []);
+
+  /** The picked cover is saved: from now on the preview follows the server again. */
+  const markCoverSaved = useCallback(() => {
+    pickedRef.current = null;
+  }, []);
+
+  return { coverImage, setCoverImage, pickCoverImage, uploadCover, showSavedCover, markCoverSaved };
 }

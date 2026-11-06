@@ -40,7 +40,7 @@ export function useCollectionDetail() {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
 
-  const { data: apiCollection, isLoading, isLoadingError, refetch } = useCollectionQuery(id);
+  const { collection: apiCollection, isLoading, refusal, loadFailed, refetch } = useCollectionQuery(id);
 
   // NOT: viewCount artık backend'de kullanıcı başına tekilleştiriliyor; aynı kullanıcı
   // refresh'lese/tekrar açsa görüntülenme artmaz. Refetch güvenli.
@@ -123,8 +123,9 @@ export function useCollectionDetail() {
   return {
     id,
     isLoading,
-    // The first read failed (not a 404): the screen shows an error with a retry, not "not found".
-    loadFailed: isLoadingError,
+    refusal,
+    // The first read failed (not a refusal): the screen shows an error with a retry, not "not found".
+    loadFailed,
     retry: () => void refetch(),
     collection,
     items,

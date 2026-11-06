@@ -17,7 +17,7 @@ export default function EditCollectionScreen() {
   const f = useCollectionEdit();
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
   const notOwner = !!f.collection && !!f.user && f.collection.userId !== f.user.id;
-  const gate = !f.isLoading && (!f.collection || notOwner);
+  const gate = !f.isLoading && !f.loadFailed && (!f.collection || notOwner);
   // Başarılı silmeden sonra da kilitli kalır: geri gezinme bitene dek ikinci dokunuş olmasın.
   const busy = f.updateMutation.isPending || f.deleteMutation.isPending || f.deleteMutation.isSuccess;
 
@@ -26,10 +26,12 @@ export default function EditCollectionScreen() {
       title={t('collection.editCollectionTitle')}
       onBack={goBack}
       loading={f.isLoading}
+      error={f.loadFailed}
+      onRetry={f.retry}
       empty={gate}
       emptyState={{
         icon: notOwner ? 'lock-closed' : 'rectangle-stack',
-        title: notOwner ? t('collection.noEditPermission') : t('collection.collectionNotFound'),
+        title: notOwner ? t('collection.noEditPermission') : t(f.refusal ?? 'collection.collectionNotFound'),
         subtitle: notOwner ? t('emptyState.collectionNoPermissionHint') : t('emptyState.notFoundHint'),
         actionLabel: t('common.goBack'),
         onAction: goBack,
