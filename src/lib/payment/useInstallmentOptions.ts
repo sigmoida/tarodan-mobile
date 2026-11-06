@@ -13,6 +13,15 @@ import {
   type InstallmentOffer,
 } from './installments';
 
+/** The answer without the counts direct-form refused for this card; none left = single payment. */
+function withoutRefused(offer: InstallmentOffer, refused: number[]): InstallmentOffer {
+  if (offer.kind !== 'options' || refused.length === 0) return offer;
+  const options = offer.options.filter((o) => !refused.includes(o.count));
+  return options.some((o) => o.count > 1)
+    ? { ...offer, options }
+    : { kind: 'single', reason: 'not_offered_for_payment' };
+}
+
 /** Selector state: nothing to price yet, waiting for the answer, or the answer read. */
 export type InstallmentOptionsState =
   | { status: 'idle' }
@@ -55,28 +64,33 @@ export function useInstallmentOptions(input: {
   const { paymentId, amount, isGuest, source, enabled } = input;
   const sourceKey = installmentSourceKey(source);
 
-  // Choice per card; a card change resets it during render (no stale count for one frame).
-  const [choice, setChoice] = useState<{ key: string | null; count: number }>({ key: sourceKey, count: 1 });
-  if (choice.key !== sourceKey) setChoice({ key: sourceKey, count: 1 });
-  const chosenCount = choice.key === sourceKey ? choice.count : 1;
-
-  const [debounced, setDebounced] = useState<{ key: string | null; source: InstallmentCardSource | null }>({
+  // Choice per card, with the counts direct-form refused for it (400 installmentNotOffered: not
+  // offered again for this card). A card change resets both during render, so no stale count
+  // is shown or payable for even one frame.
+  const [choice, setChoice] = useState<{ key: string | null; count: number; refused: number[] }>({
     key: sourceKey,
-    source,
+    count: 1,
+    refused: [],
   });
+  const current = choice.key === sourceKey ? choice : { key: sourceKey, count: 1, refused: [] };
+  if (current !== choice) setChoice(current);
+
+  // The debounced card; its key is derived (one source of truth). No timer while disabled.
+  const [debounced, setDebounced] = useState<InstallmentCardSource | null>(source);
+  const debouncedKey = installmentSourceKey(debounced);
   useEffect(() => {
-    if (debounced.key === sourceKey) return;
-    const timer = setTimeout(() => setDebounced({ key: sourceKey, source }), INSTALLMENT_OPTIONS_DEBOUNCE_MS);
+    if (!enabled || debouncedKey === sourceKey) return;
+    const timer = setTimeout(() => setDebounced(source), INSTALLMENT_OPTIONS_DEBOUNCE_MS);
     return () => clearTimeout(timer);
     // `source` is identified by `sourceKey`; a new object with the same key is the same card.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sourceKey, debounced.key]);
+  }, [enabled, sourceKey, debouncedKey]);
 
-  const active = enabled && !!paymentId && !!debounced.key && debounced.source !== null;
+  const active = enabled && !!paymentId && debounced !== null;
   const query = useQuery({
-    queryKey: qk.payments.installmentOptions(paymentId ?? '', String(amount ?? ''), debounced.key ?? ''),
+    queryKey: qk.payments.installmentOptions(paymentId ?? '', String(amount ?? ''), debouncedKey ?? ''),
     queryFn: async ({ signal }) => {
-      const card = debounced.source!;
+      const card = debounced!;
       const body: InstallmentOptionsRequest = {
         ...(card.kind === 'bin' ? { bin: card.bin } : { savedCardId: card.savedCardId }),
         paymentId: paymentId!,
@@ -107,15 +121,15 @@ export function useInstallmentOptions(input: {
 
   let state: InstallmentOptionsState;
   if (!enabled || !paymentId || !sourceKey) state = { status: 'idle' };
-  else if (debounced.key !== sourceKey || query.isPending || query.isFetching) state = { status: 'loading' };
+  else if (debouncedKey !== sourceKey || query.isPending || query.isFetching) state = { status: 'loading' };
   else if (query.isError) state = { status: 'done', offer: { kind: 'single', reason: 'unavailable' } };
-  else state = { status: 'done', offer: query.data };
+  else state = { status: 'done', offer: withoutRefused(query.data, current.refused) };
 
   const offer = state.status === 'done' ? state.offer : null;
   // Only an option of the current answer is payable; while it loads (or after a refusal) the
   // payment is single.
   const chosenOption =
-    offer?.kind === 'options' && chosenCount > 1 ? offer.options.find((o) => o.count === chosenCount) ?? null : null;
+    offer?.kind === 'options' && current.count > 1 ? offer.options.find((o) => o.count === current.count) ?? null : null;
 
   return {
     state,
@@ -124,9 +138,12 @@ export function useInstallmentOptions(input: {
     /** The count above 1 the buyer picked and the current answer offers; `null` = single. */
     chosen: chosenOption,
     /** A count above 1 is picked and its price is being read: no payment until it is shown. */
-    pending: chosenCount > 1 && state.status === 'loading',
-    select: (count: number) => setChoice({ key: sourceKey, count }),
-    resetToSingle: () => setChoice({ key: sourceKey, count: 1 }),
+    pending: current.count > 1 && state.status === 'loading',
+    select: (count: number) => setChoice({ ...current, count }),
+    resetToSingle: () => setChoice({ ...current, count: 1 }),
+    /** direct-form refused the picked count for this card: back to single, not offered again. */
+    refuseChosen: () =>
+      setChoice({ ...current, count: 1, refused: current.count > 1 ? [...current.refused, current.count] : current.refused }),
     refetch: query.refetch,
   };
 }

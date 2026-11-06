@@ -94,7 +94,7 @@ describe('installmentOfferOf (fail closed)', () => {
       installmentOfferOf({ enabled: false, reason: 'below_minimum', minAmount: 500, baseAmount: 100, options: [] }),
     ).toEqual({ kind: 'single', reason: 'below_minimum', minAmount: 500 });
   });
-  it('no answer, no reason or no count above 1: single payment', () => {
+  it('no answer, no reason or no count above 1: single payment, "cannot be shown" note', () => {
     expect(installmentOfferOf(null)).toEqual({ kind: 'single', reason: 'unavailable' });
     expect(installmentOfferOf({ enabled: false, baseAmount: 1000, options: [] })).toEqual({
       kind: 'single',
@@ -102,8 +102,9 @@ describe('installmentOfferOf (fail closed)', () => {
     });
     expect(installmentOfferOf({ ...OPTIONS, options: [OPTIONS.options[0]] })).toEqual({
       kind: 'single',
-      reason: 'card_not_eligible',
+      reason: 'unavailable',
     });
+    expect(installmentOfferOf({ ...OPTIONS, options: [] })).toEqual({ kind: 'single', reason: 'unavailable' });
   });
   it('drops malformed options and requires the single payment', () => {
     const bad = [
@@ -114,7 +115,7 @@ describe('installmentOfferOf (fail closed)', () => {
     ] as never[];
     expect(installmentOfferOf({ ...OPTIONS, options: [OPTIONS.options[0], ...bad] })).toEqual({
       kind: 'single',
-      reason: 'card_not_eligible',
+      reason: 'unavailable',
     });
     expect(installmentOfferOf({ ...OPTIONS, options: [OPTIONS.options[1]] }).kind).toBe('single');
   });

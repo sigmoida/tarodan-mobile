@@ -101,7 +101,7 @@ it('a new card aborts the stale request and never shows its answer', async () =>
   // While the debounce runs, the old card's state is not shown.
   expect(stateText()).toBe('loading');
   act(() => jest.advanceTimersByTime(INSTALLMENT_OPTIONS_DEBOUNCE_MS));
-  await waitFor(() => expect(stateText()).toBe('single:card_not_eligible'));
+  await waitFor(() => expect(stateText()).toBe('single:unavailable'));
   expect(signals[0].aborted).toBe(true);
   expect(signals[1].aborted).toBe(false);
 });

@@ -85,7 +85,8 @@ export type InstallmentOffer =
 
 /**
  * Reads an options answer fail-closed. A malformed option is dropped; without a valid single
- * payment and at least one valid count above 1 the buyer gets the single payment and a note.
+ * payment and at least one valid count above 1 the buyer gets the single payment and the
+ * `unavailable` note.
  */
 export function installmentOfferOf(response: InstallmentOptionsResponse | null | undefined): InstallmentOffer {
   if (!response || typeof response !== 'object') return { kind: 'single', reason: 'unavailable' };
@@ -105,7 +106,9 @@ export function installmentOfferOf(response: InstallmentOptionsResponse | null |
     .filter((o) => o.count > 1)
     .filter((o, i, list) => list.findIndex((x) => x.count === o.count) === i)
     .sort((a, b) => a.count - b.count);
-  if (!single || counts.length === 0) return { kind: 'single', reason: 'card_not_eligible' };
+  // An enabled answer without a valid single payment and a count above 1 is malformed: the
+  // card is not to blame, so the note is "cannot be shown right now".
+  if (!single || counts.length === 0) return { kind: 'single', reason: 'unavailable' };
   return { kind: 'options', options: [single, ...counts], card: response.card };
 }
 

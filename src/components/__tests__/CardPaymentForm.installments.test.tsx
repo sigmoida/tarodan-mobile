@@ -255,23 +255,56 @@ it('409 installmentPricingChanged: options are re-read, the buyer sees the new t
   expect(directFormMock.mock.calls[1][0].installment).toEqual({ count: 3, bin: '45467112', expectedTotal: 1070.1 });
 });
 
-it.each([
-  ['server.payment.installmentUnavailable', 'Taksit şu an kullanılamıyor. Tek çekim ile devam edebilirsiniz.'],
-  ['server.payment.installmentNotOffered', 'Seçtiğiniz taksit bu kart ve tutar için kullanılamıyor.'],
-])('%s: back to the single payment, the next pay sends no installment', async (key, fallback) => {
-  directFormMock.mockRejectedValueOnce(conflict(key, ''));
+it('409 installmentUnavailable: back to the single payment, the next pay sends no installment', async () => {
+  directFormMock.mockRejectedValueOnce(conflict('server.payment.installmentUnavailable', ''));
   renderForm();
   fillNewCard();
   fireEvent.press(await screen.findByTestId('installment-option-3'));
   acceptAndPay();
 
-  await waitFor(() => expect(mockAlert).toHaveBeenCalledWith('Taksit seçenekleri', fallback));
+  await waitFor(() =>
+    expect(mockAlert).toHaveBeenCalledWith(
+      'Taksit seçenekleri',
+      'Taksit şu an kullanılamıyor. Tek çekim ile devam edebilirsiniz.',
+    ),
+  );
   await waitFor(() => expect(payTitle()).toHaveTextContent('1.000,00 TL Öde'));
   await waitFor(() => expect(optionsMock).toHaveBeenCalledTimes(2));
   await screen.findByTestId('installment-option-1');
   fireEvent.press(screen.getByTestId('card-submit'));
   await waitFor(() => expect(directFormMock).toHaveBeenCalledTimes(2));
   expect(directFormMock.mock.calls[1][0]).not.toHaveProperty('installment');
+});
+
+it('400 installmentNotOffered: single payment, and that count is not offered again for this card', async () => {
+  directFormMock.mockRejectedValueOnce({
+    response: { status: 400, data: { i18nKey: 'server.payment.installmentNotOffered', message: '' } },
+  });
+  renderForm();
+  fillNewCard();
+  fireEvent.press(await screen.findByTestId('installment-option-3'));
+  acceptAndPay();
+
+  await waitFor(() =>
+    expect(mockAlert).toHaveBeenCalledWith('Taksit seçenekleri', 'Seçtiğiniz taksit bu kart ve tutar için kullanılamıyor.'),
+  );
+  await waitFor(() => expect(optionsMock).toHaveBeenCalledTimes(2));
+  await screen.findByTestId('installment-option-2');
+  // The server still lists 3, but direct-form refused it for this card.
+  expect(screen.queryByTestId('installment-option-3')).toBeNull();
+  expect(payTitle()).toHaveTextContent('1.000,00 TL Öde');
+});
+
+it('the only count refused: the single-payment note', async () => {
+  optionsMock.mockResolvedValue({ data: { ...ANSWER, options: [SINGLE, THREE] } });
+  directFormMock.mockRejectedValueOnce({
+    response: { status: 400, data: { i18nKey: 'server.payment.installmentNotOffered', message: 'x' } },
+  });
+  renderForm();
+  fillNewCard();
+  fireEvent.press(await screen.findByTestId('installment-option-3'));
+  acceptAndPay();
+  expect(await screen.findByText('Bu ödeme için yalnız tek çekim kullanılabilir.')).toBeOnTheScreen();
 });
 
 it('409 paymentAmountOutOfDate: the server message, then the screen reloads the payment', async () => {

@@ -293,7 +293,7 @@ export default function CardPaymentForm({
 
   async function submit() {
     if (processing || installmentPending) return;
-    // Düğme zaten kapalı; yine de onaysız ödeme isteği hiç gitmesin.
+    // The button is disabled already; still, no payment request without the consent.
     if (!distanceSalesAccepted) return;
 
     let body: DirectFormBody;
@@ -336,13 +336,13 @@ export default function CardPaymentForm({
 
     setProcessing(true);
     try {
-      // Misafir `guestApi`'den: cihazda kalmış token eklenmez, 401'de çıkış yapılmaz.
+      // A guest goes through `guestApi`: no stale device token is added, no sign-out on 401.
       const res = await (isGuest ? paymentsApi.directFormGuest(body) : paymentsApi.directForm(body));
       const data = res.data;
       setPaymentId(data.paymentId);
 
-      // İki güvenlik kontrolü: hedef tam olarak PayTR mı, sunucu ham kart alanı
-      // gönderiyor mu. Başarısızsa akış İPTAL edilir (kart bilgisi hiçbir yere gitmez).
+      // Two safety checks: is the target exactly PayTR, and does the server send a raw card
+      // field. If either fails the flow is CANCELLED (the card data goes nowhere).
       assertSafePaytrForm(data);
 
       const savedCardCvvRequired = data.savedCard === true && data.requireCvv === false;
@@ -352,24 +352,24 @@ export default function CardPaymentForm({
       return;
     } catch (caught: unknown) {
       const e = caught as { code?: string; message?: string; response?: { data?: { message?: unknown } } } | null;
-      // Güvenlik doğrulaması reddi — tekrar denemek çözmez, kullanıcıya net söyle.
+      // The safety check refused the form: retrying does not help, say so plainly.
       if (e?.code === 'PAYTR_BAD_ACTION' || e?.code === 'PAYTR_RAW_CARD_FIELD' || e?.code === 'PAYTR_NO_FIELDS') {
         appAlert(t('payment.stoppedTitle'), e.message, undefined, PAYMENT_ALERT);
         setProcessing(false);
         return;
       }
-      // Ağ/timeout hatası (30sn client-timeout dahil): sunucudan yanıt YOK demek, sunucu
-      // charge'ı işlemiş olabilir. Gerçek API reddi (4xx/5xx yanıtlı) bu değildir.
+      // Network error or timeout (the 30 s client timeout included): no answer, so the server
+      // may have processed the charge. A real API refusal (a 4xx/5xx answer) is not this.
       const isNetworkOrTimeout = e?.code === 'ECONNABORTED' || !e?.response;
       if (isNetworkOrTimeout && initialPaymentId) {
-        // Sert "başarısız" gösterme — çağıran ekranın zaten bildiği paymentId ile mevcut
-        // poll/verify güvenlik ağını devreye al (processing=true kalır, buton spinner'da).
+        // No hard "failed": start the poll/verify safety net with the paymentId the screen
+        // already knows (processing stays true, the button keeps its spinner).
         setPaymentId(initialPaymentId);
         setVerifying(true);
         return;
       }
       if (isNetworkOrTimeout) {
-        // Elde ödeme referansı yok (beklenmeyen durum) — sert hata yerine bilgilendirme.
+        // No payment reference (unexpected): inform instead of a hard error.
         appAlert(t('payment.connectionIssueTitle'), t('payment.processingMaybeBody'), undefined, PAYMENT_ALERT);
         setProcessing(false);
         return;
@@ -402,7 +402,8 @@ export default function CardPaymentForm({
     }
     // Total drifted: keep the count, show its new price and let the buyer confirm again.
     // Not offered / unavailable: back to the single payment. Both re-read the options.
-    if (error !== 'pricingChanged') installments.resetToSingle();
+    if (error === 'notOffered') installments.refuseChosen();
+    else if (error === 'unavailable') installments.resetToSingle();
     void installments.refetch();
     const fallback = {
       pricingChanged: t('server.payment.installmentPricingChanged'),
@@ -679,7 +680,7 @@ const styles = StyleSheet.create({
   },
   rowActive: { borderColor: colors.primary[500]!, backgroundColor: colors.primary[50]! },
   cardLabel: { flex: 1, fontWeight: theme.typography.fontWeight.semibold },
-  cvvInline: { width: 80, marginBottom: theme.spacing[0] },
+  cvvInline: { width: theme.spacing[20], marginBottom: theme.spacing[0] },
   newCard: { gap: theme.spacing[2.5], paddingTop: theme.spacing[1] },
   saveCard: { gap: theme.spacing[1.5] },
   expRow: { flexDirection: 'row', gap: theme.spacing[2.5] },
