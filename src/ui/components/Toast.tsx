@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { PanResponder, StyleSheet, View } from 'react-native';
+import { PanResponder, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   cancelAnimation,
@@ -277,6 +277,7 @@ const ToastPresenter: React.FC<{ target: ToastItem | null; bottom: number }> = (
   }, [shownId]);
 
   const travel = bottom + TOAST_MIN_HEIGHT * 2;
+  const { height: windowHeight } = useWindowDimensions();
   // Yukarı/aşağı kaydırarak kapatma. PanResponder: her native pencerede (kök, Modal, AlertDialog)
   // ek kök görünüm istemeden çalışır; sürükleme değeri UI thread'indeki stile paylaşılan değerle akar.
   const swipe = useMemo(() => {
@@ -288,8 +289,10 @@ const ToastPresenter: React.FC<{ target: ToastItem | null; bottom: number }> = (
       },
       onPanResponderRelease: (_e, g) => {
         if (id && isSwipeDismiss(g.dy, g.vy * 1000)) {
-          const dir = g.dy < 0 ? -1 : 1;
-          drag.value = withTiming(dir * travel, { duration: EXIT_MS }, (finished) => {
+          // Up must clear the screen and the exit slide that follows, which moves the glass surface back
+          // down by `travel`: glass can't fade, so it would otherwise reappear empty. Down, `travel` is enough.
+          const dragTo = g.dy < 0 ? -(windowHeight + travel) : travel;
+          drag.value = withTiming(dragTo, { duration: EXIT_MS }, (finished) => {
             if (finished) scheduleOnRN(dismissToast, id);
           });
         } else {
@@ -300,16 +303,20 @@ const ToastPresenter: React.FC<{ target: ToastItem | null; bottom: number }> = (
         drag.value = withSpring(0);
       },
     });
-  }, [drag, shownId, travel]);
+  }, [drag, shownId, travel, windowHeight]);
 
-  // Native cam, ata opaklığı < 1 iken efektini kaybeder (GlassSurface notu): camda yüzey yalnız
-  // kayar, içerik soluklaşır. Hareketi azalt: kayma yok, yalnız opaklık.
+  // Native glass loses its effect while an ancestor's opacity is below 1 (see GlassSurface): on glass
+  // the surface only slides and its content fades. Reduced motion: no slide; without glass the surface
+  // fades, on glass only the content does and the surface appears and goes at once.
+  // The glass branches must return `opacity: 1` explicitly. `glass` is false until a toast is shown, so
+  // the first run of this style freezes `opacity: 0` as the view's initial style, and Reanimated sends
+  // only the keys returned here: leaving the key out keeps the toast invisible (issue #45).
   const wrapStyle = useAnimatedStyle(() => {
     const p = progress.value;
     if (reduceMotion) {
-      return glass ? { transform: [{ translateY: drag.value }] } : { opacity: p, transform: [{ translateY: drag.value }] };
+      return { opacity: glass ? 1 : p, transform: [{ translateY: drag.value }] };
     }
-    if (glass) return { transform: [{ translateY: (1 - p) * travel + drag.value }] };
+    if (glass) return { opacity: 1, transform: [{ translateY: (1 - p) * travel + drag.value }] };
     return {
       opacity: p,
       transform: [{ translateY: (1 - p) * SLIDE + drag.value }, { scale: 0.96 + 0.04 * p }],
