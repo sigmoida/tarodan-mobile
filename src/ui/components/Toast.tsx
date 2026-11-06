@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { PanResponder, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Dimensions, PanResponder, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   cancelAnimation,
@@ -253,6 +253,7 @@ const ToastPresenter: React.FC<{ target: ToastItem | null; bottom: number }> = (
       if (exitingRef.current) {
         // Çıkarken aynı toast geri geldi (ör. katman devri): yarıda kalan çıkışı geri sar.
         exitingRef.current = false;
+        drag.value = 0; // a swipe that started this exit left the card off-screen
         progress.value = withTiming(1, { duration: reduceMotion ? 0 : ENTER_MS });
       }
       return;
@@ -262,7 +263,7 @@ const ToastPresenter: React.FC<{ target: ToastItem | null; bottom: number }> = (
     progress.value = withTiming(0, { duration: EXIT_MS }, (finished) => {
       if (finished) scheduleOnRN(finishExit);
     });
-  }, [target, shown, progress, reduceMotion, finishExit]);
+  }, [target, shown, progress, drag, reduceMotion, finishExit]);
 
   const shownId = shown?.id;
   const shownPresented = shown?.presented ?? false;
@@ -277,7 +278,6 @@ const ToastPresenter: React.FC<{ target: ToastItem | null; bottom: number }> = (
   }, [shownId]);
 
   const travel = bottom + TOAST_MIN_HEIGHT * 2;
-  const { height: windowHeight } = useWindowDimensions();
   // Yukarı/aşağı kaydırarak kapatma. PanResponder: her native pencerede (kök, Modal, AlertDialog)
   // ek kök görünüm istemeden çalışır; sürükleme değeri UI thread'indeki stile paylaşılan değerle akar.
   const swipe = useMemo(() => {
@@ -289,10 +289,11 @@ const ToastPresenter: React.FC<{ target: ToastItem | null; bottom: number }> = (
       },
       onPanResponderRelease: (_e, g) => {
         if (id && isSwipeDismiss(g.dy, g.vy * 1000)) {
-          // Up must clear the screen and the exit slide that follows, which moves the glass surface back
-          // down by `travel`: glass can't fade, so it would otherwise reappear empty. Down, `travel` is enough.
-          const dragTo = g.dy < 0 ? -(windowHeight + travel) : travel;
-          drag.value = withTiming(dragTo, { duration: EXIT_MS }, (finished) => {
+          const dir = g.dy < 0 ? -1 : 1;
+          // Glass can't fade and its exit slide moves back down by `travel`: going up, it must clear the
+          // screen and that slide or it reappears empty.
+          const distance = glass && dir < 0 ? Dimensions.get('window').height + travel : travel;
+          drag.value = withTiming(dir * distance, { duration: EXIT_MS }, (finished) => {
             if (finished) scheduleOnRN(dismissToast, id);
           });
         } else {
@@ -303,7 +304,7 @@ const ToastPresenter: React.FC<{ target: ToastItem | null; bottom: number }> = (
         drag.value = withSpring(0);
       },
     });
-  }, [drag, shownId, travel, windowHeight]);
+  }, [drag, shownId, travel, glass]);
 
   // Native glass loses its effect while an ancestor's opacity is below 1 (see GlassSurface): on glass
   // the surface only slides and its content fades. Reduced motion: no slide; without glass the surface

@@ -12,19 +12,30 @@
  * The assertions start after one frame: the view is still created with the frozen initial style, and
  * the first run of the style's mapper replaces it.
  */
-import React from 'react';
-import { Dimensions, PanResponder, View, type PanResponderCallbacks, type PanResponderGestureState } from 'react-native';
-import { act, render, screen } from '@testing-library/react-native';
-import { getAnimatedStyle } from 'react-native-reanimated';
-import { resetToastForTests, toast, ToastHost, ToastLayer } from '../Toast';
-import { getGlassView } from '../../lib/glass';
+import React from "react";
+import {
+  Dimensions,
+  PanResponder,
+  View,
+  type PanResponderCallbacks,
+  type PanResponderGestureState,
+} from "react-native";
+import { act, render, screen } from "@testing-library/react-native";
+import { getAnimatedStyle } from "react-native-reanimated";
+import { resetToastForTests, toast, ToastHost, ToastLayer } from "../Toast";
+import { getGlassView } from "../../lib/glass";
 
 let mockReduceMotion = false;
-jest.mock('react-native-reanimated', () => {
-  const actual = jest.requireActual('react-native-reanimated');
-  return { __esModule: true, ...actual, default: actual.default, useReducedMotion: () => mockReduceMotion };
+jest.mock("react-native-reanimated", () => {
+  const actual = jest.requireActual("react-native-reanimated");
+  return {
+    __esModule: true,
+    ...actual,
+    default: actual.default,
+    useReducedMotion: () => mockReduceMotion,
+  };
 });
-jest.mock('../../lib/glass', () => ({ getGlassView: jest.fn(() => null) }));
+jest.mock("../../lib/glass", () => ({ getGlassView: jest.fn(() => null) }));
 const getGlassViewMock = getGlassView as jest.Mock;
 
 function Glass(props: React.ComponentProps<typeof View>) {
@@ -44,11 +55,13 @@ const advance = (ms: number) =>
   });
 
 type WrapStyle = { opacity?: number; transform?: Record<string, number>[] };
-const wrapStyle = () => getAnimatedStyle(screen.getByTestId('toast')) as WrapStyle;
-const translateY = () => wrapStyle().transform?.find((t) => 'translateY' in t)?.translateY;
+const wrapStyle = () =>
+  getAnimatedStyle(screen.getByTestId("toast")) as WrapStyle;
+const translateY = () =>
+  wrapStyle().transform?.find((t) => "translateY" in t)?.translateY;
 const show = () =>
   act(() => {
-    toast.success('Saved', { duration: 0 });
+    toast.success("Saved", { duration: 0 });
   });
 
 beforeEach(() => {
@@ -62,54 +75,60 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe('toast wrap style on Liquid Glass: an ancestor of the glass must stay at opacity 1', () => {
+describe("toast wrap style on Liquid Glass: an ancestor of the glass must stay at opacity 1", () => {
   beforeEach(() => {
     getGlassViewMock.mockReturnValue(Glass);
   });
 
   it.each([
-    ['default motion', false],
-    ['reduced motion', true],
-  ])('%s: opacity is 1 through enter, rest and exit, after mounting empty', (_label, reduced) => {
-    mockReduceMotion = reduced;
-    render(<ToastHost />);
+    ["default motion", false],
+    ["reduced motion", true],
+  ])(
+    "%s: opacity is 1 through enter, rest and exit, after mounting empty",
+    (_label, reduced) => {
+      mockReduceMotion = reduced;
+      render(<ToastHost />);
 
-    show();
-    expect(screen.getByTestId('glass-view')).toBeTruthy();
-    advance(FRAME);
-    expect(wrapStyle().opacity).toBe(1);
+      show();
+      expect(screen.getByTestId("glass-view")).toBeTruthy();
+      advance(FRAME);
+      expect(wrapStyle().opacity).toBe(1);
 
-    advance(MID_ANIMATION);
-    expect(wrapStyle().opacity).toBe(1);
+      advance(MID_ANIMATION);
+      expect(wrapStyle().opacity).toBe(1);
 
-    advance(SETTLE);
-    expect(wrapStyle().opacity).toBe(1);
+      advance(SETTLE);
+      expect(wrapStyle().opacity).toBe(1);
 
-    act(() => toast.dismiss());
-    advance(MID_ANIMATION);
-    expect(wrapStyle().opacity).toBe(1);
-  });
+      act(() => toast.dismiss());
+      advance(MID_ANIMATION);
+      expect(wrapStyle().opacity).toBe(1);
+    },
+  );
 
   it.each([
-    ['default motion', false],
-    ['reduced motion', true],
-  ])('%s: a toast after the first one is removed also has opacity 1', (_label, reduced) => {
-    mockReduceMotion = reduced;
-    render(<ToastHost />);
-    show();
-    advance(SETTLE);
-    act(() => toast.dismiss());
-    advance(SETTLE);
-    expect(screen.queryByTestId('toast')).toBeNull();
+    ["default motion", false],
+    ["reduced motion", true],
+  ])(
+    "%s: a toast after the first one is removed also has opacity 1",
+    (_label, reduced) => {
+      mockReduceMotion = reduced;
+      render(<ToastHost />);
+      show();
+      advance(SETTLE);
+      act(() => toast.dismiss());
+      advance(SETTLE);
+      expect(screen.queryByTestId("toast")).toBeNull();
 
-    show();
-    advance(FRAME);
-    expect(wrapStyle().opacity).toBe(1);
-    advance(SETTLE);
-    expect(wrapStyle().opacity).toBe(1);
-  });
+      show();
+      advance(FRAME);
+      expect(wrapStyle().opacity).toBe(1);
+      advance(SETTLE);
+      expect(wrapStyle().opacity).toBe(1);
+    },
+  );
 
-  it('a layer taking over a shown toast keeps opacity 1', () => {
+  it("a layer taking over a shown toast keeps opacity 1", () => {
     const Tree = ({ modal }: { modal: boolean }) => (
       <>
         <ToastHost />
@@ -122,11 +141,11 @@ describe('toast wrap style on Liquid Glass: an ancestor of the glass must stay a
 
     view.rerender(<Tree modal />);
     advance(SETTLE);
-    expect(screen.getAllByTestId('toast')).toHaveLength(1);
+    expect(screen.getAllByTestId("toast")).toHaveLength(1);
     expect(wrapStyle().opacity).toBe(1);
   });
 
-  it('default motion: the surface hides by sliding, not by fading', () => {
+  it("default motion: the surface hides by sliding, not by fading", () => {
     render(<ToastHost />);
     show();
     advance(FRAME);
@@ -135,7 +154,7 @@ describe('toast wrap style on Liquid Glass: an ancestor of the glass must stay a
     expect(translateY()).toBe(0);
   });
 
-  it('reduced motion: the surface does not slide', () => {
+  it("reduced motion: the surface does not slide", () => {
     mockReduceMotion = true;
     render(<ToastHost />);
     show();
@@ -146,11 +165,10 @@ describe('toast wrap style on Liquid Glass: an ancestor of the glass must stay a
   });
 });
 
-describe('swipe to dismiss on Liquid Glass: the surface can not fade, so it must leave the screen', () => {
+describe("swipe to dismiss", () => {
   let panResponderCreate: jest.SpyInstance;
   beforeEach(() => {
-    getGlassViewMock.mockReturnValue(Glass);
-    panResponderCreate = jest.spyOn(PanResponder, 'create');
+    panResponderCreate = jest.spyOn(PanResponder, "create");
   });
   afterEach(() => {
     panResponderCreate.mockRestore();
@@ -158,9 +176,13 @@ describe('swipe to dismiss on Liquid Glass: the surface can not fade, so it must
 
   /** Releases the latest responder as if the toast was dragged by `dy`. */
   const release = (dy: number) => {
-    const config = panResponderCreate.mock.lastCall![0] as PanResponderCallbacks;
+    const config = panResponderCreate.mock
+      .lastCall![0] as PanResponderCallbacks;
     act(() => {
-      config.onPanResponderRelease!({} as never, { dy, vy: 0 } as PanResponderGestureState);
+      config.onPanResponderRelease!(
+        {} as never,
+        { dy, vy: 0 } as PanResponderGestureState,
+      );
     });
   };
   /** The swipe's own animation has ended and the exit that follows it has started. */
@@ -168,59 +190,101 @@ describe('swipe to dismiss on Liquid Glass: the surface can not fade, so it must
   const EXIT_STEP = 30;
   const EXIT_STEPS = 3;
 
-  it.each([
-    ['default motion', false],
-    ['reduced motion', true],
-  ])('%s: up, it stays above the screen until it is removed', (_label, reduced) => {
-    mockReduceMotion = reduced;
-    const { height } = Dimensions.get('window');
+  it("without glass: up, it moves by its travel only and fades", () => {
+    const { height } = Dimensions.get("window");
     render(<ToastHost />);
     show();
     advance(SETTLE);
 
     release(-100);
     advance(SWIPE);
-    for (let i = 0; i < EXIT_STEPS; i += 1) {
-      expect(screen.queryByTestId('toast')).not.toBeNull();
-      expect(translateY()).toBeLessThanOrEqual(-height);
-      advance(EXIT_STEP);
-    }
-    advance(SETTLE);
-    expect(screen.queryByTestId('toast')).toBeNull();
+    expect(translateY()).toBeGreaterThan(-height);
+    advance(MID_ANIMATION);
+    expect(wrapStyle().opacity).toBeLessThan(1);
   });
 
-  it.each([
-    ['default motion', false],
-    ['reduced motion', true],
-  ])('%s: down, it stays below its rest position until it is removed', (_label, reduced) => {
-    mockReduceMotion = reduced;
-    render(<ToastHost />);
-    show();
-    advance(SETTLE);
+  describe("on Liquid Glass: the surface can not fade, so it must leave the screen", () => {
+    beforeEach(() => {
+      getGlassViewMock.mockReturnValue(Glass);
+    });
 
-    release(100);
-    advance(SWIPE);
-    for (let i = 0; i < EXIT_STEPS; i += 1) {
-      expect(screen.queryByTestId('toast')).not.toBeNull();
-      // More than the bottom offset plus the card, so the card is under the screen edge.
-      expect(translateY()).toBeGreaterThan(70);
-      advance(EXIT_STEP);
-    }
-    advance(SETTLE);
-    expect(screen.queryByTestId('toast')).toBeNull();
+    it("the same id coming back during the exit returns to its rest position", () => {
+      render(<ToastHost />);
+      act(() => {
+        toast("Uploading", { id: "upload", duration: 0 });
+      });
+      advance(SETTLE);
+
+      release(-100);
+      advance(SWIPE);
+      act(() => {
+        toast("Uploading", { id: "upload", duration: 0 });
+      });
+      advance(SETTLE);
+      expect(translateY()).toBe(0);
+      expect(wrapStyle().opacity).toBe(1);
+    });
+
+    it.each([
+      ["default motion", false],
+      ["reduced motion", true],
+    ])(
+      "%s: up, it stays above the screen until it is removed",
+      (_label, reduced) => {
+        mockReduceMotion = reduced;
+        const { height } = Dimensions.get("window");
+        render(<ToastHost />);
+        show();
+        advance(SETTLE);
+
+        release(-100);
+        advance(SWIPE);
+        for (let i = 0; i < EXIT_STEPS; i += 1) {
+          expect(screen.queryByTestId("toast")).not.toBeNull();
+          expect(translateY()).toBeLessThanOrEqual(-height);
+          advance(EXIT_STEP);
+        }
+        advance(SETTLE);
+        expect(screen.queryByTestId("toast")).toBeNull();
+      },
+    );
+
+    it.each([
+      ["default motion", false],
+      ["reduced motion", true],
+    ])(
+      "%s: down, it stays below its rest position until it is removed",
+      (_label, reduced) => {
+        mockReduceMotion = reduced;
+        render(<ToastHost />);
+        show();
+        advance(SETTLE);
+
+        release(100);
+        advance(SWIPE);
+        for (let i = 0; i < EXIT_STEPS; i += 1) {
+          expect(screen.queryByTestId("toast")).not.toBeNull();
+          // More than the bottom offset plus the card, so the card is under the screen edge.
+          expect(translateY()).toBeGreaterThan(70);
+          advance(EXIT_STEP);
+        }
+        advance(SETTLE);
+        expect(screen.queryByTestId("toast")).toBeNull();
+      },
+    );
   });
 });
 
-describe('toast wrap style without glass: still fades', () => {
+describe("toast wrap style without glass: still fades", () => {
   it.each([
-    ['default motion', false],
-    ['reduced motion', true],
-  ])('%s: opacity follows the enter and exit animations', (_label, reduced) => {
+    ["default motion", false],
+    ["reduced motion", true],
+  ])("%s: opacity follows the enter and exit animations", (_label, reduced) => {
     mockReduceMotion = reduced;
     render(<ToastHost />);
 
     show();
-    expect(screen.queryByTestId('glass-view')).toBeNull();
+    expect(screen.queryByTestId("glass-view")).toBeNull();
     advance(MID_ANIMATION);
     expect(wrapStyle().opacity).toBeGreaterThan(0);
     expect(wrapStyle().opacity).toBeLessThan(1);
@@ -235,8 +299,8 @@ describe('toast wrap style without glass: still fades', () => {
   });
 });
 
-describe('native module access', () => {
-  it('an empty layer does not query the glass module', () => {
+describe("native module access", () => {
+  it("an empty layer does not query the glass module", () => {
     render(<ToastHost />);
     expect(getGlassViewMock).not.toHaveBeenCalled();
   });
