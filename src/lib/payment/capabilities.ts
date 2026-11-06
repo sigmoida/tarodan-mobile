@@ -1,3 +1,5 @@
+import type { PaymentsInstallmentsConfig } from '@/types/installments';
+
 /**
  * Ödeme amacı — PayTR mağazası seçimi (API delta 20).
  *
@@ -20,7 +22,23 @@ export type PaymentConfig = {
   /** Geriye uyum: oto-yenileme açık mı (= purposes.membership). */
   recurringEnabled: boolean;
   purposes?: Partial<Record<PaymentPurpose, Partial<PaymentPurposeCapabilities>>>;
+  /** Installment switch and minimum goods total (ADR 0019). Absent on an older API: off. */
+  installments?: Partial<PaymentsInstallmentsConfig>;
 };
+
+/**
+ * The installment config of `GET /payments/config`, read fail-closed: only an explicit
+ * `enabled: true` with a finite, non-negative `minAmount` turns the selector on. An older API
+ * (no field), a malformed value or a failed config call means no selector, as before.
+ */
+export function installmentsConfigOf(cfg: Partial<PaymentConfig> | null | undefined): PaymentsInstallmentsConfig {
+  const raw = cfg?.installments;
+  const minAmount = typeof raw?.minAmount === 'number' ? raw.minAmount : Number.NaN;
+  if (raw?.enabled !== true || !Number.isFinite(minAmount) || minAmount < 0) {
+    return { enabled: false, minAmount: 0 };
+  }
+  return { enabled: true, minAmount };
+}
 
 /** Yapılandırma alınamazsa güvenli varsayılan: yalnız yeni kart, bypass kapalı. */
 export const SAFE_PAYMENT_CONFIG: PaymentConfig = {

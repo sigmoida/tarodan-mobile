@@ -274,6 +274,11 @@ export const qk = {
      * amaçsız = iki mağaza birlikte (Kayıtlı Kartlarım).
      */
     savedCards: (purpose?: string) => ["saved-cards", purpose ?? "all"] as const,
+    /**
+     * Installment options of one payment for one card (`card` = `bin:<first 8 digits>` or
+     * `saved:<savedCardId>`). Memory only: never in the persisted allow list (`persist.ts`).
+     */
+    installmentOptions: (paymentId: string, card: string) => ["installment-options", paymentId, card] as const,
   },
 
   user: {

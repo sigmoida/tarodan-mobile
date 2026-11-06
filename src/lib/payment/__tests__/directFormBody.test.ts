@@ -68,4 +68,40 @@ describe('buildDirectFormBody', () => {
     const keys = Object.keys(body).join(',').toLowerCase();
     for (const forbidden of ['card_number', 'cc_owner', 'cvv', 'expiry']) expect(keys).not.toContain(forbidden);
   });
+
+  describe('installment (ADR 0019)', () => {
+    it('absent = single payment: no field at all', () => {
+      const body = buildDirectFormBody({ target: { orderId: 'o' }, card: { kind: 'new', save: false }, installment: undefined });
+      expect(body).not.toHaveProperty('installment');
+    });
+
+    it('new card: count, expectedTotal and only the 8-digit BIN; never the card number', () => {
+      const body = buildDirectFormBody({
+        target: { orderId: 'o' },
+        paymentId: 'pay-1',
+        card: { kind: 'new', save: false },
+        distanceSalesAccepted: true,
+        installment: { count: 3, bin: '45467112', expectedTotal: 1066.38 },
+      });
+      expect(body).toEqual({
+        orderId: 'o',
+        paymentId: 'pay-1',
+        saveCard: false,
+        distanceSalesAccepted: true,
+        installment: { count: 3, bin: '45467112', expectedTotal: 1066.38 },
+      });
+      // No run of 9+ digits anywhere in the body (a BIN is at most 8).
+      expect(JSON.stringify(body)).not.toMatch(/\d{9,}/);
+    });
+
+    it('saved card: savedCardId and the count, no BIN', () => {
+      expect(
+        buildDirectFormBody({
+          target: { checkoutGroupId: 'g-1' },
+          card: { kind: 'saved', id: 'card-9' },
+          installment: { count: 6, expectedTotal: 1120 },
+        }),
+      ).toEqual({ checkoutGroupId: 'g-1', savedCardId: 'card-9', installment: { count: 6, expectedTotal: 1120 } });
+    });
+  });
 });

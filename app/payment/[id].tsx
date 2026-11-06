@@ -8,7 +8,14 @@ import { ScreenHeader, ErrorState } from '@/components/common';
 import { captureException } from '@/services/sentry';
 import CardPaymentForm from '@/components/CardPaymentForm';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
-import { paymentCapabilities, SAFE_PAYMENT_CONFIG, type PaymentConfig, type PaymentPurpose } from '@/lib/payment/capabilities';
+import {
+  installmentsConfigOf,
+  paymentCapabilities,
+  SAFE_PAYMENT_CONFIG,
+  type PaymentConfig,
+  type PaymentPurpose,
+} from '@/lib/payment/capabilities';
+import { installmentSelectorAllowed } from '@/lib/payment/installments';
 import {
   paymentKindOf,
   paymentTargetOf,
@@ -80,6 +87,8 @@ export default function PaymentScreen() {
     isMembership: boolean;
     /** Durum yanıtı üyelik dedi ve dijital satış kapalı → ödeme formu yok. */
     digitalBlocked: boolean;
+    /** Installment selector on for this payment (switch, minimum amount, payment kind). */
+    installmentsEnabled: boolean;
   }>({
     loading: true,
     error: null,
@@ -88,6 +97,7 @@ export default function PaymentScreen() {
     cardStorageEnabled: false,
     isMembership,
     digitalBlocked: false,
+    installmentsEnabled: false,
   });
 
   const resolvedRef = useRef(false);
@@ -183,16 +193,24 @@ export default function PaymentScreen() {
         return;
       }
 
+      const amount = data.amount != null ? Number(data.amount) : undefined;
       setState(s => ({
         ...s,
         loading: false,
         error: null,
         target,
-        amount: data.amount != null ? Number(data.amount) : undefined,
+        amount,
         purpose: kind.purpose,
         isMembership: kind.isMembership,
         // Kayıtlı kart yalnız giriş yapmış kullanıcıya gösterilir.
         cardStorageEnabled: paymentCapabilities(cfg, kind.purpose).cardStorageEnabled && !isGuest,
+        installmentsEnabled: installmentSelectorAllowed({
+          config: installmentsConfigOf(cfg),
+          amount,
+          isMembership: kind.isMembership,
+          isBoost: kind.isBoost,
+          target,
+        }),
       }));
     } catch (e: any) {
       captureException(e, {
@@ -301,6 +319,8 @@ export default function PaymentScreen() {
             cardStorageEnabled={state.cardStorageEnabled}
             isGuest={isGuest}
             paymentId={paymentId}
+            installmentsEnabled={state.installmentsEnabled}
+            onPaymentOutdated={load}
             onSuccess={(pid) => routeToSuccess(pid, state.isMembership)}
             onFail={() => routeToFail()}
             onUncertain={() => routeToTarget(state.target!, state.isMembership)}
