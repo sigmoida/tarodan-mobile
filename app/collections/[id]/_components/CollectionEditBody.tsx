@@ -8,6 +8,19 @@ import { Button, EmptyState, IconButton, SectionCard, Switch, Text, Input, Texta
 
 import { styles } from '../_lib/collectionEditStyles';
 import type { CollectionEditController } from '../_hooks/useCollectionEdit';
+import type { Collection } from '../_lib/collectionEditSchema';
+
+/** One item row's image and title (a listing row is a link, a custom item row is not). */
+function EditItemSummary({ item }: { item: Collection['items'][number] }) {
+  return (
+    <>
+      <AppImage source={item.productImage} recyclingKey={String(item.id)} style={styles.itemImage} />
+      <Text variant="bodySm" style={styles.itemTitle} numberOfLines={1}>
+        {item.productTitle}
+      </Text>
+    </>
+  );
+}
 
 /** Kapak seçici, bilgi/gizlilik formu, öğe listesi (SectionCard'lar). Silme sabit alt barda (`edit.tsx`). */
 export function CollectionEditBody({ f }: { f: CollectionEditController }) {
@@ -99,16 +112,20 @@ export function CollectionEditBody({ f }: { f: CollectionEditController }) {
         ) : (
           items.map((item, i) => (
             <View key={item.id} style={[styles.item, i > 0 && styles.divided]}>
-              <Pressable
-                style={styles.itemContent}
-                onPress={() => router.push(`/product/${item.productId}`)}
-                accessibilityRole="button"
-              >
-                <AppImage source={item.productImage} recyclingKey={String(item.id)} style={styles.itemImage} />
-                <Text variant="bodySm" style={styles.itemTitle} numberOfLines={1}>
-                  {item.productTitle}
-                </Text>
-              </Pressable>
+              {/* A custom item (no listing) is not a link, like on the detail screen. */}
+              {item.productId ? (
+                <Pressable
+                  style={styles.itemContent}
+                  onPress={() => router.push(`/product/${item.productId}`)}
+                  accessibilityRole="button"
+                >
+                  <EditItemSummary item={item} />
+                </Pressable>
+              ) : (
+                <View style={styles.itemContent} accessible>
+                  <EditItemSummary item={item} />
+                </View>
+              )}
               <IconButton
                 icon="x-mark"
                 accessibilityLabel={t('collection.removeProduct')}

@@ -16,7 +16,7 @@ export function sortCollectionItems(items: readonly CollectionItemSummary[] | nu
     .sort((a, b) => {
       if (a.isFeatured && !b.isFeatured) return -1;
       if (!a.isFeatured && b.isFeatured) return 1;
-      return a.sortOrder - b.sortOrder;
+      return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
     });
 }
 

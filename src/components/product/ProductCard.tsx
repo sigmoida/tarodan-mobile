@@ -220,7 +220,13 @@ function CardSurface({
 }) {
   if (!onPress) {
     return (
-      <View accessible accessibilityLabel={accessibilityLabel} testID={testID} style={style}>
+      <View
+        accessible
+        accessibilityLabel={accessibilityLabel}
+        accessibilityState={selected ? { selected } : undefined}
+        testID={testID}
+        style={style}
+      >
         {children}
       </View>
     );

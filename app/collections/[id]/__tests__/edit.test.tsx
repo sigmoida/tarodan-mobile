@@ -124,3 +124,30 @@ describe('J30 · Koleksiyon düzenle formu (mobil)', () => {
     expect(api.delete).not.toHaveBeenCalled();
   });
 });
+
+/** A custom item has no listing: its row is not a link (it used to open `/product/undefined`). */
+describe('collection edit: item rows', () => {
+  const push = jest.requireMock('expo-router').router.push as jest.Mock;
+
+  beforeEach(() => {
+    getMock.mockReset();
+    push.mockClear();
+    mockParams = { id: 'col-1' };
+    mockAuth = { user: { id: 'owner-1' } };
+  });
+
+  it('a listing row opens its listing; a custom item row is not a button and does nothing', async () => {
+    const items = [
+      { id: 'l1', productId: 'p1', productTitle: 'Listing row' },
+      { id: 'c1', productTitle: 'Custom row' },
+    ];
+    getMock.mockResolvedValue({ data: { data: collectionFixture({ items }) } });
+    renderWithProviders(<EditCollectionScreen />);
+    fireEvent.press(await screen.findByRole('button', { name: 'Listing row' }));
+    expect(push).toHaveBeenCalledWith('/product/p1');
+    push.mockClear();
+    expect(screen.queryByRole('button', { name: 'Custom row' })).toBeNull();
+    fireEvent.press(screen.getByText('Custom row'));
+    expect(push).not.toHaveBeenCalled();
+  });
+});

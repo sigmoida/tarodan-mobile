@@ -77,7 +77,13 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
   const cover = collection.coverImageUrl ?? collection.coverImage;
   const fallbackTitle = t('product.productFallback');
   const cards = useMemo(
-    () => sortCollectionItems(items).map((item) => ({ key: item.id, card: toCollectionItemCard(item, fallbackTitle) })),
+    () =>
+      sortCollectionItems(items).map((item) => {
+        const card = toCollectionItemCard(item, fallbackTitle);
+        // Built once per item so the memoised card does not re-render on unrelated state.
+        const badges = hasCollectionItemBadges(card) ? <CollectionItemBadges card={card} /> : undefined;
+        return { key: item.id, card, badges };
+      }),
     [items, fallbackTitle],
   );
 
@@ -142,7 +148,7 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
           />
         ) : (
           <View style={styles.itemsGrid}>
-            {cards.map(({ key, card }, index) => (
+            {cards.map(({ key, card, badges }, index) => (
               <View key={key} style={gridCellStyle(index, columns)}>
                 <ProductCard
                   product={card.product}
@@ -153,7 +159,7 @@ export function CollectionDetailBody({ f }: { f: CollectionDetailController }) {
                   // A custom item is not a listing: no link, no price (web `href={null}`).
                   onPress={card.isListing ? undefined : null}
                   noPriceLabel={card.isCustom ? t('collection.notForSale') : undefined}
-                  overlayStart={hasCollectionItemBadges(card) ? <CollectionItemBadges card={card} /> : undefined}
+                  overlayStart={badges}
                   {...(card.isListing && !f.isOwner ? favoriteProps(card.product) : null)}
                 />
               </View>
