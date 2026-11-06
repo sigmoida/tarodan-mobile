@@ -167,3 +167,19 @@ it('another goods total is another key: the options are read again, never the ol
   expect(stateText()).toBe('loading');
   await waitFor(() => expect(memberMock).toHaveBeenCalledTimes(2));
 });
+
+it('after a card change the old card answer is never shown while the new one is debounced', async () => {
+  memberMock.mockImplementation((body: { bin: string }) =>
+    Promise.resolve({ data: body.bin === '45467112' ? ANSWER : { ...ANSWER, options: [ANSWER.options[0]] } }),
+  );
+  const { rerender } = renderWithProviders(<Probe source={bin('45467112')} />);
+  await waitFor(() => expect(stateText()).toBe('options:1,3'));
+
+  rerender(<Probe source={bin('54001234')} />);
+  expect(stateText()).toBe('loading');
+  act(() => jest.advanceTimersByTime(INSTALLMENT_OPTIONS_DEBOUNCE_MS - 1));
+  expect(stateText()).toBe('loading');
+  act(() => jest.advanceTimersByTime(1));
+  await waitFor(() => expect(stateText()).toBe('single:unavailable'));
+  expect(memberMock).toHaveBeenCalledTimes(2);
+});

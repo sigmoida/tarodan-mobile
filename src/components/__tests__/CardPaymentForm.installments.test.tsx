@@ -400,3 +400,58 @@ it('below the minimum: only the note, no options call, single payment payable', 
   expect(optionsMock).not.toHaveBeenCalled();
   expect(directFormMock.mock.calls[0][0]).not.toHaveProperty('installment');
 });
+
+// PCI: no request to our API carries a run of 9+ digits (a BIN is at most 8).
+function expectNoCardNumberSent() {
+  for (const mock of [optionsMock, optionsGuestMock, directFormMock, directFormGuestMock]) {
+    for (const call of mock.mock.calls) expect(JSON.stringify(call[0])).not.toMatch(/\d{9,}/);
+  }
+}
+
+it('typed a new card, then a saved card: options by savedCardId, the body never carries the BIN', async () => {
+  listCardsMock.mockResolvedValue({
+    data: [{ id: 'c-1', last4: '4242', brand: 'Visa', purpose: 'checkout', requireCvv: false }],
+  });
+  renderForm({ cardStorageEnabled: true, purpose: 'checkout' });
+  await screen.findByTestId('installment-option-3');
+
+  // New card typed and priced by its BIN, a count picked.
+  fireEvent.press(screen.getByText('Yeni kart ile öde'));
+  fillNewCard();
+  await waitFor(() => expect(optionsMock).toHaveBeenCalledWith({ bin: '45467112', paymentId: 'pay-1' }, expect.anything()));
+  fireEvent.press(await screen.findByTestId('installment-option-3'));
+
+  // Back to the saved card: the typed number stays in the field but is not this card's.
+  fireEvent.press(screen.getByText(/4242/));
+  expect(payTitle()).toHaveTextContent('1.000,00 TL Öde');
+  fireEvent.press(await screen.findByTestId('installment-option-3'));
+  expect(optionsMock).toHaveBeenLastCalledWith({ savedCardId: 'c-1', paymentId: 'pay-1' }, expect.anything());
+  acceptAndPay();
+  await waitFor(() => expect(directFormMock).toHaveBeenCalled());
+  const body = directFormMock.mock.calls[0][0];
+  expect(body).toEqual({
+    orderId: 'o-1',
+    paymentId: 'pay-1',
+    savedCardId: 'c-1',
+    distanceSalesAccepted: true,
+    installment: { count: 3, expectedTotal: 1066.38 },
+  });
+  expect(JSON.stringify(body)).not.toContain('45467112');
+  expectNoCardNumberSent();
+});
+
+it('pay pressed right after a card change (options not read yet): single payment, no stale count or BIN', async () => {
+  renderForm();
+  fillNewCard();
+  fireEvent.press(await screen.findByTestId('installment-option-3'));
+  fireEvent.press(screen.getByTestId('payment-distance-sales-checkbox'));
+  fireEvent.changeText(screen.getByTestId('card-number'), OTHER_CARD);
+  // Within the 300 ms debounce: the new card has no price yet; Pay is the single payment.
+  expect(payTitle()).not.toBeDisabled();
+  expect(payTitle()).toHaveTextContent('1.000,00 TL Öde');
+  fireEvent.press(screen.getByTestId('card-submit'));
+  await waitFor(() => expect(directFormMock).toHaveBeenCalledTimes(1));
+  expect(directFormMock.mock.calls[0][0]).not.toHaveProperty('installment');
+  expect(optionsMock).toHaveBeenCalledTimes(1);
+  expectNoCardNumberSent();
+});
