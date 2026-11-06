@@ -195,3 +195,56 @@ it('paymentAmountOutOfDate twice on one screen: no second start, the buyer goes 
   expect(paymentsApi.initiate).toHaveBeenCalledTimes(1);
   expect(router.replace).toHaveBeenCalledWith({ pathname: '/orders/[id]', params: { id: 'order-1' } });
 });
+
+it('paymentAmountOutOfDate on a membership payment: no new start, the buyer goes to membership', async () => {
+  getStatusLightMock.mockResolvedValue({
+    data: { status: 'pending', orderId: 'order-m', amount: 1000, isMembershipOrder: true },
+  });
+  renderWithProviders(<PaymentScreen />);
+  await formText();
+  await act(async () => {
+    fireEvent.press(screen.getByTestId('outdated'));
+  });
+  for (const start of ['initiate', 'initiateGuest', 'initiateGroup', 'initiateGroupGuest', 'initiateTradeCash'] as const) {
+    expect(paymentsApi[start]).not.toHaveBeenCalled();
+  }
+  expect(router.replace).toHaveBeenCalledWith('/membership');
+});
+
+it.each([
+  ['trade cash', { tradeId: 't-1' }, {}, 'initiateTradeCash', 't-1'],
+  ['guest order', { orderId: 'order-1' }, { guest: '1' }, 'initiateGuest', 'order-1'],
+  ['member cart', { checkoutGroupId: 'g-1' }, {}, 'initiateGroup', 'g-1'],
+] as const)('paymentAmountOutOfDate on a %s: only its own start call', async (_label, target, extraParams, start, arg) => {
+  mockParams = { id: 'pay-1', ...extraParams };
+  const status = { data: { status: 'pending', amount: 1000, ...target } };
+  getStatusLightMock.mockResolvedValue(status);
+  getStatusLightGuestMock.mockResolvedValue(status);
+  (paymentsApi[start] as jest.Mock).mockResolvedValue({ data: { paymentId: 'pay-1' } });
+  renderWithProviders(<PaymentScreen />);
+  await formText();
+  await act(async () => {
+    fireEvent.press(screen.getByTestId('outdated'));
+  });
+  expect(paymentsApi[start]).toHaveBeenCalledTimes(1);
+  expect(paymentsApi[start]).toHaveBeenCalledWith(arg);
+  for (const other of ['initiate', 'initiateGuest', 'initiateGroup', 'initiateGroupGuest', 'initiateTradeCash'] as const) {
+    if (other !== start) expect(paymentsApi[other]).not.toHaveBeenCalled();
+  }
+});
+
+it('paymentAmountOutOfDate: the form is gone while the payment starts anew (no second Pay)', async () => {
+  let resolveStart: (v: unknown) => void = jest.fn();
+  (paymentsApi.initiate as jest.Mock).mockImplementation(() => new Promise((r) => (resolveStart = r)));
+  renderWithProviders(<PaymentScreen />);
+  await formText();
+  await act(async () => {
+    fireEvent.press(screen.getByTestId('outdated'));
+  });
+  expect(screen.queryByTestId('card-payment-form')).toBeNull();
+  await act(async () => {
+    resolveStart({ data: { paymentId: 'pay-1' } });
+  });
+  expect(await formText()).toBe('installments:on amount:1000');
+  expect(paymentsApi.initiate).toHaveBeenCalledTimes(1);
+});
