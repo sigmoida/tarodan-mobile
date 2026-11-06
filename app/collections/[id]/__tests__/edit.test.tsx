@@ -71,6 +71,9 @@ function collectionFixture(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// The removal flows render the whole form several times and exceed the 5 s default on CI runners.
+jest.setTimeout(20000);
+
 describe('J30 · Koleksiyon düzenle formu (mobil)', () => {
   beforeEach(() => {
     getMock.mockReset();
