@@ -23,10 +23,12 @@ export default function CollectionDetailScreen() {
       title=""
       onBack={goBack}
       loading={f.isLoading}
-      empty={!f.isLoading && !f.collection}
+      error={f.loadFailed}
+      onRetry={f.retry}
+      empty={!f.isLoading && !f.loadFailed && !f.collection}
       emptyState={{
-        icon: 'rectangle-stack',
-        title: t('collection.collectionNotFound'),
+        icon: f.refusal === 'collection.privateCollection' ? 'lock-closed' : 'rectangle-stack',
+        title: t(f.refusal ?? 'collection.collectionNotFound'),
         subtitle: t('emptyState.notFoundHint'),
         actionLabel: t('common.goBack'),
         onAction: goBack,

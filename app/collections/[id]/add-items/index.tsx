@@ -1,84 +1,60 @@
-import { useCallback } from 'react';
-import { View } from 'react-native';
-import Animated from 'react-native-reanimated';
-import { Button, EmptyState, ErrorState, Input, SkeletonText, pageListContentStyle, usePageScrollHandler, usePageContentStyle } from '@/ui';
+import { useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { listWindowing } from '@/lib/list/windowing';
+import { Button, usePageScrollHandler } from '@/ui';
 import { PageShell } from '@/components/common/PageShell';
 import { useAddItems } from './_hooks/useAddItems';
-import { styles } from './_lib/styles';
-import type { Listing } from './_lib/types';
-import { ListingPickerRow } from './_components/ListingPickerRow';
-import { navigateTo } from '@/lib/navigation/goTo';
+import { useAddCustomItem } from './_hooks/useAddCustomItem';
+import { AddItemsSegments, type AddItemsSegment } from './_components/AddItemsSegments';
+import { ListingsPicker } from './_components/ListingsPicker';
+import { CustomItemForm } from './_components/CustomItemForm';
 
-const listingKey = (listing: { id: string }) => listing.id;
-
-/** Koleksiyona ürün ekle — PageShell + arama ve ilan satırları (Ekle/Çıkar). `useAddItems` optimistic mantığın sahibi. */
+/**
+ * Add to a collection (web `AddItemModal`): two segments, "My listings" (pick listings, optimistic
+ * add / remove in `useAddItems`) and "Custom product" (a model that is not a listing, `useAddCustomItem`).
+ * Both controllers live here so switching segments keeps what was typed.
+ */
 export default function AddCollectionItemsScreen() {
   const { t } = useTranslation();
-  const f = useAddItems();
+  const [segment, setSegment] = useState<AddItemsSegment>('listings');
+  const listings = useAddItems();
+  const custom = useAddCustomItem();
   const page = usePageScrollHandler();
-  // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
-  const listContentStyle = usePageContentStyle([pageListContentStyle, styles.list]);
-  const { effectiveItemId, pending, toggle } = f;
-  const renderListing = useCallback(
-    ({ item }: { item: Listing }) => (
-      <ListingPickerRow
-        listing={item}
-        added={!!effectiveItemId(item.id)}
-        busy={!!pending[item.id]}
-        onToggle={toggle}
-      />
-    ),
-    // `effectiveItemId` overlay/sunucu haritası değişince yenilenir → satırlar yeni `added` alır.
-    [effectiveItemId, pending, toggle],
+
+  // Like web, the segment cannot change while the item is being added.
+  const segments = (
+    <AddItemsSegments value={segment} onChange={(next) => !custom.isPending && setSegment(next)} />
   );
+  const isCustom = segment === 'custom';
 
   return (
     <PageShell
       title={t('collection.addProduct')}
-      mode="list"
-      scroll={page}
+      mode={isCustom ? 'scroll' : 'list'}
+      scroll={isCustom ? undefined : page}
       onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-    >
-      <Animated.FlatList
-        {...page.listProps}
-        data={f.isLoading || f.loadFailed ? [] : f.filtered}
-        keyExtractor={listingKey}
-        renderItem={renderListing}
-        {...listWindowing}
-        contentContainerStyle={page.contentStyle(listContentStyle)}
-        keyboardShouldPersistTaps="handled"
-        ListHeaderComponent={
-          <Input
-            placeholder={t('collection.searchListingsPlaceholder')}
-            value={f.search}
-            onChangeText={f.setSearch}
-            leftIconName="magnifying-glass"
-            autoCorrect={false}
+      footer={
+        isCustom ? (
+          <Button
+            testID="custom-item-submit"
+            size="lg"
+            title={t('common.add')}
+            onPress={custom.submit}
+            isLoading={custom.isPending}
+            disabled={custom.isPending}
+            fullWidth
           />
-        }
-        ListEmptyComponent={
-          f.isLoading ? (
-            <View testID="add-items-skeleton">
-              <SkeletonText lines={6} />
-            </View>
-          ) : f.loadFailed ? (
-            <ErrorState placement="list" onRetry={f.retry} />
-          ) : f.listings.length === 0 ? (
-            <EmptyState
-              placement="list"
-              icon="cube"
-              title={t('collection.noActiveListings')}
-              subtitle={t('emptyState.collectionAddListingHint')}
-              action={<Button title={t('product.createListing')} onPress={() => navigateTo('/(tabs)/sell')} />}
-            />
-          ) : (
-            <EmptyState placement="list" icon="magnifying-glass" title={t('collection.noSearchMatch')} subtitle={t('search.tryDifferent')} />
-          )
-        }
-      />
+        ) : undefined
+      }
+    >
+      {isCustom ? (
+        <>
+          {segments}
+          <CustomItemForm c={custom} />
+        </>
+      ) : (
+        <ListingsPicker f={listings} page={page} segments={segments} />
+      )}
     </PageShell>
   );
 }

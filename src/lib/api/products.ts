@@ -146,6 +146,9 @@ export const manufacturersApi = {
 export const carModelsApi = {
   findAll: (params?: { brandId?: string; brandSlug?: string }) =>
     api.get('/car-models', { params }),
+  /** Models of one brand (web `GET /car-models?brand=<slug>`); the body is a list or `{ data: [] }`. */
+  findByBrand: (brandSlug: string) =>
+    api.get('/car-models', { params: { brand: brandSlug } }),
   /** Backend'de yalnızca slug ile detay var (GET /car-models/:slug) — id ile çağrı 404 döner. */
   findBySlug: (slug: string) => api.get(apiPath`/car-models/${slug}`),
 };

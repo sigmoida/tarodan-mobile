@@ -2,22 +2,22 @@ import { useMemo, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { qk } from '@/lib/query';
 import { useTranslation } from 'react-i18next';
 import { appAlert, toast } from '@/ui';
-import { api } from '@/lib/api';
-import { apiPath } from '@/lib/api/path';
+import { collectionsApi } from '@/lib/api';
 import { apiErrorMessage } from '@/lib/api/errorText';
 import { useAuthStore } from '@/stores/authStore';
-import { buildCollectionEditSchema, type CollectionForm, type Collection } from '../_lib/collectionEditSchema';
+import { buildCollectionEditSchema, type CollectionForm } from '../_lib/collectionEditSchema';
+import { useCollectionQuery } from '../../_hooks/useCollectionQuery';
+import { useRemoveCollectionItem } from '../../_hooks/useRemoveCollectionItem';
 import { useCollectionCover } from '../../_hooks/useCollectionCover';
 import { useSafeTimeout } from '@/hooks/useSafeTimeout';
 
 /**
  * Collection edit controller — owns the collection query, RHF form (zod), the
- * update/delete/remove-item mutations, cover-image picker; feedback is toast.
- * Lifted verbatim from the monolithic EditCollectionScreen.
+ * update/delete mutations, the owner's item removal, cover-image picker; feedback is toast.
  */
 export function useCollectionEdit() {
   // Silme sonrası gecikmeli yönlendirme ekrandan çıkılınca iptal olur.
@@ -27,18 +27,11 @@ export function useCollectionEdit() {
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
 
-  const { coverImage, setCoverImage, pickCoverImage, uploadCover } = useCollectionCover();
+  const { coverImage, pickCoverImage, uploadCover, showSavedCover, markCoverSaved } = useCollectionCover();
 
-  // Fetch collection
-  const { data: collection, isLoading } = useQuery<Collection>({
-    queryKey: qk.collections.detail(String(id)),
-    queryFn: async () => {
-      const response = await api.get(apiPath`/collections/${id}`);
-      // Detay ekranıyla AYNI anahtar (`qk.collections.detail`) → aynı şekil: zarf varsa aç.
-      return response.data?.data ?? response.data;
-    },
-    enabled: !!id,
-  });
+  // Fetch collection (the detail screen's query: same key, same body)
+  const { collection, isLoading, refusal, loadFailed, refetch } = useCollectionQuery(id);
+  const { requestRemove } = useRemoveCollectionItem(String(id));
 
   const schema = useMemo(() => buildCollectionEditSchema(t), [t]);
 
@@ -52,23 +45,27 @@ export function useCollectionEdit() {
   });
   const { reset } = form;
 
-  // Update form when collection loads
+  // Fill the form from the collection. It also runs on every refetch (an item removed here or added on
+  // the add-items screen), so what the owner has changed and not saved yet stays.
   useEffect(() => {
     if (collection) {
-      reset({
-        name: collection.name,
-        description: collection.description || '',
-        isPublic: collection.isPublic,
-      });
-      setCoverImage(collection.coverImageUrl);
+      reset(
+        {
+          name: collection.name,
+          description: collection.description || '',
+          isPublic: collection.isPublic,
+        },
+        { keepDirtyValues: true },
+      );
+      showSavedCover(collection.coverImageUrl ?? null);
     }
-  }, [collection, reset, setCoverImage]);
+  }, [collection, reset, showSavedCover]);
 
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: async (data: CollectionForm) => {
       // Metin alanları JSON ile (API @Body() UpdateCollectionDto bekler, FileInterceptor yok)
-      await api.patch(apiPath`/collections/${id}`, {
+      await collectionsApi.update(String(id), {
         name: data.name,
         description: data.description || undefined,
         isPublic: data.isPublic,
@@ -77,6 +74,7 @@ export function useCollectionEdit() {
       // Kapak değiştiyse ayrı multipart uca yükle (PATCH /collections/:id/cover, alan 'cover')
       if (coverImage && coverImage !== collection?.coverImageUrl) {
         await uploadCover(String(id), coverImage);
+        markCoverSaved();
       }
     },
     onSuccess: () => {
@@ -85,34 +83,22 @@ export function useCollectionEdit() {
       queryClient.invalidateQueries({ queryKey: qk.collections.mine });
       toast.success(t('collection.collectionUpdated'));
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(apiErrorMessage(error, t('collection.updateFailed')));
     },
   });
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: () => api.delete(apiPath`/collections/${id}`),
+    mutationFn: () => collectionsApi.delete(String(id)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: qk.collections.all });
       queryClient.invalidateQueries({ queryKey: qk.collections.mine });
       toast.success(t('collection.collectionDeleted'));
       schedule(() => router.replace('/collections'), 1500);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast.error(apiErrorMessage(error, t('collection.deleteFailed')));
-    },
-  });
-
-  // Remove item mutation
-  const removeItemMutation = useMutation({
-    mutationFn: (itemId: string) => api.delete(apiPath`/collections/${id}/items/${itemId}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: qk.collections.detail(String(id)) });
-      toast.success(t('collection.productRemoved'));
-    },
-    onError: (error: any) => {
-      toast.error(apiErrorMessage(error, t('collection.removeFailed')));
     },
   });
 
@@ -127,17 +113,6 @@ export function useCollectionEdit() {
     );
   };
 
-  const handleRemoveItem = (itemId: string, productTitle: string) => {
-    appAlert(
-      t('collection.removeItemTitle'),
-      t('collection.removeItemConfirm', { title: productTitle }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('common.remove'), style: 'destructive', onPress: () => removeItemMutation.mutate(itemId) },
-      ]
-    );
-  };
-
   const onSubmit = (data: CollectionForm) => {
     updateMutation.mutate(data);
   };
@@ -146,6 +121,9 @@ export function useCollectionEdit() {
     id,
     user,
     isLoading,
+    refusal,
+    loadFailed,
+    retry: () => void refetch(),
     collection,
     form,
     coverImage,
@@ -153,7 +131,7 @@ export function useCollectionEdit() {
     updateMutation,
     deleteMutation,
     handleDelete,
-    handleRemoveItem,
+    requestRemove,
     onSubmit,
   };
 }

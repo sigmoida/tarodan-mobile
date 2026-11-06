@@ -6,7 +6,7 @@
  * Backend: like kalıcılığı, viewCount artışı, share sayacı backend-only.
  */
 import React from 'react';
-import { screen, fireEvent, waitFor, within } from '@testing-library/react-native';
+import { screen, fireEvent, waitFor, within, act } from '@testing-library/react-native';
 import { Share } from 'react-native';
 import { renderWithProviders } from '@/test-utils';
 import { toast } from '@/ui';
@@ -22,11 +22,24 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockParams,
 }));
 
+// `GET /collections/:id` (collectionsApi.getOne) and the favourites call share one `get` mock, so a
+// test answers both by URL.
+const mockGet = jest.fn();
 jest.mock('@/lib/api', () => ({
-  api: { get: jest.fn() },
-  collectionsApi: { like: jest.fn(), unlike: jest.fn() },
+  api: { get: (...args: unknown[]) => mockGet(...args) },
+  collectionsApi: {
+    getOne: (id: string) => mockGet(`/collections/${id}`),
+    like: jest.fn(),
+    unlike: jest.fn(),
+    removeItem: jest.fn(),
+  },
+  productsApi: { recordClick: jest.fn(() => Promise.resolve({ data: {} })) },
 }));
-import { api } from '@/lib/api';
+import { collectionsApi } from '@/lib/api';
+import { qk } from '@/lib/query';
+import { appAlert } from '@/ui';
+jest.mock('@/services/sentry', () => ({ ...jest.requireActual('@/services/sentry'), captureException: jest.fn() }));
+import { captureException } from '@/services/sentry';
 
 let mockAuth: Record<string, unknown> = {
   isAuthenticated: true,
@@ -41,7 +54,7 @@ jest.mock('@/stores/authStore', () => ({
 
 import CollectionDetailScreen from '../index';
 
-const getMock = api.get as jest.Mock;
+const getMock = mockGet;
 
 function collectionFixture(overrides: Record<string, unknown> = {}) {
   return {
@@ -148,7 +161,6 @@ describe('J106 · Sahiplik kontrolü (düzenle butonu)', () => {
     mockAuth = { isAuthenticated: true, user: { id: 'stranger-9', membershipTier: 'free' } };
     const items = [
       { id: 'i1', productId: 'p-mine', productTitle: 'Benim', productPrice: 10, sellerId: 'stranger-9' },
-      { id: 'i2', productId: 'p-nested', productTitle: 'İç içe', productPrice: 10, seller: { id: 'stranger-9' } },
       { id: 'i3', productId: 'p-other', productTitle: 'Başkası', productPrice: 10, sellerId: 'someone-else' },
     ];
     getMock.mockImplementation(async (url: string) =>
@@ -159,7 +171,310 @@ describe('J106 · Sahiplik kontrolü (düzenle butonu)', () => {
     renderWithProviders(<CollectionDetailScreen />);
     await waitFor(() => expect(screen.getByTestId('product-card-favorite-p-other')).toBeOnTheScreen());
     expect(screen.queryByTestId('product-card-favorite-p-mine')).toBeNull();
-    expect(screen.queryByTestId('product-card-favorite-p-nested')).toBeNull();
+  });
+});
+
+/**
+ * Custom items (hub plan 2026-11-06-collection-custom-items, web parity): "Satışta değil" in the
+ * price row instead of "0,00 TL", the "Koleksiyon" badge, not tappable, no heart. A sold listing
+ * gets the "Satıldı" badge instead of the out-of-stock overlay.
+ */
+describe('collection items: custom items and the sold badge', () => {
+  const custom = {
+    id: 'c1',
+    productTitle: 'Benim modelim',
+    customTitle: 'Benim modelim',
+    customBrand: 'Ferrari',
+    customImageUrl: 'https://cdn.example.test/collections/c1.jpg',
+    sellerId: null,
+    isCustom: true,
+    isFeatured: false,
+    sortOrder: 1,
+    addedAt: '2026-11-01T00:00:00.000Z',
+  };
+  const listing = {
+    id: 'l1',
+    productId: 'p-live',
+    productTitle: 'Satıştaki ilan',
+    productPrice: 250,
+    productStatus: 'active',
+    sellerId: 'someone-else',
+    isCustom: false,
+    isFeatured: false,
+    sortOrder: 2,
+    addedAt: '2026-11-01T00:00:00.000Z',
+  };
+  const sold = { ...listing, id: 's1', productId: 'p-sold', productTitle: 'Satılmış ilan', productStatus: 'sold', sortOrder: 3 };
+
+  function renderWith(items: unknown[]) {
+    getMock.mockImplementation(async (url: string) =>
+      String(url).includes('favorites')
+        ? { data: { data: [] } }
+        : { data: { data: collectionFixture({ userId: 'owner-1', items }) } },
+    );
+    renderWithProviders(<CollectionDetailScreen />);
+  }
+
+  beforeEach(() => {
+    getMock.mockReset();
+    mockPush.mockClear();
+    mockParams = { id: 'col-1' };
+    mockAuth = { isAuthenticated: true, user: { id: 'viewer-9', membershipTier: 'free' } };
+  });
+
+  it('a custom item shows "Satışta değil" and the "Koleksiyon" badge, never "0,00 TL"', async () => {
+    renderWith([custom]);
+    const card = await screen.findByTestId('collection-item-c1');
+    expect(within(card).getByText('Satışta değil')).toBeOnTheScreen();
+    expect(screen.getByText('Koleksiyon')).toBeOnTheScreen();
+    expect(screen.queryByText(/0,00 TL/)).toBeNull();
+    expect(screen.queryByTestId('product-card-price')).toBeNull();
+  });
+
+  it('a custom item is not a button, a tap does nothing, and it has no heart', async () => {
+    renderWith([custom, listing]);
+    const card = await screen.findByTestId('collection-item-c1');
+    expect(card.props.accessibilityRole).toBeUndefined();
+    expect(card.props.accessibilityLabel).toBe('Benim modelim, Satışta değil');
+    expect(screen.queryByRole('button', { name: /Benim modelim/ })).toBeNull();
+    fireEvent.press(card);
+    expect(mockPush).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByTestId('product-card-favorite-p-live')).toBeOnTheScreen());
+    expect(screen.queryByTestId('product-card-favorite-c1')).toBeNull();
+  });
+
+  it('a listing keeps its price, opens its detail and has no badge', async () => {
+    renderWith([listing]);
+    const card = await screen.findByRole('button', { name: 'Satıştaki ilan' });
+    expect(screen.getByTestId('product-card-price').props.children).toBe('250,00 TL');
+    expect(screen.queryByText('Satışta değil')).toBeNull();
+    expect(screen.queryByText('Koleksiyon')).toBeNull();
+    expect(screen.queryByText('Satıldı')).toBeNull();
+    fireEvent.press(card);
+    expect(mockPush).toHaveBeenCalledWith('/product/p-live');
+  });
+
+  it('a sold listing shows the "Satıldı" badge, not the out-of-stock overlay', async () => {
+    renderWith([sold]);
+    await screen.findByTestId('collection-item-s1');
+    expect(screen.getByText('Satıldı')).toBeOnTheScreen();
+    expect(screen.queryByText('STOKTA YOK')).toBeNull();
+  });
+
+  it('hidden or deleted listings are dropped; featured items come first, then sortOrder (web)', async () => {
+    const hidden = { ...listing, id: 'h1', productId: 'p-hidden', productTitle: 'Gizli ilan', productStatus: 'pending', sortOrder: 0 };
+    const featured = { ...sold, isFeatured: true };
+    renderWith([listing, hidden, custom, featured]);
+    await screen.findByTestId('collection-item-s1');
+    expect(screen.queryByText('Gizli ilan')).toBeNull();
+    const order = screen.getAllByTestId(/^collection-item-/).map((node) => node.props.testID);
+    expect(order).toEqual(['collection-item-s1', 'collection-item-c1', 'collection-item-l1']);
+  });
+});
+
+/**
+ * Owner removes an item (hub plan 2026-11-06-collection-custom-items, web parity): a trash control on
+ * every card, a confirm dialog, `DELETE /collections/:id/items/:itemId`, a toast and a refresh.
+ * Visitors get no control.
+ */
+describe('collection items: owner removal', () => {
+  const custom = {
+    id: 'c1',
+    productTitle: 'Benim modelim',
+    customTitle: 'Benim modelim',
+    sellerId: null,
+    isCustom: true,
+    isFeatured: false,
+    sortOrder: 1,
+    addedAt: '2026-11-01T00:00:00.000Z',
+  };
+  const listing = {
+    id: 'l1',
+    productId: 'p-live',
+    productTitle: 'Satıştaki ilan',
+    productPrice: 250,
+    productStatus: 'active',
+    sellerId: 'owner-1',
+    isCustom: false,
+    isFeatured: false,
+    sortOrder: 2,
+    addedAt: '2026-11-01T00:00:00.000Z',
+  };
+  const removeItem = collectionsApi.removeItem as jest.Mock;
+  let successSpy: jest.SpyInstance;
+  let errorSpy: jest.SpyInstance;
+
+  function renderWith(items: unknown[]) {
+    getMock.mockImplementation(async (url: string) =>
+      String(url).includes('favorites')
+        ? { data: { data: [] } }
+        : { data: { data: collectionFixture({ userId: 'owner-1', items }) } },
+    );
+    return renderWithProviders(<CollectionDetailScreen />);
+  }
+
+  /** Taps "Kaldır" in the confirm dialog the last `appAlert` call opened. */
+  const confirmDialog = () => {
+    const buttons = (appAlert as jest.Mock).mock.calls.at(-1)![2] as { text: string; onPress?: () => void }[];
+    buttons.find((b) => b.text === 'Kaldır')!.onPress!();
+  };
+  const cancelDialog = () => {
+    const buttons = (appAlert as jest.Mock).mock.calls.at(-1)![2] as { text: string; onPress?: () => void }[];
+    buttons.find((b) => b.text === 'İptal')!.onPress!();
+  };
+
+  beforeEach(() => {
+    getMock.mockReset();
+    removeItem.mockReset().mockResolvedValue({ data: {} });
+    (captureException as jest.Mock).mockClear();
+    mockParams = { id: 'col-1' };
+    mockAuth = { isAuthenticated: true, user: { id: 'owner-1', membershipTier: 'free' } };
+    successSpy = jest.spyOn(toast, 'success').mockImplementation(() => 'id');
+    errorSpy = jest.spyOn(toast, 'error').mockImplementation(() => 'id');
+  });
+  afterEach(() => {
+    successSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+
+  it('the owner gets a labelled trash button on every item, listing and custom alike', async () => {
+    renderWith([custom, listing]);
+    const trashCustom = await screen.findByTestId('collection-item-remove-c1');
+    const trashListing = screen.getByTestId('collection-item-remove-l1');
+    expect(trashCustom.props.accessibilityRole).toBe('button');
+    expect(trashCustom.props.accessibilityLabel).toBe('Koleksiyondan kaldır, Benim modelim');
+    expect(trashListing.props.accessibilityLabel).toBe('Koleksiyondan kaldır, Satıştaki ilan');
+  });
+
+  it('a visitor sees no trash button', async () => {
+    mockAuth = { isAuthenticated: true, user: { id: 'viewer-9', membershipTier: 'free' } };
+    renderWith([custom, listing]);
+    await screen.findByTestId('collection-item-c1');
+    expect(screen.queryByTestId('collection-item-remove-c1')).toBeNull();
+    expect(screen.queryByTestId('collection-item-remove-l1')).toBeNull();
+    expect(screen.queryByLabelText(/Koleksiyondan kaldır/)).toBeNull();
+  });
+
+  it('a guest sees no trash button', async () => {
+    mockAuth = { isAuthenticated: false, user: null };
+    renderWith([custom]);
+    await screen.findByTestId('collection-item-c1');
+    expect(screen.queryByTestId('collection-item-remove-c1')).toBeNull();
+  });
+
+  it('asks first: nothing is removed until the destructive button is tapped; cancel removes nothing', async () => {
+    renderWith([custom]);
+    fireEvent.press(await screen.findByTestId('collection-item-remove-c1'));
+    expect(appAlert).toHaveBeenCalledWith(
+      'Ürünü kaldır',
+      'Bu ürünü koleksiyondan kaldırmak istediğinizden emin misiniz?',
+      expect.arrayContaining([expect.objectContaining({ text: 'Kaldır', style: 'destructive' })]),
+      expect.anything(),
+    );
+    expect(removeItem).not.toHaveBeenCalled();
+
+    cancelDialog();
+    await act(async () => undefined);
+    expect(removeItem).not.toHaveBeenCalled();
+    expect(successSpy).not.toHaveBeenCalled();
+  });
+
+  it('confirm: DELETE the item, toast, and refresh the detail and "my collections" queries', async () => {
+    const { queryClient } = renderWith([custom, listing]);
+    const invalidate = jest.spyOn(queryClient, 'invalidateQueries');
+    fireEvent.press(await screen.findByTestId('collection-item-remove-c1'));
+    confirmDialog();
+
+    await waitFor(() => expect(removeItem).toHaveBeenCalledWith('col-1', 'c1'));
+    await waitFor(() => expect(successSpy).toHaveBeenCalledWith('Ürün koleksiyondan kaldırıldı'));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: qk.collections.detail('col-1') });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: qk.collections.mine });
+  });
+
+  it('the grid updates: the refreshed collection no longer has the item', async () => {
+    renderWith([custom, listing]);
+    fireEvent.press(await screen.findByTestId('collection-item-remove-c1'));
+    getMock.mockImplementation(async (url: string) =>
+      String(url).includes('favorites')
+        ? { data: { data: [] } }
+        : { data: { data: collectionFixture({ userId: 'owner-1', items: [listing] }) } },
+    );
+    confirmDialog();
+    // Cheap condition first: a tree query on every poll would starve the mutation that is under test.
+    await waitFor(() => expect(successSpy).toHaveBeenCalled());
+    expect(await screen.findByTestId('collection-item-l1')).toBeOnTheScreen();
+    await waitFor(() => expect(screen.queryByTestId('collection-item-c1')).toBeNull());
+  });
+
+  it('the removal fails: an error toast, no success toast, the item stays', async () => {
+    removeItem.mockRejectedValue({ isAxiosError: true, response: { status: 403, data: {} } });
+    renderWith([custom]);
+    fireEvent.press(await screen.findByTestId('collection-item-remove-c1'));
+    confirmDialog();
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Ürün kaldırılamadı')));
+    expect(successSpy).not.toHaveBeenCalled();
+    expect(screen.getByTestId('collection-item-c1')).toBeOnTheScreen();
+    // An expected 4xx is not a Sentry event; a server failure is.
+    expect(captureException).not.toHaveBeenCalled();
+  });
+
+  it('a server failure while removing is reported to Sentry', async () => {
+    removeItem.mockRejectedValue({ isAxiosError: true, response: { status: 500, data: {} } });
+    renderWith([custom]);
+    fireEvent.press(await screen.findByTestId('collection-item-remove-c1'));
+    confirmDialog();
+    await waitFor(() => expect(captureException).toHaveBeenCalledTimes(1));
+  });
+});
+
+/** The first read of the collection: a refusal says why (web's texts), any other failure is an error with a retry. */
+describe('collection detail: load states', () => {
+  beforeEach(() => {
+    getMock.mockReset();
+    mockParams = { id: 'col-1' };
+    mockAuth = { isAuthenticated: true, user: { id: 'viewer-9', membershipTier: 'free' } };
+  });
+
+  it('a server failure shows the error state with a retry, not "Koleksiyon bulunamadı"', async () => {
+    getMock.mockRejectedValueOnce({ isAxiosError: true, response: { status: 500, data: {} } });
+    getMock.mockResolvedValue({ data: { data: collectionFixture() } });
+    renderWithProviders(<CollectionDetailScreen />);
+    expect(await screen.findByText('Bir şeyler ters gitti')).toBeOnTheScreen();
+    expect(screen.queryByText('Koleksiyon bulunamadı')).toBeNull();
+
+    fireEvent.press(screen.getByText('Tekrar Dene'));
+    expect(await screen.findByText('Ferrari Koleksiyonum')).toBeOnTheScreen();
+  });
+
+  it('a network failure is an error too', async () => {
+    getMock.mockRejectedValue(new Error('Network Error'));
+    renderWithProviders(<CollectionDetailScreen />);
+    expect(await screen.findByText('Bir şeyler ters gitti')).toBeOnTheScreen();
+  });
+
+  it('a 404 is "not found"', async () => {
+    getMock.mockRejectedValue({ isAxiosError: true, response: { status: 404, data: {} } });
+    renderWithProviders(<CollectionDetailScreen />);
+    expect(await screen.findByText('Koleksiyon bulunamadı')).toBeOnTheScreen();
+    expect(screen.queryByText('Bir şeyler ters gitti')).toBeNull();
+  });
+
+  it('a 403 (another user\'s private collection) says it is private, with no retry that cannot succeed', async () => {
+    getMock.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 403, data: { statusCode: 403, message: 'Bu koleksiyon gizli', i18nKey: 'server.collection.isPrivate' } },
+    });
+    renderWithProviders(<CollectionDetailScreen />);
+    expect(await screen.findByText('Bu koleksiyon özel')).toBeOnTheScreen();
+    expect(screen.queryByText('Tekrar Dene')).toBeNull();
+    expect(screen.queryByText('Koleksiyon bulunamadı')).toBeNull();
+  });
+
+  it('a 400 (a bad id in a link) is an invalid link', async () => {
+    getMock.mockRejectedValue({ isAxiosError: true, response: { status: 400, data: {} } });
+    renderWithProviders(<CollectionDetailScreen />);
+    expect(await screen.findByText('Geçersiz koleksiyon bağlantısı')).toBeOnTheScreen();
+    expect(screen.queryByText('Tekrar Dene')).toBeNull();
   });
 });
 

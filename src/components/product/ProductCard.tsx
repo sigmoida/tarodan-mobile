@@ -1,5 +1,13 @@
 import React, { useContext, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View, type LayoutChangeEvent, type LayoutRectangle, type ViewStyle } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  View,
+  type LayoutChangeEvent,
+  type LayoutRectangle,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -68,8 +76,19 @@ export interface ProductCardProps {
    * dar raylarda `false` (başlık, fiyat ve görsel her zaman kalır).
    */
   showMeta?: boolean;
-  /** Varsayılan: `/product/:id` açılır. */
-  onPress?: () => void;
+  /**
+   * Default: opens `/product/:id`. `null` renders a non-navigating card (web `href={null}`, a
+   * collection's custom item): one accessible view without a button role, no click tracking, no
+   * prefetch, no heart and no card action.
+   */
+  onPress?: (() => void) | null;
+  /**
+   * Not-for-sale variant (web `noPriceLabel`; a collection's custom item: "Satışta değil"): this
+   * text replaces the price row, and the card shows no listing badge (discount, boosted, trade,
+   * campaign), no stock state and no card action. The heart still follows `onPress`. Screen
+   * readers read it after the title.
+   */
+  noPriceLabel?: string;
   /** Sıralama sinyali (tıklama kaydı). Ürün açmayan kullanımlarda (seçim listesi) `false`. */
   trackClick?: boolean;
   /**
@@ -175,6 +194,59 @@ function badgeA11yText(b: ProductCardBadge, t: TFunction): string {
   }
 }
 
+/**
+ * The card's own surface: a button that opens the listing or, without `onPress` (a non-navigating
+ * card, web `href={null}`), one accessible view with the same label and no role (a tap does
+ * nothing, so it is not announced as a button).
+ */
+function CardSurface({
+  style,
+  accessibilityLabel,
+  selected,
+  testID,
+  onPress,
+  onPressIn,
+  onPressOut,
+  children,
+}: {
+  style: StyleProp<ViewStyle>;
+  accessibilityLabel: string;
+  selected: boolean;
+  testID?: string;
+  onPress?: () => void;
+  onPressIn?: () => void;
+  onPressOut?: () => void;
+  children: React.ReactNode;
+}) {
+  if (!onPress) {
+    return (
+      <View
+        accessible
+        accessibilityLabel={accessibilityLabel}
+        accessibilityState={selected ? { selected } : undefined}
+        testID={testID}
+        style={style}
+      >
+        {children}
+      </View>
+    );
+  }
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ selected }}
+      style={({ pressed }) => [style, pressed && styles.pressed]}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
 /** Bir `Text` kısa yolu: web kartındaki "text-xs text-subtle" meta metni. */
 function MetaItem({ icon, color, children }: { icon: 'star' | 'heart' | 'eye'; color: string; children: React.ReactNode }) {
   return (
@@ -246,6 +318,7 @@ function ProductCardBase({
   layout = 'grid',
   showMeta = true,
   onPress,
+  noPriceLabel,
   trackClick = true,
   prefetchDetail,
   selected = false,
@@ -263,7 +336,11 @@ function ProductCardBase({
   // Only the cart toggle is ever drawn: `boost` (own listing, digital sales on) renders nothing on
   // mobile (ADR 0015), like `none`.
   const action = useProductCardAction(product);
-  const withAction = showAction && !footer && action.kind === 'add_to_cart';
+  // A non-navigating card (web `href={null}`) has no heart and no action; a not-for-sale card
+  // (`noPriceLabel`) has no action, no listing badges and no stock state (web).
+  const interactive = onPress !== null;
+  const forSale = noPriceLabel === undefined;
+  const withAction = interactive && forSale && showAction && !footer && action.kind === 'add_to_cart';
   // Text or icon-only by the CARD's measured width (web container query `@card-wide`); until the
   // first layout the icon shows, which is what a phone grid keeps. A boolean, so a phone card does
   // not re-render on its first layout.
@@ -285,28 +362,32 @@ function ProductCardBase({
   // Liste: görsel satırda dikey ortalı (web `items-center`; konum gövde yüksekliğine bağlı) — kalp
   // görselin ÖLÇÜLEN çerçevesine yerleşir ve ölçüm gelene dek çizilmez (ilk karede zıplama yok).
   const [listImageFrame, setListImageFrame] = useState<LayoutRectangle | null>(null);
-  const onListImageLayout = onToggleFavorite
+  const onFavorite = interactive ? onToggleFavorite : undefined;
+  const onListImageLayout = onFavorite
     ? (e: LayoutChangeEvent) => setListImageFrame(e.nativeEvent.layout)
     : undefined;
-  const heart = onToggleFavorite ? (
-    <FavoriteHeart productId={product.id} title={product.title} isFavorite={isFavorite} onToggle={onToggleFavorite} />
+  const heart = onFavorite ? (
+    <FavoriteHeart productId={product.id} title={product.title} isFavorite={isFavorite} onToggle={onFavorite} />
   ) : null;
 
+  // Stock and the listing badges describe something for sale; the not-for-sale card shows neither.
   const { effective, original, onSale, salePercent, outOfStock, isTrade, badges, listBadges } = useMemo(
     () => ({
       effective: getProductEffectivePrice(product),
       original: getProductOriginalPriceForDisplay(product),
       onSale: isProductOnSaleDisplay(product) && getProductOriginalPriceForDisplay(product) > getProductEffectivePrice(product),
-      salePercent: getProductSalePercent(product),
-      outOfStock: isProductOutOfStock(product),
-      isTrade: isProductTradeBadgeVisible(product),
-      badges: selectProductCardBadges(product),
+      salePercent: forSale ? getProductSalePercent(product) : 0,
+      outOfStock: forSale && isProductOutOfStock(product),
+      isTrade: forSale && isProductTradeBadgeVisible(product),
+      badges: forSale ? selectProductCardBadges(product) : [],
       // The list row shows the discount, boosted and trade badges (web: the grid rule, no limit).
-      listBadges: selectProductCardBadges(product, Infinity).filter(
-        (b) => b.kind === 'sale' || b.kind === 'boosted' || b.kind === 'trade',
-      ),
+      listBadges: forSale
+        ? selectProductCardBadges(product, Infinity).filter(
+            (b) => b.kind === 'sale' || b.kind === 'boosted' || b.kind === 'trade',
+          )
+        : [],
     }),
-    [product],
+    [product, forSale],
   );
   const listBoosted = listBadges.some((b) => b.kind === 'boosted');
   // Screen readers: the visible badges join the card label (grid: the stack; list: discount, boosted, trade).
@@ -321,11 +402,14 @@ function ProductCardBase({
       />
     </View>
   ) : null;
-  const cardLabel = [product.title, ...visibleBadges.map((b) => badgeA11yText(b, t))].join(', ');
+  // Then the not-for-sale text, which stands where the price is (web reads it as the row's text).
+  const cardLabel = [product.title, ...visibleBadges.map((b) => badgeA11yText(b, t)), noPriceLabel]
+    .filter((part) => !!part)
+    .join(', ');
 
   // Sağlayıcı yoksa (izole bileşen testleri) prefetch atlanır — `useQueryClient` gibi fırlatmaz.
   const queryClient = useContext(QueryClientContext);
-  const shouldPrefetch = prefetchDetail ?? !onPress;
+  const shouldPrefetch = interactive && (prefetchDetail ?? !onPress);
   // Kaydırırken değil, gerçek dokunuşta / kısa basılı tutmada çekilir (`usePressPrefetch`).
   const pressPrefetch = usePressPrefetch(
     shouldPrefetch && queryClient ? () => prefetchProductDetail(queryClient, product.id) : undefined,
@@ -341,20 +425,25 @@ function ProductCardBase({
 
   const imageSource = product.imageUrl ?? product.images;
   const tradeIcon = TRADE_ICON;
+  const surfaceProps = {
+    accessibilityLabel: cardLabel,
+    selected,
+    testID,
+    ...(interactive
+      ? { onPress: handlePress, onPressIn: pressPrefetch.onPressIn, onPressOut: pressPrefetch.onPressOut }
+      : null),
+  };
+  // The not-for-sale row holds the label instead (web `text-sm text-muted`; the row keeps its height).
+  const noPrice = (
+    <Text variant="bodySm" tone="muted" numberOfLines={1} testID="product-card-no-price">
+      {noPriceLabel}
+    </Text>
+  );
 
   if (layout === 'list') {
     return (
       <View style={style}>
-        <Pressable
-          onPress={handlePress}
-          onPressIn={pressPrefetch.onPressIn}
-          onPressOut={pressPrefetch.onPressOut}
-          testID={testID}
-          accessibilityRole="button"
-          accessibilityLabel={cardLabel}
-          accessibilityState={{ selected }}
-          style={({ pressed }) => [styles.listCard, selected && styles.selected, pressed && styles.pressed]}
-        >
+        <CardSurface {...surfaceProps} style={[styles.listCard, selected && styles.selected]}>
           <View style={styles.listImage} onLayout={onListImageLayout}>
             <AppImage
               source={imageSource}
@@ -390,20 +479,24 @@ function ProductCardBase({
             ) : null}
           </View>
           <View style={styles.listPrice}>
-            <View style={styles.listPriceLine}>
-              {onSale ? (
-                <Text variant="bodySm" tone="subtle" style={styles.struck} testID="product-card-old-price">
-                  {formatPrice(original)}
+            {forSale ? (
+              <View style={styles.listPriceLine}>
+                {onSale ? (
+                  <Text variant="bodySm" tone="subtle" style={styles.struck} testID="product-card-old-price">
+                    {formatPrice(original)}
+                  </Text>
+                ) : null}
+                <Text variant="h3" weight="bold" tone="primary" testID="product-card-price">
+                  {formatPrice(effective)}
                 </Text>
-              ) : null}
-              <Text variant="h3" weight="bold" tone="primary" testID="product-card-price">
-                {formatPrice(effective)}
-              </Text>
-              {salePercent >= 1 ? <ProductBadge variant="sale">%{salePercent}</ProductBadge> : null}
-            </View>
+                {salePercent >= 1 ? <ProductBadge variant="sale">%{salePercent}</ProductBadge> : null}
+              </View>
+            ) : (
+              noPrice
+            )}
             {actionSpacer}
           </View>
-        </Pressable>
+        </CardSurface>
         {actionButton}
         {heart && listImageFrame ? (
           <View style={[styles.favoriteBox, listHeartPosition(listImageFrame)]}>{heart}</View>
@@ -416,16 +509,7 @@ function ProductCardBase({
 
   return (
     <View style={[styles.gridWrap, style]} onLayout={onCardLayout}>
-      <Pressable
-        onPress={handlePress}
-        onPressIn={pressPrefetch.onPressIn}
-        onPressOut={pressPrefetch.onPressOut}
-        testID={testID}
-        accessibilityRole="button"
-        accessibilityLabel={cardLabel}
-        accessibilityState={{ selected }}
-        style={({ pressed }) => [styles.gridCard, selected && styles.selected, pressed && styles.pressed]}
-      >
+      <CardSurface {...surfaceProps} style={[styles.gridCard, selected && styles.selected]}>
         <View style={styles.gridImage}>
           <AppImage
             source={imageSource}
@@ -478,30 +562,34 @@ function ProductCardBase({
             {/* Web price row: the price at the left, the action at the bottom right; the action
                 wraps under the price when both do not fit. One height on every card of a row. */}
             <View style={styles.priceBlock}>
-              <View style={styles.priceColumn}>
-                {onSale ? (
-                  <Text variant="bodySm" tone="subtle" style={styles.struck} testID="product-card-old-price">
-                    {formatPrice(original)}
+              {forSale ? (
+                <View style={styles.priceColumn}>
+                  {onSale ? (
+                    <Text variant="bodySm" tone="subtle" style={styles.struck} testID="product-card-old-price">
+                      {formatPrice(original)}
+                    </Text>
+                  ) : null}
+                  {/* In a narrow grid cell (360pt) a long price does not wrap; it shrinks slightly instead. */}
+                  <Text
+                    variant="body"
+                    weight="bold"
+                    tone="primary"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.85}
+                    testID="product-card-price"
+                  >
+                    {formatPrice(effective)}
                   </Text>
-                ) : null}
-                {/* Dar ızgara hücresinde (360pt) uzun fiyat sarmaz; gerekirse hafifçe küçülür. */}
-                <Text
-                  variant="body"
-                  weight="bold"
-                  tone="primary"
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.85}
-                  testID="product-card-price"
-                >
-                  {formatPrice(effective)}
-                </Text>
-              </View>
+                </View>
+              ) : (
+                noPrice
+              )}
               {actionSpacer ? <View style={styles.actionSlot}>{actionSpacer}</View> : null}
             </View>
           </View>
         </View>
-      </Pressable>
+      </CardSurface>
       {footer ? <View style={styles.gridFooter}>{footer}</View> : null}
       {actionButton}
       {heart && !overlay ? (

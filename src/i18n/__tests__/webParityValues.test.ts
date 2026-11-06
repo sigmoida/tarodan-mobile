@@ -30,6 +30,11 @@ describe('web ile eşitlenen ortak metinler', () => {
     ['product.cardAction.addToCartAria', '{title} ürününü sepete ekle', 'Add {title} to cart'],
     ['product.cardAction.removeFromCartAria', '{title} ürününü sepetten çıkar', 'Remove {title} from cart'],
     ['product.sponsored', 'Sponsorlu', 'Sponsored'],
+    // Collection custom items and badges (hub plan 2026-11-06-collection-custom-items).
+    ['collection.notForSale', 'Satışta değil', 'Not for sale'],
+    ['collection.collection', 'Koleksiyon', 'Collection'],
+    ['collection.removeItem', 'Koleksiyondan kaldır', 'Remove item'],
+    ['product.statusSold', 'Satıldı', 'Sold'],
     ['legal.platformServiceSales.title', 'Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi', 'Pre-contract Information and Distance Service Contract'],
     ['legal.withdrawalWaiverTitle', 'Cayma Hakkı Onayı', 'Withdrawal Waiver'],
     [

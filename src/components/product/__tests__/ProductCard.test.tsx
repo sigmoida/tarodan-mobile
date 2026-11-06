@@ -429,3 +429,102 @@ describe('ProductCard — liste ve slotlar', () => {
     });
   });
 });
+
+/** Web `noPriceLabel`: a collection's custom item has no price, so the card says so instead. */
+describe('ProductCard — noPriceLabel', () => {
+  beforeEach(() => jest.clearAllMocks());
+  const buyable = { ...base, status: 'active', availableQuantity: null };
+
+  it.each(['grid', 'list'] as const)('%s: the label replaces the price, the old price and the discount badge', (layout) => {
+    render(
+      <ProductCard
+        layout={layout}
+        product={{ ...base, price: 0, oldPrice: 100, discountPercent: 30 }}
+        noPriceLabel="Satışta değil"
+      />,
+    );
+    expect(screen.getByTestId('product-card-no-price').props.children).toBe('Satışta değil');
+    expect(screen.queryByTestId('product-card-price')).toBeNull();
+    expect(screen.queryByTestId('product-card-old-price')).toBeNull();
+    expect(screen.queryByText(/TL$/)).toBeNull();
+    expect(screen.queryByText(/^%/)).toBeNull();
+  });
+
+  it.each(['grid', 'list'] as const)('%s: no listing badges and no stock state (web)', (layout) => {
+    const listingFields = { isBoosted: true, tradeAvailable: true, feeCampaigns: ['Kargo Bedava'], status: 'sold' };
+    render(
+      <ProductCard layout={layout} product={{ ...base, ...listingFields } as never} noPriceLabel="Satışta değil" />,
+    );
+    expect(screen.queryByText('Öne Çıkan')).toBeNull();
+    expect(screen.queryByText('Takas')).toBeNull();
+    expect(screen.queryByLabelText('Takas')).toBeNull();
+    expect(screen.queryByText('Kargo Bedava')).toBeNull();
+    expect(screen.queryByText('STOKTA YOK')).toBeNull();
+  });
+
+  it('no card action; the heart still follows onPress (web: it follows href)', () => {
+    const { rerender } = renderWithProviders(<ProductCard product={buyable} onToggleFavorite={jest.fn()} />);
+    // Baseline: the same card with a price draws both.
+    expect(screen.getByTestId('product-card-action-spacer')).toBeTruthy();
+    expect(screen.getByTestId('product-card-favorite-p1')).toBeTruthy();
+    rerender(<ProductCard product={buyable} onToggleFavorite={jest.fn()} noPriceLabel="Satışta değil" />);
+    expect(screen.queryByTestId('product-card-action-spacer')).toBeNull();
+    expect(screen.getByTestId('product-card-favorite-p1')).toBeTruthy();
+  });
+
+  it('accessibility: the label reads the title, then the no-price text', () => {
+    render(<ProductCard product={base} noPriceLabel="Satışta değil" />);
+    expect(screen.getByRole('button', { name: 'Hot Wheels Supra, Satışta değil' })).toBeTruthy();
+  });
+
+  it('without the prop the price row is unchanged', () => {
+    render(<ProductCard product={base} />);
+    expect(screen.getByTestId('product-card-price').props.children).toBe('100,00 TL');
+    expect(screen.queryByTestId('product-card-no-price')).toBeNull();
+  });
+});
+
+/** Web `href={null}`: a non-navigating card (a collection's custom item). */
+describe('ProductCard — onPress null (not pressable)', () => {
+  beforeEach(() => jest.clearAllMocks());
+  const buyable = { ...base, status: 'active', availableQuantity: null };
+
+  it.each(['grid', 'list'] as const)('%s: no button role; one accessible view with the card label', (layout) => {
+    render(<ProductCard layout={layout} product={base} onPress={null} noPriceLabel="Satışta değil" testID="card" />);
+    expect(screen.queryByRole('button')).toBeNull();
+    const card = screen.getByTestId('card');
+    expect(card.props.accessible).toBe(true);
+    expect(card.props.accessibilityRole).toBeUndefined();
+    expect(card.props.accessibilityLabel).toBe('Hot Wheels Supra, Satışta değil');
+    expect(card.props.onPress).toBeUndefined();
+    expect(screen.getByText('Hot Wheels Supra')).toBeTruthy();
+  });
+
+  it('a tap does nothing: no navigation, no click record, no prefetch', () => {
+    jest.useFakeTimers();
+    try {
+      renderWithProviders(<ProductCard product={base} onPress={null} testID="card" />);
+      const card = screen.getByTestId('card');
+      fireEvent.press(card);
+      fireEvent(card, 'pressIn');
+      act(() => jest.advanceTimersByTime(PRESS_PREFETCH_DELAY_MS + 50));
+    } finally {
+      jest.useRealTimers();
+    }
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(productsApi.recordClick).not.toHaveBeenCalled();
+    expect(prefetchProductDetail).not.toHaveBeenCalled();
+  });
+
+  it('no heart and no card action', () => {
+    renderWithProviders(<ProductCard product={buyable} onPress={null} onToggleFavorite={jest.fn()} />);
+    expect(screen.queryByTestId('product-card-favorite-p1')).toBeNull();
+    expect(screen.queryByTestId('product-card-action-spacer')).toBeNull();
+    expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('the caller slots still render (badges at the top left)', () => {
+    render(<ProductCard product={base} onPress={null} overlayStart={<Text>Koleksiyon</Text>} />);
+    expect(screen.getByText('Koleksiyon')).toBeTruthy();
+  });
+});
