@@ -5,7 +5,7 @@
  * ekler, 401'de refresh dener ve olmazsa `logout()` + login'e `router.replace`
  * yapar; 403 `USER_BANNED`'da `/banned`'a yönlendirir. Misafir ödemesi bu
  * yoldan geçerse ödeme ortasında login ekranına düşebilir. Misafir verify,
- * confirm-failed ve direct-form (initiate-guest ve status-guest gibi)
+ * confirm-failed, direct-form ve installment-options (initiate-guest ve status-guest gibi)
  * `guestApi` tabanlı sarmalayıcıdan geçmeli; üye yolu `api`'den.
  *
  * Gerçek axios instance'ları + test adaptörü: başlıklar interceptor'lardan
@@ -100,6 +100,11 @@ const guestCalls: Array<[string, () => Promise<unknown>, string]> = [
     () => paymentsApi.directFormGuest({ checkoutGroupId: GROUP, paymentId: PAY, saveCard: false }),
     '/payments/direct-form',
   ],
+  [
+    'installment-options',
+    () => paymentsApi.installmentOptionsGuest({ bin: '45467112', paymentId: PAY }),
+    '/payments/installment-options',
+  ],
 ];
 
 describe.each(guestCalls)('misafir %s', (_label, call, url) => {
@@ -145,6 +150,7 @@ describe('üye yolu api\'den (karşılaştırma: testin ayırt ediciliği)', () 
     ['confirm-failed', () => paymentsApi.confirmFailed(PAY)],
     ['direct-form', () => paymentsApi.directForm({ checkoutGroupId: GROUP, paymentId: PAY })],
     ['status', () => paymentsApi.getStatusLight(PAY)],
+    ['installment-options', () => paymentsApi.installmentOptions({ savedCardId: 'c-1', paymentId: PAY })],
   ])('üye %s api\'den gider', async (_label, call) => {
     await call();
     expect(sent[0].instance).toBe('api');

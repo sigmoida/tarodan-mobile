@@ -3120,7 +3120,29 @@
     "retryTitle": "Ödemeyi Yeniden Dene",
     "retryStarted": "Yeniden deneme başlatıldı",
     "savedCardsIntroNeutral": "Yeni kart, ödeme sırasında \"kartımı kaydet\" ile eklenir.",
-    "deleteCardBodyNeutral": "{brand} •••• {last4} kartını silmek istediğine emin misin?"
+    "deleteCardBodyNeutral": "{brand} •••• {last4} kartını silmek istediğine emin misin?",
+    "installments": {
+      "title": "Taksit seçenekleri",
+      "single": "Tek çekim",
+      "count": "{count} taksit",
+      "monthly": "{count} x {amount}",
+      "total": "Toplam {amount}",
+      "fee": "Vade farkı {amount}",
+      "noFee": "Vade farksız",
+      "enterCard": "Taksit seçeneklerini görmek için kart numaranızı girin.",
+      "loading": "Taksit seçenekleri yükleniyor",
+      "notEligible": "Bu kartla yalnız tek çekim ödeme yapılabilir.",
+      "notOffered": "Bu ödeme için yalnız tek çekim kullanılabilir.",
+      "belowMinimum": "Taksit, {amount} ve üzeri ödemelerde kullanılabilir.",
+      "unavailable": "Taksit seçenekleri şu an gösterilemiyor. Tek çekim ile ödeyebilirsiniz.",
+      "terms": "{count} taksit: aylık {monthly}, vade farkı {fee}, toplam {total}.",
+      "refundNote": "Taksitli ödemelerin iadesi, bankanızın uygulamasına göre kartınıza taksitler hâlinde yansıyabilir."
+    },
+    "summary": {
+      "installments": "Taksit",
+      "installmentFee": "Vade farkı",
+      "chargedTotal": "Karttan çekilen tutar"
+    }
   },
   "seller": {
     "sellerProfile": "Satıcı Profili",
@@ -7171,9 +7193,6 @@
       "groupOrderItemNotAwaitingPayment": "Gruptaki \"{item}\" siparişi ödeme beklemiyor. Lütfen sepeti yeniden oluşturun.",
       "groupOrderNotAwaitingPayment": "Gruptaki bir sipariş ödeme beklemiyor. Lütfen sepeti yeniden oluşturun.",
       "holdNotReleasable": "Serbest bırakılabilir ödeme bulunamadı (açık iade nedeniyle dondurulmuş olabilir)",
-      "installmentInfoFetchFailed": "Taksit bilgisi alınamadı",
-      "installmentInfoUnavailable": "Taksit bilgileri alınamadı",
-      "installmentResponseInvalid": "Taksit bilgisi alınamadı",
       "loginRequired": "Oturum açmanız gerekiyor",
       "loginRequiredForOrder": "Bu sipariş için giriş yapmanız gerekiyor",
       "loginRequiredForPayment": "Bu ödeme için giriş yapmanız gerekiyor",
@@ -7222,7 +7241,11 @@
       "unexpectedResponse": "Ödeme altyapısı beklenmeyen bir yanıt döndü; kart bilgilerinizi kontrol edin.",
       "unknownProvider": "Bilinmeyen ödeme sağlayıcı: {provider}",
       "viewPaymentForbidden": "Bu ödemeyi görüntüleme yetkiniz yok",
-      "viewStatusForbidden": "Bu ödeme durumunu görüntüleme yetkiniz yok"
+      "viewStatusForbidden": "Bu ödeme durumunu görüntüleme yetkiniz yok",
+      "installmentNotOffered": "Seçtiğiniz taksit bu kart ve tutar için kullanılamıyor.",
+      "installmentPricingChanged": "Taksit tutarı güncellendi. Lütfen yeni tutarı kontrol edip tekrar deneyin.",
+      "installmentUnavailable": "Taksit şu an kullanılamıyor. Tek çekim ile devam edebilirsiniz.",
+      "paymentAmountOutOfDate": "Ödeme tutarı güncellendi. Lütfen güncel tutarı kontrol edip tekrar deneyin."
     },
     "product": {
       "alreadyLiked": "Bu ürünü zaten beğendiniz",

@@ -8,7 +8,20 @@ import { ScreenHeader, ErrorState } from '@/components/common';
 import { captureException } from '@/services/sentry';
 import CardPaymentForm from '@/components/CardPaymentForm';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
-import { paymentCapabilities, SAFE_PAYMENT_CONFIG, type PaymentConfig, type PaymentPurpose } from '@/lib/payment/capabilities';
+import {
+  installmentsConfigOf,
+  paymentCapabilities,
+  SAFE_PAYMENT_CONFIG,
+  type PaymentConfig,
+  type PaymentPurpose,
+} from '@/lib/payment/capabilities';
+import {
+  initiatedPaymentIdOf,
+  installmentSelectorModeOf,
+  INSTALLMENTS_OFF,
+  type InstallmentSelectorMode,
+} from '@/lib/payment/installments';
+import { isServerOrNetworkFailure } from '@/lib/api/reauthError';
 import {
   paymentKindOf,
   paymentTargetOf,
@@ -54,6 +67,11 @@ export default function PaymentScreen() {
     type?: string;
     /** Üyelik kademesi (basic|premium|business) — success ekranına taşınır. */
     tier?: string;
+    /**
+     * '1' when this screen was opened by the stale-amount restart (`handlePaymentOutdated`): the
+     * replace remounts the screen, so the once-only guard must come from the route.
+     */
+    restarted?: string;
     /** Takas nakit farkı ödemesi: başarı → /trade/{tradeId} */
     tradeId?: string;
     tradeCash?: string;
@@ -80,6 +98,8 @@ export default function PaymentScreen() {
     isMembership: boolean;
     /** Durum yanıtı üyelik dedi ve dijital satış kapalı → ödeme formu yok. */
     digitalBlocked: boolean;
+    /** Installment selector for this payment (switch, payment kind, minimum amount). */
+    installments: InstallmentSelectorMode;
   }>({
     loading: true,
     error: null,
@@ -88,6 +108,7 @@ export default function PaymentScreen() {
     cardStorageEnabled: false,
     isMembership,
     digitalBlocked: false,
+    installments: INSTALLMENTS_OFF,
   });
 
   const resolvedRef = useRef(false);
@@ -110,21 +131,20 @@ export default function PaymentScreen() {
   }, [paymentId]);
 
   const load = async () => {
-    // Dijital satış kapalıyken (iOS + Android: `CAN_BUY_DIGITAL`) üyelik ödemesi
-    // kabul edilmez (Apple 3.1.1 / Play ödeme politikası). Yalnız JSX'i
-    // kilitlemek yetmez: render kilidi devredeyken bu effect zaten tetiklenmiş
-    // olabiliyor, kilit olmasa `load()` durum sorgusunu ATAR, bypass açıksa
-    // ödemeyi TAMAMLAR ve /membership/success'e yönlendirip <Redirect>'i
-    // ezerdi. Bu yüzden imperative tarafta da aynı reddi tekrar ediyoruz —
-    // fiziksel yol (`isMembership` false) bundan hiç etkilenmez.
+    // With digital sales off (iOS + Android: `CAN_BUY_DIGITAL`) a membership payment is not
+    // accepted (Apple 3.1.1 / Play payments policy). Locking the JSX is not enough: this effect
+    // may already have run while the render lock is on, and without this check `load()` would
+    // send the status call, COMPLETE the payment when bypass is on and redirect to
+    // /membership/success over the <Redirect>. So the imperative side repeats the refusal; the
+    // physical path (`isMembership` false) is not affected.
     if ((isMembership || isBoost) && !CAN_BUY_DIGITAL) return;
     try {
       setState(s => ({ ...s, loading: true, error: null }));
 
-      // Public ödeme yapılandırması (bypass + amaç başına kart saklama) ve ödeme
-      // durumu (hedef + tutar + tamamlandı/başarısız) birbirinden bağımsız →
-      // aynı anda. Config hatası güvenli varsayılana düşer (yalnız yeni kart,
-      // bypass kapalı); durum hatası aşağıdaki catch'e gider.
+      // The public payment config (bypass, card storage per purpose, installments) and the
+      // payment status (target, amount, completed/failed) are independent: both at once. A
+      // config failure falls back to the safe default (new card only, bypass and installments
+      // off); a status failure goes to the catch below.
       const [cfg, res] = await Promise.all([
         paymentsApi
           .getConfig()
@@ -135,9 +155,9 @@ export default function PaymentScreen() {
       const data: PaymentStatusLight = res?.data?.data ?? res?.data ?? {};
       const kind = paymentKindOf(params.type, data);
 
-      // Rota `type` taşımadan gelen üyelik ödemesi (başarısız ödeme ekranından /
-      // Ödemelerim'den yeniden deneme): yukarıdaki kilit param'a bakıyor, burada
-      // durum yanıtıyla tekrarlanır — bypass/yönlendirme/kart formu YOK.
+      // A membership payment reached without the route `type` (retry from the fail screen or
+      // My Payments): the lock above reads the param, here it is repeated from the status
+      // answer; no bypass, no redirect, no card form.
       if (kind.isMembership && !CAN_BUY_DIGITAL) {
         setState(s => ({ ...s, loading: false, digitalBlocked: true }));
         return;
@@ -152,7 +172,7 @@ export default function PaymentScreen() {
         return;
       }
 
-      // PAYMENT_BYPASS (dev/test): kart formu anlamsız — ödemeyi anında tamamla.
+      // PAYMENT_BYPASS (dev/test): no card form, complete the payment at once.
       if (cfg.bypassEnabled && data.status === 'pending') {
         if (resolvedRef.current) return;
         resolvedRef.current = true;
@@ -169,7 +189,7 @@ export default function PaymentScreen() {
         return;
       }
 
-      // Hedef status'tan türetilir; tradeId status'ta yoksa param'dan tamamla (yedek).
+      // The target comes from the status; a missing tradeId falls back to the route param.
       const target = paymentTargetOf(data, params.tradeId);
       const hasTarget = !!(target.orderId || target.checkoutGroupId || target.tradeId);
       if (!hasTarget) {
@@ -183,16 +203,24 @@ export default function PaymentScreen() {
         return;
       }
 
+      const amount = data.amount != null ? Number(data.amount) : undefined;
       setState(s => ({
         ...s,
         loading: false,
         error: null,
         target,
-        amount: data.amount != null ? Number(data.amount) : undefined,
+        amount,
         purpose: kind.purpose,
         isMembership: kind.isMembership,
-        // Kayıtlı kart yalnız giriş yapmış kullanıcıya gösterilir.
+        // Saved cards only for a signed-in buyer.
         cardStorageEnabled: paymentCapabilities(cfg, kind.purpose).cardStorageEnabled && !isGuest,
+        installments: installmentSelectorModeOf({
+          config: installmentsConfigOf(cfg),
+          amount,
+          isMembership: kind.isMembership,
+          isBoost: kind.isBoost,
+          target,
+        }),
       }));
     } catch (e: any) {
       captureException(e, {
@@ -263,6 +291,53 @@ export default function PaymentScreen() {
     else router.replace('/orders' as never);
   };
 
+  /** Starts the payment anew at the current order / cart / trade total (the checkout and order "Pay" call). */
+  const reinitiate = (target: DirectFormTarget) => {
+    if (target.tradeId) return paymentsApi.initiateTradeCash(target.tradeId);
+    if (target.checkoutGroupId) {
+      return isGuest ? paymentsApi.initiateGroupGuest(target.checkoutGroupId) : paymentsApi.initiateGroup(target.checkoutGroupId);
+    }
+    if (target.orderId) return isGuest ? paymentsApi.initiateGuest(target.orderId) : paymentsApi.initiate(target.orderId);
+    return null;
+  };
+
+  /**
+   * direct-form answered 409 `paymentAmountOutOfDate` (A4): the payment's amount no longer
+   * matches its order, cart or trade total, and reading it again cannot fix that. Once per
+   * screen the payment is initiated anew (the server resets a pending row to the current total,
+   * CAS-guarded; nothing is charged): the screen shows its loader meanwhile (no second Pay), then
+   * reloads, or opens the new payment id the server answered (with `restarted: '1'`, since
+   * expo-router remounts the screen on replace and a ref would reset). A second refusal on this
+   * screen or on the restarted payment, a failed start, or a membership payment sends the buyer
+   * to the payment's target instead of starting again, so the buyer can never loop here.
+   */
+  const outdatedRef = useRef(params.restarted === '1');
+  const handlePaymentOutdated = async () => {
+    const { target, isMembership: membership } = state;
+    if (!target) return;
+    const request = membership || outdatedRef.current ? null : reinitiate(target);
+    outdatedRef.current = true;
+    if (!request) {
+      routeToTarget(target, membership);
+      return;
+    }
+    setState((s) => ({ ...s, loading: true, error: null }));
+    try {
+      const next = initiatedPaymentIdOf((await request)?.data) ?? paymentId;
+      if (next !== paymentId) {
+        router.replace({ pathname: '/payment/[id]', params: { ...params, id: next, restarted: '1' } } as never);
+        return;
+      }
+    } catch (e) {
+      if (isServerOrNetworkFailure(e)) {
+        captureException(e, { level: 'error', tags: { flow: 'payment.reinitiate' }, extra: { paymentId } });
+      }
+      routeToTarget(target, membership);
+      return;
+    }
+    await load();
+  };
+
   const routeToFail = (pid: string = paymentId) => {
     router.replace({ pathname: '/payment/fail', params: { paymentId: pid, guest: params.guest } } as any);
   };
@@ -301,6 +376,8 @@ export default function PaymentScreen() {
             cardStorageEnabled={state.cardStorageEnabled}
             isGuest={isGuest}
             paymentId={paymentId}
+            installments={state.installments}
+            onPaymentOutdated={handlePaymentOutdated}
             onSuccess={(pid) => routeToSuccess(pid, state.isMembership)}
             onFail={() => routeToFail()}
             onUncertain={() => routeToTarget(state.target!, state.isMembership)}

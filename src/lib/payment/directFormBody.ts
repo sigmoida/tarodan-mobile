@@ -1,3 +1,5 @@
+import type { DirectFormInstallmentSelection } from '@/types/installments';
+
 /**
  * `POST /payments/direct-form` gövdesi — tek üretici (para akışı; birim testli).
  *
@@ -19,6 +21,11 @@ export type DirectFormBody = DirectFormTarget & {
    * Teklif siparişinin checkout adımı yok: onayın sunucuya ulaştığı TEK yer burası.
    */
   distanceSalesAccepted?: boolean;
+  /**
+   * The installment the buyer chose (ADR 0019, `installmentSelectionOf`). Absent = single
+   * payment. Holds at most the BIN (first 8 digits) of a new card, never the card number.
+   */
+  installment?: DirectFormInstallmentSelection;
 };
 
 export type DirectFormCard =
@@ -36,13 +43,16 @@ export function buildDirectFormBody(input: {
   card: DirectFormCard;
   /** Onay kutusu bu ekranda gösterildiyse durumu; gösterilmediyse `undefined` (alan gönderilmez). */
   distanceSalesAccepted?: boolean;
+  /** Chosen count above 1 (`installmentSelectionOf`); `undefined` = single payment (no field). */
+  installment?: DirectFormInstallmentSelection;
 }): DirectFormBody {
-  const { target, paymentId, card, distanceSalesAccepted } = input;
+  const { target, paymentId, card, distanceSalesAccepted, installment } = input;
   return {
     ...target,
     ...(paymentId ? { paymentId } : {}),
     // `saveCard` yeni kartta HER ZAMAN açıkça gider: gönderilmezse sunucu üyelikte kartı saklar.
     ...(card.kind === 'new' ? { saveCard: card.save } : { savedCardId: card.id }),
     ...(distanceSalesAccepted !== undefined ? { distanceSalesAccepted } : {}),
+    ...(installment ? { installment } : {}),
   };
 }

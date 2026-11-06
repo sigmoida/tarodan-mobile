@@ -76,6 +76,37 @@ describe('J71 · Ödeme başarılı render', () => {
   });
 });
 
+describe('installment payment (ADR 0019): count, fee and the charged total', () => {
+  beforeEach(() => {
+    __resetVerifyPacer();
+    getStatusMock.mockReset();
+    (paymentsApi.verify as jest.Mock).mockResolvedValue({});
+    mockParams = { paymentId: 'pay-1' };
+  });
+
+  it('3 installments: the rows under the amount', async () => {
+    getStatusMock.mockResolvedValue({
+      data: { data: infoFixture({ amount: 1000, installmentCount: 3, installmentFeeAmount: 66.38, chargedAmount: 1066.38 }) },
+    });
+    renderWithProviders(<PaymentSuccessScreen />);
+    expect(await screen.findByText('3 taksit')).toBeOnTheScreen();
+    expect(screen.getByText('1.000,00 TL')).toBeOnTheScreen();
+    expect(screen.getByText('Vade farkı')).toBeOnTheScreen();
+    expect(screen.getByText('66,38 TL')).toBeOnTheScreen();
+    expect(screen.getByText('Karttan çekilen tutar')).toBeOnTheScreen();
+    expect(screen.getByText('1.066,38 TL')).toBeOnTheScreen();
+  });
+
+  it('single payment: no installment rows', async () => {
+    getStatusMock.mockResolvedValue({
+      data: { data: infoFixture({ installmentCount: 1, installmentFeeAmount: 0, chargedAmount: 350 }) },
+    });
+    renderWithProviders(<PaymentSuccessScreen />);
+    expect(await screen.findByText('ORD-1001000000')).toBeOnTheScreen();
+    expect(screen.queryByText('Karttan çekilen tutar')).toBeNull();
+  });
+});
+
 describe('J72 · Ödeme başarılı navigasyon wiring', () => {
   beforeEach(() => {
     jest.clearAllMocks();

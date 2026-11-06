@@ -1,5 +1,6 @@
 // DTO types of the order detail route.
 import type { OrderKind } from '@/types';
+import type { PaymentInstallmentFields } from '@/types/installments';
 
 export interface OrderDetail {
   id: string;
@@ -97,7 +98,11 @@ export interface OrderDetail {
   hasSellerRating?: boolean;
   isBuyer?: boolean;
   isSeller?: boolean;
-  payment?: { status?: string } | null;
+  /**
+   * The order's (or its cart's) payment. The installment fields come only to the buyer
+   * (ADR 0019) and are the payment's: in a cart they cover every order of the cart.
+   */
+  payment?: ({ status?: string; amount?: number } & PaymentInstallmentFields) | null;
   activeRefundRequest?: {
     id: string;
     refundNumber?: string;

@@ -13,6 +13,8 @@ import { formatPrice } from '@/utils/format';
 import { PageShell } from '@/components/common/PageShell';
 import { useHardwareBackToHome } from '@/hooks/useBlockHardwareBack';
 import { PaymentResultCard, PaymentResultRow } from '@/components/payment/PaymentResultCard';
+import { installmentSummaryRows } from '@/components/payment/installmentSummary';
+import type { PaymentInstallmentFields } from '@/types/installments';
 import { offerNotificationPrompt } from '@/lib/notifications/prePrompt';
 
 // Web'deki OrderStatusLabels ile uyumlu durum etiketleri
@@ -25,7 +27,8 @@ const buildStatusLabels = (t: TFunction): Record<string, string> => ({
   processing: t('payment.statusProcessing'),
 });
 
-interface PaymentInfo {
+/** `GET /payments/:id/status[-guest]`; the installment fields come only to the payer (ADR 0019). */
+interface PaymentInfo extends PaymentInstallmentFields {
   id: string;
   orderId?: string;
   checkoutGroupId?: string;
@@ -226,6 +229,11 @@ export default function PaymentSuccessScreen() {
             {info.amount ? (
               <PaymentResultRow label={t('common.amount')}>{formatPrice(info.amount)}</PaymentResultRow>
             ) : null}
+            {installmentSummaryRows(info, t).map((row) => (
+              <PaymentResultRow key={row.key} label={row.label}>
+                {row.value}
+              </PaymentResultRow>
+            ))}
             {info.status ? (
               <PaymentResultRow label={t('common.status')}>
                 <Badge variant={isCompleted ? 'success' : 'warning'}>

@@ -4,6 +4,7 @@ import { apiPath } from './path';
 import type { DirectFormResponse } from '@/lib/payment/paytrDirectForm';
 import type { PaymentConfig } from '@/lib/payment/capabilities';
 import type { DirectFormBody } from '@/lib/payment/directFormBody';
+import type { InstallmentOptionsRequest, InstallmentOptionsResponse } from '@/types/installments';
 import {
   forgetPaymentCapability,
   rememberPaymentCapability,
@@ -156,4 +157,14 @@ export const paymentsApi = {
   /** Misafir direct-form: `guestApi` + yetki belirteci (gövdede `paymentId` zorunlu). */
   directFormGuest: (body: DirectFormBody) =>
     guestPaymentHttp(body.paymentId).post<DirectFormResponse>('/payments/direct-form', body),
+  /**
+   * `POST /payments/installment-options` (ADR 0019): read-only pricing of one card for one
+   * payment. Same access rule as direct-form (the buyer, or the payment capability header).
+   * PCI: the body carries at most the first 8 card digits (`bin`), never the card number.
+   */
+  installmentOptions: (body: InstallmentOptionsRequest, config?: Pick<AxiosRequestConfig, 'signal'>) =>
+    paymentHttp(body.paymentId).post<InstallmentOptionsResponse>('/payments/installment-options', body, config),
+  /** Guest installment options: `guestApi` + the payment capability (`paymentId` required). */
+  installmentOptionsGuest: (body: InstallmentOptionsRequest, config?: Pick<AxiosRequestConfig, 'signal'>) =>
+    guestPaymentHttp(body.paymentId).post<InstallmentOptionsResponse>('/payments/installment-options', body, config),
 };

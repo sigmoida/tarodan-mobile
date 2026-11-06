@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import { AppImage } from '@/components/AppImage';
 import { PaymentResultRow } from '@/components/payment/PaymentResultCard';
+import { installmentSummaryRows } from '@/components/payment/installmentSummary';
 import { useTranslation } from 'react-i18next';
 import {
   AccordionContent,
@@ -58,6 +59,11 @@ export function PaymentHistoryItem({ item }: { item: Payment }) {
         <AccordionContent style={styles.details} testID={`payment-history-details-${item.id}`}>
           <Divider />
           <PaymentResultRow label={t('common.amount')}>{formatCurrency(item.amount)}</PaymentResultRow>
+          {installmentSummaryRows(item.installment, t).map((row) => (
+            <PaymentResultRow key={row.key} label={row.label}>
+              {row.value}
+            </PaymentResultRow>
+          ))}
           <PaymentResultRow label={t('common.date')}>{formatDate(item.createdAt)}</PaymentResultRow>
           <PaymentResultRow label={t('common.status')}>{badge}</PaymentResultRow>
           {item.method ? (

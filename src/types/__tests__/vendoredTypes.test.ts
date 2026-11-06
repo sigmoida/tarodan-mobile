@@ -11,6 +11,8 @@ import fs from 'fs';
 import path from 'path';
 
 import * as boost from '../boost';
+import * as installments from '../installments';
+import * as platformSetting from '../platform-setting';
 import * as cardAction from '../product-card-action';
 import * as negotiatedAmount from '../negotiated-amount';
 import * as slug from '../slug';
@@ -57,6 +59,46 @@ describe('vendored boost types', () => {
     expect(boost.isBoostEnabled(undefined)).toBe(true);
     expect(boost.isBoostEnabled('')).toBe(true);
     expect(boost.isBoostEnabled(' FALSE ')).toBe(false);
+  });
+});
+
+describe('vendored installment types (ADR 0019)', () => {
+  it('exports the bounds, reasons, segments, settings and rule helpers', () => {
+    expect(Object.keys(installments).sort()).toEqual(
+      [
+        'INSTALLMENT_COUNT_MAX',
+        'INSTALLMENT_COUNT_MIN',
+        'INSTALLMENT_OPTIONS_REASONS',
+        'INSTALLMENT_RULE_NAME_MAX',
+        'INSTALLMENT_RULE_PRIORITY_MAX',
+        'INSTALLMENT_RULE_PRIORITY_MIN',
+        'INSTALLMENT_RULE_SHARE_DECIMALS',
+        'INSTALLMENT_RULE_STATUSES',
+        'INSTALLMENT_SEGMENTS',
+        'INSTALLMENT_SETTINGS',
+        'installmentRuleStatusOf',
+        'installmentRuleViolationKey',
+        'installmentRulesOverlap',
+        'isInstallmentSegment',
+        'isInstallmentSettingKey',
+        'parseInstallmentMinAmount',
+        'parseInstallmentsEnabled',
+        'validateInstallmentMinAmount',
+        'validateInstallmentRule',
+      ].sort(),
+    );
+    expect(Object.keys(platformSetting).sort()).toEqual(['isPlatformSettingOn', 'platformSettingOnOffValue']);
+  });
+
+  it('the count bounds and the reasons the pay screen maps to copy', () => {
+    expect(installments.INSTALLMENT_COUNT_MAX).toBe(12);
+    expect([...installments.INSTALLMENT_OPTIONS_REASONS]).toEqual([
+      'disabled',
+      'not_offered_for_payment',
+      'card_not_eligible',
+      'below_minimum',
+      'unavailable',
+    ]);
   });
 });
 
@@ -188,7 +230,7 @@ describeWithSource('against the tarodan-app source (TARODAN_APP_ROOT)', () => {
   const body = (file: string) =>
     fs.readFileSync(file, 'utf8').split('\n').slice(VENDORED_HEADER_LINES).join('\n').trimStart();
 
-  it.each(['boost', 'product-card-action', 'negotiated-amount', 'slug', 'virtual-order'])('%s matches packages/types/src', (name) => {
+  it.each(['boost', 'installments', 'platform-setting', 'product-card-action', 'negotiated-amount', 'slug', 'virtual-order'])('%s matches packages/types/src', (name) => {
     const vendored = body(path.join(__dirname, '..', `${name}.ts`));
     const source = fs.readFileSync(path.join(appRoot!, 'packages/types/src', `${name}.ts`), 'utf8');
     expect(vendored).toBe(source.trimStart());

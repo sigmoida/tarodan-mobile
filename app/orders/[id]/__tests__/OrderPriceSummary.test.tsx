@@ -76,3 +76,37 @@ describe('OrderPriceSummary service VAT', () => {
     expect(screen.queryByText('KDV')).toBeNull();
   });
 });
+
+describe('OrderPriceSummary installment lines (ADR 0019)', () => {
+  const pricing = { subtotal: 619.92, shippingAmount: 50, buyerFeeAmount: 62, totalAmount: 754.32 };
+  const paid = { status: 'completed', amount: 754.32, installmentCount: 6, installmentFeeAmount: 0, chargedAmount: 754.32 };
+
+  it('buyer: count, "no installment fee" and the charged total of the payment', () => {
+    render(<OrderPriceSummary order={{ ...orderWithPricing(pricing), isBuyer: true, payment: paid }} isDigitalOrder={false} />);
+    expect(screen.getByText('6 taksit')).toBeTruthy();
+    expect(screen.getByText('Vade farksız')).toBeTruthy();
+    expect(screen.getByText('Karttan çekilen tutar')).toBeTruthy();
+  });
+
+  it('seller or single payment: no installment lines', () => {
+    render(
+      <OrderPriceSummary order={{ ...orderWithPricing(pricing), isSeller: true, payment: paid }} isDigitalOrder={false} />,
+    );
+    expect(screen.queryByText('6 taksit')).toBeNull();
+    render(
+      <OrderPriceSummary
+        order={{ ...orderWithPricing(pricing), payment: { status: 'completed', installmentCount: 1, chargedAmount: 754.32 } }}
+        isDigitalOrder={false}
+      />,
+    );
+    expect(screen.queryByText('Karttan çekilen tutar')).toBeNull();
+  });
+
+  it('cart of several orders: only the count, not the cart-wide fee and charged total', () => {
+    const cartPayment = { status: 'completed', amount: 1000, installmentCount: 3, installmentFeeAmount: 66.38, chargedAmount: 1066.38 };
+    render(<OrderPriceSummary order={{ ...orderWithPricing(pricing), payment: cartPayment }} isDigitalOrder={false} />);
+    expect(screen.getByText('3 taksit')).toBeTruthy();
+    expect(screen.queryByText('66,38 TL')).toBeNull();
+    expect(screen.queryByText('Karttan çekilen tutar')).toBeNull();
+  });
+});

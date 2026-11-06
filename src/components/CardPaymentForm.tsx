@@ -5,10 +5,21 @@ import { useTranslation } from 'react-i18next';
 import { CAN_BUY_DIGITAL } from '@/lib/purchases';
 import { Button, Input, Checkbox, Text, theme, appAlert, Icon, RadioIndicator, LoadingIndicator, usePageContentStyle } from '@/ui';
 import { paymentsApi } from '@/lib/api';
+import { apiErrorLines, errorText } from '@/lib/api/errorText';
 import type { PaymentPurpose } from '@/lib/payment/capabilities';
 import { buildDirectFormBody, type DirectFormBody, type DirectFormTarget } from '@/lib/payment/directFormBody';
 import { useSavedCards } from '@/lib/payment/useSavedCards';
 import { DistanceSalesConsent } from '@/components/payment/DistanceSalesConsent';
+import { InstallmentOptions, type InstallmentOptionsView } from '@/components/payment/InstallmentOptions';
+import {
+  installmentBinOf,
+  installmentSelectionOf,
+  installmentSigningErrorOf,
+  INSTALLMENTS_OFF,
+  type InstallmentCardSource,
+  type InstallmentSelectorMode,
+} from '@/lib/payment/installments';
+import { useInstallmentOptions } from '@/lib/payment/useInstallmentOptions';
 import {
   assertSafePaytrForm,
   buildPaytrFormHtml,
@@ -19,7 +30,7 @@ import {
 import { PAYMENT_POLL_DURATION_MS, PAYMENT_STATUS_POLL_MS, startVerifyLoop } from '@/lib/payment/verifyPacer';
 import { isPaidPaymentStatus } from '@/lib/payment/status';
 import { threeDSCallbackResult } from '@/lib/payment/threeDSCallback';
-import { formatPriceNumber } from '@/utils/format';
+import { formatPrice, formatPriceNumber } from '@/utils/format';
 import { useScreenCaptureProtection } from '@/lib/security/screenCapture';
 
 /**
@@ -70,6 +81,16 @@ interface Props {
    * ağı devreye alınır; sert "başarısız" gösterilmez.
    */
   paymentId?: string;
+  /**
+   * Installment selector (ADR 0019), decided by the screen (`installmentSelectorModeOf`): off,
+   * only the below-minimum note, or on. `on` needs `paymentId` (options are priced for it).
+   */
+  installments?: InstallmentSelectorMode;
+  /**
+   * direct-form answered 409 `paymentAmountOutOfDate` (the order or cart total changed): the
+   * screen reloads the payment after the buyer read the alert. Without it the form stays.
+   */
+  onPaymentOutdated?: () => void;
 }
 
 const NEW_CARD = '__new__';
@@ -89,6 +110,8 @@ export default function CardPaymentForm({
   cardStorageEnabled = false,
   isGuest = false,
   paymentId: initialPaymentId,
+  installments: installmentMode = INSTALLMENTS_OFF,
+  onPaymentOutdated,
 }: Props) {
   const { t } = useTranslation();
   // Large screens: edge to edge with the tablet gutter (src/ui/CLAUDE.md › Large screens).
@@ -126,10 +149,12 @@ export default function CardPaymentForm({
   const onSuccessRef = useRef(onSuccess);
   const onFailRef = useRef(onFail);
   const onUncertainRef = useRef(onUncertain);
+  const onPaymentOutdatedRef = useRef(onPaymentOutdated);
   useEffect(() => {
     onSuccessRef.current = onSuccess;
     onFailRef.current = onFail;
     onUncertainRef.current = onUncertain;
+    onPaymentOutdatedRef.current = onPaymentOutdated;
   });
 
   const resolveSuccess = (pid: string) => {
@@ -227,6 +252,32 @@ export default function CardPaymentForm({
   }, [threeDSHtml, verifying, paymentId, isGuest]);
 
   const selectedCard = useMemo(() => cards.find((c) => c.id === selected) || null, [cards, selected]);
+
+  // Installments (ADR 0019): priced for the new card's BIN (first 8 digits only) or the saved
+  // card. The choice belongs to one card: another BIN or card resets it to the single payment.
+  const newCardBin = selected === NEW_CARD ? installmentBinOf(number) : null;
+  const installmentSource = useMemo<InstallmentCardSource | null>(() => {
+    if (selected === NEW_CARD) return newCardBin ? { kind: 'bin', bin: newCardBin } : null;
+    return selectedCard ? { kind: 'saved', savedCardId: selectedCard.id } : null;
+  }, [selected, newCardBin, selectedCard]);
+  const installments = useInstallmentOptions({
+    paymentId: initialPaymentId,
+    amount,
+    isGuest,
+    source: installmentSource,
+    enabled: installmentMode.kind === 'on' && !!initialPaymentId,
+  });
+  const installmentChosen = installments.chosen;
+  const installmentPending = installments.pending;
+  const installmentView: InstallmentOptionsView | null =
+    installmentMode.kind === 'belowMinimum'
+      ? { status: 'done', offer: { kind: 'single', reason: 'below_minimum', minAmount: installmentMode.minAmount } }
+      : installmentMode.kind === 'off' || !initialPaymentId
+        ? null
+        : selected === NEW_CARD && !newCardBin
+          ? { status: 'enterCard' }
+          : installments.state;
+  const payAmount = installmentChosen ? installmentChosen.totalAmount : amount;
   // "Oto-yenileme" metni yalnız üyelik ödemesinde — ve dijital satış açıkken
   // (Apple 2.1(b) / Play: satılmayan aboneliğe atıf yok). Sepet: "sonraki ödemeler".
   const renewalCopy = purpose === 'membership' && CAN_BUY_DIGITAL;
@@ -245,8 +296,8 @@ export default function CardPaymentForm({
   }
 
   async function submit() {
-    if (processing) return;
-    // Düğme zaten kapalı; yine de onaysız ödeme isteği hiç gitmesin.
+    if (processing || installmentPending) return;
+    // The button is disabled already; still, no payment request without the consent.
     if (!distanceSalesAccepted) return;
 
     let body: DirectFormBody;
@@ -263,6 +314,7 @@ export default function CardPaymentForm({
         paymentId: initialPaymentId,
         card: { kind: 'new', save: cardStorageEnabled && saveCard },
         distanceSalesAccepted,
+        installment: installmentSelectionOf(installmentChosen, installmentSource),
       });
       cardFields = cardFieldsForNewCard({
         holder,
@@ -281,19 +333,20 @@ export default function CardPaymentForm({
         paymentId: initialPaymentId,
         card: { kind: 'saved', id: selected },
         distanceSalesAccepted,
+        installment: installmentSelectionOf(installmentChosen, installmentSource),
       });
       cardFields = cardFieldsForSavedCard(selectedCard?.requireCvv ? savedCvv : undefined);
     }
 
     setProcessing(true);
     try {
-      // Misafir `guestApi`'den: cihazda kalmış token eklenmez, 401'de çıkış yapılmaz.
+      // A guest goes through `guestApi`: no stale device token is added, no sign-out on 401.
       const res = await (isGuest ? paymentsApi.directFormGuest(body) : paymentsApi.directForm(body));
       const data = res.data;
       setPaymentId(data.paymentId);
 
-      // İki güvenlik kontrolü: hedef tam olarak PayTR mı, sunucu ham kart alanı
-      // gönderiyor mu. Başarısızsa akış İPTAL edilir (kart bilgisi hiçbir yere gitmez).
+      // Two safety checks: is the target exactly PayTR, and does the server send a raw card
+      // field. If either fails the flow is CANCELLED (the card data goes nowhere).
       assertSafePaytrForm(data);
 
       const savedCardCvvRequired = data.savedCard === true && data.requireCvv === false;
@@ -301,32 +354,67 @@ export default function CardPaymentForm({
       setThreeDSHtml(buildPaytrFormHtml(PAYTR_ACTION, fields));
       setProcessing(false);
       return;
-    } catch (e: any) {
-      // Güvenlik doğrulaması reddi — tekrar denemek çözmez, kullanıcıya net söyle.
+    } catch (caught: unknown) {
+      const e = caught as { code?: string; message?: string; response?: { data?: { message?: unknown } } } | null;
+      // The safety check refused the form: retrying does not help, say so plainly.
       if (e?.code === 'PAYTR_BAD_ACTION' || e?.code === 'PAYTR_RAW_CARD_FIELD' || e?.code === 'PAYTR_NO_FIELDS') {
         appAlert(t('payment.stoppedTitle'), e.message, undefined, PAYMENT_ALERT);
         setProcessing(false);
         return;
       }
-      // Ağ/timeout hatası (30sn client-timeout dahil): sunucudan yanıt YOK demek, sunucu
-      // charge'ı işlemiş olabilir. Gerçek API reddi (4xx/5xx yanıtlı) bu değildir.
+      // Network error or timeout (the 30 s client timeout included): no answer, so the server
+      // may have processed the charge. A real API refusal (a 4xx/5xx answer) is not this.
       const isNetworkOrTimeout = e?.code === 'ECONNABORTED' || !e?.response;
       if (isNetworkOrTimeout && initialPaymentId) {
-        // Sert "başarısız" gösterme — çağıran ekranın zaten bildiği paymentId ile mevcut
-        // poll/verify güvenlik ağını devreye al (processing=true kalır, buton spinner'da).
+        // No hard "failed": start the poll/verify safety net with the paymentId the screen
+        // already knows (processing stays true, the button keeps its spinner).
         setPaymentId(initialPaymentId);
         setVerifying(true);
         return;
       }
       if (isNetworkOrTimeout) {
-        // Elde ödeme referansı yok (beklenmeyen durum) — sert hata yerine bilgilendirme.
+        // No payment reference (unexpected): inform instead of a hard error.
         appAlert(t('payment.connectionIssueTitle'), t('payment.processingMaybeBody'), undefined, PAYMENT_ALERT);
         setProcessing(false);
         return;
       }
-      appAlert(t('common.error'), e?.response?.data?.message || t('payment.startFailed'));
+      // Installment refusals before anything was signed (A4 contract): nothing was charged.
+      const signingError = installmentSigningErrorOf(e);
+      if (signingError) {
+        setProcessing(false);
+        handleSigningError(signingError, apiErrorLines(e).join('\n'));
+        return;
+      }
+      // Server text (a validation answer is a list: its lines), else the generic message.
+      appAlert(t('common.error'), errorText(e, t('payment.startFailed')));
       setProcessing(false);
     }
+  }
+
+  function handleSigningError(error: NonNullable<ReturnType<typeof installmentSigningErrorOf>>, message: string) {
+    const serverText = message || null;
+    if (error === 'amountOutOfDate') {
+      const reload = onPaymentOutdatedRef.current;
+      appAlert(
+        t('common.error'),
+        serverText ?? t('server.payment.paymentAmountOutOfDate'),
+        reload ? [{ text: t('common.ok'), onPress: () => reload() }] : undefined,
+        // The reload must run: no dismissal by the back button or the backdrop.
+        reload ? PAYMENT_ALERT : undefined,
+      );
+      return;
+    }
+    // Total drifted: keep the count, show its new price and let the buyer confirm again.
+    // Not offered / unavailable: back to the single payment. Both re-read the options.
+    if (error === 'notOffered') installments.refuseChosen();
+    else if (error === 'unavailable') installments.resetToSingle();
+    void installments.refetch();
+    const fallback = {
+      pricingChanged: t('server.payment.installmentPricingChanged'),
+      unavailable: t('server.payment.installmentUnavailable'),
+      notOffered: t('server.payment.installmentNotOffered'),
+    }[error];
+    appAlert(t('payment.installments.title'), serverText ?? fallback);
   }
 
   // 3D Secure: bankanın doğrulama sayfası. Yalnız KENDİ dönüş adresimiz (katı köken + yol
@@ -413,6 +501,8 @@ export default function CardPaymentForm({
             <Pressable
               key={c.id}
               onPress={() => setPicked(c.id)}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selected === c.id }}
               style={[styles.row, selected === c.id && styles.rowActive]}
             >
               <RadioIndicator checked={selected === c.id} color={colors.primary[500]} />
@@ -436,6 +526,8 @@ export default function CardPaymentForm({
 
           <Pressable
             onPress={() => setPicked(NEW_CARD)}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: selected === NEW_CARD }}
             style={[styles.row, selected === NEW_CARD && styles.rowActive]}
           >
             <RadioIndicator checked={selected === NEW_CARD} color={colors.primary[500]} />
@@ -512,6 +604,28 @@ export default function CardPaymentForm({
         </View>
       )}
 
+      {installmentView && !loadingCards ? (
+        <InstallmentOptions
+          view={installmentView}
+          selectedCount={installmentChosen ? installmentChosen.count : 1}
+          onSelect={installments.select}
+          cardKey={installments.sourceKey}
+        />
+      ) : null}
+
+      {/* Pre-information (plan AS-L1): the installment terms stand next to the consent. */}
+      {installmentChosen ? (
+        <Text testID="installment-terms" variant="caption" tone="body" style={styles.consent}>
+          {t('payment.installments.terms', {
+            count: installmentChosen.count,
+            monthly: formatPrice(installmentChosen.monthlyAmount),
+            fee: formatPrice(installmentChosen.feeAmount),
+            total: formatPrice(installmentChosen.totalAmount),
+          })}{' '}
+          {t('payment.installments.refundNote')}
+        </Text>
+      ) : null}
+
       {/* Web `PaymentReady` ile aynı: hedefi olan HER ödemede (sipariş, sepet
           grubu, takas nakit farkı) kutu var; işaretlenmeden ödeme yok. */}
       <DistanceSalesConsent
@@ -525,11 +639,11 @@ export default function CardPaymentForm({
         testID="card-submit"
         onPress={submit}
         isLoading={processing}
-        disabled={loadingCards || !distanceSalesAccepted}
+        disabled={loadingCards || !distanceSalesAccepted || installmentPending}
         fullWidth
         title={
-          amount != null
-            ? t('payment.payAmount', { amount: formatPriceNumber(amount) })
+          payAmount != null
+            ? t('payment.payAmount', { amount: formatPriceNumber(payAmount) })
             : t('payment.payShort')
         }
         style={styles.payBtn}
@@ -564,13 +678,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: theme.spacing[2.5],
     padding: theme.spacing[3],
-    borderRadius: 12,
+    borderRadius: theme.radiusRole.card,
     borderWidth: 1,
     borderColor: colors.gray[200]!,
   },
   rowActive: { borderColor: colors.primary[500]!, backgroundColor: colors.primary[50]! },
-  cardLabel: { flex: 1, fontWeight: '600' },
-  cvvInline: { width: 80, marginBottom: theme.spacing[0] },
+  cardLabel: { flex: 1, fontWeight: theme.typography.fontWeight.semibold },
+  cvvInline: { width: theme.spacing[20], marginBottom: theme.spacing[0] },
   newCard: { gap: theme.spacing[2.5], paddingTop: theme.spacing[1] },
   saveCard: { gap: theme.spacing[1.5] },
   expRow: { flexDirection: 'row', gap: theme.spacing[2.5] },

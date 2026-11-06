@@ -6,7 +6,7 @@
  * eski bir sürüm de genel `recurringEnabled`'ı okuyup ürün ödemesinde
  * "oto-yenileme için kaydet" diyordu (canlı yapılandırma 2026-09-29).
  */
-import { paymentCapabilities, SAFE_PAYMENT_CONFIG } from '../capabilities';
+import { installmentsConfigOf, paymentCapabilities, SAFE_PAYMENT_CONFIG } from '../capabilities';
 
 const LIVE = {
   bypassEnabled: false,
@@ -47,5 +47,26 @@ describe('paymentCapabilities', () => {
       cardStorageEnabled: false,
       recurringEnabled: false,
     });
+  });
+});
+
+describe('installmentsConfigOf (ADR 0019, fail closed)', () => {
+  it('reads the switch and the minimum', () => {
+    expect(installmentsConfigOf({ ...LIVE, installments: { enabled: true, minAmount: 500 } })).toEqual({
+      enabled: true,
+      minAmount: 500,
+    });
+    expect(installmentsConfigOf({ installments: { enabled: true, minAmount: 0 } })).toEqual({ enabled: true, minAmount: 0 });
+  });
+  it('older API, failed config, switch off or a malformed minimum: off', () => {
+    const OFF = { enabled: false, minAmount: 0 };
+    expect(installmentsConfigOf(LIVE)).toEqual(OFF);
+    expect(installmentsConfigOf(SAFE_PAYMENT_CONFIG)).toEqual(OFF);
+    expect(installmentsConfigOf(null)).toEqual(OFF);
+    expect(installmentsConfigOf({ installments: { enabled: false, minAmount: 500 } })).toEqual(OFF);
+    expect(installmentsConfigOf({ installments: { enabled: 'true' as never, minAmount: 500 } })).toEqual(OFF);
+    expect(installmentsConfigOf({ installments: { enabled: true } })).toEqual(OFF);
+    expect(installmentsConfigOf({ installments: { enabled: true, minAmount: '500' as never } })).toEqual(OFF);
+    expect(installmentsConfigOf({ installments: { enabled: true, minAmount: -1 } })).toEqual(OFF);
   });
 });
